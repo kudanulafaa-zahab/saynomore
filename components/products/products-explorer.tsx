@@ -11,6 +11,7 @@ import {
   Boxes,
   Tag,
   Layers,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,10 +43,8 @@ import {
   createVariant,
   createSku,
   createCategory,
-  deleteBrand,
-  deleteModel,
-  deleteVariant,
   toggleSkuActive,
+  getCurrentUserRole,
   type CategoryRow,
   type BrandRow,
   type ModelRow,
@@ -55,6 +54,14 @@ import {
   type UnitUom,
   type CostBasis,
 } from "@/lib/queries/products";
+import {
+  EditBrandDialog,
+  EditModelDialog,
+  EditVariantDialog,
+  EditSkuDialog,
+  CascadeDeleteDialog,
+  type CascadeTarget,
+} from "./edit-dialogs";
 
 // ── Attribute metadata: how each attribute renders ──────────────────────
 
@@ -110,6 +117,22 @@ export function ProductsExplorer() {
   const [modelDialog, setModelDialog] = useState<{ open: boolean; brandId?: string }>({ open: false });
   const [variantDialog, setVariantDialog] = useState<{ open: boolean; modelId?: string }>({ open: false });
   const [skuDialog, setSkuDialog] = useState<{ open: boolean; variantId?: string }>({ open: false });
+
+  // Edit dialogs
+  const [editBrand, setEditBrand] = useState<BrandRow | null>(null);
+  const [editModel, setEditModel] = useState<ModelRow | null>(null);
+  const [editVariant, setEditVariant] = useState<VariantRow | null>(null);
+  const [editSku, setEditSku] = useState<SkuRow | null>(null);
+
+  // Cascade-delete dialog (admin only)
+  const [cascadeTarget, setCascadeTarget] = useState<CascadeTarget | null>(null);
+
+  // Current user role
+  const [role, setRole] = useState<"admin" | "manager" | "staff" | null>(null);
+  useEffect(() => {
+    getCurrentUserRole().then(setRole).catch(() => setRole(null));
+  }, []);
+  const isAdmin = role === "admin";
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -197,27 +220,21 @@ export function ProductsExplorer() {
             isOpen={openBrand === brand.id}
             openModel={openModel}
             openVariant={openVariant}
+            isAdmin={isAdmin}
             onToggle={() => setOpenBrand(openBrand === brand.id ? null : brand.id)}
             onToggleModel={(id) => setOpenModel(openModel === id ? null : id)}
             onToggleVariant={(id) => setOpenVariant(openVariant === id ? null : id)}
             onAddModel={() => setModelDialog({ open: true, brandId: brand.id })}
             onAddVariant={(modelId) => setVariantDialog({ open: true, modelId })}
             onAddSku={(variantId) => setSkuDialog({ open: true, variantId })}
-            onDeleteBrand={async () => {
-              if (!confirm(`Delete brand "${brand.name}"? Removes all its models, variants, and packs.`)) return;
-              try { await deleteBrand(brand.id); toast.success("Deleted"); loadAll(); }
-              catch (e) { toast.error((e as Error).message); }
-            }}
-            onDeleteModel={async (id) => {
-              if (!confirm("Delete model and everything under it?")) return;
-              try { await deleteModel(id); toast.success("Deleted"); loadAll(); }
-              catch (e) { toast.error((e as Error).message); }
-            }}
-            onDeleteVariant={async (id) => {
-              if (!confirm("Delete variant and its packs?")) return;
-              try { await deleteVariant(id); toast.success("Deleted"); loadAll(); }
-              catch (e) { toast.error((e as Error).message); }
-            }}
+            onEditBrand={() => setEditBrand(brand)}
+            onEditModel={(m) => setEditModel(m)}
+            onEditVariant={(v) => setEditVariant(v)}
+            onEditSku={(s) => setEditSku(s)}
+            onDeleteBrand={() => setCascadeTarget({ kind: "brand", id: brand.id, label: brand.name })}
+            onDeleteModel={(m) => setCascadeTarget({ kind: "model", id: m.id, label: m.name })}
+            onDeleteVariant={(v) => setCascadeTarget({ kind: "variant", id: v.id, label: v.display_name })}
+            onDeleteSku={(s) => setCascadeTarget({ kind: "sku", id: s.id, label: s.internal_code })}
             onToggleSku={async (id, active) => {
               try { await toggleSkuActive(id, active); loadAll(); }
               catch (e) { toast.error((e as Error).message); }
@@ -255,6 +272,48 @@ export function ProductsExplorer() {
         onOpenChange={(o) => setSkuDialog({ open: o })}
         onSaved={loadAll}
       />
+
+      {/* Edit dialogs */}
+      <EditBrandDialog
+        brand={editBrand}
+        open={!!editBrand}
+        onOpenChange={(o) => !o && setEditBrand(null)}
+        onSaved={loadAll}
+      />
+      <EditModelDialog
+        model={editModel}
+        categories={categories}
+        open={!!editModel}
+        onOpenChange={(o) => !o && setEditModel(null)}
+        onSaved={loadAll}
+      />
+      <EditVariantDialog
+        variant={editVariant}
+        category={
+          editVariant
+            ? categories.find(
+                (c) => c.id === models.find((m) => m.id === editVariant.model_id)?.category_id,
+              )
+            : undefined
+        }
+        open={!!editVariant}
+        onOpenChange={(o) => !o && setEditVariant(null)}
+        onSaved={loadAll}
+      />
+      <EditSkuDialog
+        sku={editSku}
+        open={!!editSku}
+        onOpenChange={(o) => !o && setEditSku(null)}
+        onSaved={loadAll}
+      />
+
+      {/* Cascade delete (admin) */}
+      <CascadeDeleteDialog
+        target={cascadeTarget}
+        open={!!cascadeTarget}
+        onOpenChange={(o) => !o && setCascadeTarget(null)}
+        onDone={loadAll}
+      />
     </div>
   );
 }
@@ -270,15 +329,21 @@ function BrandCard({
   isOpen,
   openModel,
   openVariant,
+  isAdmin,
   onToggle,
   onToggleModel,
   onToggleVariant,
   onAddModel,
   onAddVariant,
   onAddSku,
+  onEditBrand,
+  onEditModel,
+  onEditVariant,
+  onEditSku,
   onDeleteBrand,
   onDeleteModel,
   onDeleteVariant,
+  onDeleteSku,
   onToggleSku,
 }: {
   brand: BrandRow;
@@ -289,15 +354,21 @@ function BrandCard({
   isOpen: boolean;
   openModel: string | null;
   openVariant: string | null;
+  isAdmin: boolean;
   onToggle: () => void;
   onToggleModel: (id: string) => void;
   onToggleVariant: (id: string) => void;
   onAddModel: () => void;
   onAddVariant: (modelId: string) => void;
   onAddSku: (variantId: string) => void;
+  onEditBrand: () => void;
+  onEditModel: (m: ModelRow) => void;
+  onEditVariant: (v: VariantRow) => void;
+  onEditSku: (s: SkuRow) => void;
   onDeleteBrand: () => void;
-  onDeleteModel: (id: string) => void;
-  onDeleteVariant: (id: string) => void;
+  onDeleteModel: (m: ModelRow) => void;
+  onDeleteVariant: (v: VariantRow) => void;
+  onDeleteSku: (s: SkuRow) => void;
   onToggleSku: (id: string, active: boolean) => void;
 }) {
   const skuCount = skus.filter((s) =>
@@ -325,11 +396,21 @@ function BrandCard({
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); onDeleteBrand(); }}
-            className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+            onClick={(e) => { e.stopPropagation(); onEditBrand(); }}
+            className="p-2 rounded-lg text-muted-foreground/70 hover:text-foreground hover:bg-secondary transition"
+            title="Edit"
           >
-            <Trash2 className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
           </button>
+          {isAdmin && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteBrand(); }}
+              className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+              title="Delete (admin)"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
           <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
         </div>
       </button>
@@ -357,12 +438,17 @@ function BrandCard({
                 skus={skus}
                 isOpen={openModel === model.id}
                 openVariant={openVariant}
+                isAdmin={isAdmin}
                 onToggle={() => onToggleModel(model.id)}
                 onToggleVariant={onToggleVariant}
                 onAddVariant={() => onAddVariant(model.id)}
                 onAddSku={onAddSku}
-                onDelete={() => onDeleteModel(model.id)}
+                onEdit={() => onEditModel(model)}
+                onDelete={() => onDeleteModel(model)}
+                onEditVariant={onEditVariant}
                 onDeleteVariant={onDeleteVariant}
+                onEditSku={onEditSku}
+                onDeleteSku={onDeleteSku}
                 onToggleSku={onToggleSku}
               />
             );
@@ -382,12 +468,17 @@ function ModelRowCard({
   skus,
   isOpen,
   openVariant,
+  isAdmin,
   onToggle,
   onToggleVariant,
   onAddVariant,
   onAddSku,
+  onEdit,
   onDelete,
+  onEditVariant,
   onDeleteVariant,
+  onEditSku,
+  onDeleteSku,
   onToggleSku,
 }: {
   model: ModelRow;
@@ -396,12 +487,17 @@ function ModelRowCard({
   skus: SkuRow[];
   isOpen: boolean;
   openVariant: string | null;
+  isAdmin: boolean;
   onToggle: () => void;
   onToggleVariant: (id: string) => void;
   onAddVariant: () => void;
   onAddSku: (variantId: string) => void;
+  onEdit: () => void;
   onDelete: () => void;
-  onDeleteVariant: (id: string) => void;
+  onEditVariant: (v: VariantRow) => void;
+  onDeleteVariant: (v: VariantRow) => void;
+  onEditSku: (s: SkuRow) => void;
+  onDeleteSku: (s: SkuRow) => void;
   onToggleSku: (id: string, active: boolean) => void;
 }) {
   const variantWord = category?.name === "Diapers" ? "Sizes" : "Variants";
@@ -421,11 +517,21 @@ function ModelRowCard({
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-1.5 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="p-1.5 rounded text-muted-foreground/70 hover:text-foreground hover:bg-secondary transition"
+            title="Edit"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Pencil className="h-3.5 w-3.5" />
           </button>
+          {isAdmin && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="p-1.5 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+              title="Delete (admin)"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
         </div>
       </button>
@@ -457,11 +563,21 @@ function ModelRowCard({
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={(e) => { e.stopPropagation(); onDeleteVariant(variant.id); }}
-                      className="p-1 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                      onClick={(e) => { e.stopPropagation(); onEditVariant(variant); }}
+                      className="p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-secondary transition"
+                      title="Edit"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Pencil className="h-3 w-3" />
                     </button>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDeleteVariant(variant); }}
+                        className="p-1 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                        title="Delete (admin)"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
                     <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openVariant === variant.id ? "rotate-180" : ""}`} />
                   </div>
                 </button>
@@ -486,23 +602,43 @@ function ModelRowCard({
                         <span className="col-span-3 text-foreground font-mono truncate" title={sku.internal_code}>
                           {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
                         </span>
-                        <span className="col-span-3 text-muted-foreground">
+                        <span className="col-span-2 text-muted-foreground">
                           = {sku.pcs_per_pack * sku.packs_per_carton} pcs/ctn
                         </span>
-                        <span className="col-span-3 text-muted-foreground">
+                        <span className="col-span-2 text-muted-foreground">
                           {Number(sku.cbm_per_carton).toFixed(4)} CBM
                         </span>
                         <span className="col-span-2 text-muted-foreground truncate" title={sku.internal_code}>
                           {sku.internal_code}
                         </span>
-                        <button
-                          onClick={() => onToggleSku(sku.id, !sku.is_active)}
-                          className={`col-span-1 text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
-                            sku.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {sku.is_active ? "On" : "Off"}
-                        </button>
+                        <div className="col-span-1">
+                          <button
+                            onClick={() => onToggleSku(sku.id, !sku.is_active)}
+                            className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
+                              sku.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {sku.is_active ? "On" : "Off"}
+                          </button>
+                        </div>
+                        <div className="col-span-2 flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => onEditSku(sku)}
+                            className="p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-secondary transition"
+                            title="Edit"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => onDeleteSku(sku)}
+                              className="p-1 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                              title="Delete (admin)"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
