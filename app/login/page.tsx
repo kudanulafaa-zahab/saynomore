@@ -36,7 +36,6 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center px-6">
       <div className="glass w-full max-w-md p-10 space-y-7">
-        {/* Logo */}
         <div className="space-y-3 text-center">
           <div
             className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
@@ -48,15 +47,14 @@ export default function LoginPage() {
             <span className="text-xl font-bold text-white">S</span>
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">SayNoMore</h1>
-            <p className="text-sm text-white/50">Sign in to continue</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">SayNoMore</h1>
+            <p className="text-sm text-muted-foreground">Sign in to continue</p>
           </div>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-white/70">Email</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
@@ -65,12 +63,12 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@saynomore.mv"
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 h-11"
+              className="h-11"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-white/70">Password</Label>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -78,30 +76,24 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white/5 border-white/10 text-white h-11"
+              className="h-11"
             />
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
               {error}
             </div>
           )}
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full h-11 font-medium"
-            style={{ background: "#6366f1", color: "white" }}
-          >
+          <Button type="submit" disabled={loading} className="w-full h-11 font-medium">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
           </Button>
         </form>
 
-        {/* Footer */}
-        <div className="text-center text-sm text-white/40">
+        <div className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-indigo-300 hover:text-indigo-200 transition">
+          <Link href="/signup" className="text-primary hover:opacity-80 transition">
             Sign up
           </Link>
         </div>
