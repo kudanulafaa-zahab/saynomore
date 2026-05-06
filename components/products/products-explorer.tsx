@@ -41,6 +41,7 @@ import {
   createModel,
   createVariant,
   createSku,
+  createCategory,
   deleteBrand,
   deleteModel,
   deleteVariant,
@@ -51,6 +52,8 @@ import {
   type VariantRow,
   type SkuRow,
   type AttrKey,
+  type UnitUom,
+  type CostBasis,
 } from "@/lib/queries/products";
 
 // ── Attribute metadata: how each attribute renders ──────────────────────
@@ -590,14 +593,67 @@ function ModelDialog({
   const [hsCode, setHsCode] = useState("");
   const [dutyPct, setDutyPct] = useState("");
   const [saving, setSaving] = useState(false);
+  // Inline new-category state
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatUom, setNewCatUom] = useState<UnitUom>("pcs");
+  const [newCatBasis, setNewCatBasis] = useState<CostBasis>("piece");
+  const [newCatAttrs, setNewCatAttrs] = useState<Set<AttrKey>>(new Set(["size"]));
+  const [savingCat, setSavingCat] = useState(false);
+
+  // When categories array changes (after inline create), auto-select the new one
+  const [pendingCatName, setPendingCatName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingCatName) return;
+    const created = categories.find((c) => c.name === pendingCatName);
+    if (created) {
+      setSelectedCat(created.id);
+      setPendingCatName(null);
+    }
+  }, [categories, pendingCatName]);
 
   useEffect(() => {
     if (open) {
       setSelectedBrand(brandId ?? "");
       setSelectedCat(categories[0]?.id ?? "");
       setName(""); setHsCode(""); setDutyPct("");
+      setShowNewCat(false);
+      setNewCatName("");
+      setNewCatUom("pcs");
+      setNewCatBasis("piece");
+      setNewCatAttrs(new Set(["size"]));
     }
   }, [open, brandId, categories]);
+
+  function toggleNewCatAttr(k: AttrKey) {
+    const next = new Set(newCatAttrs);
+    if (next.has(k)) next.delete(k);
+    else next.add(k);
+    setNewCatAttrs(next);
+  }
+
+  async function saveNewCategory() {
+    const trimmed = newCatName.trim();
+    if (!trimmed) return;
+    setSavingCat(true);
+    try {
+      await createCategory({
+        name: trimmed,
+        unit_uom: newCatUom,
+        cost_basis: newCatBasis,
+        variant_attributes: Array.from(newCatAttrs),
+      });
+      setPendingCatName(trimmed);
+      setShowNewCat(false);
+      setNewCatName("");
+      toast.success("Category created");
+      onSaved(); // refresh the parent's categories list
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSavingCat(false);
+    }
+  }
 
   async function save() {
     if (!name.trim() || !selectedBrand || !selectedCat) return;
@@ -642,20 +698,106 @@ function ModelDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Category *</Label>
-            <Select value={selectedCat} onValueChange={(v) => v && setSelectedCat(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pick a category">
-                  {categories.find((c) => c.id === selectedCat)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground">
-              Drives which attributes appear when adding variants. You can add more categories from the Categories page.
-            </p>
+            <div className="flex items-center justify-between">
+              <Label>Category *</Label>
+              {!showNewCat && (
+                <button
+                  type="button"
+                  onClick={() => setShowNewCat(true)}
+                  className="text-xs text-primary hover:opacity-80 transition"
+                >
+                  + New category
+                </button>
+              )}
+            </div>
+
+            {!showNewCat ? (
+              <>
+                <Select value={selectedCat} onValueChange={(v) => v && setSelectedCat(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pick a category">
+                      {categories.find((c) => c.id === selectedCat)?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Drives which attributes appear when adding variants.
+                </p>
+              </>
+            ) : (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground">New category</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCat(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <Input
+                  autoFocus
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  placeholder="e.g. Shampoo, Toothpaste"
+                  className="h-9 text-sm"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={newCatUom} onValueChange={(v) => v && setNewCatUom(v as UnitUom)}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue>{newCatUom}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pcs">pcs</SelectItem>
+                      <SelectItem value="ml">ml</SelectItem>
+                      <SelectItem value="g">g</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={newCatBasis} onValueChange={(v) => v && setNewCatBasis(v as CostBasis)}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue>{newCatBasis}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="piece">per piece</SelectItem>
+                      <SelectItem value="per_100ml">per 100ml</SelectItem>
+                      <SelectItem value="per_100g">per 100g</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1.5">Variant attributes:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(["size","scent","format","volume_ml","weight_g","colour","other"] as AttrKey[]).map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => toggleNewCatAttr(k)}
+                        className={`text-[11px] rounded px-2 py-0.5 border transition ${
+                          newCatAttrs.has(k)
+                            ? "bg-primary/15 border-primary/30 text-foreground"
+                            : "bg-card/40 border-border text-muted-foreground"
+                        }`}
+                      >
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full h-9"
+                  onClick={saveNewCategory}
+                  disabled={savingCat || !newCatName.trim()}
+                >
+                  {savingCat ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save category"}
+                </Button>
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Name *</Label>
@@ -705,6 +847,7 @@ function VariantDialog({
   const [selectedModel, setSelectedModel] = useState("");
   const [attrs, setAttrs] = useState<Record<string, string>>({});
   const [displayOverride, setDisplayOverride] = useState("");
+  const [displayTouched, setDisplayTouched] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const model = models.find((m) => m.id === selectedModel);
@@ -717,11 +860,14 @@ function VariantDialog({
       setSelectedModel(modelId ?? "");
       setAttrs({});
       setDisplayOverride("");
+      setDisplayTouched(false);
     }
   }, [open, modelId]);
 
   // Auto-derive display name from attributes following the schema order
   const autoDisplay = useMemo(() => attrsToDisplay(attrs, schema), [attrs, schema]);
+  // Once user types in the display field, it's theirs — show exactly what they typed
+  const displayValue = displayTouched ? displayOverride : autoDisplay;
 
   async function save() {
     if (!selectedModel) return;
@@ -740,7 +886,7 @@ function VariantDialog({
       toast.error("Fill at least one attribute.");
       return;
     }
-    const display = displayOverride.trim() || autoDisplay || "Variant";
+    const display = displayValue.trim() || autoDisplay || "Variant";
     setSaving(true);
     try {
       await createVariant({ model_id: selectedModel, attributes: cleaned, display_name: display });
@@ -834,11 +980,16 @@ function VariantDialog({
             <div className="space-y-2">
               <Label>Display name</Label>
               <Input
-                value={displayOverride || autoDisplay}
-                onChange={(e) => setDisplayOverride(e.target.value)}
-                placeholder="Auto from attributes"
+                value={displayValue}
+                onChange={(e) => {
+                  setDisplayTouched(true);
+                  setDisplayOverride(e.target.value);
+                }}
+                placeholder={autoDisplay || "Type a name…"}
               />
-              <p className="text-[11px] text-muted-foreground">Shown in lists. Auto-fills as you type.</p>
+              <p className="text-[11px] text-muted-foreground">
+                Auto-fills from attributes. Edit freely — your text overrides.
+              </p>
             </div>
           )}
         </div>
