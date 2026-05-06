@@ -2,11 +2,31 @@
 
 import { supabase } from "@/lib/supabase";
 
-// ── Types matching the new schema ────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────
 
-export type ModelCategory = "diaper" | "liquid" | "powder" | "pieces";
 export type UnitUom = "pcs" | "ml" | "g";
 export type CostBasis = "piece" | "per_100ml" | "per_100g";
+
+// Variant attribute keys our UI knows how to render
+export type AttrKey =
+  | "size"
+  | "scent"
+  | "format"
+  | "volume_ml"
+  | "weight_g"
+  | "colour"
+  | "other";
+
+export interface CategoryRow {
+  id: string;
+  name: string;
+  description: string | null;
+  unit_uom: UnitUom;
+  cost_basis: CostBasis;
+  variant_attributes: AttrKey[];
+  sort_order: number;
+  is_system: boolean;
+}
 
 export interface BrandRow {
   id: string;
@@ -17,8 +37,8 @@ export interface BrandRow {
 export interface ModelRow {
   id: string;
   brand_id: string;
+  category_id: string;
   name: string;
-  category: ModelCategory;
   hs_code: string | null;
   duty_rate_pct: number | null;
   notes: string | null;
@@ -36,9 +56,6 @@ export interface SkuRow {
   variant_id: string;
   internal_code: string;
   supplier_barcode: string | null;
-  format: string | null;
-  unit_uom: UnitUom;
-  unit_size: number;
   pcs_per_pack: number;
   packs_per_carton: number;
   carton_length_cm: number;
@@ -46,12 +63,36 @@ export interface SkuRow {
   carton_height_cm: number;
   carton_weight_kg: number | null;
   cbm_per_carton: number;
-  cost_basis: CostBasis;
   is_active: boolean;
   notes: string | null;
 }
 
+// Flat read from v_skus view — handy for the Master Data list
+export interface SkuFullRow extends SkuRow {
+  pcs_per_carton: number;
+  attributes: Record<string, string | number>;
+  variant_display: string;
+  model_id: string;
+  model_name: string;
+  brand_id: string;
+  brand_name: string;
+  category_id: string;
+  category_name: string;
+  unit_uom: UnitUom;
+  cost_basis: CostBasis;
+  full_path: string;
+}
+
 // ── Reads ────────────────────────────────────────────────────────────────
+
+export async function listCategories(): Promise<CategoryRow[]> {
+  const { data, error } = await supabase
+    .from("product_categories")
+    .select("*")
+    .order("sort_order");
+  if (error) throw error;
+  return data ?? [];
+}
 
 export async function listBrands(): Promise<BrandRow[]> {
   const { data, error } = await supabase
@@ -89,6 +130,15 @@ export async function listSkus(): Promise<SkuRow[]> {
   return data ?? [];
 }
 
+export async function listSkusFlat(): Promise<SkuFullRow[]> {
+  const { data, error } = await supabase
+    .from("v_skus")
+    .select("*")
+    .order("brand_name");
+  if (error) throw error;
+  return (data ?? []) as SkuFullRow[];
+}
+
 // ── Writes ───────────────────────────────────────────────────────────────
 
 export async function createBrand(name: string, notes?: string) {
@@ -103,8 +153,8 @@ export async function createBrand(name: string, notes?: string) {
 
 export interface CreateModelInput {
   brand_id: string;
+  category_id: string;
   name: string;
-  category: ModelCategory;
   hs_code?: string | null;
   duty_rate_pct?: number | null;
 }
@@ -137,16 +187,12 @@ export interface CreateSkuInput {
   variant_id: string;
   internal_code: string;
   supplier_barcode?: string | null;
-  format?: string | null;
-  unit_uom: UnitUom;
-  unit_size: number;
   pcs_per_pack: number;
   packs_per_carton: number;
   carton_length_cm: number;
   carton_width_cm: number;
   carton_height_cm: number;
   carton_weight_kg?: number | null;
-  cost_basis: CostBasis;
 }
 export async function createSku(input: CreateSkuInput) {
   const { data, error } = await supabase
@@ -172,5 +218,38 @@ export async function deleteVariant(id: string) {
 }
 export async function toggleSkuActive(id: string, is_active: boolean) {
   const { error } = await supabase.from("skus").update({ is_active }).eq("id", id);
+  if (error) throw error;
+}
+
+// ── Category management ─────────────────────────────────────────────────
+
+export interface CreateCategoryInput {
+  name: string;
+  description?: string | null;
+  unit_uom: UnitUom;
+  cost_basis: CostBasis;
+  variant_attributes: AttrKey[];
+  sort_order?: number;
+}
+export async function createCategory(input: CreateCategoryInput) {
+  const { data, error } = await supabase
+    .from("product_categories")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCategory(id: string, patch: Partial<CreateCategoryInput>) {
+  const { error } = await supabase
+    .from("product_categories")
+    .update(patch)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteCategory(id: string) {
+  const { error } = await supabase.from("product_categories").delete().eq("id", id);
   if (error) throw error;
 }

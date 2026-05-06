@@ -10,8 +10,7 @@ import {
   Package,
   Boxes,
   Tag,
-  Droplet,
-  Box,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  listCategories,
   listBrands,
   listModels,
   listVariants,
@@ -45,47 +45,54 @@ import {
   deleteModel,
   deleteVariant,
   toggleSkuActive,
+  type CategoryRow,
   type BrandRow,
   type ModelRow,
   type VariantRow,
   type SkuRow,
-  type ModelCategory,
-  type CostBasis,
-  type UnitUom,
+  type AttrKey,
 } from "@/lib/queries/products";
 
-// ── Helpers ──────────────────────────────────────────────────────────────
+// ── Attribute metadata: how each attribute renders ──────────────────────
 
-const CATEGORY_LABEL: Record<ModelCategory, string> = {
-  diaper: "Diapers / Hygiene",
-  liquid: "Liquid (ml)",
-  powder: "Powder (g)",
-  pieces: "Pieces / Other",
+interface AttrSpec {
+  key: AttrKey;
+  label: string;
+  placeholder?: string;
+  type: "text" | "number";
+  options?: string[]; // if present, renders a Select
+  suffix?: string;
+}
+
+const ATTR_SPECS: Record<AttrKey, AttrSpec> = {
+  size:      { key: "size",      label: "Size",       placeholder: "NB, S, M, L, XL…", type: "text" },
+  scent:     { key: "scent",     label: "Scent",      placeholder: "Mint, Lemon…",     type: "text" },
+  format:    { key: "format",    label: "Format",     type: "text", options: ["Bottle", "Pouch", "Sachet", "Jar", "Box", "Tube", "Pack", "Can"] },
+  volume_ml: { key: "volume_ml", label: "Volume",     placeholder: "700, 1500…",       type: "number", suffix: "ml" },
+  weight_g:  { key: "weight_g",  label: "Weight",     placeholder: "100, 250…",        type: "number", suffix: "g" },
+  colour:    { key: "colour",    label: "Colour",     placeholder: "Pink, Blue…",      type: "text" },
+  other:     { key: "other",     label: "Other",      placeholder: "Optional",         type: "text" },
 };
 
-const COST_BASIS_FOR: Record<ModelCategory, CostBasis> = {
-  diaper: "piece",
-  liquid: "per_100ml",
-  powder: "per_100g",
-  pieces: "piece",
-};
-
-const UOM_FOR: Record<ModelCategory, UnitUom> = {
-  diaper: "pcs",
-  liquid: "ml",
-  powder: "g",
-  pieces: "pcs",
-};
-
-function formatAttributes(attrs: Record<string, string | number>): string {
-  return Object.entries(attrs)
-    .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
-    .join(" · ");
+// Pretty-print a value: "Mint Pouch 1500ml"
+function attrsToDisplay(attrs: Record<string, string | number>, schema: AttrKey[]): string {
+  return schema
+    .map((k) => {
+      const v = attrs[k];
+      if (v === undefined || v === "") return "";
+      const spec = ATTR_SPECS[k];
+      if (!spec) return String(v);
+      if (spec.suffix) return `${v}${spec.suffix}`;
+      return String(v);
+    })
+    .filter(Boolean)
+    .join(" ");
 }
 
 // ── Main explorer ────────────────────────────────────────────────────────
 
 export function ProductsExplorer() {
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [brands, setBrands] = useState<BrandRow[]>([]);
   const [models, setModels] = useState<ModelRow[]>([]);
   const [variants, setVariants] = useState<VariantRow[]>([]);
@@ -104,12 +111,14 @@ export function ProductsExplorer() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [b, m, v, s] = await Promise.all([
+      const [c, b, m, v, s] = await Promise.all([
+        listCategories(),
         listBrands(),
         listModels(),
         listVariants(),
         listSkus(),
       ]);
+      setCategories(c);
       setBrands(b);
       setModels(m);
       setVariants(v);
@@ -125,13 +134,11 @@ export function ProductsExplorer() {
     loadAll();
   }, [loadAll]);
 
-  const totals = useMemo(() => {
-    return {
-      brands: brands.length,
-      skus: skus.length,
-      activeSkus: skus.filter((s) => s.is_active).length,
-    };
-  }, [brands, skus]);
+  const totals = useMemo(() => ({
+    brands: brands.length,
+    skus: skus.length,
+    activeSkus: skus.filter((s) => s.is_active).length,
+  }), [brands, skus]);
 
   if (loading) {
     return (
@@ -148,7 +155,7 @@ export function ProductsExplorer() {
         <div>
           <h2 className="text-lg font-medium text-foreground">Catalogue</h2>
           <p className="text-sm text-muted-foreground">
-            {totals.brands} brands · {totals.activeSkus} active SKUs
+            {totals.brands} brands · {totals.activeSkus} active products
           </p>
         </div>
         <Button onClick={() => setBrandDialog(true)} className="font-medium">
@@ -167,8 +174,8 @@ export function ProductsExplorer() {
           </div>
           <h3 className="text-base font-medium text-foreground">No brands yet</h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Start by creating your first brand. Then add product lines (Models),
-            variants (size/scent), and SKUs (specific pack/carton config).
+            Start with a brand like <strong>MamyPoko</strong>. Then add product lines
+            (e.g. Xtra Kering), variants (e.g. Size M), and pack configurations.
           </p>
           <Button onClick={() => setBrandDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -180,6 +187,7 @@ export function ProductsExplorer() {
           <BrandCard
             key={brand.id}
             brand={brand}
+            categories={categories}
             models={models.filter((m) => m.brand_id === brand.id)}
             variants={variants}
             skus={skus}
@@ -193,17 +201,17 @@ export function ProductsExplorer() {
             onAddVariant={(modelId) => setVariantDialog({ open: true, modelId })}
             onAddSku={(variantId) => setSkuDialog({ open: true, variantId })}
             onDeleteBrand={async () => {
-              if (!confirm(`Delete brand "${brand.name}"? Removes all its models, variants, and SKUs.`)) return;
+              if (!confirm(`Delete brand "${brand.name}"? Removes all its models, variants, and packs.`)) return;
               try { await deleteBrand(brand.id); toast.success("Deleted"); loadAll(); }
               catch (e) { toast.error((e as Error).message); }
             }}
             onDeleteModel={async (id) => {
-              if (!confirm("Delete model and all its variants/SKUs?")) return;
+              if (!confirm("Delete model and everything under it?")) return;
               try { await deleteModel(id); toast.success("Deleted"); loadAll(); }
               catch (e) { toast.error((e as Error).message); }
             }}
             onDeleteVariant={async (id) => {
-              if (!confirm("Delete variant and its SKUs?")) return;
+              if (!confirm("Delete variant and its packs?")) return;
               try { await deleteVariant(id); toast.success("Deleted"); loadAll(); }
               catch (e) { toast.error((e as Error).message); }
             }}
@@ -220,6 +228,7 @@ export function ProductsExplorer() {
         open={modelDialog.open}
         brandId={modelDialog.brandId}
         brands={brands}
+        categories={categories}
         onOpenChange={(o) => setModelDialog({ open: o })}
         onSaved={loadAll}
       />
@@ -228,6 +237,7 @@ export function ProductsExplorer() {
         modelId={variantDialog.modelId}
         models={models}
         brands={brands}
+        categories={categories}
         onOpenChange={(o) => setVariantDialog({ open: o })}
         onSaved={loadAll}
       />
@@ -237,6 +247,8 @@ export function ProductsExplorer() {
         variants={variants}
         models={models}
         brands={brands}
+        categories={categories}
+        existingSkus={skus}
         onOpenChange={(o) => setSkuDialog({ open: o })}
         onSaved={loadAll}
       />
@@ -248,6 +260,7 @@ export function ProductsExplorer() {
 
 function BrandCard({
   brand,
+  categories,
   models,
   variants,
   skus,
@@ -266,6 +279,7 @@ function BrandCard({
   onToggleSku,
 }: {
   brand: BrandRow;
+  categories: CategoryRow[];
   models: ModelRow[];
   variants: VariantRow[];
   skus: SkuRow[];
@@ -302,16 +316,13 @@ function BrandCard({
           <div className="text-left">
             <p className="text-base font-medium text-foreground">{brand.name}</p>
             <p className="text-xs text-muted-foreground">
-              {models.length} models · {skuCount} SKUs
+              {models.length} models · {skuCount} packs
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteBrand();
-            }}
+            onClick={(e) => { e.stopPropagation(); onDeleteBrand(); }}
             className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
           >
             <Trash2 className="h-4 w-4" />
@@ -333,10 +344,12 @@ function BrandCard({
 
           {models.map((model) => {
             const modelVariants = variants.filter((v) => v.model_id === model.id);
+            const category = categories.find((c) => c.id === model.category_id);
             return (
               <ModelRowCard
                 key={model.id}
                 model={model}
+                category={category}
                 variants={modelVariants}
                 skus={skus}
                 isOpen={openModel === model.id}
@@ -361,6 +374,7 @@ function BrandCard({
 
 function ModelRowCard({
   model,
+  category,
   variants,
   skus,
   isOpen,
@@ -374,6 +388,7 @@ function ModelRowCard({
   onToggleSku,
 }: {
   model: ModelRow;
+  category?: CategoryRow;
   variants: VariantRow[];
   skus: SkuRow[];
   isOpen: boolean;
@@ -386,26 +401,24 @@ function ModelRowCard({
   onDeleteVariant: (id: string) => void;
   onToggleSku: (id: string, active: boolean) => void;
 }) {
-  const Icon = model.category === "liquid" ? Droplet : model.category === "powder" ? Box : Boxes;
+  const variantWord = category?.name === "Diapers" ? "Sizes" : "Variants";
+  const variantWordSingular = category?.name === "Diapers" ? "Size" : "Variant";
 
   return (
     <div className="glass-flat overflow-hidden">
       <button onClick={onToggle} className="w-full flex items-center justify-between p-3 hover:bg-accent/30 transition">
         <div className="flex items-center gap-3">
-          <Icon className="h-4 w-4 text-muted-foreground" />
+          <Boxes className="h-4 w-4 text-muted-foreground" />
           <div className="text-left">
             <p className="text-sm text-foreground">{model.name}</p>
             <p className="text-[11px] text-muted-foreground">
-              {CATEGORY_LABEL[model.category]} · {variants.length} variants
+              {category?.name ?? "—"} · {variants.length} {variantWord.toLowerCase()}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="p-1.5 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -417,14 +430,14 @@ function ModelRowCard({
       {isOpen && (
         <div className="border-t border-border p-3 space-y-2 bg-background/30">
           <div className="flex items-center justify-between mb-1 px-1">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Variants</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{variantWord}</p>
             <Button size="sm" variant="ghost" onClick={onAddVariant} className="text-primary h-6 text-xs">
               <Plus className="h-3 w-3 mr-1" />
-              Variant
+              {variantWordSingular}
             </Button>
           </div>
 
-          {variants.length === 0 && <p className="text-xs text-muted-foreground px-1 py-2">No variants yet.</p>}
+          {variants.length === 0 && <p className="text-xs text-muted-foreground px-1 py-2">None yet.</p>}
 
           {variants.map((variant) => {
             const variantSkus = skus.filter((s) => s.variant_id === variant.id);
@@ -437,14 +450,11 @@ function ModelRowCard({
                   <div className="flex items-center gap-2.5">
                     <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-sm text-foreground">{variant.display_name}</span>
-                    <span className="text-xs text-muted-foreground">({variantSkus.length} SKU)</span>
+                    <span className="text-xs text-muted-foreground">({variantSkus.length} pack{variantSkus.length === 1 ? "" : "s"})</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteVariant(variant.id);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); onDeleteVariant(variant.id); }}
                       className="p-1 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -456,31 +466,31 @@ function ModelRowCard({
                 {openVariant === variant.id && (
                   <div className="border-t border-border p-2.5 space-y-1.5 bg-background/30">
                     <div className="flex items-center justify-between mb-1 px-1">
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">SKUs</p>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Pack configurations</p>
                       <Button size="sm" variant="ghost" onClick={() => onAddSku(variant.id)} className="text-primary h-6 text-xs">
                         <Plus className="h-3 w-3 mr-1" />
-                        SKU
+                        Pack
                       </Button>
                     </div>
 
-                    {variantSkus.length === 0 && <p className="text-xs text-muted-foreground px-1 py-2">No SKUs yet.</p>}
+                    {variantSkus.length === 0 && <p className="text-xs text-muted-foreground px-1 py-2">No pack configurations yet.</p>}
 
                     {variantSkus.map((sku) => (
                       <div
                         key={sku.id}
                         className="grid grid-cols-12 gap-2 items-center text-xs px-2.5 py-2 rounded-lg bg-card/40 border border-border"
                       >
-                        <span className="col-span-3 text-foreground truncate" title={sku.internal_code}>
-                          {sku.format ? `${sku.format} ` : ""}
-                          {sku.unit_size}{sku.unit_uom}
+                        <span className="col-span-3 text-foreground font-mono truncate" title={sku.internal_code}>
+                          {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
                         </span>
-                        <span className="col-span-2 text-muted-foreground">{sku.pcs_per_pack}/pk</span>
-                        <span className="col-span-2 text-muted-foreground">{sku.packs_per_carton}/ctn</span>
-                        <span className="col-span-2 text-muted-foreground">
-                          {sku.pcs_per_pack * sku.packs_per_carton} pcs/ctn
+                        <span className="col-span-3 text-muted-foreground">
+                          = {sku.pcs_per_pack * sku.packs_per_carton} pcs/ctn
                         </span>
-                        <span className="col-span-2 text-muted-foreground">
+                        <span className="col-span-3 text-muted-foreground">
                           {Number(sku.cbm_per_carton).toFixed(4)} CBM
+                        </span>
+                        <span className="col-span-2 text-muted-foreground truncate" title={sku.internal_code}>
+                          {sku.internal_code}
                         </span>
                         <button
                           onClick={() => onToggleSku(sku.id, !sku.is_active)}
@@ -506,14 +516,8 @@ function ModelRowCard({
 // ── Brand dialog ────────────────────────────────────────────────────────
 
 function BrandDialog({
-  open,
-  onOpenChange,
-  onSaved,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onSaved: () => void;
-}) {
+  open, onOpenChange, onSaved,
+}: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -563,46 +567,46 @@ function BrandDialog({
   );
 }
 
-// ── Model dialog ────────────────────────────────────────────────────────
+// ── Model dialog (with category picker) ─────────────────────────────────
 
 function ModelDialog({
   open,
   brandId,
   brands,
+  categories,
   onOpenChange,
   onSaved,
 }: {
   open: boolean;
   brandId?: string;
   brands: BrandRow[];
+  categories: CategoryRow[];
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
 }) {
-  const [selected, setSelected] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedCat, setSelectedCat] = useState("");
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<ModelCategory>("diaper");
   const [hsCode, setHsCode] = useState("");
   const [dutyPct, setDutyPct] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setSelected(brandId ?? "");
-      setName("");
-      setCategory("diaper");
-      setHsCode("");
-      setDutyPct("");
+      setSelectedBrand(brandId ?? "");
+      setSelectedCat(categories[0]?.id ?? "");
+      setName(""); setHsCode(""); setDutyPct("");
     }
-  }, [open, brandId]);
+  }, [open, brandId, categories]);
 
   async function save() {
-    if (!name.trim() || !selected) return;
+    if (!name.trim() || !selectedBrand || !selectedCat) return;
     setSaving(true);
     try {
       await createModel({
-        brand_id: selected,
+        brand_id: selectedBrand,
+        category_id: selectedCat,
         name: name.trim(),
-        category,
         hs_code: hsCode.trim() || null,
         duty_rate_pct: dutyPct ? parseFloat(dutyPct) : null,
       });
@@ -626,28 +630,36 @@ function ModelDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Brand *</Label>
-            <Select value={selected} onValueChange={(v) => v && setSelected(v)}>
-              <SelectTrigger><SelectValue placeholder="Pick a brand" /></SelectTrigger>
+            <Select value={selectedBrand} onValueChange={(v) => v && setSelectedBrand(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pick a brand">
+                  {brands.find((b) => b.id === selectedBrand)?.name}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Name *</Label>
-            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Xtra Kering" />
-          </div>
-          <div className="space-y-2">
             <Label>Category *</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as ModelCategory)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={selectedCat} onValueChange={(v) => v && setSelectedCat(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pick a category">
+                  {categories.find((c) => c.id === selectedCat)?.name}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                {Object.entries(CATEGORY_LABEL).map(([v, label]) => (
-                  <SelectItem key={v} value={v}>{label}</SelectItem>
-                ))}
+                {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-muted-foreground">Drives how SKUs are sized & how cost is reported.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Drives which attributes appear when adding variants. You can add more categories from the Categories page.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Name *</Label>
+            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Xtra Kering" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -655,14 +667,14 @@ function ModelDialog({
               <Input value={hsCode} onChange={(e) => setHsCode(e.target.value)} placeholder="Optional" />
             </div>
             <div className="space-y-2">
-              <Label>Duty Rate %</Label>
+              <Label>Duty %</Label>
               <Input type="number" step="0.01" value={dutyPct} onChange={(e) => setDutyPct(e.target.value)} placeholder="Optional" />
             </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !name.trim() || !selected}>
+          <Button onClick={save} disabled={saving || !name.trim() || !selectedBrand || !selectedCat}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
           </Button>
         </DialogFooter>
@@ -671,13 +683,14 @@ function ModelDialog({
   );
 }
 
-// ── Variant dialog (attribute-aware) ─────────────────────────────────────
+// ── Variant dialog (CATEGORY-DRIVEN) ────────────────────────────────────
 
 function VariantDialog({
   open,
   modelId,
   models,
   brands,
+  categories,
   onOpenChange,
   onSaved,
 }: {
@@ -685,51 +698,52 @@ function VariantDialog({
   modelId?: string;
   models: ModelRow[];
   brands: BrandRow[];
+  categories: CategoryRow[];
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
 }) {
-  const [selected, setSelected] = useState("");
-  const [size, setSize] = useState("");
-  const [scent, setScent] = useState("");
-  const [colour, setColour] = useState("");
-  const [other, setOther] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [attrs, setAttrs] = useState<Record<string, string>>({});
   const [displayOverride, setDisplayOverride] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const model = models.find((m) => m.id === selected);
+  const model = models.find((m) => m.id === selectedModel);
   const brand = brands.find((b) => b.id === model?.brand_id);
+  const category = categories.find((c) => c.id === model?.category_id);
+  const schema: AttrKey[] = (category?.variant_attributes ?? []) as AttrKey[];
 
   useEffect(() => {
     if (open) {
-      setSelected(modelId ?? "");
-      setSize(""); setScent(""); setColour(""); setOther(""); setDisplayOverride("");
+      setSelectedModel(modelId ?? "");
+      setAttrs({});
+      setDisplayOverride("");
     }
   }, [open, modelId]);
 
-  function autoDisplay(): string {
-    const parts: string[] = [];
-    if (size) parts.push(size);
-    if (scent) parts.push(scent);
-    if (colour) parts.push(colour);
-    if (other) parts.push(other);
-    return parts.join(" / ");
-  }
+  // Auto-derive display name from attributes following the schema order
+  const autoDisplay = useMemo(() => attrsToDisplay(attrs, schema), [attrs, schema]);
 
   async function save() {
-    if (!selected) return;
-    const attrs: Record<string, string> = {};
-    if (size.trim())   attrs.size = size.trim();
-    if (scent.trim())  attrs.scent = scent.trim();
-    if (colour.trim()) attrs.colour = colour.trim();
-    if (other.trim())  attrs.other = other.trim();
-    if (Object.keys(attrs).length === 0) {
-      toast.error("Enter at least one attribute (size, scent, etc).");
+    if (!selectedModel) return;
+    if (schema.length === 0) {
+      toast.error("This category has no attributes defined.");
       return;
     }
-    const display = displayOverride.trim() || autoDisplay();
+    const cleaned: Record<string, string | number> = {};
+    for (const k of schema) {
+      const v = attrs[k];
+      if (v === undefined || v.trim() === "") continue;
+      const spec = ATTR_SPECS[k];
+      cleaned[k] = spec?.type === "number" ? Number(v) : v.trim();
+    }
+    if (Object.keys(cleaned).length === 0) {
+      toast.error("Fill at least one attribute.");
+      return;
+    }
+    const display = displayOverride.trim() || autoDisplay || "Variant";
     setSaving(true);
     try {
-      await createVariant({ model_id: selected, attributes: attrs, display_name: display });
+      await createVariant({ model_id: selectedModel, attributes: cleaned, display_name: display });
       toast.success("Variant created");
       onOpenChange(false);
       onSaved();
@@ -744,17 +758,27 @@ function VariantDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border max-w-lg">
         <DialogHeader>
-          <DialogTitle>New Variant</DialogTitle>
+          <DialogTitle>
+            {category?.name === "Diapers" ? "New Size" : "New Variant"}
+          </DialogTitle>
           <DialogDescription>
-            e.g. for diapers: Size = M. For detergent: Scent = Mint.
+            {category?.name === "Diapers"
+              ? "e.g. NB, S, M, L, XL."
+              : category?.name === "Liquid Detergent"
+              ? "e.g. Mint Pouch 1500ml."
+              : "Pick the model — fields adapt to the category."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Model *</Label>
-            <Select value={selected} onValueChange={(v) => v && setSelected(v)}>
-              <SelectTrigger><SelectValue placeholder="Pick a model" /></SelectTrigger>
+            <Select value={selectedModel} onValueChange={(v) => v && setSelectedModel(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pick a model">
+                  {model && brand ? `${brand.name} › ${model.name}` : ""}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {models.map((m) => {
                   const b = brands.find((br) => br.id === m.brand_id);
@@ -766,42 +790,61 @@ function VariantDialog({
 
           {model && (
             <p className="text-xs text-muted-foreground -mt-2">
-              {brand?.name} › {model.name} · {CATEGORY_LABEL[model.category]}
+              {brand?.name} › {model.name} · {category?.name}
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Size</Label>
-              <Input value={size} onChange={(e) => setSize(e.target.value)} placeholder="M, L, XL…" />
+          {/* Dynamic attribute fields based on category schema */}
+          {schema.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {schema.map((key) => {
+                const spec = ATTR_SPECS[key];
+                if (!spec) return null;
+                return (
+                  <div key={key} className="space-y-2">
+                    <Label>{spec.label}{spec.suffix ? ` (${spec.suffix})` : ""}</Label>
+                    {spec.options ? (
+                      <Select value={attrs[key] ?? ""} onValueChange={(v) => v && setAttrs({ ...attrs, [key]: v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={spec.placeholder ?? "Pick"}>
+                            {attrs[key] || ""}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {spec.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        type={spec.type === "number" ? "number" : "text"}
+                        value={attrs[key] ?? ""}
+                        onChange={(e) => setAttrs({ ...attrs, [key]: e.target.value })}
+                        placeholder={spec.placeholder}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <div className="space-y-2">
-              <Label>Scent</Label>
-              <Input value={scent} onChange={(e) => setScent(e.target.value)} placeholder="Mint, Lemon…" />
-            </div>
-            <div className="space-y-2">
-              <Label>Colour</Label>
-              <Input value={colour} onChange={(e) => setColour(e.target.value)} placeholder="Optional" />
-            </div>
-            <div className="space-y-2">
-              <Label>Other</Label>
-              <Input value={other} onChange={(e) => setOther(e.target.value)} placeholder="Optional" />
-            </div>
-          </div>
+          ) : selectedModel ? (
+            <p className="text-sm text-muted-foreground">This category has no attributes.</p>
+          ) : null}
 
-          <div className="space-y-2">
-            <Label>Display name</Label>
-            <Input
-              value={displayOverride || autoDisplay()}
-              onChange={(e) => setDisplayOverride(e.target.value)}
-              placeholder="Auto-generated from attributes"
-            />
-            <p className="text-[11px] text-muted-foreground">Shown in lists. Auto-fills from attributes.</p>
-          </div>
+          {selectedModel && (
+            <div className="space-y-2">
+              <Label>Display name</Label>
+              <Input
+                value={displayOverride || autoDisplay}
+                onChange={(e) => setDisplayOverride(e.target.value)}
+                placeholder="Auto from attributes"
+              />
+              <p className="text-[11px] text-muted-foreground">Shown in lists. Auto-fills as you type.</p>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !selected}>
+          <Button onClick={save} disabled={saving || !selectedModel}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
           </Button>
         </DialogFooter>
@@ -810,9 +853,7 @@ function VariantDialog({
   );
 }
 
-// ── SKU dialog ───────────────────────────────────────────────────────────
-
-const FORMAT_OPTIONS = ["Pack", "Bottle", "Pouch", "Can", "Sachet", "Box", "Tube", "Jar"];
+// ── SKU dialog (PACK CONFIGURATION) ─────────────────────────────────────
 
 function SkuDialog({
   open,
@@ -820,6 +861,8 @@ function SkuDialog({
   variants,
   models,
   brands,
+  categories,
+  existingSkus,
   onOpenChange,
   onSaved,
 }: {
@@ -828,74 +871,65 @@ function SkuDialog({
   variants: VariantRow[];
   models: ModelRow[];
   brands: BrandRow[];
+  categories: CategoryRow[];
+  existingSkus: SkuRow[];
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
 }) {
   const [selected, setSelected] = useState("");
-  const [code, setCode] = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [format, setFormat] = useState("Pack");
-  const [unitSize, setUnitSize] = useState("");
-  const [unitUom, setUnitUom] = useState<UnitUom>("pcs");
-  const [pcsPerPack, setPcsPerPack] = useState("1");
+  const [pcsPerPack, setPcsPerPack] = useState("");
   const [packsPerCarton, setPacksPerCarton] = useState("");
   const [lengthCm, setLengthCm] = useState("");
   const [widthCm, setWidthCm] = useState("");
   const [heightCm, setHeightCm] = useState("");
   const [weightKg, setWeightKg] = useState("");
-  const [costBasis, setCostBasis] = useState<CostBasis>("piece");
+  const [code, setCode] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [saving, setSaving] = useState(false);
 
   const variant = variants.find((v) => v.id === selected);
   const model = models.find((m) => m.id === variant?.model_id);
   const brand = brands.find((b) => b.id === model?.brand_id);
+  const category = categories.find((c) => c.id === model?.category_id);
 
+  // Suggest dimensions from the variant's most-recent SKU (lots of SKUs share the same carton size)
   useEffect(() => {
-    if (open) {
-      setSelected(variantId ?? "");
-      setCode("");
-      setBarcode("");
-      setUnitSize("");
-      setPcsPerPack("1");
-      setPacksPerCarton("");
-      setLengthCm("");
-      setWidthCm("");
-      setHeightCm("");
-      setWeightKg("");
-    }
+    if (!open) return;
+    setSelected(variantId ?? "");
+    setPcsPerPack("");
+    setPacksPerCarton("");
+    setLengthCm("");
+    setWidthCm("");
+    setHeightCm("");
+    setWeightKg("");
+    setCode("");
+    setBarcode("");
   }, [open, variantId]);
 
-  // Auto-pick UoM and cost basis from model category
+  // Auto-fill dimensions from a sibling SKU of the same variant
   useEffect(() => {
-    if (!model) return;
-    setUnitUom(UOM_FOR[model.category]);
-    setCostBasis(COST_BASIS_FOR[model.category]);
-    if (model.category === "diaper") setFormat("Pack");
-    else if (model.category === "liquid") setFormat("Bottle");
-    else if (model.category === "powder") setFormat("Pack");
-  }, [model]);
+    if (!variant) return;
+    const sibling = existingSkus.find((s) => s.variant_id === variant.id);
+    if (sibling && !lengthCm && !widthCm && !heightCm) {
+      setLengthCm(String(sibling.carton_length_cm));
+      setWidthCm(String(sibling.carton_width_cm));
+      setHeightCm(String(sibling.carton_height_cm));
+      if (sibling.carton_weight_kg) setWeightKg(String(sibling.carton_weight_kg));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant?.id]);
 
   // Auto-generate internal code
   useEffect(() => {
     if (!variant || !model || !brand) return;
-    if (code) return; // don't overwrite manual edits
-    const sizePart = String(variant.attributes.size ?? variant.attributes.scent ?? "").toUpperCase().slice(0, 4);
-    const fmtPart = format ? format.charAt(0) : "X";
-    const sizeNum = unitSize ? `${unitSize}${unitUom}` : "";
-    const packPart = pcsPerPack && pcsPerPack !== "1" ? `${pcsPerPack}P` : "";
-    const ctnPart = packsPerCarton ? `${packsPerCarton}C` : "";
-    const auto = [
-      brand.name.replace(/\s/g, "").toUpperCase().slice(0, 3),
-      model.name.replace(/\s/g, "").toUpperCase().slice(0, 3),
-      sizePart,
-      fmtPart,
-      sizeNum,
-      packPart,
-      ctnPart,
-    ].filter(Boolean).join("-");
-    setCode(auto);
+    if (code) return;
+    const brandPart = brand.name.replace(/\s/g, "").toUpperCase().slice(0, 4);
+    const modelPart = model.name.replace(/\s/g, "").toUpperCase().slice(0, 4);
+    const variantPart = variant.display_name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 6);
+    const packPart = pcsPerPack && packsPerCarton ? `${pcsPerPack}x${packsPerCarton}` : "";
+    setCode([brandPart, modelPart, variantPart, packPart].filter(Boolean).join("-"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variant, model, brand, format, unitSize, unitUom, pcsPerPack, packsPerCarton]);
+  }, [variant?.id, model?.id, brand?.id, pcsPerPack, packsPerCarton]);
 
   const cbm = useMemo(() => {
     const l = parseFloat(lengthCm), w = parseFloat(widthCm), h = parseFloat(heightCm);
@@ -910,25 +944,21 @@ function SkuDialog({
   }, [pcsPerPack, packsPerCarton]);
 
   async function save() {
-    if (!selected || !code.trim() || !unitSize || !packsPerCarton || !lengthCm || !widthCm || !heightCm) return;
+    if (!selected || !pcsPerPack || !packsPerCarton || !lengthCm || !widthCm || !heightCm || !code.trim()) return;
     setSaving(true);
     try {
       await createSku({
         variant_id: selected,
         internal_code: code.trim(),
         supplier_barcode: barcode.trim() || null,
-        format: format || null,
-        unit_uom: unitUom,
-        unit_size: parseFloat(unitSize),
         pcs_per_pack: parseInt(pcsPerPack, 10),
         packs_per_carton: parseInt(packsPerCarton, 10),
         carton_length_cm: parseFloat(lengthCm),
         carton_width_cm: parseFloat(widthCm),
         carton_height_cm: parseFloat(heightCm),
         carton_weight_kg: weightKg ? parseFloat(weightKg) : null,
-        cost_basis: costBasis,
       });
-      toast.success("SKU created");
+      toast.success("Pack configuration created");
       onOpenChange(false);
       onSaved();
     } catch (err) {
@@ -948,68 +978,41 @@ function SkuDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-2xl">
+      <DialogContent className="bg-popover border-border max-w-xl">
         <DialogHeader>
-          <DialogTitle>New SKU</DialogTitle>
-          <DialogDescription>The actual sellable product. CBM auto-calculates from dimensions.</DialogDescription>
+          <DialogTitle>New Pack Configuration</DialogTitle>
+          <DialogDescription>
+            One sellable pack/carton config. Same variant can have many — e.g. 34 pcs/pk × 4 pk/ctn AND 48 pcs/pk × 3 pk/ctn.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
           <div className="space-y-2">
             <Label>Variant *</Label>
             <Select value={selected} onValueChange={(v) => v && setSelected(v)}>
-              <SelectTrigger><SelectValue placeholder="Pick a variant" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Pick a variant">
+                  {selected ? variantPath(selected) : ""}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 {variants.map((v) => <SelectItem key={v.id} value={v.id}>{variantPath(v.id)}</SelectItem>)}
               </SelectContent>
             </Select>
-            {variant && (
-              <p className="text-[11px] text-muted-foreground">{formatAttributes(variant.attributes)}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Format *</Label>
-              <Select value={format} onValueChange={(v) => v && setFormat(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FORMAT_OPTIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">Pouch vs Bottle distinction.</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Unit Size *</Label>
-              <div className="flex gap-2">
-                <Input type="number" step="0.001" value={unitSize} onChange={(e) => setUnitSize(e.target.value)} placeholder="500" className="flex-1" />
-                <Select value={unitUom} onValueChange={(v) => setUnitUom(v as UnitUom)}>
-                  <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ml">ml</SelectItem>
-                    <SelectItem value="g">g</SelectItem>
-                    <SelectItem value="pcs">pcs</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-[11px] text-muted-foreground">Volume / weight per piece (or 1 pcs for diapers).</p>
-            </div>
+            {category && <p className="text-[11px] text-muted-foreground">Cost basis: {category.cost_basis} · UoM: {category.unit_uom}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Pcs per Pack *</Label>
-              <Input type="number" min="1" value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)} />
-              <p className="text-[11px] text-muted-foreground">e.g. 22 pcs / pack for diapers; 1 for a bottle.</p>
+              <Input type="number" min="1" value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)} placeholder="34" />
+              <p className="text-[11px] text-muted-foreground">e.g. 34 diapers in one retail pack.</p>
             </div>
             <div className="space-y-2">
               <Label>Packs per Carton *</Label>
               <Input type="number" min="1" value={packsPerCarton} onChange={(e) => setPacksPerCarton(e.target.value)} placeholder="4" />
               {pcsPerCarton && (
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                  → {pcsPerCarton} pcs per carton
-                </p>
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">→ {pcsPerCarton} pcs per carton</p>
               )}
             </div>
           </div>
@@ -1022,9 +1025,7 @@ function SkuDialog({
               <Input type="number" step="0.1" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="H" />
             </div>
             {cbm !== null && (
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                → {cbm.toFixed(5)} CBM per carton
-              </p>
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400">→ {cbm.toFixed(5)} CBM per carton</p>
             )}
           </div>
 
@@ -1034,27 +1035,15 @@ function SkuDialog({
               <Input type="number" step="0.01" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="Optional" />
             </div>
             <div className="space-y-2">
-              <Label>Cost Basis *</Label>
-              <Select value={costBasis} onValueChange={(v) => setCostBasis(v as CostBasis)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="piece">Per Piece</SelectItem>
-                  <SelectItem value="per_100ml">Per 100ml</SelectItem>
-                  <SelectItem value="per_100g">Per 100g</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Internal Code *</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Auto-generated" />
-            </div>
-            <div className="space-y-2">
               <Label>Supplier Barcode</Label>
               <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Optional" />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Internal Code *</Label>
+            <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Auto-generated" />
+            <p className="text-[11px] text-muted-foreground">Auto-built from brand/model/variant. Override if you prefer.</p>
           </div>
         </div>
 
@@ -1062,12 +1051,15 @@ function SkuDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={save}
-            disabled={saving || !selected || !code.trim() || !unitSize || !packsPerCarton || !lengthCm || !widthCm || !heightCm}
+            disabled={saving || !selected || !pcsPerPack || !packsPerCarton || !lengthCm || !widthCm || !heightCm || !code.trim()}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create SKU"}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Pack"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+// Re-export Layers icon to silence unused-import (keeps tree-shaking happy)
+export const _layers = Layers;
