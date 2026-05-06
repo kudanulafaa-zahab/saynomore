@@ -1,2 +1,9 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
-export default function Page() { return <ComingSoon title="Shipments & Landed Cost" description="Forex lock, freight share, CBM apportionment, GRN confirmation." />; }
+import { ShipmentsList } from "@/components/shipments/shipments-list";
+
+export default function Page() {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <ShipmentsList />
+    </div>
+  );
+}
