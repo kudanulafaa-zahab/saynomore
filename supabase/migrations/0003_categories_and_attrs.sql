@@ -55,6 +55,10 @@ VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- ── 3. Migrate models.category (TEXT enum) → category_id (FK) ───────────
+-- Drop the v_skus view first because it references the old `category` column.
+-- We rebuild it later in step 5 with the new joins.
+DROP VIEW IF EXISTS v_skus CASCADE;
+
 ALTER TABLE product_models ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES product_categories(id);
 
 -- Map any existing rows from the old enum to the new categories
