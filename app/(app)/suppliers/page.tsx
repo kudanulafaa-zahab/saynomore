@@ -1,2 +1,9 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
-export default function Page() { return <ComingSoon title="Suppliers" />; }
+import { SuppliersManager } from "@/components/masters/suppliers-manager";
+
+export default function Page() {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <SuppliersManager />
+    </div>
+  );
+}
