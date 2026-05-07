@@ -215,8 +215,8 @@
   }
   .glass-bottom-nav {
     background: var(--sidebar);
-    backdrop-filter: blur(32px) saturate(160%);
-    -webkit-backdrop-filter: blur(32px) saturate(160%);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
     border-top: 1px solid var(--sidebar-border);
   }
 }

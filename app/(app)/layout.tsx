@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar role={role} />
       <div className="lg:pl-64">
         <Topbar name={name} role={role} />
-        <main className="px-4 sm:px-6 py-4 sm:py-6 pb-24 lg:pb-6">{children}</main>
+        <main className="px-4 sm:px-6 py-4 sm:py-6 pb-28 lg:pb-6">{children}</main>
       </div>
       <BottomNav role={role} />
     </div>
