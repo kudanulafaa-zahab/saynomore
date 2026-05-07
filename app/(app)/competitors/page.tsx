@@ -1,2 +1,2 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
-export default function Page() { return <ComingSoon title="Competitor Pricing" description="Per-piece comparison vs your products." />; }
+import { CompetitorsView } from "@/components/competitors/competitors-view";
+export default function Page() { return <div className="max-w-4xl mx-auto"><CompetitorsView /></div>; }
