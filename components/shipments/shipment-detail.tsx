@@ -279,29 +279,47 @@ export function ShipmentDetail({ id }: { id: string }) {
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Forex Rates (locked at GRN)</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <NumberField
-              label="IDR → MVR"
-              value={shipment.rate_idr_to_mvr}
-              onChange={(v) => patch("rate_idr_to_mvr", v)}
+              label="IDR → USD *"
+              value={shipment.rate_idr_to_usd}
+              onChange={async (v) => {
+                await patch("rate_idr_to_usd", v);
+                // Auto-derive IDR → MVR
+                const usd = shipment.rate_usd_to_mvr;
+                if (v && usd) await patch("rate_idr_to_mvr", v * usd);
+              }}
               disabled={locked}
-              step="0.00000001"
-              hint="e.g. 0.001"
+              step="0.0000001"
+              hint="e.g. 0.0000632"
             />
             <NumberField
-              label="USD → MVR"
+              label="USD → MVR *"
               value={shipment.rate_usd_to_mvr}
-              onChange={(v) => patch("rate_usd_to_mvr", v)}
+              onChange={async (v) => {
+                await patch("rate_usd_to_mvr", v);
+                // Auto-derive IDR → MVR
+                const idrUsd = shipment.rate_idr_to_usd;
+                if (idrUsd && v) await patch("rate_idr_to_mvr", idrUsd * v);
+              }}
               disabled={locked}
               step="0.0001"
               hint="e.g. 15.42"
             />
-            <NumberField
-              label="IDR → USD (display)"
-              value={shipment.rate_idr_to_usd}
-              onChange={(v) => patch("rate_idr_to_usd", v)}
-              disabled={locked}
-              step="0.0000001"
-              hint="Optional"
-            />
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">IDR → MVR (auto)</Label>
+              <Input
+                type="number"
+                value={
+                  shipment.rate_idr_to_mvr !== null && shipment.rate_idr_to_mvr !== undefined
+                    ? shipment.rate_idr_to_mvr
+                    : ""
+                }
+                disabled
+                className="bg-muted/50 text-foreground"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                = IDR→USD × USD→MVR
+              </p>
+            </div>
           </div>
         </div>
 
