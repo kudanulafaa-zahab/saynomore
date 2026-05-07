@@ -12,8 +12,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { listStockLevels, listBatchStock, type BatchStock } from "@/lib/queries/inventory";
-import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, type SkuFullRow, type UnitUom } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
+
+function containerLabel(uom: UnitUom): string {
+  if (uom === "ml") return "bottle";
+  if (uom === "g") return "pouch";
+  return "pack";
+}
+
+function formatQty(pieces: number, pcsPerPack: number, packsPerCarton: number, uom: UnitUom): string {
+  const pcsPerCarton = pcsPerPack * packsPerCarton;
+  const ctns = pcsPerCarton > 0 ? Math.floor(pieces / pcsPerCarton) : 0;
+  const rem = pcsPerCarton > 0 ? pieces % pcsPerCarton : pieces;
+  const loose = pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
+  const label = containerLabel(uom);
+  const parts: string[] = [];
+  if (ctns > 0) parts.push(`${ctns} ctn`);
+  if (loose > 0) parts.push(`${loose} ${label}`);
+  if (parts.length === 0) parts.push(`0 ctn`);
+  return parts.join(" + ");
+}
 
 interface SkuRollup {
   sku: SkuFullRow;
@@ -156,10 +175,8 @@ export function InventoryView() {
               ? row.byGodown
               : row.byGodown.filter((g) => g.godown.id === godownFilter);
             const visibleTotal = visibleByGodown.reduce((acc, x) => acc + x.pieces, 0);
-            const pcsPerCarton = row.sku.pcs_per_pack * row.sku.packs_per_carton;
-            const cartons = pcsPerCarton > 0 ? Math.floor(visibleTotal / pcsPerCarton) : 0;
-            const remainingAfterCartons = pcsPerCarton > 0 ? visibleTotal % pcsPerCarton : visibleTotal;
-            const loosePacks = row.sku.pcs_per_pack > 0 ? Math.floor(remainingAfterCartons / row.sku.pcs_per_pack) : 0;
+            const { pcs_per_pack, packs_per_carton, unit_uom } = row.sku;
+            const contLabel = containerLabel(unit_uom);
             return (
               <div key={row.sku.id}>
                 <button
@@ -175,17 +192,14 @@ export function InventoryView() {
                         {row.sku.brand_name} › {row.sku.model_name} › {row.sku.variant_display}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        {row.sku.pcs_per_pack} pcs/pk · {row.sku.packs_per_carton} pk/ctn
+                        {pcs_per_pack} pcs/{contLabel} · {packs_per_carton} {contLabel}s/ctn
                         {visibleByGodown.length > 1 && <> · {visibleByGodown.length} godowns</>}
                       </p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-lg font-semibold text-foreground">
-                      {cartons} <span className="text-sm font-normal text-muted-foreground">ctn</span>
-                      {loosePacks > 0 && (
-                        <> + {loosePacks} <span className="text-sm font-normal text-muted-foreground">pk</span></>
-                      )}
+                    <p className="text-base font-semibold text-foreground">
+                      {formatQty(visibleTotal, pcs_per_pack, packs_per_carton, unit_uom)}
                     </p>
                     <p className="text-[11px] text-muted-foreground">{visibleTotal.toLocaleString()} pcs total</p>
                   </div>
@@ -200,20 +214,15 @@ export function InventoryView() {
                       {visibleByGodown.length === 0 ? (
                         <p className="text-xs text-muted-foreground">No stock in any godown.</p>
                       ) : (
-                        visibleByGodown.map((bg) => {
-                          const gdCtns = pcsPerCarton > 0 ? Math.floor(bg.pieces / pcsPerCarton) : 0;
-                          const gdRem = pcsPerCarton > 0 ? bg.pieces % pcsPerCarton : bg.pieces;
-                          const gdPacks = row.sku.pcs_per_pack > 0 ? Math.floor(gdRem / row.sku.pcs_per_pack) : 0;
-                          return (
-                            <div key={bg.godown.id} className="flex justify-between py-1 text-xs">
-                              <span className="text-foreground">{bg.godown.name}</span>
-                              <span className="text-muted-foreground">
-                                {gdCtns} ctn{gdPacks > 0 ? ` + ${gdPacks} pk` : ""}
-                                <span className="ml-1 text-muted-foreground/60">({bg.pieces.toLocaleString()} pcs)</span>
-                              </span>
-                            </div>
-                          );
-                        })
+                        visibleByGodown.map((bg) => (
+                          <div key={bg.godown.id} className="flex justify-between py-1 text-xs">
+                            <span className="text-foreground">{bg.godown.name}</span>
+                            <span className="text-muted-foreground">
+                              {formatQty(bg.pieces, pcs_per_pack, packs_per_carton, unit_uom)}
+                              <span className="ml-1 text-muted-foreground/60">({bg.pieces.toLocaleString()} pcs)</span>
+                            </span>
+                          </div>
+                        ))
                       )}
                     </div>
 
@@ -230,9 +239,6 @@ export function InventoryView() {
                           .sort((a, b) => a.received_at.localeCompare(b.received_at))
                           .map((b) => {
                             const g = godowns.find((x) => x.id === b.godown_id);
-                            const bCtns = pcsPerCarton > 0 ? Math.floor(b.qty_pieces_remaining / pcsPerCarton) : 0;
-                            const bRem = pcsPerCarton > 0 ? b.qty_pieces_remaining % pcsPerCarton : b.qty_pieces_remaining;
-                            const bPacks = row.sku.pcs_per_pack > 0 ? Math.floor(bRem / row.sku.pcs_per_pack) : 0;
                             return (
                               <div key={b.batch_id} className="grid grid-cols-3 gap-2 py-1 text-[11px]">
                                 <span className="text-muted-foreground">
@@ -240,7 +246,7 @@ export function InventoryView() {
                                 </span>
                                 <span className="text-muted-foreground truncate">{g?.name ?? "—"}</span>
                                 <span className="text-right text-foreground">
-                                  {bCtns} ctn{bPacks > 0 ? ` + ${bPacks} pk` : ""}
+                                  {formatQty(b.qty_pieces_remaining, pcs_per_pack, packs_per_carton, unit_uom)}
                                   <span className="text-muted-foreground"> @ {b.landed_per_piece_mvr.toFixed(2)} MVR/pc</span>
                                 </span>
                               </div>
