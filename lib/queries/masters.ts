@@ -166,10 +166,20 @@ export async function setUserRole(userId: string, role: UserRole) {
 }
 
 export async function inviteUser(email: string, fullName: string, role: UserRole) {
-  const { error } = await supabase.rpc("admin_invite_user", {
-    p_email: email,
-    p_full_name: fullName,
-    p_role: role,
-  });
-  if (error) throw error;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/invite-user`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ email, full_name: fullName, role }),
+    },
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Invite failed");
 }
