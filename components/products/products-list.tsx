@@ -53,6 +53,10 @@ export function ProductsList() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search brand, model, variant, code…"
           className="pl-9 h-11"
+          inputMode="search"
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="off"
         />
       </div>
 
@@ -62,6 +66,7 @@ export function ProductsList() {
         </div>
       ) : (
         <div className="glass overflow-hidden">
+          {/* Desktop header */}
           <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-[11px] uppercase tracking-widest text-muted-foreground border-b border-border bg-secondary/30">
             <div className="col-span-3">Brand · Model</div>
             <div className="col-span-3">Variant</div>
@@ -73,31 +78,58 @@ export function ProductsList() {
           {filtered.map((r) => (
             <div
               key={r.id}
-              className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 border-b border-border last:border-0 hover:bg-accent/30 transition text-sm"
+              className="border-b border-border last:border-0 hover:bg-accent/30 transition"
             >
-              <div className="md:col-span-3">
-                <p className="text-foreground">{r.brand_name}</p>
-                <p className="text-xs text-muted-foreground">{r.model_name} · {r.category_name}</p>
-              </div>
-              <div className="md:col-span-3 text-foreground">{r.variant_display}</div>
-              <div className="md:col-span-2 text-muted-foreground">
-                {r.pcs_per_pack}/pk × {r.packs_per_carton}/ctn
-                <span className="block text-[11px]">= {r.pcs_per_carton} pcs/ctn</span>
-              </div>
-              <div className="md:col-span-2 text-muted-foreground">{Number(r.cbm_per_carton).toFixed(4)}</div>
-              <div className="md:col-span-1 text-xs font-mono text-muted-foreground truncate" title={r.internal_code}>{r.internal_code}</div>
-              <div className="md:col-span-1 md:text-right">
+              {/* Mobile card layout */}
+              <div className="md:hidden px-4 py-3 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">{r.brand_name}</p>
+                  <p className="text-xs text-muted-foreground">{r.model_name} · {r.variant_display}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[11px] text-muted-foreground">
+                      {r.pcs_per_pack}/pk × {r.packs_per_carton}/ctn
+                    </span>
+                    <span className="text-[11px] font-mono text-muted-foreground">{r.internal_code}</span>
+                  </div>
+                </div>
                 <button
                   onClick={async () => {
                     try { await toggleSkuActive(r.id, !r.is_active); load(); }
                     catch (e) { toast.error((e as Error).message); }
                   }}
-                  className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
+                  className={`text-[10px] uppercase tracking-wider rounded px-2 py-1 shrink-0 ${
                     r.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {r.is_active ? "On" : "Off"}
+                  {r.is_active ? "Active" : "Off"}
                 </button>
+              </div>
+              {/* Desktop row layout */}
+              <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 text-sm">
+                <div className="col-span-3">
+                  <p className="text-foreground">{r.brand_name}</p>
+                  <p className="text-xs text-muted-foreground">{r.model_name} · {r.category_name}</p>
+                </div>
+                <div className="col-span-3 text-foreground">{r.variant_display}</div>
+                <div className="col-span-2 text-muted-foreground">
+                  {r.pcs_per_pack}/pk × {r.packs_per_carton}/ctn
+                  <span className="block text-[11px]">= {r.pcs_per_carton} pcs/ctn</span>
+                </div>
+                <div className="col-span-2 text-muted-foreground">{Number(r.cbm_per_carton).toFixed(4)}</div>
+                <div className="col-span-1 text-xs font-mono text-muted-foreground truncate" title={r.internal_code}>{r.internal_code}</div>
+                <div className="col-span-1 text-right">
+                  <button
+                    onClick={async () => {
+                      try { await toggleSkuActive(r.id, !r.is_active); load(); }
+                      catch (e) { toast.error((e as Error).message); }
+                    }}
+                    className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
+                      r.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {r.is_active ? "On" : "Off"}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

@@ -139,6 +139,10 @@ export function InventoryView() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by brand, model, code…"
             className="pl-9 h-11"
+            inputMode="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="off"
           />
         </div>
         <Select value={godownFilter} onValueChange={(v) => v && setGodownFilter(v)}>

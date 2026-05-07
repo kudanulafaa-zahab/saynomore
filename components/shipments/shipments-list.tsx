@@ -145,6 +145,10 @@ export function ShipmentsList() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search reference…"
             className="pl-9 h-11"
+            inputMode="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="off"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v as typeof statusFilter)}>

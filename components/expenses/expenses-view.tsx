@@ -322,6 +322,7 @@ function SpendDialog({
 
   async function save() {
     if (!amountMvr || parseFloat(amountMvr) <= 0) { toast.error("Enter an amount"); return; }
+    if (endDate && endDate < startDate) { toast.error("End date must be on or after start date"); return; }
     setSaving(true);
     try {
       const payload = {

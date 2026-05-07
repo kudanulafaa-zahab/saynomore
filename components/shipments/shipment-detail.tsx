@@ -748,12 +748,15 @@ function NumberField({
       <Label>{label}{required ? " *" : ""}</Label>
       <Input
         type="number"
+        inputMode="decimal"
         step={step}
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         onBlur={() => {
           const num = local === "" ? null : Number(local);
-          if (num !== value) onChange(num);
+          // Only fire if the numeric value actually changed
+          const prevNum = value !== null && value !== undefined ? Number(value) : null;
+          if (num !== prevNum) onChange(num);
         }}
         disabled={disabled}
       />
@@ -826,16 +829,17 @@ function LineDialog({
 
   async function save() {
     if (!skuId || !qtyCartons || !fobPerCarton || !godownId) return;
-    if (!sku) {
-      toast.error("Pick a SKU");
-      return;
-    }
+    if (!sku) { toast.error("Pick a SKU"); return; }
+    const parsedQty = parseInt(qtyCartons, 10);
+    if (isNaN(parsedQty) || parsedQty < 1) { toast.error("Qty must be at least 1 carton"); return; }
+    const parsedFob = parseFloat(fobPerCarton);
+    if (isNaN(parsedFob) || parsedFob <= 0) { toast.error("FOB price must be greater than zero"); return; }
     const payload = {
       shipment_id: shipmentId,
       sku_id: skuId,
-      qty_cartons: parseInt(qtyCartons, 10),
+      qty_cartons: parsedQty,
       cbm_per_carton: Number(sku.cbm_per_carton),
-      fob_per_carton: parseFloat(fobPerCarton),
+      fob_per_carton: parsedFob,
       fob_currency: fobCurrency,
       destination_godown_id: godownId,
     };
@@ -911,12 +915,12 @@ function LineDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Qty cartons *</Label>
-              <Input type="number" min="1" value={qtyCartons} onChange={(e) => setQtyCartons(e.target.value)} placeholder="50" />
+              <Input type="number" inputMode="numeric" min="1" step="1" value={qtyCartons} onChange={(e) => setQtyCartons(e.target.value)} placeholder="50" />
             </div>
             <div className="space-y-2">
               <Label>FOB per carton *</Label>
               <div className="flex gap-2">
-                <Input type="number" step="0.01" value={fobPerCarton} onChange={(e) => setFobPerCarton(e.target.value)} className="flex-1" />
+                <Input type="number" inputMode="decimal" step="0.01" value={fobPerCarton} onChange={(e) => setFobPerCarton(e.target.value)} className="flex-1" />
                 <Select value={fobCurrency} onValueChange={(v) => v && setFobCurrency(v as FobCurrency)}>
                   <SelectTrigger className="w-24"><SelectValue>{fobCurrency}</SelectValue></SelectTrigger>
                   <SelectContent>

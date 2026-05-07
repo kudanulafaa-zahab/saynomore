@@ -86,6 +86,10 @@ export function SaleDetail({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(false);
+  const [deleteOrderDialog, setDeleteOrderDialog] = useState(false);
+  const [deletingOrder, setDeletingOrder] = useState(false);
+  const [deleteLineDialog, setDeleteLineDialog] = useState<SalesOrderLineRow | null>(null);
+  const [deletingLine, setDeletingLine] = useState(false);
   const [lineDialog, setLineDialog] = useState<{ open: boolean; editing?: SalesOrderLineRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
 
@@ -205,11 +209,7 @@ export function SaleDetail({ id }: { id: string }) {
           </span>
           {isAdmin && (
             <button
-              onClick={async () => {
-                if (!confirm(`Delete order "${order.order_number}"?`)) return;
-                try { await deleteOrder(order.id); router.push("/sales"); }
-                catch (e) { toast.error((e as Error).message); }
-              }}
+              onClick={() => setDeleteOrderDialog(true)}
               className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
               title="Delete (admin)"
             >
@@ -366,11 +366,7 @@ export function SaleDetail({ id }: { id: string }) {
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => setLineDialog({ open: true, editing: l })} className="text-xs text-primary hover:opacity-80 px-2">Edit</button>
                       <button
-                        onClick={async () => {
-                          if (!confirm("Remove this item?")) return;
-                          try { await deleteOrderLine(l.id); load(); }
-                          catch (e) { toast.error((e as Error).message); }
-                        }}
+                        onClick={() => setDeleteLineDialog(l)}
                         className="text-xs text-red-500 hover:opacity-80 px-2"
                       >
                         Remove
@@ -440,7 +436,7 @@ export function SaleDetail({ id }: { id: string }) {
         onSaved={load}
       />
 
-      {/* Confirm dialog */}
+      {/* Confirm sale dialog */}
       <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
         <DialogContent className="bg-popover border-border">
           <DialogHeader>
@@ -468,6 +464,89 @@ export function SaleDetail({ id }: { id: string }) {
             <Button variant="ghost" onClick={() => setConfirmDialog(false)}>Cancel</Button>
             <Button onClick={handlePostSale} disabled={posting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete order dialog */}
+      <Dialog open={deleteOrderDialog} onOpenChange={setDeleteOrderDialog}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <DialogTitle>Delete order?</DialogTitle>
+            </div>
+            <DialogDescription>
+              <strong>{order.order_number}</strong> and all its line items will be permanently removed. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteOrderDialog(false)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deletingOrder}
+              onClick={async () => {
+                setDeletingOrder(true);
+                try {
+                  await deleteOrder(order.id);
+                  toast.success("Order deleted");
+                  router.push("/sales");
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally {
+                  setDeletingOrder(false);
+                }
+              }}
+            >
+              {deletingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove line dialog */}
+      <Dialog open={!!deleteLineDialog} onOpenChange={(o) => { if (!o) setDeleteLineDialog(null); }}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <DialogTitle>Remove item?</DialogTitle>
+            </div>
+            <DialogDescription>
+              {deleteLineDialog && (() => {
+                const sku = skus.find((s) => s.id === deleteLineDialog.sku_id);
+                return sku
+                  ? <><strong>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</strong> will be removed from this order.</>
+                  : "This item will be permanently removed.";
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteLineDialog(null)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deletingLine}
+              onClick={async () => {
+                if (!deleteLineDialog) return;
+                setDeletingLine(true);
+                try {
+                  await deleteOrderLine(deleteLineDialog.id);
+                  toast.success("Item removed");
+                  setDeleteLineDialog(null);
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally {
+                  setDeletingLine(false);
+                }
+              }}
+            >
+              {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -657,11 +736,18 @@ function LineDialog({
             </div>
             <div className="space-y-2 col-span-1">
               <Label>Qty *</Label>
-              <Input type="number" step="0.001" min="0" value={qty} onChange={(e) => setQty(e.target.value)} />
+              <Input
+                type="number"
+                inputMode={uom === "piece" ? "numeric" : "decimal"}
+                step={uom === "piece" ? "1" : "0.5"}
+                min="1"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+              />
             </div>
             <div className="space-y-2 col-span-1">
               <Label>Unit price (MVR) *</Label>
-              <Input type="number" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
             </div>
           </div>
 
