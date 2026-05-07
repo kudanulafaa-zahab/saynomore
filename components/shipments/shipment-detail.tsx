@@ -42,6 +42,7 @@ import {
   updateShipmentLine,
   deleteShipmentLine,
   confirmGrn,
+  voidGrn,
   type ShipmentRow,
   type ShipmentLineRow,
   type FobCurrency,
@@ -70,6 +71,8 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [deleteShipmentDialog, setDeleteShipmentDialog] = useState(false);
   const [deletingShipment, setDeletingShipment] = useState(false);
+  const [voidDialog, setVoidDialog] = useState(false);
+  const [voiding, setVoiding] = useState(false);
   const [deleteLineDialog, setDeleteLineDialog] = useState<ShipmentLineRow | null>(null);
   const [deletingLine, setDeletingLine] = useState(false);
   const [lineDialog, setLineDialog] = useState<{ open: boolean; editing?: ShipmentLineRow }>({ open: false });
@@ -206,6 +209,15 @@ export function ShipmentDetail({ id }: { id: string }) {
             <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider rounded px-2 py-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
               <Lock className="h-3 w-3" /> Locked
             </span>
+          )}
+          {isAdmin && locked && (
+            <button
+              onClick={() => setVoidDialog(true)}
+              className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+              title="Void GRN & delete (admin)"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           )}
           {isAdmin && !locked && (
             <button
@@ -614,6 +626,47 @@ export function ShipmentDetail({ id }: { id: string }) {
               }}
             >
               {deletingShipment ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Void GRN dialog (admin, locked shipments only) */}
+      <Dialog open={voidDialog} onOpenChange={setVoidDialog}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <DialogTitle>Void GRN &amp; delete shipment?</DialogTitle>
+            </div>
+            <DialogDescription>
+              <strong>{shipment.reference}</strong> will be completely removed — all inventory batches
+              and stock movements will be reversed. This cannot be undone.
+              <br /><br />
+              This will be blocked if any stock from this shipment has already been sold.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setVoidDialog(false)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={voiding}
+              onClick={async () => {
+                setVoiding(true);
+                try {
+                  await voidGrn(shipment.id);
+                  toast.success("Shipment voided — stock reversed");
+                  router.push("/shipments");
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally {
+                  setVoiding(false);
+                }
+              }}
+            >
+              {voiding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Void & delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

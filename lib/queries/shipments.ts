@@ -166,6 +166,13 @@ export async function confirmGrn(shipmentId: string) {
   return data;
 }
 
+// ── Void GRN — admin only, blocked if stock already sold (RPC) ───────────
+
+export async function voidGrn(shipmentId: string) {
+  const { error } = await supabase.rpc("admin_void_grn", { p_shipment_id: shipmentId });
+  if (error) throw error;
+}
+
 // ── Helpers (auto-generate reference) ────────────────────────────────────
 
 export function nextShipmentRef(existing: ShipmentRow[]): string {
