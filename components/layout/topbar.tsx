@@ -42,7 +42,10 @@ export function Topbar({ name, role }: { name: string; role: string }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 glass-sidebar border-b border-sidebar-border">
+    <header
+      className="sticky top-0 z-30 glass-sidebar border-b border-sidebar-border"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
         {/* Mobile: show logo here since sidebar is hidden */}
         <div className="flex items-center gap-2 lg:hidden">
