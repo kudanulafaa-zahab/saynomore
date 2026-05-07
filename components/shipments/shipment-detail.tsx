@@ -68,6 +68,10 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(false);
+  const [deleteShipmentDialog, setDeleteShipmentDialog] = useState(false);
+  const [deletingShipment, setDeletingShipment] = useState(false);
+  const [deleteLineDialog, setDeleteLineDialog] = useState<ShipmentLineRow | null>(null);
+  const [deletingLine, setDeletingLine] = useState(false);
   const [lineDialog, setLineDialog] = useState<{ open: boolean; editing?: ShipmentLineRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
 
@@ -205,16 +209,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           )}
           {isAdmin && !locked && (
             <button
-              onClick={async () => {
-                if (!confirm(`Delete shipment "${shipment.reference}"? Lines will be removed.`)) return;
-                try {
-                  await deleteShipment(shipment.id);
-                  toast.success("Deleted");
-                  router.push("/shipments");
-                } catch (e) {
-                  toast.error((e as Error).message);
-                }
-              }}
+              onClick={() => setDeleteShipmentDialog(true)}
               className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
               title="Delete (admin)"
             >
@@ -445,11 +440,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                           Edit
                         </button>
                         <button
-                          onClick={async () => {
-                            if (!confirm("Remove this line?")) return;
-                            try { await deleteShipmentLine(l.id); load(); }
-                            catch (e) { toast.error((e as Error).message); }
-                          }}
+                          onClick={() => setDeleteLineDialog(l)}
                           className="text-xs text-red-500 hover:opacity-80 px-2"
                         >
                           Remove
@@ -550,7 +541,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         onSaved={load}
       />
 
-      {/* Confirm dialog */}
+      {/* Confirm GRN dialog */}
       <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
         <DialogContent className="bg-popover border-border">
           <DialogHeader>
@@ -584,6 +575,90 @@ export function ShipmentDetail({ id }: { id: string }) {
             <Button variant="ghost" onClick={() => setConfirmDialog(false)}>Cancel</Button>
             <Button onClick={handleConfirmGrn} disabled={confirming} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm & lock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete shipment dialog */}
+      <Dialog open={deleteShipmentDialog} onOpenChange={setDeleteShipmentDialog}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <DialogTitle>Delete shipment?</DialogTitle>
+            </div>
+            <DialogDescription>
+              <strong>{shipment.reference}</strong> and all its lines will be permanently removed.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteShipmentDialog(false)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deletingShipment}
+              onClick={async () => {
+                setDeletingShipment(true);
+                try {
+                  await deleteShipment(shipment.id);
+                  toast.success("Shipment deleted");
+                  router.push("/shipments");
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally {
+                  setDeletingShipment(false);
+                }
+              }}
+            >
+              {deletingShipment ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete line dialog */}
+      <Dialog open={!!deleteLineDialog} onOpenChange={(o) => { if (!o) setDeleteLineDialog(null); }}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <DialogTitle>Remove line?</DialogTitle>
+            </div>
+            <DialogDescription>
+              {deleteLineDialog && (() => {
+                const sku = skus.find((s) => s.id === deleteLineDialog.sku_id);
+                return sku
+                  ? <><strong>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</strong> will be removed from this shipment.</>
+                  : "This line will be permanently removed.";
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteLineDialog(null)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deletingLine}
+              onClick={async () => {
+                if (!deleteLineDialog) return;
+                setDeletingLine(true);
+                try {
+                  await deleteShipmentLine(deleteLineDialog.id);
+                  toast.success("Line removed");
+                  setDeleteLineDialog(null);
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally {
+                  setDeletingLine(false);
+                }
+              }}
+            >
+              {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Clock,
   Anchor,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,11 +38,14 @@ import {
 import {
   listShipments,
   createShipment,
+  updateShipment,
+  deleteShipment,
   nextShipmentRef,
   type ShipmentRow,
   type ShipmentStatus,
 } from "@/lib/queries/shipments";
 import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
+import { getCurrentUserRole } from "@/lib/queries/products";
 
 const STATUS_LABEL: Record<ShipmentStatus, string> = {
   draft: "Draft",
@@ -73,6 +79,10 @@ export function ShipmentsList() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "all">("all");
   const [newDialog, setNewDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState<ShipmentRow | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<ShipmentRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -87,6 +97,8 @@ export function ShipmentsList() {
     }
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
+  const isAdmin = role === "admin";
 
   const filtered = useMemo(() => {
     let r = rows;
@@ -175,14 +187,14 @@ export function ShipmentsList() {
         <div className="glass divide-y divide-border overflow-hidden">
           {filtered.map((s) => {
             const Icon = STATUS_ICON[s.status];
+            const locked = s.status === "grn_confirmed";
             return (
-              <Link
-                key={s.id}
-                href={`/shipments/${s.id}`}
-                className="flex items-center justify-between gap-3 p-4 hover:bg-accent/30 transition"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${STATUS_COLOR[s.status]}`}>
+              <div key={s.id} className="flex items-center gap-3 p-4 hover:bg-accent/30 transition">
+                <Link
+                  href={`/shipments/${s.id}`}
+                  className="flex items-center gap-3 min-w-0 flex-1"
+                >
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${STATUS_COLOR[s.status]}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -192,11 +204,31 @@ export function ShipmentsList() {
                       {s.notes && <> · {s.notes}</>}
                     </p>
                   </div>
+                </Link>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-0.5 ${STATUS_COLOR[s.status]}`}>
+                    {STATUS_LABEL[s.status]}
+                  </span>
+                  {!locked && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); setEditDialog(s); }}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition"
+                      title="Edit"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {isAdmin && !locked && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); setDeleteDialog(s); }}
+                      className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
-                <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-0.5 shrink-0 ${STATUS_COLOR[s.status]}`}>
-                  {STATUS_LABEL[s.status]}
-                </span>
-              </Link>
+              </div>
             );
           })}
         </div>
@@ -212,6 +244,57 @@ export function ShipmentsList() {
           router.push(`/shipments/${id}`);
         }}
       />
+
+      {/* Edit dialog */}
+      {editDialog && (
+        <EditShipmentDialog
+          shipment={editDialog}
+          suppliers={suppliers}
+          onOpenChange={(o) => { if (!o) setEditDialog(null); }}
+          onSaved={() => { setEditDialog(null); load(); }}
+        />
+      )}
+
+      {/* Delete confirm dialog */}
+      <Dialog open={!!deleteDialog} onOpenChange={(o) => { if (!o) setDeleteDialog(null); }}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <DialogTitle>Delete shipment?</DialogTitle>
+            </div>
+            <DialogDescription>
+              <strong>{deleteDialog?.reference}</strong> and all its lines will be permanently removed.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteDialog(null)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleting}
+              onClick={async () => {
+                if (!deleteDialog) return;
+                setDeleting(true);
+                try {
+                  await deleteShipment(deleteDialog.id);
+                  toast.success("Shipment deleted");
+                  setDeleteDialog(null);
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -292,6 +375,80 @@ function NewShipmentDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={saving || !reference.trim()}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditShipmentDialog({
+  shipment, suppliers, onOpenChange, onSaved,
+}: {
+  shipment: ShipmentRow;
+  suppliers: SupplierRow[];
+  onOpenChange: (o: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [reference, setReference] = useState(shipment.reference);
+  const [supplierId, setSupplierId] = useState(shipment.supplier_id ?? "");
+  const [notes, setNotes] = useState(shipment.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!reference.trim()) return;
+    setSaving(true);
+    try {
+      await updateShipment(shipment.id, {
+        reference: reference.trim(),
+        supplier_id: supplierId || null,
+        notes: notes.trim() || null,
+      });
+      toast.success("Shipment updated");
+      onSaved();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="bg-popover border-border">
+        <DialogHeader>
+          <DialogTitle>Edit Shipment</DialogTitle>
+          <DialogDescription>
+            Update the reference, supplier, or notes. All costs and lines are edited inside the shipment detail.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Reference *</Label>
+            <Input value={reference} onChange={(e) => setReference(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Supplier</Label>
+            <Select value={supplierId} onValueChange={(v) => v && setSupplierId(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pick supplier">
+                  {suppliers.find((s) => s.id === supplierId)?.name ?? "—"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={save} disabled={saving || !reference.trim()}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
