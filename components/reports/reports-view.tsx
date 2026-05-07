@@ -1,0 +1,443 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  Loader2, TrendingUp, TrendingDown, Package,
+  Clock, BarChart3, Search,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { getReportsData, type ReportRow } from "@/lib/queries/reports";
+import { type UnitUom } from "@/lib/queries/products";
+
+// ── Date helpers ─────────────────────────────────────────────────────────
+
+function today() { return new Date().toISOString().slice(0, 10); }
+function daysAgo(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+function containerLabel(uom: UnitUom) {
+  if (uom === "ml") return "bottle";
+  if (uom === "g") return "pouch";
+  return "pack";
+}
+
+function formatStock(pieces: number, pcsPerPack: number, packsPerCarton: number, uom: UnitUom) {
+  const pcsPerCarton = pcsPerPack * packsPerCarton;
+  const ctns = pcsPerCarton > 0 ? Math.floor(pieces / pcsPerCarton) : 0;
+  const rem = pcsPerCarton > 0 ? pieces % pcsPerCarton : pieces;
+  const loose = pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
+  const label = containerLabel(uom);
+  const parts: string[] = [];
+  if (ctns > 0) parts.push(`${ctns} ctn`);
+  if (loose > 0) parts.push(`${loose} ${label}`);
+  return parts.length > 0 ? parts.join(" + ") : "0";
+}
+
+function marginColor(pct: number | null) {
+  if (pct === null) return "text-muted-foreground";
+  if (pct >= 30) return "text-emerald-600 dark:text-emerald-400";
+  if (pct >= 15) return "text-amber-600 dark:text-amber-400";
+  return "text-red-500 dark:text-red-400";
+}
+
+function daysColor(days: number | null) {
+  if (days === null) return "text-muted-foreground";
+  if (days > 30) return "text-emerald-600 dark:text-emerald-400";
+  if (days > 14) return "text-amber-600 dark:text-amber-400";
+  return "text-red-500 dark:text-red-400";
+}
+
+const PRESETS = [
+  { label: "Last 7 days",  from: () => daysAgo(7),  to: today },
+  { label: "Last 30 days", from: () => daysAgo(30), to: today },
+  { label: "Last 90 days", from: () => daysAgo(90), to: today },
+];
+
+type SortKey = "revenue" | "qty" | "margin" | "days" | "stock";
+
+export function ReportsView() {
+  const [rows, setRows] = useState<ReportRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [from, setFrom] = useState(daysAgo(30));
+  const [to, setTo] = useState(today());
+  const [q, setQ] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("revenue");
+  const [tab, setTab] = useState<"bestsellers" | "margins" | "stock">("bestsellers");
+
+  async function load(f = from, t = to) {
+    setLoading(true);
+    try {
+      setRows(await getReportsData(f, t));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    let r = rows;
+    if (term) {
+      r = r.filter((x) =>
+        [x.brand_name, x.model_name, x.variant_display, x.internal_code]
+          .join(" ").toLowerCase().includes(term),
+      );
+    }
+    return [...r].sort((a, b) => {
+      if (sortKey === "revenue") return b.total_revenue_mvr - a.total_revenue_mvr;
+      if (sortKey === "qty")     return b.total_qty_pieces - a.total_qty_pieces;
+      if (sortKey === "margin")  return (b.gross_margin_pct ?? -999) - (a.gross_margin_pct ?? -999);
+      if (sortKey === "days")    return (b.days_of_stock ?? 99999) - (a.days_of_stock ?? 99999);
+      if (sortKey === "stock")   return b.stock_pieces - a.stock_pieces;
+      return 0;
+    });
+  }, [rows, q, sortKey]);
+
+  // Summary cards
+  const totals = useMemo(() => ({
+    revenue: rows.reduce((s, r) => s + r.total_revenue_mvr, 0),
+    skusSold: rows.filter((r) => r.total_qty_pieces > 0).length,
+    lowStock: rows.filter((r) => r.days_of_stock !== null && r.days_of_stock < 14).length,
+    avgMargin: (() => {
+      const withMargin = rows.filter((r) => r.gross_margin_pct !== null);
+      if (!withMargin.length) return null;
+      return withMargin.reduce((s, r) => s + (r.gross_margin_pct ?? 0), 0) / withMargin.length;
+    })(),
+  }), [rows]);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Analytics</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Reports</h1>
+      </div>
+
+      {/* Date range + presets */}
+      <div className="glass p-4 space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => { const f = p.from(); const t = p.to(); setFrom(f); setTo(t); load(f, t); }}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+                from === p.from() && to === p.to()
+                  ? "bg-primary text-white border-primary"
+                  : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="h-9 px-3 text-sm rounded-lg border border-border bg-background text-foreground"
+          />
+          <span className="text-muted-foreground text-sm">to</span>
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="h-9 px-3 text-sm rounded-lg border border-border bg-background text-foreground"
+          />
+          <Button size="sm" onClick={() => load()} disabled={loading}>
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <SummaryCard
+          label="Total Revenue"
+          value={`MVR ${totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+          icon={TrendingUp}
+          color="bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+        />
+        <SummaryCard
+          label="SKUs Sold"
+          value={String(totals.skusSold)}
+          icon={Package}
+          color="bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+        />
+        <SummaryCard
+          label="Avg Margin"
+          value={totals.avgMargin !== null ? `${totals.avgMargin.toFixed(1)}%` : "—"}
+          icon={BarChart3}
+          color="bg-blue-500/15 text-blue-600 dark:text-blue-300"
+        />
+        <SummaryCard
+          label="Low Stock SKUs"
+          value={String(totals.lowStock)}
+          icon={Clock}
+          color={totals.lowStock > 0 ? "bg-red-500/15 text-red-500" : "bg-muted text-muted-foreground"}
+        />
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-secondary border border-border rounded-xl p-1 w-fit">
+        {([
+          { key: "bestsellers", label: "Best Sellers" },
+          { key: "margins",     label: "Margins" },
+          { key: "stock",       label: "Days of Stock" },
+        ] as const).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+              tab === t.key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search by brand, model, variant…"
+          className="pl-9 h-11"
+        />
+      </div>
+
+      {loading ? (
+        <div className="glass p-12 flex flex-col items-center text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mb-3" />
+          <p className="text-sm">Loading…</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass p-10 text-center">
+          <p className="text-muted-foreground text-sm">No data for this period.</p>
+        </div>
+      ) : tab === "bestsellers" ? (
+        <BestSellersTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+      ) : tab === "margins" ? (
+        <MarginsTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+      ) : (
+        <StockTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+      )}
+    </div>
+  );
+}
+
+// ── Summary card ─────────────────────────────────────────────────────────
+
+function SummaryCard({ label, value, icon: Icon, color }: {
+  label: string; value: string; icon: typeof TrendingUp; color: string;
+}) {
+  return (
+    <div className="glass p-4 space-y-2">
+      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${color}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-lg font-semibold text-foreground">{value}</p>
+      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+// ── Sort header helper ───────────────────────────────────────────────────
+
+function SortTh({ label, sortKey, active, onSort }: {
+  label: string; sortKey: SortKey; active: SortKey; onSort: (k: SortKey) => void;
+}) {
+  return (
+    <th
+      className={`px-3 py-2 text-right text-[11px] uppercase tracking-widest cursor-pointer select-none transition ${
+        active === sortKey ? "text-primary" : "text-muted-foreground hover:text-foreground"
+      }`}
+      onClick={() => onSort(sortKey)}
+    >
+      {label} {active === sortKey ? "↓" : ""}
+    </th>
+  );
+}
+
+// ── Best Sellers table ───────────────────────────────────────────────────
+
+function BestSellersTable({ rows, sortKey, onSort }: {
+  rows: ReportRow[]; sortKey: SortKey; onSort: (k: SortKey) => void;
+}) {
+  return (
+    <div className="glass overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-secondary/50">
+            <tr>
+              <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Product</th>
+              <SortTh label="Revenue (MVR)" sortKey="revenue" active={sortKey} onSort={onSort} />
+              <SortTh label="Qty Sold (pcs)" sortKey="qty" active={sortKey} onSort={onSort} />
+              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Avg Price</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r, i) => (
+              <tr key={r.sku_id} className="hover:bg-accent/20 transition">
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-mono w-5 text-center ${i < 3 ? "text-primary font-bold" : "text-muted-foreground"}`}>
+                      {i + 1}
+                    </span>
+                    <div>
+                      <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                      <p className="text-[11px] text-muted-foreground">{r.internal_code}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-3 text-right">
+                  <span className="text-foreground font-medium">
+                    {r.total_revenue_mvr > 0
+                      ? r.total_revenue_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                      : <span className="text-muted-foreground">—</span>}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-right text-muted-foreground">
+                  {r.total_qty_pieces > 0 ? r.total_qty_pieces.toLocaleString() : "—"}
+                </td>
+                <td className="px-3 py-3 text-right text-muted-foreground">
+                  {r.avg_unit_price_mvr > 0 ? r.avg_unit_price_mvr.toFixed(2) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Margins table ────────────────────────────────────────────────────────
+
+function MarginsTable({ rows, sortKey, onSort }: {
+  rows: ReportRow[]; sortKey: SortKey; onSort: (k: SortKey) => void;
+}) {
+  return (
+    <div className="glass overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-secondary/50">
+            <tr>
+              <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Product</th>
+              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Landed/pc</th>
+              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Sell/pc</th>
+              <SortTh label="Margin %" sortKey="margin" active={sortKey} onSort={onSort} />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => (
+              <tr key={r.sku_id} className="hover:bg-accent/20 transition">
+                <td className="px-3 py-3">
+                  <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                  <p className="text-[11px] text-muted-foreground">{r.internal_code}</p>
+                </td>
+                <td className="px-3 py-3 text-right text-muted-foreground">
+                  {r.landed_per_piece_mvr > 0 ? r.landed_per_piece_mvr.toFixed(3) : "—"}
+                </td>
+                <td className="px-3 py-3 text-right text-muted-foreground">
+                  {r.avg_unit_price_mvr > 0 ? r.avg_unit_price_mvr.toFixed(3) : "—"}
+                </td>
+                <td className="px-3 py-3 text-right">
+                  {r.gross_margin_pct !== null ? (
+                    <span className={`font-semibold ${marginColor(r.gross_margin_pct)}`}>
+                      {r.gross_margin_pct}%
+                      {r.gross_margin_pct >= 30
+                        ? <TrendingUp className="inline h-3 w-3 ml-1" />
+                        : r.gross_margin_pct < 15
+                        ? <TrendingDown className="inline h-3 w-3 ml-1" />
+                        : null}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">No sales</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="px-4 py-2 border-t border-border bg-secondary/30">
+        <p className="text-[11px] text-muted-foreground">
+          Green ≥ 30% · Amber 15–29% · Red &lt; 15% · Sell price based on actual invoiced sales in period
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Days of Stock table ──────────────────────────────────────────────────
+
+function StockTable({ rows, sortKey, onSort }: {
+  rows: ReportRow[]; sortKey: SortKey; onSort: (k: SortKey) => void;
+}) {
+  return (
+    <div className="glass overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-secondary/50">
+            <tr>
+              <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Product</th>
+              <SortTh label="Stock" sortKey="stock" active={sortKey} onSort={onSort} />
+              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Daily Avg</th>
+              <SortTh label="Days Left" sortKey="days" active={sortKey} onSort={onSort} />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => {
+              const dailyAvg = r.total_qty_pieces > 0
+                ? (r.total_qty_pieces / 30).toFixed(1)
+                : null;
+              return (
+                <tr key={r.sku_id} className="hover:bg-accent/20 transition">
+                  <td className="px-3 py-3">
+                    <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                    <p className="text-[11px] text-muted-foreground">{r.internal_code}</p>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <p className="text-foreground text-sm">
+                      {formatStock(r.stock_pieces, r.pcs_per_pack, r.packs_per_carton, r.unit_uom)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
+                  </td>
+                  <td className="px-3 py-3 text-right text-muted-foreground text-sm">
+                    {dailyAvg ? `${dailyAvg} pcs/day` : "—"}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {r.days_of_stock !== null ? (
+                      <span className={`font-semibold ${daysColor(r.days_of_stock)}`}>
+                        {r.days_of_stock} days
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">No sales data</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="px-4 py-2 border-t border-border bg-secondary/30">
+        <p className="text-[11px] text-muted-foreground">
+          Green &gt; 30 days · Amber 14–30 days · Red &lt; 14 days · Based on sales velocity in selected period
+        </p>
+      </div>
+    </div>
+  );
+}
