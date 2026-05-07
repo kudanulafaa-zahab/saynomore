@@ -42,11 +42,13 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Delete the auth user (cascades to user_profiles via FK or we delete manually)
+    // Delete the auth user — ignore "not found" errors (user may have been created via direct DB insert)
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user_id);
-    if (deleteError) return json({ error: deleteError.message }, 400);
+    if (deleteError && !deleteError.message.includes("not found") && !deleteError.message.includes("User not found")) {
+      return json({ error: deleteError.message }, 400);
+    }
 
-    // Also remove the profile in case FK didn't cascade
+    // Always remove the profile regardless
     await adminClient.from("user_profiles").delete().eq("id", user_id);
 
     return json({ message: "User deleted" });
