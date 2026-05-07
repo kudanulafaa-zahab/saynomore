@@ -277,47 +277,67 @@ export function ShipmentDetail({ id }: { id: string }) {
         {/* Forex */}
         <div className="border-t border-border pt-4 space-y-3">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Forex Rates (locked at GRN)</p>
+          <p className="text-[11px] text-muted-foreground -mt-2">Enter rates as your bank quotes them. The system handles the conversion.</p>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* 1 USD = X IDR — stored as IDR→USD = 1/X */}
             <NumberField
-              label="IDR → USD *"
-              value={shipment.rate_idr_to_usd}
-              onChange={async (v) => {
-                await patch("rate_idr_to_usd", v);
-                // Auto-derive IDR → MVR
-                const usd = shipment.rate_usd_to_mvr;
-                if (v && usd) await patch("rate_idr_to_mvr", v * usd);
+              label="1 USD = ___ IDR *"
+              value={
+                shipment.rate_idr_to_usd && shipment.rate_idr_to_usd > 0
+                  ? Math.round(1 / shipment.rate_idr_to_usd)
+                  : null
+              }
+              onChange={async (usdToIdr) => {
+                if (!usdToIdr || usdToIdr <= 0) {
+                  await patch("rate_idr_to_usd", null);
+                  await patch("rate_idr_to_mvr", null);
+                  return;
+                }
+                const idrToUsd = 1 / usdToIdr;
+                await patch("rate_idr_to_usd", idrToUsd);
+                // Recompute IDR→MVR = USD→MVR ÷ USD→IDR
+                const usdMvr = shipment.rate_usd_to_mvr;
+                if (usdMvr) await patch("rate_idr_to_mvr", usdMvr / usdToIdr);
               }}
               disabled={locked}
-              step="0.0000001"
-              hint="e.g. 0.0000632"
+              step="1"
+              hint="e.g. 16420"
             />
+
+            {/* 1 USD = Y MVR — stored as-is */}
             <NumberField
-              label="USD → MVR *"
+              label="1 USD = ___ MVR *"
               value={shipment.rate_usd_to_mvr}
-              onChange={async (v) => {
-                await patch("rate_usd_to_mvr", v);
-                // Auto-derive IDR → MVR
+              onChange={async (usdMvr) => {
+                await patch("rate_usd_to_mvr", usdMvr);
+                // Recompute IDR→MVR = USD→MVR ÷ USD→IDR
                 const idrUsd = shipment.rate_idr_to_usd;
-                if (idrUsd && v) await patch("rate_idr_to_mvr", idrUsd * v);
+                if (idrUsd && idrUsd > 0 && usdMvr) {
+                  await patch("rate_idr_to_mvr", usdMvr * idrUsd);
+                  // (idrUsd is already 1/usdToIdr, so multiplying gives MVR per IDR)
+                }
               }}
               disabled={locked}
-              step="0.0001"
+              step="0.01"
               hint="e.g. 15.42"
             />
+
+            {/* Derived: 1 IDR = ___ MVR */}
             <div className="space-y-2">
-              <Label className="text-muted-foreground">IDR → MVR (auto)</Label>
+              <Label className="text-muted-foreground">1 IDR = ___ MVR (auto)</Label>
               <Input
-                type="number"
+                type="text"
                 value={
                   shipment.rate_idr_to_mvr !== null && shipment.rate_idr_to_mvr !== undefined
-                    ? shipment.rate_idr_to_mvr
+                    ? shipment.rate_idr_to_mvr.toFixed(8)
                     : ""
                 }
                 disabled
-                className="bg-muted/50 text-foreground"
+                className="bg-muted/50 text-foreground font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                = IDR→USD × USD→MVR
+                = (USD→MVR) ÷ (USD→IDR)
               </p>
             </div>
           </div>
