@@ -77,11 +77,11 @@ AS $$
       (sm_in.qty_pieces - COALESCE(sm_out.out_pieces, 0)) * ib.landed_per_piece_mvr
     ), 0) AS total
     FROM inventory_batches ib
-    JOIN stock_movements sm_in ON sm_in.batch_id = ib.id AND sm_in.direction = 'in'
+    JOIN stock_movements sm_in ON sm_in.batch_id = ib.id AND sm_in.movement_type = 'in'
     LEFT JOIN (
       SELECT batch_id, SUM(qty_pieces) AS out_pieces
       FROM stock_movements
-      WHERE direction = 'out'
+      WHERE movement_type IN ('out', 'damage_out', 'transfer_out')
       GROUP BY batch_id
     ) sm_out ON sm_out.batch_id = ib.id
     WHERE (sm_in.qty_pieces - COALESCE(sm_out.out_pieces, 0)) > 0
@@ -93,10 +93,10 @@ AS $$
     FROM (
       SELECT
         s.id AS sku_id,
-        COALESCE(SUM(CASE WHEN sm.direction = 'in' THEN sm.qty_pieces ELSE -sm.qty_pieces END), 0) AS stock_pcs,
+        COALESCE(SUM(CASE WHEN sm.movement_type IN ('in','transfer_in','return_in') THEN sm.qty_pieces ELSE -sm.qty_pieces END), 0) AS stock_pcs,
         -- avg daily sold over last 30 days
         COALESCE(
-          SUM(CASE WHEN sm.direction = 'out' AND sm.created_at >= NOW() - INTERVAL '30 days' THEN sm.qty_pieces ELSE 0 END) / 30.0,
+          SUM(CASE WHEN sm.movement_type = 'out' AND sm.created_at >= NOW() - INTERVAL '30 days' THEN sm.qty_pieces ELSE 0 END) / 30.0,
           0
         ) AS daily_avg
       FROM skus s
