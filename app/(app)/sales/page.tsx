@@ -1,2 +1,9 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
-export default function Page() { return <ComingSoon title="Sales" description="Fast order entry — assign delivery guy and source godown in ≤5 taps." />; }
+import { SalesList } from "@/components/sales/sales-list";
+
+export default function Page() {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <SalesList />
+    </div>
+  );
+}

@@ -1,0 +1,72 @@
+"use client";
+
+import { supabase } from "@/lib/supabase";
+
+// ── Stock levels (per SKU per godown) ────────────────────────────────────
+
+export interface StockLevel {
+  sku_id: string;
+  godown_id: string;
+  qty_pieces: number;
+}
+
+export async function listStockLevels(): Promise<StockLevel[]> {
+  const { data, error } = await supabase.from("v_stock_levels").select("*");
+  if (error) throw error;
+  return (data ?? []) as StockLevel[];
+}
+
+// ── Batch-level stock (for FIFO drill-down) ──────────────────────────────
+
+export interface BatchStock {
+  batch_id: string;
+  sku_id: string;
+  godown_id: string;
+  received_at: string;
+  landed_per_piece_mvr: number;
+  qty_pieces_remaining: number;
+}
+
+export async function listBatchStock(): Promise<BatchStock[]> {
+  const { data, error } = await supabase.from("v_batch_stock").select("*");
+  if (error) throw error;
+  return (data ?? []) as BatchStock[];
+}
+
+// ── Manual adjustment (admin/manager) ────────────────────────────────────
+
+export interface AdjustInput {
+  sku_id: string;
+  godown_id: string;
+  qty_pieces: number; // positive (add) or negative (remove)
+  notes?: string | null;
+}
+
+// We need an existing batch to adjust against. The simplest approach:
+// adjustments live on the most recent batch in that godown for that SKU.
+export async function recordAdjustment(input: AdjustInput) {
+  // Find a batch
+  const { data: batch, error: berr } = await supabase
+    .from("inventory_batches")
+    .select("id")
+    .eq("sku_id", input.sku_id)
+    .eq("godown_id", input.godown_id)
+    .order("received_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (berr) throw berr;
+  if (!batch) {
+    throw new Error("No batch exists for this SKU+godown — cannot adjust before first GRN.");
+  }
+
+  const { error } = await supabase.from("stock_movements").insert({
+    batch_id: batch.id,
+    sku_id: input.sku_id,
+    godown_id: input.godown_id,
+    movement_type: "adjustment",
+    qty_pieces: input.qty_pieces,
+    source_type: "adjustment",
+    notes: input.notes ?? null,
+  });
+  if (error) throw error;
+}

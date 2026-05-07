@@ -1,5 +1,9 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { InventoryView } from "@/components/inventory/inventory-view";
 
 export default function Page() {
-  return <ComingSoon title="Inventory" description="Multi-godown stock view, FIFO depletion, transfers — building next." />;
+  return (
+    <div className="max-w-4xl mx-auto">
+      <InventoryView />
+    </div>
+  );
 }

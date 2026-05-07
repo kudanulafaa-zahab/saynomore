@@ -1,4 +1,9 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { MyDeliveries } from "@/components/sales/my-deliveries";
+
 export default function Page() {
-  return <ComingSoon title="My Deliveries" description="Your assigned orders today. Pick / Deliver / Cash collected — three big buttons." />;
+  return (
+    <div className="max-w-2xl mx-auto">
+      <MyDeliveries />
+    </div>
+  );
 }

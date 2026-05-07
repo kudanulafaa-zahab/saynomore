@@ -1,0 +1,171 @@
+"use client";
+
+import { supabase } from "@/lib/supabase";
+
+// ── Types ────────────────────────────────────────────────────────────────
+
+export type OrderStatus = "draft" | "confirmed" | "picked" | "out_for_delivery" | "delivered" | "cancelled";
+export type OrderChannel = "whatsapp" | "viber" | "messenger" | "instagram" | "tiktok" | "facebook" | "walkin" | "phone" | "other";
+export type PaymentStatus = "pending" | "partial" | "paid" | "cod" | "deposited";
+export type SaleUom = "carton" | "pack" | "piece";
+
+export interface SalesOrderRow {
+  id: string;
+  order_number: string;
+  customer_id: string | null;
+  status: OrderStatus;
+  channel: OrderChannel;
+  payment_status: PaymentStatus;
+  payment_method: string | null;
+  payment_proof_url: string | null;
+  source_godown_id: string | null;
+  delivery_address: string | null;
+  delivery_island: string | null;
+  delivery_to_boat: boolean;
+  assigned_driver_id: string | null;
+  picked_at: string | null;
+  delivered_at: string | null;
+  cash_collected_mvr: number | null;
+  cash_deposited_at: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalesOrderLineRow {
+  id: string;
+  order_id: string;
+  sku_id: string;
+  uom: SaleUom;
+  qty: number;
+  qty_pieces: number;
+  unit_price_mvr: number;
+  line_total_mvr: number;
+  notes: string | null;
+}
+
+export interface SalesOrderInput {
+  order_number: string;
+  customer_id?: string | null;
+  status?: OrderStatus;
+  channel?: OrderChannel;
+  payment_status?: PaymentStatus;
+  payment_method?: string | null;
+  source_godown_id?: string | null;
+  delivery_address?: string | null;
+  delivery_island?: string | null;
+  delivery_to_boat?: boolean;
+  assigned_driver_id?: string | null;
+  notes?: string | null;
+}
+
+export interface SalesOrderLineInput {
+  order_id: string;
+  sku_id: string;
+  uom: SaleUom;
+  qty: number;
+  qty_pieces: number;
+  unit_price_mvr: number;
+  line_total_mvr: number;
+  notes?: string | null;
+}
+
+// ── Reads ────────────────────────────────────────────────────────────────
+
+export async function listOrders(): Promise<SalesOrderRow[]> {
+  const { data, error } = await supabase
+    .from("sales_orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getOrder(id: string): Promise<SalesOrderRow | null> {
+  const { data, error } = await supabase.from("sales_orders").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function listOrderLines(orderId: string): Promise<SalesOrderLineRow[]> {
+  const { data, error } = await supabase.from("sales_order_lines").select("*").eq("order_id", orderId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Driver-assigned orders (for staff view)
+export async function listMyDeliveries(driverId: string): Promise<SalesOrderRow[]> {
+  const { data, error } = await supabase
+    .from("sales_orders")
+    .select("*")
+    .eq("assigned_driver_id", driverId)
+    .in("status", ["confirmed", "picked", "out_for_delivery"])
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ── Writes ───────────────────────────────────────────────────────────────
+
+export async function createOrder(input: SalesOrderInput) {
+  const { data, error } = await supabase.from("sales_orders").insert(input).select().single();
+  if (error) throw error;
+  return data as SalesOrderRow;
+}
+
+export async function updateOrder(id: string, patch: Partial<SalesOrderInput>) {
+  const { error } = await supabase.from("sales_orders").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteOrder(id: string) {
+  const { error } = await supabase.from("sales_orders").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function createOrderLine(input: SalesOrderLineInput) {
+  const { data, error } = await supabase.from("sales_order_lines").insert(input).select().single();
+  if (error) throw error;
+  return data as SalesOrderLineRow;
+}
+
+export async function updateOrderLine(id: string, patch: Partial<SalesOrderLineInput>) {
+  const { error } = await supabase.from("sales_order_lines").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteOrderLine(id: string) {
+  const { error } = await supabase.from("sales_order_lines").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── post_sale RPC (FIFO depletion) ───────────────────────────────────────
+
+export async function postSale(orderId: string) {
+  const { data, error } = await supabase.rpc("post_sale", { p_order_id: orderId });
+  if (error) throw error;
+  return data;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+export function nextOrderNumber(existing: SalesOrderRow[]): string {
+  const year = new Date().getFullYear();
+  const prefix = `SO-${year}-`;
+  const max = existing
+    .map((o) => o.order_number)
+    .filter((r) => r.startsWith(prefix))
+    .map((r) => parseInt(r.replace(prefix, ""), 10))
+    .filter((n) => !isNaN(n))
+    .reduce((a, b) => Math.max(a, b), 0);
+  return `${prefix}${String(max + 1).padStart(3, "0")}`;
+}
+
+// Convert qty in any UoM to pieces, given the SKU
+export function toPieces(uom: SaleUom, qty: number, pcsPerPack: number, packsPerCarton: number): number {
+  if (uom === "piece") return Math.round(qty);
+  if (uom === "pack") return Math.round(qty * pcsPerPack);
+  // carton
+  return Math.round(qty * pcsPerPack * packsPerCarton);
+}
