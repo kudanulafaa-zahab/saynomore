@@ -1,4 +1,5 @@
 import { GodownsManager } from "@/components/masters/godowns-manager";
+import { UsersManager } from "@/components/masters/users-manager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SettingsPage() {
@@ -9,12 +10,14 @@ export default function SettingsPage() {
         <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Settings</h1>
       </div>
 
-      <Tabs defaultValue="godowns" className="space-y-4">
+      <Tabs defaultValue="users" className="space-y-4">
         <TabsList className="bg-secondary border border-border">
+          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="godowns">Godowns</TabsTrigger>
-          <TabsTrigger value="users" disabled>Users (soon)</TabsTrigger>
-          <TabsTrigger value="preferences" disabled>Preferences (soon)</TabsTrigger>
         </TabsList>
+        <TabsContent value="users">
+          <UsersManager />
+        </TabsContent>
         <TabsContent value="godowns">
           <GodownsManager />
         </TabsContent>

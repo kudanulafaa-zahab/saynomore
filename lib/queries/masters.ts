@@ -137,3 +137,39 @@ export async function deleteGodown(id: string) {
   const { error } = await supabase.from("godowns").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ── Users ────────────────────────────────────────────────────────────────
+
+export type UserRole = "admin" | "manager" | "staff";
+
+export interface UserProfileRow {
+  id: string;
+  full_name: string | null;
+  role: UserRole;
+  email: string | null;
+  created_at: string;
+}
+
+export async function listUsers(): Promise<UserProfileRow[]> {
+  // user_profiles joined with auth.users email via RPC to avoid direct auth schema access
+  const { data, error } = await supabase.rpc("list_users_for_admin");
+  if (error) throw error;
+  return (data ?? []) as UserProfileRow[];
+}
+
+export async function setUserRole(userId: string, role: UserRole) {
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({ role })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
+export async function inviteUser(email: string, fullName: string, role: UserRole) {
+  const { error } = await supabase.rpc("admin_invite_user", {
+    p_email: email,
+    p_full_name: fullName,
+    p_role: role,
+  });
+  if (error) throw error;
+}
