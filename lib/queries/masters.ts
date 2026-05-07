@@ -165,6 +165,33 @@ export async function setUserRole(userId: string, role: UserRole) {
   if (error) throw error;
 }
 
+export async function updateUser(userId: string, fullName: string, role: UserRole) {
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({ full_name: fullName, role })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
+export async function deleteUser(userId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-user`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ user_id: userId }),
+    },
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Delete failed");
+}
+
 export async function inviteUser(email: string, fullName: string, role: UserRole) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");

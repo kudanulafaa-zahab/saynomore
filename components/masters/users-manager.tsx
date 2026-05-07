@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Plus, UserCircle, Shield, Truck, Users,
-  ChevronDown, AlertTriangle,
+  AlertTriangle, Pencil, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   listUsers,
-  setUserRole,
+  updateUser,
+  deleteUser,
   inviteUser,
   type UserProfileRow,
   type UserRole,
@@ -60,9 +61,12 @@ const ROLE_COLOR: Record<UserRole, string> = {
 export function UsersManager() {
   const [users, setUsers] = useState<UserProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<string | null>(null);
+  const [myRole, setMyRole] = useState<string | null>(null);
+  const [myId, setMyId] = useState<string | null>(null);
   const [inviteDialog, setInviteDialog] = useState(false);
-  const [roleDialog, setRoleDialog] = useState<UserProfileRow | null>(null);
+  const [editDialog, setEditDialog] = useState<UserProfileRow | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<UserProfileRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -72,9 +76,15 @@ export function UsersManager() {
   }
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
+  useEffect(() => {
+    getCurrentUserRole().then(setMyRole).catch(() => {});
+    // Get current user id
+    import("@/lib/supabase").then(({ supabase }) => {
+      supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null));
+    });
+  }, []);
 
-  const isAdmin = role === "admin";
+  const isAdmin = myRole === "admin";
 
   if (!isAdmin) {
     return (
@@ -99,9 +109,7 @@ export function UsersManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-medium text-foreground">Team Members</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage who has access and what they can do.
-          </p>
+          <p className="text-sm text-muted-foreground">Manage who has access and what they can do.</p>
         </div>
         <Button onClick={() => setInviteDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -148,6 +156,7 @@ export function UsersManager() {
         <div className="glass divide-y divide-border overflow-hidden">
           {users.map((u) => {
             const Icon = ROLE_ICON[u.role];
+            const isMe = u.id === myId;
             return (
               <div key={u.id} className="p-4 flex items-center justify-between gap-3 hover:bg-accent/30 transition">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -155,24 +164,36 @@ export function UsersManager() {
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">
-                      {u.full_name ?? "—"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{u.full_name ?? "—"}</p>
+                      {isMe && (
+                        <span className="text-[10px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">You</span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-0.5 ${ROLE_COLOR[u.role]}`}>
                     {ROLE_LABEL[u.role]}
                   </span>
-                  {u.role !== "admin" && (
-                    <button
-                      onClick={() => setRoleDialog(u)}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition flex items-center gap-1 text-xs"
-                      title="Change role"
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </button>
+                  {!isMe && (
+                    <>
+                      <button
+                        onClick={() => setEditDialog(u)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition"
+                        title="Edit"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteDialog(u)}
+                        className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -187,14 +208,125 @@ export function UsersManager() {
         onDone={() => { setInviteDialog(false); load(); }}
       />
 
-      {roleDialog && (
-        <ChangeRoleDialog
-          user={roleDialog}
-          onOpenChange={(o) => { if (!o) setRoleDialog(null); }}
-          onDone={() => { setRoleDialog(null); load(); }}
+      {editDialog && (
+        <EditUserDialog
+          user={editDialog}
+          onOpenChange={(o) => { if (!o) setEditDialog(null); }}
+          onDone={() => { setEditDialog(null); load(); }}
         />
       )}
+
+      {/* Delete confirm dialog */}
+      <Dialog open={!!deleteDialog} onOpenChange={(o) => { if (!o) setDeleteDialog(null); }}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <DialogTitle>Remove team member?</DialogTitle>
+            </div>
+            <DialogDescription>
+              <strong>{deleteDialog?.full_name ?? deleteDialog?.email}</strong> will lose all access
+              immediately. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteDialog(null)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleting}
+              onClick={async () => {
+                if (!deleteDialog) return;
+                setDeleting(true);
+                try {
+                  await deleteUser(deleteDialog.id);
+                  toast.success(`${deleteDialog.full_name ?? "User"} removed`);
+                  setDeleteDialog(null);
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// ── Edit user dialog ─────────────────────────────────────────────────────
+
+function EditUserDialog({
+  user, onOpenChange, onDone,
+}: {
+  user: UserProfileRow;
+  onOpenChange: (o: boolean) => void;
+  onDone: () => void;
+}) {
+  const [fullName, setFullName] = useState(user.full_name ?? "");
+  const [selectedRole, setSelectedRole] = useState<UserRole>(user.role);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!fullName.trim()) return;
+    setSaving(true);
+    try {
+      await updateUser(user.id, fullName.trim(), selectedRole);
+      toast.success("Updated");
+      onDone();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="bg-popover border-border">
+        <DialogHeader>
+          <DialogTitle>Edit team member</DialogTitle>
+          <DialogDescription>{user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Full name *</Label>
+            <Input
+              autoFocus
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+          {user.role !== "admin" && (
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={selectedRole} onValueChange={(v) => v && setSelectedRole(v as UserRole)}>
+                <SelectTrigger>
+                  <SelectValue>{ROLE_LABEL[selectedRole]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manager">{ROLE_LABEL.manager}</SelectItem>
+                  <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={save} disabled={saving || !fullName.trim()}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -276,71 +408,6 @@ function InviteDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={saving || !email.trim() || !fullName.trim()}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send invite"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── Change role dialog ───────────────────────────────────────────────────
-
-function ChangeRoleDialog({
-  user, onOpenChange, onDone,
-}: {
-  user: UserProfileRow;
-  onOpenChange: (o: boolean) => void;
-  onDone: () => void;
-}) {
-  const [selectedRole, setSelectedRole] = useState<UserRole>(user.role);
-  const [saving, setSaving] = useState(false);
-
-  async function save() {
-    if (selectedRole === user.role) { onOpenChange(false); return; }
-    setSaving(true);
-    try {
-      await setUserRole(user.id, selectedRole);
-      toast.success(`${user.full_name ?? "User"} is now ${ROLE_LABEL[selectedRole]}`);
-      onDone();
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-4 w-4" />
-            </div>
-            <DialogTitle>Change role</DialogTitle>
-          </div>
-          <DialogDescription>
-            Changing <strong>{user.full_name ?? user.email}</strong>&apos;s role takes effect immediately.
-            They will see different screens on their next page load.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-2">
-          <Label>New role</Label>
-          <Select value={selectedRole} onValueChange={(v) => v && setSelectedRole(v as UserRole)}>
-            <SelectTrigger>
-              <SelectValue>{ROLE_LABEL[selectedRole]}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="manager">{ROLE_LABEL.manager}</SelectItem>
-              <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-[11px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || selectedRole === user.role}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
