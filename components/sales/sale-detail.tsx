@@ -11,6 +11,10 @@ import {
   Trash2,
   CheckCircle2,
   AlertTriangle,
+  Warehouse,
+  ChevronDown,
+  ChevronUp,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +65,15 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
+const STATUS_COLOR: Record<OrderStatus, string> = {
+  draft: "bg-muted text-muted-foreground",
+  confirmed: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+  picked: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+  out_for_delivery: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+  delivered: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+  cancelled: "bg-red-500/15 text-red-600 dark:text-red-300",
+};
+
 const PAYMENT_LABEL: Record<PaymentStatus, string> = {
   pending: "Pending",
   partial: "Partial",
@@ -92,6 +105,7 @@ export function SaleDetail({ id }: { id: string }) {
   const [deletingLine, setDeletingLine] = useState(false);
   const [lineDialog, setLineDialog] = useState<{ open: boolean; editing?: SalesOrderLineRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -134,6 +148,7 @@ export function SaleDetail({ id }: { id: string }) {
   }, [lines]);
 
   const posted = order && order.status !== "draft" && order.status !== "cancelled";
+  const isDraft = order?.status === "draft";
 
   async function patch(field: keyof SalesOrderRow, value: number | string | boolean | null) {
     if (!order) return;
@@ -148,11 +163,11 @@ export function SaleDetail({ id }: { id: string }) {
   async function handlePostSale() {
     if (!order) return;
     if (!order.source_godown_id) {
-      toast.error("Pick a source godown first");
+      toast.error("Pick a source warehouse first");
       return;
     }
     if (lines.length === 0) {
-      toast.error("Add at least one line");
+      toast.error("Add at least one item");
       return;
     }
     setPosting(true);
@@ -189,6 +204,7 @@ export function SaleDetail({ id }: { id: string }) {
 
   return (
     <div className="space-y-4">
+
       {/* Top bar */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -198,20 +214,20 @@ export function SaleDetail({ id }: { id: string }) {
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Sale</p>
             <h1 className="text-xl sm:text-2xl font-semibold text-foreground truncate">
-              {customer?.name ?? "—"}
+              {customer?.name ?? "Walk-in"}
               <span className="text-sm text-muted-foreground ml-2">{order.order_number}</span>
             </h1>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] uppercase tracking-wider rounded px-2 py-1 bg-secondary text-foreground">
+          <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-1 ${STATUS_COLOR[order.status]}`}>
             {STATUS_LABEL[order.status]}
           </span>
           {isAdmin && (
             <button
               onClick={() => setDeleteOrderDialog(true)}
               className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
-              title="Delete (admin)"
+              title="Delete order (admin)"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -219,8 +235,72 @@ export function SaleDetail({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Header card */}
+      {/* ── Customer info (read-only summary) ─────────────────────────── */}
+      {customer && (
+        <div className="glass p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <User className="h-4 w-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">{customer.name}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          <span className="ml-auto text-[11px] text-muted-foreground">via {order.channel}</span>
+        </div>
+      )}
+
+      {/* ── Draft "what to do next" guide ─────────────────────────────── */}
+      {isDraft && (
+        <div className="glass p-4 border border-amber-500/20 bg-amber-500/5 space-y-2">
+          <p className="text-sm font-medium text-amber-600 dark:text-amber-400">📋 Draft order — complete these steps:</p>
+          <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+            <li className={order.source_godown_id ? "line-through text-emerald-600 dark:text-emerald-400" : ""}>
+              Pick the warehouse to ship from
+            </li>
+            <li className={lines.length > 0 ? "line-through text-emerald-600 dark:text-emerald-400" : ""}>
+              Add at least one product
+            </li>
+            <li>Hit "Confirm sale" — stock will be deducted automatically</li>
+          </ol>
+        </div>
+      )}
+
+      {/* ── Warehouse + status card ────────────────────────────────────── */}
       <div className="glass p-5 space-y-4">
+        {/* Warehouse — most important, always first */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            <Warehouse className="h-3.5 w-3.5 text-muted-foreground" />
+            Warehouse (ship from) *
+          </Label>
+          <Select
+            value={order.source_godown_id ?? ""}
+            onValueChange={(v) => v && patch("source_godown_id", v)}
+            disabled={!!posted}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select warehouse…">
+                {godowns.find((g) => g.id === order.source_godown_id)?.name ?? "Select warehouse…"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {godowns.map((g) => (
+                <SelectItem key={g.id} value={g.id}>
+                  {g.name}{g.is_default ? " (default)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!order.source_godown_id && isDraft && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400">⚠ Required before you can confirm the sale</p>
+          )}
+          {order.source_godown_id && isDraft && (
+            <p className="text-[11px] text-muted-foreground">Stock deducted FIFO (oldest batch first) when you confirm.</p>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label>Status</Label>
@@ -246,103 +326,106 @@ export function SaleDetail({ id }: { id: string }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Source Godown *</Label>
-            <Select
-              value={order.source_godown_id ?? ""}
-              onValueChange={(v) => v && patch("source_godown_id", v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pick godown">
-                  {godowns.find((g) => g.id === order.source_godown_id)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {godowns.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground">Stock is deducted from this godown (FIFO).</p>
-          </div>
-          <div className="space-y-2">
-            <Label>Assigned Driver</Label>
-            <Select
-              value={order.assigned_driver_id ?? ""}
-              onValueChange={(v) => patch("assigned_driver_id", v || null)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pick driver">
-                  {drivers.find((d) => d.id === order.assigned_driver_id)?.full_name ?? "—"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {drivers.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Delivery Island</Label>
-            <Input
-              value={order.delivery_island ?? ""}
-              onChange={(e) => setOrder({ ...order, delivery_island: e.target.value })}
-              onBlur={(e) => patch("delivery_island", e.target.value || null)}
-              placeholder={customer?.island ?? "Optional"}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={order.delivery_to_boat}
-                onChange={(e) => patch("delivery_to_boat", e.target.checked)}
-                className="h-4 w-4 rounded border-border"
-              />
-              Delivery to boat (resort/island)
-            </Label>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Delivery Address</Label>
-          <Textarea
-            value={order.delivery_address ?? ""}
-            onChange={(e) => setOrder({ ...order, delivery_address: e.target.value })}
-            onBlur={(e) => patch("delivery_address", e.target.value || null)}
-            className="min-h-[50px]"
-            placeholder={customer?.address ?? "Optional"}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Notes</Label>
-          <Textarea
-            value={order.notes ?? ""}
-            onChange={(e) => setOrder({ ...order, notes: e.target.value })}
-            onBlur={(e) => patch("notes", e.target.value || null)}
-            className="min-h-[50px]"
-          />
+        {/* Delivery details — collapsible */}
+        <div>
+          <button
+            onClick={() => setDeliveryOpen((o) => !o)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition w-full text-left"
+          >
+            {deliveryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            Delivery details (driver, address, notes)
+          </button>
+          {deliveryOpen && (
+            <div className="pt-3 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Assigned Driver</Label>
+                  <Select
+                    value={order.assigned_driver_id ?? ""}
+                    onValueChange={(v) => patch("assigned_driver_id", v || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pick driver">
+                        {drivers.find((d) => d.id === order.assigned_driver_id)?.full_name ?? "—"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {drivers.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Delivery Island</Label>
+                  <Input
+                    value={order.delivery_island ?? ""}
+                    onChange={(e) => setOrder({ ...order, delivery_island: e.target.value })}
+                    onBlur={(e) => patch("delivery_island", e.target.value || null)}
+                    placeholder={customer?.island ?? "Optional"}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={order.delivery_to_boat}
+                    onChange={(e) => patch("delivery_to_boat", e.target.checked)}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  Delivery to boat (resort / outer island)
+                </Label>
+              </div>
+              <div className="space-y-2">
+                <Label>Delivery Address</Label>
+                <Textarea
+                  value={order.delivery_address ?? ""}
+                  onChange={(e) => setOrder({ ...order, delivery_address: e.target.value })}
+                  onBlur={(e) => patch("delivery_address", e.target.value || null)}
+                  className="min-h-[50px]"
+                  placeholder={customer?.address ?? "Optional"}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Textarea
+                  value={order.notes ?? ""}
+                  onChange={(e) => setOrder({ ...order, notes: e.target.value })}
+                  onBlur={(e) => patch("notes", e.target.value || null)}
+                  className="min-h-[50px]"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Lines */}
+      {/* ── Items ─────────────────────────────────────────────────────── */}
       <div className="glass p-5 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-medium text-foreground">Items</h2>
-            <p className="text-xs text-muted-foreground">{totals.count} line{totals.count === 1 ? "" : "s"} · {totals.mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</p>
+            <h2 className="text-base font-medium text-foreground">Products ordered</h2>
+            <p className="text-xs text-muted-foreground">
+              {totals.count} item{totals.count === 1 ? "" : "s"}
+              {totals.count > 0 && <> · <span className="text-primary font-medium">{totals.mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span></>}
+            </p>
           </div>
           {!posted && (
             <Button onClick={() => setLineDialog({ open: true })} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Item
+              <Plus className="h-4 w-4 mr-1" /> Add item
             </Button>
           )}
         </div>
 
         {lines.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No items yet.</p>
+          <div className="text-center py-6 space-y-2">
+            <p className="text-sm text-muted-foreground">No products yet.</p>
+            {!posted && (
+              <Button variant="ghost" size="sm" onClick={() => setLineDialog({ open: true })}>
+                <Plus className="h-4 w-4 mr-1" /> Add first item
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {lines.map((l) => {
@@ -359,18 +442,13 @@ export function SaleDetail({ id }: { id: string }) {
                       {" · "}
                       {Number(l.unit_price_mvr).toLocaleString()} MVR/{l.uom}
                       {" · "}
-                      <span className="text-foreground">{Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                      <span className="text-foreground font-medium">{Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
                     </p>
                   </div>
                   {!posted && (
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => setLineDialog({ open: true, editing: l })} className="text-xs text-primary hover:opacity-80 px-2">Edit</button>
-                      <button
-                        onClick={() => setDeleteLineDialog(l)}
-                        className="text-xs text-red-500 hover:opacity-80 px-2"
-                      >
-                        Remove
-                      </button>
+                      <button onClick={() => setDeleteLineDialog(l)} className="text-xs text-red-500 hover:opacity-80 px-2">Remove</button>
                     </div>
                   )}
                 </div>
@@ -378,16 +456,14 @@ export function SaleDetail({ id }: { id: string }) {
             })}
             <div className="flex justify-between border-t border-border pt-3 text-base">
               <span className="font-medium text-foreground">Total</span>
-              <span className="font-semibold text-primary">
-                {totals.mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR
-              </span>
+              <span className="font-semibold text-primary">{totals.mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Confirm action */}
-      {!posted && (
+      {/* ── Confirm action ─────────────────────────────────────────────── */}
+      {isDraft && (
         <div className="glass p-5 space-y-3">
           <div className="flex items-start gap-3">
             <div className="h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
@@ -396,7 +472,7 @@ export function SaleDetail({ id }: { id: string }) {
             <div className="space-y-1 flex-1">
               <h3 className="text-base font-medium text-foreground">Confirm sale</h3>
               <p className="text-xs text-muted-foreground">
-                Deducts stock from the source godown using FIFO (oldest batch first).
+                This locks the order and deducts stock from the warehouse (FIFO — oldest batch first).
                 You can still update delivery status afterwards.
               </p>
             </div>
@@ -404,11 +480,17 @@ export function SaleDetail({ id }: { id: string }) {
           <Button
             onClick={() => setConfirmDialog(true)}
             disabled={lines.length === 0 || !order.source_godown_id}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
             Confirm sale
           </Button>
+          {(!order.source_godown_id || lines.length === 0) && (
+            <p className="text-[11px] text-muted-foreground">
+              {!order.source_godown_id && "⚠ Select a warehouse above. "}
+              {lines.length === 0 && "⚠ Add at least one product."}
+            </p>
+          )}
         </div>
       )}
 
@@ -416,15 +498,16 @@ export function SaleDetail({ id }: { id: string }) {
         <div className="glass-flat p-4 flex items-start gap-3">
           <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="text-foreground">Sale confirmed and stock deducted.</p>
-            <p className="text-xs text-muted-foreground">
-              Update status above as the order moves through pick → out for delivery → delivered.
+            <p className="text-foreground font-medium">Sale confirmed — stock deducted.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Update the status above as the order moves: Picked → Out for delivery → Delivered.
             </p>
           </div>
         </div>
       )}
 
-      {/* Line dialog */}
+      {/* ── Dialogs ────────────────────────────────────────────────────── */}
+
       <LineDialog
         open={lineDialog.open}
         editing={lineDialog.editing}
@@ -436,7 +519,6 @@ export function SaleDetail({ id }: { id: string }) {
         onSaved={load}
       />
 
-      {/* Confirm sale dialog */}
       <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
         <DialogContent className="bg-popover border-border">
           <DialogHeader>
@@ -444,10 +526,10 @@ export function SaleDetail({ id }: { id: string }) {
               <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
                 <AlertTriangle className="h-4 w-4" />
               </div>
-              <DialogTitle>Confirm sale</DialogTitle>
+              <DialogTitle>Confirm sale?</DialogTitle>
             </div>
             <DialogDescription>
-              Stock will be deducted from {godowns.find((g) => g.id === order.source_godown_id)?.name ?? "the selected godown"} using FIFO.
+              Stock will be deducted from <strong>{godowns.find((g) => g.id === order.source_godown_id)?.name ?? "the warehouse"}</strong> (FIFO). This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-xl bg-secondary/50 p-3 space-y-1 text-sm">
@@ -469,7 +551,6 @@ export function SaleDetail({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Delete order dialog */}
       <Dialog open={deleteOrderDialog} onOpenChange={setDeleteOrderDialog}>
         <DialogContent className="bg-popover border-border">
           <DialogHeader>
@@ -480,7 +561,7 @@ export function SaleDetail({ id }: { id: string }) {
               <DialogTitle>Delete order?</DialogTitle>
             </div>
             <DialogDescription>
-              <strong>{order.order_number}</strong> and all its line items will be permanently removed. This cannot be undone.
+              <strong>{order.order_number}</strong> and all its items will be permanently deleted. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -507,7 +588,6 @@ export function SaleDetail({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Remove line dialog */}
       <Dialog open={!!deleteLineDialog} onOpenChange={(o) => { if (!o) setDeleteLineDialog(null); }}>
         <DialogContent className="bg-popover border-border">
           <DialogHeader>
@@ -521,7 +601,7 @@ export function SaleDetail({ id }: { id: string }) {
               {deleteLineDialog && (() => {
                 const sku = skus.find((s) => s.id === deleteLineDialog.sku_id);
                 return sku
-                  ? <><strong>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</strong> will be removed from this order.</>
+                  ? <><strong>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</strong> will be removed.</>
                   : "This item will be permanently removed.";
               })()}
             </DialogDescription>
@@ -595,14 +675,12 @@ function LineDialog({
     }
   }, [open, editing]);
 
-  // For diapers default uom = pack; for everything else default = pack too,
-  // but allow carton/piece in UI.
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     const active = skus.filter((s) => s.is_active);
     if (!term) return active.slice(0, 50);
     return active.filter((s) =>
-      [s.brand_name, s.model_name, s.variant_display, s.internal_code].join(" ").toLowerCase().includes(term),
+      [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""].join(" ").toLowerCase().includes(term),
     ).slice(0, 50);
   }, [skus, search]);
 
@@ -656,15 +734,15 @@ function LineDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border max-w-xl">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit item" : "New item"}</DialogTitle>
-          <DialogDescription>Sell by carton, pack, or piece. Stock auto-converts.</DialogDescription>
+          <DialogTitle>{editing ? "Edit item" : "Add item"}</DialogTitle>
+          <DialogDescription>Sell by carton, pack, or piece. Stock converts automatically.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
           <div className="space-y-2">
             <Label>Product *</Label>
             {!skuId ? (
               <>
-                <Input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" />
+                <Input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search brand, product, variant…" />
                 <div className="rounded-xl border border-border max-h-[240px] overflow-y-auto bg-background/50">
                   {filtered.length === 0 ? (
                     <p className="text-xs text-muted-foreground px-3 py-2">No matches</p>
@@ -680,9 +758,9 @@ function LineDialog({
                           className="w-full text-left px-3 py-2 text-sm hover:bg-accent/30 transition border-b border-border last:border-0"
                         >
                           <div className="flex justify-between">
-                            <p className="text-foreground">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
+                            <p className="text-foreground font-medium">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
                             {stock !== null && (
-                              <span className={`text-[11px] ${stock > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500"}`}>
+                              <span className={`text-[11px] ${stock > 0 ? "text-emerald-500" : "text-red-500"}`}>
                                 {stock} pcs
                               </span>
                             )}
@@ -700,7 +778,7 @@ function LineDialog({
               <div className="rounded-xl border border-border p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm text-foreground">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
+                    <p className="text-sm text-foreground font-medium">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
                     </p>
@@ -709,12 +787,12 @@ function LineDialog({
                 </div>
                 {stockHere !== null && (
                   <div className={`text-[11px] ${stockHere === 0 ? "text-red-500" : "text-muted-foreground"}`}>
-                    Stock here: <strong className="text-foreground">{stockHere.toLocaleString()} pcs</strong>
+                    In warehouse: <strong className="text-foreground">{stockHere.toLocaleString()} pcs</strong>
                     {sku.pcs_per_pack > 0 && stockHere > 0 && (
-                      <> · {Math.floor(stockHere / sku.pcs_per_pack)} pk</>
+                      <> · {Math.floor(stockHere / sku.pcs_per_pack)} packs</>
                     )}
                     {sku.pcs_per_carton > 0 && stockHere > 0 && (
-                      <> · {Math.floor(stockHere / sku.pcs_per_carton)} ctn</>
+                      <> · {Math.floor(stockHere / sku.pcs_per_carton)} cartons</>
                     )}
                   </div>
                 )}
@@ -723,8 +801,8 @@ function LineDialog({
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2 col-span-1">
-              <Label>UoM *</Label>
+            <div className="space-y-2">
+              <Label>Sell by *</Label>
               <Select value={uom} onValueChange={(v) => v && setUom(v as SaleUom)}>
                 <SelectTrigger><SelectValue>{uom}</SelectValue></SelectTrigger>
                 <SelectContent>
@@ -734,7 +812,7 @@ function LineDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 col-span-1">
+            <div className="space-y-2">
               <Label>Qty *</Label>
               <Input
                 type="number"
@@ -745,8 +823,8 @@ function LineDialog({
                 onChange={(e) => setQty(e.target.value)}
               />
             </div>
-            <div className="space-y-2 col-span-1">
-              <Label>Unit price (MVR) *</Label>
+            <div className="space-y-2">
+              <Label>Price (MVR) *</Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
             </div>
           </div>
@@ -754,7 +832,7 @@ function LineDialog({
           {sku && qtyPieces > 0 && (
             <div className="rounded-xl bg-secondary/50 p-3 text-xs space-y-1">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Pieces (auto)</span>
+                <span className="text-muted-foreground">Pieces (auto-calculated)</span>
                 <span className="text-foreground">{qtyPieces.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
@@ -766,14 +844,14 @@ function LineDialog({
 
           {insufficient && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-300">
-              Insufficient stock — only {stockHere} pcs available in this godown.
+              ⚠ Not enough stock — only {stockHere} pcs available in this warehouse.
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Save" : "Add"}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Save" : "Add item"}
           </Button>
         </DialogFooter>
       </DialogContent>

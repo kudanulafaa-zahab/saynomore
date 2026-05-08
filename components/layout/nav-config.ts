@@ -19,14 +19,16 @@ export interface NavItem {
 }
 
 // Admin & Manager
+// Primary (primary: true) = shown in bottom tab bar on mobile
+// Everything else = in the "More" overflow sheet
 export const FULL_NAV: NavItem[] = [
   { href: "/dashboard",       label: "Home",       icon: LayoutDashboard, primary: true },
-  { href: "/products",        label: "Products",   icon: Package,         primary: true },
-  { href: "/inventory",       label: "Stock",      icon: Boxes,           primary: true },
   { href: "/sales",           label: "Sales",      icon: ShoppingCart,    primary: true },
-  { href: "/shipments",       label: "Shipments",  icon: Truck,           primary: true },
+  { href: "/inventory",       label: "Stock",      icon: Boxes,           primary: true },
+  { href: "/products",        label: "Products",   icon: Package,         primary: true },
+  { href: "/customers",       label: "Customers",  icon: Users,           primary: true },
+  { href: "/shipments",       label: "Shipments",  icon: Truck },
   { href: "/suppliers",       label: "Suppliers",  icon: Users },
-  { href: "/customers",       label: "Customers",  icon: Users },
   { href: "/competitors",     label: "Pricing",    icon: Tag },
   { href: "/expenses",        label: "Expenses",   icon: Wallet },
   { href: "/reports",         label: "Reports",    icon: FileBarChart2 },
