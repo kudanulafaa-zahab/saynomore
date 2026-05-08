@@ -23,11 +23,12 @@ DROP VIEW IF EXISTS v_skus CASCADE;
 --    latest_landed_per_piece = most recent batch for this SKU across all godowns
 CREATE VIEW v_skus AS
 WITH latest_landed AS (
-  -- Pick the single most recent batch per SKU to derive the current landed cost
+  -- Pick the single most recent batch per SKU that still has stock remaining.
+  -- Uses v_batch_stock which computes qty_pieces_remaining from stock_movements.
   SELECT DISTINCT ON (sku_id)
     sku_id,
     landed_per_piece_mvr
-  FROM inventory_batches
+  FROM v_batch_stock
   WHERE qty_pieces_remaining > 0
   ORDER BY sku_id, received_at DESC
 )
