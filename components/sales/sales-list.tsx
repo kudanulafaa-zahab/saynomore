@@ -410,6 +410,21 @@ function NewSaleDialog({
     ? stockLevels.find((l) => l.sku_id === selectedSku.id && l.godown_id === godownId)?.qty_pieces ?? 0
     : null;
 
+  // Auto-fill price whenever SKU or UoM changes
+  useEffect(() => {
+    if (!selectedSku) return;
+    const suggestedPrice =
+      lineUom === "piece"   ? selectedSku.selling_price_per_piece_mvr :
+      lineUom === "pack"    ? selectedSku.selling_price_per_pack_mvr :
+      /* carton */            selectedSku.selling_price_per_carton_mvr;
+    if (suggestedPrice != null) {
+      setLinePrice(suggestedPrice.toFixed(2));
+    } else {
+      setLinePrice(""); // clear if no margin set so user must enter manually
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSkuId, lineUom]);
+
   // Pieces for current line entry
   const lineQtyPieces = useMemo(() => {
     if (!selectedSku || !lineQty) return 0;
@@ -809,7 +824,17 @@ function NewSaleDialog({
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Price (MVR)</Label>
+                        <Label className="text-xs flex items-center gap-1">
+                          Price (MVR)
+                          {selectedSku && (
+                            lineUom === "piece"  ? selectedSku.selling_price_per_piece_mvr :
+                            lineUom === "pack"   ? selectedSku.selling_price_per_pack_mvr :
+                            selectedSku.selling_price_per_carton_mvr
+                          ) != null
+                            ? <span className="text-emerald-500 text-[9px] uppercase tracking-wide">auto</span>
+                            : <span className="text-amber-500 text-[9px] uppercase tracking-wide">manual</span>
+                          }
+                        </Label>
                         <Input
                           className="h-9 text-sm"
                           type="number"

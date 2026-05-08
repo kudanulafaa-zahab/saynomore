@@ -675,6 +675,23 @@ function LineDialog({
     }
   }, [open, editing]);
 
+  // Auto-fill price from SKU's margin-derived selling price when SKU or UoM changes
+  useEffect(() => {
+    if (!skuId || editing) return; // don't overwrite when editing an existing line
+    const sku = skus.find((s) => s.id === skuId);
+    if (!sku) return;
+    const suggestedPrice =
+      uom === "piece"  ? sku.selling_price_per_piece_mvr :
+      uom === "pack"   ? sku.selling_price_per_pack_mvr :
+      /* carton */       sku.selling_price_per_carton_mvr;
+    if (suggestedPrice != null) {
+      setUnitPrice(suggestedPrice.toFixed(2));
+    } else {
+      setUnitPrice("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skuId, uom]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     const active = skus.filter((s) => s.is_active);
@@ -824,7 +841,16 @@ function LineDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Price (MVR) *</Label>
+              <Label className="flex items-center gap-1.5">
+                Price (MVR) *
+                {sku && (
+                  (uom === "piece"  ? sku.selling_price_per_piece_mvr :
+                   uom === "pack"   ? sku.selling_price_per_pack_mvr :
+                   sku.selling_price_per_carton_mvr) != null
+                  ? <span className="text-[9px] uppercase tracking-wide text-emerald-500">auto-filled</span>
+                  : <span className="text-[9px] uppercase tracking-wide text-amber-500">enter manually</span>
+                )}
+              </Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
             </div>
           </div>

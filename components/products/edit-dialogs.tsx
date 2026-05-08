@@ -323,6 +323,7 @@ export function EditSkuDialog({
   const [w, setW] = useState("");
   const [h, setH] = useState("");
   const [kg, setKg] = useState("");
+  const [marginPct, setMarginPct] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -335,6 +336,7 @@ export function EditSkuDialog({
       setW(String(sku.carton_width_cm));
       setH(String(sku.carton_height_cm));
       setKg(sku.carton_weight_kg?.toString() ?? "");
+      setMarginPct(sku.target_margin_pct?.toString() ?? "");
     }
   }, [open, sku]);
 
@@ -343,6 +345,21 @@ export function EditSkuDialog({
     if (!lv || !wv || !hv) return null;
     return (lv * wv * hv) / 1_000_000;
   }, [l, w, h]);
+
+  // Live selling price preview using the landed cost already on the SKU (from v_skus)
+  const landedPerPiece = (sku as (SkuRow & { landed_per_piece_mvr?: number | null }) | null)?.landed_per_piece_mvr ?? null;
+  const previewPrices = useMemo(() => {
+    const margin = parseFloat(marginPct);
+    const pcs = parseInt(pcsPerPack, 10);
+    const packs = parseInt(packsPerCarton, 10);
+    if (!landedPerPiece || isNaN(margin) || margin <= 0 || margin >= 100) return null;
+    const perPiece = landedPerPiece / (1 - margin / 100);
+    return {
+      piece: perPiece,
+      pack: perPiece * (isNaN(pcs) ? 0 : pcs),
+      carton: perPiece * (isNaN(pcs) ? 0 : pcs) * (isNaN(packs) ? 0 : packs),
+    };
+  }, [marginPct, landedPerPiece, pcsPerPack, packsPerCarton]);
 
   async function save() {
     if (!sku) return;
@@ -357,6 +374,7 @@ export function EditSkuDialog({
         carton_width_cm: parseFloat(w),
         carton_height_cm: parseFloat(h),
         carton_weight_kg: kg ? parseFloat(kg) : null,
+        target_margin_pct: marginPct ? parseFloat(marginPct) : null,
       });
       toast.success("Saved");
       onOpenChange(false);
@@ -409,6 +427,77 @@ export function EditSkuDialog({
           <div className="space-y-2">
             <Label>Internal Code *</Label>
             <Input value={code} onChange={(e) => setCode(e.target.value)} />
+          </div>
+
+          {/* ── Pricing section ── */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Selling Price (Margin)</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Set your target profit margin. The system auto-calculates the selling price from your landed cost.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Target Margin %</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  min="1"
+                  max="99"
+                  value={marginPct}
+                  onChange={(e) => setMarginPct(e.target.value)}
+                  placeholder="e.g. 30"
+                  className="max-w-[120px]"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+                {marginPct && (
+                  <span className="text-[11px] text-muted-foreground ml-1">
+                    = {marginPct}% gross margin on each sale
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Live preview */}
+            {previewPrices ? (
+              <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1.5">
+                <p className="text-[11px] uppercase tracking-wider text-primary font-medium">Calculated selling prices</p>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase">Per piece</p>
+                    <p className="font-semibold text-foreground">{previewPrices.piece.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground">MVR</p>
+                  </div>
+                  <div className="text-center border-x border-border">
+                    <p className="text-[10px] text-muted-foreground uppercase">Per pack</p>
+                    <p className="font-semibold text-foreground">{previewPrices.pack.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground">MVR</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase">Per carton</p>
+                    <p className="font-semibold text-foreground">{previewPrices.carton.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground">MVR</p>
+                  </div>
+                </div>
+                {landedPerPiece && (
+                  <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
+                    Based on landed cost: {landedPerPiece.toFixed(4)} MVR/pc
+                  </p>
+                )}
+              </div>
+            ) : landedPerPiece ? (
+              <p className="text-[11px] text-muted-foreground">
+                Enter a margin % above to see the selling price.
+                Landed cost: {landedPerPiece.toFixed(4)} MVR/pc
+              </p>
+            ) : (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                ⚠ No stock received yet — selling price preview available after the first shipment is confirmed.
+                You can still set the margin now and the price will calculate automatically.
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>

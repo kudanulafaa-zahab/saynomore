@@ -65,6 +65,8 @@ export interface SkuRow {
   cbm_per_carton: number;
   is_active: boolean;
   notes: string | null;
+  // Pricing
+  target_margin_pct: number | null; // e.g. 30 means 30% gross margin target
 }
 
 // Flat read from v_skus view — handy for the Master Data list
@@ -81,6 +83,11 @@ export interface SkuFullRow extends SkuRow {
   unit_uom: UnitUom;
   cost_basis: CostBasis;
   full_path: string;
+  // Pricing — all computed by v_skus, NULL until margin is set and stock exists
+  landed_per_piece_mvr: number | null;
+  selling_price_per_piece_mvr: number | null;
+  selling_price_per_pack_mvr: number | null;
+  selling_price_per_carton_mvr: number | null;
 }
 
 // ── Reads ────────────────────────────────────────────────────────────────
@@ -193,6 +200,7 @@ export interface CreateSkuInput {
   carton_width_cm: number;
   carton_height_cm: number;
   carton_weight_kg?: number | null;
+  target_margin_pct?: number | null;
 }
 export async function createSku(input: CreateSkuInput) {
   const { data, error } = await supabase
@@ -274,6 +282,7 @@ export async function updateSku(
     carton_width_cm: number;
     carton_height_cm: number;
     carton_weight_kg: number | null;
+    target_margin_pct: number | null;
   }>,
 ) {
   const { error } = await supabase.from("skus").update(patch).eq("id", id);
