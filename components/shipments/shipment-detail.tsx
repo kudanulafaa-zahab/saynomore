@@ -899,10 +899,24 @@ function LineDialog({
                 <div>
                   <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
                   <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
-                    {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn · {Number(sku.cbm_per_carton).toFixed(4)} CBM/ctn
+                    {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
                   </p>
                 </div>
                 <button onClick={() => setSkuId("")} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 12, cursor: "pointer" }}>Change</button>
+              </div>
+              {/* CBM verification row — always shows what will be saved */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 10px" }}>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>CBM / carton (from SKU)</p>
+                  <p style={{ color: "#4ade80", fontSize: 15, fontWeight: 700 }}>{Number(sku.cbm_per_carton).toFixed(6)}</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 9, marginTop: 1 }}>{sku.carton_length_cm} × {sku.carton_width_cm} × {sku.carton_height_cm} cm</p>
+                </div>
+                {qtyCartons && !isNaN(parseInt(qtyCartons)) && parseInt(qtyCartons) > 0 && (
+                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 10px" }}>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>Total CBM ({qtyCartons} ctn)</p>
+                    <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 700 }}>{(Number(sku.cbm_per_carton) * parseInt(qtyCartons)).toFixed(4)}</p>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}
