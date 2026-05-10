@@ -96,6 +96,15 @@ export function InventoryView() {
     return toCartons(r.totalPieces, pcsPerCarton) < 5;
   });
 
+  const totalCartons = stockList.reduce((sum, r) => {
+    const pcsPerCarton = r.sku.pcs_per_pack * r.sku.packs_per_carton;
+    return sum + toCartons(r.totalPieces, pcsPerCarton);
+  }, 0);
+
+  const totalInventoryValue = batches.reduce((sum, b) => {
+    return sum + b.qty_pieces_remaining * b.landed_per_piece_mvr;
+  }, 0);
+
   if (loading) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -114,19 +123,26 @@ export function InventoryView() {
       </div>
 
       {/* ── Summary stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 12 }}>
         <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
           <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>SKUs in Stock</p>
           <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>{totalSkusInStock}</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>{batches.filter((b) => b.qty_pieces_remaining > 0).length} active batches</p>
         </div>
         <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Active Batches</p>
-          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>{batches.filter((b) => b.qty_pieces_remaining > 0).length}</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Total Cartons</p>
+          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>{totalCartons.toLocaleString()}</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>across all SKUs</p>
+        </div>
+        <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Inventory Value</p>
+          <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 300, letterSpacing: "-0.02em" }}>MVR {totalInventoryValue.toLocaleString("en-MV", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>at landed cost</p>
         </div>
         <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
           <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Low Stock</p>
           <p style={{ color: lowStockSkus.length > 0 ? "#ffb4ab" : "#4ade80", fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>{lowStockSkus.length}</p>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>{lowStockSkus.length > 0 ? "< 5 cartons" : "All OK"}</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>{lowStockSkus.length > 0 ? "SKUs below 5 cartons" : "All OK"}</p>
         </div>
       </div>
 
@@ -159,12 +175,13 @@ export function InventoryView() {
             const isExpanded = expanded === row.sku.id;
             const isLow = ctns < 5;
 
+            const allBatches      = row.byGodown.flatMap((g) => g.batches);
             // Landed cost — from oldest batch (FIFO) if multiple
-            const fifoLanded = row.byGodown
-              .flatMap((g) => g.batches)
+            const fifoLanded = allBatches
               .sort((a, b) => a.received_at.localeCompare(b.received_at))[0]?.landed_per_piece_mvr ?? 0;
             const landedPerPack   = fifoLanded * row.sku.pcs_per_pack;
             const landedPerCarton = landedPerPack * row.sku.packs_per_carton;
+            const skuTotalValue   = allBatches.reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
 
             return (
               <div key={row.sku.id} style={{ ...CARD, borderRadius: 14, overflow: "hidden", border: isLow ? "1px solid rgba(255,180,171,0.2)" : "1px solid transparent" }}>
@@ -194,7 +211,8 @@ export function InventoryView() {
                       {ctns} <span style={{ fontSize: 12, fontWeight: 500 }}>ctn</span>
                       {packs > 0 && <span style={{ fontSize: 13, color: "var(--muted-foreground)", marginLeft: 6 }}>+ {packs} pk</span>}
                     </p>
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>{row.totalPieces.toLocaleString()} pcs total</p>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>{row.totalPieces.toLocaleString()} pcs</p>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>MVR {skuTotalValue.toLocaleString("en-MV", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                   </div>
 
                   <ChevronDown style={{ width: 16, height: 16, color: "var(--muted-foreground)", flexShrink: 0, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
