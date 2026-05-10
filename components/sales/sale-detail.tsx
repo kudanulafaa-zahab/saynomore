@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Plus, Trash2, User, Truck, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -13,7 +13,6 @@ import {
   createOrderLine,
   updateOrderLine,
   deleteOrderLine,
-  postSale,
   toPieces,
   type SalesOrderRow,
   type SalesOrderLineRow,
@@ -31,19 +30,10 @@ import { supabase } from "@/lib/supabase";
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 const STEPS: { status: OrderStatus; label: string; Icon: React.ElementType }[] = [
-  { status: "draft",            label: "Draft",       Icon: Plus },
   { status: "confirmed",        label: "Confirmed",   Icon: CheckCircle2 },
   { status: "out_for_delivery", label: "Dispatched",  Icon: Truck },
   { status: "delivered",        label: "Delivered",   Icon: CheckCircle2 },
 ];
-
-const PAYMENT_LABEL: Record<PaymentStatus, string> = {
-  pending:   "Pending",
-  partial:   "Partial",
-  paid:      "Paid (transfer)",
-  cod:       "Cash on Delivery",
-  deposited: "Deposited (cash → ATM)",
-};
 
 interface DriverOption { id: string; full_name: string; }
 
@@ -52,7 +42,7 @@ interface DriverOption { id: string; full_name: string; }
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 function stepIndex(status: OrderStatus): number {
-  const map: Record<string, number> = { draft: 0, confirmed: 1, picked: 1, out_for_delivery: 2, delivered: 3, cancelled: -1 };
+  const map: Record<string, number> = { draft: 0, confirmed: 0, picked: 0, out_for_delivery: 1, delivered: 2, cancelled: -1 };
   return map[status] ?? 0;
 }
 
@@ -76,17 +66,17 @@ export function SaleDetail({ id }: { id: string }) {
   const [loading, setLoading]       = useState(true);
 
   // action states
-  const [posting, setPosting]       = useState(false);
   const [dispatching, setDispatching] = useState(false);
   const [completing, setCompleting]   = useState(false);
   const [deleting, setDeleting]       = useState(false);
+  const [depositing, setDepositing]   = useState(false);
 
   // local driver / cash state for action panels
   const [selectedDriver, setSelectedDriver] = useState("");
   const [cashCollected, setCashCollected]   = useState("");
 
   // inline dialogs (sheet-style bottom panels)
-  const [panel, setPanel] = useState<"confirm" | "dispatch" | "deliver" | "delete" | "deleteLine" | "addLine" | null>(null);
+  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | null>(null);
   const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
   const [editingLine, setEditingLine]             = useState<SalesOrderLineRow | undefined>(undefined);
   const [deletingLine, setDeletingLine]           = useState(false);
@@ -128,12 +118,11 @@ export function SaleDetail({ id }: { id: string }) {
     count: lines.length,
   }), [lines]);
 
-  const isDraft    = order?.status === "draft";
-  const isConfirmed = order?.status === "confirmed" || order?.status === "picked";
+  const isConfirmed  = order?.status === "confirmed" || order?.status === "picked" || order?.status === "draft";
   const isDispatched = order?.status === "out_for_delivery";
   const isDelivered  = order?.status === "delivered";
   const isCancelled  = order?.status === "cancelled";
-  const isEditable   = isDraft;
+  const isCOD        = order?.payment_method === "cod";
 
   /* ── Actions ───────────────────────────────────────────────────────────── */
 
@@ -143,18 +132,6 @@ export function SaleDetail({ id }: { id: string }) {
       await updateOrder(order.id, { [field]: value } as Record<string, unknown>);
       setOrder({ ...order, [field]: value } as SalesOrderRow);
     } catch (e) { toast.error((e as Error).message); }
-  }
-
-  async function handleConfirm() {
-    if (!order) return;
-    setPosting(true);
-    try {
-      await postSale(order.id);
-      toast.success("Sale confirmed — stock deducted");
-      setPanel(null);
-      load();
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setPosting(false); }
   }
 
   async function handleDispatch() {
@@ -187,6 +164,30 @@ export function SaleDetail({ id }: { id: string }) {
       load();
     } catch (e) { toast.error((e as Error).message); }
     finally { setCompleting(false); }
+  }
+
+  async function handleDeposit() {
+    if (!order) return;
+    setDepositing(true);
+    try {
+      await updateOrder(order.id, {
+        payment_status: "deposited",
+        cash_deposited_at: new Date().toISOString(),
+      } as Record<string, unknown>);
+      toast.success("Cash marked as deposited");
+      setPanel(null);
+      load();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setDepositing(false); }
+  }
+
+  async function handleMarkPaid() {
+    if (!order) return;
+    try {
+      await updateOrder(order.id, { payment_status: "paid" } as Record<string, unknown>);
+      toast.success("Payment received");
+      load();
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   async function handleDeleteOrder() {
@@ -312,84 +313,30 @@ export function SaleDetail({ id }: { id: string }) {
         </div>
       )}
 
-      {/* ── STAGE 1 — Draft ──────────────────────────────────────────────── */}
-      {isDraft && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Step 1 — Build the Order</p>
-
-          {/* Warehouse selector */}
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Ship from warehouse *</p>
-            <select
-              value={order.source_godown_id ?? ""}
-              onChange={(e) => e.target.value && patch("source_godown_id", e.target.value)}
-              style={{
-                width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)",
-                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px",
-                fontSize: 14, outline: "none", cursor: "pointer",
-              }}
-            >
-              <option value="">Select warehouse…</option>
-              {godowns.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>
-              ))}
-            </select>
-            {!order.source_godown_id && (
-              <p style={{ color: "#fb923c", fontSize: 11, marginTop: 4 }}>Required before confirming</p>
-            )}
-          </div>
-
-          {/* Items list */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500 }}>
-                Products · {totals.count} item{totals.count !== 1 ? "s" : ""}
-              </p>
-              <button
-                onClick={() => { setEditingLine(undefined); setPanel("addLine"); }}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", color: "var(--foreground)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-              >
-                <Plus style={{ width: 14, height: 14 }} /> Add item
-              </button>
-            </div>
-            <LineList lines={lines} skus={skus} editable onEdit={(l) => { setEditingLine(l); setPanel("addLine"); }} onDelete={(l) => { setPendingDeleteLine(l); setPanel("deleteLine"); }} />
-            {totals.count > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Total</span>
-                <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── STAGE 1 confirm button ────────────────────────────────────────── */}
-      {isDraft && (
-        <button
-          onClick={() => setPanel("confirm")}
-          disabled={lines.length === 0 || !order.source_godown_id}
-          style={{
-            width: "100%", background: lines.length > 0 && order.source_godown_id ? "var(--foreground)" : "rgba(255,255,255,0.1)",
-            color: lines.length > 0 && order.source_godown_id ? "var(--background)" : "var(--muted-foreground)",
-            border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700,
-            letterSpacing: "0.06em", textTransform: "uppercase", cursor: lines.length > 0 && order.source_godown_id ? "pointer" : "not-allowed",
-            marginBottom: 12,
-          }}
-        >
-          Confirm Sale & Deduct Stock →
-        </button>
-      )}
-
-      {/* ── STAGE 2 — Confirmed: assign driver ───────────────────────────── */}
+      {/* ── STAGE: Confirmed — ready to dispatch ─────────────────────────── */}
       {isConfirmed && (
         <>
+          {/* Payment method badge */}
           <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Step 2 — Assign Driver & Dispatch</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "rgba(251,146,60,0.08)" : "rgba(96,165,250,0.08)", borderRadius: 12, border: `1px solid ${isCOD ? "rgba(251,146,60,0.2)" : "rgba(96,165,250,0.2)"}` }}>
+              {isCOD
+                ? <Banknote style={{ color: "#fb923c", width: 22, height: 22, flexShrink: 0 }} />
+                : <Smartphone style={{ color: "#60a5fa", width: 22, height: 22, flexShrink: 0 }} />}
+              <div>
+                <p style={{ color: isCOD ? "#fb923c" : "#60a5fa", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  {isCOD ? "Cash on Delivery" : "Bank Transfer"}
+                </p>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
+                  {isCOD ? "Driver collects MVR " + fmt(totals.mvr) + " on delivery" : "Customer will send payment slip"}
+                </p>
+              </div>
+            </div>
+
             <LineList lines={lines} skus={skus} editable={false} />
             {totals.count > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
-                <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
+                <span style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
               </div>
             )}
           </div>
@@ -402,22 +349,28 @@ export function SaleDetail({ id }: { id: string }) {
         </>
       )}
 
-      {/* ── STAGE 3 — Out for delivery ───────────────────────────────────── */}
+      {/* ── STAGE: Out for delivery ──────────────────────────────────────── */}
       {isDispatched && (
         <>
           <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Step 3 — Out for Delivery</p>
-
             {/* Driver badge */}
             {order.assigned_driver_id && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, padding: "12px 14px", background: "rgba(74,222,128,0.08)", borderRadius: 10, border: "1px solid rgba(74,222,128,0.15)" }}>
-                <Truck style={{ color: "#4ade80", width: 20, height: 20 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "12px 14px", background: "rgba(74,222,128,0.08)", borderRadius: 12, border: "1px solid rgba(74,222,128,0.15)" }}>
+                <Truck style={{ color: "#4ade80", width: 20, height: 20, flexShrink: 0 }} />
                 <div>
-                  <p style={{ color: "#4ade80", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Assigned Driver</p>
+                  <p style={{ color: "#4ade80", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Out for Delivery</p>
                   <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>
                     {drivers.find((d) => d.id === order.assigned_driver_id)?.full_name ?? "Driver"}
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* COD reminder */}
+            {isCOD && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", background: "rgba(251,146,60,0.08)", borderRadius: 10 }}>
+                <Banknote style={{ color: "#fb923c", width: 18, height: 18, flexShrink: 0 }} />
+                <p style={{ color: "#fb923c", fontSize: 12, fontWeight: 600 }}>COD — driver must collect MVR {fmt(totals.mvr)}</p>
               </div>
             )}
 
@@ -428,7 +381,7 @@ export function SaleDetail({ id }: { id: string }) {
             </div>
           </div>
           <button
-            onClick={() => { setCashCollected(""); setPanel("deliver"); }}
+            onClick={() => { setCashCollected(isCOD ? String(totals.mvr.toFixed(0)) : ""); setPanel("deliver"); }}
             style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 12 }}
           >
             Mark as Delivered →
@@ -436,69 +389,71 @@ export function SaleDetail({ id }: { id: string }) {
         </>
       )}
 
-      {/* ── STAGE 4 — Delivered ──────────────────────────────────────────── */}
+      {/* ── STAGE: Delivered ─────────────────────────────────────────────── */}
       {isDelivered && (
         <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-            <CheckCircle2 style={{ color: "#4ade80", width: 24, height: 24 }} />
-            <p style={{ color: "#4ade80", fontSize: 14, fontWeight: 700 }}>Delivered</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <CheckCircle2 style={{ color: "#4ade80", width: 22, height: 22 }} />
+            <p style={{ color: "#4ade80", fontSize: 16, fontWeight: 700 }}>Delivered</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 14 }}>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Order Total</p>
-              <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
+
+          {/* Financial summary */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Order Total</p>
+              <p style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
             </div>
             {order.cash_collected_mvr != null && (
-              <div style={{ background: "rgba(74,222,128,0.06)", borderRadius: 10, padding: 14 }}>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Cash Collected</p>
-                <p style={{ color: "#4ade80", fontSize: 18, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
+              <div style={{ background: "rgba(74,222,128,0.06)", borderRadius: 12, padding: 16 }}>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Cash Collected</p>
+                <p style={{ color: "#4ade80", fontSize: 20, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
               </div>
             )}
           </div>
 
-          {/* Payment status */}
-          <div style={{ marginTop: 16 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Payment status</p>
-            <select
-              value={order.payment_status}
-              onChange={(e) => patch("payment_status", e.target.value as PaymentStatus)}
-              style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", fontSize: 14, outline: "none", cursor: "pointer" }}
-            >
-              {(Object.keys(PAYMENT_LABEL) as PaymentStatus[]).map((s) => (
-                <option key={s} value={s}>{PAYMENT_LABEL[s]}</option>
-              ))}
-            </select>
-          </div>
+          {/* Payment action — context-aware */}
+          {isCOD ? (
+            order.payment_status !== "deposited" ? (
+              <button
+                onClick={() => setPanel("deposit")}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 16 }}
+              >
+                <Landmark style={{ width: 18, height: 18 }} />
+                Mark Cash Deposited to Bank
+              </button>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 12, marginBottom: 16, border: "1px solid rgba(74,222,128,0.15)" }}>
+                <CheckCircle2 style={{ color: "#4ade80", width: 18, height: 18 }} />
+                <p style={{ color: "#4ade80", fontSize: 13, fontWeight: 600 }}>Cash deposited to bank</p>
+                {order.cash_deposited_at && (
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginLeft: "auto" }}>
+                    {new Date(order.cash_deposited_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )
+          ) : (
+            order.payment_status !== "paid" ? (
+              <button
+                onClick={handleMarkPaid}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 16 }}
+              >
+                <Smartphone style={{ width: 18, height: 18 }} />
+                Mark Payment Received
+              </button>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 12, marginBottom: 16, border: "1px solid rgba(74,222,128,0.15)" }}>
+                <CheckCircle2 style={{ color: "#4ade80", width: 18, height: 18 }} />
+                <p style={{ color: "#4ade80", fontSize: 13, fontWeight: 600 }}>Bank transfer received</p>
+              </div>
+            )
+          )}
 
-          <LineList lines={lines} skus={skus} editable={false} style={{ marginTop: 16 }} />
+          <LineList lines={lines} skus={skus} editable={false} />
         </div>
       )}
 
       {/* ── Modals / bottom sheets ─────────────────────────────────────── */}
-
-      {/* Confirm sale */}
-      <Sheet open={panel === "confirm"} onClose={() => setPanel(null)}>
-        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Confirm sale?</h2>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 20 }}>
-          Stock will be permanently deducted from <strong style={{ color: "var(--foreground)" }}>{godowns.find((g) => g.id === order.source_godown_id)?.name ?? "warehouse"}</strong> (FIFO). This cannot be undone.
-        </p>
-        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16, marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Items</span>
-            <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{totals.count}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Total</span>
-            <span style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
-          </div>
-        </div>
-        <SheetActions>
-          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
-          <button onClick={handleConfirm} disabled={posting} style={primaryBtn}>
-            {posting ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Confirm & Deduct Stock"}
-          </button>
-        </SheetActions>
-      </Sheet>
 
       {/* Dispatch */}
       <Sheet open={panel === "dispatch"} onClose={() => setPanel(null)}>
@@ -527,25 +482,44 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* Deliver */}
       <Sheet open={panel === "deliver"} onClose={() => setPanel(null)}>
-        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Confirm Delivery</h2>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delivery Confirmed?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 20 }}>
           Order value: <strong style={{ color: "var(--foreground)" }}>MVR {fmt(totals.mvr)}</strong>
         </p>
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Cash collected (optional)</p>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={cashCollected}
-            onChange={(e) => setCashCollected(e.target.value)}
-            style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px", fontSize: 16, outline: "none", boxSizing: "border-box" }}
-          />
-        </div>
+        {isCOD && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Cash collected by driver (MVR) *</p>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder={String(totals.mvr.toFixed(0))}
+              value={cashCollected}
+              onChange={(e) => setCashCollected(e.target.value)}
+              style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+        )}
         <SheetActions>
           <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
           <button onClick={handleDeliver} disabled={completing} style={{ ...primaryBtn, opacity: completing ? 0.5 : 1 }}>
-            {completing ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Mark Delivered"}
+            {completing ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Confirm Delivered"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Deposit cash */}
+      <Sheet open={panel === "deposit"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Mark Cash Deposited?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+          Confirm you have deposited the cash collected for <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> into the bank.
+          {order.cash_collected_mvr != null && (
+            <span style={{ display: "block", color: "var(--foreground)", fontSize: 22, fontWeight: 700, marginTop: 8 }}>MVR {fmt(order.cash_collected_mvr)}</span>
+          )}
+        </p>
+        <SheetActions>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleDeposit} disabled={depositing} style={{ ...primaryBtn, opacity: depositing ? 0.5 : 1 }}>
+            {depositing ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Deposited ✓"}
           </button>
         </SheetActions>
       </Sheet>
