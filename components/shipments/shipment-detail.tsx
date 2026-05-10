@@ -43,6 +43,7 @@ import {
   deleteShipmentLine,
   confirmGrn,
   voidGrn,
+  forceVoidGrn,
   type ShipmentRow,
   type ShipmentLineRow,
   type FobCurrency,
@@ -642,10 +643,8 @@ export function ShipmentDetail({ id }: { id: string }) {
               <DialogTitle>Void GRN &amp; delete shipment?</DialogTitle>
             </div>
             <DialogDescription>
-              <strong>{shipment.reference}</strong> will be completely removed — all inventory batches
-              and stock movements will be reversed. This cannot be undone.
-              <br /><br />
-              This will be blocked if any stock from this shipment has already been sold.
+              <strong>{shipment.reference}</strong> will be completely removed — all inventory batches,
+              stock movements, and any linked sales orders will be deleted. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -656,8 +655,8 @@ export function ShipmentDetail({ id }: { id: string }) {
               onClick={async () => {
                 setVoiding(true);
                 try {
-                  await voidGrn(shipment.id);
-                  toast.success("Shipment voided — stock reversed");
+                  await forceVoidGrn(shipment.id);
+                  toast.success("Shipment voided — all linked data deleted");
                   router.push("/shipments");
                 } catch (e) {
                   toast.error((e as Error).message);

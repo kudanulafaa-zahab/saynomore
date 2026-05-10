@@ -173,6 +173,13 @@ export async function voidGrn(shipmentId: string) {
   if (error) throw error;
 }
 
+// ── Force void GRN — admin only, also deletes linked sales orders (RPC) ──
+
+export async function forceVoidGrn(shipmentId: string) {
+  const { error } = await supabase.rpc("admin_force_void_grn", { p_shipment_id: shipmentId });
+  if (error) throw error;
+}
+
 // ── Helpers (auto-generate reference) ────────────────────────────────────
 
 export function nextShipmentRef(existing: ShipmentRow[]): string {
