@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Truck,
   ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import {
   getShipment,
@@ -234,11 +235,11 @@ export function ShipmentDetail({ id }: { id: string }) {
               <Lock style={{ width: 10, height: 10 }} /> Locked
             </span>
           )}
-          {isAdmin && (
+          {isAdmin && !locked && (
             <button
-              onClick={() => locked ? setPanel("voidGrn") : setPanel("deleteShipment")}
+              onClick={() => setPanel("deleteShipment")}
               style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,59,48,0.08)", border: "none", color: "#ff3b30", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-              title={locked ? "Void GRN & delete" : "Delete shipment"}
+              title="Delete shipment"
             >
               <Trash2 style={{ width: 16, height: 16 }} />
             </button>
@@ -433,7 +434,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         {sku?.full_path ?? "Unknown SKU"}
                       </p>
                       <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
-                        {l.qty_cartons} ctn · {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
+                        {l.qty_cartons} ctn · <span style={{ color: "var(--foreground)", fontWeight: 500 }}>{l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn</span>
                         · {Number(l.cbm_per_carton).toFixed(4)} CBM/ctn
                         {godown && <> · → {godown.name}</>}
                       </p>
@@ -494,17 +495,46 @@ export function ShipmentDetail({ id }: { id: string }) {
           Confirm GRN — Lock Costs & Create Stock →
         </button>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 14, border: "1px solid rgba(74,222,128,0.15)" }}>
-          <Truck style={{ color: "#4ade80", width: 20, height: 20, flexShrink: 0 }} />
-          <div>
-            <p style={{ color: "#4ade80", fontSize: 14, fontWeight: 700 }}>Goods received — stock live</p>
-            {shipment.grn_confirmed_at && (
-              <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
-                Confirmed {new Date(shipment.grn_confirmed_at).toLocaleString()}
-              </p>
-            )}
+        <>
+          {/* Confirmed state */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 14, border: "1px solid rgba(74,222,128,0.15)", marginBottom: 10 }}>
+            <Truck style={{ color: "#4ade80", width: 20, height: 20, flexShrink: 0 }} />
+            <div>
+              <p style={{ color: "#4ade80", fontSize: 14, fontWeight: 700 }}>Goods received — stock live</p>
+              {shipment.grn_confirmed_at && (
+                <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
+                  Confirmed {new Date(shipment.grn_confirmed_at).toLocaleString()}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Made a mistake? */}
+          {isAdmin && (
+            <div style={{ ...CARD, padding: 20 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(251,146,60,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <RotateCcw style={{ color: "#fb923c", width: 18, height: 18 }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Made a mistake in the figures?</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+                    Once GRN is confirmed, costs are locked to protect stock valuations. To correct a figure, you need to <strong style={{ color: "var(--foreground)" }}>void this GRN</strong> — which removes all inventory batches and stock movements — then re-enter the correct figures and confirm GRN again.
+                  </p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginBottom: 16, padding: "8px 12px", background: "rgba(255,59,48,0.06)", borderRadius: 8, border: "1px solid rgba(255,59,48,0.12)" }}>
+                    ⚠ If any stock from this shipment has already been sold, voiding will also delete those sales orders.
+                  </p>
+                  <button
+                    onClick={() => setPanel("voidGrn")}
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,59,48,0.1)", color: "#ff3b30", border: "1px solid rgba(255,59,48,0.2)", borderRadius: 999, padding: "10px 20px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}
+                  >
+                    <RotateCcw style={{ width: 14, height: 14 }} /> Void GRN & Re-enter
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Bottom sheets ─────────────────────────────────────────────────── */}
@@ -886,10 +916,10 @@ function LineDialog({
               onChange={(e) => setQtyCartons(e.target.value)} placeholder="50" style={inputStyle} />
           </div>
           <div>
-            <span style={labelStyle}>FOB / carton *</span>
+            <span style={labelStyle}>Supplier price / carton *</span>
             <div style={{ display: "flex", gap: 6 }}>
               <input type="number" inputMode="decimal" step="0.01" value={fobPerCarton}
-                onChange={(e) => setFobPerCarton(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                onChange={(e) => setFobPerCarton(e.target.value)} style={{ ...inputStyle, flex: 1 }} placeholder="e.g. 51200" />
               <div style={{ position: "relative" }}>
                 <select value={fobCurrency} onChange={(e) => setFobCurrency(e.target.value as FobCurrency)}
                   style={{ ...inputStyle, width: 72, appearance: "none", paddingRight: 4 }}>
@@ -899,6 +929,7 @@ function LineDialog({
                 </select>
               </div>
             </div>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 4 }}>Enter the price on this shipment&apos;s invoice — can differ from previous shipments.</p>
           </div>
         </div>
 
