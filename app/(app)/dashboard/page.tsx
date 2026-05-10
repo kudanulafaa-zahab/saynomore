@@ -1,5 +1,5 @@
 import { getSupabaseServer } from "@/lib/supabase-server";
-import { TrendingUp, TrendingDown, AlertTriangle, Clock, ArrowRight } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Clock, ArrowRight, Package, Truck } from "lucide-react";
 import Link from "next/link";
 
 function mvr(n: number) {
@@ -41,47 +41,43 @@ export default async function DashboardPage() {
     pending_payments_mvr: 0,
   }) as Metrics;
 
-  const revenue = Number(m.revenue_this_month_mvr);
-  const lastRevenue = Number(m.revenue_last_month_mvr);
-  const revChangePct = lastRevenue > 0 ? ((revenue - lastRevenue) / lastRevenue) * 100 : null;
-  const stockValue = Number(m.total_stock_value_mvr);
-  const brandCount = brandsRes.count ?? 0;
-  const skuCount = skusRes.count ?? 0;
-  const monthName = new Date().toLocaleString("en-MV", { month: "long" });
-
-  // Approximate landed costs + opex for the P&L hero card
-  const approxLandedCosts = stockValue;
-  const approxOpex = Number(m.pending_payments_mvr);
-  const netProfit = revenue - approxOpex;
+  const revenueToday     = Number(m.revenue_today_mvr);
+  const revenueMonth     = Number(m.revenue_this_month_mvr);
+  const revenueLastMonth = Number(m.revenue_last_month_mvr);
+  const revChangePct     = revenueLastMonth > 0 ? ((revenueMonth - revenueLastMonth) / revenueLastMonth) * 100 : null;
+  const stockValue       = Number(m.total_stock_value_mvr);
+  const pendingPayments  = Number(m.pending_payments_mvr);
+  const brandCount       = brandsRes.count ?? 0;
+  const skuCount         = skusRes.count ?? 0;
+  const monthName        = new Date().toLocaleString("en-MV", { month: "long" });
+  const lastMonthName    = new Date(new Date().getFullYear(), new Date().getMonth() - 1).toLocaleString("en-MV", { month: "long" });
 
   return (
     <div className="space-y-4">
 
-      {/* ── Hero: Real-Time Net Profit ── */}
+      {/* ── Hero: Revenue this month ── */}
       <div className="snm-card rounded-2xl p-6">
-        <div>
-          <p className="label-caps text-[10px] mb-2 text-muted-foreground">Real-Time Net Profit</p>
-          <h1 className="text-[42px] font-light tracking-tight text-foreground leading-none">
-            {mvr(netProfit > 0 ? netProfit : revenue)}
-            <span className="text-2xl ml-1 text-muted-foreground">MVR</span>
-          </h1>
-          {revChangePct !== null && (
-            <div className="flex items-center gap-1.5 mt-3" style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-              {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-              <span className="text-sm">{revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(1)}% from last month</span>
-            </div>
-          )}
-        </div>
+        <p className="label-caps text-[10px] mb-2 text-muted-foreground">Revenue — {monthName}</p>
+        <h1 className="text-[42px] font-light tracking-tight text-foreground leading-none">
+          {mvr(revenueMonth)}
+          <span className="text-2xl ml-1 text-muted-foreground">MVR</span>
+        </h1>
+        {revChangePct !== null && (
+          <div className="flex items-center gap-1.5 mt-3" style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+            {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+            <span className="text-sm">{revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(1)}% vs {lastMonthName}</span>
+          </div>
+        )}
 
         {/* Sub-metrics */}
         <div className="grid grid-cols-3 gap-4 mt-6 pt-5 border-t border-border">
           <div>
-            <p className="label-caps text-[10px] mb-1 text-muted-foreground">Sales Revenue</p>
-            <p className="text-base font-semibold text-foreground">{mvr(revenue)} MVR</p>
+            <p className="label-caps text-[10px] mb-1 text-muted-foreground">Today</p>
+            <p className="text-base font-semibold text-foreground">{mvr(revenueToday)} MVR</p>
           </div>
           <div>
-            <p className="label-caps text-[10px] mb-1 text-muted-foreground">Stock Value</p>
-            <p className="text-base font-semibold text-foreground">{mvr(approxLandedCosts)} MVR</p>
+            <p className="label-caps text-[10px] mb-1 text-muted-foreground">{lastMonthName}</p>
+            <p className="text-base font-semibold text-foreground">{mvr(revenueLastMonth)} MVR</p>
           </div>
           <div>
             <p className="label-caps text-[10px] mb-1 text-muted-foreground">Active Orders</p>
@@ -90,50 +86,51 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Bento row: Cash Runway + Revenue vs Expenses ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* ── Key metrics row ── */}
+      <div className="grid grid-cols-2 gap-4">
 
-        {/* Cash Runway */}
-        <div className="snm-card rounded-2xl p-5 flex flex-col justify-between" style={{ minHeight: 180 }}>
-          <div>
-            <div className="flex justify-between items-start">
-              <p className="label-caps text-[10px] text-muted-foreground">Cash Runway</p>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-semibold text-foreground mt-2">
-              {stockValue > 0 ? `${(stockValue / (revenue / 30 + 1)).toFixed(1)}` : "—"} days
-            </p>
-            <p className="text-xs mt-1 text-muted-foreground">Based on current stock & burn</p>
+        {/* Stock Value */}
+        <div className="snm-card rounded-2xl p-5">
+          <div className="flex justify-between items-start mb-2">
+            <p className="label-caps text-[10px] text-muted-foreground">Inventory Value</p>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="w-full rounded-full overflow-hidden bg-border" style={{ height: 6 }}>
-            <div className="h-full rounded-full bg-foreground" style={{ width: "65%" }} />
-          </div>
+          <p className="text-2xl font-semibold text-foreground">{mvr(stockValue)}</p>
+          <p className="text-xs mt-1 text-muted-foreground">MVR at landed cost</p>
         </div>
 
-        {/* Revenue vs Expenses chart (visual) */}
-        <div className="snm-card sm:col-span-2 rounded-2xl p-5">
-          <div className="flex justify-between items-center mb-4">
-            <p className="label-caps text-[10px] text-muted-foreground">Revenue vs. Expenses — {monthName}</p>
-            <div className="flex gap-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-foreground" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Costs</span>
-              </div>
-            </div>
+        {/* Uncollected Cash */}
+        <div className="snm-card rounded-2xl p-5">
+          <div className="flex justify-between items-start mb-2">
+            <p className="label-caps text-[10px] text-muted-foreground">Uncollected Cash</p>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </div>
-          {/* Static bar chart */}
-          <div className="flex items-end gap-3 h-20">
-            {[60, 75, 55, 85, 70, revenue > 0 ? 95 : 40].map((h, i) => (
-              <div key={i} className="flex-1 flex flex-col gap-1 items-center">
-                <div className="w-full rounded-t-sm bg-muted-foreground/30" style={{ height: `${h * 0.4}%` }} />
-                <div className="w-full rounded-t-sm bg-foreground" style={{ height: `${h}%` }} />
-              </div>
-            ))}
+          <p className="text-2xl font-semibold text-foreground" style={{ color: pendingPayments > 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
+            {pendingPayments > 0 ? mvr(pendingPayments) : "—"}
+          </p>
+          <p className="text-xs mt-1 text-muted-foreground">
+            {pendingPayments > 0 ? "MVR delivered, not yet paid" : "All payments received"}
+          </p>
+        </div>
+
+        {/* Delivered Today */}
+        <div className="snm-card rounded-2xl p-5">
+          <div className="flex justify-between items-start mb-2">
+            <p className="label-caps text-[10px] text-muted-foreground">Delivered Today</p>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </div>
+          <p className="text-2xl font-semibold text-foreground">{Number(m.orders_delivered_today)}</p>
+          <p className="text-xs mt-1 text-muted-foreground">orders completed</p>
+        </div>
+
+        {/* Shipments in Transit */}
+        <div className="snm-card rounded-2xl p-5">
+          <div className="flex justify-between items-start mb-2">
+            <p className="label-caps text-[10px] text-muted-foreground">In Transit</p>
+            <Truck className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <p className="text-2xl font-semibold text-foreground">{Number(m.shipments_in_transit)}</p>
+          <p className="text-xs mt-1 text-muted-foreground">shipments en route</p>
         </div>
       </div>
 
@@ -149,7 +146,7 @@ export default async function DashboardPage() {
         <div className="px-5 pb-5 space-y-2">
           <div className="flex justify-between items-center p-3 rounded-xl bg-muted/50">
             <div>
-              <p className="text-sm font-semibold text-foreground">{brandCount} Brands</p>
+              <p className="text-sm font-semibold text-foreground">{brandCount} Brand{brandCount !== 1 ? "s" : ""}</p>
               <p className="text-xs text-muted-foreground">Active in catalogue</p>
             </div>
             <p className="text-sm font-semibold text-foreground">{skuCount} SKUs</p>
@@ -157,18 +154,18 @@ export default async function DashboardPage() {
 
           <div className="flex justify-between items-center p-3 rounded-xl bg-muted/50">
             <div>
-              <p className="text-sm font-semibold text-foreground">Delivered Today</p>
-              <p className="text-xs text-muted-foreground">Completed orders</p>
+              <p className="text-sm font-semibold text-foreground">{monthName} Revenue</p>
+              <p className="text-xs text-muted-foreground">Confirmed + delivered orders</p>
             </div>
-            <p className="text-sm font-semibold text-foreground">{Number(m.orders_delivered_today)}</p>
+            <p className="text-sm font-semibold text-foreground">{mvr(revenueMonth)} MVR</p>
           </div>
 
           <div className="flex justify-between items-center p-3 rounded-xl bg-muted/50">
             <div>
-              <p className="text-sm font-semibold text-foreground">In Transit</p>
-              <p className="text-xs text-muted-foreground">Shipments en route</p>
+              <p className="text-sm font-semibold text-foreground">Stock at Landed Cost</p>
+              <p className="text-xs text-muted-foreground">All godowns combined</p>
             </div>
-            <p className="text-sm font-semibold text-foreground">{Number(m.shipments_in_transit)}</p>
+            <p className="text-sm font-semibold text-foreground">{mvr(stockValue)} MVR</p>
           </div>
         </div>
       </div>
@@ -196,7 +193,7 @@ export default async function DashboardPage() {
             </p>
             <p className="text-xs mt-0.5 text-muted-foreground">
               {Number(m.low_stock_sku_count) > 0
-                ? "Less than 10 days remaining"
+                ? "Less than 10 days of stock remaining"
                 : "All active SKUs healthy"}
             </p>
           </div>
@@ -204,25 +201,25 @@ export default async function DashboardPage() {
 
         <Link
           href="/sales"
-          className={`snm-card rounded-2xl p-5 flex items-start gap-4 transition hover:opacity-90 border ${Number(m.pending_payments_mvr) > 0 ? "border-[var(--snm-error)]/20" : "border-transparent"}`}
+          className={`snm-card rounded-2xl p-5 flex items-start gap-4 transition hover:opacity-90 border ${pendingPayments > 0 ? "border-[var(--snm-error)]/20" : "border-transparent"}`}
         >
           <div
             className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
             style={{
-              background: Number(m.pending_payments_mvr) > 0 ? "rgba(255,180,171,0.12)" : "rgba(74,222,128,0.12)",
-              color: Number(m.pending_payments_mvr) > 0 ? "var(--snm-error)" : "var(--snm-success)",
+              background: pendingPayments > 0 ? "rgba(255,180,171,0.12)" : "rgba(74,222,128,0.12)",
+              color: pendingPayments > 0 ? "var(--snm-error)" : "var(--snm-success)",
             }}
           >
             <Clock className="h-4 w-4" />
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {Number(m.pending_payments_mvr) > 0
-                ? `${mvr(Number(m.pending_payments_mvr))} MVR uncollected`
+              {pendingPayments > 0
+                ? `${mvr(pendingPayments)} MVR uncollected`
                 : "All payments collected"}
             </p>
             <p className="text-xs mt-0.5 text-muted-foreground">
-              {Number(m.pending_payments_mvr) > 0
+              {pendingPayments > 0
                 ? "Delivered orders awaiting payment"
                 : "No outstanding balances"}
             </p>
