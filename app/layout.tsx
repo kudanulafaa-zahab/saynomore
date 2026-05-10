@@ -7,10 +7,14 @@ export const metadata: Metadata = {
   title: "SayNoMore",
   description: "FMCG Import & Distribution Operations",
   manifest: "/manifest.webmanifest",
+  icons: {
+    apple: "/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     title: "SayNoMore",
     statusBarStyle: "black-translucent",
+    startupImage: "/icon-512.png",
   },
 };
 
