@@ -19,7 +19,6 @@ import {
   type PriceBasis,
 } from "@/lib/queries/competitors";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
-import { listBatchStock } from "@/lib/queries/inventory";
 
 const CARD = {
   background: "var(--glass-1)",
@@ -140,7 +139,7 @@ export function CompetitorsView() {
   const grossMarginMvr = simPrice - landedCost;
   const grossMarginPct = landedCost > 0 ? (grossMarginMvr / simPrice) * 100 : 0;
   const efficiency = landedCost > 0 && simPrice > 0
-    ? Math.min(100, Math.round(((simPrice - landedCost) / simPrice) * 100 + 40))
+    ? Math.min(100, Math.max(0, Math.round(((simPrice - landedCost) / simPrice) * 100)))
     : 0;
 
   // Top competitor price for selected SKU
