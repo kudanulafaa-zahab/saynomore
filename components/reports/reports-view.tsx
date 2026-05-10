@@ -257,7 +257,12 @@ export function ReportsView() {
       ) : tab === "margins" ? (
         <MarginsTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
       ) : (
-        <StockTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+        <StockTable
+          rows={filtered}
+          onSort={setSortKey}
+          sortKey={sortKey}
+          periodDays={Math.max(Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000), 1)}
+        />
       )}
 
       {/* Marketing spend breakdown */}
@@ -504,8 +509,8 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
 
 // ── Days of Stock table ──────────────────────────────────────────────────
 
-function StockTable({ rows, sortKey, onSort }: {
-  rows: ReportRow[]; sortKey: SortKey; onSort: (k: SortKey) => void;
+function StockTable({ rows, sortKey, onSort, periodDays }: {
+  rows: ReportRow[]; sortKey: SortKey; onSort: (k: SortKey) => void; periodDays: number;
 }) {
   return (
     <div className="glass overflow-hidden">
@@ -521,8 +526,9 @@ function StockTable({ rows, sortKey, onSort }: {
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => {
+              const days = Math.max(periodDays, 1);
               const dailyAvg = r.total_qty_pieces > 0
-                ? (r.total_qty_pieces / 30).toFixed(1)
+                ? (r.total_qty_pieces / days).toFixed(1)
                 : null;
               return (
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">

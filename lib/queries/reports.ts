@@ -28,3 +28,16 @@ export async function getReportsData(from: string, to: string): Promise<ReportRo
   if (error) throw error;
   return (data ?? []) as ReportRow[];
 }
+
+export interface MonthlyRevenueRow {
+  month_label: string;
+  month_start: string;
+  revenue_mvr: number;
+  opex_mvr: number;
+}
+
+export async function getMonthlyRevenue(months = 6): Promise<MonthlyRevenueRow[]> {
+  const { data, error } = await supabase.rpc("get_monthly_revenue", { p_months: months });
+  if (error) throw error;
+  return (data ?? []) as MonthlyRevenueRow[];
+}

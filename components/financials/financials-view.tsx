@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
-import { Loader2, TrendingUp, TrendingDown, Clock, ArrowRight } from "lucide-react";
-import { getReportsData, type ReportRow } from "@/lib/queries/reports";
+import { Loader2, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
+import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueRow } from "@/lib/queries/reports";
 import { listMarketingSpend } from "@/lib/queries/expenses";
 
 const CARD = {
@@ -21,56 +21,61 @@ function fmtShort(n: number) {
   return n.toFixed(0);
 }
 
-const BAR_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-const REV_HEIGHTS = [60, 75, 85, 90, 70, 100];
-const EXP_HEIGHTS = [40, 35, 45, 30, 50, 45];
-
 export function FinancialsView() {
-  const [rows, setRows] = useState<ReportRow[]>([]);
+  const [rows, setRows]         = useState<ReportRow[]>([]);
   const [expenses, setExpenses] = useState<{ amount_mvr: number }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [monthly, setMonthly]   = useState<MonthlyRevenueRow[]>([]);
+  const [loading, setLoading]   = useState(true);
 
-  // Default: current month
-  const today = new Date();
+  // Current month
+  const today       = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-  const tomorrow = new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
+  const tomorrow     = new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
       getReportsData(firstOfMonth, tomorrow),
       listMarketingSpend(),
+      getMonthlyRevenue(6),
     ])
-      .then(([r, e]) => { setRows(r); setExpenses(e); })
+      .then(([r, e, m]) => { setRows(r); setExpenses(e); setMonthly(m); })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
   }, []);
 
-  const totalRevenue = useMemo(() => rows.reduce((a, r) => a + Number(r.total_revenue_mvr), 0), [rows]);
+  const totalRevenue    = useMemo(() => rows.reduce((a, r) => a + Number(r.total_revenue_mvr), 0), [rows]);
   const totalLandedCost = useMemo(() => rows.reduce((a, r) => a + (Number(r.landed_per_piece_mvr) * Number(r.total_qty_pieces)), 0), [rows]);
-  const totalOpex = useMemo(() => expenses.reduce((a, e) => a + Number(e.amount_mvr), 0), [expenses]);
-  const netProfit = totalRevenue - totalLandedCost - totalOpex;
-  const profitPct = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
+  const totalOpex       = useMemo(() => expenses.reduce((a, e) => a + Number(e.amount_mvr), 0), [expenses]);
+  const netProfit       = totalRevenue - totalLandedCost - totalOpex;
+  const profitPct       = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
 
   // Top brands by revenue
   const brandMap = useMemo(() => {
-    const m = new Map<string, { revenue: number; cost: number; label: string }>();
+    const m = new Map<string, { revenue: number; cost: number; skuCount: number }>();
     for (const r of rows) {
-      const key = r.brand_name;
-      const rev = Number(r.total_revenue_mvr);
+      const rev  = Number(r.total_revenue_mvr);
       const cost = Number(r.landed_per_piece_mvr) * Number(r.total_qty_pieces);
-      const existing = m.get(key);
-      if (existing) {
-        existing.revenue += rev;
-        existing.cost += cost;
+      const entry = m.get(r.brand_name);
+      if (entry) {
+        entry.revenue  += rev;
+        entry.cost     += cost;
+        entry.skuCount += rev > 0 ? 1 : 0;
       } else {
-        m.set(key, { revenue: rev, cost, label: key });
+        m.set(r.brand_name, { revenue: rev, cost, skuCount: rev > 0 ? 1 : 0 });
       }
     }
-    return Array.from(m.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+    return Array.from(m.entries())
+      .map(([label, v]) => ({ label, ...v }))
+      .filter((b) => b.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
   }, [rows]);
 
-  const cashRunwayMonths = totalOpex > 0 ? Math.min((netProfit / (totalOpex / 1)) , 24) : 0;
+  // Bar chart — derived from real monthly data
+  const maxRevenue = useMemo(() => Math.max(...monthly.map((m) => Number(m.revenue_mvr)), 1), [monthly]);
+  const maxOpex    = useMemo(() => Math.max(...monthly.map((m) => Number(m.opex_mvr)), 1), [monthly]);
+  const chartMax   = Math.max(maxRevenue, maxOpex, 1);
 
   if (loading) {
     return (
@@ -83,11 +88,11 @@ export function FinancialsView() {
   return (
     <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
 
-      {/* Hero — Net Profit */}
+      {/* Hero — Net Profit (this month) */}
       <section style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12 }}>
         <div>
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
-            Real-Time Net Profit
+            Net Profit — {today.toLocaleString("en-MV", { month: "long" })}
           </p>
           <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "#ffb4ab", fontSize: 48, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "56px" }}>
             MVR {fmt(netProfit, 2)}
@@ -99,74 +104,79 @@ export function FinancialsView() {
             <span style={{ color: netProfit >= 0 ? "#4ade80" : "#ffb4ab", fontSize: 14 }}>
               {profitPct >= 0 ? "+" : ""}{profitPct.toFixed(1)}% margin
             </span>
+            <span style={{ color: "var(--muted-foreground)", fontSize: 12, marginLeft: 4 }}>
+              (Revenue − Landed Costs − OpEx)
+            </span>
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 32, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           {[
             { label: "Sales Revenue", value: fmtShort(totalRevenue) },
             { label: "Landed Costs", value: fmtShort(totalLandedCost) },
-            { label: "OpEx", value: fmtShort(totalOpex) },
-          ].map((m) => (
-            <div key={m.label}>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
-              <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>MVR {m.value}</p>
+            { label: "OpEx (Marketing)", value: fmtShort(totalOpex) },
+          ].map((item) => (
+            <div key={item.label}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{item.label}</p>
+              <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>MVR {item.value}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Bento row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12, marginBottom: 12 }}>
-
-        {/* Cash Runway */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 256 }}>
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>Cash Runway</p>
-              <Clock style={{ color: "var(--muted-foreground)", width: 20, height: 20 }} />
-            </div>
-            <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 8 }}>
-              {cashRunwayMonths > 0 ? cashRunwayMonths.toFixed(1) + " Months" : "—"}
-            </p>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginTop: 4 }}>Based on current burn rate</p>
-          </div>
-          <div style={{ width: "100%", background: "rgba(255,255,255,0.05)", height: 4, borderRadius: 999, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min((cashRunwayMonths / 24) * 100, 100)}%`, background: "var(--foreground)", borderRadius: 999, transition: "width 0.6s" }} />
-          </div>
-        </div>
-
-        {/* Revenue vs Expenses chart — spans 2 cols */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 2", display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>Revenue vs. Expenses</p>
-            <div style={{ display: "flex", gap: 16 }}>
-              {[{ label: "Revenue", color: "var(--foreground)" }, { label: "Expenses", color: "rgba(255,255,255,0.2)" }].map((l) => (
-                <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />
-                  <span style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase" }}>{l.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: 10 }}>
-            {BAR_MONTHS.map((m, i) => (
-              <div key={m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <div style={{ width: "100%", display: "flex", alignItems: "flex-end", gap: 3, height: 120 }}>
-                  <div style={{ flex: 1, background: "rgba(255,255,255,0.2)", borderRadius: "3px 3px 0 0", height: `${EXP_HEIGHTS[i]}%` }} />
-                  <div style={{ flex: 1, background: "var(--foreground)", borderRadius: "3px 3px 0 0", height: `${REV_HEIGHTS[i]}%` }} />
-                </div>
-                <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>{m}</span>
+      {/* Revenue vs OpEx chart — real 6-month data */}
+      <div style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            Revenue vs. Marketing OpEx — Last 6 Months
+          </p>
+          <div style={{ display: "flex", gap: 16 }}>
+            {[
+              { label: "Revenue",  color: "var(--foreground)" },
+              { label: "OpEx",     color: "rgba(255,255,255,0.25)" },
+            ].map((l) => (
+              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />
+                <span style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase" }}>{l.label}</span>
               </div>
             ))}
           </div>
         </div>
+
+        {monthly.length === 0 ? (
+          <p style={{ color: "var(--muted-foreground)", fontSize: 14, textAlign: "center", padding: "24px 0" }}>No data yet.</p>
+        ) : (
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 120 }}>
+            {monthly.map((m) => {
+              const revH  = chartMax > 0 ? Math.max((Number(m.revenue_mvr) / chartMax) * 100, 2) : 2;
+              const opexH = chartMax > 0 ? Math.max((Number(m.opex_mvr)    / chartMax) * 100, 2) : 2;
+              const isCurrent = m.month_start.slice(0, 7) === today.toISOString().slice(0, 7);
+              return (
+                <div key={m.month_start} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <div style={{ width: "100%", display: "flex", alignItems: "flex-end", gap: 3, height: 100 }}>
+                    <div style={{ flex: 1, background: "rgba(255,255,255,0.2)", borderRadius: "3px 3px 0 0", height: `${opexH}%` }} />
+                    <div style={{ flex: 1, background: isCurrent ? "#4ade80" : "var(--foreground)", borderRadius: "3px 3px 0 0", height: `${revH}%`, opacity: isCurrent ? 1 : 0.8 }} />
+                  </div>
+                  <span style={{ color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 10, fontWeight: isCurrent ? 700 : 400 }}>{m.month_label}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Axis labels */}
+        {monthly.length > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>0</span>
+            <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>Peak: MVR {fmtShort(chartMax)}</span>
+          </div>
+        )}
       </div>
 
       {/* Profit by Brand */}
       <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            Lucrative Imports: Profit by Brand
+            Profit by Brand — {today.toLocaleString("en-MV", { month: "long" })}
           </p>
           <button style={{ color: "var(--foreground)", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             View Detailed Report
@@ -180,14 +190,18 @@ export function FinancialsView() {
             {brandMap.map((b) => {
               const margin = b.revenue > 0 ? ((b.revenue - b.cost) / b.revenue * 100) : 0;
               return (
-                <div key={b.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: "rgba(255,255,255,0.04)", borderRadius: 12, cursor: "pointer" }}>
+                <div key={b.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: "rgba(255,255,255,0.04)", borderRadius: 12 }}>
                   <div>
                     <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>{b.label}</p>
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>FMCG Import</p>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
+                      {b.skuCount} SKU{b.skuCount !== 1 ? "s" : ""} sold this month
+                    </p>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>MVR {fmt(b.revenue, 2)}</p>
-                    <p style={{ color: margin >= 0 ? "#4ade80" : "#ffb4ab", fontSize: 12 }}>{margin.toFixed(1)}% Margin</p>
+                    <p style={{ color: margin >= 20 ? "#4ade80" : margin >= 10 ? "#fb923c" : "#ffb4ab", fontSize: 12 }}>
+                      {margin.toFixed(1)}% Gross Margin
+                    </p>
                   </div>
                 </div>
               );

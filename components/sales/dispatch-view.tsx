@@ -137,8 +137,13 @@ export function DispatchView() {
           <p style={{ color: "#4ade80", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{completed.length}</p>
         </div>
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Fleet Efficiency</p>
-          <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>88%</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Completion Rate</p>
+          <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>
+            {(pending.length + completed.length) > 0
+              ? `${Math.round((completed.length / (completed.length + pending.length)) * 100)}%`
+              : "—"}
+          </p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 4 }}>today's assigned runs</p>
         </div>
       </div>
 
