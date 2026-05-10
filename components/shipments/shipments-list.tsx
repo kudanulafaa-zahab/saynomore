@@ -32,13 +32,13 @@ import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 
 const CARD = {
-  background: "rgba(18,19,23,0.70)",
+  background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
 } as const;
 
 const CARD_L2 = {
-  background: "rgba(28,27,27,0.85)",
+  background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
 } as const;
@@ -70,10 +70,10 @@ const STATUS_ICON: Record<ShipmentStatus, typeof Truck> = {
 function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748] transition"
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-[#444748] transition"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       />
     </div>
@@ -83,11 +83,11 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
 function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none appearance-none"
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       >
         {children}
@@ -143,7 +143,7 @@ export function ShipmentsList() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "#8e9192" }}>
+      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
         <p className="text-sm">Loading…</p>
       </div>
@@ -156,8 +156,8 @@ export function ShipmentsList() {
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Batch Lifecycle Phase 1</p>
-          <h1 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Shipment Intake</h1>
+          <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Batch Lifecycle Phase 1</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Shipment Intake</h1>
         </div>
         <button
           onClick={() => setNewDialog(true)}
@@ -175,12 +175,12 @@ export function ShipmentsList() {
           className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12"
           style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
         >
-          <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search reference…"
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-[#8e9192] outline-none"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             inputMode="search"
             autoCapitalize="none"
             autoCorrect="off"
@@ -190,7 +190,7 @@ export function ShipmentsList() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="h-12 rounded-2xl px-4 text-sm text-white outline-none appearance-none"
+          className="h-12 rounded-2xl px-4 text-sm text-foreground outline-none appearance-none"
           style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
         >
           <option value="all">All Status</option>
@@ -204,12 +204,12 @@ export function ShipmentsList() {
       {filtered.length === 0 ? (
         <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
           <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
-            <Truck className="h-6 w-6 text-white" />
+            <Truck className="h-6 w-6 text-foreground" />
           </div>
-          <h3 className="text-base font-semibold text-white">
+          <h3 className="text-base font-semibold text-foreground">
             {rows.length === 0 ? "No shipments yet" : "No matches"}
           </h3>
-          <p className="text-sm max-w-sm" style={{ color: "#8e9192" }}>
+          <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
             {rows.length === 0
               ? "Create a shipment when you place an order. Add lines, set FX rate, then confirm GRN when goods arrive."
               : "Try a different filter."}
@@ -248,7 +248,7 @@ export function ShipmentsList() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-bold text-white">{s.reference}</p>
+                      <p className="text-[14px] font-bold text-foreground">{s.reference}</p>
                       <span
                         className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1"
                         style={{ background: colors.bg, color: colors.text }}
@@ -257,12 +257,12 @@ export function ShipmentsList() {
                         {STATUS_LABEL[s.status]}
                       </span>
                     </div>
-                    <p className="text-[11px] mt-0.5 truncate" style={{ color: "#8e9192" }}>
+                    <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
                       {sup ? `${sup.name}${sup.country ? ` · ${sup.country}` : ""}` : "No supplier assigned"}
                       {s.notes && <> · {s.notes}</>}
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+                  <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                 </Link>
 
                 {(!locked || isAdmin) && (
@@ -271,7 +271,7 @@ export function ShipmentsList() {
                       <button
                         onClick={() => setEditDialog(s)}
                         className="h-8 w-8 rounded-lg flex items-center justify-center transition"
-                        style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
+                        style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)" }}
                         title="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -327,18 +327,18 @@ export function ShipmentsList() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[15px] font-bold text-white">Delete shipment?</p>
-                <p className="text-[11px]" style={{ color: "#8e9192" }}>{deleteDialog.reference}</p>
+                <p className="text-[15px] font-bold text-foreground">Delete shipment?</p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{deleteDialog.reference}</p>
               </div>
             </div>
-            <p className="text-sm" style={{ color: "#8e9192" }}>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
               All lines will be permanently removed. This cannot be undone.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setDeleteDialog(null)}
                 className="flex-1 h-12 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(255,255,255,0.06)", color: "#c4c7c8" }}
+                style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}
               >
                 Cancel
               </button>
@@ -407,11 +407,11 @@ function NewShipmentModal({
       <div className="w-full max-w-md rounded-3xl p-6 space-y-5" style={CARD_L2}>
         <div className="flex items-center gap-3 mb-1">
           <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
-            <Factory className="h-5 w-5 text-white" />
+            <Factory className="h-5 w-5 text-foreground" />
           </div>
           <div>
-            <p className="text-[16px] font-bold text-white">New Shipment</p>
-            <p className="text-[11px]" style={{ color: "#8e9192" }}>Draft → Add lines → Confirm GRN on arrival</p>
+            <p className="text-[16px] font-bold text-foreground">New Shipment</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Draft → Add lines → Confirm GRN on arrival</p>
           </div>
         </div>
 
@@ -422,7 +422,7 @@ function NewShipmentModal({
           placeholder="SH-2026-001"
           autoFocus
         />
-        <p className="text-[11px] -mt-3" style={{ color: "#8e9192" }}>Auto-generated. Edit if you have your own scheme.</p>
+        <p className="text-[11px] -mt-3" style={{ color: "var(--muted-foreground)" }}>Auto-generated. Edit if you have your own scheme.</p>
 
         <GlassSelect label="VENDOR" value={supplierId} onChange={setSupplierId}>
           <option value="">No vendor selected</option>
@@ -439,7 +439,7 @@ function NewShipmentModal({
           <button
             onClick={onClose}
             className="flex-1 h-12 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(255,255,255,0.06)", color: "#c4c7c8" }}
+            style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}
           >
             Cancel
           </button>
@@ -493,7 +493,7 @@ function EditShipmentModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-5" style={CARD_L2}>
-        <p className="text-[16px] font-bold text-white">Edit Shipment</p>
+        <p className="text-[16px] font-bold text-foreground">Edit Shipment</p>
 
         <GlassInput label="REFERENCE *" value={reference} onChange={(e) => setReference((e.target as HTMLInputElement).value)} />
         <GlassSelect label="VENDOR" value={supplierId} onChange={setSupplierId}>
@@ -503,7 +503,7 @@ function EditShipmentModal({
         <GlassInput label="NOTES" value={notes} onChange={(e) => setNotes((e.target as HTMLInputElement).value)} placeholder="Optional" />
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#c4c7c8" }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={save}
             disabled={saving || !reference.trim()}

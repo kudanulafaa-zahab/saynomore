@@ -7,7 +7,7 @@ import { getReportsData, type ReportRow } from "@/lib/queries/reports";
 import { listMarketingSpend } from "@/lib/queries/expenses";
 
 const CARD = {
-  background: "rgba(18,19,23,0.70)",
+  background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
 };
@@ -74,25 +74,25 @@ export function FinancialsView() {
 
   if (loading) {
     return (
-      <div style={{ background: "#000000", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#8e9192" }} />
+      <div style={{ background: "var(--background)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
 
   return (
-    <div style={{ background: "#000000", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
 
       {/* Hero — Net Profit */}
       <section style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: 0, right: 0, padding: 32, opacity: 0.08, pointerEvents: "none" }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 120, color: "#ffffff" }}>payments</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 120, color: "var(--foreground)" }}>payments</span>
         </div>
         <div style={{ position: "relative", zIndex: 1 }}>
-          <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
             Real-Time Net Profit
           </p>
-          <p style={{ color: netProfit >= 0 ? "#ffffff" : "#ffb4ab", fontSize: 48, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "56px" }}>
+          <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "#ffb4ab", fontSize: 48, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "56px" }}>
             MVR {fmt(netProfit, 2)}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12 }}>
@@ -111,8 +111,8 @@ export function FinancialsView() {
             { label: "OpEx", value: fmtShort(totalOpex) },
           ].map((m) => (
             <div key={m.label}>
-              <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
-              <p style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>MVR {m.value}</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{m.label}</p>
+              <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>MVR {m.value}</p>
             </div>
           ))}
         </div>
@@ -125,13 +125,13 @@ export function FinancialsView() {
         <div style={{ ...CARD, borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 256 }}>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>Cash Runway</p>
-              <span className="material-symbols-outlined" style={{ color: "rgba(255,255,255,0.3)", fontSize: 20 }}>schedule</span>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>Cash Runway</p>
+              <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 20 }}>schedule</span>
             </div>
-            <p style={{ color: "#ffffff", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 8 }}>
+            <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 8 }}>
               {cashRunwayMonths > 0 ? cashRunwayMonths.toFixed(1) + " Months" : "—"}
             </p>
-            <p style={{ color: "#8e9192", fontSize: 14, marginTop: 4 }}>Based on current burn rate</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginTop: 4 }}>Based on current burn rate</p>
           </div>
           <div style={{ width: "100%", background: "rgba(255,255,255,0.05)", height: 4, borderRadius: 999, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${Math.min((cashRunwayMonths / 24) * 100, 100)}%`, background: "#ffffff", borderRadius: 999, transition: "width 0.6s" }} />
@@ -141,12 +141,12 @@ export function FinancialsView() {
         {/* Revenue vs Expenses chart — spans 2 cols */}
         <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 2", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-            <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>Revenue vs. Expenses</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>Revenue vs. Expenses</p>
             <div style={{ display: "flex", gap: 16 }}>
-              {[{ label: "Revenue", color: "#ffffff" }, { label: "Expenses", color: "rgba(255,255,255,0.2)" }].map((l) => (
+              {[{ label: "Revenue", color: "var(--foreground)" }, { label: "Expenses", color: "rgba(255,255,255,0.2)" }].map((l) => (
                 <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />
-                  <span style={{ color: "#8e9192", fontSize: 10, textTransform: "uppercase" }}>{l.label}</span>
+                  <span style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase" }}>{l.label}</span>
                 </div>
               ))}
             </div>
@@ -158,7 +158,7 @@ export function FinancialsView() {
                   <div style={{ flex: 1, background: "rgba(255,255,255,0.2)", borderRadius: "3px 3px 0 0", height: `${EXP_HEIGHTS[i]}%` }} />
                   <div style={{ flex: 1, background: "#ffffff", borderRadius: "3px 3px 0 0", height: `${REV_HEIGHTS[i]}%` }} />
                 </div>
-                <span style={{ color: "#8e9192", fontSize: 10 }}>{m}</span>
+                <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>{m}</span>
               </div>
             ))}
           </div>
@@ -168,16 +168,16 @@ export function FinancialsView() {
       {/* Profit by Brand */}
       <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
             Lucrative Imports: Profit by Brand
           </p>
-          <button style={{ color: "#ffffff", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <button style={{ color: "var(--foreground)", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             View Detailed Report
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
           </button>
         </div>
         {brandMap.length === 0 ? (
-          <p style={{ color: "#8e9192", fontSize: 14, textAlign: "center", padding: "24px 0" }}>No sales data this month.</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 14, textAlign: "center", padding: "24px 0" }}>No sales data this month.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {brandMap.map((b) => {
@@ -186,15 +186,15 @@ export function FinancialsView() {
                 <div key={b.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: "rgba(255,255,255,0.04)", borderRadius: 12, cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{ width: 48, height: 48, borderRadius: 10, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span className="material-symbols-outlined" style={{ color: "#c4c7c8", fontSize: 22 }}>inventory_2</span>
+                      <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 22 }}>inventory_2</span>
                     </div>
                     <div>
-                      <p style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{b.label}</p>
-                      <p style={{ color: "#8e9192", fontSize: 12 }}>FMCG Import</p>
+                      <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>{b.label}</p>
+                      <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>FMCG Import</p>
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>MVR {fmt(b.revenue, 2)}</p>
+                    <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>MVR {fmt(b.revenue, 2)}</p>
                     <p style={{ color: margin >= 0 ? "#4ade80" : "#ffb4ab", fontSize: 12 }}>{margin.toFixed(1)}% Margin</p>
                   </div>
                 </div>

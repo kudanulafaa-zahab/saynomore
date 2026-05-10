@@ -8,13 +8,13 @@ import { listSkusFlat, type SkuFullRow, type UnitUom } from "@/lib/queries/produ
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 
 const CARD = {
-  background: "rgba(18,19,23,0.70)",
+  background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
 } as const;
 
 const CARD_L2 = {
-  background: "rgba(28,27,27,0.85)",
+  background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
 } as const;
@@ -144,7 +144,7 @@ export function InventoryView() {
     return (
       <div
         className="rounded-2xl p-12 flex flex-col items-center"
-        style={{ ...CARD, color: "#8e9192" }}
+        style={{ ...CARD, color: "var(--muted-foreground)" }}
       >
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
         <p className="text-sm">Loading stock…</p>
@@ -158,8 +158,8 @@ export function InventoryView() {
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Operations</p>
-          <h1 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Inventory</h1>
+          <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Inventory</h1>
         </div>
       </div>
 
@@ -168,12 +168,12 @@ export function InventoryView() {
         className="flex items-center gap-3 rounded-2xl px-4 h-12"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search brand, SKU, code…"
-          className="flex-1 bg-transparent text-sm text-white placeholder:text-[#8e9192] outline-none"
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
           inputMode="search"
           autoCapitalize="none"
           autoCorrect="off"
@@ -185,13 +185,13 @@ export function InventoryView() {
       <div className="grid grid-cols-3 gap-3">
         {/* Global Stock */}
         <div className="rounded-xl p-4" style={CARD}>
-          <p className="label-caps text-[10px] mb-2" style={{ color: "#8e9192" }}>GLOBAL STOCK</p>
+          <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>GLOBAL STOCK</p>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[28px] font-light tracking-tight text-white leading-none">
+            <span className="text-[28px] font-light tracking-tight text-foreground leading-none">
               {totalUnits >= 1000 ? `${(totalUnits / 1000).toFixed(1)}K` : totalUnits.toLocaleString()}
             </span>
           </div>
-          <p className="text-[10px] mt-1" style={{ color: "#8e9192" }}>Units</p>
+          <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>Units</p>
           <div className="mt-3 h-1 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
             <div className="h-full rounded-full bg-white" style={{ width: "75%" }} />
           </div>
@@ -199,9 +199,9 @@ export function InventoryView() {
 
         {/* Active Batches */}
         <div className="rounded-xl p-4" style={CARD}>
-          <p className="label-caps text-[10px] mb-2" style={{ color: "#8e9192" }}>ACTIVE BATCHES</p>
-          <span className="text-[28px] font-light tracking-tight text-white leading-none">{activeBatches}</span>
-          <p className="text-[10px] mt-1" style={{ color: "#8e9192" }}>In Warehouse</p>
+          <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>ACTIVE BATCHES</p>
+          <span className="text-[28px] font-light tracking-tight text-foreground leading-none">{activeBatches}</span>
+          <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>In Warehouse</p>
           {lowStockCount > 0 ? (
             <div className="mt-3 flex items-center gap-1" style={{ color: "#ffb4ab" }}>
               <AlertTriangle className="h-3 w-3" />
@@ -216,10 +216,10 @@ export function InventoryView() {
 
         {/* Daily Velocity */}
         <div className="rounded-xl p-4" style={CARD}>
-          <p className="label-caps text-[10px] mb-2" style={{ color: "#8e9192" }}>DAILY VELOCITY</p>
-          <span className="text-[28px] font-light tracking-tight text-white leading-none">—</span>
-          <p className="text-[10px] mt-1" style={{ color: "#8e9192" }}>Units/Day</p>
-          <div className="mt-3 flex items-center gap-1" style={{ color: "#b5b4ba" }}>
+          <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>DAILY VELOCITY</p>
+          <span className="text-[28px] font-light tracking-tight text-foreground leading-none">—</span>
+          <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>Units/Day</p>
+          <div className="mt-3 flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
             <TrendingUp className="h-3 w-3" />
             <span className="text-[10px]">From sales data</span>
           </div>
@@ -233,13 +233,13 @@ export function InventoryView() {
         <div className="md:col-span-3 rounded-xl p-5" style={{ ...CARD, minHeight: 320 }}>
           <div className="flex justify-between items-start mb-5">
             <div>
-              <h2 className="text-[18px] font-semibold text-white leading-tight">Inventory Visualization</h2>
+              <h2 className="text-[18px] font-semibold text-foreground leading-tight">Inventory Visualization</h2>
               {vizRollup ? (
-                <p className="text-[11px] mt-0.5" style={{ color: "#8e9192" }}>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   {vizRollup.sku.internal_code} • {vizRollup.sku.brand_name} {vizRollup.sku.variant_display}
                 </p>
               ) : (
-                <p className="text-[11px] mt-0.5" style={{ color: "#8e9192" }}>No SKUs with stock yet</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>No SKUs with stock yet</p>
               )}
             </div>
             <div className="flex gap-1.5">
@@ -250,8 +250,8 @@ export function InventoryView() {
                   className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
                   style={
                     view === v
-                      ? { ...CARD_L2, color: "#ffffff", border: "1px solid rgba(255,255,255,0.08)" }
-                      : { background: "transparent", color: "#8e9192" }
+                      ? { ...CARD_L2, color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.08)" }
+                      : { background: "transparent", color: "var(--muted-foreground)" }
                   }
                 >
                   {v}
@@ -261,7 +261,7 @@ export function InventoryView() {
           </div>
 
           {vizBatches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 gap-3" style={{ color: "#8e9192" }}>
+            <div className="flex flex-col items-center justify-center h-40 gap-3" style={{ color: "var(--muted-foreground)" }}>
               <Package className="h-8 w-8 opacity-30" />
               <p className="text-sm">No stock yet — confirm a shipment GRN to populate batches.</p>
             </div>
@@ -290,7 +290,7 @@ export function InventoryView() {
                           <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
                             <span
                               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                              style={{ background: "rgba(199,198,203,0.15)", color: "#c7c6cb", border: "1px solid rgba(199,198,203,0.2)" }}
+                              style={{ background: "rgba(199,198,203,0.15)", color: "var(--muted-foreground)", border: "1px solid rgba(199,198,203,0.2)" }}
                             >
                               LOW VELOCITY
                             </span>
@@ -311,10 +311,10 @@ export function InventoryView() {
                           }}
                         />
                         <div className="mt-2 text-center">
-                          <p className="text-[10px] font-bold" style={{ color: isFirst ? "#ffffff" : "#8e9192" }}>
+                          <p className="text-[10px] font-bold" style={{ color: isFirst ? "var(--foreground)" : "var(--muted-foreground)" }}>
                             {batch.batch_id.slice(-6).toUpperCase()}
                           </p>
-                          <p className="text-[9px]" style={{ color: "#8e9192" }}>
+                          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
                             {batch.qty_pieces_remaining.toLocaleString()} pcs
                           </p>
                         </div>
@@ -334,17 +334,17 @@ export function InventoryView() {
                     className="h-9 w-9 rounded-full flex items-center justify-center shrink-0"
                     style={{ background: "rgba(255,255,255,0.08)" }}
                   >
-                    <Package className="h-4 w-4 text-white" />
+                    <Package className="h-4 w-4 text-foreground" />
                   </div>
                   <div>
-                    <p className="text-[13px] font-bold text-white">Active Batch: {vizBatches[0]?.batch_id.slice(-6).toUpperCase() ?? "—"}</p>
-                    <p className="text-[11px]" style={{ color: "#8e9192" }}>
+                    <p className="text-[13px] font-bold text-foreground">Active Batch: {vizBatches[0]?.batch_id.slice(-6).toUpperCase() ?? "—"}</p>
+                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                       {view} priority — {vizBatches[0]?.qty_pieces_remaining.toLocaleString() ?? 0} pcs remaining
                     </p>
                   </div>
                 </div>
                 <button
-                  className="text-[11px] font-bold text-white underline underline-offset-4 opacity-70 hover:opacity-100 transition"
+                  className="text-[11px] font-bold text-foreground underline underline-offset-4 opacity-70 hover:opacity-100 transition"
                   onClick={() => {}}
                 >
                   VIEW LEDGER
@@ -371,8 +371,8 @@ export function InventoryView() {
                   CRITICAL
                 </span>
               </div>
-              <h3 className="text-[13px] font-bold text-white mb-1">Low Stock Alert</h3>
-              <p className="text-[11px] mb-3" style={{ color: "#8e9192" }}>
+              <h3 className="text-[13px] font-bold text-foreground mb-1">Low Stock Alert</h3>
+              <p className="text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>
                 {lowStockCount} batch{lowStockCount !== 1 ? "es" : ""} below {LOW_STOCK_THRESHOLD} units. Reorder required.
               </p>
               <button
@@ -396,8 +396,8 @@ export function InventoryView() {
                   HEALTHY
                 </span>
               </div>
-              <h3 className="text-[13px] font-bold text-white mb-1">Stock Levels OK</h3>
-              <p className="text-[11px]" style={{ color: "#8e9192" }}>All active batches above minimum threshold.</p>
+              <h3 className="text-[13px] font-bold text-foreground mb-1">Stock Levels OK</h3>
+              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>All active batches above minimum threshold.</p>
             </div>
           )}
 
@@ -407,36 +407,36 @@ export function InventoryView() {
             style={{ ...CARD, borderLeft: "4px solid rgba(199,198,203,0.40)" }}
           >
             <div className="flex items-start justify-between mb-3">
-              <Package className="h-4 w-4" style={{ color: "#c7c6cb" }} />
+              <Package className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded"
-                style={{ color: "#c7c6cb", background: "rgba(199,198,203,0.10)" }}
+                style={{ color: "var(--muted-foreground)", background: "rgba(199,198,203,0.10)" }}
               >
                 EXCESS
               </span>
             </div>
-            <h3 className="text-[13px] font-bold text-white mb-1">Velocity Check</h3>
-            <p className="text-[11px]" style={{ color: "#8e9192" }}>
+            <h3 className="text-[13px] font-bold text-foreground mb-1">Velocity Check</h3>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
               Stagnant batches may need markdown or transfer.
             </p>
           </div>
 
           {/* Activity log */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[10px] mb-3" style={{ color: "#8e9192" }}>LOG ACTIVITY</p>
+            <p className="label-caps text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>LOG ACTIVITY</p>
             {tableBatches.slice(0, 3).map((b, i) => {
               const sku = skus.find((s) => s.id === b.sku_id);
               return (
                 <div key={b.batch_id} className="flex gap-2.5 mb-3 last:mb-0">
                   <div
                     className="w-1 rounded-full shrink-0"
-                    style={{ height: 32, background: i === 0 ? "#ffffff" : "rgba(255,180,171,0.40)" }}
+                    style={{ height: 32, background: i === 0 ? "var(--foreground)" : "rgba(255,180,171,0.40)" }}
                   />
                   <div>
-                    <p className="text-[11px] font-bold text-white">
+                    <p className="text-[11px] font-bold text-foreground">
                       {i === 0 ? "BATCH ACTIVE" : "STOCK UPDATE"}
                     </p>
-                    <p className="text-[10px]" style={{ color: "#8e9192" }}>
+                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                       {b.batch_id.slice(-6).toUpperCase()} • {b.qty_pieces_remaining.toLocaleString()} pcs
                       {sku ? ` · ${sku.brand_name}` : ""}
                     </p>
@@ -445,7 +445,7 @@ export function InventoryView() {
               );
             })}
             {tableBatches.length === 0 && (
-              <p className="text-[11px]" style={{ color: "#8e9192" }}>No activity yet.</p>
+              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>No activity yet.</p>
             )}
           </div>
         </div>
@@ -457,21 +457,21 @@ export function InventoryView() {
           className="px-5 py-4 flex justify-between items-center"
           style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
         >
-          <h2 className="text-[18px] font-semibold text-white">All Active Batches</h2>
-          <p className="text-[11px]" style={{ color: "#8e9192" }}>Sorted: {view} arrival</p>
+          <h2 className="text-[18px] font-semibold text-foreground">All Active Batches</h2>
+          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Sorted: {view} arrival</p>
         </div>
 
         {tableBatches.length === 0 ? (
           <div className="p-10 text-center">
-            <Package className="h-8 w-8 mx-auto mb-3 opacity-20 text-white" />
-            <p className="text-sm" style={{ color: "#8e9192" }}>No active batches yet.</p>
-            <p className="text-xs mt-1" style={{ color: "#8e9192" }}>Stock appears here after a confirmed GRN.</p>
+            <Package className="h-8 w-8 mx-auto mb-3 opacity-20 text-foreground" />
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No active batches yet.</p>
+            <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Stock appears here after a confirmed GRN.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr style={{ color: "#8e9192" }}>
+                <tr style={{ color: "var(--muted-foreground)" }}>
                   <th className="px-5 py-4 text-[10px] font-medium uppercase tracking-widest">Batch ID</th>
                   <th className="px-5 py-4 text-[10px] font-medium uppercase tracking-widest">SKU</th>
                   <th className="px-5 py-4 text-[10px] font-medium uppercase tracking-widest">Received</th>
@@ -487,7 +487,7 @@ export function InventoryView() {
                   const isFirst = i === 0;
                   const isLow = batch.qty_pieces_remaining < LOW_STOCK_THRESHOLD;
                   const velocityLabel = isLow ? "Low" : isFirst ? "High" : "Med";
-                  const velocityColor = isLow ? "#ffb4ab" : isFirst ? "#ffffff" : "#8e9192";
+                  const velocityColor = isLow ? "#ffb4ab" : isFirst ? "var(--foreground)" : "var(--muted-foreground)";
                   const velocityWidth = isLow ? "8%" : isFirst ? "80%" : "40%";
 
                   return (
@@ -503,30 +503,30 @@ export function InventoryView() {
                           <div
                             className="w-2 h-2 rounded-full shrink-0"
                             style={{
-                              background: isFirst ? "#ffffff" : isLow ? "#ffb4ab" : "#8e9192",
+                              background: isFirst ? "var(--foreground)" : isLow ? "#ffb4ab" : "var(--muted-foreground)",
                               animation: isFirst ? "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite" : undefined,
                             }}
                           />
-                          <span className="text-[13px] font-bold text-white">
+                          <span className="text-[13px] font-bold text-foreground">
                             {batch.batch_id.slice(-8).toUpperCase()}
                           </span>
                         </div>
                       </td>
                       <td className="px-5 py-5">
-                        <span className="text-[13px]" style={{ color: "#c4c7c8" }}>
+                        <span className="text-[13px]" style={{ color: "var(--foreground)" }}>
                           {sku ? `${sku.brand_name} · ${sku.variant_display}` : batch.sku_id}
                         </span>
                       </td>
                       <td className="px-5 py-5">
-                        <span className="text-[13px]" style={{ color: "#8e9192" }}>
+                        <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
                           {new Date(batch.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
                         </span>
                       </td>
                       <td className="px-5 py-5 text-right">
-                        <span className="text-[13px] font-bold" style={{ color: isLow ? "#ffb4ab" : "#ffffff" }}>
+                        <span className="text-[13px] font-bold" style={{ color: isLow ? "#ffb4ab" : "var(--foreground)" }}>
                           {batch.qty_pieces_remaining.toLocaleString()}
                         </span>
-                        <span className="text-[11px] ml-1" style={{ color: "#8e9192" }}>pcs</span>
+                        <span className="text-[11px] ml-1" style={{ color: "var(--muted-foreground)" }}>pcs</span>
                       </td>
                       <td className="px-5 py-5">
                         <div className="flex items-center gap-2">
@@ -543,14 +543,14 @@ export function InventoryView() {
                         </div>
                       </td>
                       <td className="px-5 py-5 text-right">
-                        <span className="text-[13px]" style={{ color: "#8e9192" }}>
+                        <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
                           {batch.landed_per_piece_mvr.toFixed(2)} MVR
                         </span>
                       </td>
                       <td className="px-5 py-5 text-right">
                         <ChevronRight
                           className="h-4 w-4 transition-colors group-hover:text-white"
-                          style={{ color: "#8e9192" }}
+                          style={{ color: "var(--muted-foreground)" }}
                         />
                       </td>
                     </tr>

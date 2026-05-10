@@ -15,7 +15,7 @@ import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/
 import { supabase } from "@/lib/supabase";
 
 const CARD = {
-  background: "rgba(18,19,23,0.70)",
+  background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
 };
@@ -96,29 +96,29 @@ export function DispatchView() {
 
   if (loading) {
     return (
-      <div style={{ background: "#000000", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#8e9192" }} />
+      <div style={{ background: "var(--background)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
 
   return (
-    <div style={{ background: "#000000", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
 
       {/* Header + stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 12, marginBottom: 12 }}>
         <div style={{ gridColumn: "span 8", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
             Logistics Sync
           </p>
-          <h1 style={{ color: "#ffffff", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em" }}>Dispatch Board</h1>
-          <p style={{ color: "#8e9192", fontSize: 14, marginTop: 4 }}>Real-time delivery management</p>
+          <h1 style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em" }}>Dispatch Board</h1>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginTop: 4 }}>Real-time delivery management</p>
         </div>
         <div style={{ gridColumn: "span 4", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
           {pending.length > 0 && (
             <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 999, padding: "8px 18px", display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: 999, background: "#fb923c", boxShadow: "0 0 8px rgba(251,146,60,0.5)" }} />
-              <span style={{ color: "#ffffff", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em" }}>
+              <span style={{ color: "var(--foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em" }}>
                 URGENT: {String(pending.length).padStart(2, "0")}
               </span>
             </div>
@@ -129,24 +129,24 @@ export function DispatchView() {
       {/* Stats bento */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 12 }}>
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Active</p>
-          <p style={{ color: "#ffffff", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{pending.length}</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Active</p>
+          <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{pending.length}</p>
         </div>
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Completed Today</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Completed Today</p>
           <p style={{ color: "#4ade80", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{completed.length}</p>
         </div>
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Fleet Efficiency</p>
-          <p style={{ color: "#ffffff", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>88%</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Fleet Efficiency</p>
+          <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>88%</p>
         </div>
       </div>
 
       {/* Active deliveries */}
       <div style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12 }}>
-        <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 20 }}>Active Deliveries</h2>
+        <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 20 }}>Active Deliveries</h2>
         {pending.length === 0 ? (
-          <p style={{ color: "#8e9192", fontSize: 14, textAlign: "center", padding: "24px 0" }}>No active deliveries assigned to you.</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 14, textAlign: "center", padding: "24px 0" }}>No active deliveries assigned to you.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {pending.map((item) => {
@@ -159,17 +159,17 @@ export function DispatchView() {
                     onClick={() => setExpanded(isExpanded ? null : item.order.id)}
                   >
                     <div>
-                      <p style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{item.order.order_number}</p>
-                      <p style={{ color: "#8e9192", fontSize: 13 }}>
+                      <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>{item.order.order_number}</p>
+                      <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
                         {item.customer ? item.customer.name : "Walk-in"} · {item.godown?.name ?? "—"}
                       </p>
                     </div>
                     <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
                       <div>
-                        <p style={{ color: "#ffffff", fontSize: 14, fontWeight: 600 }}>MVR {totalMvr.toFixed(0)}</p>
+                        <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>MVR {totalMvr.toFixed(0)}</p>
                         <p style={{ color: "#fb923c", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>ETA</p>
                       </div>
-                      <span className="material-symbols-outlined" style={{ color: "#8e9192", fontSize: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>expand_more</span>
+                      <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>expand_more</span>
                     </div>
                   </div>
                   {isExpanded && (
@@ -178,8 +178,8 @@ export function DispatchView() {
                         const sku = skus.find((s) => s.id === line.sku_id);
                         return (
                           <div key={line.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                            <p style={{ color: "#c4c7c8", fontSize: 14 }}>{sku ? `${sku.brand_name} ${sku.variant_display}` : line.sku_id}</p>
-                            <p style={{ color: "#ffffff", fontSize: 14 }}>{line.qty_pieces} pcs</p>
+                            <p style={{ color: "var(--foreground)", fontSize: 14 }}>{sku ? `${sku.brand_name} ${sku.variant_display}` : line.sku_id}</p>
+                            <p style={{ color: "var(--foreground)", fontSize: 14 }}>{line.qty_pieces} pcs</p>
                           </div>
                         );
                       })}
@@ -201,15 +201,15 @@ export function DispatchView() {
       {/* Completed */}
       {completed.length > 0 && (
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 20 }}>Completed</h2>
+          <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 20 }}>Completed</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {completed.map((item) => (
               <div key={item.order.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 10, opacity: 0.7 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span className="material-symbols-outlined" style={{ color: "#4ade80", fontSize: 18 }}>check_circle</span>
                   <div>
-                    <p style={{ color: "#e5e2e1", fontSize: 14, fontWeight: 500 }}>{item.order.order_number}</p>
-                    <p style={{ color: "#8e9192", fontSize: 12 }}>{item.customer?.name ?? "Walk-in"}</p>
+                    <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 500 }}>{item.order.order_number}</p>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{item.customer?.name ?? "Walk-in"}</p>
                   </div>
                 </div>
                 <span style={{ color: "#4ade80", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>DELIVERED</span>
@@ -222,12 +222,12 @@ export function DispatchView() {
       {/* Confirm delivery modal */}
       {confirmDelivery && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 60, display: "flex", alignItems: "flex-end" }}>
-          <div style={{ background: "rgba(28,27,27,0.95)", backdropFilter: "blur(30px)", borderRadius: "20px 20px 0 0", width: "100%", padding: 28 }}>
+          <div style={{ background: "var(--glass-2)", backdropFilter: "blur(30px)", borderRadius: "20px 20px 0 0", width: "100%", padding: 28 }}>
             <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.12)", borderRadius: 999, margin: "0 auto 24px" }} />
-            <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, marginBottom: 8 }}>Confirm Delivery</h2>
-            <p style={{ color: "#8e9192", fontSize: 14, marginBottom: 24 }}>{confirmDelivery.order_number}</p>
+            <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, marginBottom: 8 }}>Confirm Delivery</h2>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>{confirmDelivery.order_number}</p>
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setConfirmDelivery(null)} style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#c7c6cb", border: "none", borderRadius: 999, padding: 14, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setConfirmDelivery(null)} style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "var(--muted-foreground)", border: "none", borderRadius: 999, padding: 14, fontSize: 14, cursor: "pointer" }}>Cancel</button>
               <button
                 onClick={markDelivered}
                 disabled={saving}

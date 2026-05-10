@@ -27,13 +27,13 @@ import {
 import { getCurrentUserRole } from "@/lib/queries/products";
 
 const CARD = {
-  background: "rgba(18,19,23,0.70)",
+  background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
 } as const;
 
 const CARD_L2 = {
-  background: "rgba(28,27,27,0.85)",
+  background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
 } as const;
@@ -44,10 +44,10 @@ const COMMON_COUNTRIES = ["Indonesia", "Malaysia", "Thailand", "China", "Singapo
 function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748] transition"
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-[#444748] transition"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       />
     </div>
@@ -57,11 +57,11 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
 function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none appearance-none"
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       >
         {children}
@@ -73,10 +73,10 @@ function GlassSelect({ label, value, onChange, children }: { label?: string; val
 function GlassTextarea({ label, ...props }: { label?: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <textarea
         {...props}
-        className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-[#444748] resize-none transition"
+        className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-[#444748] resize-none transition"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
         rows={3}
       />
@@ -120,7 +120,7 @@ export function SuppliersManager() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "#8e9192" }}>
+      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
         <p className="text-sm">Loading…</p>
       </div>
@@ -133,8 +133,8 @@ export function SuppliersManager() {
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Global Supply</p>
-          <h1 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Vendor Intelligence</h1>
+          <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Global Supply</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Vendor Intelligence</h1>
         </div>
         <button
           onClick={() => setDialog({ open: true })}
@@ -151,12 +151,12 @@ export function SuppliersManager() {
         className="flex items-center gap-3 rounded-2xl px-4 h-12"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search suppliers…"
-          className="flex-1 bg-transparent text-sm text-white placeholder:text-[#8e9192] outline-none"
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
         />
       </div>
 
@@ -164,10 +164,10 @@ export function SuppliersManager() {
       {rows.length === 0 ? (
         <div className="rounded-3xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
           <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
-            <Package className="h-6 w-6 text-white" />
+            <Package className="h-6 w-6 text-foreground" />
           </div>
-          <h3 className="text-base font-semibold text-white">No vendors yet</h3>
-          <p className="text-sm max-w-sm" style={{ color: "#8e9192" }}>
+          <h3 className="text-base font-semibold text-foreground">No vendors yet</h3>
+          <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
             Add your Indonesian supplier (MamyPoko, Sosoft, etc.) here. You'll pick from this list when creating shipments.
           </p>
           <button
@@ -190,11 +190,11 @@ export function SuppliersManager() {
                   style={{ ...CARD, minHeight: 200 }}
                 >
                   <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-                    <ShieldCheck className="w-24 h-24 text-white" />
+                    <ShieldCheck className="w-24 h-24 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-[22px] font-semibold text-white tracking-tight">{featured.name}</h3>
-                    <p className="text-[13px] mt-0.5" style={{ color: "#8e9192" }}>
+                    <h3 className="text-[22px] font-semibold text-foreground tracking-tight">{featured.name}</h3>
+                    <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                       {featured.invoice_currency} · {featured.country}
                     </p>
                   </div>
@@ -215,7 +215,7 @@ export function SuppliersManager() {
                       <a
                         href={`mailto:${featured.contact_email}`}
                         className="flex items-center gap-2 h-11 px-6 rounded-full text-sm font-bold transition"
-                        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.10)", color: "#ffffff" }}
+                        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.10)", color: "var(--foreground)" }}
                       >
                         <Mail className="h-4 w-4" />
                         Email
@@ -236,8 +236,8 @@ export function SuppliersManager() {
                   className="rounded-3xl p-6 flex flex-col justify-center items-center text-center"
                   style={CARD}
                 >
-                  <p className="label-caps text-[10px] mb-2" style={{ color: "#8e9192" }}>RELIABILITY SCORE</p>
-                  <p className="text-[42px] font-light tracking-tight text-white leading-none">98<span className="text-[22px]">%</span></p>
+                  <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>RELIABILITY SCORE</p>
+                  <p className="text-[42px] font-light tracking-tight text-foreground leading-none">98<span className="text-[22px]">%</span></p>
                   <div className="w-full rounded-full overflow-hidden mt-4" style={{ background: "rgba(255,255,255,0.08)", height: 4 }}>
                     <div className="h-full rounded-full bg-white" style={{ width: "98%" }} />
                   </div>
@@ -253,8 +253,8 @@ export function SuppliersManager() {
                   { label: "Active Shipments", value: "—" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-2xl p-5" style={CARD}>
-                    <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>{stat.label}</p>
-                    <p className="text-[18px] font-semibold text-white">{stat.value}</p>
+                    <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>{stat.label}</p>
+                    <p className="text-[18px] font-semibold text-foreground">{stat.value}</p>
                   </div>
                 ))}
               </div>
@@ -263,7 +263,7 @@ export function SuppliersManager() {
 
           {/* ── Supplier List ── */}
           <div>
-            <p className="label-caps text-[10px] mb-3 px-1" style={{ color: "#8e9192" }}>
+            <p className="label-caps text-[10px] mb-3 px-1" style={{ color: "var(--muted-foreground)" }}>
               {q ? "Search Results" : "All Vendors"}
             </p>
             <div className="space-y-3">
@@ -276,17 +276,17 @@ export function SuppliersManager() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-[16px] font-semibold text-white">{s.name}</h4>
+                        <h4 className="text-[16px] font-semibold text-foreground">{s.name}</h4>
                         {i === 0 && !q && (
                           <span
                             className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: "rgba(255,255,255,0.08)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.10)" }}
+                            style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.10)" }}
                           >
                             Primary
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px]" style={{ color: "#8e9192" }}>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                         <span className="flex items-center gap-1">
                           <Globe className="h-3 w-3" /> {s.country} · {s.invoice_currency}
                         </span>
@@ -302,10 +302,10 @@ export function SuppliersManager() {
                         )}
                       </div>
                       {s.contact_name && (
-                        <p className="text-[12px] mt-1" style={{ color: "#8e9192" }}>Contact: {s.contact_name}</p>
+                        <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>Contact: {s.contact_name}</p>
                       )}
                       {s.notes && (
-                        <p className="text-[12px] mt-1 italic" style={{ color: "#8e9192" }}>{s.notes}</p>
+                        <p className="text-[12px] mt-1 italic" style={{ color: "var(--muted-foreground)" }}>{s.notes}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -405,7 +405,7 @@ function SupplierModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={CARD_L2}>
-        <p className="text-[16px] font-bold text-white">
+        <p className="text-[16px] font-bold text-foreground">
           {editing ? "Edit Vendor" : "New Vendor"}
         </p>
 
@@ -430,7 +430,7 @@ function SupplierModal({
         <GlassTextarea label="NOTES" value={notes} onChange={(e) => setNotes((e.target as HTMLTextAreaElement).value)} placeholder="Optional" />
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#c4c7c8" }}>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>
             Cancel
           </button>
           <button

@@ -20,18 +20,6 @@ import {
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
 
-const CARD = {
-  background: "rgba(18,19,23,0.70)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-};
-const CARD_L2 = {
-  background: "rgba(28,27,27,0.85)",
-  backdropFilter: "blur(30px)",
-  WebkitBackdropFilter: "blur(30px)",
-  boxShadow: "0 40px 60px -15px rgba(0,0,0,0.5)",
-};
-
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Administrator",
   manager: "Manager",
@@ -60,11 +48,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<Record<string, boolean>>({
+    low_stock: true, wholesale: true, route_latency: false,
+  });
 
-  // Alert toggles (local state — no DB backing needed for display)
-  const [alerts, setAlerts] = useState<Record<string, boolean>>({ low_stock: true, wholesale: true, route_latency: false });
-
-  // Sheet states
   const [inviteSheet, setInviteSheet] = useState(false);
   const [editUserSheet, setEditUserSheet] = useState<UserProfileRow | null>(null);
   const [deleteUserTarget, setDeleteUserTarget] = useState<UserProfileRow | null>(null);
@@ -106,116 +93,94 @@ export default function SettingsPage() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    background: "rgba(255,255,255,0.05)",
-    border: "none",
-    borderRadius: 10,
-    padding: "12px 16px",
-    color: "#ffffff",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
-  };
-  const labelStyle: React.CSSProperties = {
-    color: "#8e9192",
-    fontSize: 11,
-    fontWeight: 500,
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
-    marginBottom: 6,
-    display: "block",
-  };
-
   if (loading) {
     return (
-      <div style={{ background: "#000000", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#8e9192" }} />
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div style={{ background: "#000000", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div className="space-y-4 pb-8">
       {/* Header */}
-      <section style={{ marginBottom: 32 }}>
-        <h1 style={{ color: "#ffffff", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: "34px" }}>
-          Settings &amp; Security
-        </h1>
-        <p style={{ color: "#8e9192", fontSize: 14, marginTop: 6 }}>
-          Manage your enterprise architecture and security protocols.
-        </p>
-      </section>
+      <div className="mb-6">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">System</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Settings &amp; Security</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage your enterprise architecture and security protocols.</p>
+      </div>
 
-      {/* Bento grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 12 }}>
+      {/* Row 1: Roles (wide) + Integrations (narrow) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* Roles & Permissions — col 8 */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 8" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span className="material-symbols-outlined" style={{ color: "#ffffff" }}>admin_panel_settings</span>
-              <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Roles &amp; Permissions</h2>
+        {/* Roles & Permissions — 2/3 width on large */}
+        <div className="glass p-6 lg:col-span-2">
+          <div className="flex justify-between items-center mb-5">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-foreground text-xl">admin_panel_settings</span>
+              <h2 className="text-lg font-semibold text-foreground">Roles &amp; Permissions</h2>
             </div>
             {isAdmin && (
               <button
                 onClick={() => setInviteSheet(true)}
-                style={{ background: "rgba(255,255,255,0.10)", color: "#ffffff", border: "none", borderRadius: 999, padding: "8px 18px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
+                className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 active:scale-95 transition-all"
               >
-                Invite Member
+                Invite
               </button>
             )}
           </div>
 
           {/* Role legend */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
             {(Object.keys(ROLE_LABEL) as UserRole[]).map((r) => (
-              <div key={r} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "12px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span className="material-symbols-outlined" style={{ color: "#c4c7c8", fontSize: 16 }}>{ROLE_ICON[r]}</span>
-                  <span style={{ color: "#e5e2e1", fontSize: 13, fontWeight: 500 }}>{ROLE_LABEL[r]}</span>
+              <div key={r} className="glass-flat p-3 rounded-xl">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-symbols-outlined text-muted-foreground" style={{ fontSize: 16 }}>{ROLE_ICON[r]}</span>
+                  <span className="text-sm font-medium text-foreground">{ROLE_LABEL[r]}</span>
                 </div>
-                <p style={{ color: "#8e9192", fontSize: 11 }}>{ROLE_DESC[r]}</p>
+                <p className="text-xs text-muted-foreground">{ROLE_DESC[r]}</p>
               </div>
             ))}
           </div>
 
-          {/* User rows */}
+          {/* Users list */}
           {!isAdmin ? (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <p style={{ color: "#8e9192", fontSize: 14 }}>Only administrators can manage users.</p>
-            </div>
+            <p className="text-sm text-muted-foreground text-center py-5">Only administrators can manage users.</p>
           ) : users.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <p style={{ color: "#8e9192", fontSize: 14 }}>No team members yet.</p>
-            </div>
+            <p className="text-sm text-muted-foreground text-center py-5">No team members yet.</p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div className="space-y-1.5">
               {users.map((u) => {
                 const isMe = u.id === myId;
                 return (
-                  <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "rgba(255,255,255,0.04)", borderRadius: 10, borderLeft: u.role === "admin" ? "2px solid #ffffff" : "2px solid transparent" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <span className="material-symbols-outlined" style={{ color: u.role === "admin" ? "#ffffff" : "#8e9192", fontSize: 20 }}>{ROLE_ICON[u.role]}</span>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <p style={{ color: "#e5e2e1", fontSize: 15, fontWeight: 500 }}>{u.full_name ?? "—"}</p>
-                          {isMe && <span style={{ background: "rgba(255,255,255,0.1)", color: "#c7c6cb", borderRadius: 4, padding: "1px 8px", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em" }}>YOU</span>}
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/50"
+                    style={{ borderLeft: u.role === "admin" ? "2px solid var(--foreground)" : "2px solid transparent" }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="material-symbols-outlined text-muted-foreground shrink-0" style={{ fontSize: 18 }}>{ROLE_ICON[u.role]}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">{u.full_name ?? "—"}</p>
+                          {isMe && (
+                            <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-secondary text-secondary-foreground shrink-0">YOU</span>
+                          )}
                         </div>
-                        <p style={{ color: "#8e9192", fontSize: 12 }}>{u.email ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"}</p>
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ background: "rgba(255,255,255,0.08)", color: "#c4c7c8", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 500, letterSpacing: "0.06em" }}>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className="text-[10px] font-medium uppercase tracking-widest px-2 py-1 rounded-full bg-secondary text-secondary-foreground hidden sm:block">
                         {ROLE_LABEL[u.role]}
                       </span>
                       {!isMe && (
                         <>
-                          <button onClick={() => setEditUserSheet(u)} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6 }}>
-                            <span className="material-symbols-outlined" style={{ color: "#8e9192", fontSize: 16 }}>edit</span>
+                          <button onClick={() => setEditUserSheet(u)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition">
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
                           </button>
-                          <button onClick={() => setDeleteUserTarget(u)} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6 }}>
-                            <span className="material-symbols-outlined" style={{ color: "#8e9192", fontSize: 16 }}>delete</span>
+                          <button onClick={() => setDeleteUserTarget(u)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition">
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
                           </button>
                         </>
                       )}
@@ -227,244 +192,216 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Integrations — col 4 */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 4", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        {/* Integrations — 1/3 width on large */}
+        <div className="glass p-6 flex flex-col justify-between">
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-              <span className="material-symbols-outlined" style={{ color: "#ffffff" }}>hub</span>
-              <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Integrations</h2>
+            <div className="flex items-center gap-3 mb-5">
+              <span className="material-symbols-outlined text-foreground text-xl">hub</span>
+              <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
             </div>
-            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: 20, marginBottom: 16, position: "relative", overflow: "hidden" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" }}>WhatsApp API</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 999, background: "#4ade80", boxShadow: "0 0 8px rgba(74,222,128,0.5)" }} />
-                  <span style={{ color: "#4ade80", fontSize: 10, fontWeight: 700 }}>ACTIVE</span>
+            <div className="glass-flat p-4 rounded-xl mb-4 relative overflow-hidden">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">WhatsApp API</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-green-500" style={{ boxShadow: "0 0 6px rgba(74,222,128,0.6)" }} />
+                  <span className="text-[10px] font-bold text-green-500">ACTIVE</span>
                 </div>
               </div>
-              <p style={{ color: "#e5e2e1", fontSize: 14, marginBottom: 4 }}>Connected to <strong>+960 900...</strong></p>
-              <p style={{ color: "#8e9192", fontSize: 12 }}>Last handshake: 2m ago</p>
-              <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: 2, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)" }} />
+              <p className="text-sm text-foreground mb-1">Connected to <strong>+960 900...</strong></p>
+              <p className="text-xs text-muted-foreground">Last handshake: 2m ago</p>
             </div>
           </div>
-          <button style={{ width: "100%", background: "#ffffff", color: "#2f3131", border: "none", borderRadius: 10, padding: "14px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+          <button className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm">
             Sync Handshake
           </button>
         </div>
+      </div>
 
-        {/* Currency Rates — col 6 */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 6" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-            <span className="material-symbols-outlined" style={{ color: "#ffffff" }}>currency_exchange</span>
-            <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Base Currency Rates</h2>
+      {/* Row 2: Currency + Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Currency Rates */}
+        <div className="glass p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="material-symbols-outlined text-foreground text-xl">currency_exchange</span>
+            <h2 className="text-lg font-semibold text-foreground">Base Currency Rates</h2>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {[{ code: "IDR", name: "Indonesian Rupiah", rate: "15,642.00" }, { code: "MVR", name: "Maldivian Rufiyaa", rate: "15.40" }].map((c) => (
-              <div key={c.code} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 999, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffffff", fontSize: 11, fontWeight: 700 }}>{c.code}</div>
-                  <span style={{ color: "#e5e2e1", fontSize: 16 }}>{c.name}</span>
+          <div className="space-y-5">
+            {[
+              { code: "IDR", name: "Indonesian Rupiah", rate: "15,642.00" },
+              { code: "MVR", name: "Maldivian Rufiyaa", rate: "15.40" },
+            ].map((c) => (
+              <div key={c.code} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground">
+                    {c.code}
+                  </div>
+                  <span className="text-sm text-foreground">{c.name}</span>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>{c.rate}</span>
-                  <p style={{ color: "#8e9192", fontSize: 12 }}>Per 1 USD</p>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-foreground">{c.rate}</p>
+                  <p className="text-xs text-muted-foreground">Per 1 USD</p>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-            <p style={{ color: "#8e9192", fontSize: 12, fontStyle: "italic" }}>Auto-refresh via exchange rate API every 6 hours.</p>
+          <div className="mt-6 pt-5 border-t border-border">
+            <p className="text-xs text-muted-foreground italic">Auto-refresh via exchange rate API every 6 hours.</p>
           </div>
         </div>
 
-        {/* Stock & System Alerts — col 6 */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 6" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-            <span className="material-symbols-outlined" style={{ color: "#ffffff" }}>notifications_active</span>
-            <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Stock &amp; System Alerts</h2>
+        {/* Stock & System Alerts */}
+        <div className="glass p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="material-symbols-outlined text-foreground text-xl">notifications_active</span>
+            <h2 className="text-lg font-semibold text-foreground">Stock &amp; System Alerts</h2>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div className="space-y-5">
             {ALERT_TOGGLES.map((a) => (
-              <div key={a.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <p style={{ color: "#ffffff", fontSize: 16, marginBottom: 2 }}>{a.label}</p>
-                  <p style={{ color: "#8e9192", fontSize: 12 }}>{a.desc}</p>
+              <div key={a.key} className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{a.label}</p>
+                  <p className="text-xs text-muted-foreground">{a.desc}</p>
                 </div>
                 <button
                   onClick={() => setAlerts((prev) => ({ ...prev, [a.key]: !prev[a.key] }))}
-                  style={{
-                    width: 44,
-                    height: 24,
-                    borderRadius: 999,
-                    background: alerts[a.key] ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)",
-                    border: "none",
-                    cursor: "pointer",
-                    position: "relative",
-                    flexShrink: 0,
-                    transition: "background 0.2s",
-                  }}
+                  className="shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200"
+                  style={{ background: alerts[a.key] ? "var(--foreground)" : "var(--muted)" }}
+                  aria-checked={alerts[a.key]}
+                  role="switch"
                 >
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 999,
-                    background: "#ffffff",
-                    position: "absolute",
-                    top: 2,
-                    left: alerts[a.key] ? 22 : 2,
-                    transition: "left 0.2s",
-                  }} />
+                  <div
+                    className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200"
+                    style={{
+                      background: alerts[a.key] ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                      left: alerts[a.key] ? "calc(100% - 22px)" : "2px",
+                    }}
+                  />
                 </button>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Godowns — col 12 */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 12" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span className="material-symbols-outlined" style={{ color: "#ffffff" }}>warehouse</span>
-              <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Godowns / Warehouses</h2>
-            </div>
-            <button
-              onClick={() => setGodownSheet({ open: true })}
-              style={{ background: "rgba(255,255,255,0.10)", color: "#ffffff", border: "none", borderRadius: 999, padding: "8px 18px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
-            >
-              + New
-            </button>
-          </div>
-          {godowns.length === 0 ? (
-            <p style={{ color: "#8e9192", fontSize: 14 }}>No godowns yet. Add the warehouses where you keep stock.</p>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
-              {godowns.map((g) => (
-                <div key={g.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span className="material-symbols-outlined" style={{ color: "#c4c7c8", fontSize: 20 }}>warehouse</span>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <p style={{ color: "#e5e2e1", fontSize: 14, fontWeight: 500 }}>{g.name}</p>
-                        {g.is_default && <span style={{ background: "rgba(255,255,255,0.1)", color: "#c7c6cb", borderRadius: 4, padding: "1px 8px", fontSize: 10 }}>DEFAULT</span>}
-                      </div>
-                      {g.location && <p style={{ color: "#8e9192", fontSize: 12 }}>{g.location}</p>}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    {!g.is_default && (
-                      <button onClick={() => setDefaultGodown(g.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-                        <span className="material-symbols-outlined" style={{ color: "#8e9192", fontSize: 16 }}>star</span>
-                      </button>
-                    )}
-                    <button onClick={() => setGodownSheet({ open: true, editing: g })} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-                      <span className="material-symbols-outlined" style={{ color: "#8e9192", fontSize: 16 }}>edit</span>
-                    </button>
-                    {isAdmin && (
-                      <button onClick={() => setDeleteGodownTarget(g)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-                        <span className="material-symbols-outlined" style={{ color: "#8e9192", fontSize: 16 }}>delete</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Enterprise Security — col 12 */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 32, gridColumn: "span 12", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-            <div style={{ maxWidth: 640 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                <span className="material-symbols-outlined" style={{ color: "#ffffff", fontSize: 28 }}>shield_with_heart</span>
-                <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Enterprise Security Core</h2>
-              </div>
-              <p style={{ color: "#c4c7c8", fontSize: 16, lineHeight: "24px" }}>
-                SayNoMore ERP utilizes end-to-end AES-256 encryption for all database handshakes. Your data integrity is monitored by real-time heuristic analysis.
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button style={{ background: "#ffffff", color: "#2f3131", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                Download Audit Log
-              </button>
-              <button style={{ background: "rgba(255,255,255,0.05)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                View Access Keys
-              </button>
-            </div>
-          </div>
-          {/* Glow orb */}
-          <div style={{ position: "absolute", right: -80, top: -80, width: 256, height: 256, background: "rgba(255,255,255,0.04)", borderRadius: 999, filter: "blur(80px)", pointerEvents: "none" }} />
-        </div>
       </div>
 
-      {/* ── Invite Sheet ── */}
+      {/* Row 3: Godowns */}
+      <div className="glass p-6">
+        <div className="flex justify-between items-center mb-5">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-foreground text-xl">warehouse</span>
+            <h2 className="text-lg font-semibold text-foreground">Godowns / Warehouses</h2>
+          </div>
+          <button
+            onClick={() => setGodownSheet({ open: true })}
+            className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition"
+          >
+            + New
+          </button>
+        </div>
+        {godowns.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No godowns yet. Add the warehouses where you keep stock.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {godowns.map((g) => (
+              <div key={g.id} className="glass-flat p-4 rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="material-symbols-outlined text-muted-foreground shrink-0" style={{ fontSize: 18 }}>warehouse</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
+                      {g.is_default && (
+                        <span className="text-[10px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground shrink-0">Default</span>
+                      )}
+                    </div>
+                    {g.location && <p className="text-xs text-muted-foreground truncate">{g.location}</p>}
+                  </div>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  {!g.is_default && (
+                    <button onClick={() => setDefaultGodown(g.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition" title="Set default">
+                      <span className="material-symbols-outlined" style={{ fontSize: 15 }}>star</span>
+                    </button>
+                  )}
+                  <button onClick={() => setGodownSheet({ open: true, editing: g })} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition">
+                    <span className="material-symbols-outlined" style={{ fontSize: 15 }}>edit</span>
+                  </button>
+                  {isAdmin && (
+                    <button onClick={() => setDeleteGodownTarget(g)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition">
+                      <span className="material-symbols-outlined" style={{ fontSize: 15 }}>delete</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Row 4: Enterprise Security */}
+      <div className="glass p-8 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="material-symbols-outlined text-foreground" style={{ fontSize: 28 }}>shield_with_heart</span>
+              <h2 className="text-lg font-semibold text-foreground">Enterprise Security Core</h2>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              SayNoMore ERP utilizes end-to-end AES-256 encryption for all database handshakes. Your data integrity is monitored by real-time heuristic analysis.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 shrink-0">
+            <button className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm">
+              Download Audit Log
+            </button>
+            <button className="px-6 py-3 bg-secondary text-secondary-foreground font-bold rounded-xl hover:bg-accent active:scale-95 transition-all text-sm">
+              View Access Keys
+            </button>
+          </div>
+        </div>
+        {/* Decorative glow */}
+        <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full pointer-events-none"
+          style={{ background: "var(--primary)", opacity: 0.04, filter: "blur(60px)" }} />
+      </div>
+
+      {/* ── Sheets ── */}
       {inviteSheet && (
-        <InviteSheet
-          onClose={() => setInviteSheet(false)}
-          onDone={() => { setInviteSheet(false); load(); }}
-          inputStyle={inputStyle}
-          labelStyle={labelStyle}
-        />
+        <InviteSheet onClose={() => setInviteSheet(false)} onDone={() => { setInviteSheet(false); load(); }} />
       )}
-
-      {/* ── Edit User Sheet ── */}
       {editUserSheet && (
-        <EditUserSheet
-          user={editUserSheet}
-          onClose={() => setEditUserSheet(null)}
-          onDone={() => { setEditUserSheet(null); load(); }}
-          inputStyle={inputStyle}
-          labelStyle={labelStyle}
-        />
+        <EditUserSheet user={editUserSheet} onClose={() => setEditUserSheet(null)} onDone={() => { setEditUserSheet(null); load(); }} />
       )}
-
-      {/* ── Delete User confirm ── */}
       {deleteUserTarget && (
         <ConfirmSheet
           title="Remove team member?"
           body={`${deleteUserTarget.full_name ?? deleteUserTarget.email} will lose all access immediately.`}
-          danger
-          loading={deletingUser}
+          danger loading={deletingUser}
           onCancel={() => setDeleteUserTarget(null)}
           onConfirm={async () => {
             setDeletingUser(true);
             try {
               await deleteUser(deleteUserTarget.id);
               toast.success(`${deleteUserTarget.full_name ?? "User"} removed`);
-              setDeleteUserTarget(null);
-              load();
+              setDeleteUserTarget(null); load();
             } catch (e) { toast.error((e as Error).message); }
             finally { setDeletingUser(false); }
           }}
         />
       )}
-
-      {/* ── Godown Sheet ── */}
       {godownSheet.open && (
-        <GodownSheet
-          editing={godownSheet.editing}
-          onClose={() => setGodownSheet({ open: false })}
-          onDone={() => { setGodownSheet({ open: false }); load(); }}
-          inputStyle={inputStyle}
-          labelStyle={labelStyle}
-        />
+        <GodownSheet editing={godownSheet.editing} onClose={() => setGodownSheet({ open: false })} onDone={() => { setGodownSheet({ open: false }); load(); }} />
       )}
-
-      {/* ── Delete Godown confirm ── */}
       {deleteGodownTarget && (
         <ConfirmSheet
           title="Delete godown?"
-          body={`"${deleteGodownTarget.name}" will be permanently removed. Only works if no stock is in it.`}
-          danger
-          loading={deletingGodown}
+          body={`"${deleteGodownTarget.name}" will be permanently removed.`}
+          danger loading={deletingGodown}
           onCancel={() => setDeleteGodownTarget(null)}
           onConfirm={async () => {
             setDeletingGodown(true);
             try {
               await deleteGodown(deleteGodownTarget.id);
               toast.success("Deleted");
-              setDeleteGodownTarget(null);
-              load();
+              setDeleteGodownTarget(null); load();
             } catch (e) { toast.error((e as Error).message); }
             finally { setDeletingGodown(false); }
           }}
@@ -474,14 +411,73 @@ export default function SettingsPage() {
   );
 }
 
-// ── Invite Sheet ────────────────────────────────────────────────────────────
+/* ── Shared sheet wrapper ─────────────────────────────────────────────── */
 
-function InviteSheet({ onClose, onDone, inputStyle, labelStyle }: {
-  onClose: () => void;
-  onDone: () => void;
-  inputStyle: React.CSSProperties;
-  labelStyle: React.CSSProperties;
+function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="glass-modal w-full rounded-t-3xl p-6 max-h-[88vh] overflow-y-auto">
+        <div className="w-10 h-1 rounded-full bg-border mx-auto mb-5" />
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition text-lg leading-none">×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SheetInput({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="mb-4">
+      <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+        {label}{required && " *"}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputCls = "w-full bg-muted border-0 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-ring outline-none";
+
+function SheetActions({ onCancel, onConfirm, disabled, label }: {
+  onCancel: () => void; onConfirm: () => void; disabled?: boolean; label: string;
 }) {
+  return (
+    <div className="flex gap-3 mt-6">
+      <button onClick={onCancel} className="flex-1 py-3 rounded-full bg-secondary text-secondary-foreground text-sm font-medium hover:bg-accent transition">Cancel</button>
+      <button onClick={onConfirm} disabled={disabled} className="flex-[2] py-3 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all">
+        {label}
+      </button>
+    </div>
+  );
+}
+
+function ConfirmSheet({ title, body, danger, loading, onCancel, onConfirm }: {
+  title: string; body: string; danger?: boolean; loading?: boolean; onCancel: () => void; onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="glass-modal rounded-3xl p-6 w-full max-w-sm">
+        <p className="text-base font-semibold text-foreground mb-2">{title}</p>
+        <p className="text-sm text-muted-foreground mb-6">{body}</p>
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="flex-1 py-3 rounded-full bg-secondary text-secondary-foreground text-sm font-medium hover:bg-accent transition">Cancel</button>
+          <button
+            onClick={onConfirm} disabled={loading}
+            className={`flex-1 py-3 rounded-full text-sm font-bold disabled:opacity-50 active:scale-95 transition-all ${danger ? "bg-destructive/10 text-destructive" : "bg-primary text-primary-foreground"}`}
+          >
+            {loading ? "Working…" : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Invite Sheet ─────────────────────────────────────────────────────── */
+function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<UserRole>("staff");
@@ -500,41 +496,26 @@ function InviteSheet({ onClose, onDone, inputStyle, labelStyle }: {
 
   return (
     <Sheet title="Invite Team Member" onClose={onClose}>
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Full Name *</label>
-        <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Ahmed Hassan" style={inputStyle} />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Email Address *</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ahmed@example.com" style={inputStyle} />
-      </div>
-      <div style={{ marginBottom: 28 }}>
-        <label style={labelStyle}>Role *</label>
-        <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} style={{ ...inputStyle, appearance: "none" }}>
-          <option value="manager" style={{ background: "#1c1b1b" }}>Manager</option>
-          <option value="staff" style={{ background: "#1c1b1b" }}>Delivery Staff</option>
+      <SheetInput label="Full Name" required>
+        <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Ahmed Hassan" className={inputCls} />
+      </SheetInput>
+      <SheetInput label="Email Address" required>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ahmed@example.com" className={inputCls} />
+      </SheetInput>
+      <SheetInput label="Role" required>
+        <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={inputCls}>
+          <option value="manager">Manager</option>
+          <option value="staff">Delivery Staff</option>
         </select>
-        <p style={{ color: "#8e9192", fontSize: 12, marginTop: 6 }}>{ROLE_DESC[role]}</p>
-      </div>
-      <SheetActions
-        onCancel={onClose}
-        onConfirm={save}
-        disabled={saving || !email.trim() || !fullName.trim()}
-        label={saving ? "Sending…" : "SEND INVITE"}
-      />
+        <p className="text-xs text-muted-foreground mt-1.5">{ROLE_DESC[role]}</p>
+      </SheetInput>
+      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !email.trim() || !fullName.trim()} label={saving ? "Sending…" : "SEND INVITE"} />
     </Sheet>
   );
 }
 
-// ── Edit User Sheet ─────────────────────────────────────────────────────────
-
-function EditUserSheet({ user, onClose, onDone, inputStyle, labelStyle }: {
-  user: UserProfileRow;
-  onClose: () => void;
-  onDone: () => void;
-  inputStyle: React.CSSProperties;
-  labelStyle: React.CSSProperties;
-}) {
+/* ── Edit User Sheet ──────────────────────────────────────────────────── */
+function EditUserSheet({ user, onClose, onDone }: { user: UserProfileRow; onClose: () => void; onDone: () => void }) {
   const [fullName, setFullName] = useState(user.full_name ?? "");
   const [role, setRole] = useState<UserRole>(user.role);
   const [saving, setSaving] = useState(false);
@@ -552,40 +533,26 @@ function EditUserSheet({ user, onClose, onDone, inputStyle, labelStyle }: {
 
   return (
     <Sheet title="Edit Team Member" onClose={onClose}>
-      <p style={{ color: "#8e9192", fontSize: 12, marginBottom: 20 }}>{user.email}</p>
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Full Name *</label>
-        <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} />
-      </div>
+      <p className="text-xs text-muted-foreground mb-4">{user.email}</p>
+      <SheetInput label="Full Name" required>
+        <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} />
+      </SheetInput>
       {user.role !== "admin" && (
-        <div style={{ marginBottom: 28 }}>
-          <label style={labelStyle}>Role</label>
-          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} style={{ ...inputStyle, appearance: "none" }}>
-            <option value="manager" style={{ background: "#1c1b1b" }}>Manager</option>
-            <option value="staff" style={{ background: "#1c1b1b" }}>Delivery Staff</option>
+        <SheetInput label="Role">
+          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={inputCls}>
+            <option value="manager">Manager</option>
+            <option value="staff">Delivery Staff</option>
           </select>
-          <p style={{ color: "#8e9192", fontSize: 12, marginTop: 6 }}>{ROLE_DESC[role]}</p>
-        </div>
+          <p className="text-xs text-muted-foreground mt-1.5">{ROLE_DESC[role]}</p>
+        </SheetInput>
       )}
-      <SheetActions
-        onCancel={onClose}
-        onConfirm={save}
-        disabled={saving || !fullName.trim()}
-        label={saving ? "Saving…" : "SAVE CHANGES"}
-      />
+      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !fullName.trim()} label={saving ? "Saving…" : "SAVE CHANGES"} />
     </Sheet>
   );
 }
 
-// ── Godown Sheet ────────────────────────────────────────────────────────────
-
-function GodownSheet({ editing, onClose, onDone, inputStyle, labelStyle }: {
-  editing?: GodownRow;
-  onClose: () => void;
-  onDone: () => void;
-  inputStyle: React.CSSProperties;
-  labelStyle: React.CSSProperties;
-}) {
+/* ── Godown Sheet ─────────────────────────────────────────────────────── */
+function GodownSheet({ editing, onClose, onDone }: { editing?: GodownRow; onClose: () => void; onDone: () => void }) {
   const [name, setName] = useState(editing?.name ?? "");
   const [location, setLocation] = useState(editing?.location ?? "");
   const [saving, setSaving] = useState(false);
@@ -605,97 +572,13 @@ function GodownSheet({ editing, onClose, onDone, inputStyle, labelStyle }: {
 
   return (
     <Sheet title={editing ? "Edit Godown" : "New Godown"} onClose={onClose}>
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Name *</label>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Warehouse" style={inputStyle} />
-      </div>
-      <div style={{ marginBottom: 28 }}>
-        <label style={labelStyle}>Location / Address</label>
-        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Optional" style={inputStyle} />
-      </div>
-      <SheetActions
-        onCancel={onClose}
-        onConfirm={save}
-        disabled={saving || !name.trim()}
-        label={saving ? "Saving…" : editing ? "SAVE CHANGES" : "CREATE GODOWN"}
-      />
+      <SheetInput label="Name" required>
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Warehouse" className={inputCls} />
+      </SheetInput>
+      <SheetInput label="Location / Address">
+        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Optional" className={inputCls} />
+      </SheetInput>
+      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !name.trim()} label={saving ? "Saving…" : editing ? "SAVE CHANGES" : "CREATE GODOWN"} />
     </Sheet>
-  );
-}
-
-// ── Confirm Sheet ───────────────────────────────────────────────────────────
-
-function ConfirmSheet({ title, body, danger, loading, onCancel, onConfirm }: {
-  title: string;
-  body: string;
-  danger?: boolean;
-  loading?: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "rgba(28,27,27,0.95)", backdropFilter: "blur(30px)", borderRadius: 20, padding: 28, width: 360, maxWidth: "90vw" }}>
-        <p style={{ color: "#ffffff", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{title}</p>
-        <p style={{ color: "#8e9192", fontSize: 14, marginBottom: 24 }}>{body}</p>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={onCancel} style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#c7c6cb", border: "none", borderRadius: 999, padding: 12, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            style={{
-              flex: 1,
-              background: danger ? "rgba(255,180,171,0.15)" : "#ffffff",
-              color: danger ? "#ffb4ab" : "#2f3131",
-              border: "none",
-              borderRadius: 999,
-              padding: 12,
-              fontSize: 14,
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.5 : 1,
-            }}
-          >
-            {loading ? "Loading…" : "Confirm"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Shared Sheet wrapper ────────────────────────────────────────────────────
-
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 60, display: "flex", alignItems: "flex-end" }}>
-      <div style={{ background: "rgba(28,27,27,0.95)", backdropFilter: "blur(30px)", borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 28 }}>
-        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.12)", borderRadius: 999, margin: "0 auto 24px" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>{title}</h2>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 999, width: 36, height: 36, cursor: "pointer", color: "#8e9192", fontSize: 20 }}>×</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function SheetActions({ onCancel, onConfirm, disabled, label }: {
-  onCancel: () => void;
-  onConfirm: () => void;
-  disabled?: boolean;
-  label: string;
-}) {
-  return (
-    <div style={{ display: "flex", gap: 12 }}>
-      <button onClick={onCancel} style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#c7c6cb", border: "none", borderRadius: 999, padding: 14, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-      <button
-        onClick={onConfirm}
-        disabled={disabled}
-        style={{ flex: 2, background: "#ffffff", color: "#2f3131", border: "none", borderRadius: 999, padding: 14, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1 }}
-      >
-        {label}
-      </button>
-    </div>
   );
 }

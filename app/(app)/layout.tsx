@@ -19,11 +19,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const role = profile?.role ?? "staff";
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh" style={{ background: "var(--background)" }}>
       <Sidebar role={role} />
-      <div className="lg:pl-64">
-        <Topbar name={name} role={role} />
-        <main className="px-4 sm:px-6 py-4 sm:py-6 pb-28 lg:pb-6">{children}</main>
+      <Topbar name={name} role={role} />
+      {/* pt-16 = fixed header height; pb-24 = bottom nav clearance on mobile */}
+      <div className="lg:pl-64 pt-16">
+        <main className="px-5 py-6 pb-28 lg:pb-8 max-w-5xl mx-auto lg:max-w-none">
+          {children}
+        </main>
       </div>
       <BottomNav role={role} />
     </div>

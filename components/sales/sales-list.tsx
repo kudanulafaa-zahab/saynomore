@@ -43,13 +43,13 @@ import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
 
 const CARD = {
-  background: "rgba(18,19,23,0.70)",
+  background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
 } as const;
 
 const CARD_L2 = {
-  background: "rgba(28,27,27,0.85)",
+  background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
 } as const;
@@ -110,10 +110,10 @@ interface DraftLine {
 function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748] transition"
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-[#444748] transition"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       />
     </div>
@@ -123,11 +123,11 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
 function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none appearance-none"
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       >
         {children}
@@ -190,7 +190,7 @@ export function SalesList() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "#8e9192" }}>
+      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
         <p className="text-sm">Loading…</p>
       </div>
@@ -203,8 +203,8 @@ export function SalesList() {
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Operations</p>
-          <h1 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Sales</h1>
+          <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Sales</h1>
         </div>
         <button
           onClick={() => setNewDialog(true)}
@@ -222,12 +222,12 @@ export function SalesList() {
           className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12"
           style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
         >
-          <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search order, customer…"
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-[#8e9192] outline-none"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             inputMode="search"
             autoCapitalize="none"
             autoCorrect="off"
@@ -237,7 +237,7 @@ export function SalesList() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="h-12 rounded-2xl px-4 text-sm text-white outline-none appearance-none"
+          className="h-12 rounded-2xl px-4 text-sm text-foreground outline-none appearance-none"
           style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
         >
           <option value="all">All</option>
@@ -257,12 +257,12 @@ export function SalesList() {
             className="h-14 w-14 rounded-2xl flex items-center justify-center"
             style={{ background: "rgba(255,255,255,0.08)" }}
           >
-            <ShoppingCart className="h-6 w-6 text-white" />
+            <ShoppingCart className="h-6 w-6 text-foreground" />
           </div>
-          <h3 className="text-base font-semibold text-white">
+          <h3 className="text-base font-semibold text-foreground">
             {rows.length === 0 ? "No sales yet" : "No matches"}
           </h3>
-          <p className="text-sm max-w-sm" style={{ color: "#8e9192" }}>
+          <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
             {rows.length === 0
               ? "Record a sale when a customer messages you on WhatsApp, Viber, Instagram, etc."
               : "Try a different filter."}
@@ -298,11 +298,11 @@ export function SalesList() {
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-white">
+                    <p className="text-[14px] font-semibold text-foreground">
                       {cust?.name ?? "Walk-in"}
-                      <span className="text-[11px] ml-2" style={{ color: "#8e9192" }}>{o.order_number}</span>
+                      <span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
                     </p>
-                    <p className="text-[11px] truncate" style={{ color: "#8e9192" }}>
+                    <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
                       via {o.channel}{cust?.island && <> · {cust.island}</>}
                     </p>
                   </div>
@@ -314,7 +314,7 @@ export function SalesList() {
                   >
                     {STATUS_LABEL[o.status]}
                   </span>
-                  <ChevronRight className="h-4 w-4" style={{ color: "#8e9192" }} />
+                  <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
                 </div>
               </Link>
             );
@@ -530,12 +530,12 @@ function NewSaleSheet({
         style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(40px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
       >
         <div className="flex items-center gap-3">
-          <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 transition">
+          <button onClick={onClose} className="text-foreground opacity-70 hover:opacity-100 transition">
             ✕
           </button>
-          <span className="text-[18px] font-bold text-white tracking-tight">New Sale</span>
+          <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
         </div>
-        <History className="h-5 w-5" style={{ color: "#8e9192" }} />
+        <History className="h-5 w-5" style={{ color: "var(--muted-foreground)" }} />
       </header>
 
       {/* Content */}
@@ -575,19 +575,19 @@ function NewSaleSheet({
                     className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12"
                     style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
                   >
-                    <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+                    <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                     <input
                       autoFocus
                       value={customerSearch}
                       onChange={(e) => setCustomerSearch(e.target.value)}
                       placeholder="Search name, phone, ID…"
-                      className="flex-1 bg-transparent text-sm text-white placeholder:text-[#444748] outline-none"
+                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-[#444748] outline-none"
                     />
                   </div>
                   <button
                     onClick={() => setShowNewCustomer(true)}
                     className="flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold transition"
-                    style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)", color: "#ffffff" }}
+                    style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)", color: "var(--foreground)" }}
                   >
                     <UserPlus className="h-4 w-4" />
                     Add New
@@ -596,7 +596,7 @@ function NewSaleSheet({
 
                 {/* Frequent customers */}
                 <div>
-                  <p className="label-caps text-[10px] mb-3" style={{ color: "#8e9192" }}>Frequent Customers</p>
+                  <p className="label-caps text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>Frequent Customers</p>
                   <div className="flex gap-3 overflow-x-auto pb-2">
                     {(customerSearch.trim() ? filteredCustomers : recentCustomers).map((c) => {
                       const initials = c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -609,17 +609,17 @@ function NewSaleSheet({
                         >
                           <div
                             className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm mb-2"
-                            style={{ background: "rgba(255,255,255,0.10)", color: "#ffffff" }}
+                            style={{ background: "rgba(255,255,255,0.10)", color: "var(--foreground)" }}
                           >
                             {initials}
                           </div>
                           <p className="text-[12px] font-bold text-white truncate">{c.name}</p>
-                          <p className="text-[10px]" style={{ color: "#8e9192" }}>{c.channel}</p>
+                          <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{c.channel}</p>
                         </button>
                       );
                     })}
                     {(customerSearch.trim() ? filteredCustomers : recentCustomers).length === 0 && (
-                      <p className="text-sm py-4" style={{ color: "#8e9192" }}>
+                      <p className="text-sm py-4" style={{ color: "var(--muted-foreground)" }}>
                         {customerSearch.trim() ? "No matches." : "No customers yet."}
                       </p>
                     )}
@@ -639,7 +639,7 @@ function NewSaleSheet({
             {/* New customer form */}
             {showNewCustomer && !customerId && (
               <div className="rounded-xl p-5 space-y-4" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
-                <p className="text-[13px] font-bold text-white flex items-center gap-2">
+                <p className="text-[13px] font-bold text-foreground flex items-center gap-2">
                   <UserPlus className="h-4 w-4" />
                   New Customer
                 </p>
@@ -655,7 +655,7 @@ function NewSaleSheet({
                   <button
                     onClick={() => setShowNewCustomer(false)}
                     className="flex-1 h-11 rounded-xl text-sm font-semibold"
-                    style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
+                    style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)" }}
                   >
                     Back
                   </button>
@@ -678,12 +678,12 @@ function NewSaleSheet({
                 style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
               >
                 <div>
-                  <p className="text-[14px] font-semibold text-white">{customer.name}</p>
-                  <p className="text-[11px]" style={{ color: "#8e9192" }}>
+                  <p className="text-[14px] font-semibold text-foreground">{customer.name}</p>
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                     {[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}
                   </p>
                 </div>
-                <button onClick={() => { setCustomerId(""); setCustomerSearch(""); }} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
+                <button onClick={() => { setCustomerId(""); setCustomerSearch(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
               </div>
             )}
             {customerId === "walkin" && (
@@ -692,10 +692,10 @@ function NewSaleSheet({
                 style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
               >
                 <div>
-                  <p className="text-[14px] font-semibold text-white">Walk-in customer</p>
-                  <p className="text-[11px]" style={{ color: "#8e9192" }}>No account</p>
+                  <p className="text-[14px] font-semibold text-foreground">Walk-in customer</p>
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>No account</p>
                 </div>
-                <button onClick={() => setCustomerId("")} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
+                <button onClick={() => setCustomerId("")} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
               </div>
             )}
 
@@ -719,19 +719,19 @@ function NewSaleSheet({
             </GlassSelect>
 
             <div>
-              <p className="label-caps text-[10px] mb-3" style={{ color: "#8e9192" }}>Product Catalog</p>
+              <p className="label-caps text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>Product Catalog</p>
               {!selectedSkuId ? (
                 <>
                   <div
                     className="flex items-center gap-3 rounded-xl px-4 h-12 mb-3"
                     style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
                   >
-                    <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+                    <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                     <input
                       value={skuSearch}
                       onChange={(e) => setSkuSearch(e.target.value)}
                       placeholder="Search brand, product, variant…"
-                      className="flex-1 bg-transparent text-sm text-white placeholder:text-[#444748] outline-none"
+                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-[#444748] outline-none"
                       autoComplete="off"
                     />
                   </div>
@@ -749,8 +749,8 @@ function NewSaleSheet({
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <p className="text-[14px] font-semibold text-white">{s.brand_name} · {s.model_name}</p>
-                              <p className="text-[10px] mt-0.5" style={{ color: "#8e9192" }}>{s.internal_code}</p>
+                              <p className="text-[14px] font-semibold text-foreground">{s.brand_name} · {s.model_name}</p>
+                              <p className="text-[10px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{s.internal_code}</p>
                             </div>
                             {stock !== null && (
                               <span
@@ -773,7 +773,7 @@ function NewSaleSheet({
                       );
                     })}
                     {filteredSkus.length === 0 && (
-                      <p className="text-sm col-span-2 py-4" style={{ color: "#8e9192" }}>No products found.</p>
+                      <p className="text-sm col-span-2 py-4" style={{ color: "var(--muted-foreground)" }}>No products found.</p>
                     )}
                   </div>
                 </>
@@ -781,8 +781,8 @@ function NewSaleSheet({
                 <div className="rounded-xl p-4 space-y-4" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-[14px] font-semibold text-white">{selectedSku.brand_name} · {selectedSku.model_name}</p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "#8e9192" }}>{selectedSku.variant_display}</p>
+                      <p className="text-[14px] font-semibold text-foreground">{selectedSku.brand_name} · {selectedSku.model_name}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{selectedSku.variant_display}</p>
                       {stockHere !== null && (
                         <p className="text-[11px] mt-1" style={{ color: stockHere === 0 ? "#ffb4ab" : "#4ade80" }}>
                           In stock: {stockHere.toLocaleString()} pcs
@@ -803,9 +803,9 @@ function NewSaleSheet({
                   </div>
 
                   {lineQtyPieces > 0 && (
-                    <div className="flex justify-between text-[11px]" style={{ color: "#8e9192" }}>
+                    <div className="flex justify-between text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                       <span>= {lineQtyPieces.toLocaleString()} pieces</span>
-                      <span className="text-white font-semibold">{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} MVR</span>
+                      <span className="text-foreground font-semibold">{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} MVR</span>
                     </div>
                   )}
                   {insufficient && (
@@ -826,7 +826,7 @@ function NewSaleSheet({
             {/* Draft lines */}
             {draftLines.length > 0 && (
               <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
-                <p className="px-4 pt-3 pb-2 label-caps text-[10px]" style={{ color: "#8e9192" }}>Order Items ({draftLines.length})</p>
+                <p className="px-4 pt-3 pb-2 label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>Order Items ({draftLines.length})</p>
                 {draftLines.map((l) => (
                   <div
                     key={l.key}
@@ -834,13 +834,13 @@ function NewSaleSheet({
                     style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-white truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
-                      <p className="text-[11px]" style={{ color: "#8e9192" }}>
+                      <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
+                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                         {l.qty} {l.uom} · {l.unit_price_mvr.toLocaleString()} MVR/{l.uom}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-white font-semibold text-[13px]">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                      <span className="text-foreground font-semibold text-[13px]">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
                       <button onClick={() => setDraftLines((p) => p.filter((x) => x.key !== l.key))} className="opacity-40 hover:opacity-100 transition">
                         <Trash2 className="h-3.5 w-3.5 text-white" />
                       </button>
@@ -851,8 +851,8 @@ function NewSaleSheet({
                   className="flex justify-between px-4 py-3 text-sm font-semibold"
                   style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}
                 >
-                  <span style={{ color: "#8e9192" }}>Total</span>
-                  <span className="text-white">{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                  <span style={{ color: "var(--muted-foreground)" }}>Total</span>
+                  <span className="text-foreground">{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
                 </div>
               </div>
             )}
@@ -869,14 +869,14 @@ function NewSaleSheet({
             >
               <div className="grid grid-cols-2 gap-y-5">
                 <div>
-                  <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>TOTAL REVENUE</p>
+                  <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>TOTAL REVENUE</p>
                   <p className="text-[28px] font-light tracking-tight text-white leading-none">
                     {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    <span className="text-base ml-1" style={{ color: "#8e9192" }}>MVR</span>
+                    <span className="text-base ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>ITEMS</p>
+                  <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>ITEMS</p>
                   <p className="text-[28px] font-light tracking-tight text-white leading-none">{draftLines.length}</p>
                 </div>
               </div>
@@ -884,10 +884,10 @@ function NewSaleSheet({
                 className="mt-4 pt-4 flex justify-between text-[12px]"
                 style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
               >
-                <span style={{ color: "#8e9192" }}>
+                <span style={{ color: "var(--muted-foreground)" }}>
                   Customer: {customerId === "walkin" ? "Walk-in" : (customer?.name ?? "—")}
                 </span>
-                <span style={{ color: "#8e9192" }}>via {CHANNELS.find((c) => c.value === channel)?.label}</span>
+                <span style={{ color: "var(--muted-foreground)" }}>via {CHANNELS.find((c) => c.value === channel)?.label}</span>
               </div>
             </div>
 
@@ -902,8 +902,8 @@ function NewSaleSheet({
                   className="flex justify-between px-4 py-3 text-sm"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
                 >
-                  <span style={{ color: "#8e9192" }}>{row.label}</span>
-                  <span className="text-white font-medium">{row.value}</span>
+                  <span style={{ color: "var(--muted-foreground)" }}>{row.label}</span>
+                  <span className="text-foreground font-medium">{row.value}</span>
                 </div>
               ))}
             </div>
@@ -917,15 +917,15 @@ function NewSaleSheet({
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-white truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
-                    <p className="text-[11px]" style={{ color: "#8e9192" }}>{l.qty} {l.uom} · {l.unit_price_mvr.toLocaleString()} MVR/{l.uom}</p>
+                    <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
+                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {l.uom} · {l.unit_price_mvr.toLocaleString()} MVR/{l.uom}</p>
                   </div>
-                  <span className="text-white font-semibold text-[13px] shrink-0">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                  <span className="text-foreground font-semibold text-[13px] shrink-0">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
                 </div>
               ))}
             </div>
 
-            <p className="text-[11px]" style={{ color: "#8e9192" }}>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
               Stock will be deducted when you confirm the order on the next screen.
             </p>
           </div>
@@ -943,7 +943,7 @@ function NewSaleSheet({
             <button
               onClick={onClose}
               className="flex-1 h-14 rounded-xl text-sm font-semibold"
-              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)" }}
             >
               Cancel
             </button>
@@ -962,7 +962,7 @@ function NewSaleSheet({
             <button
               onClick={() => setStep(1)}
               className="flex-1 h-14 rounded-xl text-sm font-semibold"
-              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)" }}
             >
               ← Back
             </button>
@@ -981,7 +981,7 @@ function NewSaleSheet({
             <button
               onClick={() => setStep(2)}
               className="flex-1 h-14 rounded-xl text-sm font-semibold"
-              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)" }}
             >
               ← Back
             </button>

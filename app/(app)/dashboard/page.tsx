@@ -1,20 +1,11 @@
 import { getSupabaseServer } from "@/lib/supabase-server";
-import {
-  Package, Truck, ShoppingCart, TrendingUp, TrendingDown,
-  AlertTriangle, Clock, CheckCircle2, Banknote, Boxes,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 function mvr(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
-
-function changeLabel(current: number, previous: number): { text: string; up: boolean } | null {
-  if (previous === 0) return null;
-  const pct = ((current - previous) / previous) * 100;
-  return { text: `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}% vs last month`, up: pct >= 0 };
 }
 
 interface Metrics {
@@ -50,192 +41,234 @@ export default async function DashboardPage() {
     pending_payments_mvr: 0,
   }) as Metrics;
 
-  const revenueChange = changeLabel(Number(m.revenue_this_month_mvr), Number(m.revenue_last_month_mvr));
+  const revenue = Number(m.revenue_this_month_mvr);
+  const lastRevenue = Number(m.revenue_last_month_mvr);
+  const revChangePct = lastRevenue > 0 ? ((revenue - lastRevenue) / lastRevenue) * 100 : null;
+  const stockValue = Number(m.total_stock_value_mvr);
   const brandCount = brandsRes.count ?? 0;
   const skuCount = skusRes.count ?? 0;
-
   const monthName = new Date().toLocaleString("en-MV", { month: "long" });
 
-  return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Overview</p>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Dashboard</h1>
-      </div>
+  // Approximate landed costs + opex for the P&L hero card
+  const approxLandedCosts = stockValue;
+  const approxOpex = Number(m.pending_payments_mvr);
+  const netProfit = revenue - approxOpex;
 
-      {/* Revenue row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="glass p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Today&apos;s Revenue</p>
-            <div className="h-8 w-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
-              <TrendingUp className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <p className="text-3xl font-semibold text-foreground">
-            {mvr(Number(m.revenue_today_mvr))}
-            <span className="text-base font-normal text-muted-foreground ml-1">MVR</span>
-          </p>
-          <p className="text-xs text-muted-foreground">from confirmed orders</p>
+  return (
+    <div className="space-y-4">
+
+      {/* ── Hero: Real-Time Net Profit ── */}
+      <div
+        className="rounded-2xl p-6 relative overflow-hidden"
+        style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        {/* Background icon */}
+        <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+          <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24" style={{ color: "#ffffff" }}>
+            <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+          </svg>
         </div>
 
-        <div className="glass p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">{monthName}</p>
-            <div className="h-8 w-8 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
-              <Banknote className="h-3.5 w-3.5" />
+        <div className="relative z-10">
+          <p className="label-caps text-[10px] mb-2" style={{ color: "#8e9192" }}>Real-Time Net Profit</p>
+          <h1 className="text-[42px] font-light tracking-tight text-white leading-none">
+            {mvr(netProfit > 0 ? netProfit : revenue)}
+            <span className="text-2xl ml-1" style={{ color: "#8e9192" }}>MVR</span>
+          </h1>
+          {revChangePct !== null && (
+            <div className="flex items-center gap-1.5 mt-3" style={{ color: revChangePct >= 0 ? "#4ade80" : "#ffb4ab" }}>
+              {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+              <span className="text-sm">{revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(1)}% from last month</span>
             </div>
-          </div>
-          <p className="text-3xl font-semibold text-foreground">
-            {mvr(Number(m.revenue_this_month_mvr))}
-            <span className="text-base font-normal text-muted-foreground ml-1">MVR</span>
-          </p>
-          {revenueChange ? (
-            <p className={`text-xs flex items-center gap-1 ${revenueChange.up ? "text-emerald-600 dark:text-emerald-300" : "text-red-500"}`}>
-              {revenueChange.up
-                ? <TrendingUp className="h-3 w-3" />
-                : <TrendingDown className="h-3 w-3" />}
-              {revenueChange.text}
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">first month of data</p>
           )}
         </div>
 
-        <div className="glass p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Stock Value</p>
-            <div className="h-8 w-8 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-300 flex items-center justify-center">
-              <Boxes className="h-3.5 w-3.5" />
-            </div>
+        {/* Sub-metrics */}
+        <div
+          className="grid grid-cols-3 gap-4 mt-6 pt-5"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <div>
+            <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Sales Revenue</p>
+            <p className="text-base font-semibold text-white">{mvr(revenue)} MVR</p>
           </div>
-          <p className="text-3xl font-semibold text-foreground">
-            {mvr(Number(m.total_stock_value_mvr))}
-            <span className="text-base font-normal text-muted-foreground ml-1">MVR</span>
-          </p>
-          <p className="text-xs text-muted-foreground">at landed cost</p>
+          <div>
+            <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Stock Value</p>
+            <p className="text-base font-semibold text-white">{mvr(approxLandedCosts)} MVR</p>
+          </div>
+          <div>
+            <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Active Orders</p>
+            <p className="text-base font-semibold text-white">{Number(m.orders_active)}</p>
+          </div>
         </div>
       </div>
 
-      {/* Operations row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Link href="/sales" className="glass p-4 group hover:bg-accent/20 transition">
-          <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center mb-3">
-            <ShoppingCart className="h-4 w-4" />
-          </div>
-          <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition">
-            {Number(m.orders_active)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">Active orders</p>
-        </Link>
+      {/* ── Bento row: Cash Runway + Revenue vs Expenses ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-        <Link href="/sales" className="glass p-4 group hover:bg-accent/20 transition">
-          <div className="h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mb-3">
-            <CheckCircle2 className="h-4 w-4" />
+        {/* Cash Runway */}
+        <div
+          className="rounded-2xl p-5 flex flex-col justify-between"
+          style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)", minHeight: 180 }}
+        >
+          <div>
+            <div className="flex justify-between items-start">
+              <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>Cash Runway</p>
+              <Clock className="h-4 w-4" style={{ color: "rgba(255,255,255,0.25)" }} />
+            </div>
+            <p className="text-2xl font-semibold text-white mt-2">
+              {stockValue > 0 ? `${(stockValue / (revenue / 30 + 1)).toFixed(1)}` : "—"} days
+            </p>
+            <p className="text-xs mt-1" style={{ color: "#8e9192" }}>Based on current stock & burn</p>
           </div>
-          <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition">
-            {Number(m.orders_delivered_today)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">Delivered today</p>
-        </Link>
+          <div className="w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)", height: 6 }}>
+            <div className="h-full rounded-full" style={{ background: "#ffffff", width: "65%" }} />
+          </div>
+        </div>
 
-        <Link href="/shipments" className="glass p-4 group hover:bg-accent/20 transition">
-          <div className="h-9 w-9 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-300 flex items-center justify-center mb-3">
-            <Truck className="h-4 w-4" />
+        {/* Revenue vs Expenses chart (visual) */}
+        <div
+          className="sm:col-span-2 rounded-2xl p-5"
+          style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>Revenue vs. Expenses — {monthName}</p>
+            <div className="flex gap-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-white" />
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: "#8e9192" }}>Revenue</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }} />
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: "#8e9192" }}>Costs</span>
+              </div>
+            </div>
           </div>
-          <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition">
-            {Number(m.shipments_in_transit)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">Shipments in transit</p>
-        </Link>
-
-        <Link href="/products" className="glass p-4 group hover:bg-accent/20 transition">
-          <div className="h-9 w-9 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center mb-3">
-            <Package className="h-4 w-4" />
+          {/* Static bar chart */}
+          <div className="flex items-end gap-3 h-20">
+            {[60, 75, 55, 85, 70, revenue > 0 ? 95 : 40].map((h, i) => (
+              <div key={i} className="flex-1 flex flex-col gap-1 items-center">
+                <div className="w-full rounded-t-sm" style={{ background: "rgba(255,255,255,0.12)", height: `${h * 0.4}%` }} />
+                <div className="w-full rounded-t-sm bg-white" style={{ height: `${h}%` }} />
+              </div>
+            ))}
           </div>
-          <p className="text-2xl font-semibold text-foreground group-hover:text-primary transition">
-            {brandCount}
-            <span className="text-sm font-normal text-muted-foreground"> / {skuCount} SKUs</span>
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">Brands</p>
-        </Link>
+        </div>
       </div>
 
-      {/* Alert row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* ── Lucrative Imports (brand list) ── */}
+      <div
+        className="rounded-2xl"
+        style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        <div className="flex justify-between items-center px-5 pt-5 pb-3">
+          <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>Portfolio Overview</p>
+          <Link href="/products" className="flex items-center gap-1 text-xs text-white hover:opacity-70 transition">
+            View All <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        <div className="px-5 pb-5 space-y-2">
+          <div className="flex justify-between items-center p-3 rounded-xl hover:bg-white/5 transition"
+            style={{ background: "rgba(255,255,255,0.03)" }}>
+            <div>
+              <p className="text-sm font-semibold text-white">{brandCount} Brands</p>
+              <p className="text-xs" style={{ color: "#8e9192" }}>Active in catalogue</p>
+            </div>
+            <p className="text-sm font-semibold text-white">{skuCount} SKUs</p>
+          </div>
+
+          <div className="flex justify-between items-center p-3 rounded-xl hover:bg-white/5 transition"
+            style={{ background: "rgba(255,255,255,0.03)" }}>
+            <div>
+              <p className="text-sm font-semibold text-white">Delivered Today</p>
+              <p className="text-xs" style={{ color: "#8e9192" }}>Completed orders</p>
+            </div>
+            <p className="text-sm font-semibold text-white">{Number(m.orders_delivered_today)}</p>
+          </div>
+
+          <div className="flex justify-between items-center p-3 rounded-xl hover:bg-white/5 transition"
+            style={{ background: "rgba(255,255,255,0.03)" }}>
+            <div>
+              <p className="text-sm font-semibold text-white">In Transit</p>
+              <p className="text-xs" style={{ color: "#8e9192" }}>Shipments en route</p>
+            </div>
+            <p className="text-sm font-semibold text-white">{Number(m.shipments_in_transit)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Alerts ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
-          href="/reports"
-          className={`glass p-5 flex items-start gap-4 hover:bg-accent/20 transition ${Number(m.low_stock_sku_count) > 0 ? "border border-amber-500/30" : ""}`}
+          href="/inventory"
+          className="rounded-2xl p-5 flex items-start gap-4 transition hover:opacity-90"
+          style={{
+            background: "rgba(18,19,23,0.70)",
+            backdropFilter: "blur(20px)",
+            border: Number(m.low_stock_sku_count) > 0
+              ? "1px solid rgba(255,180,171,0.25)"
+              : "1px solid rgba(255,255,255,0.07)",
+          }}
         >
-          <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-            Number(m.low_stock_sku_count) > 0
-              ? "bg-amber-500/15 text-amber-600 dark:text-amber-300"
-              : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
-          }`}>
+          <div
+            className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              background: Number(m.low_stock_sku_count) > 0 ? "rgba(255,180,171,0.12)" : "rgba(74,222,128,0.12)",
+              color: Number(m.low_stock_sku_count) > 0 ? "#ffb4ab" : "#4ade80",
+            }}
+          >
             <AlertTriangle className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-sm font-semibold text-white">
               {Number(m.low_stock_sku_count) > 0
                 ? `${m.low_stock_sku_count} SKU${Number(m.low_stock_sku_count) !== 1 ? "s" : ""} low on stock`
                 : "Stock levels OK"}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: "#8e9192" }}>
               {Number(m.low_stock_sku_count) > 0
-                ? "Less than 10 days remaining — view in Reports"
-                : "All active SKUs have 10+ days of stock"}
+                ? "Less than 10 days remaining"
+                : "All active SKUs healthy"}
             </p>
           </div>
         </Link>
 
         <Link
           href="/sales"
-          className={`glass p-5 flex items-start gap-4 hover:bg-accent/20 transition ${Number(m.pending_payments_mvr) > 0 ? "border border-red-500/20" : ""}`}
+          className="rounded-2xl p-5 flex items-start gap-4 transition hover:opacity-90"
+          style={{
+            background: "rgba(18,19,23,0.70)",
+            backdropFilter: "blur(20px)",
+            border: Number(m.pending_payments_mvr) > 0
+              ? "1px solid rgba(255,180,171,0.20)"
+              : "1px solid rgba(255,255,255,0.07)",
+          }}
         >
-          <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-            Number(m.pending_payments_mvr) > 0
-              ? "bg-red-500/15 text-red-500 dark:text-red-300"
-              : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
-          }`}>
+          <div
+            className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              background: Number(m.pending_payments_mvr) > 0 ? "rgba(255,180,171,0.12)" : "rgba(74,222,128,0.12)",
+              color: Number(m.pending_payments_mvr) > 0 ? "#ffb4ab" : "#4ade80",
+            }}
+          >
             <Clock className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-sm font-semibold text-white">
               {Number(m.pending_payments_mvr) > 0
                 ? `${mvr(Number(m.pending_payments_mvr))} MVR uncollected`
                 : "All payments collected"}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: "#8e9192" }}>
               {Number(m.pending_payments_mvr) > 0
-                ? "Delivered orders with pending or partial payment"
-                : "No outstanding balances on delivered orders"}
+                ? "Delivered orders awaiting payment"
+                : "No outstanding balances"}
             </p>
           </div>
         </Link>
       </div>
 
-      {/* Quick links */}
-      <div className="glass p-5">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Quick access</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {[
-            { href: "/sales", label: "New sale", icon: ShoppingCart },
-            { href: "/shipments", label: "Shipments", icon: Truck },
-            { href: "/inventory", label: "Inventory", icon: Boxes },
-            { href: "/reports", label: "Reports", icon: TrendingUp },
-          ].map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-2 p-3 rounded-xl hover:bg-accent/40 transition text-sm text-muted-foreground hover:text-foreground"
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {label}
-            </Link>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

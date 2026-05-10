@@ -14,12 +14,12 @@ import {
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 
 const CARD = {
-  background: "rgba(18,19,23,0.70)",
+  background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
 };
 const CARD_L2 = {
-  background: "rgba(28,27,27,0.85)",
+  background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
   boxShadow: "0 40px 60px -15px rgba(0,0,0,0.5)",
@@ -132,14 +132,14 @@ export function ExpensesView() {
   }
 
   return (
-    <div style={{ background: "#000000", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
       {/* Header */}
       <section style={{ marginBottom: 32 }}>
-        <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
           Financial Oversight
         </p>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ color: "#ffffff", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: "34px" }}>
+          <h1 style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: "34px" }}>
             Operational Costs
           </h1>
           <button
@@ -168,10 +168,10 @@ export function ExpensesView() {
         <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 2", position: "relative", overflow: "hidden", height: 320 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
-              <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
                 Monthly Burn Rate
               </p>
-              <p style={{ color: "#ffffff", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "40px" }}>
+              <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "40px" }}>
                 MVR {fmt(totalMvr)}
               </p>
             </div>
@@ -186,7 +186,7 @@ export function ExpensesView() {
               <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                 <div style={{ position: "relative", width: "100%" }}>
                   {i === BAR_HEIGHTS.length - 1 && (
-                    <div style={{ position: "absolute", top: -28, left: "50%", transform: "translateX(-50%)", color: "#ffffff", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", whiteSpace: "nowrap" }}>
+                    <div style={{ position: "absolute", top: -28, left: "50%", transform: "translateX(-50%)", color: "var(--foreground)", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", whiteSpace: "nowrap" }}>
                       CUR
                     </div>
                   )}
@@ -198,7 +198,7 @@ export function ExpensesView() {
                     transition: "background 0.2s",
                   }} />
                 </div>
-                <span style={{ color: "#8e9192", fontSize: 10 }}>{BAR_MONTHS[i]}</span>
+                <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>{BAR_MONTHS[i]}</span>
               </div>
             ))}
           </div>
@@ -207,20 +207,20 @@ export function ExpensesView() {
         {/* Quick metrics column */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ ...CARD, borderRadius: 16, padding: 24, flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
               Total Campaigns
             </p>
             <div>
-              <p style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>{rows.length}</p>
-              <p style={{ color: "#8e9192", fontSize: 14 }}>all time</p>
+              <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>{rows.length}</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>all time</p>
             </div>
           </div>
           <div style={{ ...CARD, borderRadius: 16, padding: 24, flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <p style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
               Top Channel
             </p>
             <div>
-              <p style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>
+              <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>
                 {channelTotals[0] ? CHANNEL_LABEL[channelTotals[0].ch] : "—"}
               </p>
               <div style={{ width: "100%", background: "rgba(255,255,255,0.05)", height: 2, borderRadius: 999, marginTop: 8, overflow: "hidden" }}>
@@ -234,7 +234,7 @@ export function ExpensesView() {
       {/* Quick Entry Bar */}
       <section style={{ ...CARD_L2, borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12, marginBottom: 32, border: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ flex: 1, position: "relative" }}>
-          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "#8e9192", fontSize: 18, fontWeight: 300, pointerEvents: "none" }}>
+          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--muted-foreground)", fontSize: 18, fontWeight: 300, pointerEvents: "none" }}>
             MVR
           </span>
           <input
@@ -244,14 +244,14 @@ export function ExpensesView() {
             onChange={(e) => setQuickAmount(e.target.value)}
             style={{
               width: "100%",
-              background: "rgba(255,255,255,0.05)",
+              background: "var(--muted)",
               border: "none",
               borderRadius: 10,
               paddingLeft: 52,
               paddingRight: 16,
               paddingTop: 12,
               paddingBottom: 12,
-              color: "#ffffff",
+              color: "var(--foreground)",
               fontSize: 22,
               fontWeight: 300,
               letterSpacing: "-0.03em",
@@ -266,11 +266,11 @@ export function ExpensesView() {
             onChange={(e) => setQuickCategory(e.target.value as SpendChannel)}
             style={{
               width: "100%",
-              background: "rgba(255,255,255,0.05)",
+              background: "var(--muted)",
               border: "none",
               borderRadius: 10,
               padding: "12px 16px",
-              color: "#c7c6cb",
+              color: "var(--muted-foreground)",
               fontSize: 14,
               outline: "none",
               appearance: "none",
@@ -309,9 +309,9 @@ export function ExpensesView() {
         {/* Categories */}
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Categories</h2>
+            <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Categories</h2>
             <button
-              style={{ color: "#8e9192", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", background: "none", border: "none", cursor: "pointer" }}
+              style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", background: "none", border: "none", cursor: "pointer" }}
               onClick={() => { setEditingRow(undefined); setShowLogSheet(true); }}
             >
               VIEW ALL
@@ -329,18 +329,18 @@ export function ExpensesView() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span className="material-symbols-outlined" style={{ color: "#ffffff", fontSize: 22 }}>{cat.icon}</span>
+                      <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 22 }}>{cat.icon}</span>
                     </div>
                     <div>
-                      <p style={{ color: "#e5e2e1", fontSize: 16, fontWeight: 400, marginBottom: 2 }}>{cat.label}</p>
-                      <p style={{ color: "#8e9192", fontSize: 12, fontWeight: 500, letterSpacing: "0.05em" }}>{cat.type}</p>
+                      <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 400, marginBottom: 2 }}>{cat.label}</p>
+                      <p style={{ color: "var(--muted-foreground)", fontSize: 12, fontWeight: 500, letterSpacing: "0.05em" }}>{cat.type}</p>
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
+                    <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
                       {catTotal > 0 ? `MVR ${fmtShort(catTotal)}` : "—"}
                     </p>
-                    <p style={{ color: "#8e9192", fontSize: 12, fontWeight: 500 }}>{pct > 0 ? `${pct}% of total` : "No data"}</p>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 12, fontWeight: 500 }}>{pct > 0 ? `${pct}% of total` : "No data"}</p>
                   </div>
                 </div>
               );
@@ -351,18 +351,18 @@ export function ExpensesView() {
         {/* Recent Activity */}
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Recent Activity</h2>
+            <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Recent Activity</h2>
             <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...CARD, border: "none", borderRadius: 999, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                <span className="material-symbols-outlined" style={{ color: "#c4c7c8", fontSize: 18 }}>filter_list</span>
+                <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 18 }}>filter_list</span>
               </button>
             </div>
           </div>
           <div style={{ ...CARD, borderRadius: 16, overflow: "hidden" }}>
             {rows.length === 0 ? (
               <div style={{ padding: "40px 24px", textAlign: "center" }}>
-                <p style={{ color: "#8e9192", fontSize: 14 }}>No expenses logged yet.</p>
-                <p style={{ color: "#8e9192", fontSize: 12, marginTop: 4 }}>Use the bar above to log your first expense.</p>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>No expenses logged yet.</p>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 4 }}>Use the bar above to log your first expense.</p>
               </div>
             ) : (
               rows.slice(0, 8).map((r, i) => (
@@ -380,26 +380,26 @@ export function ExpensesView() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 999, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span className="material-symbols-outlined" style={{ color: "#c4c7c8", fontSize: 16 }}>{CHANNEL_ICON[r.channel]}</span>
+                      <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 16 }}>{CHANNEL_ICON[r.channel]}</span>
                     </div>
                     <div>
-                      <p style={{ color: "#e5e2e1", fontSize: 14, fontWeight: 400, marginBottom: 2 }}>
+                      <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 400, marginBottom: 2 }}>
                         {r.campaign_name ?? CHANNEL_LABEL[r.channel]}
                       </p>
-                      <p style={{ color: "#8e9192", fontSize: 12 }}>
+                      <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
                         {new Date(r.start_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
                       </p>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <p style={{ color: "#ffffff", fontSize: 16, fontWeight: 400, fontFeatureSettings: '"tnum"' }}>
+                    <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 400, fontFeatureSettings: '"tnum"' }}>
                       −MVR {fmt(Number(r.amount_mvr))}
                     </p>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
                       style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6 }}
                     >
-                      <span className="material-symbols-outlined" style={{ color: "#8e9192", fontSize: 16 }}>delete</span>
+                      <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 16 }}>delete</span>
                     </button>
                   </div>
                 </div>
@@ -423,14 +423,14 @@ export function ExpensesView() {
       {deleteTarget && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ ...CARD_L2, borderRadius: 20, padding: 28, width: 340, maxWidth: "90vw" }}>
-            <p style={{ color: "#ffffff", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Delete expense?</p>
-            <p style={{ color: "#8e9192", fontSize: 14, marginBottom: 24 }}>
-              <strong style={{ color: "#c7c6cb" }}>{deleteTarget.campaign_name ?? CHANNEL_LABEL[deleteTarget.channel]}</strong> will be permanently removed.
+            <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Delete expense?</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+              <strong style={{ color: "var(--muted-foreground)" }}>{deleteTarget.campaign_name ?? CHANNEL_LABEL[deleteTarget.channel]}</strong> will be permanently removed.
             </p>
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 onClick={() => setDeleteTarget(null)}
-                style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#c7c6cb", border: "none", borderRadius: 999, padding: "12px", fontSize: 14, cursor: "pointer" }}
+                style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "var(--muted-foreground)", border: "none", borderRadius: 999, padding: "12px", fontSize: 14, cursor: "pointer" }}
               >
                 Cancel
               </button>
@@ -514,18 +514,18 @@ function SpendSheet({
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    background: "rgba(255,255,255,0.05)",
+    background: "var(--muted)",
     border: "none",
     borderRadius: 10,
     padding: "12px 16px",
-    color: "#ffffff",
+    color: "var(--foreground)",
     fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
   };
 
   const labelStyle: React.CSSProperties = {
-    color: "#8e9192",
+    color: "var(--muted-foreground)",
     fontSize: 11,
     fontWeight: 500,
     letterSpacing: "0.1em",
@@ -550,10 +550,10 @@ function SpendSheet({
         <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.12)", borderRadius: 999, margin: "0 auto 24px" }} />
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
+          <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
             {editing ? "Edit Expense" : "Log Expense"}
           </h2>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 999, width: 36, height: 36, cursor: "pointer", color: "#8e9192", fontSize: 20 }}>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 999, width: 36, height: 36, cursor: "pointer", color: "var(--muted-foreground)", fontSize: 20 }}>
             ×
           </button>
         </div>
@@ -617,7 +617,7 @@ function SpendSheet({
                 return s ? (
                   <span key={sid} style={{ background: "rgba(255,255,255,0.1)", color: "#ffffff", borderRadius: 6, padding: "3px 10px", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
                     {s.brand_name} {s.variant_display}
-                    <button onClick={() => toggleSku(sid)} style={{ background: "none", border: "none", color: "#8e9192", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
+                    <button onClick={() => toggleSku(sid)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
                   </span>
                 ) : null;
               })}
@@ -631,7 +631,7 @@ function SpendSheet({
           />
           <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, maxHeight: 160, overflowY: "auto" }}>
             {filteredSkus.length === 0 ? (
-              <p style={{ color: "#8e9192", fontSize: 12, padding: "10px 14px" }}>No matches</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 12, padding: "10px 14px" }}>No matches</p>
             ) : filteredSkus.map((s, i) => (
               <button
                 key={s.id}
@@ -644,12 +644,12 @@ function SpendSheet({
                   background: selectedSkuIds.includes(s.id) ? "rgba(255,255,255,0.08)" : "transparent",
                   border: "none",
                   borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                  color: "#e5e2e1",
+                  color: "var(--foreground)",
                   cursor: "pointer",
                 }}
               >
                 {s.brand_name} › {s.model_name} › {s.variant_display}
-                {selectedSkuIds.includes(s.id) && <span style={{ color: "#ffffff", marginLeft: 8, fontSize: 11 }}>✓</span>}
+                {selectedSkuIds.includes(s.id) && <span style={{ color: "var(--foreground)", marginLeft: 8, fontSize: 11 }}>✓</span>}
               </button>
             ))}
           </div>
@@ -669,7 +669,7 @@ function SpendSheet({
         <div style={{ display: "flex", gap: 12 }}>
           <button
             onClick={onClose}
-            style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#c7c6cb", border: "none", borderRadius: 999, padding: "14px", fontSize: 14, cursor: "pointer" }}
+            style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "var(--muted-foreground)", border: "none", borderRadius: 999, padding: "14px", fontSize: 14, cursor: "pointer" }}
           >
             Cancel
           </button>
