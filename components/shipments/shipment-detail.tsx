@@ -13,26 +13,8 @@ import {
   Lock,
   AlertTriangle,
   Truck,
+  ChevronDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   getShipment,
   listShipmentLines,
@@ -42,7 +24,6 @@ import {
   updateShipmentLine,
   deleteShipmentLine,
   confirmGrn,
-  voidGrn,
   forceVoidGrn,
   type ShipmentRow,
   type ShipmentLineRow,
@@ -52,13 +33,59 @@ import {
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
 
-const STATUS_LABEL: Record<ShipmentStatus, string> = {
-  draft: "Draft",
-  ordered: "Ordered",
-  in_transit: "In Transit",
-  arrived: "Arrived",
-  grn_confirmed: "Locked / Received",
+/* ── Style helpers ───────────────────────────────────────────────────────── */
+
+const CARD: React.CSSProperties = {
+  background: "var(--glass-1)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  borderRadius: 16,
 };
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,0.06)",
+  color: "var(--foreground)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: 10,
+  padding: "10px 12px",
+  fontSize: 14,
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const disabledInputStyle: React.CSSProperties = {
+  ...inputStyle,
+  opacity: 0.5,
+  cursor: "not-allowed",
+};
+
+const labelStyle: React.CSSProperties = {
+  color: "var(--muted-foreground)",
+  fontSize: 11,
+  fontWeight: 500,
+  marginBottom: 6,
+  display: "block",
+};
+
+/* ── Status ──────────────────────────────────────────────────────────────── */
+
+const STATUS_OPTIONS: { value: ShipmentStatus; label: string }[] = [
+  { value: "draft",         label: "Draft" },
+  { value: "ordered",       label: "Ordered" },
+  { value: "in_transit",    label: "In Transit" },
+  { value: "arrived",       label: "Arrived" },
+];
+
+const STATUS_COLOR: Record<ShipmentStatus, string> = {
+  draft:         "rgba(255,255,255,0.15)",
+  ordered:       "rgba(96,165,250,0.3)",
+  in_transit:    "rgba(251,146,60,0.3)",
+  arrived:       "rgba(163,230,53,0.3)",
+  grn_confirmed: "rgba(74,222,128,0.3)",
+};
+
+/* ── Main component ──────────────────────────────────────────────────────── */
 
 export function ShipmentDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -69,15 +96,16 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [godowns, setGodowns] = useState<GodownRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState(false);
-  const [deleteShipmentDialog, setDeleteShipmentDialog] = useState(false);
-  const [deletingShipment, setDeletingShipment] = useState(false);
-  const [voidDialog, setVoidDialog] = useState(false);
   const [voiding, setVoiding] = useState(false);
-  const [deleteLineDialog, setDeleteLineDialog] = useState<ShipmentLineRow | null>(null);
+  const [deletingShipment, setDeletingShipment] = useState(false);
   const [deletingLine, setDeletingLine] = useState(false);
-  const [lineDialog, setLineDialog] = useState<{ open: boolean; editing?: ShipmentLineRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
+
+  // sheet panels
+  type Panel = "confirmGrn" | "voidGrn" | "deleteShipment" | "deleteLine" | "addLine" | null;
+  const [panel, setPanel] = useState<Panel>(null);
+  const [editingLine, setEditingLine] = useState<ShipmentLineRow | undefined>();
+  const [pendingDeleteLine, setPendingDeleteLine] = useState<ShipmentLineRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,10 +131,11 @@ export function ShipmentDetail({ id }: { id: string }) {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
-  const isAdmin = role === "admin";
-  const locked = shipment?.status === "grn_confirmed";
 
-  // ── Live landed-cost preview ───────────────────────────────────────────
+  const isAdmin = role === "admin";
+  const locked  = shipment?.status === "grn_confirmed";
+
+  /* ── Live landed-cost preview ──────────────────────────────────────────── */
   const preview = useMemo(() => {
     if (!shipment) return null;
     const idr = shipment.rate_idr_to_mvr ?? 0;
@@ -129,13 +158,13 @@ export function ShipmentDetail({ id }: { id: string }) {
     const linesPreview = lines.map((l) => {
       const sku = skus.find((s) => s.id === l.sku_id);
       const fxToMvr = l.fob_currency === "IDR" ? idr : l.fob_currency === "USD" ? usd : 1;
-      const fobMvr = l.qty_cartons * l.fob_per_carton * fxToMvr;
+      const fobMvr   = l.qty_cartons * l.fob_per_carton * fxToMvr;
       const cbmShare = (l.qty_cartons * l.cbm_per_carton) / totalCbm;
       const apportioned = cbmShare * poolMvr;
-      const lineTotal = fobMvr + apportioned;
-      const perCarton = lineTotal / l.qty_cartons;
-      const perPack = sku ? perCarton / sku.packs_per_carton : 0;
-      const perPiece = sku ? perPack / sku.pcs_per_pack : 0;
+      const lineTotal   = fobMvr + apportioned;
+      const perCarton   = lineTotal / l.qty_cartons;
+      const perPack     = sku ? perCarton / sku.packs_per_carton : 0;
+      const perPiece    = sku ? perPack / sku.pcs_per_pack : 0;
       return { line: l, sku, fobMvr, apportioned, lineTotal, perCarton, perPack, perPiece };
     });
 
@@ -143,7 +172,7 @@ export function ShipmentDetail({ id }: { id: string }) {
     return { totalCbm, freightMvr, localMvr, poolMvr, lines: linesPreview, grandTotal };
   }, [shipment, lines, skus]);
 
-  // ── Header changes ─────────────────────────────────────────────────────
+  /* ── Header patch ──────────────────────────────────────────────────────── */
   async function patch(field: keyof ShipmentRow, value: number | string | boolean | null) {
     if (!shipment || locked) return;
     try {
@@ -160,7 +189,7 @@ export function ShipmentDetail({ id }: { id: string }) {
     try {
       await confirmGrn(shipment.id);
       toast.success("GRN confirmed — stock is now live");
-      setConfirmDialog(false);
+      setPanel(null);
       load();
     } catch (e) {
       toast.error((e as Error).message);
@@ -169,316 +198,274 @@ export function ShipmentDetail({ id }: { id: string }) {
     }
   }
 
+  /* ── Loading / not found ───────────────────────────────────────────────── */
   if (loading) {
     return (
-      <div className="glass p-12 flex flex-col items-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading shipment…</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
-
   if (!shipment) {
     return (
-      <div className="glass p-12 text-center text-muted-foreground">
-        Shipment not found.
-        <div className="mt-4">
-          <Link href="/shipments" className="text-primary text-sm hover:underline">Back to shipments</Link>
-        </div>
+      <div style={{ padding: 24 }}>
+        <p style={{ color: "var(--muted-foreground)" }}>Shipment not found.</p>
+        <Link href="/shipments" style={{ color: "var(--foreground)", fontSize: 14, marginTop: 12, display: "block" }}>← Back</Link>
       </div>
     );
   }
 
+  /* ── Render ────────────────────────────────────────────────────────────── */
   return (
-    <div className="space-y-4">
-      {/* Top bar */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/shipments"
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Shipment</p>
-            <h1 className="text-xl sm:text-2xl font-semibold text-foreground truncate">{shipment.reference}</h1>
-          </div>
+    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 140px 0" }}>
+
+      {/* ── Top bar ───────────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <Link href="/shipments" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)", textDecoration: "none", flexShrink: 0 }}>
+          <ArrowLeft style={{ width: 18, height: 18 }} />
+        </Link>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>Shipment</p>
+          <h1 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>{shipment.reference}</h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {locked && (
-            <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider rounded px-2 py-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
-              <Lock className="h-3 w-3" /> Locked
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", background: "rgba(74,222,128,0.12)", color: "#4ade80", borderRadius: 999, padding: "4px 10px" }}>
+              <Lock style={{ width: 10, height: 10 }} /> Locked
             </span>
           )}
-          {isAdmin && locked && (
+          {isAdmin && (
             <button
-              onClick={() => setVoidDialog(true)}
-              className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
-              title="Void GRN & delete (admin)"
+              onClick={() => locked ? setPanel("voidGrn") : setPanel("deleteShipment")}
+              style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,59,48,0.08)", border: "none", color: "#ff3b30", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              title={locked ? "Void GRN & delete" : "Delete shipment"}
             >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-          {isAdmin && !locked && (
-            <button
-              onClick={() => setDeleteShipmentDialog(true)}
-              className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
-              title="Delete (admin)"
-            >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 style={{ width: 16, height: 16 }} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Header card */}
-      <div className="glass p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-medium text-foreground">Header</h2>
-          {!locked && (
-            <Select
-              value={shipment.status}
-              onValueChange={(v) => v && patch("status", v as ShipmentStatus)}
-            >
-              <SelectTrigger className="w-[180px] h-9 text-xs">
-                <SelectValue>{STATUS_LABEL[shipment.status]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(STATUS_LABEL) as ShipmentStatus[])
-                  .filter((s) => s !== "grn_confirmed")
-                  .map((s) => (
-                    <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+      {/* ── Status + supplier row ─────────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div>
+          <span style={labelStyle}>Status</span>
+          {locked ? (
+            <div style={{ ...inputStyle, display: "flex", alignItems: "center", gap: 8, background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)" }}>
+              <Truck style={{ width: 14, height: 14, color: "#4ade80", flexShrink: 0 }} />
+              <span style={{ color: "#4ade80", fontSize: 14, fontWeight: 600 }}>Received</span>
+            </div>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <select
+                value={shipment.status}
+                onChange={(e) => patch("status", e.target.value as ShipmentStatus)}
+                style={{ ...inputStyle, appearance: "none", paddingRight: 32, background: STATUS_COLOR[shipment.status] }}
+              >
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <ChevronDown style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--muted-foreground)", pointerEvents: "none" }} />
+            </div>
           )}
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Supplier</Label>
-            <Select
+        <div>
+          <span style={labelStyle}>Supplier</span>
+          <div style={{ position: "relative" }}>
+            <select
               value={shipment.supplier_id ?? ""}
-              onValueChange={(v) => v && patch("supplier_id", v)}
+              onChange={(e) => e.target.value && patch("supplier_id", e.target.value)}
+              disabled={locked}
+              style={{ ...(locked ? disabledInputStyle : inputStyle), appearance: "none", paddingRight: 32 }}
             >
-              <SelectTrigger disabled={locked}>
-                <SelectValue>{suppliers.find((s) => s.id === shipment.supplier_id)?.name ?? "—"}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Input
-              value={shipment.notes ?? ""}
-              onChange={(e) => setShipment({ ...shipment, notes: e.target.value })}
-              onBlur={(e) => patch("notes", e.target.value || null)}
-              disabled={locked}
-              placeholder="Optional"
-            />
+              <option value="">Select…</option>
+              {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <ChevronDown style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--muted-foreground)", pointerEvents: "none" }} />
           </div>
         </div>
+      </div>
 
-        {/* Forex */}
-        <div className="border-t border-border pt-4 space-y-3">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Forex Rates (locked at GRN)</p>
-          <p className="text-[11px] text-muted-foreground -mt-2">Enter rates as your bank quotes them. The system handles the conversion.</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* 1 USD = X IDR — stored as IDR→USD = 1/X */}
-            <NumberField
-              label="1 USD = ___ IDR *"
-              value={
-                shipment.rate_idr_to_usd && shipment.rate_idr_to_usd > 0
-                  ? Math.round(1 / shipment.rate_idr_to_usd)
-                  : null
-              }
-              onChange={async (usdToIdr) => {
-                if (!usdToIdr || usdToIdr <= 0) {
-                  await patch("rate_idr_to_usd", null);
-                  await patch("rate_idr_to_mvr", null);
-                  return;
-                }
-                const idrToUsd = 1 / usdToIdr;
-                await patch("rate_idr_to_usd", idrToUsd);
-                // Recompute IDR→MVR = USD→MVR ÷ USD→IDR
-                const usdMvr = shipment.rate_usd_to_mvr;
-                if (usdMvr) await patch("rate_idr_to_mvr", usdMvr / usdToIdr);
-              }}
-              disabled={locked}
-              step="1"
-              hint="e.g. 16420"
+      {/* ── Forex rates ──────────────────────────────────────────────────── */}
+      <div style={{ ...CARD, padding: 20, marginBottom: 10 }}>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>Forex Rates</p>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginBottom: 16 }}>Locked at GRN — enter your bank&apos;s rates.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <ForexField
+            label="1 USD = ___ IDR *"
+            value={shipment.rate_idr_to_usd && shipment.rate_idr_to_usd > 0 ? Math.round(1 / shipment.rate_idr_to_usd) : null}
+            onChange={async (usdToIdr) => {
+              if (!usdToIdr || usdToIdr <= 0) { await patch("rate_idr_to_usd", null); await patch("rate_idr_to_mvr", null); return; }
+              const idrToUsd = 1 / usdToIdr;
+              await patch("rate_idr_to_usd", idrToUsd);
+              const usdMvr = shipment.rate_usd_to_mvr;
+              if (usdMvr) await patch("rate_idr_to_mvr", usdMvr / usdToIdr);
+            }}
+            disabled={locked}
+            hint="e.g. 16420"
+          />
+          <ForexField
+            label="1 USD = ___ MVR *"
+            value={shipment.rate_usd_to_mvr}
+            onChange={async (usdMvr) => {
+              await patch("rate_usd_to_mvr", usdMvr);
+              const idrUsd = shipment.rate_idr_to_usd;
+              if (idrUsd && idrUsd > 0 && usdMvr) await patch("rate_idr_to_mvr", usdMvr * idrUsd);
+            }}
+            disabled={locked}
+            hint="e.g. 15.42"
+          />
+          <div>
+            <span style={labelStyle}>1 IDR = ___ MVR (auto)</span>
+            <input
+              type="text"
+              readOnly
+              value={shipment.rate_idr_to_mvr != null ? shipment.rate_idr_to_mvr.toFixed(8) : ""}
+              style={{ ...disabledInputStyle, fontFamily: "monospace", fontSize: 12 }}
             />
-
-            {/* 1 USD = Y MVR — stored as-is */}
-            <NumberField
-              label="1 USD = ___ MVR *"
-              value={shipment.rate_usd_to_mvr}
-              onChange={async (usdMvr) => {
-                await patch("rate_usd_to_mvr", usdMvr);
-                // Recompute IDR→MVR = USD→MVR ÷ USD→IDR
-                const idrUsd = shipment.rate_idr_to_usd;
-                if (idrUsd && idrUsd > 0 && usdMvr) {
-                  await patch("rate_idr_to_mvr", usdMvr * idrUsd);
-                  // (idrUsd is already 1/usdToIdr, so multiplying gives MVR per IDR)
-                }
-              }}
-              disabled={locked}
-              step="0.01"
-              hint="e.g. 15.42"
-            />
-
-            {/* Derived: 1 IDR = ___ MVR */}
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">1 IDR = ___ MVR (auto)</Label>
-              <Input
-                type="text"
-                value={
-                  shipment.rate_idr_to_mvr !== null && shipment.rate_idr_to_mvr !== undefined
-                    ? shipment.rate_idr_to_mvr.toFixed(8)
-                    : ""
-                }
-                disabled
-                className="bg-muted/50 text-foreground font-mono"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                = (USD→MVR) ÷ (USD→IDR)
-              </p>
-            </div>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 4 }}>= USD→MVR ÷ USD→IDR</p>
           </div>
         </div>
+      </div>
+
+      {/* ── Freight + Local costs side by side ───────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
 
         {/* Freight */}
-        <div className="border-t border-border pt-4 space-y-3">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Freight</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={shipment.shared_container}
-                  onChange={(e) => patch("shared_container", e.target.checked)}
-                  disabled={locked}
-                  className="h-4 w-4 rounded border-border"
-                />
-                Shared container
-              </Label>
-            </div>
-            {shipment.shared_container && (
-              <NumberField
-                label="Total container freight (USD)"
-                value={shipment.total_container_freight_usd}
-                onChange={(v) => patch("total_container_freight_usd", v)}
-                disabled={locked}
-                hint="Reference only"
-              />
-            )}
-          </div>
+        <div style={{ ...CARD, padding: 20 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 16 }}>Freight</p>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, cursor: locked ? "not-allowed" : "pointer" }}>
+            <input
+              type="checkbox"
+              checked={shipment.shared_container}
+              onChange={(e) => patch("shared_container", e.target.checked)}
+              disabled={locked}
+              style={{ width: 16, height: 16 }}
+            />
+            <span style={{ color: "var(--foreground)", fontSize: 13 }}>Shared container</span>
+          </label>
+
           <NumberField
-            label="My share of freight (USD) *"
+            label="My share (USD) *"
             value={shipment.my_freight_share_usd}
             onChange={(v) => patch("my_freight_share_usd", v ?? 0)}
             disabled={locked}
-            hint="The amount you actually pay. Negotiated with partner."
-            required
           />
-          <Textarea
-            value={shipment.freight_share_notes ?? ""}
-            onChange={(e) => setShipment({ ...shipment, freight_share_notes: e.target.value })}
-            onBlur={(e) => patch("freight_share_notes", e.target.value || null)}
-            disabled={locked}
-            placeholder="How was the share calculated? (optional)"
-            className="min-h-[50px] text-sm"
-          />
+
+          {preview && (
+            <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>= MVR</p>
+              <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>{preview.freightMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+            </div>
+          )}
         </div>
 
         {/* Local costs */}
-        <div className="border-t border-border pt-4 space-y-3">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Local Costs (MVR)</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <NumberField label="Customs Duty"   value={shipment.customs_duty_mvr} onChange={(v) => patch("customs_duty_mvr", v ?? 0)} disabled={locked} />
-            <NumberField label="MPL / Port"     value={shipment.mpl_charges_mvr}  onChange={(v) => patch("mpl_charges_mvr",  v ?? 0)} disabled={locked} />
-            <NumberField label="Agent Fee"      value={shipment.agent_fee_mvr}    onChange={(v) => patch("agent_fee_mvr",    v ?? 0)} disabled={locked} />
-            <NumberField label="Last Mile"      value={shipment.last_mile_mvr}    onChange={(v) => patch("last_mile_mvr",    v ?? 0)} disabled={locked} />
-            <NumberField label="Insurance"      value={shipment.insurance_mvr}    onChange={(v) => patch("insurance_mvr",    v ?? 0)} disabled={locked} />
-            <NumberField label="Other"          value={shipment.other_mvr}        onChange={(v) => patch("other_mvr",        v ?? 0)} disabled={locked} />
+        <div style={{ ...CARD, padding: 20 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 16 }}>Local Costs (MVR)</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <NumberField label="Customs"   value={shipment.customs_duty_mvr} onChange={(v) => patch("customs_duty_mvr", v ?? 0)} disabled={locked} compact />
+            <NumberField label="MPL / Port" value={shipment.mpl_charges_mvr}  onChange={(v) => patch("mpl_charges_mvr",  v ?? 0)} disabled={locked} compact />
+            <NumberField label="Agent"      value={shipment.agent_fee_mvr}    onChange={(v) => patch("agent_fee_mvr",    v ?? 0)} disabled={locked} compact />
+            <NumberField label="Last Mile"  value={shipment.last_mile_mvr}    onChange={(v) => patch("last_mile_mvr",    v ?? 0)} disabled={locked} compact />
+            <NumberField label="Insurance"  value={shipment.insurance_mvr}    onChange={(v) => patch("insurance_mvr",    v ?? 0)} disabled={locked} compact />
+            <NumberField label="Other"      value={shipment.other_mvr}        onChange={(v) => patch("other_mvr",        v ?? 0)} disabled={locked} compact />
           </div>
+          {preview && (
+            <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>Total local</p>
+              <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>{preview.localMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Lines */}
-      <div className="glass p-5 space-y-3">
-        <div className="flex items-center justify-between">
+      {/* ── Cost preview banner ───────────────────────────────────────────── */}
+      {preview && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 10 }}>
+          {[
+            { label: "Total CBM", value: preview.totalCbm.toFixed(4), sub: `${lines.length} line${lines.length !== 1 ? "s" : ""}` },
+            { label: "Freight (MVR)", value: preview.freightMvr.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+            { label: "Local (MVR)",   value: preview.localMvr.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+            { label: "Total Landed",  value: "MVR " + preview.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }), highlight: true },
+          ].map((s) => (
+            <div key={s.label} style={{ ...CARD, padding: "14px 16px" }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</p>
+              <p style={{ color: s.highlight ? "#4ade80" : "var(--foreground)", fontSize: 18, fontWeight: 700 }}>{s.value}</p>
+              {s.sub && <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>{s.sub}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Line items ────────────────────────────────────────────────────── */}
+      <div style={{ ...CARD, padding: 20, marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <h2 className="text-base font-medium text-foreground">Line items</h2>
-            <p className="text-xs text-muted-foreground">{lines.length} line{lines.length === 1 ? "" : "s"}</p>
+            <h2 style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>Line items</h2>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>{lines.length} line{lines.length !== 1 ? "s" : ""} · apportioned by CBM</p>
           </div>
           {!locked && (
-            <Button onClick={() => setLineDialog({ open: true })} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Line
-            </Button>
+            <button
+              onClick={() => { setEditingLine(undefined); setPanel("addLine"); }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "8px 16px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}
+            >
+              <Plus style={{ width: 14, height: 14 }} /> Add Line
+            </button>
           )}
         </div>
 
         {lines.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No lines yet.</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 13, textAlign: "center", padding: "24px 0" }}>No lines yet. Add a product to start.</p>
         ) : (
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {lines.map((l) => {
-              const sku = skus.find((s) => s.id === l.sku_id);
-              const godown = godowns.find((g) => g.id === l.destination_godown_id);
+              const sku     = skus.find((s) => s.id === l.sku_id);
+              const godown  = godowns.find((g) => g.id === l.destination_godown_id);
               const livePer = preview?.lines.find((p) => p.line.id === l.id);
               return (
-                <div key={l.id} className="glass-flat p-3 space-y-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-foreground truncate">
+                <div key={l.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
                         {sku?.full_path ?? "Unknown SKU"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
                         {l.qty_cartons} ctn · {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
-                        · {Number(l.cbm_per_carton).toFixed(4)} CBM
+                        · {Number(l.cbm_per_carton).toFixed(4)} CBM/ctn
                         {godown && <> · → {godown.name}</>}
                       </p>
                     </div>
                     {!locked && (
-                      <div className="flex gap-1 shrink-0">
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                         <button
-                          onClick={() => setLineDialog({ open: true, editing: l })}
-                          className="text-xs text-primary hover:opacity-80 px-2"
-                        >
-                          Edit
-                        </button>
+                          onClick={() => { setEditingLine(l); setPanel("addLine"); }}
+                          style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 12, cursor: "pointer", padding: "4px 8px" }}
+                        >Edit</button>
                         <button
-                          onClick={() => setDeleteLineDialog(l)}
-                          className="text-xs text-red-500 hover:opacity-80 px-2"
-                        >
-                          Remove
-                        </button>
+                          onClick={() => { setPendingDeleteLine(l); setPanel("deleteLine"); }}
+                          style={{ background: "none", border: "none", color: "#ff3b30", fontSize: 12, cursor: "pointer", padding: "4px 8px" }}
+                        >Remove</button>
                       </div>
                     )}
                   </div>
+
+                  {/* Per-line landed cost breakdown */}
                   {livePer && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-2 border-t border-border">
-                      <div>
-                        <span className="text-muted-foreground">Total: </span>
-                        <span className="text-foreground">{livePer.lineTotal.toFixed(0)} MVR</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">/ctn: </span>
-                        <span className="text-foreground">{livePer.perCarton.toFixed(0)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">/pack: </span>
-                        <span className="text-foreground">{livePer.perPack.toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">/piece: </span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">{livePer.perPiece.toFixed(3)}</span>
-                      </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                      {[
+                        { label: "Total", value: "MVR " + livePer.lineTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+                        { label: "/carton", value: livePer.perCarton.toFixed(0) },
+                        { label: "/pack", value: livePer.perPack.toFixed(2) },
+                        { label: "/piece", value: livePer.perPiece.toFixed(3), highlight: true },
+                      ].map((c) => (
+                        <div key={c.label} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: "8px 10px" }}>
+                          <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>{c.label}</p>
+                          <p style={{ color: c.highlight ? "#4ade80" : "var(--foreground)", fontSize: 14, fontWeight: 600 }}>{c.value}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -488,330 +475,321 @@ export function ShipmentDetail({ id }: { id: string }) {
         )}
       </div>
 
-      {/* Live preview totals */}
-      {preview && (
-        <div className="glass p-5 space-y-3">
-          <h2 className="text-base font-medium text-foreground">Cost preview</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            <Stat label="Total CBM" value={preview.totalCbm.toFixed(4)} />
-            <Stat label="Freight (MVR)" value={preview.freightMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} />
-            <Stat label="Local (MVR)" value={preview.localMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} />
-            <Stat label="Total Landed (MVR)" value={preview.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} highlight />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Apportioned by CBM. FOB is direct-to-line. Confirm GRN to lock these numbers and create stock.
-          </p>
-        </div>
-      )}
+      {/* ── Notes (optional, collapsed by default) ───────────────────────── */}
+      <NotesField value={shipment.notes} locked={locked} onSave={(v) => patch("notes", v)} />
 
-      {/* GRN action */}
-      {!locked && (
-        <div className="glass p-5 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-4 w-4" />
-            </div>
-            <div className="space-y-1 flex-1">
-              <h3 className="text-base font-medium text-foreground">Confirm Goods Receipt (GRN)</h3>
-              <p className="text-xs text-muted-foreground">
-                Locks forex rates and costs. Creates inventory batches in the destination godowns.
-                Stock becomes available for sale immediately.
+      {/* ── GRN action / locked state ─────────────────────────────────────── */}
+      {!locked ? (
+        <button
+          onClick={() => setPanel("confirmGrn")}
+          disabled={!preview || lines.length === 0}
+          style={{
+            width: "100%", background: preview && lines.length > 0 ? "var(--foreground)" : "rgba(255,255,255,0.1)",
+            color: preview && lines.length > 0 ? "var(--background)" : "var(--muted-foreground)",
+            border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700,
+            letterSpacing: "0.06em", textTransform: "uppercase",
+            cursor: preview && lines.length > 0 ? "pointer" : "not-allowed",
+          }}
+        >
+          Confirm GRN — Lock Costs & Create Stock →
+        </button>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 14, border: "1px solid rgba(74,222,128,0.15)" }}>
+          <Truck style={{ color: "#4ade80", width: 20, height: 20, flexShrink: 0 }} />
+          <div>
+            <p style={{ color: "#4ade80", fontSize: 14, fontWeight: 700 }}>Goods received — stock live</p>
+            {shipment.grn_confirmed_at && (
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
+                Confirmed {new Date(shipment.grn_confirmed_at).toLocaleString()}
               </p>
-            </div>
+            )}
           </div>
-          <Button
-            onClick={() => setConfirmDialog(true)}
-            disabled={!preview || lines.length === 0}
-            className="w-full sm:w-auto"
+        </div>
+      )}
+
+      {/* ── Bottom sheets ─────────────────────────────────────────────────── */}
+
+      {/* Confirm GRN */}
+      <Sheet open={panel === "confirmGrn"} onClose={() => setPanel(null)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(251,191,36,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <AlertTriangle style={{ color: "#fbbf24", width: 20, height: 20 }} />
+          </div>
+          <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600 }}>Confirm GRN?</h2>
+        </div>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 20 }}>
+          Forex rates and all costs will be <strong style={{ color: "var(--foreground)" }}>permanently locked</strong>. Stock is created in the destination warehouses and becomes available for sale immediately.
+        </p>
+        {preview && (
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16, marginBottom: 24 }}>
+            {[
+              { label: "Lines", value: String(lines.length) },
+              { label: "Total CBM", value: preview.totalCbm.toFixed(4) },
+              { label: "Total Landed (MVR)", value: preview.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }), bold: true },
+            ].map((r) => (
+              <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <span style={{ color: "var(--muted-foreground)", fontSize: 13 }}>{r.label}</span>
+                <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: r.bold ? 700 : 500 }}>{r.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleConfirmGrn} disabled={confirming} style={{ ...primaryBtn, background: "#16a34a" }}>
+            {confirming ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Confirm & Lock"}
+          </button>
+        </div>
+      </Sheet>
+
+      {/* Void GRN */}
+      <Sheet open={panel === "voidGrn"} onClose={() => setPanel(null)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,59,48,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <AlertTriangle style={{ color: "#ff3b30", width: 20, height: 20 }} />
+          </div>
+          <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600 }}>Void GRN & Delete?</h2>
+        </div>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+          <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> will be completely removed — all inventory batches, stock movements, and any linked sales orders will be deleted. This cannot be undone.
+        </p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button
+            onClick={async () => {
+              setVoiding(true);
+              try {
+                await forceVoidGrn(shipment.id);
+                toast.success("Shipment voided — all linked data deleted");
+                router.push("/shipments");
+              } catch (e) { toast.error((e as Error).message); }
+              finally { setVoiding(false); }
+            }}
+            disabled={voiding}
+            style={{ ...primaryBtn, background: "#ff3b30" }}
           >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Confirm GRN
-          </Button>
+            {voiding ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Void & Delete"}
+          </button>
         </div>
-      )}
+      </Sheet>
 
-      {locked && (
-        <div className="glass-flat p-4 flex items-start gap-3">
-          <Truck className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="text-foreground">Goods received and stock created.</p>
-            <p className="text-xs text-muted-foreground">
-              Confirmed {shipment.grn_confirmed_at ? new Date(shipment.grn_confirmed_at).toLocaleString() : ""}.
-              Costs locked.
-            </p>
-          </div>
+      {/* Delete shipment */}
+      <Sheet open={panel === "deleteShipment"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Shipment?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+          <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> and all its lines will be permanently removed.
+        </p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button
+            onClick={async () => {
+              setDeletingShipment(true);
+              try {
+                await deleteShipment(shipment.id);
+                toast.success("Shipment deleted");
+                router.push("/shipments");
+              } catch (e) { toast.error((e as Error).message); }
+              finally { setDeletingShipment(false); }
+            }}
+            disabled={deletingShipment}
+            style={{ ...primaryBtn, background: "#ff3b30" }}
+          >
+            {deletingShipment ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Delete"}
+          </button>
         </div>
+      </Sheet>
+
+      {/* Delete line */}
+      <Sheet open={panel === "deleteLine"} onClose={() => { setPendingDeleteLine(null); setPanel(null); }}>
+        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove line?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+          {pendingDeleteLine && (() => {
+            const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
+            return sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "This line";
+          })()} will be removed from the shipment.
+        </p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} style={ghostBtn}>Cancel</button>
+          <button
+            onClick={async () => {
+              if (!pendingDeleteLine) return;
+              setDeletingLine(true);
+              try {
+                await deleteShipmentLine(pendingDeleteLine.id);
+                toast.success("Line removed");
+                setPendingDeleteLine(null);
+                setPanel(null);
+                load();
+              } catch (e) { toast.error((e as Error).message); }
+              finally { setDeletingLine(false); }
+            }}
+            disabled={deletingLine}
+            style={{ ...primaryBtn, background: "#ff3b30" }}
+          >
+            {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
+          </button>
+        </div>
+      </Sheet>
+
+      {/* Add / edit line */}
+      {panel === "addLine" && (
+        <LineDialog
+          editing={editingLine}
+          shipmentId={id}
+          skus={skus}
+          godowns={godowns}
+          onClose={() => { setEditingLine(undefined); setPanel(null); }}
+          onSaved={() => { setEditingLine(undefined); setPanel(null); load(); }}
+        />
       )}
-
-      {/* Line dialog */}
-      <LineDialog
-        open={lineDialog.open}
-        editing={lineDialog.editing}
-        shipmentId={id}
-        skus={skus}
-        godowns={godowns}
-        onOpenChange={(o) => setLineDialog({ open: o })}
-        onSaved={load}
-      />
-
-      {/* Confirm GRN dialog */}
-      <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <DialogTitle>Confirm GRN — irreversible</DialogTitle>
-            </div>
-            <DialogDescription>
-              All forex rates and costs are locked permanently. Stock is created in the destination godowns and becomes available for sale.
-            </DialogDescription>
-          </DialogHeader>
-          {preview && (
-            <div className="rounded-xl bg-secondary/50 p-3 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Lines</span>
-                <span className="text-foreground">{lines.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total CBM</span>
-                <span className="text-foreground">{preview.totalCbm.toFixed(4)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total landed (MVR)</span>
-                <span className="text-foreground font-medium">{preview.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmDialog(false)}>Cancel</Button>
-            <Button onClick={handleConfirmGrn} disabled={confirming} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm & lock"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete shipment dialog */}
-      <Dialog open={deleteShipmentDialog} onOpenChange={setDeleteShipmentDialog}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <DialogTitle>Delete shipment?</DialogTitle>
-            </div>
-            <DialogDescription>
-              <strong>{shipment.reference}</strong> and all its lines will be permanently removed.
-              This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteShipmentDialog(false)}>Cancel</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={deletingShipment}
-              onClick={async () => {
-                setDeletingShipment(true);
-                try {
-                  await deleteShipment(shipment.id);
-                  toast.success("Shipment deleted");
-                  router.push("/shipments");
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally {
-                  setDeletingShipment(false);
-                }
-              }}
-            >
-              {deletingShipment ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Void GRN dialog (admin, locked shipments only) */}
-      <Dialog open={voidDialog} onOpenChange={setVoidDialog}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <DialogTitle>Void GRN &amp; delete shipment?</DialogTitle>
-            </div>
-            <DialogDescription>
-              <strong>{shipment.reference}</strong> will be completely removed — all inventory batches,
-              stock movements, and any linked sales orders will be deleted. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setVoidDialog(false)}>Cancel</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={voiding}
-              onClick={async () => {
-                setVoiding(true);
-                try {
-                  await forceVoidGrn(shipment.id);
-                  toast.success("Shipment voided — all linked data deleted");
-                  router.push("/shipments");
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally {
-                  setVoiding(false);
-                }
-              }}
-            >
-              {voiding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Void & delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete line dialog */}
-      <Dialog open={!!deleteLineDialog} onOpenChange={(o) => { if (!o) setDeleteLineDialog(null); }}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <DialogTitle>Remove line?</DialogTitle>
-            </div>
-            <DialogDescription>
-              {deleteLineDialog && (() => {
-                const sku = skus.find((s) => s.id === deleteLineDialog.sku_id);
-                return sku
-                  ? <><strong>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</strong> will be removed from this shipment.</>
-                  : "This line will be permanently removed.";
-              })()}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteLineDialog(null)}>Cancel</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={deletingLine}
-              onClick={async () => {
-                if (!deleteLineDialog) return;
-                setDeletingLine(true);
-                try {
-                  await deleteShipmentLine(deleteLineDialog.id);
-                  toast.success("Line removed");
-                  setDeleteLineDialog(null);
-                  load();
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally {
-                  setDeletingLine(false);
-                }
-              }}
-            >
-              {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
-// ── Number field with debounced commit ────────────────────────────────
+/* ── Shared button styles ─────────────────────────────────────────────────── */
+
+const ghostBtn: React.CSSProperties = {
+  flex: 1, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)",
+  border: "none", borderRadius: 999, padding: "14px", fontSize: 14, cursor: "pointer",
+};
+const primaryBtn: React.CSSProperties = {
+  flex: 2, background: "var(--foreground)", color: "var(--background)",
+  border: "none", borderRadius: 999, padding: "14px", fontSize: 13,
+  fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer",
+};
+
+/* ── Sheet ────────────────────────────────────────────────────────────────── */
+
+function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "85vh", overflowY: "auto" }}
+      >
+        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ── NumberField ──────────────────────────────────────────────────────────── */
 
 function NumberField({
-  label,
-  value,
-  onChange,
-  disabled,
-  step = "0.01",
-  hint,
-  required,
+  label, value, onChange, disabled, hint, compact,
 }: {
   label: string;
   value: number | null | undefined;
   onChange: (v: number | null) => void;
   disabled?: boolean;
-  step?: string;
   hint?: string;
-  required?: boolean;
+  compact?: boolean;
 }) {
-  const [local, setLocal] = useState<string>(value !== null && value !== undefined ? String(value) : "");
-  useEffect(() => {
-    setLocal(value !== null && value !== undefined ? String(value) : "");
-  }, [value]);
+  const [local, setLocal] = useState<string>(value != null ? String(value) : "");
+  useEffect(() => { setLocal(value != null ? String(value) : ""); }, [value]);
+  const sz = compact ? 12 : 14;
   return (
-    <div className="space-y-2">
-      <Label>{label}{required ? " *" : ""}</Label>
-      <Input
+    <div>
+      <span style={{ ...labelStyle, fontSize: compact ? 10 : 11 }}>{label}</span>
+      <input
         type="number"
         inputMode="decimal"
-        step={step}
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         onBlur={() => {
           const num = local === "" ? null : Number(local);
-          // Only fire if the numeric value actually changed
-          const prevNum = value !== null && value !== undefined ? Number(value) : null;
+          const prevNum = value != null ? Number(value) : null;
           if (num !== prevNum) onChange(num);
         }}
         disabled={disabled}
+        style={{ ...(disabled ? disabledInputStyle : inputStyle), fontSize: sz, padding: compact ? "8px 10px" : "10px 12px" }}
       />
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 4 }}>{hint}</p>}
     </div>
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+/* ── ForexField — same as NumberField but step=1 ─────────────────────────── */
+
+function ForexField({ label, value, onChange, disabled, hint }: {
+  label: string; value: number | null | undefined;
+  onChange: (v: number | null) => Promise<void>;
+  disabled?: boolean; hint?: string;
+}) {
+  const [local, setLocal] = useState<string>(value != null ? String(value) : "");
+  useEffect(() => { setLocal(value != null ? String(value) : ""); }, [value]);
   return (
-    <div className="glass-flat p-3 rounded-xl">
-      <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
-      <p className={`text-lg font-semibold ${highlight ? "text-primary" : "text-foreground"}`}>{value}</p>
+    <div>
+      <span style={labelStyle}>{label}</span>
+      <input
+        type="number"
+        inputMode="decimal"
+        step="1"
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={async () => {
+          const num = local === "" ? null : Number(local);
+          const prev = value != null ? Number(value) : null;
+          if (num !== prev) await onChange(num);
+        }}
+        disabled={disabled}
+        style={disabled ? disabledInputStyle : inputStyle}
+      />
+      {hint && <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 4 }}>{hint}</p>}
     </div>
   );
 }
 
-// ── Line dialog ───────────────────────────────────────────────────────
+/* ── Notes collapsible ────────────────────────────────────────────────────── */
+
+function NotesField({ value, locked, onSave }: { value: string | null; locked: boolean; onSave: (v: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const [local, setLocal] = useState(value ?? "");
+  useEffect(() => { setLocal(value ?? ""); }, [value]);
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 12, cursor: "pointer", padding: "4px 0" }}
+      >
+        <ChevronDown style={{ width: 14, height: 14, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+        Notes {value ? "(1)" : "(optional)"}
+      </button>
+      {open && (
+        <textarea
+          value={local}
+          onChange={(e) => setLocal(e.target.value)}
+          onBlur={() => onSave(local || null)}
+          disabled={locked}
+          placeholder="e.g. container split rationale, broker contact, etc."
+          style={{ ...inputStyle, marginTop: 8, minHeight: 80, resize: "vertical" as const }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Line dialog (bottom sheet) ──────────────────────────────────────────── */
 
 function LineDialog({
-  open, editing, shipmentId, skus, godowns, onOpenChange, onSaved,
+  editing, shipmentId, skus, godowns, onClose, onSaved,
 }: {
-  open: boolean;
   editing?: ShipmentLineRow;
   shipmentId: string;
   skus: SkuFullRow[];
   godowns: GodownRow[];
-  onOpenChange: (o: boolean) => void;
+  onClose: () => void;
   onSaved: () => void;
 }) {
-  const [skuId, setSkuId] = useState("");
-  const [qtyCartons, setQtyCartons] = useState("");
-  const [fobPerCarton, setFobPerCarton] = useState("");
-  const [fobCurrency, setFobCurrency] = useState<FobCurrency>("IDR");
-  const [godownId, setGodownId] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    if (open) {
-      if (editing) {
-        setSkuId(editing.sku_id);
-        setQtyCartons(String(editing.qty_cartons));
-        setFobPerCarton(String(editing.fob_per_carton));
-        setFobCurrency(editing.fob_currency);
-        setGodownId(editing.destination_godown_id);
-      } else {
-        setSkuId("");
-        setQtyCartons("");
-        setFobPerCarton("");
-        setFobCurrency("IDR");
-        setGodownId(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");
-      }
-      setSearch("");
-    }
-  }, [open, editing, godowns]);
+  const [skuId, setSkuId]           = useState(editing?.sku_id ?? "");
+  const [qtyCartons, setQtyCartons] = useState(editing ? String(editing.qty_cartons) : "");
+  const [fobPerCarton, setFobPerCarton] = useState(editing ? String(editing.fob_per_carton) : "");
+  const [fobCurrency, setFobCurrency]   = useState<FobCurrency>(editing?.fob_currency ?? "IDR");
+  const [godownId, setGodownId]     = useState(editing?.destination_godown_id ?? (godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? ""));
+  const [saving, setSaving]         = useState(false);
+  const [search, setSearch]         = useState("");
 
   const sku = skus.find((s) => s.id === skuId);
 
@@ -819,20 +797,17 @@ function LineDialog({
     const term = search.trim().toLowerCase();
     const active = skus.filter((s) => s.is_active);
     if (!term) return active.slice(0, 50);
-    return active
-      .filter((s) =>
-        [s.brand_name, s.model_name, s.variant_display, s.internal_code].join(" ").toLowerCase().includes(term),
-      )
-      .slice(0, 50);
+    return active.filter((s) =>
+      [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""].join(" ").toLowerCase().includes(term),
+    ).slice(0, 50);
   }, [skus, search]);
 
   async function save() {
-    if (!skuId || !qtyCartons || !fobPerCarton || !godownId) return;
-    if (!sku) { toast.error("Pick a SKU"); return; }
+    if (!skuId || !qtyCartons || !fobPerCarton || !godownId || !sku) return;
     const parsedQty = parseInt(qtyCartons, 10);
-    if (isNaN(parsedQty) || parsedQty < 1) { toast.error("Qty must be at least 1 carton"); return; }
     const parsedFob = parseFloat(fobPerCarton);
-    if (isNaN(parsedFob) || parsedFob <= 0) { toast.error("FOB price must be greater than zero"); return; }
+    if (isNaN(parsedQty) || parsedQty < 1) { toast.error("Qty must be ≥ 1 carton"); return; }
+    if (isNaN(parsedFob) || parsedFob <= 0) { toast.error("FOB must be > 0"); return; }
     const payload = {
       shipment_id: shipmentId,
       sku_id: skuId,
@@ -847,116 +822,111 @@ function LineDialog({
       if (editing) await updateShipmentLine(editing.id, payload);
       else await createShipmentLine(payload);
       toast.success(editing ? "Line updated" : "Line added");
-      onOpenChange(false);
       onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { toast.error((err as Error).message); }
+    finally { setSaving(false); }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Edit line" : "New line"}</DialogTitle>
-          <DialogDescription>
-            FOB is per carton in the supplier&apos;s currency. CBM is taken from the SKU.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-          {/* SKU picker */}
-          <div className="space-y-2">
-            <Label>Product (SKU) *</Label>
-            {!skuId ? (
-              <>
-                <Input
-                  autoFocus
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by brand, model, code…"
-                />
-                <div className="rounded-xl border border-border max-h-[240px] overflow-y-auto bg-background/50">
-                  {filteredSkus.length === 0 ? (
-                    <p className="text-xs text-muted-foreground px-3 py-2">No SKUs match.</p>
-                  ) : (
-                    filteredSkus.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => setSkuId(s.id)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent/30 transition border-b border-border last:border-0"
-                      >
-                        <p className="text-foreground">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · {Number(s.cbm_per_carton).toFixed(4)} CBM · {s.internal_code}
-                        </p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </>
-            ) : sku ? (
-              <div className="rounded-xl border border-border p-3 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm text-foreground">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn · {Number(sku.cbm_per_carton).toFixed(4)} CBM
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "90vh", overflowY: "auto" }}
+      >
+        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{editing ? "Edit Line" : "Add Line"}</h2>
+
+        {/* SKU picker */}
+        <div style={{ marginBottom: 16 }}>
+          <span style={labelStyle}>Product *</span>
+          {!skuId ? (
+            <>
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search brand, model, code…"
+                style={inputStyle}
+              />
+              <div style={{ borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", maxHeight: 240, overflowY: "auto", marginTop: 8, background: "rgba(0,0,0,0.3)" }}>
+                {filteredSkus.length === 0 ? (
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 13, padding: 12 }}>No matches.</p>
+                ) : filteredSkus.map((s) => (
+                  <button key={s.id} onClick={() => setSkuId(s.id)}
+                    style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer" }}
+                  >
+                    <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{s.brand_name} › {s.model_name} › {s.variant_display}</p>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
+                      {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · {Number(s.cbm_per_carton).toFixed(4)} CBM · {s.internal_code}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : sku ? (
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "12px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div>
+                  <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
+                    {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn · {Number(sku.cbm_per_carton).toFixed(4)} CBM/ctn
                   </p>
                 </div>
-                <button onClick={() => setSkuId("")} className="text-xs text-primary hover:opacity-80 shrink-0">
-                  Change
-                </button>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Qty cartons *</Label>
-              <Input type="number" inputMode="numeric" min="1" step="1" value={qtyCartons} onChange={(e) => setQtyCartons(e.target.value)} placeholder="50" />
-            </div>
-            <div className="space-y-2">
-              <Label>FOB per carton *</Label>
-              <div className="flex gap-2">
-                <Input type="number" inputMode="decimal" step="0.01" value={fobPerCarton} onChange={(e) => setFobPerCarton(e.target.value)} className="flex-1" />
-                <Select value={fobCurrency} onValueChange={(v) => v && setFobCurrency(v as FobCurrency)}>
-                  <SelectTrigger className="w-24"><SelectValue>{fobCurrency}</SelectValue></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IDR">IDR</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="MVR">MVR</SelectItem>
-                  </SelectContent>
-                </Select>
+                <button onClick={() => setSkuId("")} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 12, cursor: "pointer" }}>Change</button>
               </div>
             </div>
-          </div>
+          ) : null}
+        </div>
 
-          <div className="space-y-2">
-            <Label>Destination Godown *</Label>
-            <Select value={godownId} onValueChange={(v) => v && setGodownId(v)}>
-              <SelectTrigger>
-                <SelectValue>{godowns.find((g) => g.id === godownId)?.name}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {godowns.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {godowns.length === 0 && (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400">No godowns yet — add one in Settings.</p>
-            )}
+        {/* Qty + FOB */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+          <div>
+            <span style={labelStyle}>Qty cartons *</span>
+            <input type="number" inputMode="numeric" min="1" step="1" value={qtyCartons}
+              onChange={(e) => setQtyCartons(e.target.value)} placeholder="50" style={inputStyle} />
+          </div>
+          <div>
+            <span style={labelStyle}>FOB / carton *</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input type="number" inputMode="decimal" step="0.01" value={fobPerCarton}
+                onChange={(e) => setFobPerCarton(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+              <div style={{ position: "relative" }}>
+                <select value={fobCurrency} onChange={(e) => setFobCurrency(e.target.value as FobCurrency)}
+                  style={{ ...inputStyle, width: 72, appearance: "none", paddingRight: 4 }}>
+                  <option value="IDR">IDR</option>
+                  <option value="USD">USD</option>
+                  <option value="MVR">MVR</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
+
+        {/* Destination godown */}
+        <div style={{ marginBottom: 24 }}>
+          <span style={labelStyle}>Destination Warehouse *</span>
+          <div style={{ position: "relative" }}>
+            <select value={godownId} onChange={(e) => setGodownId(e.target.value)}
+              style={{ ...inputStyle, appearance: "none", paddingRight: 32 }}>
+              <option value="">Select…</option>
+              {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>)}
+            </select>
+            <ChevronDown style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--muted-foreground)", pointerEvents: "none" }} />
+          </div>
+          {godowns.length === 0 && <p style={{ color: "#fb923c", fontSize: 11, marginTop: 4 }}>No warehouses yet — add one in Settings.</p>}
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={ghostBtn}>Cancel</button>
+          <button
             onClick={save}
             disabled={saving || !skuId || !qtyCartons || !fobPerCarton || !godownId}
+            style={{ ...primaryBtn, opacity: saving || !skuId || !qtyCartons || !fobPerCarton || !godownId ? 0.5 : 1, cursor: saving || !skuId || !qtyCartons || !fobPerCarton || !godownId ? "not-allowed" : "pointer" }}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Save" : "Add line"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : editing ? "Save" : "Add Line"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
