@@ -17,32 +17,13 @@ import {
   UserPlus,
   ChevronRight,
   Trash2,
+  History,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   listOrders,
   createOrder,
   nextOrderNumber,
   createOrderLine,
-  postSale,
-  toPieces,
   type SalesOrderRow,
   type OrderStatus,
   type OrderChannel,
@@ -59,8 +40,19 @@ import {
 } from "@/lib/queries/masters";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
+import { toPieces } from "@/lib/queries/sales";
 
-// ── Constants ─────────────────────────────────────────────────────────────
+const CARD = {
+  background: "rgba(18,19,23,0.70)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+} as const;
+
+const CARD_L2 = {
+  background: "rgba(28,27,27,0.85)",
+  backdropFilter: "blur(30px)",
+  WebkitBackdropFilter: "blur(30px)",
+} as const;
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   draft: "Draft",
@@ -71,13 +63,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
-const STATUS_COLOR: Record<OrderStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
-  confirmed: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-  picked: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-  out_for_delivery: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-  delivered: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-  cancelled: "bg-red-500/15 text-red-600 dark:text-red-300",
+const STATUS_COLOR: Record<OrderStatus, { bg: string; text: string }> = {
+  draft:            { bg: "rgba(255,255,255,0.06)",    text: "#8e9192"  },
+  confirmed:        { bg: "rgba(255,255,255,0.10)",    text: "#ffffff"  },
+  picked:           { bg: "rgba(251,146,60,0.15)",     text: "#fb923c" },
+  out_for_delivery: { bg: "rgba(196,199,200,0.12)",    text: "#c4c7c8"  },
+  delivered:        { bg: "rgba(74,222,128,0.15)",     text: "#4ade80" },
+  cancelled:        { bg: "rgba(255,180,171,0.12)",    text: "#ffb4ab" },
 };
 
 const STATUS_ICON: Record<OrderStatus, typeof Clock> = {
@@ -90,23 +82,21 @@ const STATUS_ICON: Record<OrderStatus, typeof Clock> = {
 };
 
 const CHANNELS: { value: OrderChannel; label: string }[] = [
-  { value: "whatsapp", label: "WhatsApp" },
-  { value: "viber", label: "Viber" },
+  { value: "whatsapp",  label: "WhatsApp"  },
+  { value: "viber",     label: "Viber"     },
   { value: "messenger", label: "Messenger" },
   { value: "instagram", label: "Instagram" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "facebook", label: "Facebook" },
-  { value: "phone", label: "Phone" },
-  { value: "walkin", label: "Walk-in" },
-  { value: "other", label: "Other" },
+  { value: "tiktok",    label: "TikTok"    },
+  { value: "facebook",  label: "Facebook"  },
+  { value: "phone",     label: "Phone"     },
+  { value: "walkin",    label: "Walk-in"   },
+  { value: "other",     label: "Other"     },
 ];
 
-const CUSTOMER_CHANNELS: { value: CustomerChannel; label: string }[] = CHANNELS as { value: CustomerChannel; label: string }[];
-
-// ── Draft line item (before order exists in DB) ───────────────────────────
+const CUSTOMER_CHANNELS = CHANNELS as { value: CustomerChannel; label: string }[];
 
 interface DraftLine {
-  key: string; // temp ID
+  key: string;
   sku: SkuFullRow;
   uom: SaleUom;
   qty: number;
@@ -115,7 +105,38 @@ interface DraftLine {
   line_total_mvr: number;
 }
 
-// ── SalesList ─────────────────────────────────────────────────────────────
+// ── Tiny glass input helper ───────────────────────────────────────────────────
+
+function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="space-y-1.5">
+      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      <input
+        {...props}
+        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748] transition"
+        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+      />
+    </div>
+  );
+}
+
+function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none appearance-none"
+        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+// ── SalesList ────────────────────────────────────────────────────────────────
 
 export function SalesList() {
   const router = useRouter();
@@ -150,6 +171,7 @@ export function SalesList() {
       setLoading(false);
     }
   }
+
   useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
@@ -160,9 +182,7 @@ export function SalesList() {
       r = r.filter((x) => {
         const cust = customers.find((c) => c.id === x.customer_id);
         return [x.order_number, cust?.name ?? "", cust?.phone ?? "", x.notes ?? ""]
-          .join(" ")
-          .toLowerCase()
-          .includes(term);
+          .join(" ").toLowerCase().includes(term);
       });
     }
     return r;
@@ -170,7 +190,7 @@ export function SalesList() {
 
   if (loading) {
     return (
-      <div className="glass p-12 flex flex-col items-center text-muted-foreground">
+      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "#8e9192" }}>
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
         <p className="text-sm">Loading…</p>
       </div>
@@ -179,155 +199,177 @@ export function SalesList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+
+      {/* ── Header ── */}
+      <div className="flex items-end justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Operations</p>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Sales</h1>
+          <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Operations</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Sales</h1>
         </div>
-        <Button onClick={() => setNewDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+        <button
+          onClick={() => setNewDialog(true)}
+          className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95"
+          style={{ background: "#ffffff", color: "#2f3131" }}
+        >
+          <Plus className="h-4 w-4" />
           New Sale
-        </Button>
+        </button>
       </div>
 
+      {/* ── Search + Filter ── */}
       <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+        <div
+          className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12"
+          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+          <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by order number, customer…"
-            className="pl-9 h-11"
+            placeholder="Search order, customer…"
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-[#8e9192] outline-none"
             inputMode="search"
             autoCapitalize="none"
             autoCorrect="off"
             autoComplete="off"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="w-[140px] h-11">
-            <SelectValue>{statusFilter === "all" ? "All" : STATUS_LABEL[statusFilter]}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {(Object.keys(STATUS_LABEL) as OrderStatus[]).map((s) => (
-              <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          className="h-12 rounded-2xl px-4 text-sm text-white outline-none appearance-none"
+          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <option value="all">All</option>
+          {(Object.keys(STATUS_LABEL) as OrderStatus[]).map((s) => (
+            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+          ))}
+        </select>
       </div>
 
+      {/* ── List ── */}
       {filtered.length === 0 ? (
-        <div className="glass p-10 text-center space-y-3">
+        <div
+          className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3"
+          style={CARD}
+        >
           <div
-            className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+            className="h-14 w-14 rounded-2xl flex items-center justify-center"
+            style={{ background: "rgba(255,255,255,0.08)" }}
           >
             <ShoppingCart className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-base font-medium text-foreground">
+          <h3 className="text-base font-semibold text-white">
             {rows.length === 0 ? "No sales yet" : "No matches"}
           </h3>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          <p className="text-sm max-w-sm" style={{ color: "#8e9192" }}>
             {rows.length === 0
               ? "Record a sale when a customer messages you on WhatsApp, Viber, Instagram, etc."
               : "Try a different filter."}
           </p>
           {rows.length === 0 && (
-            <Button onClick={() => setNewDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+            <button
+              onClick={() => setNewDialog(true)}
+              className="mt-2 h-11 px-6 rounded-2xl text-sm font-semibold"
+              style={{ background: "#ffffff", color: "#2f3131" }}
+            >
               Record first sale
-            </Button>
+            </button>
           )}
         </div>
       ) : (
-        <div className="glass divide-y divide-border overflow-hidden">
+        <div className="rounded-2xl overflow-hidden space-y-1.5">
           {filtered.map((o) => {
             const Icon = STATUS_ICON[o.status];
             const cust = customers.find((c) => c.id === o.customer_id);
+            const colors = STATUS_COLOR[o.status];
             return (
               <Link
                 key={o.id}
                 href={`/sales/${o.id}`}
-                className="flex items-center justify-between gap-3 p-4 hover:bg-accent/30 transition"
+                className="flex items-center justify-between gap-3 p-4 rounded-2xl transition-opacity hover:opacity-90"
+                style={CARD}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${STATUS_COLOR[o.status]}`}>
+                  <div
+                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: colors.bg, color: colors.text }}
+                  >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-base font-medium text-foreground">
+                    <p className="text-[14px] font-semibold text-white">
                       {cust?.name ?? "Walk-in"}
-                      <span className="text-xs text-muted-foreground ml-2">{o.order_number}</span>
+                      <span className="text-[11px] ml-2" style={{ color: "#8e9192" }}>{o.order_number}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-[11px] truncate" style={{ color: "#8e9192" }}>
                       via {o.channel}{cust?.island && <> · {cust.island}</>}
                     </p>
                   </div>
                 </div>
-                <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-0.5 shrink-0 ${STATUS_COLOR[o.status]}`}>
-                  {STATUS_LABEL[o.status]}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span
+                    className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2.5 py-1"
+                    style={{ background: colors.bg, color: colors.text }}
+                  >
+                    {STATUS_LABEL[o.status]}
+                  </span>
+                  <ChevronRight className="h-4 w-4" style={{ color: "#8e9192" }} />
+                </div>
               </Link>
             );
           })}
         </div>
       )}
 
-      <NewSaleDialog
-        open={newDialog}
-        customers={customers}
-        skus={skus}
-        godowns={godowns}
-        stockLevels={stockLevels}
-        existingOrders={rows}
-        onOpenChange={(o) => {
-          setNewDialog(o);
-        }}
-        onCreated={(id) => {
-          setNewDialog(false);
-          load(); // refresh list
-          router.push(`/sales/${id}`);
-        }}
-        onCustomerCreated={(c) => setCustomers((prev) => [c, ...prev])}
-      />
+      {/* ── New Sale Sheet ── */}
+      {newDialog && (
+        <NewSaleSheet
+          customers={customers}
+          skus={skus}
+          godowns={godowns}
+          stockLevels={stockLevels}
+          existingOrders={rows}
+          onClose={() => setNewDialog(false)}
+          onCreated={(id) => {
+            setNewDialog(false);
+            load();
+            router.push(`/sales/${id}`);
+          }}
+          onCustomerCreated={(c) => setCustomers((prev) => [c, ...prev])}
+        />
+      )}
     </div>
   );
 }
 
-// ── NewSaleDialog — 3-step guided flow ────────────────────────────────────
-// Step 1: Customer (select existing OR create new inline)
-// Step 2: Add products with qty + price
-// Step 3: Review summary & confirm
+// ── NewSaleSheet — full-screen glass overlay matching mockup ─────────────────
 
 type Step = 1 | 2 | 3;
 
-function NewSaleDialog({
-  open,
+function NewSaleSheet({
   customers,
   skus,
   godowns,
   stockLevels,
   existingOrders,
-  onOpenChange,
+  onClose,
   onCreated,
   onCustomerCreated,
 }: {
-  open: boolean;
   customers: CustomerRow[];
   skus: SkuFullRow[];
   godowns: GodownRow[];
   stockLevels: StockLevel[];
   existingOrders: SalesOrderRow[];
-  onOpenChange: (o: boolean) => void;
+  onClose: () => void;
   onCreated: (id: string) => void;
   onCustomerCreated: (c: CustomerRow) => void;
 }) {
   const [step, setStep] = useState<Step>(1);
-  const [orderNumber, setOrderNumber] = useState("");
+  const [orderNumber, setOrderNumber] = useState(nextOrderNumber(existingOrders));
   const [channel, setChannel] = useState<OrderChannel>("whatsapp");
 
-  // Customer state
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -337,95 +379,56 @@ function NewSaleDialog({
   const [newCustChannel, setNewCustChannel] = useState<CustomerChannel>("whatsapp");
   const [savingCustomer, setSavingCustomer] = useState(false);
 
-  // Product / lines state
   const [draftLines, setDraftLines] = useState<DraftLine[]>([]);
   const [skuSearch, setSkuSearch] = useState("");
   const [selectedSkuId, setSelectedSkuId] = useState("");
   const [lineUom, setLineUom] = useState<SaleUom>("pack");
   const [lineQty, setLineQty] = useState("");
   const [linePrice, setLinePrice] = useState("");
-  const [addingLine, setAddingLine] = useState(false);
 
-  // Godown + submit
-  const [godownId, setGodownId] = useState("");
+  const [godownId, setGodownId] = useState(() => {
+    const def = godowns.find((g) => g.is_default);
+    return def?.id ?? godowns[0]?.id ?? "";
+  });
   const [saving, setSaving] = useState(false);
-
-  // Reset when opened
-  useEffect(() => {
-    if (open) {
-      setStep(1);
-      setOrderNumber(nextOrderNumber(existingOrders));
-      setChannel("whatsapp");
-      setCustomerId("");
-      setCustomerSearch("");
-      setShowNewCustomer(false);
-      setNewCustName("");
-      setNewCustPhone("");
-      setNewCustIsland("");
-      setNewCustChannel("whatsapp");
-      setDraftLines([]);
-      setSkuSearch("");
-      setSelectedSkuId("");
-      setLineUom("pack");
-      setLineQty("");
-      setLinePrice("");
-      const defaultGodown = godowns.find((g) => g.is_default);
-      setGodownId(defaultGodown?.id ?? godowns[0]?.id ?? "");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
   const customer = customers.find((c) => c.id === customerId);
   const selectedSku = skus.find((s) => s.id === selectedSkuId);
 
-  // Customer search results
   const recentCustomers = useMemo(() => customers.slice(0, 6), [customers]);
   const filteredCustomers = useMemo(() => {
     const term = customerSearch.trim().toLowerCase();
     if (!term) return [];
-    return customers
-      .filter((c) =>
-        [c.name, c.phone ?? "", c.island ?? "", c.company ?? ""].join(" ").toLowerCase().includes(term),
-      )
-      .slice(0, 10);
+    return customers.filter((c) =>
+      [c.name, c.phone ?? "", c.island ?? ""].join(" ").toLowerCase().includes(term),
+    ).slice(0, 10);
   }, [customers, customerSearch]);
 
-  // Product search results
   const filteredSkus = useMemo(() => {
     const term = skuSearch.trim().toLowerCase();
     const active = skus.filter((s) => s.is_active);
-    if (!term) return active.slice(0, 40);
-    return active
-      .filter((s) =>
-        [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""]
-          .join(" ")
-          .toLowerCase()
-          .includes(term),
-      )
-      .slice(0, 40);
+    if (!term) return active.slice(0, 30);
+    return active.filter((s) =>
+      [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""]
+        .join(" ").toLowerCase().includes(term),
+    ).slice(0, 30);
   }, [skus, skuSearch]);
 
-  // Stock for selected sku in selected godown
   const stockHere = selectedSku && godownId
     ? stockLevels.find((l) => l.sku_id === selectedSku.id && l.godown_id === godownId)?.qty_pieces ?? 0
     : null;
 
-  // Auto-fill price whenever SKU or UoM changes
   useEffect(() => {
     if (!selectedSku) return;
-    const suggestedPrice =
-      lineUom === "piece"   ? selectedSku.selling_price_per_piece_mvr :
-      lineUom === "pack"    ? selectedSku.selling_price_per_pack_mvr :
-      /* carton */            selectedSku.selling_price_per_carton_mvr;
-    if (suggestedPrice != null) {
-      setLinePrice(suggestedPrice.toFixed(2));
-    } else {
-      setLinePrice(""); // clear if no margin set so user must enter manually
-    }
+    const price =
+      lineUom === "piece"  ? selectedSku.selling_price_per_piece_mvr :
+      lineUom === "pack"   ? selectedSku.selling_price_per_pack_mvr :
+                             selectedSku.selling_price_per_carton_mvr;
+    if (price != null) setLinePrice(price.toFixed(2));
+    else setLinePrice("");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSkuId, lineUom]);
 
-  // Pieces for current line entry
   const lineQtyPieces = useMemo(() => {
     if (!selectedSku || !lineQty) return 0;
     const n = parseFloat(lineQty);
@@ -446,8 +449,6 @@ function NewSaleDialog({
     () => draftLines.reduce((s, l) => s + l.line_total_mvr, 0),
     [draftLines],
   );
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
 
   async function handleCreateCustomer() {
     if (!newCustName.trim()) return;
@@ -473,7 +474,7 @@ function NewSaleDialog({
 
   function handleAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
-    const newLine: DraftLine = {
+    setDraftLines((prev) => [...prev, {
       key: `${selectedSku.id}-${Date.now()}`,
       sku: selectedSku,
       uom: lineUom,
@@ -481,18 +482,8 @@ function NewSaleDialog({
       qty_pieces: lineQtyPieces,
       unit_price_mvr: parseFloat(linePrice),
       line_total_mvr: lineTotal,
-    };
-    setDraftLines((prev) => [...prev, newLine]);
-    // Reset line inputs
-    setSelectedSkuId("");
-    setSkuSearch("");
-    setLineQty("");
-    setLinePrice("");
-    setLineUom("pack");
-  }
-
-  function handleRemoveLine(key: string) {
-    setDraftLines((prev) => prev.filter((l) => l.key !== key));
+    }]);
+    setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack");
   }
 
   async function handleSubmit() {
@@ -501,7 +492,6 @@ function NewSaleDialog({
     try {
       const cust = customers.find((c) => c.id === customerId);
       const finalChannel = cust?.channel ?? channel;
-      // 1. Create the order header
       const created = await createOrder({
         order_number: orderNumber.trim(),
         customer_id: customerId || null,
@@ -509,20 +499,17 @@ function NewSaleDialog({
         status: "draft",
         source_godown_id: godownId || null,
       });
-      // 2. Create all line items
-      await Promise.all(
-        draftLines.map((l) =>
-          createOrderLine({
-            order_id: created.id,
-            sku_id: l.sku.id,
-            uom: l.uom,
-            qty: l.qty,
-            qty_pieces: l.qty_pieces,
-            unit_price_mvr: l.unit_price_mvr,
-            line_total_mvr: l.line_total_mvr,
-          }),
-        ),
-      );
+      await Promise.all(draftLines.map((l) =>
+        createOrderLine({
+          order_id: created.id,
+          sku_id: l.sku.id,
+          uom: l.uom,
+          qty: l.qty,
+          qty_pieces: l.qty_pieces,
+          unit_price_mvr: l.unit_price_mvr,
+          line_total_mvr: l.line_total_mvr,
+        }),
+      ));
       toast.success("Sale created — review and confirm below");
       onCreated(created.id);
     } catch (err) {
@@ -532,457 +519,484 @@ function NewSaleDialog({
     }
   }
 
-  // ── Step labels ───────────────────────────────────────────────────────────
-
-  const stepLabels: Record<Step, string> = {
-    1: "Customer",
-    2: "Products",
-    3: "Review",
-  };
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  const stepLabels: Record<Step, string> = { 1: "Customer", 2: "Products", 3: "Review" };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>New Sale</DialogTitle>
-          <DialogDescription>
-            {step === 1 && "Who is buying? Select or create a customer."}
-            {step === 2 && "What are they buying? Add products to this order."}
-            {step === 3 && "Review and create the order."}
-          </DialogDescription>
-        </DialogHeader>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#000000" }}>
+
+      {/* Header */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 h-16"
+        style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(40px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+      >
+        <div className="flex items-center gap-3">
+          <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 transition">
+            ✕
+          </button>
+          <span className="text-[18px] font-bold text-white tracking-tight">New Sale</span>
+        </div>
+        <History className="h-5 w-5" style={{ color: "#8e9192" }} />
+      </header>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto pt-20 pb-28 px-5 space-y-6">
 
         {/* Step indicator */}
-        <div className="flex items-center gap-2 py-1">
+        <div className="flex items-center gap-2">
           {([1, 2, 3] as Step[]).map((s) => (
             <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 transition-colors ${
-                step === s
-                  ? "bg-primary text-primary-foreground"
-                  : step > s
-                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                  : "bg-secondary text-muted-foreground"
-              }`}>
+              <div
+                className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all"
+                style={
+                  step === s
+                    ? { background: "#ffffff", color: "#2f3131" }
+                    : step > s
+                    ? { background: "rgba(74,222,128,0.20)", color: "#4ade80" }
+                    : { background: "rgba(255,255,255,0.08)", color: "#8e9192" }
+                }
+              >
                 {step > s ? "✓" : s}
               </div>
-              <span className={`text-xs ${step === s ? "text-foreground" : "text-muted-foreground"}`}>
+              <span className="text-[11px]" style={{ color: step === s ? "#ffffff" : "#8e9192" }}>
                 {stepLabels[s]}
               </span>
-              {s < 3 && <div className="flex-1 h-px bg-border" />}
+              {s < 3 && <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />}
             </div>
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-
-          {/* ── STEP 1: Customer ─────────────────────────────────────────── */}
-          {step === 1 && (
-            <div className="space-y-3">
-              {!customerId && !showNewCustomer && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Search existing customer</Label>
-                    <Input
+        {/* ── Step 1: Customer ── */}
+        {step === 1 && (
+          <div className="space-y-4">
+            {!customerId && !showNewCustomer && (
+              <>
+                <div className="flex gap-2">
+                  <div
+                    className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12"
+                    style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+                  >
+                    <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+                    <input
                       autoFocus
                       value={customerSearch}
                       onChange={(e) => setCustomerSearch(e.target.value)}
-                      placeholder="Name, phone, island…"
+                      placeholder="Search name, phone, ID…"
+                      className="flex-1 bg-transparent text-sm text-white placeholder:text-[#444748] outline-none"
                     />
                   </div>
-                  <div className="rounded-xl border border-border max-h-[220px] overflow-y-auto bg-background/50">
-                    {(customerSearch.trim() ? filteredCustomers : recentCustomers).length === 0 ? (
-                      <p className="text-xs text-muted-foreground px-3 py-3">
-                        {customerSearch.trim() ? "No matches found." : "No customers yet."}
-                      </p>
-                    ) : (
-                      <>
-                        {!customerSearch.trim() && (
-                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 pt-2 pb-1">Recent</p>
-                        )}
-                        {(customerSearch.trim() ? filteredCustomers : recentCustomers).map((c) => (
-                          <button
-                            key={c.id}
-                            onClick={() => { setCustomerId(c.id); setChannel((c.channel as OrderChannel) ?? "whatsapp"); }}
-                            className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent/30 transition border-b border-border last:border-0"
+                  <button
+                    onClick={() => setShowNewCustomer(true)}
+                    className="flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold transition"
+                    style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)", color: "#ffffff" }}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Add New
+                  </button>
+                </div>
+
+                {/* Frequent customers */}
+                <div>
+                  <p className="label-caps text-[10px] mb-3" style={{ color: "#8e9192" }}>Frequent Customers</p>
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {(customerSearch.trim() ? filteredCustomers : recentCustomers).map((c) => {
+                      const initials = c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+                      return (
+                        <button
+                          key={c.id}
+                          onClick={() => { setCustomerId(c.id); setChannel((c.channel as OrderChannel) ?? "whatsapp"); }}
+                          className="flex-shrink-0 p-4 rounded-xl w-36 text-left transition active:scale-95"
+                          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)" }}
+                        >
+                          <div
+                            className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm mb-2"
+                            style={{ background: "rgba(255,255,255,0.10)", color: "#ffffff" }}
                           >
-                            <p className="text-foreground font-medium">{c.name}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {[c.phone, c.island, c.channel].filter(Boolean).join(" · ")}
-                            </p>
-                          </button>
-                        ))}
-                      </>
+                            {initials}
+                          </div>
+                          <p className="text-[12px] font-bold text-white truncate">{c.name}</p>
+                          <p className="text-[10px]" style={{ color: "#8e9192" }}>{c.channel}</p>
+                        </button>
+                      );
+                    })}
+                    {(customerSearch.trim() ? filteredCustomers : recentCustomers).length === 0 && (
+                      <p className="text-sm py-4" style={{ color: "#8e9192" }}>
+                        {customerSearch.trim() ? "No matches." : "No customers yet."}
+                      </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 border border-dashed border-border text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowNewCustomer(true)}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      New customer
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 border border-dashed border-border text-muted-foreground hover:text-foreground"
-                      onClick={() => { setCustomerId("walkin"); setStep(2); }}
-                    >
-                      Walk-in (no account)
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {/* New customer mini-form */}
-              {showNewCustomer && !customerId && (
-                <div className="rounded-xl border border-border p-4 space-y-3 bg-background/40">
-                  <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <UserPlus className="h-4 w-4 text-primary" />
-                    New Customer
-                  </p>
-                  <div className="space-y-2">
-                    <Label>Name *</Label>
-                    <Input autoFocus value={newCustName} onChange={(e) => setNewCustName(e.target.value)} placeholder="Full name or company" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input value={newCustPhone} onChange={(e) => setNewCustPhone(e.target.value)} placeholder="+960…" inputMode="tel" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Island</Label>
-                      <Input value={newCustIsland} onChange={(e) => setNewCustIsland(e.target.value)} placeholder="Malé, Hulhumalé…" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Preferred channel</Label>
-                    <Select value={newCustChannel} onValueChange={(v) => v && setNewCustChannel(v as CustomerChannel)}>
-                      <SelectTrigger><SelectValue>{CUSTOMER_CHANNELS.find((c) => c.value === newCustChannel)?.label}</SelectValue></SelectTrigger>
-                      <SelectContent>
-                        {CUSTOMER_CHANNELS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setShowNewCustomer(false)}>Back</Button>
-                    <Button size="sm" className="flex-1" onClick={handleCreateCustomer} disabled={savingCustomer || !newCustName.trim()}>
-                      {savingCustomer ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save & Select"}
-                    </Button>
-                  </div>
                 </div>
-              )}
 
-              {/* Selected customer chip */}
-              {customerId && customerId !== "walkin" && customer && (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{customer.name}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                  <button onClick={() => { setCustomerId(""); setCustomerSearch(""); }} className="text-xs text-primary hover:opacity-80">Change</button>
-                </div>
-              )}
-              {customerId === "walkin" && (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Walk-in customer</p>
-                    <p className="text-[11px] text-muted-foreground">No customer account</p>
-                  </div>
-                  <button onClick={() => setCustomerId("")} className="text-xs text-primary hover:opacity-80">Change</button>
-                </div>
-              )}
+                <button
+                  onClick={() => { setCustomerId("walkin"); }}
+                  className="w-full h-12 rounded-xl text-sm font-semibold transition"
+                  style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)", color: "#8e9192" }}
+                >
+                  Walk-in (no account)
+                </button>
+              </>
+            )}
 
-              {/* Order number + channel */}
-              {(customerId) && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="space-y-2">
-                    <Label>Order # *</Label>
-                    <Input value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Channel</Label>
-                    <Select value={channel} onValueChange={(v) => v && setChannel(v as OrderChannel)}>
-                      <SelectTrigger><SelectValue>{CHANNELS.find((c) => c.value === channel)?.label}</SelectValue></SelectTrigger>
-                      <SelectContent>
-                        {CHANNELS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            {/* New customer form */}
+            {showNewCustomer && !customerId && (
+              <div className="rounded-xl p-5 space-y-4" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="text-[13px] font-bold text-white flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  New Customer
+                </p>
+                <GlassInput label="NAME *" value={newCustName} onChange={(e) => setNewCustName((e.target as HTMLInputElement).value)} placeholder="Full name or company" autoFocus />
+                <div className="grid grid-cols-2 gap-3">
+                  <GlassInput label="PHONE" value={newCustPhone} onChange={(e) => setNewCustPhone((e.target as HTMLInputElement).value)} placeholder="+960…" inputMode="tel" />
+                  <GlassInput label="ISLAND" value={newCustIsland} onChange={(e) => setNewCustIsland((e.target as HTMLInputElement).value)} placeholder="Malé…" />
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* ── STEP 2: Products ─────────────────────────────────────────── */}
-          {step === 2 && (
-            <div className="space-y-4">
-              {/* Godown picker at top */}
-              <div className="space-y-2">
-                <Label>Ship from warehouse *</Label>
-                <Select value={godownId} onValueChange={(v) => v && setGodownId(v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pick warehouse">
-                      {godowns.find((g) => g.id === godownId)?.name ?? "Select…"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {godowns.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
-                        {g.name}{g.is_default ? " (default)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-muted-foreground">Stock is checked and deducted from this warehouse.</p>
+                <GlassSelect label="CHANNEL" value={newCustChannel} onChange={(v) => setNewCustChannel(v as CustomerChannel)}>
+                  {CUSTOMER_CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </GlassSelect>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowNewCustomer(false)}
+                    className="flex-1 h-11 rounded-xl text-sm font-semibold"
+                    style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleCreateCustomer}
+                    disabled={savingCustomer || !newCustName.trim()}
+                    className="flex-[2] h-11 rounded-xl text-sm font-bold transition disabled:opacity-40"
+                    style={{ background: "#ffffff", color: "#2f3131" }}
+                  >
+                    {savingCustomer ? "Saving…" : "Save & Select"}
+                  </button>
+                </div>
               </div>
+            )}
 
-              {/* Product picker */}
-              <div className="space-y-2">
-                <Label>Add a product</Label>
-                {!selectedSkuId ? (
-                  <>
-                    <Input
+            {/* Selected customer chip */}
+            {(customerId && customerId !== "walkin" && customer) && (
+              <div
+                className="rounded-xl p-4 flex items-center justify-between"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <div>
+                  <p className="text-[14px] font-semibold text-white">{customer.name}</p>
+                  <p className="text-[11px]" style={{ color: "#8e9192" }}>
+                    {[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <button onClick={() => { setCustomerId(""); setCustomerSearch(""); }} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
+              </div>
+            )}
+            {customerId === "walkin" && (
+              <div
+                className="rounded-xl p-4 flex items-center justify-between"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <div>
+                  <p className="text-[14px] font-semibold text-white">Walk-in customer</p>
+                  <p className="text-[11px]" style={{ color: "#8e9192" }}>No account</p>
+                </div>
+                <button onClick={() => setCustomerId("")} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
+              </div>
+            )}
+
+            {/* Order # + channel */}
+            {customerId && (
+              <div className="grid grid-cols-2 gap-3">
+                <GlassInput label="ORDER #" value={orderNumber} onChange={(e) => setOrderNumber((e.target as HTMLInputElement).value)} />
+                <GlassSelect label="CHANNEL" value={channel} onChange={(v) => setChannel(v as OrderChannel)}>
+                  {CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </GlassSelect>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Step 2: Products ── */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <GlassSelect label="SHIP FROM WAREHOUSE" value={godownId} onChange={setGodownId}>
+              {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>)}
+            </GlassSelect>
+
+            <div>
+              <p className="label-caps text-[10px] mb-3" style={{ color: "#8e9192" }}>Product Catalog</p>
+              {!selectedSkuId ? (
+                <>
+                  <div
+                    className="flex items-center gap-3 rounded-xl px-4 h-12 mb-3"
+                    style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+                  >
+                    <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+                    <input
                       value={skuSearch}
                       onChange={(e) => setSkuSearch(e.target.value)}
                       placeholder="Search brand, product, variant…"
+                      className="flex-1 bg-transparent text-sm text-white placeholder:text-[#444748] outline-none"
                       autoComplete="off"
                     />
-                    <div className="rounded-xl border border-border max-h-[200px] overflow-y-auto bg-background/50">
-                      {filteredSkus.length === 0 ? (
-                        <p className="text-xs text-muted-foreground px-3 py-2">No products found.</p>
-                      ) : (
-                        filteredSkus.map((s) => {
-                          const stock = godownId
-                            ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0
-                            : null;
-                          return (
-                            <button
-                              key={s.id}
-                              onClick={() => setSelectedSkuId(s.id)}
-                              className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent/30 transition border-b border-border last:border-0"
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-foreground font-medium">{s.brand_name} › {s.model_name}</p>
-                                {stock !== null && (
-                                  <span className={`text-[11px] shrink-0 ${stock > 0 ? "text-emerald-500" : "text-red-500"}`}>
-                                    {stock} pcs
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-muted-foreground">{s.variant_display} · {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
-                            </button>
-                          );
-                        })
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filteredSkus.map((s) => {
+                      const stock = godownId
+                        ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0
+                        : null;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setSelectedSkuId(s.id)}
+                          className="rounded-xl p-4 text-left space-y-3 transition active:scale-[0.98]"
+                          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-[14px] font-semibold text-white">{s.brand_name} · {s.model_name}</p>
+                              <p className="text-[10px] mt-0.5" style={{ color: "#8e9192" }}>{s.internal_code}</p>
+                            </div>
+                            {stock !== null && (
+                              <span
+                                className="text-[10px] font-bold px-2 py-0.5 rounded"
+                                style={{
+                                  background: stock > 0 ? "rgba(255,255,255,0.08)" : "rgba(255,180,171,0.12)",
+                                  color: stock > 0 ? "#8e9192" : "#ffb4ab",
+                                }}
+                              >
+                                STOCK: {stock}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[18px] font-semibold text-white">
+                              {s.selling_price_per_pack_mvr != null ? `${s.selling_price_per_pack_mvr.toFixed(2)} MVR` : "—"}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {filteredSkus.length === 0 && (
+                      <p className="text-sm col-span-2 py-4" style={{ color: "#8e9192" }}>No products found.</p>
+                    )}
+                  </div>
+                </>
+              ) : selectedSku ? (
+                <div className="rounded-xl p-4 space-y-4" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[14px] font-semibold text-white">{selectedSku.brand_name} · {selectedSku.model_name}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "#8e9192" }}>{selectedSku.variant_display}</p>
+                      {stockHere !== null && (
+                        <p className="text-[11px] mt-1" style={{ color: stockHere === 0 ? "#ffb4ab" : "#4ade80" }}>
+                          In stock: {stockHere.toLocaleString()} pcs
+                        </p>
                       )}
                     </div>
-                  </>
-                ) : selectedSku ? (
-                  <div className="rounded-xl border border-border p-3 space-y-3 bg-background/30">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{selectedSku.brand_name} › {selectedSku.model_name}</p>
-                        <p className="text-[11px] text-muted-foreground">{selectedSku.variant_display} · {selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
-                        {stockHere !== null && (
-                          <p className={`text-[11px] mt-0.5 ${stockHere === 0 ? "text-red-500" : "text-emerald-500"}`}>
-                            In stock: {stockHere.toLocaleString()} pcs
-                            {selectedSku.pcs_per_pack > 0 && stockHere > 0 && <> · {Math.floor(stockHere / selectedSku.pcs_per_pack)} packs</>}
-                          </p>
-                        )}
-                      </div>
-                      <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); }} className="text-xs text-primary hover:opacity-80">Change</button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Sell by</Label>
-                        <Select value={lineUom} onValueChange={(v) => v && setLineUom(v as SaleUom)}>
-                          <SelectTrigger className="h-9 text-sm"><SelectValue>{lineUom}</SelectValue></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="carton">Carton</SelectItem>
-                            <SelectItem value="pack">Pack</SelectItem>
-                            <SelectItem value="piece">Piece</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Qty *</Label>
-                        <Input
-                          className="h-9 text-sm"
-                          type="number"
-                          inputMode="decimal"
-                          step={lineUom === "piece" ? "1" : "0.5"}
-                          min="1"
-                          value={lineQty}
-                          onChange={(e) => setLineQty(e.target.value)}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs flex items-center gap-1">
-                          Price (MVR)
-                          {selectedSku && (
-                            lineUom === "piece"  ? selectedSku.selling_price_per_piece_mvr :
-                            lineUom === "pack"   ? selectedSku.selling_price_per_pack_mvr :
-                            selectedSku.selling_price_per_carton_mvr
-                          ) != null
-                            ? <span className="text-emerald-500 text-[9px] uppercase tracking-wide">auto</span>
-                            : <span className="text-amber-500 text-[9px] uppercase tracking-wide">manual</span>
-                          }
-                        </Label>
-                        <Input
-                          className="h-9 text-sm"
-                          type="number"
-                          inputMode="decimal"
-                          step="0.01"
-                          min="0"
-                          value={linePrice}
-                          onChange={(e) => setLinePrice(e.target.value)}
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                    {selectedSku && lineQtyPieces > 0 && (
-                      <div className="text-[11px] text-muted-foreground flex justify-between">
-                        <span>= {lineQtyPieces.toLocaleString()} pieces</span>
-                        <span className="text-foreground font-medium">{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} MVR</span>
-                      </div>
-                    )}
-                    {insufficient && (
-                      <p className="text-[11px] text-red-500">⚠ Only {stockHere} pcs in this warehouse</p>
-                    )}
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      onClick={handleAddLine}
-                      disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Add to order
-                    </Button>
+                    <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); }} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
                   </div>
-                ) : null}
-              </div>
 
-              {/* Current lines */}
-              {draftLines.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Order items ({draftLines.length})</Label>
-                  <div className="rounded-xl border border-border overflow-hidden">
-                    {draftLines.map((l) => (
-                      <div key={l.key} className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border last:border-0 text-sm">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-foreground truncate">{l.sku.brand_name} › {l.sku.model_name}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {l.qty} {l.uom} · {l.unit_price_mvr.toLocaleString()} MVR/{l.uom}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-foreground font-medium text-xs">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
-                          <button onClick={() => handleRemoveLine(l.key)} className="text-muted-foreground/60 hover:text-red-500 transition">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex justify-between px-3 py-2 bg-secondary/30 text-sm font-medium">
-                      <span className="text-muted-foreground">Total</span>
-                      <span className="text-primary">{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
-                    </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <GlassSelect label="SELL BY" value={lineUom} onChange={(v) => setLineUom(v as SaleUom)}>
+                      <option value="carton">Carton</option>
+                      <option value="pack">Pack</option>
+                      <option value="piece">Piece</option>
+                    </GlassSelect>
+                    <GlassInput label="QTY *" type="number" inputMode="decimal" min="1" value={lineQty} onChange={(e) => setLineQty((e.target as HTMLInputElement).value)} placeholder="0" />
+                    <GlassInput label="PRICE MVR" type="number" inputMode="decimal" step="0.01" min="0" value={linePrice} onChange={(e) => setLinePrice((e.target as HTMLInputElement).value)} placeholder="0.00" />
                   </div>
+
+                  {lineQtyPieces > 0 && (
+                    <div className="flex justify-between text-[11px]" style={{ color: "#8e9192" }}>
+                      <span>= {lineQtyPieces.toLocaleString()} pieces</span>
+                      <span className="text-white font-semibold">{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} MVR</span>
+                    </div>
+                  )}
+                  {insufficient && (
+                    <p className="text-[11px]" style={{ color: "#ffb4ab" }}>⚠ Only {stockHere} pcs in this warehouse</p>
+                  )}
+                  <button
+                    onClick={handleAddLine}
+                    disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
+                    className="w-full h-11 rounded-xl text-sm font-bold transition disabled:opacity-40"
+                    style={{ background: "#ffffff", color: "#2f3131" }}
+                  >
+                    Add to Order
+                  </button>
                 </div>
-              )}
+              ) : null}
             </div>
-          )}
 
-          {/* ── STEP 3: Review ───────────────────────────────────────────── */}
-          {step === 3 && (
-            <div className="space-y-3">
-              <div className="rounded-xl border border-border p-4 space-y-3 bg-background/30">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Customer</span>
-                  <span className="text-foreground font-medium">{customerId === "walkin" ? "Walk-in" : (customer?.name ?? "—")}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Order #</span>
-                  <span className="text-foreground">{orderNumber}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Channel</span>
-                  <span className="text-foreground">{CHANNELS.find((c) => c.value === channel)?.label}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Warehouse</span>
-                  <span className="text-foreground">{godowns.find((g) => g.id === godownId)?.name ?? "—"}</span>
-                </div>
-              </div>
-              <div className="rounded-xl border border-border overflow-hidden">
+            {/* Draft lines */}
+            {draftLines.length > 0 && (
+              <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="px-4 pt-3 pb-2 label-caps text-[10px]" style={{ color: "#8e9192" }}>Order Items ({draftLines.length})</p>
                 {draftLines.map((l) => (
-                  <div key={l.key} className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border last:border-0 text-sm">
+                  <div
+                    key={l.key}
+                    className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+                    style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+                  >
                     <div className="min-w-0 flex-1">
-                      <p className="text-foreground truncate">{l.sku.brand_name} › {l.sku.model_name} › {l.sku.variant_display}</p>
-                      <p className="text-[11px] text-muted-foreground">{l.qty} {l.uom} · {l.unit_price_mvr.toLocaleString()} MVR/{l.uom}</p>
+                      <p className="text-white truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
+                      <p className="text-[11px]" style={{ color: "#8e9192" }}>
+                        {l.qty} {l.uom} · {l.unit_price_mvr.toLocaleString()} MVR/{l.uom}
+                      </p>
                     </div>
-                    <span className="text-foreground font-medium text-xs shrink-0">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-white font-semibold text-[13px]">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                      <button onClick={() => setDraftLines((p) => p.filter((x) => x.key !== l.key))} className="opacity-40 hover:opacity-100 transition">
+                        <Trash2 className="h-3.5 w-3.5 text-white" />
+                      </button>
+                    </div>
                   </div>
                 ))}
-                <div className="flex justify-between px-3 py-2 bg-secondary/30 text-sm font-semibold">
-                  <span className="text-muted-foreground">Total</span>
-                  <span className="text-primary">{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                <div
+                  className="flex justify-between px-4 py-3 text-sm font-semibold"
+                  style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}
+                >
+                  <span style={{ color: "#8e9192" }}>Total</span>
+                  <span className="text-white">{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Stock will be deducted when you confirm the order on the next screen.
-              </p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Footer nav */}
-        <DialogFooter className="flex-row gap-2 pt-2 border-t border-border">
-          {step === 1 && (
-            <>
-              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button
-                className="flex-1"
-                disabled={!customerId || !orderNumber.trim()}
-                onClick={() => setStep(2)}
+        {/* ── Step 3: Review ── */}
+        {step === 3 && (
+          <div className="space-y-4">
+            {/* Revenue + Profit summary card matching mockup */}
+            <div
+              className="rounded-2xl p-5 relative overflow-hidden"
+              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <div className="grid grid-cols-2 gap-y-5">
+                <div>
+                  <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>TOTAL REVENUE</p>
+                  <p className="text-[28px] font-light tracking-tight text-white leading-none">
+                    {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    <span className="text-base ml-1" style={{ color: "#8e9192" }}>MVR</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>ITEMS</p>
+                  <p className="text-[28px] font-light tracking-tight text-white leading-none">{draftLines.length}</p>
+                </div>
+              </div>
+              <div
+                className="mt-4 pt-4 flex justify-between text-[12px]"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
               >
-                Next: Products <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </>
-          )}
-          {step === 2 && (
-            <>
-              <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
-              <Button
-                className="flex-1"
-                disabled={draftLines.length === 0}
-                onClick={() => setStep(3)}
-              >
-                Review order <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </>
-          )}
-          {step === 3 && (
-            <>
-              <Button variant="ghost" onClick={() => setStep(2)}>Back</Button>
-              <Button
-                className="flex-1"
-                disabled={saving || draftLines.length === 0}
-                onClick={handleSubmit}
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Create Sale
-              </Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                <span style={{ color: "#8e9192" }}>
+                  Customer: {customerId === "walkin" ? "Walk-in" : (customer?.name ?? "—")}
+                </span>
+                <span style={{ color: "#8e9192" }}>via {CHANNELS.find((c) => c.value === channel)?.label}</span>
+              </div>
+            </div>
+
+            {/* Order summary */}
+            <div className="rounded-xl overflow-hidden" style={{ ...CARD }}>
+              {[
+                { label: "Order #", value: orderNumber },
+                { label: "Warehouse", value: godowns.find((g) => g.id === godownId)?.name ?? "—" },
+              ].map((row) => (
+                <div
+                  key={row.label}
+                  className="flex justify-between px-4 py-3 text-sm"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                >
+                  <span style={{ color: "#8e9192" }}>{row.label}</span>
+                  <span className="text-white font-medium">{row.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Line items */}
+            <div className="rounded-xl overflow-hidden" style={CARD}>
+              {draftLines.map((l) => (
+                <div
+                  key={l.key}
+                  className="flex items-center justify-between gap-2 px-4 py-3 text-sm"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
+                    <p className="text-[11px]" style={{ color: "#8e9192" }}>{l.qty} {l.uom} · {l.unit_price_mvr.toLocaleString()} MVR/{l.uom}</p>
+                  </div>
+                  <span className="text-white font-semibold text-[13px] shrink-0">{l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[11px]" style={{ color: "#8e9192" }}>
+              Stock will be deducted when you confirm the order on the next screen.
+            </p>
+          </div>
+        )}
+
+      </div>
+
+      {/* ── Fixed bottom actions ── */}
+      <footer
+        className="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-5 h-24"
+        style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(40px)", borderTop: "1px solid rgba(255,255,255,0.05)" }}
+      >
+        {step === 1 && (
+          <>
+            <button
+              onClick={onClose}
+              className="flex-1 h-14 rounded-xl text-sm font-semibold"
+              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!customerId || !orderNumber.trim()}
+              onClick={() => setStep(2)}
+              className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40"
+              style={{ background: "#ffffff", color: "#2f3131" }}
+            >
+              Next: Products →
+            </button>
+          </>
+        )}
+        {step === 2 && (
+          <>
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 h-14 rounded-xl text-sm font-semibold"
+              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+            >
+              ← Back
+            </button>
+            <button
+              disabled={draftLines.length === 0}
+              onClick={() => setStep(3)}
+              className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40"
+              style={{ background: "#ffffff", color: "#2f3131" }}
+            >
+              Review Order →
+            </button>
+          </>
+        )}
+        {step === 3 && (
+          <>
+            <button
+              onClick={() => setStep(2)}
+              className="flex-1 h-14 rounded-xl text-sm font-semibold"
+              style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+            >
+              ← Back
+            </button>
+            <button
+              disabled={saving || draftLines.length === 0}
+              onClick={handleSubmit}
+              className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+              style={{ background: "#ffffff", color: "#2f3131" }}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Confirm & Notify
+            </button>
+          </>
+        )}
+      </footer>
+    </div>
   );
 }

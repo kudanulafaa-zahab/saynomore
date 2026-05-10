@@ -16,25 +16,9 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  ChevronRight,
+  Factory,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   listShipments,
   createShipment,
@@ -47,20 +31,32 @@ import {
 import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 
+const CARD = {
+  background: "rgba(18,19,23,0.70)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+} as const;
+
+const CARD_L2 = {
+  background: "rgba(28,27,27,0.85)",
+  backdropFilter: "blur(30px)",
+  WebkitBackdropFilter: "blur(30px)",
+} as const;
+
 const STATUS_LABEL: Record<ShipmentStatus, string> = {
   draft: "Draft",
   ordered: "Ordered",
   in_transit: "In Transit",
   arrived: "Arrived",
-  grn_confirmed: "Locked / Received",
+  grn_confirmed: "Received",
 };
 
-const STATUS_COLOR: Record<ShipmentStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
-  ordered: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-  in_transit: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-  arrived: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-  grn_confirmed: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+const STATUS_COLOR: Record<ShipmentStatus, { bg: string; text: string; dot: string }> = {
+  draft:         { bg: "rgba(255,255,255,0.06)",  text: "#8e9192",  dot: "#8e9192"  },
+  ordered:       { bg: "rgba(255,255,255,0.10)",  text: "#ffffff",  dot: "#ffffff"  },
+  in_transit:    { bg: "rgba(251,146,60,0.15)",   text: "#fb923c",  dot: "#fb923c"  },
+  arrived:       { bg: "rgba(196,199,200,0.12)",  text: "#c4c7c8",  dot: "#c4c7c8"  },
+  grn_confirmed: { bg: "rgba(74,222,128,0.15)",   text: "#4ade80",  dot: "#4ade80"  },
 };
 
 const STATUS_ICON: Record<ShipmentStatus, typeof Truck> = {
@@ -70,6 +66,35 @@ const STATUS_ICON: Record<ShipmentStatus, typeof Truck> = {
   arrived: Anchor,
   grn_confirmed: CheckCircle2,
 };
+
+function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="space-y-1.5">
+      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      <input
+        {...props}
+        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748] transition"
+        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+      />
+    </div>
+  );
+}
+
+function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      {label && <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>{label}</p>}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none appearance-none"
+        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
 
 export function ShipmentsList() {
   const router = useRouter();
@@ -96,6 +121,7 @@ export function ShipmentsList() {
       setLoading(false);
     }
   }
+
   useEffect(() => { load(); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
@@ -117,7 +143,7 @@ export function ShipmentsList() {
 
   if (loading) {
     return (
-      <div className="glass p-12 flex flex-col items-center text-muted-foreground">
+      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "#8e9192" }}>
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
         <p className="text-sm">Loading…</p>
       </div>
@@ -126,202 +152,237 @@ export function ShipmentsList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+
+      {/* ── Header ── */}
+      <div className="flex items-end justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Operations</p>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Shipments</h1>
+          <p className="label-caps text-[10px] mb-1" style={{ color: "#8e9192" }}>Batch Lifecycle Phase 1</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-white leading-tight">Shipment Intake</h1>
         </div>
-        <Button onClick={() => setNewDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New
-        </Button>
+        <button
+          onClick={() => setNewDialog(true)}
+          className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
+          style={{ background: "#ffffff", color: "#2f3131" }}
+        >
+          <Plus className="h-4 w-4" />
+          New Batch
+        </button>
       </div>
 
-      <div className="flex gap-2 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+      {/* ── Search + Filter ── */}
+      <div className="flex gap-2">
+        <div
+          className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12"
+          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+          <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search reference…"
-            className="pl-9 h-11"
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-[#8e9192] outline-none"
             inputMode="search"
             autoCapitalize="none"
             autoCorrect="off"
             autoComplete="off"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="w-[140px] h-11">
-            <SelectValue>{statusFilter === "all" ? "All" : STATUS_LABEL[statusFilter]}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {(Object.keys(STATUS_LABEL) as ShipmentStatus[]).map((s) => (
-              <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          className="h-12 rounded-2xl px-4 text-sm text-white outline-none appearance-none"
+          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <option value="all">All Status</option>
+          {(Object.keys(STATUS_LABEL) as ShipmentStatus[]).map((s) => (
+            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+          ))}
+        </select>
       </div>
 
+      {/* ── Empty state ── */}
       {filtered.length === 0 ? (
-        <div className="glass p-10 text-center space-y-3">
-          <div
-            className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
-          >
+        <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
             <Truck className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-base font-medium text-foreground">
+          <h3 className="text-base font-semibold text-white">
             {rows.length === 0 ? "No shipments yet" : "No matches"}
           </h3>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          <p className="text-sm max-w-sm" style={{ color: "#8e9192" }}>
             {rows.length === 0
-              ? "Create a shipment when you place an order with your supplier. Add lines as products are confirmed."
+              ? "Create a shipment when you place an order. Add lines, set FX rate, then confirm GRN when goods arrive."
               : "Try a different filter."}
           </p>
           {rows.length === 0 && (
-            <Button onClick={() => setNewDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+            <button
+              onClick={() => setNewDialog(true)}
+              className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
+              style={{ background: "#ffffff", color: "#2f3131" }}
+            >
               Create first shipment
-            </Button>
+            </button>
           )}
         </div>
       ) : (
-        <div className="glass divide-y divide-border overflow-hidden">
+        <div className="space-y-1.5">
           {filtered.map((s) => {
             const Icon = STATUS_ICON[s.status];
             const locked = s.status === "grn_confirmed";
+            const colors = STATUS_COLOR[s.status];
+            const sup = suppliers.find((x) => x.id === s.supplier_id);
             return (
-              <div key={s.id} className="flex items-center gap-3 p-4 hover:bg-accent/30 transition">
-                <Link
-                  href={`/shipments/${s.id}`}
-                  className="flex items-center gap-3 min-w-0 flex-1"
-                >
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${STATUS_COLOR[s.status]}`}>
+              <div
+                key={s.id}
+                className="flex items-center gap-3 p-4 rounded-2xl transition"
+                style={CARD}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                <Link href={`/shipments/${s.id}`} className="flex items-center gap-3 min-w-0 flex-1">
+                  <div
+                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: colors.bg, color: colors.text }}
+                  >
                     <Icon className="h-4 w-4" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-base font-medium text-foreground">{s.reference}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {supplierName(s.supplier_id)}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] font-bold text-white">{s.reference}</p>
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1"
+                        style={{ background: colors.bg, color: colors.text }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: colors.dot }} />
+                        {STATUS_LABEL[s.status]}
+                      </span>
+                    </div>
+                    <p className="text-[11px] mt-0.5 truncate" style={{ color: "#8e9192" }}>
+                      {sup ? `${sup.name}${sup.country ? ` · ${sup.country}` : ""}` : "No supplier assigned"}
                       {s.notes && <> · {s.notes}</>}
                     </p>
                   </div>
+                  <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
                 </Link>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-0.5 ${STATUS_COLOR[s.status]}`}>
-                    {STATUS_LABEL[s.status]}
-                  </span>
-                  {!locked && (
-                    <button
-                      onClick={(e) => { e.preventDefault(); setEditDialog(s); }}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition"
-                      title="Edit"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  {isAdmin && !locked && (
-                    <button
-                      onClick={(e) => { e.preventDefault(); setDeleteDialog(s); }}
-                      className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+
+                {(!locked || isAdmin) && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!locked && (
+                      <button
+                        onClick={() => setEditDialog(s)}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center transition"
+                        style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
+                        title="Edit"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {isAdmin && !locked && (
+                      <button
+                        onClick={() => setDeleteDialog(s)}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center transition"
+                        style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      <NewShipmentDialog
-        open={newDialog}
-        suppliers={suppliers}
-        existing={rows}
-        onOpenChange={setNewDialog}
-        onCreated={(id) => {
-          setNewDialog(false);
-          router.push(`/shipments/${id}`);
-        }}
-      />
+      {/* ── New Shipment Modal ── */}
+      {newDialog && (
+        <NewShipmentModal
+          suppliers={suppliers}
+          existing={rows}
+          onClose={() => setNewDialog(false)}
+          onCreated={(id) => {
+            setNewDialog(false);
+            router.push(`/shipments/${id}`);
+          }}
+        />
+      )}
 
-      {/* Edit dialog */}
+      {/* ── Edit Modal ── */}
       {editDialog && (
-        <EditShipmentDialog
+        <EditShipmentModal
           shipment={editDialog}
           suppliers={suppliers}
-          onOpenChange={(o) => { if (!o) setEditDialog(null); }}
+          onClose={() => setEditDialog(null)}
           onSaved={() => { setEditDialog(null); load(); }}
         />
       )}
 
-      {/* Delete confirm dialog */}
-      <Dialog open={!!deleteDialog} onOpenChange={(o) => { if (!o) setDeleteDialog(null); }}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4" />
+      {/* ── Delete Confirm Modal ── */}
+      {deleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
+          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,180,171,0.15)", color: "#ffb4ab" }}>
+                <AlertTriangle className="h-5 w-5" />
               </div>
-              <DialogTitle>Delete shipment?</DialogTitle>
+              <div>
+                <p className="text-[15px] font-bold text-white">Delete shipment?</p>
+                <p className="text-[11px]" style={{ color: "#8e9192" }}>{deleteDialog.reference}</p>
+              </div>
             </div>
-            <DialogDescription>
-              <strong>{deleteDialog?.reference}</strong> and all its lines will be permanently removed.
-              This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteDialog(null)}>Cancel</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={deleting}
-              onClick={async () => {
-                if (!deleteDialog) return;
-                setDeleting(true);
-                try {
-                  await deleteShipment(deleteDialog.id);
-                  toast.success("Shipment deleted");
-                  setDeleteDialog(null);
-                  load();
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally {
-                  setDeleting(false);
-                }
-              }}
-            >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <p className="text-sm" style={{ color: "#8e9192" }}>
+              All lines will be permanently removed. This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteDialog(null)}
+                className="flex-1 h-12 rounded-xl text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#c4c7c8" }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await deleteShipment(deleteDialog.id);
+                    toast.success("Shipment deleted");
+                    setDeleteDialog(null);
+                    load();
+                  } catch (e) {
+                    toast.error((e as Error).message);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
+                style={{ background: "rgba(255,180,171,0.20)", color: "#ffb4ab", border: "1px solid rgba(255,180,171,0.20)" }}
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function NewShipmentDialog({
-  open, suppliers, existing, onOpenChange, onCreated,
+// ── New Shipment Modal ────────────────────────────────────────────────────────
+
+function NewShipmentModal({
+  suppliers, existing, onClose, onCreated,
 }: {
-  open: boolean;
   suppliers: SupplierRow[];
   existing: ShipmentRow[];
-  onOpenChange: (o: boolean) => void;
+  onClose: () => void;
   onCreated: (id: string) => void;
 }) {
-  const [reference, setReference] = useState("");
-  const [supplierId, setSupplierId] = useState("");
+  const [reference, setReference] = useState(nextShipmentRef(existing));
+  const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setReference(nextShipmentRef(existing));
-      setSupplierId(suppliers[0]?.id ?? "");
-    }
-  }, [open, existing, suppliers]);
 
   async function save() {
     if (!reference.trim()) return;
@@ -342,56 +403,68 @@ function NewShipmentDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border">
-        <DialogHeader>
-          <DialogTitle>New Shipment</DialogTitle>
-          <DialogDescription>
-            Start in draft. Add lines, lock forex rates, then confirm GRN when goods arrive.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Reference *</Label>
-            <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="SH-2026-001" />
-            <p className="text-[11px] text-muted-foreground">Auto-generated. Edit if you have your own scheme.</p>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
+      <div className="w-full max-w-md rounded-3xl p-6 space-y-5" style={CARD_L2}>
+        <div className="flex items-center gap-3 mb-1">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <Factory className="h-5 w-5 text-white" />
           </div>
-          <div className="space-y-2">
-            <Label>Supplier</Label>
-            <Select value={supplierId} onValueChange={(v) => v && setSupplierId(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pick supplier">
-                  {suppliers.find((s) => s.id === supplierId)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {suppliers.length === 0 && (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                No suppliers yet. Add one first under Suppliers.
-              </p>
-            )}
+          <div>
+            <p className="text-[16px] font-bold text-white">New Shipment</p>
+            <p className="text-[11px]" style={{ color: "#8e9192" }}>Draft → Add lines → Confirm GRN on arrival</p>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !reference.trim()}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+        <GlassInput
+          label="BATCH REFERENCE *"
+          value={reference}
+          onChange={(e) => setReference((e.target as HTMLInputElement).value)}
+          placeholder="SH-2026-001"
+          autoFocus
+        />
+        <p className="text-[11px] -mt-3" style={{ color: "#8e9192" }}>Auto-generated. Edit if you have your own scheme.</p>
+
+        <GlassSelect label="VENDOR" value={supplierId} onChange={setSupplierId}>
+          <option value="">No vendor selected</option>
+          {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </GlassSelect>
+
+        {suppliers.length === 0 && (
+          <p className="text-[11px]" style={{ color: "#fb923c" }}>
+            No suppliers yet. Add one under Vendors first.
+          </p>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 h-12 rounded-xl text-sm font-semibold"
+            style={{ background: "rgba(255,255,255,0.06)", color: "#c4c7c8" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            disabled={saving || !reference.trim()}
+            className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
+            style={{ background: "#ffffff", color: "#2f3131" }}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Create Batch"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
-function EditShipmentDialog({
-  shipment, suppliers, onOpenChange, onSaved,
+// ── Edit Shipment Modal ───────────────────────────────────────────────────────
+
+function EditShipmentModal({
+  shipment, suppliers, onClose, onSaved,
 }: {
   shipment: ShipmentRow;
   suppliers: SupplierRow[];
-  onOpenChange: (o: boolean) => void;
+  onClose: () => void;
   onSaved: () => void;
 }) {
   const [reference, setReference] = useState(shipment.reference);
@@ -418,44 +491,29 @@ function EditShipmentDialog({
   }
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border">
-        <DialogHeader>
-          <DialogTitle>Edit Shipment</DialogTitle>
-          <DialogDescription>
-            Update the reference, supplier, or notes. All costs and lines are edited inside the shipment detail.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Reference *</Label>
-            <Input value={reference} onChange={(e) => setReference(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Supplier</Label>
-            <Select value={supplierId} onValueChange={(v) => v && setSupplierId(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pick supplier">
-                  {suppliers.find((s) => s.id === supplierId)?.name ?? "—"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
-          </div>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
+      <div className="w-full max-w-md rounded-3xl p-6 space-y-5" style={CARD_L2}>
+        <p className="text-[16px] font-bold text-white">Edit Shipment</p>
+
+        <GlassInput label="REFERENCE *" value={reference} onChange={(e) => setReference((e.target as HTMLInputElement).value)} />
+        <GlassSelect label="VENDOR" value={supplierId} onChange={setSupplierId}>
+          <option value="">No vendor</option>
+          {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </GlassSelect>
+        <GlassInput label="NOTES" value={notes} onChange={(e) => setNotes((e.target as HTMLInputElement).value)} placeholder="Optional" />
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#c4c7c8" }}>Cancel</button>
+          <button
+            onClick={save}
+            disabled={saving || !reference.trim()}
+            className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
+            style={{ background: "#ffffff", color: "#2f3131" }}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Save Changes"}
+          </button>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !reference.trim()}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
