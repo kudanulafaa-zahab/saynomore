@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, TrendingUp, TrendingDown, Package,
-  Clock, BarChart3, Search,
+  Clock, BarChart3, Search, Megaphone,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getReportsData, type ReportRow } from "@/lib/queries/reports";
+import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
 import { type UnitUom } from "@/lib/queries/products";
 
 // ── Date helpers ─────────────────────────────────────────────────────────
@@ -58,10 +59,18 @@ const PRESETS = [
   { label: "Last 90 days", from: () => daysAgo(90), to: today },
 ];
 
+const CHANNEL_LABELS: Record<string, string> = {
+  meta_boost: "Meta Boost",
+  google: "Google Ads",
+  tiktok_ad: "TikTok Ads",
+  other: "Other",
+};
+
 type SortKey = "revenue" | "qty" | "margin" | "days" | "stock";
 
 export function ReportsView() {
   const [rows, setRows] = useState<ReportRow[]>([]);
+  const [spend, setSpend] = useState<MarketingSpendRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [from, setFrom] = useState(daysAgo(30));
   const [to, setTo] = useState(today());
@@ -72,7 +81,17 @@ export function ReportsView() {
   async function load(f = from, t = to) {
     setLoading(true);
     try {
-      setRows(await getReportsData(f, t));
+      const [reportRows, spendRows] = await Promise.all([
+        getReportsData(f, t),
+        listMarketingSpend(),
+      ]);
+      setRows(reportRows);
+      // filter spend rows that overlap with the selected period
+      setSpend(spendRows.filter((s) => {
+        const start = s.start_date;
+        const end = s.end_date ?? today();
+        return start <= t && end >= f;
+      }));
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -111,7 +130,8 @@ export function ReportsView() {
       if (!withMargin.length) return null;
       return withMargin.reduce((s, r) => s + (r.gross_margin_pct ?? 0), 0) / withMargin.length;
     })(),
-  }), [rows]);
+    totalSpend: spend.reduce((s, r) => s + r.amount_mvr, 0),
+  }), [rows, spend]);
 
   return (
     <div className="space-y-4">
@@ -158,7 +178,7 @@ export function ReportsView() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <SummaryCard
           label="Total Revenue"
           value={`MVR ${totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
@@ -182,6 +202,12 @@ export function ReportsView() {
           value={String(totals.lowStock)}
           icon={Clock}
           color={totals.lowStock > 0 ? "bg-red-500/15 text-red-500" : "bg-muted text-muted-foreground"}
+        />
+        <SummaryCard
+          label="Marketing Spend"
+          value={totals.totalSpend > 0 ? `MVR ${totals.totalSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+          icon={Megaphone}
+          color="bg-purple-500/15 text-purple-600 dark:text-purple-300"
         />
       </div>
 
@@ -232,6 +258,11 @@ export function ReportsView() {
         <MarginsTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
       ) : (
         <StockTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+      )}
+
+      {/* Marketing spend breakdown */}
+      {!loading && spend.length > 0 && (
+        <MarketingSpendSection spend={spend} />
       )}
     </div>
   );
@@ -376,6 +407,96 @@ function MarginsTable({ rows, sortKey, onSort }: {
         <p className="text-[11px] text-muted-foreground">
           Green ≥ 30% · Amber 15–29% · Red &lt; 15% · Sell price based on actual invoiced sales in period
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Marketing Spend section ──────────────────────────────────────────────
+
+function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
+  const byChannel = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const s of spend) {
+      map[s.channel] = (map[s.channel] ?? 0) + s.amount_mvr;
+    }
+    return Object.entries(map)
+      .sort(([, a], [, b]) => b - a)
+      .map(([channel, total]) => ({ channel, total }));
+  }, [spend]);
+
+  const grandTotal = spend.reduce((s, r) => s + r.amount_mvr, 0);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Megaphone className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-widest">Marketing Spend</h2>
+      </div>
+
+      {/* Channel breakdown bar */}
+      <div className="glass p-4 space-y-3">
+        {byChannel.map(({ channel, total }) => {
+          const pct = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
+          return (
+            <div key={channel} className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-foreground">{CHANNEL_LABELS[channel] ?? channel}</span>
+                <span className="text-muted-foreground font-medium">
+                  MVR {total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  <span className="text-xs ml-1">({pct.toFixed(0)}%)</span>
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-purple-500 transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+        <div className="pt-2 border-t border-border flex justify-between text-sm">
+          <span className="text-muted-foreground">Total</span>
+          <span className="font-semibold text-foreground">
+            MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </span>
+        </div>
+      </div>
+
+      {/* Spend log */}
+      <div className="glass overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-secondary/50">
+              <tr>
+                <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Campaign</th>
+                <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Channel</th>
+                <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Period</th>
+                <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Amount (MVR)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {spend.map((s) => (
+                <tr key={s.id} className="hover:bg-accent/20 transition">
+                  <td className="px-3 py-3">
+                    <p className="text-foreground">{s.campaign_name ?? "—"}</p>
+                    {s.notes && <p className="text-[11px] text-muted-foreground">{s.notes}</p>}
+                  </td>
+                  <td className="px-3 py-3 text-muted-foreground">
+                    {CHANNEL_LABELS[s.channel] ?? s.channel}
+                  </td>
+                  <td className="px-3 py-3 text-muted-foreground text-xs">
+                    {s.start_date}{s.end_date ? ` → ${s.end_date}` : ""}
+                  </td>
+                  <td className="px-3 py-3 text-right font-medium text-foreground">
+                    {s.amount_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
