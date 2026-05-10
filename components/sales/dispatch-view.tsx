@@ -185,7 +185,7 @@ export function DispatchView() {
                       })}
                       <button
                         onClick={() => setConfirmDelivery(item.order)}
-                        style={{ marginTop: 14, width: "100%", background: "#ffffff", color: "#2f3131", border: "none", borderRadius: 999, padding: "12px", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
+                        style={{ marginTop: 14, width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "12px", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
                       >
                         Mark as Delivered
                       </button>
@@ -231,7 +231,7 @@ export function DispatchView() {
               <button
                 onClick={markDelivered}
                 disabled={saving}
-                style={{ flex: 2, background: "#ffffff", color: "#2f3131", border: "none", borderRadius: 999, padding: 14, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}
+                style={{ flex: 2, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: 14, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}
               >
                 {saving ? "Saving…" : "CONFIRM DELIVERED"}
               </button>

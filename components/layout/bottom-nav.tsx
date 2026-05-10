@@ -43,7 +43,7 @@ export function BottomNav({ role }: { role: string }) {
           background: "color-mix(in srgb, var(--background) 80%, transparent)",
           backdropFilter: "blur(40px)",
           WebkitBackdropFilter: "blur(40px)",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: "1px solid var(--glass-border)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
@@ -59,10 +59,10 @@ export function BottomNav({ role }: { role: string }) {
               {active ? (
                 <div
                   className="flex flex-col items-center justify-center gap-1 px-4 py-1.5 rounded-full"
-                  style={{ background: "rgba(255,255,255,1)" }}
+                  style={{ background: "var(--foreground)" }}
                 >
-                  <Icon className="h-5 w-5" style={{ color: "#2f3131", strokeWidth: 2 }} />
-                  <span className="label-caps" style={{ color: "#2f3131", fontSize: 9 }}>{item.label}</span>
+                  <Icon className="h-5 w-5" style={{ color: "var(--background)", strokeWidth: 2 }} />
+                  <span className="label-caps" style={{ color: "var(--background)", fontSize: 9 }}>{item.label}</span>
                 </div>
               ) : (
                 <>
@@ -143,9 +143,9 @@ export function BottomNav({ role }: { role: string }) {
                 >
                   <div
                     className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: active ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.06)" }}
+                    style={{ background: active ? "var(--foreground)" : "var(--secondary)" }}
                   >
-                    <Icon className="h-4 w-4" style={{ color: active ? "#2f3131" : "var(--muted-foreground)" }} />
+                    <Icon className="h-4 w-4" style={{ color: active ? "var(--background)" : "var(--muted-foreground)" }} />
                   </div>
                   <span className="text-[15px] font-medium">{item.label}</span>
                   {active && <span className="ml-auto w-2 h-2 rounded-full bg-white" />}
@@ -165,9 +165,9 @@ export function BottomNav({ role }: { role: string }) {
               >
                 <div
                   className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: pathname === "/settings" ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.06)" }}
+                  style={{ background: pathname === "/settings" ? "var(--foreground)" : "var(--secondary)" }}
                 >
-                  <Settings className="h-4 w-4" style={{ color: pathname === "/settings" ? "#2f3131" : "var(--muted-foreground)" }} />
+                  <Settings className="h-4 w-4" style={{ color: pathname === "/settings" ? "var(--background)" : "var(--muted-foreground)" }} />
                 </div>
                 <span className="text-[15px] font-medium">Settings</span>
                 {pathname === "/settings" && <span className="ml-auto w-2 h-2 rounded-full bg-white" />}

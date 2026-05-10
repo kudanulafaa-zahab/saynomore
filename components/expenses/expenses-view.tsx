@@ -145,8 +145,8 @@ export function ExpensesView() {
           <button
             onClick={() => { setEditingRow(undefined); setShowLogSheet(true); }}
             style={{
-              background: "#ffffff",
-              color: "#2f3131",
+              background: "var(--foreground)",
+              color: "var(--background)",
               border: "none",
               borderRadius: 999,
               padding: "10px 22px",
@@ -163,7 +163,7 @@ export function ExpensesView() {
       </section>
 
       {/* Bento grid — burn rate chart + quick metrics */}
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <section className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12, marginBottom: 12 }}>
         {/* Monthly Burn Card — spans 2 cols */}
         <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 2", position: "relative", overflow: "hidden", height: 320 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -224,7 +224,7 @@ export function ExpensesView() {
                 {channelTotals[0] ? CHANNEL_LABEL[channelTotals[0].ch] : "—"}
               </p>
               <div style={{ width: "100%", background: "rgba(255,255,255,0.05)", height: 2, borderRadius: 999, marginTop: 8, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: "65%", background: "#ffffff", borderRadius: 999 }} />
+                <div style={{ height: "100%", width: "65%", background: "var(--foreground)", borderRadius: 999 }} />
               </div>
             </div>
           </div>
@@ -285,8 +285,8 @@ export function ExpensesView() {
           onClick={handleQuickLog}
           disabled={loggingQuick || !quickAmount}
           style={{
-            background: "#ffffff",
-            color: "#2f3131",
+            background: "var(--foreground)",
+            color: "var(--background)",
             border: "none",
             borderRadius: 999,
             padding: "12px 28px",
@@ -305,7 +305,7 @@ export function ExpensesView() {
       </section>
 
       {/* Categories + Recent Activity */}
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48 }}>
+      <section className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 32 }}>
         {/* Categories */}
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -615,7 +615,7 @@ function SpendSheet({
               {selectedSkuIds.map((sid) => {
                 const s = skus.find((sk) => sk.id === sid);
                 return s ? (
-                  <span key={sid} style={{ background: "rgba(255,255,255,0.1)", color: "#ffffff", borderRadius: 6, padding: "3px 10px", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span key={sid} style={{ background: "var(--secondary)", color: "var(--foreground)", borderRadius: 6, padding: "3px 10px", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
                     {s.brand_name} {s.variant_display}
                     <button onClick={() => toggleSku(sid)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
                   </span>
@@ -678,8 +678,8 @@ function SpendSheet({
             disabled={saving || !amountMvr}
             style={{
               flex: 2,
-              background: "#ffffff",
-              color: "#2f3131",
+              background: "var(--foreground)",
+              color: "var(--background)",
               border: "none",
               borderRadius: 999,
               padding: "14px",

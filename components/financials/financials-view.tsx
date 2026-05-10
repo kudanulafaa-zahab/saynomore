@@ -119,7 +119,7 @@ export function FinancialsView() {
       </section>
 
       {/* Bento row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12, marginBottom: 12 }}>
 
         {/* Cash Runway */}
         <div style={{ ...CARD, borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 256 }}>
@@ -134,7 +134,7 @@ export function FinancialsView() {
             <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginTop: 4 }}>Based on current burn rate</p>
           </div>
           <div style={{ width: "100%", background: "rgba(255,255,255,0.05)", height: 4, borderRadius: 999, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min((cashRunwayMonths / 24) * 100, 100)}%`, background: "#ffffff", borderRadius: 999, transition: "width 0.6s" }} />
+            <div style={{ height: "100%", width: `${Math.min((cashRunwayMonths / 24) * 100, 100)}%`, background: "var(--foreground)", borderRadius: 999, transition: "width 0.6s" }} />
           </div>
         </div>
 
@@ -156,7 +156,7 @@ export function FinancialsView() {
               <div key={m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <div style={{ width: "100%", display: "flex", alignItems: "flex-end", gap: 3, height: 120 }}>
                   <div style={{ flex: 1, background: "rgba(255,255,255,0.2)", borderRadius: "3px 3px 0 0", height: `${EXP_HEIGHTS[i]}%` }} />
-                  <div style={{ flex: 1, background: "#ffffff", borderRadius: "3px 3px 0 0", height: `${REV_HEIGHTS[i]}%` }} />
+                  <div style={{ flex: 1, background: "var(--foreground)", borderRadius: "3px 3px 0 0", height: `${REV_HEIGHTS[i]}%` }} />
                 </div>
                 <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>{m}</span>
               </div>

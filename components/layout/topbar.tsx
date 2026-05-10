@@ -35,7 +35,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
         background: "color-mix(in srgb, var(--background) 80%, transparent)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        borderBottom: "1px solid var(--glass-border)",
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
@@ -43,7 +43,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       <div className="flex items-center gap-3">
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0"
-          style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.12)" }}
+          style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
         >
           <span className="text-[11px] font-bold text-foreground">{initials}</span>
         </div>
@@ -73,7 +73,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-foreground"
-                  style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.15)" }}
+                  style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
                 >
                   {initials}
                 </div>

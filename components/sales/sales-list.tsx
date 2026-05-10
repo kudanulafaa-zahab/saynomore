@@ -209,7 +209,7 @@ export function SalesList() {
         <button
           onClick={() => setNewDialog(true)}
           className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95"
-          style={{ background: "#ffffff", color: "#2f3131" }}
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
           <Plus className="h-4 w-4" />
           New Sale
@@ -271,7 +271,7 @@ export function SalesList() {
             <button
               onClick={() => setNewDialog(true)}
               className="mt-2 h-11 px-6 rounded-2xl text-sm font-semibold"
-              style={{ background: "#ffffff", color: "#2f3131" }}
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Record first sale
             </button>
@@ -549,18 +549,18 @@ function NewSaleSheet({
                 className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all"
                 style={
                   step === s
-                    ? { background: "#ffffff", color: "#2f3131" }
+                    ? { background: "var(--foreground)", color: "var(--background)" }
                     : step > s
-                    ? { background: "rgba(74,222,128,0.20)", color: "#4ade80" }
-                    : { background: "rgba(255,255,255,0.08)", color: "#8e9192" }
+                    ? { background: "rgba(74,222,128,0.20)", color: "var(--snm-success)" }
+                    : { background: "var(--secondary)", color: "var(--muted-foreground)" }
                 }
               >
                 {step > s ? "✓" : s}
               </div>
-              <span className="text-[11px]" style={{ color: step === s ? "#ffffff" : "#8e9192" }}>
+              <span className="text-[11px]" style={{ color: step === s ? "var(--foreground)" : "var(--muted-foreground)" }}>
                 {stepLabels[s]}
               </span>
-              {s < 3 && <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />}
+              {s < 3 && <div className="flex-1 h-px bg-border" />}
             </div>
           ))}
         </div>
@@ -629,7 +629,7 @@ function NewSaleSheet({
                 <button
                   onClick={() => { setCustomerId("walkin"); }}
                   className="w-full h-12 rounded-xl text-sm font-semibold transition"
-                  style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)", color: "#8e9192" }}
+                  style={{ ...CARD, border: "1px solid var(--glass-border)", color: "var(--muted-foreground)" }}
                 >
                   Walk-in (no account)
                 </button>
@@ -663,7 +663,7 @@ function NewSaleSheet({
                     onClick={handleCreateCustomer}
                     disabled={savingCustomer || !newCustName.trim()}
                     className="flex-[2] h-11 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                    style={{ background: "#ffffff", color: "#2f3131" }}
+                    style={{ background: "var(--foreground)", color: "var(--background)" }}
                   >
                     {savingCustomer ? "Saving…" : "Save & Select"}
                   </button>
@@ -756,8 +756,8 @@ function NewSaleSheet({
                               <span
                                 className="text-[10px] font-bold px-2 py-0.5 rounded"
                                 style={{
-                                  background: stock > 0 ? "rgba(255,255,255,0.08)" : "rgba(255,180,171,0.12)",
-                                  color: stock > 0 ? "#8e9192" : "#ffb4ab",
+                                  background: stock > 0 ? "var(--secondary)" : "rgba(255,180,171,0.12)",
+                                  color: stock > 0 ? "var(--muted-foreground)" : "var(--snm-error)",
                                 }}
                               >
                                 STOCK: {stock}
@@ -815,7 +815,7 @@ function NewSaleSheet({
                     onClick={handleAddLine}
                     disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
                     className="w-full h-11 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                    style={{ background: "#ffffff", color: "#2f3131" }}
+                    style={{ background: "var(--foreground)", color: "var(--background)" }}
                   >
                     Add to Order
                   </button>
@@ -951,7 +951,7 @@ function NewSaleSheet({
               disabled={!customerId || !orderNumber.trim()}
               onClick={() => setStep(2)}
               className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40"
-              style={{ background: "#ffffff", color: "#2f3131" }}
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Next: Products →
             </button>
@@ -970,7 +970,7 @@ function NewSaleSheet({
               disabled={draftLines.length === 0}
               onClick={() => setStep(3)}
               className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40"
-              style={{ background: "#ffffff", color: "#2f3131" }}
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Review Order →
             </button>
@@ -989,7 +989,7 @@ function NewSaleSheet({
               disabled={saving || draftLines.length === 0}
               onClick={handleSubmit}
               className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "#ffffff", color: "#2f3131" }}
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Confirm & Notify
