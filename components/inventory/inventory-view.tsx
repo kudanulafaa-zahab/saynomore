@@ -46,7 +46,8 @@ export function InventoryView() {
   const [batches, setBatches] = useState<BatchStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ]             = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded]         = useState<string | null>(null);
+  const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -88,6 +89,24 @@ export function InventoryView() {
         .join(" ").toLowerCase().includes(term),
     );
   }, [stockList, q]);
+
+  /* ── Group filtered list by brand ──────────────────────────────────────── */
+  const byBrand = useMemo(() => {
+    const map = new Map<string, { skus: typeof filtered; totalValue: number; totalCartons: number; hasLow: boolean }>();
+    for (const row of filtered) {
+      const brand = row.sku.brand_name;
+      const entry = map.get(brand) ?? { skus: [], totalValue: 0, totalCartons: 0, hasLow: false };
+      const pcsPerCarton = row.sku.pcs_per_pack * row.sku.packs_per_carton;
+      const ctns = toCartons(row.totalPieces, pcsPerCarton);
+      const val  = row.byGodown.flatMap((g) => g.batches).reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
+      entry.skus.push(row);
+      entry.totalValue   += val;
+      entry.totalCartons += ctns;
+      entry.hasLow = entry.hasLow || ctns < 5;
+      map.set(brand, entry);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [filtered]);
 
   /* ── Summary stats ──────────────────────────────────────────────────────── */
   const totalSkusInStock = stockList.length;
@@ -166,8 +185,30 @@ export function InventoryView() {
           </p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {filtered.map((row) => {
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {byBrand.map(([brand, brandData]) => (
+            <div key={brand}>
+              {/* ── Brand header ── */}
+              <div
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 4px", cursor: "pointer" }}
+                onClick={() => setExpandedBrand(expandedBrand === brand ? null : brand)}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: brandData.hasLow ? "#ffb4ab" : "#4ade80" }} />
+                  <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" }}>{brand}</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{brandData.skus.length} SKU{brandData.skus.length !== 1 ? "s" : ""}</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{brandData.totalCartons.toLocaleString()} ctn</p>
+                  <p style={{ color: "var(--foreground)", fontSize: 12, fontWeight: 600 }}>MVR {brandData.totalValue.toLocaleString("en-MV", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                  <ChevronDown style={{ width: 14, height: 14, color: "var(--muted-foreground)", transform: expandedBrand === brand ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                </div>
+              </div>
+
+              {/* ── SKU rows under this brand ── */}
+              {(expandedBrand === brand || q.trim() !== "") && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                  {brandData.skus.map((row) => {
             const pcsPerCarton = row.sku.pcs_per_pack * row.sku.packs_per_carton;
             const ctns   = toCartons(row.totalPieces, pcsPerCarton);
             const packs  = remainderPacks(row.totalPieces, row.sku.pcs_per_pack, pcsPerCarton);
@@ -197,7 +238,7 @@ export function InventoryView() {
                   {/* Name */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {row.sku.brand_name} · {row.sku.model_name} · {row.sku.variant_display}
+                      {q.trim() ? `${row.sku.brand_name} · ` : ""}{row.sku.model_name} · {row.sku.variant_display}
                     </p>
                     <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
                       {row.sku.internal_code} · {row.sku.pcs_per_pack}/pk × {row.sku.packs_per_carton}/ctn
@@ -293,7 +334,11 @@ export function InventoryView() {
                 )}
               </div>
             );
-          })}
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
