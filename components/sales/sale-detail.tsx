@@ -4,37 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import {
-  Loader2,
-  ArrowLeft,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  AlertTriangle,
-  Warehouse,
-  ChevronDown,
-  ChevronUp,
-  User,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Loader2, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -56,56 +26,70 @@ import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
 
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  draft: "Draft",
-  confirmed: "Confirmed",
-  picked: "Picked",
-  out_for_delivery: "Out for Delivery",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Constants                                                                  */
+/* ─────────────────────────────────────────────────────────────────────────── */
 
-const STATUS_COLOR: Record<OrderStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
-  confirmed: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-  picked: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-  out_for_delivery: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-  delivered: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-  cancelled: "bg-red-500/15 text-red-600 dark:text-red-300",
-};
+const STEPS: { status: OrderStatus; label: string; icon: string }[] = [
+  { status: "draft",            label: "Draft",       icon: "edit_note" },
+  { status: "confirmed",        label: "Confirmed",   icon: "check_circle" },
+  { status: "out_for_delivery", label: "Dispatched",  icon: "local_shipping" },
+  { status: "delivered",        label: "Delivered",   icon: "task_alt" },
+];
 
 const PAYMENT_LABEL: Record<PaymentStatus, string> = {
-  pending: "Pending",
-  partial: "Partial",
-  paid: "Paid (transfer)",
-  cod: "Cash on Delivery",
+  pending:   "Pending",
+  partial:   "Partial",
+  paid:      "Paid (transfer)",
+  cod:       "Cash on Delivery",
   deposited: "Deposited (cash → ATM)",
 };
 
-interface DriverOption {
-  id: string;
-  full_name: string;
+interface DriverOption { id: string; full_name: string; }
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Helpers                                                                    */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function stepIndex(status: OrderStatus): number {
+  const map: Record<string, number> = { draft: 0, confirmed: 1, picked: 1, out_for_delivery: 2, delivered: 3, cancelled: -1 };
+  return map[status] ?? 0;
 }
+
+function fmt(n: number) { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Main component                                                              */
+/* ─────────────────────────────────────────────────────────────────────────── */
 
 export function SaleDetail({ id }: { id: string }) {
   const router = useRouter();
-  const [order, setOrder] = useState<SalesOrderRow | null>(null);
-  const [lines, setLines] = useState<SalesOrderLineRow[]>([]);
-  const [skus, setSkus] = useState<SkuFullRow[]>([]);
-  const [customers, setCustomers] = useState<CustomerRow[]>([]);
-  const [godowns, setGodowns] = useState<GodownRow[]>([]);
+
+  const [order, setOrder]           = useState<SalesOrderRow | null>(null);
+  const [lines, setLines]           = useState<SalesOrderLineRow[]>([]);
+  const [skus, setSkus]             = useState<SkuFullRow[]>([]);
+  const [customers, setCustomers]   = useState<CustomerRow[]>([]);
+  const [godowns, setGodowns]       = useState<GodownRow[]>([]);
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([]);
-  const [drivers, setDrivers] = useState<DriverOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [posting, setPosting] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState(false);
-  const [deleteOrderDialog, setDeleteOrderDialog] = useState(false);
-  const [deletingOrder, setDeletingOrder] = useState(false);
-  const [deleteLineDialog, setDeleteLineDialog] = useState<SalesOrderLineRow | null>(null);
-  const [deletingLine, setDeletingLine] = useState(false);
-  const [lineDialog, setLineDialog] = useState<{ open: boolean; editing?: SalesOrderLineRow }>({ open: false });
-  const [role, setRole] = useState<string | null>(null);
-  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [drivers, setDrivers]       = useState<DriverOption[]>([]);
+  const [role, setRole]             = useState<string | null>(null);
+  const [loading, setLoading]       = useState(true);
+
+  // action states
+  const [posting, setPosting]       = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const [completing, setCompleting]   = useState(false);
+  const [deleting, setDeleting]       = useState(false);
+
+  // local driver / cash state for action panels
+  const [selectedDriver, setSelectedDriver] = useState("");
+  const [cashCollected, setCashCollected]   = useState("");
+
+  // inline dialogs (sheet-style bottom panels)
+  const [panel, setPanel] = useState<"confirm" | "dispatch" | "deliver" | "delete" | "deleteLine" | "addLine" | null>(null);
+  const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
+  const [editingLine, setEditingLine]             = useState<SalesOrderLineRow | undefined>(undefined);
+  const [deletingLine, setDeletingLine]           = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -130,565 +114,598 @@ export function SaleDetail({ id }: { id: string }) {
       setGodowns(g);
       setStockLevels(lvl);
       setDrivers((dr.data ?? []) as DriverOption[]);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setLoading(false); }
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
-  const isAdmin = role === "admin";
 
-  const customer = customers.find((c) => c.id === order?.customer_id);
-  const totals = useMemo(() => {
-    const sum = lines.reduce((acc, l) => acc + Number(l.line_total_mvr), 0);
-    return { mvr: sum, count: lines.length };
-  }, [lines]);
+  const isAdmin   = role === "admin";
+  const customer  = customers.find((c) => c.id === order?.customer_id);
+  const totals    = useMemo(() => ({
+    mvr:   lines.reduce((a, l) => a + Number(l.line_total_mvr), 0),
+    count: lines.length,
+  }), [lines]);
 
-  const posted = order && order.status !== "draft" && order.status !== "cancelled";
-  const isDraft = order?.status === "draft";
+  const isDraft    = order?.status === "draft";
+  const isConfirmed = order?.status === "confirmed" || order?.status === "picked";
+  const isDispatched = order?.status === "out_for_delivery";
+  const isDelivered  = order?.status === "delivered";
+  const isCancelled  = order?.status === "cancelled";
+  const isEditable   = isDraft;
 
-  async function patch(field: keyof SalesOrderRow, value: number | string | boolean | null) {
+  /* ── Actions ───────────────────────────────────────────────────────────── */
+
+  async function patch(field: string, value: number | string | boolean | null) {
     if (!order) return;
     try {
       await updateOrder(order.id, { [field]: value } as Record<string, unknown>);
       setOrder({ ...order, [field]: value } as SalesOrderRow);
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
+    } catch (e) { toast.error((e as Error).message); }
   }
 
-  async function handlePostSale() {
+  async function handleConfirm() {
     if (!order) return;
-    if (!order.source_godown_id) {
-      toast.error("Pick a source warehouse first");
-      return;
-    }
-    if (lines.length === 0) {
-      toast.error("Add at least one item");
-      return;
-    }
     setPosting(true);
     try {
       await postSale(order.id);
-      toast.success("Confirmed — stock deducted");
-      setConfirmDialog(false);
+      toast.success("Sale confirmed — stock deducted");
+      setPanel(null);
       load();
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setPosting(false);
-    }
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setPosting(false); }
   }
+
+  async function handleDispatch() {
+    if (!order || !selectedDriver) return;
+    setDispatching(true);
+    try {
+      await updateOrder(order.id, {
+        assigned_driver_id: selectedDriver,
+        status: "out_for_delivery",
+      } as Record<string, unknown>);
+      toast.success("Order dispatched to driver");
+      setPanel(null);
+      load();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setDispatching(false); }
+  }
+
+  async function handleDeliver() {
+    if (!order) return;
+    setCompleting(true);
+    try {
+      const cash = parseFloat(cashCollected);
+      await updateOrder(order.id, {
+        status: "delivered",
+        delivered_at: new Date().toISOString(),
+        ...(isNaN(cash) ? {} : { cash_collected_mvr: cash }),
+      } as Record<string, unknown>);
+      toast.success("Order marked as delivered");
+      setPanel(null);
+      load();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setCompleting(false); }
+  }
+
+  async function handleDeleteOrder() {
+    if (!order) return;
+    setDeleting(true);
+    try {
+      await deleteOrder(order.id);
+      toast.success("Order deleted");
+      router.push("/sales");
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setDeleting(false); }
+  }
+
+  async function handleDeleteLine() {
+    if (!pendingDeleteLine) return;
+    setDeletingLine(true);
+    try {
+      await deleteOrderLine(pendingDeleteLine.id);
+      toast.success("Item removed");
+      setPendingDeleteLine(null);
+      setPanel(null);
+      load();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setDeletingLine(false); }
+  }
+
+  /* ── Render ────────────────────────────────────────────────────────────── */
 
   if (loading) {
     return (
-      <div className="glass p-12 flex flex-col items-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading order…</p>
+      <div style={{ background: "var(--background)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
   if (!order) {
     return (
-      <div className="glass p-12 text-center text-muted-foreground">
-        Order not found.
-        <div className="mt-4">
-          <Link href="/sales" className="text-primary text-sm hover:underline">Back to sales</Link>
-        </div>
+      <div style={{ background: "var(--background)", minHeight: "100vh", padding: 24 }}>
+        <p style={{ color: "var(--muted-foreground)" }}>Order not found.</p>
+        <Link href="/sales" style={{ color: "var(--foreground)", fontSize: 14, marginTop: 12, display: "block" }}>← Back to sales</Link>
       </div>
     );
   }
 
+  const currentStep = stepIndex(order.status);
+
   return (
-    <div className="space-y-4">
+    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 140px 0" }}>
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link href="/sales" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition shrink-0">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Sale</p>
-            <h1 className="text-xl sm:text-2xl font-semibold text-foreground truncate">
-              {customer?.name ?? "Walk-in"}
-              <span className="text-sm text-muted-foreground ml-2">{order.order_number}</span>
-            </h1>
-          </div>
+      {/* ── Top nav ──────────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <Link href="/sales" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)", textDecoration: "none" }}>
+          <ArrowLeft style={{ width: 18, height: 18 }} />
+        </Link>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>Sales Order</p>
+          <h1 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {customer?.name ?? "Walk-in"}
+            <span style={{ color: "var(--muted-foreground)", fontSize: 13, fontWeight: 400, marginLeft: 8 }}>{order.order_number}</span>
+          </h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-1 ${STATUS_COLOR[order.status]}`}>
-            {STATUS_LABEL[order.status]}
-          </span>
-          {isAdmin && (
-            <button
-              onClick={() => setDeleteOrderDialog(true)}
-              className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
-              title="Delete order (admin)"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Customer info (read-only summary) ─────────────────────────── */}
-      {customer && (
-        <div className="glass p-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <User className="h-4 w-4 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">{customer.name}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}
-            </p>
-          </div>
-          <span className="ml-auto text-[11px] text-muted-foreground">via {order.channel}</span>
-        </div>
-      )}
-
-      {/* ── Draft "what to do next" guide ─────────────────────────────── */}
-      {isDraft && (
-        <div className="glass p-4 border border-amber-500/20 bg-amber-500/5 space-y-2">
-          <p className="text-sm font-medium text-amber-600 dark:text-amber-400">📋 Draft order — complete these steps:</p>
-          <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-            <li className={order.source_godown_id ? "line-through text-emerald-600 dark:text-emerald-400" : ""}>
-              Pick the warehouse to ship from
-            </li>
-            <li className={lines.length > 0 ? "line-through text-emerald-600 dark:text-emerald-400" : ""}>
-              Add at least one product
-            </li>
-            <li>Hit "Confirm sale" — stock will be deducted automatically</li>
-          </ol>
-        </div>
-      )}
-
-      {/* ── Warehouse + status card ────────────────────────────────────── */}
-      <div className="glass p-5 space-y-4">
-        {/* Warehouse — most important, always first */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-1.5">
-            <Warehouse className="h-3.5 w-3.5 text-muted-foreground" />
-            Warehouse (ship from) *
-          </Label>
-          <Select
-            value={order.source_godown_id ?? ""}
-            onValueChange={(v) => v && patch("source_godown_id", v)}
-            disabled={!!posted}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select warehouse…">
-                {godowns.find((g) => g.id === order.source_godown_id)?.name ?? "Select warehouse…"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {godowns.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  {g.name}{g.is_default ? " (default)" : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!order.source_godown_id && isDraft && (
-            <p className="text-[11px] text-amber-600 dark:text-amber-400">⚠ Required before you can confirm the sale</p>
-          )}
-          {order.source_godown_id && isDraft && (
-            <p className="text-[11px] text-muted-foreground">Stock deducted FIFO (oldest batch first) when you confirm.</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={order.status} onValueChange={(v) => v && patch("status", v as OrderStatus)}>
-              <SelectTrigger><SelectValue>{STATUS_LABEL[order.status]}</SelectValue></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(STATUS_LABEL) as OrderStatus[]).map((s) => (
-                  <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Payment</Label>
-            <Select value={order.payment_status} onValueChange={(v) => v && patch("payment_status", v as PaymentStatus)}>
-              <SelectTrigger><SelectValue>{PAYMENT_LABEL[order.payment_status]}</SelectValue></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(PAYMENT_LABEL) as PaymentStatus[]).map((s) => (
-                  <SelectItem key={s} value={s}>{PAYMENT_LABEL[s]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Delivery details — collapsible */}
-        <div>
+        {isAdmin && !isDelivered && (
           <button
-            onClick={() => setDeliveryOpen((o) => !o)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition w-full text-left"
+            onClick={() => setPanel("delete")}
+            style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,59,48,0.10)", border: "none", color: "#ff3b30", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
           >
-            {deliveryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            Delivery details (driver, address, notes)
+            <Trash2 style={{ width: 16, height: 16 }} />
           </button>
-          {deliveryOpen && (
-            <div className="pt-3 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Assigned Driver</Label>
-                  <Select
-                    value={order.assigned_driver_id ?? ""}
-                    onValueChange={(v) => patch("assigned_driver_id", v || null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pick driver">
-                        {drivers.find((d) => d.id === order.assigned_driver_id)?.full_name ?? "—"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {drivers.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Delivery Island</Label>
-                  <Input
-                    value={order.delivery_island ?? ""}
-                    onChange={(e) => setOrder({ ...order, delivery_island: e.target.value })}
-                    onBlur={(e) => patch("delivery_island", e.target.value || null)}
-                    placeholder={customer?.island ?? "Optional"}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={order.delivery_to_boat}
-                    onChange={(e) => patch("delivery_to_boat", e.target.checked)}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                  Delivery to boat (resort / outer island)
-                </Label>
-              </div>
-              <div className="space-y-2">
-                <Label>Delivery Address</Label>
-                <Textarea
-                  value={order.delivery_address ?? ""}
-                  onChange={(e) => setOrder({ ...order, delivery_address: e.target.value })}
-                  onBlur={(e) => patch("delivery_address", e.target.value || null)}
-                  className="min-h-[50px]"
-                  placeholder={customer?.address ?? "Optional"}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea
-                  value={order.notes ?? ""}
-                  onChange={(e) => setOrder({ ...order, notes: e.target.value })}
-                  onBlur={(e) => patch("notes", e.target.value || null)}
-                  className="min-h-[50px]"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Items ─────────────────────────────────────────────────────── */}
-      <div className="glass p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-medium text-foreground">Products ordered</h2>
-            <p className="text-xs text-muted-foreground">
-              {totals.count} item{totals.count === 1 ? "" : "s"}
-              {totals.count > 0 && <> · <span className="text-primary font-medium">{totals.mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span></>}
-            </p>
-          </div>
-          {!posted && (
-            <Button onClick={() => setLineDialog({ open: true })} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Add item
-            </Button>
-          )}
-        </div>
-
-        {lines.length === 0 ? (
-          <div className="text-center py-6 space-y-2">
-            <p className="text-sm text-muted-foreground">No products yet.</p>
-            {!posted && (
-              <Button variant="ghost" size="sm" onClick={() => setLineDialog({ open: true })}>
-                <Plus className="h-4 w-4 mr-1" /> Add first item
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {lines.map((l) => {
-              const sku = skus.find((s) => s.id === l.sku_id);
-              return (
-                <div key={l.id} className="glass-flat p-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-foreground">
-                      {sku?.brand_name} › {sku?.model_name} › {sku?.variant_display}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {l.qty} {l.uom}
-                      {l.uom !== "piece" && <> = {l.qty_pieces} pcs</>}
-                      {" · "}
-                      {Number(l.unit_price_mvr).toLocaleString()} MVR/{l.uom}
-                      {" · "}
-                      <span className="text-foreground font-medium">{Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
-                    </p>
-                  </div>
-                  {!posted && (
-                    <div className="flex gap-1 shrink-0">
-                      <button onClick={() => setLineDialog({ open: true, editing: l })} className="text-xs text-primary hover:opacity-80 px-2">Edit</button>
-                      <button onClick={() => setDeleteLineDialog(l)} className="text-xs text-red-500 hover:opacity-80 px-2">Remove</button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            <div className="flex justify-between border-t border-border pt-3 text-base">
-              <span className="font-medium text-foreground">Total</span>
-              <span className="font-semibold text-primary">{totals.mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })} MVR</span>
-            </div>
-          </div>
         )}
       </div>
 
-      {/* ── Confirm action ─────────────────────────────────────────────── */}
+      {/* ── Progress stepper ─────────────────────────────────────────────── */}
+      {!isCancelled && (
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "20px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
+          {STEPS.map((step, i) => {
+            const done    = currentStep > i;
+            const active  = currentStep === i;
+            return (
+              <div key={step.status} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
+                {/* connector line */}
+                {i < STEPS.length - 1 && (
+                  <div style={{ position: "absolute", top: 18, left: "50%", right: "-50%", height: 2, background: done ? "var(--foreground)" : "rgba(255,255,255,0.08)", zIndex: 0, transition: "background 0.3s" }} />
+                )}
+                <div style={{
+                  width: 36, height: 36, borderRadius: "50%",
+                  background: done ? "var(--foreground)" : active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)",
+                  border: active ? "2px solid var(--foreground)" : "2px solid transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.3s", position: "relative", zIndex: 1,
+                }}>
+                  <span className="material-symbols-outlined" style={{
+                    fontSize: 16,
+                    color: done ? "var(--background)" : active ? "var(--foreground)" : "var(--muted-foreground)",
+                  }}>{step.icon}</span>
+                </div>
+                <p style={{ color: active ? "var(--foreground)" : done ? "var(--muted-foreground)" : "var(--muted-foreground)", fontSize: 10, fontWeight: active ? 700 : 400, marginTop: 6, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "center" }}>
+                  {step.label}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {isCancelled && (
+        <div style={{ background: "rgba(255,59,48,0.08)", borderRadius: 12, padding: "12px 16px", marginBottom: 12, border: "1px solid rgba(255,59,48,0.2)" }}>
+          <p style={{ color: "#ff3b30", fontSize: 13, fontWeight: 600 }}>Order cancelled</p>
+        </div>
+      )}
+
+      {/* ── Customer card ─────────────────────────────────────────────────── */}
+      {customer && (
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 20 }}>person</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>{customer.name}</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
+              {[customer.phone, customer.island, order.channel].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── STAGE 1 — Draft ──────────────────────────────────────────────── */}
       {isDraft && (
-        <div className="glass p-5 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-4 w-4" />
-            </div>
-            <div className="space-y-1 flex-1">
-              <h3 className="text-base font-medium text-foreground">Confirm sale</h3>
-              <p className="text-xs text-muted-foreground">
-                This locks the order and deducts stock from the warehouse (FIFO — oldest batch first).
-                You can still update delivery status afterwards.
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Step 1 — Build the Order</p>
+
+          {/* Warehouse selector */}
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Ship from warehouse *</p>
+            <select
+              value={order.source_godown_id ?? ""}
+              onChange={(e) => e.target.value && patch("source_godown_id", e.target.value)}
+              style={{
+                width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)",
+                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px",
+                fontSize: 14, outline: "none", cursor: "pointer",
+              }}
+            >
+              <option value="">Select warehouse…</option>
+              {godowns.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>
+              ))}
+            </select>
+            {!order.source_godown_id && (
+              <p style={{ color: "#fb923c", fontSize: 11, marginTop: 4 }}>Required before confirming</p>
+            )}
+          </div>
+
+          {/* Items list */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500 }}>
+                Products · {totals.count} item{totals.count !== 1 ? "s" : ""}
               </p>
+              <button
+                onClick={() => { setEditingLine(undefined); setPanel("addLine"); }}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", color: "var(--foreground)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              >
+                <Plus style={{ width: 14, height: 14 }} /> Add item
+              </button>
             </div>
+            <LineList lines={lines} skus={skus} editable onEdit={(l) => { setEditingLine(l); setPanel("addLine"); }} onDelete={(l) => { setPendingDeleteLine(l); setPanel("deleteLine"); }} />
+            {totals.count > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Total</span>
+                <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
+              </div>
+            )}
           </div>
-          <Button
-            onClick={() => setConfirmDialog(true)}
-            disabled={lines.length === 0 || !order.source_godown_id}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
+        </div>
+      )}
+
+      {/* ── STAGE 1 confirm button ────────────────────────────────────────── */}
+      {isDraft && (
+        <button
+          onClick={() => setPanel("confirm")}
+          disabled={lines.length === 0 || !order.source_godown_id}
+          style={{
+            width: "100%", background: lines.length > 0 && order.source_godown_id ? "var(--foreground)" : "rgba(255,255,255,0.1)",
+            color: lines.length > 0 && order.source_godown_id ? "var(--background)" : "var(--muted-foreground)",
+            border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700,
+            letterSpacing: "0.06em", textTransform: "uppercase", cursor: lines.length > 0 && order.source_godown_id ? "pointer" : "not-allowed",
+            marginBottom: 12,
+          }}
+        >
+          Confirm Sale & Deduct Stock →
+        </button>
+      )}
+
+      {/* ── STAGE 2 — Confirmed: assign driver ───────────────────────────── */}
+      {isConfirmed && (
+        <>
+          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Step 2 — Assign Driver & Dispatch</p>
+            <LineList lines={lines} skus={skus} editable={false} />
+            {totals.count > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
+                <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => { setSelectedDriver(order.assigned_driver_id ?? ""); setPanel("dispatch"); }}
+            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 12 }}
           >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Confirm sale
-          </Button>
-          {(!order.source_godown_id || lines.length === 0) && (
-            <p className="text-[11px] text-muted-foreground">
-              {!order.source_godown_id && "⚠ Select a warehouse above. "}
-              {lines.length === 0 && "⚠ Add at least one product."}
-            </p>
-          )}
+            Assign Driver & Dispatch →
+          </button>
+        </>
+      )}
+
+      {/* ── STAGE 3 — Out for delivery ───────────────────────────────────── */}
+      {isDispatched && (
+        <>
+          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Step 3 — Out for Delivery</p>
+
+            {/* Driver badge */}
+            {order.assigned_driver_id && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, padding: "12px 14px", background: "rgba(74,222,128,0.08)", borderRadius: 10, border: "1px solid rgba(74,222,128,0.15)" }}>
+                <span className="material-symbols-outlined" style={{ color: "#4ade80", fontSize: 20 }}>local_shipping</span>
+                <div>
+                  <p style={{ color: "#4ade80", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Assigned Driver</p>
+                  <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>
+                    {drivers.find((d) => d.id === order.assigned_driver_id)?.full_name ?? "Driver"}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <LineList lines={lines} skus={skus} editable={false} />
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
+              <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => { setCashCollected(""); setPanel("deliver"); }}
+            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 12 }}
+          >
+            Mark as Delivered →
+          </button>
+        </>
+      )}
+
+      {/* ── STAGE 4 — Delivered ──────────────────────────────────────────── */}
+      {isDelivered && (
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <span className="material-symbols-outlined" style={{ color: "#4ade80", fontSize: 24 }}>task_alt</span>
+            <p style={{ color: "#4ade80", fontSize: 14, fontWeight: 700 }}>Delivered</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 14 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Order Total</p>
+              <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
+            </div>
+            {order.cash_collected_mvr != null && (
+              <div style={{ background: "rgba(74,222,128,0.06)", borderRadius: 10, padding: 14 }}>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Cash Collected</p>
+                <p style={{ color: "#4ade80", fontSize: 18, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Payment status */}
+          <div style={{ marginTop: 16 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Payment status</p>
+            <select
+              value={order.payment_status}
+              onChange={(e) => patch("payment_status", e.target.value as PaymentStatus)}
+              style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", fontSize: 14, outline: "none", cursor: "pointer" }}
+            >
+              {(Object.keys(PAYMENT_LABEL) as PaymentStatus[]).map((s) => (
+                <option key={s} value={s}>{PAYMENT_LABEL[s]}</option>
+              ))}
+            </select>
+          </div>
+
+          <LineList lines={lines} skus={skus} editable={false} style={{ marginTop: 16 }} />
         </div>
       )}
 
-      {posted && (
-        <div className="glass-flat p-4 flex items-start gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="text-foreground font-medium">Sale confirmed — stock deducted.</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Update the status above as the order moves: Picked → Out for delivery → Delivered.
-            </p>
+      {/* ── Modals / bottom sheets ─────────────────────────────────────── */}
+
+      {/* Confirm sale */}
+      <Sheet open={panel === "confirm"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Confirm sale?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 20 }}>
+          Stock will be permanently deducted from <strong style={{ color: "var(--foreground)" }}>{godowns.find((g) => g.id === order.source_godown_id)?.name ?? "warehouse"}</strong> (FIFO). This cannot be undone.
+        </p>
+        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16, marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Items</span>
+            <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{totals.count}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Total</span>
+            <span style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
           </div>
         </div>
+        <SheetActions>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleConfirm} disabled={posting} style={primaryBtn}>
+            {posting ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Confirm & Deduct Stock"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Dispatch */}
+      <Sheet open={panel === "dispatch"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Assign Driver</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 20 }}>
+          Pick a driver. The order will move to their dispatch board immediately.
+        </p>
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Driver *</p>
+          <select
+            value={selectedDriver}
+            onChange={(e) => setSelectedDriver(e.target.value)}
+            style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px", fontSize: 14, outline: "none", cursor: "pointer" }}
+          >
+            <option value="">Select driver…</option>
+            {drivers.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
+          </select>
+        </div>
+        <SheetActions>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleDispatch} disabled={!selectedDriver || dispatching} style={{ ...primaryBtn, opacity: !selectedDriver || dispatching ? 0.5 : 1, cursor: !selectedDriver || dispatching ? "not-allowed" : "pointer" }}>
+            {dispatching ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Dispatch Now"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Deliver */}
+      <Sheet open={panel === "deliver"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Confirm Delivery</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 20 }}>
+          Order value: <strong style={{ color: "var(--foreground)" }}>MVR {fmt(totals.mvr)}</strong>
+        </p>
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Cash collected (optional)</p>
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={cashCollected}
+            onChange={(e) => setCashCollected(e.target.value)}
+            style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px", fontSize: 16, outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+        <SheetActions>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleDeliver} disabled={completing} style={{ ...primaryBtn, opacity: completing ? 0.5 : 1 }}>
+            {completing ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Mark Delivered"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Delete order */}
+      <Sheet open={panel === "delete"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Order?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+          <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> and all its items will be permanently deleted. This cannot be undone.
+        </p>
+        <SheetActions>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleDeleteOrder} disabled={deleting} style={{ ...primaryBtn, background: "#ff3b30" }}>
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Delete"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Delete line */}
+      <Sheet open={panel === "deleteLine"} onClose={() => { setPendingDeleteLine(null); setPanel(null); }}>
+        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove item?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+          {pendingDeleteLine && (() => {
+            const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
+            return sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "This item";
+          })()} will be removed from the order.
+        </p>
+        <SheetActions>
+          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} style={ghostBtn}>Cancel</button>
+          <button onClick={handleDeleteLine} disabled={deletingLine} style={{ ...primaryBtn, background: "#ff3b30" }}>
+            {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Add / edit line */}
+      {panel === "addLine" && (
+        <LineDialog
+          editing={editingLine}
+          orderId={id}
+          skus={skus}
+          stockLevels={stockLevels}
+          sourceGodownId={order.source_godown_id}
+          onClose={() => { setEditingLine(undefined); setPanel(null); }}
+          onSaved={() => { setEditingLine(undefined); setPanel(null); load(); }}
+        />
       )}
-
-      {/* ── Dialogs ────────────────────────────────────────────────────── */}
-
-      <LineDialog
-        open={lineDialog.open}
-        editing={lineDialog.editing}
-        orderId={id}
-        skus={skus}
-        stockLevels={stockLevels}
-        sourceGodownId={order.source_godown_id}
-        onOpenChange={(o) => setLineDialog({ open: o })}
-        onSaved={load}
-      />
-
-      <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <DialogTitle>Confirm sale?</DialogTitle>
-            </div>
-            <DialogDescription>
-              Stock will be deducted from <strong>{godowns.find((g) => g.id === order.source_godown_id)?.name ?? "the warehouse"}</strong> (FIFO). This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-xl bg-secondary/50 p-3 space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Items</span>
-              <span className="text-foreground">{totals.count}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total MVR</span>
-              <span className="text-foreground font-medium">{totals.mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmDialog(false)}>Cancel</Button>
-            <Button onClick={handlePostSale} disabled={posting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={deleteOrderDialog} onOpenChange={setDeleteOrderDialog}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <DialogTitle>Delete order?</DialogTitle>
-            </div>
-            <DialogDescription>
-              <strong>{order.order_number}</strong> and all its items will be permanently deleted. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteOrderDialog(false)}>Cancel</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={deletingOrder}
-              onClick={async () => {
-                setDeletingOrder(true);
-                try {
-                  await deleteOrder(order.id);
-                  toast.success("Order deleted");
-                  router.push("/sales");
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally {
-                  setDeletingOrder(false);
-                }
-              }}
-            >
-              {deletingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!deleteLineDialog} onOpenChange={(o) => { if (!o) setDeleteLineDialog(null); }}>
-        <DialogContent className="bg-popover border-border">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <DialogTitle>Remove item?</DialogTitle>
-            </div>
-            <DialogDescription>
-              {deleteLineDialog && (() => {
-                const sku = skus.find((s) => s.id === deleteLineDialog.sku_id);
-                return sku
-                  ? <><strong>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</strong> will be removed.</>
-                  : "This item will be permanently removed.";
-              })()}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteLineDialog(null)}>Cancel</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={deletingLine}
-              onClick={async () => {
-                if (!deleteLineDialog) return;
-                setDeletingLine(true);
-                try {
-                  await deleteOrderLine(deleteLineDialog.id);
-                  toast.success("Item removed");
-                  setDeleteLineDialog(null);
-                  load();
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally {
-                  setDeletingLine(false);
-                }
-              }}
-            >
-              {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
-// ── Line dialog ──────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Shared sub-components                                                      */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+const ghostBtn: React.CSSProperties = {
+  flex: 1, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)",
+  border: "none", borderRadius: 999, padding: "14px", fontSize: 14, cursor: "pointer",
+};
+const primaryBtn: React.CSSProperties = {
+  flex: 2, background: "var(--foreground)", color: "var(--background)",
+  border: "none", borderRadius: 999, padding: "14px", fontSize: 13,
+  fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer",
+};
+
+function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "85vh", overflowY: "auto" }}
+      >
+        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SheetActions({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: "flex", gap: 12 }}>{children}</div>;
+}
+
+function LineList({
+  lines, skus, editable, onEdit, onDelete, style: extraStyle,
+}: {
+  lines: SalesOrderLineRow[];
+  skus: SkuFullRow[];
+  editable: boolean;
+  onEdit?: (l: SalesOrderLineRow) => void;
+  onDelete?: (l: SalesOrderLineRow) => void;
+  style?: React.CSSProperties;
+}) {
+  if (lines.length === 0) {
+    return <p style={{ color: "var(--muted-foreground)", fontSize: 13, textAlign: "center", padding: "20px 0", ...extraStyle }}>No items yet.</p>;
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, ...extraStyle }}>
+      {lines.map((l) => {
+        const sku = skus.find((s) => s.id === l.sku_id);
+        return (
+          <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {sku ? `${sku.brand_name} › ${sku.variant_display}` : l.sku_id}
+              </p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
+                {l.qty} {l.uom} · MVR {Number(l.unit_price_mvr).toLocaleString()}
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
+                MVR {Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
+              {editable && onEdit && onDelete && (
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => onEdit(l)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>Edit</button>
+                  <button onClick={() => onDelete(l)} style={{ background: "none", border: "none", color: "#ff3b30", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>✕</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Line dialog (add / edit)                                                   */
+/* ─────────────────────────────────────────────────────────────────────────── */
 
 function LineDialog({
-  open, editing, orderId, skus, stockLevels, sourceGodownId, onOpenChange, onSaved,
+  editing, orderId, skus, stockLevels, sourceGodownId, onClose, onSaved,
 }: {
-  open: boolean;
   editing?: SalesOrderLineRow;
   orderId: string;
   skus: SkuFullRow[];
   stockLevels: StockLevel[];
   sourceGodownId: string | null;
-  onOpenChange: (o: boolean) => void;
+  onClose: () => void;
   onSaved: () => void;
 }) {
-  const [skuId, setSkuId] = useState("");
-  const [search, setSearch] = useState("");
-  const [uom, setUom] = useState<SaleUom>("pack");
-  const [qty, setQty] = useState("");
-  const [unitPrice, setUnitPrice] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [skuId, setSkuId]         = useState(editing?.sku_id ?? "");
+  const [search, setSearch]       = useState("");
+  const [uom, setUom]             = useState<SaleUom>(editing?.uom ?? "pack");
+  const [qty, setQty]             = useState(editing ? String(editing.qty) : "");
+  const [unitPrice, setUnitPrice] = useState(editing ? String(editing.unit_price_mvr) : "");
+  const [saving, setSaving]       = useState(false);
 
   const sku = skus.find((s) => s.id === skuId);
 
   useEffect(() => {
-    if (open) {
-      if (editing) {
-        setSkuId(editing.sku_id);
-        setUom(editing.uom);
-        setQty(String(editing.qty));
-        setUnitPrice(String(editing.unit_price_mvr));
-      } else {
-        setSkuId("");
-        setUom("pack");
-        setQty("");
-        setUnitPrice("");
-      }
-      setSearch("");
-    }
-  }, [open, editing]);
-
-  // Auto-fill price from SKU's margin-derived selling price when SKU or UoM changes
-  useEffect(() => {
-    if (!skuId || editing) return; // don't overwrite when editing an existing line
-    const sku = skus.find((s) => s.id === skuId);
-    if (!sku) return;
-    const suggestedPrice =
-      uom === "piece"  ? sku.selling_price_per_piece_mvr :
-      uom === "pack"   ? sku.selling_price_per_pack_mvr :
-      /* carton */       sku.selling_price_per_carton_mvr;
-    if (suggestedPrice != null) {
-      setUnitPrice(suggestedPrice.toFixed(2));
-    } else {
-      setUnitPrice("");
-    }
+    if (!skuId || editing) return;
+    const s = skus.find((x) => x.id === skuId);
+    if (!s) return;
+    const p = uom === "piece" ? s.selling_price_per_piece_mvr : uom === "pack" ? s.selling_price_per_pack_mvr : s.selling_price_per_carton_mvr;
+    if (p != null) setUnitPrice(p.toFixed(2));
+    else setUnitPrice("");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skuId, uom]);
 
@@ -713,8 +730,7 @@ function LineDialog({
   }, [sku, qty, uom]);
 
   const lineTotal = useMemo(() => {
-    const q = parseFloat(qty);
-    const p = parseFloat(unitPrice);
+    const q = parseFloat(qty); const p = parseFloat(unitPrice);
     if (isNaN(q) || isNaN(p)) return 0;
     return q * p;
   }, [qty, unitPrice]);
@@ -722,165 +738,136 @@ function LineDialog({
   const insufficient = stockHere !== null && qtyPieces > stockHere;
 
   async function save() {
-    if (!skuId || !qty || !unitPrice || qtyPieces <= 0) return;
-    if (!sku) return;
-    const payload = {
-      order_id: orderId,
-      sku_id: skuId,
-      uom,
-      qty: parseFloat(qty),
-      qty_pieces: qtyPieces,
-      unit_price_mvr: parseFloat(unitPrice),
-      line_total_mvr: lineTotal,
-    };
+    if (!skuId || !qty || !unitPrice || qtyPieces <= 0 || !sku) return;
+    const payload = { order_id: orderId, sku_id: skuId, uom, qty: parseFloat(qty), qty_pieces: qtyPieces, unit_price_mvr: parseFloat(unitPrice), line_total_mvr: lineTotal };
     setSaving(true);
     try {
       if (editing) await updateOrderLine(editing.id, payload);
       else await createOrderLine(payload);
       toast.success(editing ? "Item updated" : "Item added");
-      onOpenChange(false);
       onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { toast.error((err as Error).message); }
+    finally { setSaving(false); }
   }
 
+  const inputStyle: React.CSSProperties = {
+    background: "rgba(255,255,255,0.06)", color: "var(--foreground)",
+    border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+    padding: "10px 12px", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Edit item" : "Add item"}</DialogTitle>
-          <DialogDescription>Sell by carton, pack, or piece. Stock converts automatically.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-          <div className="space-y-2">
-            <Label>Product *</Label>
-            {!skuId ? (
-              <>
-                <Input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search brand, product, variant…" />
-                <div className="rounded-xl border border-border max-h-[240px] overflow-y-auto bg-background/50">
-                  {filtered.length === 0 ? (
-                    <p className="text-xs text-muted-foreground px-3 py-2">No matches</p>
-                  ) : (
-                    filtered.map((s) => {
-                      const stock = sourceGodownId
-                        ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === sourceGodownId)?.qty_pieces ?? 0
-                        : null;
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => setSkuId(s.id)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent/30 transition border-b border-border last:border-0"
-                        >
-                          <div className="flex justify-between">
-                            <p className="text-foreground font-medium">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
-                            {stock !== null && (
-                              <span className={`text-[11px] ${stock > 0 ? "text-emerald-500" : "text-red-500"}`}>
-                                {stock} pcs
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn
-                          </p>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </>
-            ) : sku ? (
-              <div className="rounded-xl border border-border p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm text-foreground font-medium">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
-                    </p>
-                  </div>
-                  <button onClick={() => setSkuId("")} className="text-xs text-primary hover:opacity-80 shrink-0">Change</button>
-                </div>
-                {stockHere !== null && (
-                  <div className={`text-[11px] ${stockHere === 0 ? "text-red-500" : "text-muted-foreground"}`}>
-                    In warehouse: <strong className="text-foreground">{stockHere.toLocaleString()} pcs</strong>
-                    {sku.pcs_per_pack > 0 && stockHere > 0 && (
-                      <> · {Math.floor(stockHere / sku.pcs_per_pack)} packs</>
-                    )}
-                    {sku.pcs_per_carton > 0 && stockHere > 0 && (
-                      <> · {Math.floor(stockHere / sku.pcs_per_carton)} cartons</>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "90vh", overflowY: "auto" }}
+      >
+        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{editing ? "Edit item" : "Add item"}</h2>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label>Sell by *</Label>
-              <Select value={uom} onValueChange={(v) => v && setUom(v as SaleUom)}>
-                <SelectTrigger><SelectValue>{uom}</SelectValue></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="carton">Carton</SelectItem>
-                  <SelectItem value="pack">Pack</SelectItem>
-                  <SelectItem value="piece">Piece</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Qty *</Label>
-              <Input
-                type="number"
-                inputMode={uom === "piece" ? "numeric" : "decimal"}
-                step={uom === "piece" ? "1" : "0.5"}
-                min="1"
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
+        {/* Product picker */}
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Product *</p>
+          {!skuId ? (
+            <>
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search brand, product, variant…"
+                style={inputStyle}
               />
+              <div style={{ borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", maxHeight: 220, overflowY: "auto", marginTop: 8, background: "rgba(0,0,0,0.3)" }}>
+                {filtered.length === 0 ? (
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 13, padding: "12px" }}>No matches</p>
+                ) : filtered.map((s) => {
+                  const stock = sourceGodownId
+                    ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === sourceGodownId)?.qty_pieces ?? 0
+                    : null;
+                  return (
+                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{s.brand_name} › {s.model_name} › {s.variant_display}</p>
+                        <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
+                      </div>
+                      {stock !== null && (
+                        <span style={{ color: stock > 0 ? "#4ade80" : "#ff3b30", fontSize: 11, flexShrink: 0, marginLeft: 12 }}>{stock} pcs</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : sku ? (
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "12px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div>
+                  <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn</p>
+                </div>
+                <button onClick={() => setSkuId("")} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>Change</button>
+              </div>
+              {stockHere !== null && (
+                <p style={{ color: stockHere === 0 ? "#ff3b30" : "var(--muted-foreground)", fontSize: 11, marginTop: 6 }}>
+                  In warehouse: <strong style={{ color: "var(--foreground)" }}>{stockHere.toLocaleString()} pcs</strong>
+                </p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">
-                Price (MVR) *
-                {sku && (
-                  (uom === "piece"  ? sku.selling_price_per_piece_mvr :
-                   uom === "pack"   ? sku.selling_price_per_pack_mvr :
-                   sku.selling_price_per_carton_mvr) != null
-                  ? <span className="text-[9px] uppercase tracking-wide text-emerald-500">auto-filled</span>
-                  : <span className="text-[9px] uppercase tracking-wide text-amber-500">enter manually</span>
-                )}
-              </Label>
-              <Input type="number" inputMode="decimal" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
+          ) : null}
+        </div>
+
+        {/* Qty / UoM / Price */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+          <div>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Sell by *</p>
+            <select value={uom} onChange={(e) => setUom(e.target.value as SaleUom)} style={inputStyle}>
+              <option value="carton">Carton</option>
+              <option value="pack">Pack</option>
+              <option value="piece">Piece</option>
+            </select>
+          </div>
+          <div>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Qty *</p>
+            <input type="number" inputMode={uom === "piece" ? "numeric" : "decimal"} step={uom === "piece" ? "1" : "0.5"} min="1" value={qty} onChange={(e) => setQty(e.target.value)} style={inputStyle} />
+          </div>
+          <div>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>
+              Price (MVR) *{" "}
+              {sku && (uom === "piece" ? sku.selling_price_per_piece_mvr : uom === "pack" ? sku.selling_price_per_pack_mvr : sku.selling_price_per_carton_mvr) != null && (
+                <span style={{ color: "#4ade80", fontSize: 9, letterSpacing: "0.06em" }}>AUTO</span>
+              )}
+            </p>
+            <input type="number" inputMode="decimal" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Summary */}
+        {sku && qtyPieces > 0 && (
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Pieces</span>
+              <span style={{ color: "var(--foreground)", fontSize: 12 }}>{qtyPieces.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Line total</span>
+              <span style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
           </div>
+        )}
 
-          {sku && qtyPieces > 0 && (
-            <div className="rounded-xl bg-secondary/50 p-3 text-xs space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Pieces (auto-calculated)</span>
-                <span className="text-foreground">{qtyPieces.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Line total</span>
-                <span className="text-foreground font-medium">{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} MVR</span>
-              </div>
-            </div>
-          )}
+        {insufficient && (
+          <div style={{ background: "rgba(255,59,48,0.1)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, border: "1px solid rgba(255,59,48,0.25)" }}>
+            <p style={{ color: "#ff3b30", fontSize: 12 }}>⚠ Not enough stock — only {stockHere} pcs available.</p>
+          </div>
+        )}
 
-          {insufficient && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-300">
-              ⚠ Not enough stock — only {stockHere} pcs available in this warehouse.
-            </div>
-          )}
+        <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={onClose} style={ghostBtn}>Cancel</button>
+          <button onClick={save} disabled={saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient} style={{ ...primaryBtn, opacity: saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient ? 0.5 : 1, cursor: saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient ? "not-allowed" : "pointer" }}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : editing ? "Save" : "Add item"}
+          </button>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Save" : "Add item"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
