@@ -84,11 +84,8 @@ export function FinancialsView() {
     <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
 
       {/* Hero — Net Profit */}
-      <section style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: 0, right: 0, padding: 32, opacity: 0.08, pointerEvents: "none" }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 120, color: "var(--foreground)" }}>payments</span>
-        </div>
-        <div style={{ position: "relative", zIndex: 1 }}>
+      <section style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12 }}>
+        <div>
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
             Real-Time Net Profit
           </p>
@@ -184,14 +181,9 @@ export function FinancialsView() {
               const margin = b.revenue > 0 ? ((b.revenue - b.cost) / b.revenue * 100) : 0;
               return (
                 <div key={b.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: "rgba(255,255,255,0.04)", borderRadius: 12, cursor: "pointer" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 10, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 22 }}>inventory_2</span>
-                    </div>
-                    <div>
-                      <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>{b.label}</p>
-                      <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>FMCG Import</p>
-                    </div>
+                  <div>
+                    <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>{b.label}</p>
+                    <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>FMCG Import</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>MVR {fmt(b.revenue, 2)}</p>

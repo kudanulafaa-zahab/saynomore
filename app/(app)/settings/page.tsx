@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
@@ -224,30 +225,36 @@ export default function SettingsPage() {
         <div className="glass p-6">
           <div className="flex items-center gap-3 mb-6">
             <span className="material-symbols-outlined text-foreground text-xl">currency_exchange</span>
-            <h2 className="text-lg font-semibold text-foreground">Base Currency Rates</h2>
+            <h2 className="text-lg font-semibold text-foreground">Forex Rates</h2>
           </div>
-          <div className="space-y-5">
+          <div className="glass-flat rounded-xl p-4 mb-4">
+            <p className="text-sm font-medium text-foreground mb-1">Rates are entered per shipment</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Exchange rates vary with every shipment, so they are locked at the time of GRN confirmation — not set globally. Open a shipment and enter the rate you paid that day before confirming goods receipt.
+            </p>
+          </div>
+          <div className="space-y-3">
             {[
-              { code: "IDR", name: "Indonesian Rupiah", rate: "15,642.00" },
-              { code: "MVR", name: "Maldivian Rufiyaa", rate: "15.40" },
-            ].map((c) => (
-              <div key={c.code} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground">
-                    {c.code}
-                  </div>
-                  <span className="text-sm text-foreground">{c.name}</span>
+              { label: "USD → IDR", desc: "e.g. 1 USD = 15,800 IDR" },
+              { label: "USD → MVR", desc: "e.g. 1 USD = 15.42 MVR" },
+              { label: "IDR → MVR", desc: "Auto-calculated from the two above" },
+            ].map((r) => (
+              <div key={r.label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{r.label}</p>
+                  <p className="text-xs text-muted-foreground">{r.desc}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-foreground">{c.rate}</p>
-                  <p className="text-xs text-muted-foreground">Per 1 USD</p>
-                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full bg-secondary text-secondary-foreground">Per shipment</span>
               </div>
             ))}
           </div>
-          <div className="mt-6 pt-5 border-t border-border">
-            <p className="text-xs text-muted-foreground italic">Auto-refresh via exchange rate API every 6 hours.</p>
-          </div>
+          <Link
+            href="/shipments"
+            className="mt-5 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-accent transition"
+          >
+            <span className="material-symbols-outlined text-base">open_in_new</span>
+            Go to Shipments to enter rates
+          </Link>
         </div>
 
         {/* Stock & System Alerts */}
