@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, CheckCircle2 } from "lucide-react";
 import {
   listMyDeliveries,
   listOrderLines,
@@ -169,7 +169,7 @@ export function DispatchView() {
                         <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>MVR {totalMvr.toFixed(0)}</p>
                         <p style={{ color: "#fb923c", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>ETA</p>
                       </div>
-                      <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>expand_more</span>
+                      <ChevronDown style={{ color: "var(--muted-foreground)", width: 18, height: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                     </div>
                   </div>
                   {isExpanded && (
@@ -206,7 +206,7 @@ export function DispatchView() {
             {completed.map((item) => (
               <div key={item.order.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 10, opacity: 0.7 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span className="material-symbols-outlined" style={{ color: "#4ade80", fontSize: 18 }}>check_circle</span>
+                  <CheckCircle2 style={{ color: "#4ade80", width: 18, height: 18 }} />
                   <div>
                     <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 500 }}>{item.order.order_number}</p>
                     <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{item.customer?.name ?? "Walk-in"}</p>

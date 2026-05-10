@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Clock, ArrowRight } from "lucide-react";
 import { getReportsData, type ReportRow } from "@/lib/queries/reports";
 import { listMarketingSpend } from "@/lib/queries/expenses";
 
@@ -93,9 +93,9 @@ export function FinancialsView() {
             MVR {fmt(netProfit, 2)}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12 }}>
-            <span className="material-symbols-outlined" style={{ color: netProfit >= 0 ? "#4ade80" : "#ffb4ab", fontSize: 16 }}>
-              {netProfit >= 0 ? "trending_up" : "trending_down"}
-            </span>
+            {netProfit >= 0
+              ? <TrendingUp style={{ color: "#4ade80", width: 16, height: 16 }} />
+              : <TrendingDown style={{ color: "#ffb4ab", width: 16, height: 16 }} />}
             <span style={{ color: netProfit >= 0 ? "#4ade80" : "#ffb4ab", fontSize: 14 }}>
               {profitPct >= 0 ? "+" : ""}{profitPct.toFixed(1)}% margin
             </span>
@@ -123,7 +123,7 @@ export function FinancialsView() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>Cash Runway</p>
-              <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 20 }}>schedule</span>
+              <Clock style={{ color: "var(--muted-foreground)", width: 20, height: 20 }} />
             </div>
             <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 8 }}>
               {cashRunwayMonths > 0 ? cashRunwayMonths.toFixed(1) + " Months" : "—"}
@@ -170,7 +170,7 @@ export function FinancialsView() {
           </p>
           <button style={{ color: "var(--foreground)", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             View Detailed Report
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
+            <ArrowRight style={{ width: 14, height: 14 }} />
           </button>
         </div>
         {brandMap.length === 0 ? (

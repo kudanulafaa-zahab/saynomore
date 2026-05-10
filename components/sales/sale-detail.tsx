@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Trash2, User, Truck, CheckCircle2 } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -30,11 +30,11 @@ import { supabase } from "@/lib/supabase";
 /*  Constants                                                                  */
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-const STEPS: { status: OrderStatus; label: string; icon: string }[] = [
-  { status: "draft",            label: "Draft",       icon: "edit_note" },
-  { status: "confirmed",        label: "Confirmed",   icon: "check_circle" },
-  { status: "out_for_delivery", label: "Dispatched",  icon: "local_shipping" },
-  { status: "delivered",        label: "Delivered",   icon: "task_alt" },
+const STEPS: { status: OrderStatus; label: string; Icon: React.ElementType }[] = [
+  { status: "draft",            label: "Draft",       Icon: Plus },
+  { status: "confirmed",        label: "Confirmed",   Icon: CheckCircle2 },
+  { status: "out_for_delivery", label: "Dispatched",  Icon: Truck },
+  { status: "delivered",        label: "Delivered",   Icon: CheckCircle2 },
 ];
 
 const PAYMENT_LABEL: Record<PaymentStatus, string> = {
@@ -277,10 +277,10 @@ export function SaleDetail({ id }: { id: string }) {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all 0.3s", position: "relative", zIndex: 1,
                 }}>
-                  <span className="material-symbols-outlined" style={{
-                    fontSize: 16,
+                  <step.Icon style={{
+                    width: 16, height: 16,
                     color: done ? "var(--background)" : active ? "var(--foreground)" : "var(--muted-foreground)",
-                  }}>{step.icon}</span>
+                  }} />
                 </div>
                 <p style={{ color: active ? "var(--foreground)" : done ? "var(--muted-foreground)" : "var(--muted-foreground)", fontSize: 10, fontWeight: active ? 700 : 400, marginTop: 6, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "center" }}>
                   {step.label}
@@ -301,7 +301,7 @@ export function SaleDetail({ id }: { id: string }) {
       {customer && (
         <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 20 }}>person</span>
+            <User style={{ color: "var(--muted-foreground)", width: 20, height: 20 }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>{customer.name}</p>
@@ -411,7 +411,7 @@ export function SaleDetail({ id }: { id: string }) {
             {/* Driver badge */}
             {order.assigned_driver_id && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, padding: "12px 14px", background: "rgba(74,222,128,0.08)", borderRadius: 10, border: "1px solid rgba(74,222,128,0.15)" }}>
-                <span className="material-symbols-outlined" style={{ color: "#4ade80", fontSize: 20 }}>local_shipping</span>
+                <Truck style={{ color: "#4ade80", width: 20, height: 20 }} />
                 <div>
                   <p style={{ color: "#4ade80", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Assigned Driver</p>
                   <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>
@@ -440,7 +440,7 @@ export function SaleDetail({ id }: { id: string }) {
       {isDelivered && (
         <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-            <span className="material-symbols-outlined" style={{ color: "#4ade80", fontSize: 24 }}>task_alt</span>
+            <CheckCircle2 style={{ color: "#4ade80", width: 24, height: 24 }} />
             <p style={{ color: "#4ade80", fontSize: 14, fontWeight: 700 }}>Delivered</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

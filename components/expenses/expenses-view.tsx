@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import {
+  Loader2, Megaphone, MousePointerClick, Music2, Receipt,
+  Warehouse, Truck, Zap, Plus, Trash2, Pencil, X,
+} from "lucide-react";
 import {
   listMarketingSpend,
   createMarketingSpend,
@@ -13,43 +16,30 @@ import {
 } from "@/lib/queries/expenses";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 
-const CARD = {
-  background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-};
-const CARD_L2 = {
-  background: "var(--glass-2)",
-  backdropFilter: "blur(30px)",
-  WebkitBackdropFilter: "blur(30px)",
-  boxShadow: "0 40px 60px -15px rgba(0,0,0,0.5)",
-};
-
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
-  google: "Google Ads",
-  tiktok_ad: "TikTok Ads",
-  other: "Other",
+  google:     "Google Ads",
+  tiktok_ad:  "TikTok Ads",
+  other:      "Other",
 };
 
-const CHANNEL_ICON: Record<SpendChannel, string> = {
-  meta_boost: "campaign",
-  google: "ads_click",
-  tiktok_ad: "music_video",
-  other: "receipt_long",
+const CHANNEL_ICON: Record<SpendChannel, React.ElementType> = {
+  meta_boost: Megaphone,
+  google:     MousePointerClick,
+  tiktok_ad:  Music2,
+  other:      Receipt,
 };
 
-const EXPENSE_CATEGORIES = [
-  { key: "warehouse", icon: "warehouse", label: "Warehouse Rent", type: "Fixed • Monthly" },
-  { key: "ads", icon: "campaign", label: "Social Media Ads", type: "Variable • Daily" },
-  { key: "logistics", icon: "local_shipping", label: "Delivery & Fuel", type: "Variable • Real-time" },
-  { key: "utilities", icon: "bolt", label: "Utilities", type: "Fixed • Monthly" },
+const CATEGORY_ROWS = [
+  { key: "meta_boost" as SpendChannel, icon: Megaphone,        label: "Social Media Ads",  meta: "Variable • Per campaign" },
+  { key: "google"     as SpendChannel, icon: MousePointerClick, label: "Google Ads",         meta: "Variable • Per click"    },
+  { key: "tiktok_ad"  as SpendChannel, icon: Music2,            label: "TikTok Ads",         meta: "Variable • Per campaign" },
+  { key: "other"      as SpendChannel, icon: Receipt,           label: "Other Expenses",     meta: "Miscellaneous"           },
 ];
 
 function fmt(n: number) {
   return n.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 function fmtShort(n: number) {
   if (n >= 1000) return (n / 1000).toFixed(1) + "K";
   return n.toFixed(0);
@@ -59,14 +49,13 @@ export function ExpensesView() {
   const [rows, setRows] = useState<MarketingSpendRow[]>([]);
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showLogSheet, setShowLogSheet] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
   const [editingRow, setEditingRow] = useState<MarketingSpendRow | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<MarketingSpendRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Quick log bar state
   const [quickAmount, setQuickAmount] = useState("");
-  const [quickCategory, setQuickCategory] = useState<SpendChannel>("other");
+  const [quickChannel, setQuickChannel] = useState<SpendChannel>("other");
   const [loggingQuick, setLoggingQuick] = useState(false);
 
   async function load() {
@@ -86,17 +75,12 @@ export function ExpensesView() {
 
   const totalMvr = useMemo(() => rows.reduce((a, r) => a + Number(r.amount_mvr), 0), [rows]);
 
-  // Channel breakdown for categories section
-  const channelTotals = useMemo(() => {
-    return (Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((ch) => ({
+  const channelTotals = useMemo(() =>
+    (Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((ch) => ({
       ch,
       total: rows.filter((r) => r.channel === ch).reduce((a, r) => a + Number(r.amount_mvr), 0),
-    })).sort((a, b) => b.total - a.total);
-  }, [rows]);
-
-  // Bar chart data — last 6 months mock heights (real data would come from grouped query)
-  const BAR_HEIGHTS = [40, 60, 55, 75, 65, 90];
-  const BAR_MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+    })).sort((a, b) => b.total - a.total),
+  [rows]);
 
   async function handleQuickLog() {
     const amt = parseFloat(quickAmount);
@@ -104,7 +88,7 @@ export function ExpensesView() {
     setLoggingQuick(true);
     try {
       await createMarketingSpend({
-        channel: quickCategory,
+        channel: quickChannel,
         amount_mvr: amt,
         campaign_name: null,
         start_date: new Date().toISOString().slice(0, 10),
@@ -124,223 +108,122 @@ export function ExpensesView() {
 
   if (loading) {
     return (
-      <div style={{ ...CARD, borderRadius: 16 }} className="p-12 flex flex-col items-center">
-        <Loader2 className="h-6 w-6 animate-spin mb-3" style={{ color: "#8e9192" }} />
-        <p style={{ color: "#8e9192", fontSize: 14 }}>Loading…</p>
+      <div className="glass p-12 flex flex-col items-center rounded-2xl">
+        <Loader2 className="h-6 w-6 animate-spin mb-3 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div className="space-y-6 pb-28">
       {/* Header */}
-      <section style={{ marginBottom: 32 }}>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
-          Financial Oversight
-        </p>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: "34px" }}>
-            Operational Costs
-          </h1>
-          <button
-            onClick={() => { setEditingRow(undefined); setShowLogSheet(true); }}
-            style={{
-              background: "var(--foreground)",
-              color: "var(--background)",
-              border: "none",
-              borderRadius: 999,
-              padding: "10px 22px",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              cursor: "pointer",
-            }}
-          >
-            + Log Expense
-          </button>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Financial Oversight</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Expenses</h1>
         </div>
-      </section>
+        <button
+          onClick={() => { setEditingRow(undefined); setShowSheet(true); }}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
+        >
+          <Plus className="h-4 w-4" /> Log Expense
+        </button>
+      </div>
 
-      {/* Bento grid — burn rate chart + quick metrics */}
-      <section className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12, marginBottom: 12 }}>
-        {/* Monthly Burn Card — spans 2 cols */}
-        <div style={{ ...CARD, borderRadius: 16, padding: 24, gridColumn: "span 2", position: "relative", overflow: "hidden", height: 320 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-            <div>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
-                Monthly Burn Rate
-              </p>
-              <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "40px" }}>
-                MVR {fmt(totalMvr)}
-              </p>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", borderRadius: 999, padding: "4px 12px" }}>
-              <span style={{ color: "#ffb4ab", fontSize: 11, fontWeight: 500 }}>↑ +4.2%</span>
-            </div>
-          </div>
-
-          {/* Bar chart */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: 192, display: "flex", alignItems: "flex-end", padding: "0 24px 24px", gap: 8 }}>
-            {BAR_HEIGHTS.map((h, i) => (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                <div style={{ position: "relative", width: "100%" }}>
-                  {i === BAR_HEIGHTS.length - 1 && (
-                    <div style={{ position: "absolute", top: -28, left: "50%", transform: "translateX(-50%)", color: "var(--foreground)", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", whiteSpace: "nowrap" }}>
-                      CUR
-                    </div>
-                  )}
-                  <div style={{
-                    width: "100%",
-                    borderRadius: "4px 4px 0 0",
-                    height: `${h * 1.3}px`,
-                    background: i === BAR_HEIGHTS.length - 1 ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.05)",
-                    transition: "background 0.2s",
-                  }} />
-                </div>
-                <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>{BAR_MONTHS[i]}</span>
-              </div>
-            ))}
-          </div>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="glass p-4 rounded-2xl space-y-1">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Total Spend</p>
+          <p className="text-xl font-semibold text-foreground">MVR {fmtShort(totalMvr)}</p>
+          <p className="text-xs text-muted-foreground">all time</p>
         </div>
-
-        {/* Quick metrics column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ ...CARD, borderRadius: 16, padding: 24, flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Total Campaigns
-            </p>
-            <div>
-              <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>{rows.length}</p>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>all time</p>
-            </div>
-          </div>
-          <div style={{ ...CARD, borderRadius: 16, padding: 24, flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Top Channel
-            </p>
-            <div>
-              <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>
-                {channelTotals[0] ? CHANNEL_LABEL[channelTotals[0].ch] : "—"}
-              </p>
-              <div style={{ width: "100%", background: "rgba(255,255,255,0.05)", height: 2, borderRadius: 999, marginTop: 8, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: "65%", background: "var(--foreground)", borderRadius: 999 }} />
-              </div>
-            </div>
-          </div>
+        <div className="glass p-4 rounded-2xl space-y-1">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Campaigns</p>
+          <p className="text-xl font-semibold text-foreground">{rows.length}</p>
+          <p className="text-xs text-muted-foreground">logged</p>
         </div>
-      </section>
+        <div className="glass p-4 rounded-2xl space-y-1">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Top Channel</p>
+          <p className="text-base font-semibold text-foreground truncate">
+            {channelTotals[0]?.total > 0 ? CHANNEL_LABEL[channelTotals[0].ch] : "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {channelTotals[0]?.total > 0 ? `MVR ${fmtShort(channelTotals[0].total)}` : "no data"}
+          </p>
+        </div>
+        <div className="glass p-4 rounded-2xl space-y-1">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">This Month</p>
+          <p className="text-xl font-semibold text-foreground">
+            {(() => {
+              const m = new Date().toISOString().slice(0, 7);
+              const tot = rows.filter((r) => r.start_date.startsWith(m)).reduce((a, r) => a + Number(r.amount_mvr), 0);
+              return tot > 0 ? `MVR ${fmtShort(tot)}` : "—";
+            })()}
+          </p>
+          <p className="text-xs text-muted-foreground">{new Date().toLocaleString("en-MV", { month: "long" })}</p>
+        </div>
+      </div>
 
-      {/* Quick Entry Bar */}
-      <section style={{ ...CARD_L2, borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12, marginBottom: 32, border: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ flex: 1, position: "relative" }}>
-          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--muted-foreground)", fontSize: 18, fontWeight: 300, pointerEvents: "none" }}>
-            MVR
-          </span>
+      {/* Quick log bar */}
+      <div className="glass p-3 rounded-2xl flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="relative flex-1 min-w-[120px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">MVR</span>
           <input
             type="number"
             placeholder="0.00"
             value={quickAmount}
             onChange={(e) => setQuickAmount(e.target.value)}
-            style={{
-              width: "100%",
-              background: "var(--muted)",
-              border: "none",
-              borderRadius: 10,
-              paddingLeft: 52,
-              paddingRight: 16,
-              paddingTop: 12,
-              paddingBottom: 12,
-              color: "var(--foreground)",
-              fontSize: 22,
-              fontWeight: 300,
-              letterSpacing: "-0.03em",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            onKeyDown={(e) => e.key === "Enter" && handleQuickLog()}
+            className="w-full h-11 pl-12 pr-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
           />
         </div>
-        <div style={{ flex: 1 }}>
-          <select
-            value={quickCategory}
-            onChange={(e) => setQuickCategory(e.target.value as SpendChannel)}
-            style={{
-              width: "100%",
-              background: "var(--muted)",
-              border: "none",
-              borderRadius: 10,
-              padding: "12px 16px",
-              color: "var(--muted-foreground)",
-              fontSize: 14,
-              outline: "none",
-              appearance: "none",
-            }}
-          >
-            {(Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((c) => (
-              <option key={c} value={c} style={{ background: "#1c1b1b" }}>{CHANNEL_LABEL[c]}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={quickChannel}
+          onChange={(e) => setQuickChannel(e.target.value as SpendChannel)}
+          className="h-11 px-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
+        >
+          {(Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((c) => (
+            <option key={c} value={c}>{CHANNEL_LABEL[c]}</option>
+          ))}
+        </select>
         <button
           onClick={handleQuickLog}
           disabled={loggingQuick || !quickAmount}
-          style={{
-            background: "var(--foreground)",
-            color: "var(--background)",
-            border: "none",
-            borderRadius: 999,
-            padding: "12px 28px",
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            cursor: loggingQuick || !quickAmount ? "not-allowed" : "pointer",
-            opacity: loggingQuick || !quickAmount ? 0.5 : 1,
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
+          className="h-11 px-5 rounded-xl text-sm font-semibold shrink-0 disabled:opacity-50"
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
-          {loggingQuick ? "Logging…" : "LOG EXPENSE"}
+          {loggingQuick ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log"}
         </button>
-      </section>
+      </div>
 
-      {/* Categories + Recent Activity */}
-      <section className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 32 }}>
-        {/* Categories */}
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Categories</h2>
-            <button
-              style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", background: "none", border: "none", cursor: "pointer" }}
-              onClick={() => { setEditingRow(undefined); setShowLogSheet(true); }}
-            >
-              VIEW ALL
-            </button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {EXPENSE_CATEGORIES.map((cat) => {
-              const catRows = rows.filter((r) => r.channel === "other" || CHANNEL_ICON[r.channel] === cat.icon);
-              const catTotal = catRows.reduce((a, r) => a + Number(r.amount_mvr), 0);
-              const pct = totalMvr > 0 ? Math.round((catTotal / totalMvr) * 100) : 0;
+      {/* Channel breakdown + Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Channel breakdown */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">By Channel</h2>
+          <div className="space-y-2">
+            {CATEGORY_ROWS.map(({ key, icon: Icon, label, meta }) => {
+              const total = rows.filter((r) => r.channel === key).reduce((a, r) => a + Number(r.amount_mvr), 0);
+              const pct = totalMvr > 0 ? Math.round((total / totalMvr) * 100) : 0;
               return (
-                <div
-                  key={cat.key}
-                  style={{ ...CARD, borderRadius: 16, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 22 }}>{cat.icon}</span>
+                <div key={key} className="glass p-4 rounded-2xl flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                      <Icon className="h-5 w-5 text-foreground" />
                     </div>
                     <div>
-                      <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 400, marginBottom: 2 }}>{cat.label}</p>
-                      <p style={{ color: "var(--muted-foreground)", fontSize: 12, fontWeight: 500, letterSpacing: "0.05em" }}>{cat.type}</p>
+                      <p className="text-sm font-medium text-foreground">{label}</p>
+                      <p className="text-xs text-muted-foreground">{meta}</p>
                     </div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
-                      {catTotal > 0 ? `MVR ${fmtShort(catTotal)}` : "—"}
+                  <div className="text-right shrink-0">
+                    <p className="text-base font-semibold text-foreground">
+                      {total > 0 ? `MVR ${fmtShort(total)}` : "—"}
                     </p>
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 12, fontWeight: 500 }}>{pct > 0 ? `${pct}% of total` : "No data"}</p>
+                    <p className="text-xs text-muted-foreground">{pct > 0 ? `${pct}% of total` : "No data"}</p>
                   </div>
                 </div>
               );
@@ -349,88 +232,85 @@ export function ExpensesView() {
         </div>
 
         {/* Recent Activity */}
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>Recent Activity</h2>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button style={{ ...CARD, border: "none", borderRadius: 999, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 18 }}>filter_list</span>
-              </button>
-            </div>
-          </div>
-          <div style={{ ...CARD, borderRadius: 16, overflow: "hidden" }}>
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Recent Activity</h2>
+          <div className="glass rounded-2xl overflow-hidden">
             {rows.length === 0 ? (
-              <div style={{ padding: "40px 24px", textAlign: "center" }}>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>No expenses logged yet.</p>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 4 }}>Use the bar above to log your first expense.</p>
+              <div className="p-10 text-center">
+                <p className="text-sm text-muted-foreground">No expenses logged yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Use the bar above to log your first expense.</p>
               </div>
             ) : (
-              rows.slice(0, 8).map((r, i) => (
-                <div
-                  key={r.id}
-                  style={{
-                    padding: "16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    borderTop: i > 0 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => { setEditingRow(r); setShowLogSheet(true); }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 999, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span className="material-symbols-outlined" style={{ color: "var(--foreground)", fontSize: 16 }}>{CHANNEL_ICON[r.channel]}</span>
+              rows.slice(0, 10).map((r, i) => {
+                const Icon = CHANNEL_ICON[r.channel];
+                return (
+                  <div
+                    key={r.id}
+                    className={`flex items-center justify-between px-4 py-3 hover:bg-accent/20 transition ${i > 0 ? "border-t border-border" : ""}`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-foreground truncate">
+                          {r.campaign_name ?? CHANNEL_LABEL[r.channel]}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.start_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 400, marginBottom: 2 }}>
-                        {r.campaign_name ?? CHANNEL_LABEL[r.channel]}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <p className="text-sm font-medium text-foreground tabular-nums">
+                        MVR {fmt(Number(r.amount_mvr))}
                       </p>
-                      <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
-                        {new Date(r.start_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
+                      <button
+                        onClick={() => { setEditingRow(r); setShowSheet(true); }}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(r)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 400, fontFeatureSettings: '"tnum"' }}>
-                      −MVR {fmt(Number(r.amount_mvr))}
-                    </p>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6 }}
-                    >
-                      <span className="material-symbols-outlined" style={{ color: "var(--muted-foreground)", fontSize: 16 }}>delete</span>
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Log / Edit Sheet */}
-      {showLogSheet && (
+      {showSheet && (
         <SpendSheet
           editing={editingRow}
           skus={skus}
-          onClose={() => { setShowLogSheet(false); setEditingRow(undefined); }}
-          onDone={() => { setShowLogSheet(false); setEditingRow(undefined); load(); }}
+          onClose={() => { setShowSheet(false); setEditingRow(undefined); }}
+          onDone={() => { setShowSheet(false); setEditingRow(undefined); load(); }}
         />
       )}
 
       {/* Delete confirm */}
       {deleteTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ ...CARD_L2, borderRadius: 20, padding: 28, width: 340, maxWidth: "90vw" }}>
-            <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Delete expense?</p>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
-              <strong style={{ color: "var(--muted-foreground)" }}>{deleteTarget.campaign_name ?? CHANNEL_LABEL[deleteTarget.channel]}</strong> will be permanently removed.
+        <div className="fixed inset-0 bg-black/60 z-60 flex items-center justify-center px-4">
+          <div className="glass-modal rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <p className="text-base font-semibold text-foreground">Delete expense?</p>
+            <p className="text-sm text-muted-foreground">
+              <span className="text-foreground font-medium">
+                {deleteTarget.campaign_name ?? CHANNEL_LABEL[deleteTarget.channel]}
+              </span>{" "}
+              will be permanently removed.
             </p>
-            <div style={{ display: "flex", gap: 12 }}>
+            <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "var(--muted-foreground)", border: "none", borderRadius: 999, padding: "12px", fontSize: 14, cursor: "pointer" }}
+                className="flex-1 h-11 rounded-xl text-sm text-muted-foreground bg-secondary"
               >
                 Cancel
               </button>
@@ -446,9 +326,9 @@ export function ExpensesView() {
                   } catch (e) { toast.error((e as Error).message); }
                   finally { setDeleting(false); }
                 }}
-                style={{ flex: 1, background: "rgba(255,180,171,0.15)", color: "#ffb4ab", border: "none", borderRadius: 999, padding: "12px", fontSize: 14, cursor: "pointer" }}
+                className="flex-1 h-11 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition"
               >
-                {deleting ? "Deleting…" : "Delete"}
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
             </div>
           </div>
@@ -460,9 +340,7 @@ export function ExpensesView() {
 
 // ── Spend Sheet ──────────────────────────────────────────────────────────────
 
-function SpendSheet({
-  editing, skus, onClose, onDone,
-}: {
+function SpendSheet({ editing, skus, onClose, onDone }: {
   editing?: MarketingSpendRow;
   skus: SkuFullRow[];
   onClose: () => void;
@@ -512,187 +390,112 @@ function SpendSheet({
     finally { setSaving(false); }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    background: "var(--muted)",
-    border: "none",
-    borderRadius: 10,
-    padding: "12px 16px",
-    color: "var(--foreground)",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    color: "var(--muted-foreground)",
-    fontSize: 11,
-    fontWeight: 500,
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
-    marginBottom: 6,
-    display: "block",
-  };
+  const field = "w-full h-11 px-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none";
+  const label = "block text-xs uppercase tracking-widest text-muted-foreground mb-1.5";
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 60, display: "flex", alignItems: "flex-end" }}>
-      <div
-        style={{
-          ...CARD_L2,
-          borderRadius: "20px 20px 0 0",
-          width: "100%",
-          maxHeight: "90vh",
-          overflowY: "auto",
-          padding: 28,
-        }}
-      >
+    <div className="fixed inset-0 bg-black/60 z-60 flex items-end">
+      <div className="glass-modal rounded-t-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Handle */}
-        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.12)", borderRadius: 999, margin: "0 auto 24px" }} />
+        <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-1" />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
-            {editing ? "Edit Expense" : "Log Expense"}
-          </h2>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 999, width: 36, height: 36, cursor: "pointer", color: "var(--muted-foreground)", fontSize: 20 }}>
-            ×
-          </button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <div>
-            <label style={labelStyle}>Channel *</label>
-            <select
-              value={channel}
-              onChange={(e) => setChannel(e.target.value as SpendChannel)}
-              style={{ ...inputStyle, appearance: "none" }}
-            >
-              {(Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((c) => (
-                <option key={c} value={c} style={{ background: "#1c1b1b" }}>{CHANNEL_LABEL[c]}</option>
-              ))}
-            </select>
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-semibold text-foreground">
+              {editing ? "Edit Expense" : "Log Expense"}
+            </h2>
+            <button onClick={onClose} className="h-8 w-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <div>
-            <label style={labelStyle}>Amount (MVR) *</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={amountMvr}
-              onChange={(e) => setAmountMvr(e.target.value)}
-              placeholder="0.00"
-              style={inputStyle}
-              autoFocus={!editing}
-            />
-          </div>
-        </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Campaign Name</label>
-          <input
-            value={campaignName}
-            onChange={(e) => setCampaignName(e.target.value)}
-            placeholder="e.g. Eid Sale — Aiko"
-            style={inputStyle}
-          />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <div>
-            <label style={labelStyle}>Start Date *</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>End Date</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle} />
-          </div>
-        </div>
-
-        {/* SKU Picker */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Linked SKUs <span style={{ color: "#444748", textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
-          {selectedSkuIds.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-              {selectedSkuIds.map((sid) => {
-                const s = skus.find((sk) => sk.id === sid);
-                return s ? (
-                  <span key={sid} style={{ background: "var(--secondary)", color: "var(--foreground)", borderRadius: 6, padding: "3px 10px", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
-                    {s.brand_name} {s.variant_display}
-                    <button onClick={() => toggleSku(sid)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
-                  </span>
-                ) : null;
-              })}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className={label}>Channel *</label>
+              <select value={channel} onChange={(e) => setChannel(e.target.value as SpendChannel)} className={field + " cursor-pointer"}>
+                {(Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((c) => (
+                  <option key={c} value={c}>{CHANNEL_LABEL[c]}</option>
+                ))}
+              </select>
             </div>
-          )}
-          <input
-            value={skuSearch}
-            onChange={(e) => setSkuSearch(e.target.value)}
-            placeholder="Search SKUs to link…"
-            style={{ ...inputStyle, marginBottom: 8 }}
-          />
-          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, maxHeight: 160, overflowY: "auto" }}>
-            {filteredSkus.length === 0 ? (
-              <p style={{ color: "var(--muted-foreground)", fontSize: 12, padding: "10px 14px" }}>No matches</p>
-            ) : filteredSkus.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => toggleSku(s.id)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 14px",
-                  fontSize: 13,
-                  background: selectedSkuIds.includes(s.id) ? "rgba(255,255,255,0.08)" : "transparent",
-                  border: "none",
-                  borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                  color: "var(--foreground)",
-                  cursor: "pointer",
-                }}
-              >
-                {s.brand_name} › {s.model_name} › {s.variant_display}
-                {selectedSkuIds.includes(s.id) && <span style={{ color: "var(--foreground)", marginLeft: 8, fontSize: 11 }}>✓</span>}
-              </button>
-            ))}
+            <div>
+              <label className={label}>Amount (MVR) *</label>
+              <input
+                type="number" step="0.01" min="0"
+                value={amountMvr} onChange={(e) => setAmountMvr(e.target.value)}
+                placeholder="0.00" className={field} autoFocus={!editing}
+              />
+            </div>
           </div>
-        </div>
 
-        <div style={{ marginBottom: 28 }}>
-          <label style={labelStyle}>Notes</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional"
-            rows={2}
-            style={{ ...inputStyle, resize: "none" }}
-          />
-        </div>
+          <div className="mb-3">
+            <label className={label}>Campaign Name</label>
+            <input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="e.g. Eid Sale — Aiko" className={field} />
+          </div>
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <button
-            onClick={onClose}
-            style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "var(--muted-foreground)", border: "none", borderRadius: 999, padding: "14px", fontSize: 14, cursor: "pointer" }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={save}
-            disabled={saving || !amountMvr}
-            style={{
-              flex: 2,
-              background: "var(--foreground)",
-              color: "var(--background)",
-              border: "none",
-              borderRadius: 999,
-              padding: "14px",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              cursor: saving || !amountMvr ? "not-allowed" : "pointer",
-              opacity: saving || !amountMvr ? 0.5 : 1,
-            }}
-          >
-            {saving ? "Saving…" : editing ? "SAVE CHANGES" : "LOG EXPENSE"}
-          </button>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className={label}>Start Date *</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={field} />
+            </div>
+            <div>
+              <label className={label}>End Date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={field} />
+            </div>
+          </div>
+
+          {/* SKU Picker */}
+          <div className="mb-3">
+            <label className={label}>Linked SKUs <span className="normal-case tracking-normal text-muted-foreground/60">(optional)</span></label>
+            {selectedSkuIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedSkuIds.map((sid) => {
+                  const s = skus.find((sk) => sk.id === sid);
+                  return s ? (
+                    <span key={sid} className="inline-flex items-center gap-1 bg-secondary text-foreground text-xs rounded-lg px-2 py-1">
+                      {s.brand_name} {s.variant_display}
+                      <button onClick={() => toggleSku(sid)} className="text-muted-foreground hover:text-foreground ml-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+            <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search SKUs to link…" className={field + " mb-1.5"} />
+            <div className="bg-secondary/50 rounded-xl max-h-40 overflow-y-auto border border-border">
+              {filteredSkus.length === 0 ? (
+                <p className="text-xs text-muted-foreground px-3 py-2">No matches</p>
+              ) : filteredSkus.map((s, i) => (
+                <button
+                  key={s.id} onClick={() => toggleSku(s.id)}
+                  className={`w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent/20 transition ${i > 0 ? "border-t border-border" : ""} ${selectedSkuIds.includes(s.id) ? "bg-accent/10" : ""}`}
+                >
+                  {s.brand_name} › {s.model_name} › {s.variant_display}
+                  {selectedSkuIds.includes(s.id) && <span className="ml-2 text-xs text-muted-foreground">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-5">
+            <label className={label}>Notes</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2}
+              className="w-full px-3 py-2.5 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none resize-none" />
+          </div>
+
+          <div className="flex gap-3 pb-2">
+            <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm text-muted-foreground bg-secondary">
+              Cancel
+            </button>
+            <button
+              onClick={save} disabled={saving || !amountMvr}
+              className="flex-[2] h-12 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save Changes" : "Log Expense"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
