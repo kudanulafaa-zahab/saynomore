@@ -151,10 +151,10 @@ export interface UserProfileRow {
 }
 
 export async function listUsers(): Promise<UserProfileRow[]> {
-  // user_profiles joined with auth.users email via RPC to avoid direct auth schema access
-  const { data, error } = await supabase.rpc("list_users_for_admin");
-  if (error) throw error;
-  return (data ?? []) as UserProfileRow[];
+  const res = await fetch("/api/admin/list-users");
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Failed to load users");
+  return json as UserProfileRow[];
 }
 
 export async function setUserRole(userId: string, role: UserRole) {
