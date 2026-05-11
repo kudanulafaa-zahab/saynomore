@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin } from "lucide-react";
+import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin, Layers } from "lucide-react";
 import { listBatchStock, type BatchStock } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
