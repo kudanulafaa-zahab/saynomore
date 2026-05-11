@@ -4,12 +4,14 @@ import {
   Boxes,
   ShoppingCart,
   BarChart2,
-  Users,
+  LineChart,
+  Building2,
   Wallet,
   Tag,
   Package,
   MapPin,
   Warehouse,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -17,34 +19,30 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  primary?: boolean; // shown in bottom tab bar
+  primary?: boolean;
 }
-
-// 5-tab ERP architecture per UX Architecture Guide:
-// Tab 1: Dashboard | Tab 2: Shipment | Tab 3: Inventory | Tab 4: Sales | Tab 5: Financials
-// Sub-modules appear in the overflow "More" sheet on mobile, sidebar on desktop
 
 export const FULL_NAV: NavItem[] = [
   // Primary 5 tabs
-  { href: "/dashboard",   label: "Dashboard",  icon: LayoutDashboard, primary: true },
-  { href: "/shipments",   label: "Shipment",   icon: Truck,           primary: true },
-  { href: "/inventory",   label: "Inventory",  icon: Boxes,           primary: true },
-  { href: "/sales",       label: "Sales",      icon: ShoppingCart,    primary: true },
-  { href: "/financials",  label: "Financials", icon: BarChart2,       primary: true },
+  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard, primary: true },
+  { href: "/shipments",  label: "Shipments",  icon: Truck,           primary: true },
+  { href: "/inventory",  label: "Inventory",  icon: Boxes,           primary: true },
+  { href: "/sales",      label: "Sales",      icon: ShoppingCart,    primary: true },
+  { href: "/financials", label: "Financials", icon: BarChart2,       primary: true },
 
   // Shipment sub-modules (overflow)
-  { href: "/suppliers",   label: "Vendors",    icon: Users },
-  { href: "/expenses",    label: "Expenses",   icon: Wallet },
+  { href: "/suppliers",  label: "Suppliers",  icon: Building2 },
+  { href: "/expenses",   label: "Expenses",   icon: Wallet    },
 
   // Inventory sub-modules (overflow)
-  { href: "/products",    label: "Products",   icon: Package },
-  { href: "/godowns",     label: "Godowns",    icon: Warehouse },
-  { href: "/competitors", label: "Pricing",    icon: Tag },
-  { href: "/reports",     label: "Trends",     icon: BarChart2 },
+  { href: "/products",   label: "Products",   icon: Package   },
+  { href: "/godowns",    label: "Godowns",    icon: Warehouse },
+  { href: "/competitors",label: "Market",     icon: Tag       },
+  { href: "/reports",    label: "Reports",    icon: LineChart  },
 
   // Sales sub-modules (overflow)
-  { href: "/customers",   label: "Customers",  icon: Users },
-  { href: "/dispatch",    label: "Dispatch",   icon: MapPin },
+  { href: "/customers",  label: "Customers",  icon: UserRound },
+  { href: "/dispatch",   label: "Dispatch",   icon: MapPin    },
 ];
 
 // Staff (delivery): dispatch screen only

@@ -90,7 +90,7 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
       {label && <p className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-[#444748] transition"
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
         style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
       />
     </div>
@@ -399,11 +399,10 @@ function NewSaleSheet({
   const stepLabels: Record<Step, string> = { 1: "Customer", 2: "Products", 3: "Confirm" };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#000000" }}>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--background)" }}>
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 h-16"
-        style={{ background: "rgba(0,0,0,0.80)", backdropFilter: "blur(40px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 h-16 snm-topbar">
         <div className="flex items-center gap-3">
           <button onClick={onClose} className="text-foreground opacity-60 hover:opacity-100 transition text-xl">✕</button>
           <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
@@ -440,7 +439,7 @@ function NewSaleSheet({
                     <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                     <input autoFocus value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
                       placeholder="Search name, phone…"
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-[#444748] outline-none" />
+                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                   </div>
                   <button onClick={() => setShowNewCustomer(true)}
                     className="flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold transition"
@@ -549,7 +548,7 @@ function NewSaleSheet({
                   <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                   <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)}
                     placeholder="Search brand, product, variant…"
-                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-[#444748] outline-none" autoComplete="off" />
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {filteredSkus.map((s) => {
@@ -570,7 +569,7 @@ function NewSaleSheet({
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-[20px] font-semibold text-white">
+                          <span className="text-[20px] font-semibold text-foreground">
                             {pricePerPack != null ? pricePerPack.toFixed(2) : "—"}
                           </span>
                           <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR / pack</span>
@@ -593,7 +592,7 @@ function NewSaleSheet({
                       </p>
                     )}
                   </div>
-                  <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); }} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
+                  <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -645,7 +644,7 @@ function NewSaleSheet({
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-foreground font-semibold text-[13px]">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                       <button onClick={() => setDraftLines((p) => p.filter((x) => x.key !== l.key))} className="opacity-40 hover:opacity-100 transition">
-                        <Trash2 className="h-3.5 w-3.5 text-white" />
+                        <Trash2 className="h-3.5 w-3.5 text-foreground" />
                       </button>
                     </div>
                   </div>
@@ -666,7 +665,7 @@ function NewSaleSheet({
             {/* Order total hero */}
             <div className="rounded-2xl p-5" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)" }}>
               <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Order Total</p>
-              <p className="text-[36px] font-light tracking-tight text-white leading-none mb-1">
+              <p className="text-[36px] font-light tracking-tight text-foreground leading-none mb-1">
                 {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 <span className="text-[16px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
               </p>
@@ -733,8 +732,7 @@ function NewSaleSheet({
       </div>
 
       {/* Fixed bottom actions */}
-      <footer className="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-5 h-24"
-        style={{ background: "rgba(0,0,0,0.80)", backdropFilter: "blur(40px)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <footer className="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-5 h-24 snm-bottom-nav">
         {step === 1 && (
           <>
             <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)" }}>Cancel</button>

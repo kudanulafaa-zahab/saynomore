@@ -7,18 +7,17 @@ import { useEffect, useRef, useState } from "react";
 import { navForRole, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
 
-// Section groupings for the More sheet
 const SHEET_SECTIONS: { label: string; hrefs: string[] }[] = [
-  { label: "Procurement",  hrefs: ["/suppliers", "/expenses"] },
-  { label: "Catalogue",    hrefs: ["/products", "/godowns", "/competitors"] },
-  { label: "Operations",   hrefs: ["/customers", "/dispatch", "/reports"] },
+  { label: "Procurement", hrefs: ["/suppliers", "/expenses"] },
+  { label: "Catalogue",   hrefs: ["/products", "/godowns", "/competitors"] },
+  { label: "Operations",  hrefs: ["/customers", "/dispatch", "/reports"] },
 ];
 
 export function BottomNav({ role }: { role: string }) {
-  const pathname = usePathname();
-  const all = navForRole(role);
-  const primary = all.filter((i) => i.primary).slice(0, 4);
-  const overflow = all.filter((i) => !i.primary);
+  const pathname    = usePathname();
+  const all         = navForRole(role);
+  const primary     = all.filter((i) => i.primary).slice(0, 4);
+  const overflow    = all.filter((i) => !i.primary);
   const hasOverflow = overflow.length > 0 || role !== "staff";
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -45,18 +44,14 @@ export function BottomNav({ role }: { role: string }) {
     <>
       {/* ── Tab bar ── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex justify-around items-center"
+        className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex justify-around items-center snm-bottom-nav"
         style={{
-          background: "color-mix(in srgb, var(--background) 82%, transparent)",
-          backdropFilter: "blur(40px)",
-          WebkitBackdropFilter: "blur(40px)",
-          borderTop: "1px solid var(--glass-border)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
           height: "calc(60px + env(safe-area-inset-bottom, 0px))",
         }}
       >
         {primary.map((item: NavItem) => {
-          const Icon = item.icon;
+          const Icon   = item.icon;
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
@@ -113,7 +108,7 @@ export function BottomNav({ role }: { role: string }) {
       {sheetOpen && (
         <div
           className="fixed inset-0 z-50 lg:hidden"
-          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+          style={{ background: "rgba(0,0,0,0.50)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
           onClick={() => setSheetOpen(false)}
         />
       )}
@@ -126,18 +121,12 @@ export function BottomNav({ role }: { role: string }) {
         style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
       >
         <div
-          className="mx-2 mb-2 rounded-3xl overflow-hidden"
-          style={{
-            background: "var(--glass-2)",
-            backdropFilter: "blur(48px)",
-            WebkitBackdropFilter: "blur(48px)",
-            border: "1px solid var(--glass-border)",
-            boxShadow: "0 -8px 60px rgba(0,0,0,0.35)",
-          }}
+          className="mx-2 mb-2 rounded-3xl overflow-hidden glass-modal"
+          style={{ boxShadow: "var(--glass-shadow-lg)" }}
         >
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-9 h-[3px] rounded-full" style={{ background: "var(--muted-foreground)", opacity: 0.3 }} />
+            <div className="w-9 h-[3px] rounded-full" style={{ background: "var(--muted-foreground)", opacity: 0.30 }} />
           </div>
 
           {/* Header */}
@@ -147,8 +136,8 @@ export function BottomNav({ role }: { role: string }) {
               <ThemeToggle />
               <button
                 onClick={() => setSheetOpen(false)}
-                className="h-7 w-7 rounded-full flex items-center justify-center transition"
-                style={{ background: "var(--secondary)", color: "var(--foreground)" }}
+                className="h-7 w-7 rounded-full flex items-center justify-center transition active:scale-90"
+                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -161,37 +150,35 @@ export function BottomNav({ role }: { role: string }) {
               const sectionItems = section.hrefs
                 .map((href) => itemMap.get(href))
                 .filter((i): i is NavItem => i !== undefined && overflow.includes(i));
-
               if (sectionItems.length === 0) return null;
 
               return (
                 <div key={section.label}>
                   <p
-                    className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: "var(--muted-foreground)", opacity: 0.5 }}
+                    className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest"
+                    style={{ color: "var(--muted-foreground)", opacity: 0.45 }}
                   >
                     {section.label}
                   </p>
                   <div className="grid grid-cols-2 gap-1.5">
                     {sectionItems.map((item) => {
-                      const Icon = item.icon;
+                      const Icon   = item.icon;
                       const active = pathname === item.href || pathname.startsWith(item.href + "/");
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
                           onClick={() => setSheetOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-all active:scale-[0.96]"
                           style={{
-                            background: active ? "var(--snm-brand-muted)" : "var(--muted)",
-                            color: active ? "var(--snm-brand)" : "var(--muted-foreground)",
+                            background: active ? "var(--snm-brand-muted)" : "var(--glass-bg-1)",
+                            color:      active ? "var(--snm-brand)"       : "var(--muted-foreground)",
+                            border:     active ? "1px solid var(--snm-brand-border)" : "1px solid var(--glass-border-lo)",
                           }}
                         >
                           <div
                             className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                            style={{
-                              background: active ? "var(--snm-brand)" : "var(--secondary)",
-                            }}
+                            style={{ background: active ? "var(--snm-brand)" : "var(--glass-bg-2)" }}
                           >
                             <Icon
                               className="h-[15px] w-[15px]"
@@ -211,23 +198,24 @@ export function BottomNav({ role }: { role: string }) {
             {role !== "staff" && (
               <div>
                 <p
-                  className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: "var(--muted-foreground)", opacity: 0.5 }}
+                  className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: "var(--muted-foreground)", opacity: 0.45 }}
                 >
                   Account
                 </p>
                 <Link
                   href="/settings"
                   onClick={() => setSheetOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-all active:scale-[0.96]"
                   style={{
-                    background: pathname === "/settings" ? "var(--snm-brand-muted)" : "var(--muted)",
-                    color: pathname === "/settings" ? "var(--snm-brand)" : "var(--muted-foreground)",
+                    background: pathname === "/settings" ? "var(--snm-brand-muted)" : "var(--glass-bg-1)",
+                    color:      pathname === "/settings" ? "var(--snm-brand)"       : "var(--muted-foreground)",
+                    border:     pathname === "/settings" ? "1px solid var(--snm-brand-border)" : "1px solid var(--glass-border-lo)",
                   }}
                 >
                   <div
                     className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: pathname === "/settings" ? "var(--snm-brand)" : "var(--secondary)" }}
+                    style={{ background: pathname === "/settings" ? "var(--snm-brand)" : "var(--glass-bg-2)" }}
                   >
                     <Settings
                       className="h-[15px] w-[15px]"

@@ -302,12 +302,21 @@ export default function SettingsPage() {
             <Warehouse className="h-5 w-5 text-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Godowns / Warehouses</h2>
           </div>
-          <button
-            onClick={() => setGodownSheet({ open: true })}
-            className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition"
-          >
-            + New
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/godowns"
+              className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition flex items-center gap-1.5"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Manage
+            </Link>
+            <button
+              onClick={() => setGodownSheet({ open: true })}
+              className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition"
+            >
+              + New
+            </button>
+          </div>
         </div>
         {godowns.length === 0 ? (
           <p className="text-sm text-muted-foreground">No godowns yet. Add the warehouses where you keep stock.</p>
@@ -361,12 +370,18 @@ export default function SettingsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
-            <button className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm">
-              Download Audit Log
-            </button>
-            <button className="px-6 py-3 bg-secondary text-secondary-foreground font-bold rounded-xl hover:bg-accent active:scale-95 transition-all text-sm">
-              View Access Keys
-            </button>
+            <div className="flex flex-col items-start gap-1">
+              <button disabled className="px-6 py-3 bg-secondary text-muted-foreground font-bold rounded-xl opacity-50 cursor-not-allowed text-sm">
+                Download Audit Log
+              </button>
+              <span className="text-[10px] uppercase tracking-widest font-semibold px-2" style={{ color: "var(--muted-foreground)" }}>Coming soon</span>
+            </div>
+            <div className="flex flex-col items-start gap-1">
+              <button disabled className="px-6 py-3 bg-secondary text-muted-foreground font-bold rounded-xl opacity-50 cursor-not-allowed text-sm">
+                View Access Keys
+              </button>
+              <span className="text-[10px] uppercase tracking-widest font-semibold px-2" style={{ color: "var(--muted-foreground)" }}>Coming soon</span>
+            </div>
           </div>
         </div>
         {/* Decorative glow */}

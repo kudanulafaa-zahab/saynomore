@@ -6,24 +6,11 @@ import { Settings } from "lucide-react";
 import { navForRole, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
 
-// Section groupings for the sidebar — mirrors the nav architecture
 const SECTIONS = [
-  {
-    label: "Core",
-    hrefs: ["/dashboard", "/shipments", "/inventory", "/sales", "/financials"],
-  },
-  {
-    label: "Procurement",
-    hrefs: ["/suppliers", "/expenses"],
-  },
-  {
-    label: "Catalogue",
-    hrefs: ["/products", "/godowns", "/competitors"],
-  },
-  {
-    label: "Operations",
-    hrefs: ["/customers", "/dispatch", "/reports"],
-  },
+  { label: "Core",        hrefs: ["/dashboard", "/shipments", "/inventory", "/sales", "/financials"] },
+  { label: "Procurement", hrefs: ["/suppliers", "/expenses"] },
+  { label: "Catalogue",   hrefs: ["/products", "/godowns", "/competitors"] },
+  { label: "Operations",  hrefs: ["/customers", "/dispatch", "/reports"] },
 ];
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -31,15 +18,15 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}
-      className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all"
+      className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all active:scale-[0.97]"
       style={{
         background: active ? "var(--snm-brand-muted)" : "transparent",
-        color: active ? "var(--snm-brand)" : "var(--muted-foreground)",
+        color:      active ? "var(--snm-brand)"       : "var(--muted-foreground)",
       }}
     >
       <Icon
         className="h-[15px] w-[15px] shrink-0"
-        style={{ opacity: active ? 1 : 0.6 }}
+        style={{ opacity: active ? 1 : 0.55 }}
       />
       {item.label}
     </Link>
@@ -48,23 +35,17 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 export function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
-  const items = navForRole(role);
-  const itemMap = new Map(items.map((i) => [i.href, i]));
+  const items    = navForRole(role);
+  const itemMap  = new Map(items.map((i) => [i.href, i]));
 
   return (
     <aside
-      className="fixed left-0 top-0 z-40 h-dvh w-60 hidden lg:flex flex-col"
-      style={{
-        background: "color-mix(in srgb, var(--background) 88%, transparent)",
-        backdropFilter: "blur(32px)",
-        WebkitBackdropFilter: "blur(32px)",
-        borderRight: "1px solid var(--glass-border)",
-      }}
+      className="fixed left-0 top-0 z-40 h-dvh w-60 hidden lg:flex flex-col glass-sidebar"
     >
-      {/* Logo — same height as topbar (52px) */}
+      {/* Logo — 52px matches topbar */}
       <div
         className="flex items-center justify-between px-5 shrink-0"
-        style={{ height: 52, borderBottom: "1px solid var(--glass-border)" }}
+        style={{ height: 52, borderBottom: "1px solid var(--glass-border-lo)" }}
       >
         <div className="flex items-center gap-2.5">
           <div
@@ -87,14 +68,13 @@ export function Sidebar({ role }: { role: string }) {
           const sectionItems = section.hrefs
             .map((href) => itemMap.get(href))
             .filter((i): i is NavItem => i !== undefined);
-
           if (sectionItems.length === 0) return null;
 
           return (
             <div key={section.label}>
               <p
                 className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest"
-                style={{ color: "var(--muted-foreground)", opacity: 0.5 }}
+                style={{ color: "var(--muted-foreground)", opacity: 0.45 }}
               >
                 {section.label}
               </p>
@@ -111,16 +91,19 @@ export function Sidebar({ role }: { role: string }) {
 
       {/* Settings footer */}
       {role !== "staff" && (
-        <div className="px-3 py-3 shrink-0" style={{ borderTop: "1px solid var(--glass-border)" }}>
+        <div className="px-3 py-3 shrink-0" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
           <Link
             href="/settings"
-            className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all"
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all active:scale-[0.97]"
             style={{
               background: pathname === "/settings" ? "var(--snm-brand-muted)" : "transparent",
-              color: pathname === "/settings" ? "var(--snm-brand)" : "var(--muted-foreground)",
+              color:      pathname === "/settings" ? "var(--snm-brand)"       : "var(--muted-foreground)",
             }}
           >
-            <Settings className="h-[15px] w-[15px] shrink-0" style={{ opacity: pathname === "/settings" ? 1 : 0.6 }} />
+            <Settings
+              className="h-[15px] w-[15px] shrink-0"
+              style={{ opacity: pathname === "/settings" ? 1 : 0.55 }}
+            />
             Settings
           </Link>
         </div>
