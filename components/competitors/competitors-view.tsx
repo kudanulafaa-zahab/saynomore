@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, Search, Store, Pencil, Trash2, AlertTriangle, ChevronDown, ChevronUp, Tag,
+  Loader2, Plus, Search, Store, Pencil, Trash2, AlertTriangle,
+  ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2,
 } from "lucide-react";
 import {
   listCompetitors,
@@ -18,7 +19,7 @@ import {
   type CompetitorPriceRow,
   type PriceBasis,
 } from "@/lib/queries/competitors";
-import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, updateSku, type SkuFullRow } from "@/lib/queries/products";
 
 const CARD = {
   background: "var(--glass-1)",
@@ -33,57 +34,35 @@ const CARD_L2 = {
 } as const;
 
 const BASIS_LABEL: Record<PriceBasis, string> = {
-  per_pack: "Per pack",
-  per_piece: "Per piece",
-  per_100ml: "Per 100ml",
-  per_100g: "Per 100g",
+  per_pack:   "Per pack",
+  per_piece:  "Per piece",
+  per_100ml:  "Per 100ml",
+  per_100g:   "Per 100g",
   per_carton: "Per carton",
 };
 
-function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
-      <input
-        {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-[#444748] transition"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
-      />
-    </div>
-  );
-}
-
-function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        {children}
-      </select>
-    </div>
-  );
-}
+function fmt2(n: number) { return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 export function CompetitorsView() {
   const [competitors, setCompetitors] = useState<CompetitorRow[]>([]);
-  const [prices, setPrices] = useState<CompetitorPriceRow[]>([]);
-  const [skus, setSkus] = useState<SkuFullRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const [prices, setPrices]           = useState<CompetitorPriceRow[]>([]);
+  const [skus, setSkus]               = useState<SkuFullRow[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [q, setQ]                     = useState("");
+  const [expanded, setExpanded]       = useState<Set<string>>(new Set());
+  const [deleting, setDeleting]       = useState(false);
+
+  // Dialogs
   const [competitorDialog, setCompetitorDialog] = useState<{ open: boolean; editing?: CompetitorRow }>({ open: false });
-  const [priceDialog, setPriceDialog] = useState<{ open: boolean; editing?: CompetitorPriceRow; competitorId?: string }>({ open: false });
+  const [priceDialog, setPriceDialog]           = useState<{ open: boolean; editing?: CompetitorPriceRow; competitorId?: string }>({ open: false });
   const [deleteCompDialog, setDeleteCompDialog] = useState<CompetitorRow | null>(null);
   const [deletePriceDialog, setDeletePriceDialog] = useState<CompetitorPriceRow | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  // Margin simulator state
-  const [simSku, setSimSku] = useState<SkuFullRow | null>(null);
-  const [simPrice, setSimPrice] = useState(0);
+
+  // Simulator
+  const [simSku, setSimSku]     = useState<SkuFullRow | null>(null);
+  const [simPrice, setSimPrice] = useState(0); // per PACK price
+  const [simMode, setSimMode]   = useState<"pack" | "piece" | "carton">("pack");
+  const [saving, setSaving]     = useState(false);
 
   async function load() {
     setLoading(true);
@@ -92,28 +71,93 @@ export function CompetitorsView() {
       setCompetitors(c);
       setPrices(p);
       setSkus(s);
-      // Default simulator to first active SKU with a selling price
-      const first = s.find((sk) => sk.is_active && sk.selling_price_per_pack_mvr != null);
+      const first = s.find((sk) => sk.is_active && sk.landed_per_piece_mvr != null);
       if (first) {
         setSimSku(first);
-        setSimPrice(first.selling_price_per_pack_mvr ?? 0);
+        setSimPrice(first.selling_price_per_pack_mvr ?? (first.landed_per_piece_mvr! * first.pcs_per_pack * 1.3));
       }
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setLoading(false); }
   }
 
   useEffect(() => { load(); }, []);
 
+  // ── Sim calculations ──────────────────────────────────────────────────────
+  const landedPerPiece  = simSku?.landed_per_piece_mvr ?? 0;
+  const pcsPerPack      = simSku?.pcs_per_pack ?? 1;
+  const packsPerCarton  = simSku?.packs_per_carton ?? 1;
+  const landedPerPack   = landedPerPiece * pcsPerPack;
+  const landedPerCarton = landedPerPiece * pcsPerPack * packsPerCarton;
+
+  // Canonical: simPrice is always per pack internally
+  const packPrice   = simPrice;
+  const piecePrice  = simPrice / pcsPerPack;
+  const cartonPrice = simPrice * packsPerCarton;
+
+  const grossMarginMvr = packPrice - landedPerPack;
+  const grossMarginPct = landedPerPack > 0 ? (grossMarginMvr / packPrice) * 100 : 0;
+  const impliedMarginPct = landedPerPack > 0 && packPrice > landedPerPack
+    ? Math.round(((packPrice - landedPerPack) / packPrice) * 1000) / 10
+    : 0;
+
+  // The displayed "sim input" changes unit labels based on mode
+  const simDisplayPrice = simMode === "piece" ? piecePrice : simMode === "carton" ? cartonPrice : packPrice;
+  function setSimDisplayPrice(v: number) {
+    if (simMode === "piece")   setSimPrice(v * pcsPerPack);
+    else if (simMode === "carton") setSimPrice(v / packsPerCarton);
+    else setSimPrice(v);
+  }
+
+  const simLabel = simMode === "piece" ? "Per piece" : simMode === "carton" ? "Per carton" : "Per pack";
+
+  // Top competitor for selected SKU — find cheapest competitor on a per-piece basis
+  const topCompEntry = useMemo(() => {
+    if (!simSku) return null;
+    const relevant = prices.filter((p) => p.variant_id === simSku.variant_id);
+    if (!relevant.length) return null;
+    const normalized = relevant.map((p) => {
+      const comp = competitors.find((c) => c.id === p.competitor_id);
+      let perPiece: number | null = null;
+      if (p.price_basis === "per_piece")   perPiece = Number(p.price_mvr);
+      else if (p.price_basis === "per_pack")  perPiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? pcsPerPack);
+      else if (p.price_basis === "per_carton") perPiece = Number(p.price_mvr) / (pcsPerPack * packsPerCarton);
+      return { p, comp, perPiece };
+    }).filter((x) => x.perPiece != null).sort((a, b) => a.perPiece! - b.perPiece!);
+    return normalized[0] ?? null;
+  }, [simSku, prices, competitors, pcsPerPack, packsPerCarton]);
+
+  const topCompPerPiece   = topCompEntry?.perPiece ?? null;
+  const topCompPerPack    = topCompPerPiece != null ? topCompPerPiece * pcsPerPack : null;
+  const topCompPerCarton  = topCompPerPiece != null ? topCompPerPiece * pcsPerPack * packsPerCarton : null;
+
+  // Per-piece comparison table (all variants with competitor prices)
+  const perPieceComparison = useMemo(() => {
+    const variantIds = Array.from(new Set(prices.map((p) => p.variant_id)));
+    return variantIds.map((vid) => {
+      const sku = skus.find((s) => s.variant_id === vid);
+      if (!sku) return null;
+      const ourPcsPerPack   = sku.pcs_per_pack ?? 1;
+      const ourPcsPerCarton = ourPcsPerPack * (sku.packs_per_carton ?? 1);
+      const variantPrices = prices.filter((p) => p.variant_id === vid);
+      const normalized = variantPrices.map((p) => {
+        const competitor = competitors.find((c) => c.id === p.competitor_id);
+        let pricePiece: number | null = null;
+        if (p.price_basis === "per_piece")   pricePiece = Number(p.price_mvr);
+        else if (p.price_basis === "per_pack")  pricePiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? ourPcsPerPack);
+        else if (p.price_basis === "per_carton") pricePiece = Number(p.price_mvr) / ourPcsPerCarton;
+        return { price: p, competitor, pricePiece };
+      }).sort((a, b) => {
+        if (a.pricePiece == null) return 1;
+        if (b.pricePiece == null) return -1;
+        return a.pricePiece - b.pricePiece;
+      });
+      return { vid, sku, normalized };
+    }).filter(Boolean) as { vid: string; sku: SkuFullRow; normalized: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null }[] }[];
+  }, [prices, skus, competitors]);
+
   const pricesByComp = useMemo(() => {
     const map = new Map<string, CompetitorPriceRow[]>();
-    for (const p of prices) {
-      const arr = map.get(p.competitor_id) ?? [];
-      arr.push(p);
-      map.set(p.competitor_id, arr);
-    }
+    for (const p of prices) { const arr = map.get(p.competitor_id) ?? []; arr.push(p); map.set(p.competitor_id, arr); }
     return map;
   }, [prices]);
 
@@ -124,63 +168,22 @@ export function CompetitorsView() {
   }, [competitors, q]);
 
   function toggleExpanded(id: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setExpanded((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   }
 
-  // Margin simulator calculations
-  const landedCost = simSku?.landed_per_piece_mvr != null
-    ? simSku.landed_per_piece_mvr * (simSku.pcs_per_pack || 1)
-    : 0;
-  const grossMarginMvr = simPrice - landedCost;
-  const grossMarginPct = landedCost > 0 ? (grossMarginMvr / simPrice) * 100 : 0;
-  const efficiency = landedCost > 0 && simPrice > 0
-    ? Math.min(100, Math.max(0, Math.round(((simPrice - landedCost) / simPrice) * 100)))
-    : 0;
+  async function handleSetPrice() {
+    if (!simSku || !landedPerPack || impliedMarginPct <= 0) return;
+    setSaving(true);
+    try {
+      await updateSku(simSku.id, { target_margin_pct: impliedMarginPct });
+      toast.success(`Selling price saved — ${impliedMarginPct}% margin (MVR ${fmt2(piecePrice)}/pc · MVR ${fmt2(packPrice)}/pk · MVR ${fmt2(cartonPrice)}/ctn)`);
+      await load();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSaving(false); }
+  }
 
-  // Top competitor price for selected SKU
-  const topCompPrice = simSku
-    ? prices
-        .filter((p) => p.variant_id === simSku.variant_id)
-        .sort((a, b) => Number(b.price_mvr) - Number(a.price_mvr))[0]
-    : null;
-
-  // Per-piece comparison: group all competitor prices by variant, normalize to per-piece
-  const perPieceComparison = useMemo(() => {
-    // Collect variant IDs that have competitor prices
-    const variantIds = Array.from(new Set(prices.map((p) => p.variant_id)));
-    return variantIds.map((vid) => {
-      const sku = skus.find((s) => s.variant_id === vid);
-      const variantPrices = prices.filter((p) => p.variant_id === vid);
-      const ourPcsPerPack = sku?.pcs_per_pack ?? 1;
-      const ourPcsPerCarton = ourPcsPerPack * (sku?.packs_per_carton ?? 1);
-
-      const normalized = variantPrices.map((p) => {
-        const competitor = competitors.find((c) => c.id === p.competitor_id);
-        let pricePiece: number | null = null;
-        if (p.price_basis === "per_piece") {
-          pricePiece = Number(p.price_mvr);
-        } else if (p.price_basis === "per_pack") {
-          const pcs = p.their_pcs_per_pack ?? ourPcsPerPack;
-          pricePiece = Number(p.price_mvr) / pcs;
-        } else if (p.price_basis === "per_carton") {
-          pricePiece = Number(p.price_mvr) / ourPcsPerCarton;
-        }
-        // per_100ml / per_100g — cannot normalize to pieces
-        return { price: p, competitor, pricePiece, observedDate: p.observed_date };
-      }).sort((a, b) => {
-        if (a.pricePiece === null) return 1;
-        if (b.pricePiece === null) return -1;
-        return a.pricePiece - b.pricePiece;
-      });
-
-      return { vid, sku, normalized };
-    }).filter((v) => v.sku != null);
-  }, [prices, skus, competitors]);
+  const isPriceChanged = simSku
+    && Math.abs(packPrice - (simSku.selling_price_per_pack_mvr ?? 0)) > 0.01;
 
   if (loading) {
     return (
@@ -198,35 +201,48 @@ export function CompetitorsView() {
       <div className="flex items-end justify-between">
         <div>
           <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Intelligence</p>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Pricing Strategy</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Pricing</h1>
         </div>
-        <button
-          onClick={() => setCompetitorDialog({ open: true })}
-          className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
-          style={{ background: "#ffffff", color: "#2f3131" }}
-        >
-          <Plus className="h-4 w-4" />
-          Add Competitor
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPriceDialog({ open: true })}
+            className="flex items-center gap-2 h-11 px-4 rounded-full text-sm font-bold transition active:scale-95"
+            style={{ background: "rgba(255,255,255,0.10)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.10)" }}
+          >
+            <Tag className="h-4 w-4" />
+            Log Price
+          </button>
+          <button
+            onClick={() => setCompetitorDialog({ open: true })}
+            className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-4 w-4" />
+            Add Competitor
+          </button>
+        </div>
       </div>
 
       {/* ── SKU Selector ── */}
       {skus.length > 0 && (
         <div>
-          <p className="label-caps text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-            SKU: {simSku?.internal_code ?? "—"} · {simSku ? `${simSku.brand_name} ${simSku.variant_display}` : "Select a product below"}
-          </p>
+          <p className="label-caps text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>Analysing</p>
           <select
             value={simSku?.id ?? ""}
             onChange={(e) => {
               const s = skus.find((sk) => sk.id === e.target.value);
-              if (s) { setSimSku(s); setSimPrice(s.selling_price_per_pack_mvr ?? 0); }
+              if (s) {
+                setSimSku(s);
+                setSimPrice(s.selling_price_per_pack_mvr ?? (s.landed_per_piece_mvr ?? 0) * s.pcs_per_pack * 1.3);
+              }
             }}
-            className="h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none w-full md:w-auto"
-            style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+            className="h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none w-full"
+            style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)" }}
           >
             {skus.filter((s) => s.is_active).map((s) => (
-              <option key={s.id} value={s.id}>{s.brand_name} · {s.variant_display}</option>
+              <option key={s.id} value={s.id}>
+                {s.brand_name} · {s.model_name} · {s.variant_display} ({s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn)
+              </option>
             ))}
           </select>
         </div>
@@ -234,261 +250,263 @@ export function CompetitorsView() {
 
       {/* ── Metric Bento Row ── */}
       {simSku && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-xl p-5" style={CARD}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
-              <Tag className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-            </div>
-            <p className="text-[32px] font-light tracking-tight text-foreground leading-none">
-              {landedCost > 0 ? landedCost.toFixed(2) : "—"}
-            </p>
-            <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>MVR per pack (landed)</p>
-          </div>
-
-          <div className="rounded-xl p-5" style={CARD}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>TOP COMPETITOR</p>
-              <Store className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-            </div>
-            <p className="text-[32px] font-light tracking-tight text-foreground leading-none">
-              {topCompPrice ? Number(topCompPrice.price_mvr).toFixed(2) : "—"}
-            </p>
-            {topCompPrice && landedCost > 0 && (
-              <p className="text-[11px] mt-2" style={{ color: Number(topCompPrice.price_mvr) > simPrice ? "#4ade80" : "#ffb4ab" }}>
-                Delta: {(simPrice - Number(topCompPrice.price_mvr)).toFixed(2)} MVR
-              </p>
-            )}
-            {!topCompPrice && (
-              <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>No prices logged yet</p>
+        <div className="grid grid-cols-3 gap-3">
+          {/* Landed Cost */}
+          <div className="rounded-xl p-4" style={CARD}>
+            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
+            {landedPerPiece > 0 ? (
+              <div className="space-y-1">
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  pc <span className="text-foreground font-semibold">MVR {fmt2(landedPerPiece)}</span>
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  pk <span className="text-foreground font-semibold">MVR {fmt2(landedPerPack)}</span>
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  ctn <span className="text-foreground font-semibold">MVR {fmt2(landedPerCarton)}</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>No shipment yet</p>
             )}
           </div>
 
-          <div className="rounded-xl p-5" style={CARD}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>CURRENT MARGIN</p>
-              <Tag className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-            </div>
-            <p className="text-[32px] font-light tracking-tight text-foreground leading-none">
-              {landedCost > 0 ? `${grossMarginPct.toFixed(1)}%` : "—"}
-            </p>
-            <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>
-              Active price: {simPrice > 0 ? `${simPrice.toFixed(2)} MVR` : "—"}
-            </p>
+          {/* Cheapest Competitor */}
+          <div className="rounded-xl p-4" style={CARD}>
+            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>CHEAPEST COMPETITOR</p>
+            {topCompEntry && topCompPerPiece != null ? (
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold truncate" style={{ color: "var(--foreground)" }}>{topCompEntry.comp?.name}</p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  pc <span className="text-foreground font-semibold">MVR {fmt2(topCompPerPiece)}</span>
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  pk <span className="text-foreground font-semibold">MVR {fmt2(topCompPerPack!)}</span>
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  ctn <span className="text-foreground font-semibold">MVR {fmt2(topCompPerCarton!)}</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>No prices logged yet</p>
+            )}
+          </div>
+
+          {/* Our Current Price */}
+          <div className="rounded-xl p-4" style={CARD}>
+            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>OUR SELLING PRICE</p>
+            {simSku.selling_price_per_piece_mvr != null ? (
+              <div className="space-y-1">
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  pc <span className="text-foreground font-semibold">MVR {fmt2(Number(simSku.selling_price_per_piece_mvr))}</span>
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  pk <span className="text-foreground font-semibold">MVR {fmt2(Number(simSku.selling_price_per_pack_mvr))}</span>
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  ctn <span className="text-foreground font-semibold">MVR {fmt2(Number(simSku.selling_price_per_carton_mvr))}</span>
+                </p>
+                {simSku.target_margin_pct != null && (
+                  <p className="text-[10px]" style={{ color: "#4ade80" }}>{simSku.target_margin_pct}% margin</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Not set yet</p>
+            )}
           </div>
         </div>
       )}
 
       {/* ── Margin Simulator ── */}
-      {simSku && (
+      {simSku && landedPerPiece > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
-          <div
-            className="px-5 py-4 flex items-center justify-between"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}
-          >
-            <h2 className="text-[18px] font-semibold text-foreground">Margin Simulator</h2>
-            <span
-              className="text-[10px] font-bold px-3 py-1 rounded-full"
-              style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
-            >
-              REAL-TIME
-            </span>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="space-y-6">
-              <div>
-                <p className="label-caps text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>TARGET SELLING PRICE (MVR)</p>
-                <div
-                  className="flex items-center justify-between rounded-xl px-5 py-4"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.05)" }}
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <h2 className="text-[17px] font-semibold text-foreground">Margin Simulator</h2>
+            {/* Unit toggle */}
+            <div className="flex rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+              {(["piece", "pack", "carton"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setSimMode(m)}
+                  className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition"
+                  style={{
+                    background: simMode === m ? "var(--foreground)" : "transparent",
+                    color: simMode === m ? "var(--background)" : "var(--muted-foreground)",
+                  }}
                 >
-                  <button
-                    onClick={() => setSimPrice(Math.max(0, simPrice - 5))}
-                    className="text-[22px] font-light transition hover:opacity-70"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
-                    −
-                  </button>
-                  <span className="text-[32px] font-light tracking-tight text-foreground">{simPrice.toFixed(2)}</span>
-                  <button
-                    onClick={() => setSimPrice(simPrice + 5)}
-                    className="text-[22px] font-light transition hover:opacity-70 text-foreground"
-                  >
-                    +
-                  </button>
-                </div>
-                <input
-                  type="range"
-                  min={landedCost}
-                  max={Math.max(simPrice * 2, landedCost * 3)}
-                  step={1}
-                  value={simPrice}
-                  onChange={(e) => setSimPrice(Number(e.target.value))}
-                  className="w-full mt-3 accent-white"
-                />
-              </div>
+                  {m === "piece" ? "Pc" : m === "pack" ? "Pk" : "Ctn"}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>GROSS MARGIN (MVR)</p>
-                  <p
-                    className="text-[22px] font-semibold"
-                    style={{ color: grossMarginMvr >= 0 ? "#ffffff" : "#ffb4ab" }}
-                  >
-                    {grossMarginMvr >= 0 ? "+" : ""}{grossMarginMvr.toFixed(2)}
-                  </p>
+          <div className="p-5 space-y-5">
+            {/* Price stepper */}
+            <div>
+              <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>
+                SELLING PRICE — {simLabel.toUpperCase()}
+              </p>
+              <div className="flex items-center justify-between rounded-xl px-5 py-4 gap-4" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <button
+                  onClick={() => setSimDisplayPrice(Math.max(0, simDisplayPrice - (simMode === "carton" ? 10 : 1)))}
+                  className="text-[24px] font-light text-foreground/60 hover:text-foreground transition w-10 text-center"
+                >−</button>
+                <div className="text-center flex-1">
+                  <span className="text-[36px] font-light tracking-tight text-foreground">{fmt2(simDisplayPrice)}</span>
+                  <span className="text-[14px] text-foreground/40 ml-2">MVR</span>
                 </div>
-                <div>
-                  <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>GROSS MARGIN (%)</p>
-                  <p
-                    className="text-[22px] font-semibold"
-                    style={{ color: grossMarginPct >= 20 ? "#4ade80" : grossMarginPct >= 5 ? "#fb923c" : "#ffb4ab" }}
-                  >
-                    {grossMarginPct.toFixed(1)}%
-                  </p>
-                </div>
+                <button
+                  onClick={() => setSimDisplayPrice(simDisplayPrice + (simMode === "carton" ? 10 : 1))}
+                  className="text-[24px] font-light text-foreground hover:text-foreground/70 transition w-10 text-center"
+                >+</button>
               </div>
+              <input
+                type="range"
+                min={simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack}
+                max={simMode === "carton" ? landedPerCarton * 4 : simMode === "piece" ? landedPerPiece * 4 : landedPerPack * 4}
+                step={simMode === "carton" ? 5 : 0.5}
+                value={simDisplayPrice}
+                onChange={(e) => setSimDisplayPrice(Number(e.target.value))}
+                className="w-full mt-3 accent-white"
+              />
             </div>
 
-            <div className="flex flex-col justify-between space-y-5">
-              <div>
-                <div className="flex justify-between text-[12px] mb-2">
-                  <span style={{ color: "var(--muted-foreground)" }}>Breakeven</span>
-                  <span className="text-white font-medium">{landedCost.toFixed(2)} MVR</span>
+            {/* All three price levels */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Per piece", value: piecePrice, landed: landedPerPiece },
+                { label: "Per pack",  value: packPrice,  landed: landedPerPack  },
+                { label: "Per carton", value: cartonPrice, landed: landedPerCarton },
+              ].map(({ label, value, landed }) => {
+                const margin = landed > 0 ? ((value - landed) / value) * 100 : 0;
+                const color = margin >= 20 ? "#4ade80" : margin >= 5 ? "#fb923c" : "#ffb4ab";
+                return (
+                  <div key={label} className="rounded-xl p-3 text-center space-y-1" style={{ background: "rgba(255,255,255,0.04)" }}>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="text-[16px] font-semibold text-foreground">MVR {fmt2(value)}</p>
+                    <p className="text-[11px] font-medium" style={{ color }}>{margin.toFixed(1)}%</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Competitor gap row (if data exists) */}
+            {topCompPerPiece != null && (
+              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div>
+                  <p className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+                    vs <span className="text-foreground">{topCompEntry?.comp?.name}</span> (cheapest)
+                  </p>
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Piece · Pack · Carton</p>
                 </div>
-                <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
-                  <div
-                    className="h-full rounded-full bg-white transition-all"
-                    style={{ width: `${Math.min(100, efficiency)}%`, boxShadow: "0 0 12px rgba(255,255,255,0.35)" }}
-                  />
-                </div>
-                <div className="flex justify-between text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>
-                  <span>0%</span>
-                  <span>Price Efficiency: {efficiency}%</span>
+                <div className="text-right">
+                  {(() => {
+                    const delta = piecePrice - topCompPerPiece;
+                    const col = delta <= 0 ? "#4ade80" : "#fb923c";
+                    return (
+                      <p className="text-[13px] font-bold" style={{ color: col }}>
+                        {delta <= 0 ? "▼ " : "▲ "}{Math.abs(delta).toFixed(2)} MVR/pc
+                      </p>
+                    );
+                  })()}
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                    {topCompEntry && piecePrice <= topCompPerPiece ? "You're cheaper" : "Competitor cheaper"}
+                  </p>
                 </div>
               </div>
-              <button
-                onClick={async () => {
-                  if (!simSku) return;
-                  toast.success(`Selling price set to ${simPrice.toFixed(2)} MVR — update in Products page to save.`);
-                }}
-                className="w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest transition active:scale-95"
-                style={{ background: "#ffffff", color: "#2f3131" }}
-              >
-                Set Selling Price
-              </button>
-            </div>
+            )}
+
+            {/* Save button */}
+            <button
+              onClick={handleSetPrice}
+              disabled={saving || !landedPerPack || packPrice <= landedPerPack}
+              className="w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest transition active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
+              style={{ background: isPriceChanged ? "var(--foreground)" : "rgba(255,255,255,0.08)", color: isPriceChanged ? "var(--background)" : "var(--muted-foreground)" }}
+            >
+              {saving
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : isPriceChanged
+                  ? <><TrendingUp className="h-4 w-4" /> Save Selling Price</>
+                  : <><CheckCircle2 className="h-4 w-4" /> Price Up to Date</>}
+            </button>
           </div>
         </div>
       )}
 
-      {/* ── Per-Piece Comparison ── */}
+      {/* ── Per-Piece Comparison Table ── */}
       {perPieceComparison.length > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
-          <div
-            className="px-5 py-4"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}
-          >
-            <h2 className="text-[18px] font-semibold text-foreground">Per-Piece Price Comparison</h2>
-            <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
-              All competitor prices normalized to MVR per piece · sorted cheapest first
-            </p>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <h2 className="text-[17px] font-semibold text-foreground">Price Comparison</h2>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>All prices normalised to per piece · sorted cheapest first</p>
           </div>
           <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
             {perPieceComparison.map(({ vid, sku, normalized }) => {
-              if (!sku) return null;
               const ourCost = sku.landed_per_piece_mvr;
               return (
                 <div key={vid} className="p-5">
-                  {/* Variant header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-[14px] font-semibold text-foreground">
-                        {sku.brand_name} · {sku.model_name} · {sku.variant_display}
-                      </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                        {sku.pcs_per_pack} pcs/pk · {sku.packs_per_carton} pk/ctn
-                        {ourCost != null && (
-                          <> · Our landed: <span className="text-foreground font-medium">MVR {Number(ourCost).toFixed(2)}/pc</span></>
-                        )}
-                      </p>
-                    </div>
+                  <div className="mb-3">
+                    <p className="text-[14px] font-semibold text-foreground">{sku.brand_name} · {sku.model_name} · {sku.variant_display}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      {sku.pcs_per_pack} pcs/pk · {sku.packs_per_carton} pk/ctn
+                      {ourCost != null && <> · Landed MVR {fmt2(Number(ourCost))}/pc</>}
+                    </p>
                   </div>
-
-                  {/* Competitor rows */}
                   <div className="space-y-2">
-                    {normalized.map(({ price, competitor, pricePiece, observedDate }) => {
+                    {normalized.map(({ price, competitor, pricePiece }) => {
                       const delta = ourCost != null && pricePiece != null ? pricePiece - Number(ourCost) : null;
-                      const deltaColor = delta === null ? "var(--muted-foreground)" : delta > 0 ? "#4ade80" : "#ffb4ab";
+                      const deltaColor = delta == null ? "var(--muted-foreground)" : delta > 0 ? "#4ade80" : "#ffb4ab";
                       return (
-                        <div
-                          key={price.id}
-                          className="flex items-center justify-between rounded-xl px-4 py-3"
-                          style={{ background: "rgba(255,255,255,0.04)" }}
-                        >
+                        <div key={price.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "rgba(255,255,255,0.04)" }}>
                           <div className="flex items-center gap-3 min-w-0">
-                            <div
-                              className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ background: "rgba(255,255,255,0.07)" }}
-                            >
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.07)" }}>
                               <Store className="h-3.5 w-3.5 text-white" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[13px] font-medium text-foreground truncate">
-                                {competitor?.name ?? "Unknown"}
-                              </p>
+                              <p className="text-[13px] font-medium text-foreground truncate">{competitor?.name ?? "Unknown"}</p>
                               <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                                {BASIS_LABEL[price.price_basis]} · {new Date(observedDate).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
-                                {price.their_pcs_per_pack && <> · {price.their_pcs_per_pack} pcs/pk</>}
+                                {BASIS_LABEL[price.price_basis]} · {new Date(price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                                {price.their_pcs_per_pack ? <> · {price.their_pcs_per_pack} pcs/pk</> : null}
                               </p>
                             </div>
                           </div>
                           <div className="text-right shrink-0 ml-4">
                             {pricePiece != null ? (
                               <>
-                                <p className="text-[15px] font-semibold text-foreground">
-                                  MVR {pricePiece.toFixed(2)}
-                                </p>
-                                {delta !== null && (
+                                <p className="text-[14px] font-semibold text-foreground">MVR {fmt2(pricePiece)}<span className="text-[10px] text-foreground/40">/pc</span></p>
+                                {delta != null && (
                                   <p className="text-[11px] font-medium" style={{ color: deltaColor }}>
-                                    {delta > 0 ? "+" : ""}{delta.toFixed(2)} vs us
+                                    {delta > 0 ? "+" : ""}{fmt2(delta)} vs landed
                                   </p>
                                 )}
                               </>
                             ) : (
                               <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                                {Number(price.price_mvr).toFixed(2)} ({BASIS_LABEL[price.price_basis]})
+                                {fmt2(Number(price.price_mvr))} ({BASIS_LABEL[price.price_basis]})
                               </p>
                             )}
                           </div>
                         </div>
                       );
                     })}
-                  </div>
-
-                  {/* Our selling price bar if available */}
-                  {ourCost != null && sku.selling_price_per_piece_mvr != null && (
-                    <div
-                      className="flex items-center justify-between rounded-xl px-4 py-3 mt-2"
-                      style={{ background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.20)" }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ background: "rgba(99,102,241,0.20)" }}
-                        >
-                          <Tag className="h-3.5 w-3.5" style={{ color: "#818cf8" }} />
+                    {sku.selling_price_per_piece_mvr != null && (
+                      <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.20)" }}>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(99,102,241,0.20)" }}>
+                            <Tag className="h-3.5 w-3.5" style={{ color: "#818cf8" }} />
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-medium" style={{ color: "#c7d2fe" }}>Our Selling Price</p>
+                            <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.6)" }}>{sku.target_margin_pct}% margin</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[13px] font-medium" style={{ color: "#c7d2fe" }}>Our Selling Price</p>
-                          <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.6)" }}>at target margin</p>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold" style={{ color: "#c7d2fe" }}>MVR {fmt2(Number(sku.selling_price_per_piece_mvr))}<span className="text-[10px] opacity-60">/pc</span></p>
+                          <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.6)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
                         </div>
                       </div>
-                      <p className="text-[15px] font-semibold" style={{ color: "#c7d2fe" }}>
-                        MVR {Number(sku.selling_price_per_piece_mvr).toFixed(2)}
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -496,147 +514,135 @@ export function CompetitorsView() {
         </div>
       )}
 
-      {/* ── Search ── */}
-      <div
-        className="flex items-center gap-3 rounded-2xl px-4 h-12"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search competitors…"
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-        />
-      </div>
-
-      {/* ── Competitor List ── */}
-      {filtered.length === 0 ? (
-        <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
-          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
-            <Store className="h-6 w-6 text-white" />
-          </div>
-          <h3 className="text-base font-semibold text-white">No competitors yet</h3>
-          <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
-            Add competitors and log their prices to compare against your margins.
-          </p>
-          <button onClick={() => setCompetitorDialog({ open: true })} className="mt-2 h-11 px-6 rounded-full text-sm font-bold" style={{ background: "#ffffff", color: "#2f3131" }}>
-            Add first competitor
+      {/* ── Competitors section ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[13px] font-semibold text-foreground">Competitors ({competitors.length})</p>
+          <button
+            onClick={() => setCompetitorDialog({ open: true })}
+            className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
+            style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
+          >
+            + Add
           </button>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((comp) => {
-            const compPrices = pricesByComp.get(comp.id) ?? [];
-            const isExpanded = expanded.has(comp.id);
-            return (
-              <div key={comp.id} className="rounded-2xl overflow-hidden" style={CARD}>
-                <div className="p-4 flex items-center justify-between gap-3">
-                  <button
-                    onClick={() => toggleExpanded(comp.id)}
-                    className="flex items-center gap-3 min-w-0 flex-1 text-left"
-                  >
-                    <div
-                      className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: "rgba(255,255,255,0.08)" }}
-                    >
-                      <Store className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-semibold text-white">{comp.name}</p>
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                        {compPrices.length} price{compPrices.length !== 1 ? "s" : ""} logged
-                        {comp.notes && <> · {comp.notes}</>}
-                      </p>
-                    </div>
-                    {isExpanded
-                      ? <ChevronUp className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                      : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />}
-                  </button>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => setPriceDialog({ open: true, competitorId: comp.id })}
-                      className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
-                      style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
-                    >
-                      + Price
-                    </button>
-                    <button
-                      onClick={() => setCompetitorDialog({ open: true, editing: comp })}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center transition"
-                      style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteCompDialog(comp)}
-                      className="h-8 w-8 rounded-lg flex items-center justify-center transition"
-                      style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
 
-                {isExpanded && (
-                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                    {compPrices.length === 0 ? (
-                      <div className="px-4 py-4 text-center">
-                        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
-                        <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-white opacity-60 hover:opacity-100 mt-1">Log first price</button>
-                      </div>
-                    ) : (
-                      compPrices.map((p) => {
-                        const sku = skus.find((s) => s.variant_id === p.variant_id);
-                        return (
-                          <div
-                            key={p.id}
-                            className="px-4 py-3 flex items-start justify-between gap-3 transition"
-                            style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[13px] text-white truncate">
-                                {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown variant"}
-                              </p>
-                              <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                                <span className="text-white font-medium">{Number(p.price_mvr).toLocaleString(undefined, { maximumFractionDigits: 2 })} MVR</span>
-                                {" "}{BASIS_LABEL[p.price_basis]}
-                                {p.their_pcs_per_pack && <> · {p.their_pcs_per_pack} pcs/pk</>}
-                                {" · "}{new Date(p.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
-                              </p>
-                              {p.notes && <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })}
-                                className="h-7 w-7 rounded-lg flex items-center justify-center transition"
-                                style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </button>
-                              <button
-                                onClick={() => setDeletePriceDialog(p)}
-                                className="h-7 w-7 rounded-lg flex items-center justify-center transition"
-                                style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        {/* Search */}
+        <div className="flex items-center gap-3 rounded-xl px-4 h-11 mb-3" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search competitors…"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+          />
         </div>
-      )}
 
-      {/* ── Competitor Add/Edit Modal ── */}
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
+            <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+              <Store className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="text-base font-semibold text-white">No competitors yet</h3>
+            <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
+              Add competitors to start tracking their prices.
+            </p>
+            <button onClick={() => setCompetitorDialog({ open: true })} className="mt-2 h-11 px-6 rounded-full text-sm font-bold" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+              Add first competitor
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((comp) => {
+              const compPrices = pricesByComp.get(comp.id) ?? [];
+              const isExpanded = expanded.has(comp.id);
+              return (
+                <div key={comp.id} className="rounded-2xl overflow-hidden" style={CARD}>
+                  <div className="px-4 py-3 flex items-center justify-between gap-3">
+                    <button onClick={() => toggleExpanded(comp.id)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
+                      <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}>
+                        <Store className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-semibold text-white">{comp.name}</p>
+                        <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                          {compPrices.length} price{compPrices.length !== 1 ? "s" : ""} logged
+                          {comp.notes ? ` · ${comp.notes}` : ""}
+                        </p>
+                      </div>
+                      {isExpanded
+                        ? <ChevronUp className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                        : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />}
+                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => setPriceDialog({ open: true, competitorId: comp.id })}
+                        className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
+                        style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
+                      >
+                        + Price
+                      </button>
+                      <button onClick={() => setCompetitorDialog({ open: true, editing: comp })} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => setDeleteCompDialog(comp)} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                      {compPrices.length === 0 ? (
+                        <div className="px-4 py-4 text-center">
+                          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
+                          <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-white opacity-60 hover:opacity-100 mt-1">Log first price</button>
+                        </div>
+                      ) : (
+                        compPrices.map((p) => {
+                          const sku = skus.find((s) => s.variant_id === p.variant_id);
+                          return (
+                            <div
+                              key={p.id}
+                              className="px-4 py-3 flex items-start justify-between gap-3 transition"
+                              style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[13px] text-white truncate">
+                                  {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown"}
+                                </p>
+                                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                                  <span className="text-white font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
+                                  {" "}{BASIS_LABEL[p.price_basis]}
+                                  {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/pk` : ""}
+                                  {" · "}{new Date(p.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+                                </p>
+                                {p.notes && <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}>
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                                <button onClick={() => setDeletePriceDialog(p)} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}>
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Modals ── */}
       {competitorDialog.open && (
         <CompetitorModal
           editing={competitorDialog.editing}
@@ -644,8 +650,6 @@ export function CompetitorsView() {
           onDone={() => { setCompetitorDialog({ open: false }); load(); }}
         />
       )}
-
-      {/* ── Price Add/Edit Modal ── */}
       {priceDialog.open && (
         <PriceModal
           editing={priceDialog.editing}
@@ -656,21 +660,17 @@ export function CompetitorsView() {
           onDone={() => { setPriceDialog({ open: false }); load(); }}
         />
       )}
-
-      {/* ── Delete Competitor Modal ── */}
       {deleteCompDialog && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,180,171,0.15)", color: "#ffb4ab" }}>
-                <AlertTriangle className="h-5 w-5" />
-              </div>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,180,171,0.15)", color: "#ffb4ab" }}><AlertTriangle className="h-5 w-5" /></div>
               <div>
                 <p className="text-[15px] font-bold text-white">Delete competitor?</p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{deleteCompDialog.name}</p>
               </div>
             </div>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>All logged prices will be removed. Cannot be undone.</p>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>All logged prices will also be removed.</p>
             <div className="flex gap-2">
               <button onClick={() => setDeleteCompDialog(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
               <button
@@ -690,8 +690,6 @@ export function CompetitorsView() {
           </div>
         </div>
       )}
-
-      {/* ── Delete Price Modal ── */}
       {deletePriceDialog && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
@@ -726,9 +724,8 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
-
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)" } as const;
   const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)" } as const;
 
   async function save() {
     if (!name.trim()) return;
@@ -756,7 +753,7 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
         </div>
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
-          <button onClick={save} disabled={saving || !name.trim()} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "#ffffff", color: "#2f3131" }}>
+          <button onClick={save} disabled={saving || !name.trim()} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Add"}
           </button>
         </div>
@@ -777,8 +774,8 @@ function PriceModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)" } as const;
   const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
   const [variantId, setVariantId] = useState(editing?.variant_id ?? "");
@@ -802,6 +799,18 @@ function PriceModal({
   }, [uniqueVariants, skuSearch]);
 
   const selectedSku = skus.find((s) => s.variant_id === variantId);
+
+  // Live per-piece calculation preview
+  const perPiecePreview = useMemo(() => {
+    const price = parseFloat(priceMvr);
+    if (!price || !selectedSku) return null;
+    const ourPcs = selectedSku.pcs_per_pack;
+    const ourCtn = ourPcs * selectedSku.packs_per_carton;
+    if (priceBasis === "per_piece")   return price;
+    if (priceBasis === "per_pack")    return price / (parseInt(theirPcsPerPack) || ourPcs);
+    if (priceBasis === "per_carton")  return price / ourCtn;
+    return null;
+  }, [priceMvr, priceBasis, theirPcsPerPack, selectedSku]);
 
   async function save() {
     if (!selectedCompId || !variantId || !priceMvr) return;
@@ -829,25 +838,29 @@ function PriceModal({
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={CARD_L2}>
         <p className="text-[16px] font-bold text-white">{editing ? "Edit Price" : "Log Competitor Price"}</p>
 
-        {/* Competitor */}
+        {/* Competitor selector — show all, or allow adding inline */}
         <div className="space-y-1.5">
           <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
-          <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
-            <option value="">Pick competitor</option>
-            {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          {competitors.length > 0 ? (
+            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <option value="">Pick competitor</option>
+              {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : (
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Add a competitor first using the "Add Competitor" button.</p>
+          )}
         </div>
 
-        {/* Product (variant) */}
+        {/* Product */}
         <div>
           <p className="label-caps text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!variantId ? (
             <>
               <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748] mb-2" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
-              <div className="rounded-xl overflow-hidden max-h-[200px] overflow-y-auto" style={CARD}>
+              <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
                 {filteredVariants.map((s) => (
                   <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-white transition" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                    <p className="font-medium">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
+                    <p className="font-medium">{s.brand_name} · {s.model_name} · {s.variant_display}</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
                   </button>
                 ))}
@@ -857,10 +870,10 @@ function PriceModal({
           ) : selectedSku ? (
             <div className="rounded-xl p-3 flex justify-between items-start" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
               <div>
-                <p className="text-[13px] text-white">{selectedSku.brand_name} › {selectedSku.model_name} › {selectedSku.variant_display}</p>
+                <p className="text-[13px] text-white">{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
               </div>
-              <button onClick={() => setVariantId("")} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
+              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
             </div>
           ) : null}
         </div>
@@ -878,25 +891,35 @@ function PriceModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Live per-piece preview */}
+        {perPiecePreview != null && (
+          <div className="rounded-xl px-4 py-3 text-center" style={{ background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.20)" }}>
+            <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.7)" }}>
+              = <span className="font-bold text-[14px]" style={{ color: "#c7d2fe" }}>MVR {fmt2(perPiecePreview)}</span> per piece
+            </p>
+          </div>
+        )}
+
+        {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
           <div className="space-y-1.5">
-            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK</p>
+            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
             <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748]" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
           </div>
-          <div className="space-y-1.5">
-            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
-            <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
-          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
+          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
         </div>
 
         <div className="space-y-1.5">
           <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promotion price, seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-[#444748] resize-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-[#444748] resize-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
         </div>
 
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
-          <button onClick={save} disabled={saving || !selectedCompId || !variantId || !priceMvr} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "#ffffff", color: "#2f3131" }}>
+          <button onClick={save} disabled={saving || !selectedCompId || !variantId || !priceMvr} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Log Price"}
           </button>
         </div>
