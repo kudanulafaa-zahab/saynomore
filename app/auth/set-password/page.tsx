@@ -1,17 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 export default function SetPasswordPage() {
   const router = useRouter();
+  const [ready, setReady] = useState(false);   // true once Supabase has a session from the invite token
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    // Supabase automatically parses the #access_token hash from the invite link
+    // and fires PASSWORD_RECOVERY or SIGNED_IN with type "invite"
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setReady(true);
+      }
+    });
+
+    // Also check if there's already a session (user refreshed the page)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,14 +54,23 @@ export default function SetPasswordPage() {
     }
 
     setDone(true);
-    setTimeout(() => router.push("/dashboard"), 1800);
+    setTimeout(() => router.push("/dashboard"), 1500);
+  }
+
+  // Still waiting for the invite token to be processed
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="flex flex-col items-center gap-3" style={{ color: "var(--muted-foreground)" }}>
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <p className="text-sm">Verifying invite link…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div
-      className="flex min-h-dvh items-center justify-center px-6"
-      style={{ background: "var(--background)" }}
-    >
+    <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
       <div
         className="w-full max-w-md p-10 space-y-7 rounded-2xl"
         style={{
@@ -53,13 +80,12 @@ export default function SetPasswordPage() {
           border: "1px solid var(--glass-border)",
         }}
       >
-        {/* Header */}
         <div className="space-y-3 text-center">
           <div
             className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
-            style={{ background: "var(--snm-brand)", boxShadow: "0 8px 32px color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
+            style={{ background: "var(--snm-brand)" }}
           >
-            <span className="text-xl font-bold" style={{ color: "#ffffff" }}>S</span>
+            <span className="text-xl font-bold text-white">S</span>
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>
@@ -77,7 +103,7 @@ export default function SetPasswordPage() {
             style={{ background: "color-mix(in srgb, var(--snm-success) 12%, transparent)" }}
           >
             <CheckCircle2 className="h-8 w-8" style={{ color: "var(--snm-success)" }} />
-            <p className="font-medium" style={{ color: "var(--snm-success)" }}>Password set! Redirecting…</p>
+            <p className="font-medium" style={{ color: "var(--snm-success)" }}>Password set! Entering app…</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -139,7 +165,7 @@ export default function SetPasswordPage() {
               className="w-full h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-50"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set password & continue"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set password & enter app"}
             </button>
           </form>
         )}

@@ -25,9 +25,11 @@ export async function POST(req: NextRequest) {
 
     const admin = getSupabaseAdmin();
 
-    // Send the invite email — Supabase emails the magic link automatically
+    // Send the invite email — redirect to set-password page where they choose their password
+    const origin = req.headers.get("origin") ?? "https://saynomore-beta.vercel.app";
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { full_name: full_name ?? "", role },
+      redirectTo: `${origin}/auth/set-password`,
     });
     if (inviteError) {
       return NextResponse.json({ error: inviteError.message }, { status: 400 });

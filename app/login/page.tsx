@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,12 +90,9 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-primary hover:opacity-80 transition">
-            Sign up
-          </Link>
-        </div>
+        <p className="text-center text-xs text-muted-foreground">
+          Access by invitation only
+        </p>
       </div>
     </div>
   );
