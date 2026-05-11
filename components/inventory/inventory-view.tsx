@@ -2,43 +2,265 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, AlertTriangle, Package, ChevronDown } from "lucide-react";
+import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin, Layers } from "lucide-react";
 import { listBatchStock, type BatchStock } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 
-const CARD: React.CSSProperties = {
-  background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-};
+/* ── Helpers ── */
 
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
-
-function toCartons(pieces: number, pcsPerCarton: number) {
-  return pcsPerCarton > 0 ? Math.floor(pieces / pcsPerCarton) : 0;
+function toCtns(pcs: number, pcsPerCtn: number) {
+  return pcsPerCtn > 0 ? Math.floor(pcs / pcsPerCtn) : 0;
 }
-function remainderPacks(pieces: number, pcsPerPack: number, pcsPerCarton: number) {
-  const rem = pcsPerCarton > 0 ? pieces % pcsPerCarton : pieces;
+function remPacks(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
+  const rem = pcsPerCtn > 0 ? pcs % pcsPerCtn : pcs;
   return pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
 }
-function remainderPieces(pieces: number, pcsPerPack: number) {
-  return pcsPerPack > 0 ? pieces % pcsPerPack : pieces;
+function fmtMvr(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
+}
+function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
+  const ctns  = toCtns(pcs, pcsPerCtn);
+  const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);
+  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} pk`;
+  if (ctns > 0) return `${ctns} ctn`;
+  if (packs > 0) return `${packs} pk`;
+  return `${pcs} pcs`;
 }
 
-/* ── Types ───────────────────────────────────────────────────────────────── */
+/* ── Types ── */
+
+interface GodownSlot {
+  godown: GodownRow;
+  pieces: number;
+  batches: BatchStock[];
+}
 
 interface SkuStock {
   sku: SkuFullRow;
   totalPieces: number;
-  byGodown: {
-    godown: GodownRow;
-    pieces: number;
-    batches: BatchStock[];
-  }[];
+  totalValue: number;
+  byGodown: GodownSlot[];
+  fifoLandedPerPiece: number;
+  isLow: boolean;
 }
 
-/* ── Component ───────────────────────────────────────────────────────────── */
+interface BrandGroup {
+  skus: SkuStock[];
+  totalCartons: number;
+  totalValue: number;
+  hasLow: boolean;
+}
+
+/* ── Sub-components ── */
+
+function StatCard({ label, value, sub, accent }: { label: string; value: string; sub: string; accent?: string }) {
+  return (
+    <div
+      className="rounded-2xl p-4"
+      style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
+    >
+      <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+      <p className="text-[26px] font-light tracking-tight leading-none" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
+      <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>{sub}</p>
+    </div>
+  );
+}
+
+function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: { batch: BatchStock; idx: number; pcsPerPack: number; pcsPerCtn: number }) {
+  const qty = fmtQty(batch.qty_pieces_remaining, pcsPerPack, pcsPerCtn);
+  const date = new Date(batch.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
+  return (
+    <div
+      className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+      style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        {idx === 0 && (
+          <span
+            className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
+            style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--foreground)" }}
+          >
+            FIFO
+          </span>
+        )}
+        <span className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>
+          {date} · #{batch.batch_id.slice(-6).toUpperCase()}
+        </span>
+      </div>
+      <div className="text-right shrink-0 ml-3">
+        <span className="text-[13px] font-semibold text-foreground">{qty}</span>
+        <span className="text-[11px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>
+          MVR {batch.landed_per_piece_mvr.toFixed(2)}/pc
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow } = row;
+  const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
+  const totalCtns = toCtns(totalPieces, pcsPerCtn);
+
+  const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
+  const landedPerCarton = landedPerPack * sku.packs_per_carton;
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: "var(--glass-1)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: isLow
+          ? "1px solid color-mix(in srgb, var(--snm-error, #ffb4ab) 25%, transparent)"
+          : "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+      }}
+    >
+      {/* ── SKU header row ── */}
+      <button
+        className="w-full text-left px-4 pt-4 pb-3 flex items-start gap-3"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {/* Status dot */}
+        <div
+          className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+          style={{ background: isLow ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)" }}
+        />
+
+        {/* Name + godown pills */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-semibold text-foreground leading-snug">
+            {searchActive && `${sku.brand_name} · `}{sku.model_name}
+            {sku.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span> : null}
+          </p>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
+          </p>
+
+          {/* Godown pills — always visible */}
+          {byGodown.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {byGodown.map(({ godown, pieces }) => (
+                <span
+                  key={godown.id}
+                  className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  <MapPin className="h-2.5 w-2.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                  {godown.name}
+                  <span style={{ color: "var(--muted-foreground)" }}>
+                    {" "}{fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn)}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right: total qty + value */}
+        <div className="text-right shrink-0 ml-2">
+          <p
+            className="text-[20px] font-bold leading-none tracking-tight"
+            style={{ color: isLow ? "var(--snm-error, #ffb4ab)" : "var(--foreground)" }}
+          >
+            {totalCtns}
+            <span className="text-[13px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+            MVR {fmtMvr(totalValue)}
+          </p>
+          <ChevronDown
+            className="h-4 w-4 mt-1.5 ml-auto transition-transform duration-200"
+            style={{
+              color: "var(--muted-foreground)",
+              transform: expanded ? "rotate(180deg)" : "none",
+            }}
+          />
+        </div>
+      </button>
+
+      {/* ── Expanded: landed cost + per-godown FIFO batches ── */}
+      {expanded && (
+        <div
+          className="px-4 pb-4 space-y-4"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
+        >
+          {/* Landed cost grid */}
+          <div className="grid grid-cols-3 gap-2 pt-4">
+            {[
+              { label: "Landed / pc",  value: `MVR ${fifoLandedPerPiece.toFixed(3)}` },
+              { label: "Landed / pk",  value: `MVR ${landedPerPack.toFixed(2)}` },
+              { label: "Landed / ctn", value: `MVR ${landedPerCarton.toFixed(0)}` },
+            ].map((c) => (
+              <div
+                key={c.label}
+                className="rounded-xl p-3 text-center"
+                style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
+              >
+                <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Per-godown FIFO batches */}
+          {byGodown.map(({ godown, pieces, batches }) => (
+            <div key={godown.id}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="h-3 w-3" style={{ color: "var(--muted-foreground)" }} />
+                  <p className="text-[12px] font-semibold text-foreground">{godown.name}</p>
+                </div>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  {fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn)} · {pieces.toLocaleString()} pcs
+                </p>
+              </div>
+              <div className="space-y-1">
+                {batches
+                  .sort((a, b) => a.received_at.localeCompare(b.received_at))
+                  .map((batch, i) => (
+                    <BatchRow
+                      key={batch.batch_id}
+                      batch={batch}
+                      idx={i}
+                      pcsPerPack={sku.pcs_per_pack}
+                      pcsPerCtn={pcsPerCtn}
+                    />
+                  ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Low stock warning */}
+          {isLow && (
+            <div
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+              style={{
+                background: "color-mix(in srgb, var(--snm-error, #ffb4ab) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--snm-error, #ffb4ab) 20%, transparent)",
+              }}
+            >
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-error, #ffb4ab)" }} />
+              <p className="text-[12px]" style={{ color: "var(--snm-error, #ffb4ab)" }}>
+                Only {totalCtns} carton{totalCtns !== 1 ? "s" : ""} left — consider reordering.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main component ── */
 
 export function InventoryView() {
   const [skus, setSkus]       = useState<SkuFullRow[]>([]);
@@ -46,18 +268,16 @@ export function InventoryView() {
   const [batches, setBatches] = useState<BatchStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ]             = useState("");
-  const [expanded, setExpanded]         = useState<string | null>(null);
   const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([listSkusFlat(), listGodowns(), listBatchStock()])
       .then(([s, g, b]) => { setSkus(s); setGodowns(g); setBatches(b); })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
   }, []);
 
-  /* ── Roll up batches → per-SKU, per-godown ─────────────────────────────── */
+  /* ── Aggregate: batch → SKU → godown ── */
   const stockList = useMemo<SkuStock[]>(() => {
     return skus
       .map((sku) => {
@@ -69,276 +289,178 @@ export function InventoryView() {
           entry.batches.push(b);
           godownMap.set(b.godown_id, entry);
         }
-        const byGodown = Array.from(godownMap.entries())
+        const byGodown: GodownSlot[] = Array.from(godownMap.entries())
           .map(([gid, entry]) => {
             const godown = godowns.find((g) => g.id === gid);
             return godown ? { godown, ...entry } : null;
           })
-          .filter((x): x is NonNullable<typeof x> => x !== null);
+          .filter((x): x is GodownSlot => x !== null);
+
         const totalPieces = byGodown.reduce((a, x) => a + x.pieces, 0);
-        return { sku, totalPieces, byGodown };
+        const totalValue  = skuBatches.reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
+        const pcsPerCtn   = sku.pcs_per_pack * sku.packs_per_carton;
+        const fifoLandedPerPiece = skuBatches.sort((a, b) => a.received_at.localeCompare(b.received_at))[0]?.landed_per_piece_mvr ?? 0;
+        const isLow = toCtns(totalPieces, pcsPerCtn) < 5;
+
+        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow };
       })
       .filter((r) => r.sku.is_active && r.totalPieces > 0);
   }, [skus, batches, godowns]);
 
+  /* ── Search filter ── */
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return stockList;
     return stockList.filter((r) =>
-      [r.sku.brand_name, r.sku.model_name, r.sku.variant_display, r.sku.internal_code ?? ""]
+      [r.sku.brand_name, r.sku.model_name, r.sku.variant_display ?? "", r.sku.internal_code ?? ""]
         .join(" ").toLowerCase().includes(term),
     );
   }, [stockList, q]);
 
-  /* ── Group filtered list by brand ──────────────────────────────────────── */
+  /* ── Group by brand ── */
   const byBrand = useMemo(() => {
-    const map = new Map<string, { skus: typeof filtered; totalValue: number; totalCartons: number; hasLow: boolean }>();
+    const map = new Map<string, BrandGroup>();
     for (const row of filtered) {
       const brand = row.sku.brand_name;
-      const entry = map.get(brand) ?? { skus: [], totalValue: 0, totalCartons: 0, hasLow: false };
-      const pcsPerCarton = row.sku.pcs_per_pack * row.sku.packs_per_carton;
-      const ctns = toCartons(row.totalPieces, pcsPerCarton);
-      const val  = row.byGodown.flatMap((g) => g.batches).reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
+      const entry = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasLow: false };
+      const pcsPerCtn = row.sku.pcs_per_pack * row.sku.packs_per_carton;
       entry.skus.push(row);
-      entry.totalValue   += val;
-      entry.totalCartons += ctns;
-      entry.hasLow = entry.hasLow || ctns < 5;
+      entry.totalCartons += toCtns(row.totalPieces, pcsPerCtn);
+      entry.totalValue   += row.totalValue;
+      entry.hasLow = entry.hasLow || row.isLow;
       map.set(brand, entry);
     }
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  /* ── Summary stats ──────────────────────────────────────────────────────── */
-  const totalSkusInStock = stockList.length;
-  const lowStockSkus     = stockList.filter((r) => {
-    const pcsPerCarton = r.sku.pcs_per_pack * r.sku.packs_per_carton;
-    return toCartons(r.totalPieces, pcsPerCarton) < 5;
-  });
+  /* ── Summary stats ── */
+  const totalValue    = stockList.reduce((s, r) => s + r.totalValue, 0);
+  const totalCartons  = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
+  const lowStockCount = stockList.filter((r) => r.isLow).length;
+  const activeBatches = batches.filter((b) => b.qty_pieces_remaining > 0).length;
 
-  const totalCartons = stockList.reduce((sum, r) => {
-    const pcsPerCarton = r.sku.pcs_per_pack * r.sku.packs_per_carton;
-    return sum + toCartons(r.totalPieces, pcsPerCarton);
-  }, 0);
-
-  const totalInventoryValue = batches.reduce((sum, b) => {
-    return sum + b.qty_pieces_remaining * b.landed_per_piece_mvr;
-  }, 0);
+  const searchActive = q.trim() !== "";
 
   if (loading) {
     return (
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="flex items-center justify-center" style={{ minHeight: "60vh" }}>
         <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div className="space-y-4 pb-28 lg:pb-10">
 
-      {/* ── Header ── */}
-      <div style={{ marginBottom: 20 }}>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>Operations</p>
-        <h1 style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em" }}>Inventory</h1>
-      </div>
-
-      {/* ── Summary stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 12 }}>
-        <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>SKUs in Stock</p>
-          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>{totalSkusInStock}</p>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>{batches.filter((b) => b.qty_pieces_remaining > 0).length} active batches</p>
-        </div>
-        <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Total Cartons</p>
-          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>{totalCartons.toLocaleString()}</p>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>across all SKUs</p>
-        </div>
-        <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Inventory Value</p>
-          <p style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 300, letterSpacing: "-0.02em" }}>MVR {totalInventoryValue.toLocaleString("en-MV", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>at landed cost</p>
-        </div>
-        <div style={{ ...CARD, borderRadius: 14, padding: "16px 18px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Low Stock</p>
-          <p style={{ color: lowStockSkus.length > 0 ? "#ffb4ab" : "#4ade80", fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>{lowStockSkus.length}</p>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>{lowStockSkus.length > 0 ? "SKUs below 5 cartons" : "All OK"}</p>
-        </div>
+      {/* ── Summary cards ── */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard
+          label="SKUs in Stock"
+          value={String(stockList.length)}
+          sub={`${activeBatches} active batch${activeBatches !== 1 ? "es" : ""}`}
+        />
+        <StatCard
+          label="Total Cartons"
+          value={totalCartons.toLocaleString()}
+          sub="across all SKUs"
+        />
+        <StatCard
+          label="Inventory Value"
+          value={`MVR ${fmtMvr(totalValue)}`}
+          sub="at landed cost"
+        />
+        <StatCard
+          label="Low Stock"
+          value={String(lowStockCount)}
+          sub={lowStockCount > 0 ? "SKUs below 5 cartons" : "All OK"}
+          accent={lowStockCount > 0 ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)"}
+        />
       </div>
 
       {/* ── Search ── */}
-      <div style={{ ...CARD, borderRadius: 14, display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 46, marginBottom: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-        <Search style={{ width: 16, height: 16, color: "var(--muted-foreground)", flexShrink: 0 }} />
+      <div
+        className="flex items-center gap-2.5 px-4 rounded-2xl"
+        style={{
+          background: "var(--glass-1)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          height: 46,
+          border: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+        }}
+      >
+        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search brand, SKU, code…"
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "var(--foreground)" }}
+          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* ── Stock list ── */}
       {filtered.length === 0 ? (
-        <div style={{ ...CARD, borderRadius: 16, padding: "48px 24px", textAlign: "center" }}>
-          <Package style={{ width: 32, height: 32, color: "var(--muted-foreground)", margin: "0 auto 12px", opacity: 0.3 }} />
-          <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>
-            {stockList.length === 0 ? "No stock yet — confirm a shipment GRN to populate inventory." : "No results."}
+        <div
+          className="rounded-2xl p-12 text-center"
+          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)" }}
+        >
+          <Package className="h-8 w-8 mx-auto mb-3 opacity-25" style={{ color: "var(--muted-foreground)" }} />
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+            {stockList.length === 0
+              ? "No stock yet — confirm a shipment GRN to populate inventory."
+              : "No results."}
           </p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {byBrand.map(([brand, brandData]) => (
-            <div key={brand}>
-              {/* ── Brand header ── */}
-              <div
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 4px", cursor: "pointer" }}
-                onClick={() => setExpandedBrand(expandedBrand === brand ? null : brand)}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: brandData.hasLow ? "#ffb4ab" : "#4ade80" }} />
-                  <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" }}>{brand}</p>
-                  <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{brandData.skus.length} SKU{brandData.skus.length !== 1 ? "s" : ""}</p>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{brandData.totalCartons.toLocaleString()} ctn</p>
-                  <p style={{ color: "var(--foreground)", fontSize: 12, fontWeight: 600 }}>MVR {brandData.totalValue.toLocaleString("en-MV", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                  <ChevronDown style={{ width: 14, height: 14, color: "var(--muted-foreground)", transform: expandedBrand === brand ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                </div>
-              </div>
-
-              {/* ── SKU rows under this brand ── */}
-              {(expandedBrand === brand || q.trim() !== "") && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                  {brandData.skus.map((row) => {
-            const pcsPerCarton = row.sku.pcs_per_pack * row.sku.packs_per_carton;
-            const ctns   = toCartons(row.totalPieces, pcsPerCarton);
-            const packs  = remainderPacks(row.totalPieces, row.sku.pcs_per_pack, pcsPerCarton);
-            const pieces = remainderPieces(row.totalPieces, row.sku.pcs_per_pack) + packs * row.sku.pcs_per_pack;
-            const isExpanded = expanded === row.sku.id;
-            const isLow = ctns < 5;
-
-            const allBatches      = row.byGodown.flatMap((g) => g.batches);
-            // Landed cost — from oldest batch (FIFO) if multiple
-            const fifoLanded = allBatches
-              .sort((a, b) => a.received_at.localeCompare(b.received_at))[0]?.landed_per_piece_mvr ?? 0;
-            const landedPerPack   = fifoLanded * row.sku.pcs_per_pack;
-            const landedPerCarton = landedPerPack * row.sku.packs_per_carton;
-            const skuTotalValue   = allBatches.reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
-
+        <div className="space-y-5">
+          {byBrand.map(([brand, brandData]) => {
+            const isOpen = searchActive || expandedBrand === brand;
             return (
-              <div key={row.sku.id} style={{ ...CARD, borderRadius: 14, overflow: "hidden", border: isLow ? "1px solid rgba(255,180,171,0.2)" : "1px solid transparent" }}>
-
-                {/* ── Row header ── */}
-                <div
-                  style={{ padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}
-                  onClick={() => setExpanded(isExpanded ? null : row.sku.id)}
+              <div key={brand}>
+                {/* Brand header */}
+                <button
+                  className="w-full flex items-center justify-between px-1 py-2 mb-2"
+                  onClick={() => !searchActive && setExpandedBrand(isOpen ? null : brand)}
                 >
-                  {/* Low stock dot */}
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: isLow ? "#ffb4ab" : "#4ade80", flexShrink: 0 }} />
-
-                  {/* Name */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {q.trim() ? `${row.sku.brand_name} · ` : ""}{row.sku.model_name} · {row.sku.variant_display}
-                    </p>
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
-                      {row.sku.internal_code} · {row.sku.pcs_per_pack}/pk × {row.sku.packs_per_carton}/ctn
-                      {row.byGodown.length > 0 && ` · ${row.byGodown.map((g) => g.godown.name).join(", ")}`}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: brandData.hasLow ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)" }}
+                    />
+                    <p className="text-[13px] font-bold uppercase tracking-wider text-foreground">{brand}</p>
+                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                      {brandData.skus.length} SKU{brandData.skus.length !== 1 ? "s" : ""}
                     </p>
                   </div>
-
-                  {/* Stock summary — cartons first */}
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ color: isLow ? "#ffb4ab" : "var(--foreground)", fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>
-                      {ctns} <span style={{ fontSize: 12, fontWeight: 500 }}>ctn</span>
-                      {packs > 0 && <span style={{ fontSize: 13, color: "var(--muted-foreground)", marginLeft: 6 }}>+ {packs} pk</span>}
+                  <div className="flex items-center gap-3">
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                      {brandData.totalCartons.toLocaleString()} ctn
                     </p>
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>{row.totalPieces.toLocaleString()} pcs</p>
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>MVR {skuTotalValue.toLocaleString("en-MV", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                  </div>
-
-                  <ChevronDown style={{ width: 16, height: 16, color: "var(--muted-foreground)", flexShrink: 0, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                </div>
-
-                {/* ── Expanded detail ── */}
-                {isExpanded && (
-                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "16px 18px" }}>
-
-                    {/* Landed cost at all 3 levels */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
-                      {[
-                        { label: "Landed / piece", value: `MVR ${fifoLanded.toFixed(3)}` },
-                        { label: "Landed / pack", value: `MVR ${landedPerPack.toFixed(2)}` },
-                        { label: "Landed / carton", value: `MVR ${landedPerCarton.toFixed(0)}`, highlight: true },
-                      ].map((c) => (
-                        <div key={c.label} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "10px 12px" }}>
-                          <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{c.label}</p>
-                          <p style={{ color: c.highlight ? "#4ade80" : "var(--foreground)", fontSize: 15, fontWeight: 700 }}>{c.value}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Per-godown breakdown */}
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>By Warehouse</p>
-                    {row.byGodown.map(({ godown, pieces: gPieces, batches: gBatches }) => {
-                      const gCtns  = toCartons(gPieces, pcsPerCarton);
-                      const gPacks = remainderPacks(gPieces, row.sku.pcs_per_pack, pcsPerCarton);
-                      return (
-                        <div key={godown.id} style={{ marginBottom: 12 }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                            <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{godown.name}</p>
-                            <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
-                              {gCtns} ctn{gPacks > 0 ? ` + ${gPacks} pk` : ""}
-                              <span style={{ color: "var(--muted-foreground)", fontWeight: 400, marginLeft: 6 }}>({gPieces.toLocaleString()} pcs)</span>
-                            </p>
-                          </div>
-
-                          {/* Batch rows */}
-                          {gBatches
-                            .sort((a, b) => a.received_at.localeCompare(b.received_at))
-                            .map((batch, bi) => {
-                              const bCtns  = toCartons(batch.qty_pieces_remaining, pcsPerCarton);
-                              const bPacks = remainderPacks(batch.qty_pieces_remaining, row.sku.pcs_per_pack, pcsPerCarton);
-                              return (
-                                <div key={batch.batch_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8, marginBottom: 4 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    {bi === 0 && (
-                                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", background: "rgba(255,255,255,0.1)", color: "var(--foreground)", borderRadius: 4, padding: "2px 6px" }}>FIFO</span>
-                                    )}
-                                    <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
-                                      Batch {batch.batch_id.slice(-6).toUpperCase()} · {new Date(batch.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
-                                    </span>
-                                  </div>
-                                  <div style={{ textAlign: "right" }}>
-                                    <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
-                                      {bCtns} ctn{bPacks > 0 ? ` + ${bPacks} pk` : ""}
-                                    </span>
-                                    <span style={{ color: "var(--muted-foreground)", fontSize: 11, marginLeft: 6 }}>
-                                      · MVR {batch.landed_per_piece_mvr.toFixed(2)}/pc
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      );
-                    })}
-
-                    {/* Low stock warning */}
-                    {isLow && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "rgba(255,180,171,0.08)", borderRadius: 10, marginTop: 4, border: "1px solid rgba(255,180,171,0.15)" }}>
-                        <AlertTriangle style={{ width: 14, height: 14, color: "#ffb4ab", flexShrink: 0 }} />
-                        <p style={{ color: "#ffb4ab", fontSize: 12 }}>Low stock — only {ctns} carton{ctns !== 1 ? "s" : ""} remaining. Consider reordering.</p>
-                      </div>
+                    <p className="text-[12px] font-semibold text-foreground">
+                      MVR {fmtMvr(brandData.totalValue)}
+                    </p>
+                    {!searchActive && (
+                      <ChevronDown
+                        className="h-3.5 w-3.5 transition-transform duration-200"
+                        style={{
+                          color: "var(--muted-foreground)",
+                          transform: isOpen ? "rotate(180deg)" : "none",
+                        }}
+                      />
                     )}
+                  </div>
+                </button>
+
+                {/* SKU cards */}
+                {isOpen && (
+                  <div className="space-y-2">
+                    {brandData.skus.map((row) => (
+                      <SkuCard key={row.sku.id} row={row} searchActive={searchActive} />
+                    ))}
                   </div>
                 )}
               </div>
             );
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
+          })}
         </div>
       )}
     </div>
