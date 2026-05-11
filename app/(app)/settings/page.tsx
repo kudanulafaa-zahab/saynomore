@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import {
+  Loader2, ShieldCheck, Network, ArrowRightLeft, BellRing,
+  Warehouse, ShieldHalf, ExternalLink, Star, Pencil, Trash2,
+  UserCheck, UserCog, Truck,
+} from "lucide-react";
 import {
   listGodowns,
   createGodown,
@@ -31,10 +35,10 @@ const ROLE_DESC: Record<UserRole, string> = {
   manager: "Full operational access. Cannot manage users.",
   staff: "Can only see and update their own deliveries.",
 };
-const ROLE_ICON: Record<UserRole, string> = {
-  admin: "verified_user",
-  manager: "manage_accounts",
-  staff: "local_shipping",
+const ROLE_ICON: Record<UserRole, React.ElementType> = {
+  admin: UserCheck,
+  manager: UserCog,
+  staff: Truck,
 };
 
 const ALERT_TOGGLES = [
@@ -118,7 +122,7 @@ export default function SettingsPage() {
         <div className="glass p-6 lg:col-span-2">
           <div className="flex justify-between items-center mb-5">
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-foreground text-xl">admin_panel_settings</span>
+              <ShieldCheck className="h-5 w-5 text-foreground" />
               <h2 className="text-lg font-semibold text-foreground">Roles &amp; Permissions</h2>
             </div>
             {isAdmin && (
@@ -136,7 +140,7 @@ export default function SettingsPage() {
             {(Object.keys(ROLE_LABEL) as UserRole[]).map((r) => (
               <div key={r} className="glass-flat p-3 rounded-xl">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-muted-foreground" style={{ fontSize: 16 }}>{ROLE_ICON[r]}</span>
+                  {React.createElement(ROLE_ICON[r], { className: "h-4 w-4 text-muted-foreground" })}
                   <span className="text-sm font-medium text-foreground">{ROLE_LABEL[r]}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">{ROLE_DESC[r]}</p>
@@ -160,7 +164,7 @@ export default function SettingsPage() {
                     style={{ borderLeft: u.role === "admin" ? "2px solid var(--foreground)" : "2px solid transparent" }}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="material-symbols-outlined text-muted-foreground shrink-0" style={{ fontSize: 18 }}>{ROLE_ICON[u.role]}</span>
+                      {React.createElement(ROLE_ICON[u.role], { className: "h-4 w-4 text-muted-foreground shrink-0" })}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-foreground truncate">{u.full_name ?? "—"}</p>
@@ -178,10 +182,10 @@ export default function SettingsPage() {
                       {!isMe && (
                         <>
                           <button onClick={() => setEditUserSheet(u)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition">
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+                            <Pencil className="h-4 w-4" />
                           </button>
                           <button onClick={() => setDeleteUserTarget(u)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition">
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </>
                       )}
@@ -197,7 +201,7 @@ export default function SettingsPage() {
         <div className="glass p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-3 mb-5">
-              <span className="material-symbols-outlined text-foreground text-xl">hub</span>
+              <Network className="h-5 w-5 text-foreground" />
               <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
             </div>
             <div className="glass-flat p-4 rounded-xl mb-4 relative overflow-hidden">
@@ -224,7 +228,7 @@ export default function SettingsPage() {
         {/* Currency Rates */}
         <div className="glass p-6">
           <div className="flex items-center gap-3 mb-6">
-            <span className="material-symbols-outlined text-foreground text-xl">currency_exchange</span>
+            <ArrowRightLeft className="h-5 w-5 text-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Forex Rates</h2>
           </div>
           <div className="glass-flat rounded-xl p-4 mb-4">
@@ -252,7 +256,7 @@ export default function SettingsPage() {
             href="/shipments"
             className="mt-5 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-accent transition"
           >
-            <span className="material-symbols-outlined text-base">open_in_new</span>
+            <ExternalLink className="h-4 w-4" />
             Go to Shipments to enter rates
           </Link>
         </div>
@@ -260,7 +264,7 @@ export default function SettingsPage() {
         {/* Stock & System Alerts */}
         <div className="glass p-6">
           <div className="flex items-center gap-3 mb-6">
-            <span className="material-symbols-outlined text-foreground text-xl">notifications_active</span>
+            <BellRing className="h-5 w-5 text-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Stock &amp; System Alerts</h2>
           </div>
           <div className="space-y-5">
@@ -295,7 +299,7 @@ export default function SettingsPage() {
       <div className="glass p-6">
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-foreground text-xl">warehouse</span>
+            <Warehouse className="h-5 w-5 text-foreground" />
             <h2 className="text-lg font-semibold text-foreground">Godowns / Warehouses</h2>
           </div>
           <button
@@ -312,7 +316,7 @@ export default function SettingsPage() {
             {godowns.map((g) => (
               <div key={g.id} className="glass-flat p-4 rounded-xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="material-symbols-outlined text-muted-foreground shrink-0" style={{ fontSize: 18 }}>warehouse</span>
+                  <Warehouse className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
@@ -326,15 +330,15 @@ export default function SettingsPage() {
                 <div className="flex gap-1 shrink-0">
                   {!g.is_default && (
                     <button onClick={() => setDefaultGodown(g.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition" title="Set default">
-                      <span className="material-symbols-outlined" style={{ fontSize: 15 }}>star</span>
+                      <Star className="h-3.5 w-3.5" />
                     </button>
                   )}
                   <button onClick={() => setGodownSheet({ open: true, editing: g })} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition">
-                    <span className="material-symbols-outlined" style={{ fontSize: 15 }}>edit</span>
+                    <Pencil className="h-3.5 w-3.5" />
                   </button>
                   {isAdmin && (
                     <button onClick={() => setDeleteGodownTarget(g)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition">
-                      <span className="material-symbols-outlined" style={{ fontSize: 15 }}>delete</span>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
@@ -349,7 +353,7 @@ export default function SettingsPage() {
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="max-w-xl">
             <div className="flex items-center gap-3 mb-3">
-              <span className="material-symbols-outlined text-foreground" style={{ fontSize: 28 }}>shield_with_heart</span>
+              <ShieldHalf className="h-7 w-7 text-foreground" />
               <h2 className="text-lg font-semibold text-foreground">Enterprise Security Core</h2>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
