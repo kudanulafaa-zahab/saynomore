@@ -149,8 +149,8 @@ export function ReportsView() {
               onClick={() => { const f = p.from(); const t = p.to(); setFrom(f); setTo(t); load(f, t); }}
               className={`text-xs px-3 py-1.5 rounded-lg border transition ${
                 from === p.from() && to === p.to()
-                  ? "bg-primary text-white border-primary"
-                  : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  ? "bg-foreground text-background border-foreground"
+                  : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
               }`}
             >
               {p.label}
