@@ -387,6 +387,9 @@ export function EditSkuDialog({
     }
   }
 
+  // Derive unit label from variant format attribute (Bottle, Pouch, Sachet, etc.)
+  const unit = (sku?.attributes as Record<string, string> | undefined)?.format || "Pc";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border max-w-xl">
@@ -400,7 +403,7 @@ export function EditSkuDialog({
               <p className="text-[10px] uppercase tracking-wider text-primary font-medium">Current selling prices</p>
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className="text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">Per piece</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Per {unit.toLowerCase()}</p>
                   <p className="font-semibold text-foreground">MVR {Number(sku.selling_price_per_piece_mvr).toFixed(2)}</p>
                 </div>
                 <div className="text-center border-x border-border">
@@ -414,7 +417,7 @@ export function EditSkuDialog({
               </div>
               {sku.target_margin_pct != null && (
                 <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-                  {sku.target_margin_pct}% gross margin · landed cost {landedPerPiece?.toFixed(4)} MVR/pc
+                  {sku.target_margin_pct}% gross margin · landed cost {landedPerPiece?.toFixed(4)} MVR/{unit.toLowerCase()}
                 </p>
               )}
             </div>
@@ -422,7 +425,7 @@ export function EditSkuDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Pcs per Pack *</Label>
+              <Label>{unit}s per Pack *</Label>
               <Input type="number" min="1" value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)} />
             </div>
             <div className="space-y-2">
@@ -493,7 +496,7 @@ export function EditSkuDialog({
                 <p className="text-[11px] uppercase tracking-wider text-primary font-medium">Calculated selling prices</p>
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase">Per piece</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Per {unit.toLowerCase()}</p>
                     <p className="font-semibold text-foreground">{previewPrices.piece.toFixed(2)}</p>
                     <p className="text-[10px] text-muted-foreground">MVR</p>
                   </div>
@@ -510,14 +513,14 @@ export function EditSkuDialog({
                 </div>
                 {landedPerPiece && (
                   <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-                    Based on landed cost: {landedPerPiece.toFixed(4)} MVR/pc
+                    Based on landed cost: {landedPerPiece.toFixed(4)} MVR/{unit.toLowerCase()}
                   </p>
                 )}
               </div>
             ) : landedPerPiece ? (
               <p className="text-[11px] text-muted-foreground">
                 Enter a margin % above to see the selling price.
-                Landed cost: {landedPerPiece.toFixed(4)} MVR/pc
+                Landed cost: {landedPerPiece.toFixed(4)} MVR/{unit.toLowerCase()}
               </p>
             ) : (
               <p className="text-[11px] text-amber-600 dark:text-amber-400">
