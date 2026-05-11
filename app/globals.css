@@ -158,6 +158,48 @@
   }
 }
 
+/* .light class — for manual toggle override */
+.light {
+  color-scheme: light;
+
+  --background: #f2f2f7;
+  --foreground: #1c1c1e;
+  --card: rgba(255, 255, 255, 0.80);
+  --card-foreground: #1c1c1e;
+  --popover: rgba(255, 255, 255, 0.95);
+  --popover-foreground: #1c1c1e;
+  --primary: #1c1c1e;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(0, 0, 0, 0.06);
+  --secondary-foreground: #1c1c1e;
+  --muted: rgba(0, 0, 0, 0.04);
+  --muted-foreground: #6c6c70;
+  --accent: rgba(0, 0, 0, 0.05);
+  --accent-foreground: #1c1c1e;
+  --destructive: #ff3b30;
+  --border: rgba(0, 0, 0, 0.10);
+  --input: rgba(0, 0, 0, 0.06);
+  --ring: rgba(0, 0, 0, 0.20);
+  --sidebar: rgba(242, 242, 247, 0.90);
+  --sidebar-foreground: #1c1c1e;
+  --sidebar-primary: #1c1c1e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(0, 0, 0, 0.05);
+  --sidebar-accent-foreground: #1c1c1e;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-ring: rgba(0, 0, 0, 0.15);
+  --glass-1: rgba(255, 255, 255, 0.75);
+  --glass-2: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.80);
+  --surface: #f2f2f7;
+  --on-surface: #1c1c1e;
+  --on-surface-variant: #6c6c70;
+  --outline: #aeaeb2;
+  --outline-variant: #d1d1d6;
+}
+
 /* .dark class — for manual toggle override */
 .dark {
   color-scheme: dark;

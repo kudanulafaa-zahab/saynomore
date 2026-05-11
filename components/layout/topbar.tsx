@@ -1,16 +1,9 @@
 "use client";
 
-import { Bell, LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Topbar({ name, role }: { name: string; role: string }) {
   const router = useRouter();
@@ -30,76 +23,83 @@ export function Topbar({ name, role }: { name: string; role: string }) {
 
   return (
     <header
-      className="fixed top-0 w-full z-40 flex justify-between items-center px-5 h-16"
+      className="fixed top-0 w-full z-40 flex items-center justify-between px-4"
       style={{
-        background: "color-mix(in srgb, var(--background) 80%, transparent)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
+        background: "color-mix(in srgb, var(--background) 82%, transparent)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
         borderBottom: "1px solid var(--glass-border)",
         paddingTop: "env(safe-area-inset-top, 0px)",
+        height: "calc(52px + env(safe-area-inset-top, 0px))",
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0"
-          style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-bold"
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
-          <span className="text-[11px] font-bold text-foreground">{initials}</span>
+          S
         </div>
-        <span className="text-[17px] font-bold tracking-tight text-foreground lg:hidden">
-          SayNoMore
-        </span>
-        <span className="text-[17px] font-bold tracking-tight text-foreground hidden lg:block">
+        <span className="text-[15px] font-semibold tracking-tight text-foreground">
           SayNoMore
         </span>
       </div>
 
-      {/* Right actions */}
-      <div className="flex items-center gap-2">
-        <button
-          className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-white/10 active:scale-95"
-          style={{ color: "var(--foreground)" }}
-        >
-          <Bell className="h-[18px] w-[18px]" />
-        </button>
+      {/* Right: theme toggle + avatar dropdown */}
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                className="w-9 h-9 p-0 rounded-full hover:bg-white/10"
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-foreground"
-                  style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
-                >
-                  {initials}
-                </div>
-              </Button>
-            }
-          />
-          <DropdownMenuContent
-            align="end"
-            className="border-white/10"
-            style={{ background: "var(--glass-2)", backdropFilter: "blur(20px)", color: "var(--foreground)" }}
+        {/* Avatar + popover — CSS-driven focus-within */}
+        <div className="relative group">
+          <button
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-foreground transition-opacity hover:opacity-75 focus:outline-none"
+            style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
           >
-            <DropdownMenuItem className="text-on-surface-variant gap-2 focus:bg-white/10 focus:text-foreground">
-              <User className="h-4 w-4" />
-              <span>{name}</span>
-              <span className="ml-auto text-[10px] uppercase tracking-widest opacity-50">{role}</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem
-              onClick={handleSignOut}
-              className="text-red-400 focus:text-red-300 focus:bg-red-500/10 gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            {initials}
+          </button>
+
+          <div
+            className="absolute right-0 top-full mt-2 w-52 rounded-2xl overflow-hidden
+              opacity-0 scale-95 pointer-events-none
+              group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:pointer-events-auto
+              transition-all duration-150 origin-top-right"
+            style={{
+              background: "var(--glass-2)",
+              backdropFilter: "blur(32px)",
+              WebkitBackdropFilter: "blur(32px)",
+              border: "1px solid var(--glass-border)",
+              boxShadow: "var(--glass-shadow)",
+            }}
+          >
+            {/* User info */}
+            <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: "1px solid var(--glass-border)" }}>
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
+                style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--glass-border)" }}
+              >
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-foreground truncate">{name}</p>
+                <p className="text-[10px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{role}</p>
+              </div>
+            </div>
+            {/* Actions */}
+            <div className="p-1.5">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                style={{ color: "var(--snm-error, #ffb4ab)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,59,48,0.08)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
   );

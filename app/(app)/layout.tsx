@@ -22,9 +22,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-dvh" style={{ background: "var(--background)" }}>
       <Sidebar role={role} />
       <Topbar name={name} role={role} />
-      {/* pt-16 = fixed header height; pb-24 = bottom nav clearance on mobile */}
-      <div className="lg:pl-64 pt-16">
-        <main className="px-5 py-6 pb-28 lg:pb-8 max-w-5xl mx-auto lg:max-w-none">
+      {/* pt-[52px] = fixed header height; pb-24 = bottom nav clearance on mobile */}
+      <div className="lg:pl-60 pt-[52px]">
+        <main className="px-4 py-5 pb-28 lg:pb-8 max-w-5xl mx-auto lg:max-w-none">
           {children}
         </main>
       </div>

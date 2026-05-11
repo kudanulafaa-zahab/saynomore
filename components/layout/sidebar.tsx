@@ -4,69 +4,123 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 import { navForRole, type NavItem } from "./nav-config";
+import { ThemeToggle } from "./theme-toggle";
+
+// Section groupings for the sidebar — mirrors the nav architecture
+const SECTIONS = [
+  {
+    label: "Core",
+    hrefs: ["/dashboard", "/shipments", "/inventory", "/sales", "/financials"],
+  },
+  {
+    label: "Procurement",
+    hrefs: ["/suppliers", "/expenses"],
+  },
+  {
+    label: "Catalogue",
+    hrefs: ["/products", "/competitors"],
+  },
+  {
+    label: "Operations",
+    hrefs: ["/customers", "/dispatch", "/reports"],
+  },
+];
+
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all"
+      style={{
+        background: active ? "var(--secondary)" : "transparent",
+        color: active ? "var(--foreground)" : "var(--muted-foreground)",
+      }}
+    >
+      <Icon
+        className="h-[15px] w-[15px] shrink-0"
+        style={{ opacity: active ? 1 : 0.65 }}
+      />
+      {item.label}
+    </Link>
+  );
+}
 
 export function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const items = navForRole(role);
+  const itemMap = new Map(items.map((i) => [i.href, i]));
 
   return (
     <aside
-      className="fixed left-0 top-0 z-40 h-dvh w-64 hidden lg:flex flex-col"
+      className="fixed left-0 top-0 z-40 h-dvh w-60 hidden lg:flex flex-col"
       style={{
-        background: "color-mix(in srgb, var(--background) 85%, transparent)",
+        background: "color-mix(in srgb, var(--background) 88%, transparent)",
         backdropFilter: "blur(32px)",
         WebkitBackdropFilter: "blur(32px)",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
+        borderRight: "1px solid var(--glass-border)",
       }}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6">
-        <div
-          className="flex h-9 w-9 items-center justify-center rounded-xl"
-          style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.12)" }}
-        >
-          <span className="text-sm font-bold text-foreground">S</span>
+      {/* Logo — same height as topbar (52px) */}
+      <div
+        className="flex items-center justify-between px-5 shrink-0"
+        style={{ height: 52, borderBottom: "1px solid var(--glass-border)" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            S
+          </div>
+          <div className="leading-tight">
+            <p className="text-[13px] font-semibold text-foreground">SayNoMore</p>
+            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
+          </div>
         </div>
-        <div className="leading-tight">
-          <p className="text-sm font-semibold text-foreground">SayNoMore</p>
-          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>FMCG Operations</p>
-        </div>
+        <ThemeToggle />
       </div>
 
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-        {items.map((item: NavItem) => {
-          const Icon = item.icon;
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+      {/* Nav sections */}
+      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        {SECTIONS.map((section) => {
+          const sectionItems = section.hrefs
+            .map((href) => itemMap.get(href))
+            .filter((i): i is NavItem => i !== undefined);
+
+          if (sectionItems.length === 0) return null;
+
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all"
-              style={{
-                background: active ? "rgba(255,255,255,0.08)" : "transparent",
-                color: active ? "var(--foreground)" : "var(--muted-foreground)",
-                borderLeft: active ? "2px solid rgba(255,255,255,0.60)" : "2px solid transparent",
-              }}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </Link>
+            <div key={section.label}>
+              <p
+                className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: "var(--muted-foreground)", opacity: 0.5 }}
+              >
+                {section.label}
+              </p>
+              <div className="space-y-0.5">
+                {sectionItems.map((item) => {
+                  const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                  return <NavLink key={item.href} item={item} active={active} />;
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
 
+      {/* Settings footer */}
       {role !== "staff" && (
-        <div className="px-3 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="px-3 py-3 shrink-0" style={{ borderTop: "1px solid var(--glass-border)" }}>
           <Link
             href="/settings"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all"
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all"
             style={{
-              background: pathname === "/settings" ? "rgba(255,255,255,0.08)" : "transparent",
+              background: pathname === "/settings" ? "var(--secondary)" : "transparent",
               color: pathname === "/settings" ? "var(--foreground)" : "var(--muted-foreground)",
-              borderLeft: pathname === "/settings" ? "2px solid rgba(255,255,255,0.60)" : "2px solid transparent",
             }}
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-[15px] w-[15px] shrink-0" style={{ opacity: pathname === "/settings" ? 1 : 0.65 }} />
             Settings
           </Link>
         </div>
