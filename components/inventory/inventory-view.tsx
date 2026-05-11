@@ -69,8 +69,10 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
   );
 }
 
-function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: { batch: BatchStock; idx: number; pcsPerPack: number; pcsPerCtn: number }) {
-  const qty = fmtQty(batch.qty_pieces_remaining, pcsPerPack, pcsPerCtn);
+function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
+  batch: BatchStock; idx: number; pcsPerPack: number; pcsPerCtn: number;
+}) {
+  const qty  = fmtQty(batch.qty_pieces_remaining, pcsPerPack, pcsPerCtn);
   const date = new Date(batch.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
   return (
     <div
@@ -103,11 +105,13 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: { batch: BatchStock; id
 function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow } = row;
-  const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
-  const totalCtns = toCtns(totalPieces, pcsPerCtn);
-
+  const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
+  const totalCtns       = toCtns(totalPieces, pcsPerCtn);
   const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
   const landedPerCarton = landedPerPack * sku.packs_per_carton;
+
+  // Godown pills sorted by qty descending — biggest location first
+  const sortedGodowns = [...byGodown].sort((a, b) => b.pieces - a.pieces);
 
   return (
     <div
@@ -117,35 +121,32 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         border: isLow
-          ? "1px solid color-mix(in srgb, var(--snm-error, #ffb4ab) 25%, transparent)"
+          ? "1px solid color-mix(in srgb, var(--snm-error, #ffb4ab) 30%, transparent)"
           : "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
       }}
     >
-      {/* ── SKU header row ── */}
-      <button
-        className="w-full text-left px-4 pt-4 pb-3 flex items-start gap-3"
-        onClick={() => setExpanded(!expanded)}
-      >
-        {/* Status dot */}
+      <button className="w-full text-left px-4 pt-4 pb-3 flex items-start gap-3" onClick={() => setExpanded(!expanded)}>
         <div
           className="w-2 h-2 rounded-full mt-1.5 shrink-0"
           style={{ background: isLow ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)" }}
         />
 
-        {/* Name + godown pills */}
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-semibold text-foreground leading-snug">
-            {searchActive && `${sku.brand_name} · `}{sku.model_name}
-            {sku.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span> : null}
+            {searchActive && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
+            {sku.model_name}
+            {sku.variant_display
+              ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
+              : null}
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
           </p>
 
-          {/* Godown pills — always visible */}
-          {byGodown.length > 0 && (
+          {/* Godown pills — sorted by qty desc */}
+          {sortedGodowns.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {byGodown.map(({ godown, pieces }) => (
+              {sortedGodowns.map(({ godown, pieces }) => (
                 <span
                   key={godown.id}
                   className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
@@ -156,8 +157,8 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                 >
                   <MapPin className="h-2.5 w-2.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                   {godown.name}
-                  <span style={{ color: "var(--muted-foreground)" }}>
-                    {" "}{fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn)}
+                  <span className="ml-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    {fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn)}
                   </span>
                 </span>
               ))}
@@ -165,7 +166,6 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
           )}
         </div>
 
-        {/* Right: total qty + value */}
         <div className="text-right shrink-0 ml-2">
           <p
             className="text-[20px] font-bold leading-none tracking-tight"
@@ -174,27 +174,21 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             {totalCtns}
             <span className="text-[13px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
           </p>
-          <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
-            MVR {fmtMvr(totalValue)}
-          </p>
+          <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
           <ChevronDown
             className="h-4 w-4 mt-1.5 ml-auto transition-transform duration-200"
-            style={{
-              color: "var(--muted-foreground)",
-              transform: expanded ? "rotate(180deg)" : "none",
-            }}
+            style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(180deg)" : "none" }}
           />
         </div>
       </button>
 
-      {/* ── Expanded: landed cost + per-godown FIFO batches ── */}
       {expanded && (
         <div
           className="px-4 pb-4 space-y-4"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingTop: 16 }}
         >
           {/* Landed cost grid */}
-          <div className="grid grid-cols-3 gap-2 pt-4">
+          <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Landed / pc",  value: `MVR ${fifoLandedPerPiece.toFixed(3)}` },
               { label: "Landed / pk",  value: `MVR ${landedPerPack.toFixed(2)}` },
@@ -211,8 +205,8 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             ))}
           </div>
 
-          {/* Per-godown FIFO batches */}
-          {byGodown.map(({ godown, pieces, batches }) => (
+          {/* FIFO batches per godown, sorted by qty desc */}
+          {sortedGodowns.map(({ godown, pieces, batches }) => (
             <div key={godown.id}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
@@ -224,22 +218,15 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                 </p>
               </div>
               <div className="space-y-1">
-                {batches
+                {[...batches]
                   .sort((a, b) => a.received_at.localeCompare(b.received_at))
                   .map((batch, i) => (
-                    <BatchRow
-                      key={batch.batch_id}
-                      batch={batch}
-                      idx={i}
-                      pcsPerPack={sku.pcs_per_pack}
-                      pcsPerCtn={pcsPerCtn}
-                    />
+                    <BatchRow key={batch.batch_id} batch={batch} idx={i} pcsPerPack={sku.pcs_per_pack} pcsPerCtn={pcsPerCtn} />
                   ))}
               </div>
             </div>
           ))}
 
-          {/* Low stock warning */}
           {isLow && (
             <div
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
@@ -260,7 +247,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
   );
 }
 
-/* ── Main component ── */
+/* ── Main ── */
 
 export function InventoryView() {
   const [skus, setSkus]       = useState<SkuFullRow[]>([]);
@@ -277,12 +264,11 @@ export function InventoryView() {
       .finally(() => setLoading(false));
   }, []);
 
-  /* ── Aggregate: batch → SKU → godown ── */
   const stockList = useMemo<SkuStock[]>(() => {
     return skus
       .map((sku) => {
         const skuBatches = batches.filter((b) => b.sku_id === sku.id && b.qty_pieces_remaining > 0);
-        const godownMap = new Map<string, { pieces: number; batches: BatchStock[] }>();
+        const godownMap  = new Map<string, { pieces: number; batches: BatchStock[] }>();
         for (const b of skuBatches) {
           const entry = godownMap.get(b.godown_id) ?? { pieces: 0, batches: [] };
           entry.pieces += b.qty_pieces_remaining;
@@ -296,18 +282,17 @@ export function InventoryView() {
           })
           .filter((x): x is GodownSlot => x !== null);
 
-        const totalPieces = byGodown.reduce((a, x) => a + x.pieces, 0);
-        const totalValue  = skuBatches.reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
-        const pcsPerCtn   = sku.pcs_per_pack * sku.packs_per_carton;
-        const fifoLandedPerPiece = skuBatches.sort((a, b) => a.received_at.localeCompare(b.received_at))[0]?.landed_per_piece_mvr ?? 0;
-        const isLow = toCtns(totalPieces, pcsPerCtn) < 5;
+        const totalPieces        = byGodown.reduce((a, x) => a + x.pieces, 0);
+        const totalValue         = skuBatches.reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
+        const pcsPerCtn          = sku.pcs_per_pack * sku.packs_per_carton;
+        const fifoLandedPerPiece = [...skuBatches].sort((a, b) => a.received_at.localeCompare(b.received_at))[0]?.landed_per_piece_mvr ?? 0;
+        const isLow              = toCtns(totalPieces, pcsPerCtn) < 5;
 
         return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow };
       })
       .filter((r) => r.sku.is_active && r.totalPieces > 0);
   }, [skus, batches, godowns]);
 
-  /* ── Search filter ── */
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return stockList;
@@ -317,29 +302,37 @@ export function InventoryView() {
     );
   }, [stockList, q]);
 
-  /* ── Group by brand ── */
   const byBrand = useMemo(() => {
     const map = new Map<string, BrandGroup>();
     for (const row of filtered) {
-      const brand = row.sku.brand_name;
-      const entry = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasLow: false };
+      const brand  = row.sku.brand_name;
+      const entry  = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasLow: false };
       const pcsPerCtn = row.sku.pcs_per_pack * row.sku.packs_per_carton;
       entry.skus.push(row);
       entry.totalCartons += toCtns(row.totalPieces, pcsPerCtn);
       entry.totalValue   += row.totalValue;
-      entry.hasLow = entry.hasLow || row.isLow;
+      entry.hasLow        = entry.hasLow || row.isLow;
       map.set(brand, entry);
     }
-    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+    // Sort each brand's SKUs: low stock first, then by value descending
+    for (const [, g] of map) {
+      g.skus.sort((a, b) => {
+        if (a.isLow !== b.isLow) return a.isLow ? -1 : 1;
+        return b.totalValue - a.totalValue;
+      });
+    }
+    // Sort brands: brands with low stock first, then by total value descending
+    return Array.from(map.entries()).sort(([, a], [, b]) => {
+      if (a.hasLow !== b.hasLow) return a.hasLow ? -1 : 1;
+      return b.totalValue - a.totalValue;
+    });
   }, [filtered]);
 
-  /* ── Summary stats ── */
   const totalValue    = stockList.reduce((s, r) => s + r.totalValue, 0);
   const totalCartons  = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
   const lowStockCount = stockList.filter((r) => r.isLow).length;
   const activeBatches = batches.filter((b) => b.qty_pieces_remaining > 0).length;
-
-  const searchActive = q.trim() !== "";
+  const searchActive  = q.trim() !== "";
 
   if (loading) {
     return (
@@ -351,24 +344,11 @@ export function InventoryView() {
 
   return (
     <div className="space-y-4 pb-28 lg:pb-10">
-
-      {/* ── Summary cards ── */}
+      {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          label="SKUs in Stock"
-          value={String(stockList.length)}
-          sub={`${activeBatches} active batch${activeBatches !== 1 ? "es" : ""}`}
-        />
-        <StatCard
-          label="Total Cartons"
-          value={totalCartons.toLocaleString()}
-          sub="across all SKUs"
-        />
-        <StatCard
-          label="Inventory Value"
-          value={`MVR ${fmtMvr(totalValue)}`}
-          sub="at landed cost"
-        />
+        <StatCard label="SKUs in Stock" value={String(stockList.length)} sub={`${activeBatches} active batch${activeBatches !== 1 ? "es" : ""}`} />
+        <StatCard label="Total Cartons" value={totalCartons.toLocaleString()} sub="across all SKUs" />
+        <StatCard label="Inventory Value" value={`MVR ${fmtMvr(totalValue)}`} sub="at landed cost" />
         <StatCard
           label="Low Stock"
           value={String(lowStockCount)}
@@ -377,7 +357,7 @@ export function InventoryView() {
         />
       </div>
 
-      {/* ── Search ── */}
+      {/* Search */}
       <div
         className="flex items-center gap-2.5 px-4 rounded-2xl"
         style={{
@@ -397,17 +377,12 @@ export function InventoryView() {
         />
       </div>
 
-      {/* ── Stock list ── */}
+      {/* Stock list */}
       {filtered.length === 0 ? (
-        <div
-          className="rounded-2xl p-12 text-center"
-          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)" }}
-        >
+        <div className="rounded-2xl p-12 text-center" style={{ background: "var(--glass-1)" }}>
           <Package className="h-8 w-8 mx-auto mb-3 opacity-25" style={{ color: "var(--muted-foreground)" }} />
           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-            {stockList.length === 0
-              ? "No stock yet — confirm a shipment GRN to populate inventory."
-              : "No results."}
+            {stockList.length === 0 ? "No stock yet — confirm a GRN to populate inventory." : "No results."}
           </p>
         </div>
       ) : (
@@ -416,7 +391,6 @@ export function InventoryView() {
             const isOpen = searchActive || expandedBrand === brand;
             return (
               <div key={brand}>
-                {/* Brand header */}
                 <button
                   className="w-full flex items-center justify-between px-1 py-2 mb-2"
                   onClick={() => !searchActive && setExpandedBrand(isOpen ? null : brand)}
@@ -435,22 +409,15 @@ export function InventoryView() {
                     <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                       {brandData.totalCartons.toLocaleString()} ctn
                     </p>
-                    <p className="text-[12px] font-semibold text-foreground">
-                      MVR {fmtMvr(brandData.totalValue)}
-                    </p>
+                    <p className="text-[12px] font-semibold text-foreground">MVR {fmtMvr(brandData.totalValue)}</p>
                     {!searchActive && (
                       <ChevronDown
                         className="h-3.5 w-3.5 transition-transform duration-200"
-                        style={{
-                          color: "var(--muted-foreground)",
-                          transform: isOpen ? "rotate(180deg)" : "none",
-                        }}
+                        style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(180deg)" : "none" }}
                       />
                     )}
                   </div>
                 </button>
-
-                {/* SKU cards */}
                 {isOpen && (
                   <div className="space-y-2">
                     {brandData.skus.map((row) => (

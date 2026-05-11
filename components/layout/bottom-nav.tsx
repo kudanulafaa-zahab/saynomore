@@ -10,7 +10,7 @@ import { ThemeToggle } from "./theme-toggle";
 // Section groupings for the More sheet
 const SHEET_SECTIONS: { label: string; hrefs: string[] }[] = [
   { label: "Procurement",  hrefs: ["/suppliers", "/expenses"] },
-  { label: "Catalogue",    hrefs: ["/products", "/competitors"] },
+  { label: "Catalogue",    hrefs: ["/products", "/godowns", "/competitors"] },
   { label: "Operations",   hrefs: ["/customers", "/dispatch", "/reports"] },
 ];
 

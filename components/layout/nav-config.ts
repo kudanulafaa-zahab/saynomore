@@ -9,6 +9,7 @@ import {
   Tag,
   Package,
   MapPin,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const FULL_NAV: NavItem[] = [
 
   // Inventory sub-modules (overflow)
   { href: "/products",    label: "Products",   icon: Package },
+  { href: "/godowns",     label: "Godowns",    icon: Warehouse },
   { href: "/competitors", label: "Pricing",    icon: Tag },
   { href: "/reports",     label: "Trends",     icon: BarChart2 },
 

@@ -18,7 +18,7 @@ const SECTIONS = [
   },
   {
     label: "Catalogue",
-    hrefs: ["/products", "/competitors"],
+    hrefs: ["/products", "/godowns", "/competitors"],
   },
   {
     label: "Operations",
