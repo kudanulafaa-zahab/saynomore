@@ -4,18 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Loader2, Search, X, ChevronRight,
-  Package, Pencil, Check, SlidersHorizontal,
+  Package, Check, SlidersHorizontal, Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   listCategories, listBrands, listModels, listVariants, listSkusFlat,
@@ -270,7 +268,7 @@ function SkuRow({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition"
+      className="w-full flex items-center gap-3 px-4 py-4 text-left transition"
       style={{
         background: selected
           ? "color-mix(in srgb, var(--snm-brand) 8%, var(--glass-1))"
@@ -293,7 +291,7 @@ function SkuRow({
             : null}
         </p>
         <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
-          {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn · {pcsPerCtn} pcs/ctn
+          {sku.pcs_per_pack}/pack × {sku.packs_per_carton}/ctn · {pcsPerCtn}/ctn
         </p>
       </div>
 
@@ -417,20 +415,20 @@ export function ProductsExplorer() {
           <div className="flex gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="h-8 w-8 rounded-xl flex items-center justify-center transition"
+              className="h-10 w-10 rounded-xl flex items-center justify-center transition active:scale-90"
               style={{
                 background: showFilters ? "var(--snm-brand-muted)" : "var(--secondary)",
                 color: showFilters ? "var(--snm-brand)" : "var(--muted-foreground)",
               }}
             >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <SlidersHorizontal className="h-4 w-4" />
             </button>
             <button
               onClick={() => setNewSkuOpen(true)}
-              className="h-8 px-3 rounded-xl text-[12px] font-semibold flex items-center gap-1.5 transition"
+              className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
               style={{ background: "var(--snm-brand)", color: "#ffffff" }}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               New SKU
             </button>
           </div>
@@ -438,7 +436,7 @@ export function ProductsExplorer() {
 
         {/* Search */}
         <div
-          className="flex items-center gap-2 px-3 rounded-xl h-9"
+          className="flex items-center gap-2 px-3 rounded-xl h-11"
           style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border)" }}
         >
           <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
@@ -618,12 +616,21 @@ export function ProductsExplorer() {
   );
 }
 
-/* ── New SKU wizard — 3 steps in one dialog ── */
-// Step 1: Pick or create Brand → Model → Variant
-// Step 2: Pack config (pcs/pk, pks/ctn, dimensions)
-// Step 3: Confirm + save
+/* ── New SKU form — single scrollable sheet, no wizard steps ── */
 
-type WizardStep = "hierarchy" | "pack" | "confirm";
+function unitLabel(attrs: Record<string, string> | undefined): string {
+  const fmt = attrs?.format;
+  if (!fmt) return "Pc";
+  return fmt; // Bottle, Pouch, Sachet, Jar, Box, Tube, Pack, Can → used verbatim
+}
+
+function SectionHead({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-bold uppercase tracking-widest pt-1" style={{ color: "var(--muted-foreground)", opacity: 0.55 }}>
+      {children}
+    </p>
+  );
+}
 
 function NewSkuWizard({
   open, onOpenChange, brands, categories, models, variants, existingSkus, onSaved,
@@ -637,7 +644,6 @@ function NewSkuWizard({
   existingSkus: SkuFullRow[];
   onSaved: () => void;
 }) {
-  const [step, setStep]               = useState<WizardStep>("hierarchy");
   const [brandId, setBrandId]         = useState("");
   const [modelId, setModelId]         = useState("");
   const [variantId, setVariantId]     = useState("");
@@ -650,16 +656,17 @@ function NewSkuWizard({
   const [code, setCode]               = useState("");
   const [barcode, setBarcode]         = useState("");
   const [saving, setSaving]           = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
-  // New entity inline creation
-  const [newBrandName, setNewBrandName]   = useState("");
-  const [showNewBrand, setShowNewBrand]   = useState(false);
-  const [newModelName, setNewModelName]   = useState("");
-  const [newModelCat, setNewModelCat]     = useState("");
-  const [showNewModel, setShowNewModel]   = useState(false);
-  const [newVariantAttrs, setNewVariantAttrs] = useState<Record<string, string>>({});
-  const [showNewVariant, setShowNewVariant]   = useState(false);
-  const [inlineLoading, setInlineLoading] = useState(false);
+  // Inline creation state
+  const [newBrandName, setNewBrandName]         = useState("");
+  const [showNewBrand, setShowNewBrand]         = useState(false);
+  const [newModelName, setNewModelName]         = useState("");
+  const [newModelCat, setNewModelCat]           = useState("");
+  const [showNewModel, setShowNewModel]         = useState(false);
+  const [newVariantAttrs, setNewVariantAttrs]   = useState<Record<string, string>>({});
+  const [showNewVariant, setShowNewVariant]     = useState(false);
+  const [inlineLoading, setInlineLoading]       = useState(false);
 
   const brandModels   = models.filter((m) => m.brand_id === brandId);
   const modelVariants = variants.filter((v) => v.model_id === modelId);
@@ -668,6 +675,9 @@ function NewSkuWizard({
   const variant       = variants.find((v) => v.id === variantId);
   const category      = categories.find((c) => c.id === model?.category_id);
   const schema: AttrKey[] = (category?.variant_attributes ?? []) as AttrKey[];
+
+  // Derive unit label from the variant's format attribute
+  const unit = unitLabel(variant ? (variant.attributes as Record<string, string>) : undefined);
 
   const pcsPerCarton = useMemo(() => {
     const p = parseInt(pcsPerPack), c = parseInt(packsPerCtn);
@@ -679,7 +689,7 @@ function NewSkuWizard({
     return l > 0 && w > 0 && h > 0 ? (l * w * h) / 1_000_000 : null;
   }, [lenCm, widCm, htCm]);
 
-  // Auto-fill dims from sibling SKU
+  // Auto-fill dimensions from sibling SKU on same variant
   useEffect(() => {
     if (!variantId) return;
     const sib = existingSkus.find((s) => s.variant_id === variantId);
@@ -691,7 +701,7 @@ function NewSkuWizard({
     }
   }, [variantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-generate code
+  // Auto-generate internal code
   useEffect(() => {
     if (!brand || !model || !variant) return;
     const b = brand.name.replace(/\s/g, "").toUpperCase().slice(0, 4);
@@ -702,14 +712,13 @@ function NewSkuWizard({
   }, [variant?.id, model?.id, brand?.id, pcsPerPack, packsPerCtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function reset() {
-    setStep("hierarchy");
     setBrandId(""); setModelId(""); setVariantId("");
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
     setCode(""); setBarcode("");
     setShowNewBrand(false); setShowNewModel(false); setShowNewVariant(false);
     setNewBrandName(""); setNewModelName(""); setNewModelCat("");
-    setNewVariantAttrs({});
+    setNewVariantAttrs({}); setShowDetails(false);
   }
 
   useEffect(() => { if (open) reset(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -764,7 +773,10 @@ function NewSkuWizard({
   }
 
   async function save() {
-    if (!variantId || !pcsPerPack || !packsPerCtn || !lenCm || !widCm || !htCm || !code.trim()) return;
+    if (!variantId || !pcsPerPack || !packsPerCtn || !lenCm || !widCm || !htCm || !code.trim()) {
+      toast.error("Fill all required fields before saving.");
+      return;
+    }
     setSaving(true);
     try {
       await createSku({
@@ -785,257 +797,263 @@ function NewSkuWizard({
     finally { setSaving(false); }
   }
 
-  const step1Complete = !!variantId;
-  const step2Complete = !!pcsPerPack && !!packsPerCtn && !!lenCm && !!widCm && !!htCm && !!code.trim();
+  const canSave = !!variantId && !!pcsPerPack && !!packsPerCtn && !!lenCm && !!widCm && !!htCm && !!code.trim();
 
-  const stepLabels: Record<WizardStep, string> = {
-    hierarchy: "1  Product",
-    pack: "2  Pack Config",
-    confirm: "3  Confirm",
+  // Inline creation card style
+  const inlineCard: React.CSSProperties = {
+    background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)",
+    borderRadius: 12,
+    padding: 12,
   };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="bg-popover border-border max-w-lg">
-        <DialogHeader>
-          <DialogTitle>New SKU</DialogTitle>
-          <DialogDescription>
-            {stepLabels[step]}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="bg-popover border-border max-w-lg p-0 gap-0 overflow-hidden">
 
-        {/* Step indicators */}
-        <div className="flex gap-1 mb-1">
-          {(["hierarchy","pack","confirm"] as WizardStep[]).map((s, i) => (
-            <div key={s} className="flex-1 h-1 rounded-full" style={{
-              background: step === s ? "var(--snm-brand)"
-                : (step === "pack" && i === 0) || step === "confirm" ? "color-mix(in srgb, var(--snm-brand) 30%, transparent)"
-                : "var(--secondary)",
-            }} />
-          ))}
+        {/* Fixed header */}
+        <div className="px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: "1px solid var(--glass-border)" }}>
+          <DialogTitle className="text-[17px] font-semibold">New SKU</DialogTitle>
+          <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            Fill in product details — all fields on one screen
+          </p>
         </div>
 
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-5 py-4 space-y-5" style={{ maxHeight: "calc(100dvh - 200px)" }}>
 
-          {/* ── Step 1: hierarchy ── */}
-          {step === "hierarchy" && (
-            <>
-              {/* Brand */}
-              <div className="space-y-2">
+          {/* ── Product identity ── */}
+          <div className="space-y-3">
+            <SectionHead>Product</SectionHead>
+
+            {/* Brand */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-[13px]">Brand *</Label>
+                {!showNewBrand && (
+                  <button type="button" onClick={() => setShowNewBrand(true)}
+                    className="text-[12px] font-medium py-1 px-2 rounded-lg active:opacity-60"
+                    style={{ color: "var(--snm-brand)" }}>+ New</button>
+                )}
+              </div>
+              {showNewBrand ? (
+                <div style={inlineCard} className="space-y-2">
+                  <Input autoFocus value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)}
+                    placeholder="Brand name" className="h-11" />
+                  <div className="flex gap-2">
+                    <Button className="flex-1 h-11" onClick={createInlineBrand}
+                      disabled={inlineLoading || !newBrandName.trim()}
+                      style={{ background: "var(--snm-brand)", color: "#fff" }}>
+                      {inlineLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save brand"}
+                    </Button>
+                    <Button variant="ghost" className="h-11 px-4" onClick={() => setShowNewBrand(false)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <Select value={brandId} onValueChange={(v) => { setBrandId(v ?? ""); setModelId(""); setVariantId(""); }}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder="Select brand" /></SelectTrigger>
+                  <SelectContent>
+                    {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Model — only shown once brand selected */}
+            {brandId && (
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label>Brand *</Label>
-                  {!showNewBrand && (
-                    <button type="button" onClick={() => setShowNewBrand(true)}
-                      className="text-xs" style={{ color: "var(--snm-brand)" }}>+ New brand</button>
+                  <Label className="text-[13px]">Product Line *</Label>
+                  {!showNewModel && (
+                    <button type="button" onClick={() => setShowNewModel(true)}
+                      className="text-[12px] font-medium py-1 px-2 rounded-lg active:opacity-60"
+                      style={{ color: "var(--snm-brand)" }}>+ New</button>
                   )}
                 </div>
-                {showNewBrand ? (
-                  <div className="flex gap-2">
-                    <Input autoFocus value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="Brand name" className="flex-1" />
-                    <Button size="sm" onClick={createInlineBrand} disabled={inlineLoading || !newBrandName.trim()}>
-                      {inlineLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setShowNewBrand(false)}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                {showNewModel ? (
+                  <div style={inlineCard} className="space-y-2">
+                    <Input autoFocus value={newModelName} onChange={(e) => setNewModelName(e.target.value)}
+                      placeholder="e.g. SoSoft Detergent" className="h-11" />
+                    <Select value={newModelCat} onValueChange={(v) => setNewModelCat(v ?? "")}>
+                      <SelectTrigger className="h-11"><SelectValue placeholder="Category" /></SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button className="flex-1 h-11" onClick={createInlineModel}
+                        disabled={inlineLoading || !newModelName.trim() || !newModelCat}
+                        style={{ background: "var(--snm-brand)", color: "#fff" }}>
+                        {inlineLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save product line"}
+                      </Button>
+                      <Button variant="ghost" className="h-11 px-4" onClick={() => setShowNewModel(false)}>Cancel</Button>
+                    </div>
                   </div>
                 ) : (
-                  <Select value={brandId} onValueChange={(v) => { setBrandId(v ?? ""); setModelId(""); setVariantId(""); }}>
-                    <SelectTrigger><SelectValue placeholder="Pick a brand" /></SelectTrigger>
+                  <Select value={modelId} onValueChange={(v) => { setModelId(v ?? ""); setVariantId(""); }}>
+                    <SelectTrigger className="h-11"><SelectValue placeholder="Select product line" /></SelectTrigger>
                     <SelectContent>
-                      {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                      {brandModels.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 )}
               </div>
+            )}
 
-              {/* Model */}
-              {brandId && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Model / Product Line *</Label>
-                    {!showNewModel && (
-                      <button type="button" onClick={() => setShowNewModel(true)}
-                        className="text-xs" style={{ color: "var(--snm-brand)" }}>+ New model</button>
-                    )}
-                  </div>
-                  {showNewModel ? (
-                    <div className="space-y-2 rounded-xl p-3"
-                      style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
-                      <Input autoFocus value={newModelName} onChange={(e) => setNewModelName(e.target.value)} placeholder="e.g. Xtra Kering" />
-                      <Select value={newModelCat} onValueChange={(v) => setNewModelCat(v ?? "")}>
-                        <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-                        <SelectContent>
-                          {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex gap-2">
-                        <Button size="sm" className="flex-1" onClick={createInlineModel}
-                          disabled={inlineLoading || !newModelName.trim() || !newModelCat}>
-                          {inlineLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save model"}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setShowNewModel(false)}>Cancel</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Select value={modelId} onValueChange={(v) => { setModelId(v ?? ""); setVariantId(""); }}>
-                      <SelectTrigger><SelectValue placeholder="Pick a model" /></SelectTrigger>
-                      <SelectContent>
-                        {brandModels.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+            {/* Variant — only shown once model selected */}
+            {modelId && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[13px]">
+                    {category?.name === "Diapers" ? "Size *" : "Variant *"}
+                  </Label>
+                  {!showNewVariant && (
+                    <button type="button" onClick={() => setShowNewVariant(true)}
+                      className="text-[12px] font-medium py-1 px-2 rounded-lg active:opacity-60"
+                      style={{ color: "var(--snm-brand)" }}>+ New</button>
                   )}
                 </div>
-              )}
-
-              {/* Variant */}
-              {modelId && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>{category?.name === "Diapers" ? "Size *" : "Variant *"}</Label>
-                    {!showNewVariant && (
-                      <button type="button" onClick={() => setShowNewVariant(true)}
-                        className="text-xs" style={{ color: "var(--snm-brand)" }}>+ New variant</button>
-                    )}
-                  </div>
-                  {showNewVariant ? (
-                    <div className="space-y-2 rounded-xl p-3"
-                      style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
-                      {schema.map((key) => {
-                        const spec = ATTR_SPECS[key];
-                        return spec?.options ? (
-                          <Select key={key} value={newVariantAttrs[key] ?? ""} onValueChange={(v) => setNewVariantAttrs({ ...newVariantAttrs, [key]: v ?? "" })}>
-                            <SelectTrigger><SelectValue placeholder={spec.label} /></SelectTrigger>
-                            <SelectContent>{spec.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                          </Select>
-                        ) : (
-                          <Input key={key} placeholder={`${spec?.label}${spec?.suffix ? ` (${spec.suffix})` : ""}`}
-                            type={spec?.type === "number" ? "number" : "text"}
-                            value={newVariantAttrs[key] ?? ""}
-                            onChange={(e) => setNewVariantAttrs({ ...newVariantAttrs, [key]: e.target.value })} />
-                        );
-                      })}
-                      <div className="flex gap-2">
-                        <Button size="sm" className="flex-1" onClick={createInlineVariant} disabled={inlineLoading}>
-                          {inlineLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save variant"}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setShowNewVariant(false)}>Cancel</Button>
-                      </div>
+                {showNewVariant ? (
+                  <div style={inlineCard} className="space-y-2">
+                    {schema.map((key) => {
+                      const spec = ATTR_SPECS[key];
+                      return spec?.options ? (
+                        <Select key={key} value={newVariantAttrs[key] ?? ""}
+                          onValueChange={(v) => setNewVariantAttrs({ ...newVariantAttrs, [key]: v ?? "" })}>
+                          <SelectTrigger className="h-11"><SelectValue placeholder={spec.label} /></SelectTrigger>
+                          <SelectContent>
+                            {spec.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input key={key} className="h-11"
+                          placeholder={`${spec?.label}${spec?.suffix ? ` (${spec.suffix})` : ""}`}
+                          type={spec?.type === "number" ? "number" : "text"}
+                          value={newVariantAttrs[key] ?? ""}
+                          onChange={(e) => setNewVariantAttrs({ ...newVariantAttrs, [key]: e.target.value })} />
+                      );
+                    })}
+                    <div className="flex gap-2">
+                      <Button className="flex-1 h-11" onClick={createInlineVariant}
+                        disabled={inlineLoading}
+                        style={{ background: "var(--snm-brand)", color: "#fff" }}>
+                        {inlineLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save variant"}
+                      </Button>
+                      <Button variant="ghost" className="h-11 px-4" onClick={() => setShowNewVariant(false)}>Cancel</Button>
                     </div>
-                  ) : (
-                    <Select value={variantId} onValueChange={(v) => setVariantId(v ?? "")}>
-                      <SelectTrigger><SelectValue placeholder="Pick a variant" /></SelectTrigger>
-                      <SelectContent>
-                        {modelVariants.map((v) => <SelectItem key={v.id} value={v.id}>{v.display_name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              )}
-            </>
-          )}
+                  </div>
+                ) : (
+                  <Select value={variantId} onValueChange={(v) => setVariantId(v ?? "")}>
+                    <SelectTrigger className="h-11"><SelectValue placeholder="Select variant" /></SelectTrigger>
+                    <SelectContent>
+                      {modelVariants.map((v) => <SelectItem key={v.id} value={v.id}>{v.display_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+          </div>
 
-          {/* ── Step 2: pack config ── */}
-          {step === "pack" && (
-            <>
+          {/* ── Pack config — shown once variant is selected ── */}
+          {variantId && (
+            <div className="space-y-3">
+              <SectionHead>Pack Configuration</SectionHead>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Pcs per Pack *</Label>
-                  <Input type="number" min="1" value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)} placeholder="34" autoFocus />
+                  <Label className="text-[13px]">{unit}s per Pack *</Label>
+                  <Input type="number" inputMode="numeric" min="1" className="h-11"
+                    value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)}
+                    placeholder={unit === "Pc" ? "34" : "1"} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Packs per Carton *</Label>
-                  <Input type="number" min="1" value={packsPerCtn} onChange={(e) => setPacksPerCtn(e.target.value)} placeholder="4" />
+                  <Label className="text-[13px]">Packs per Carton *</Label>
+                  <Input type="number" inputMode="numeric" min="1" className="h-11"
+                    value={packsPerCtn} onChange={(e) => setPacksPerCtn(e.target.value)}
+                    placeholder="4" />
                 </div>
               </div>
+
               {pcsPerCarton && (
-                <p className="text-[11px]" style={{ color: "var(--snm-success)" }}>→ {pcsPerCarton} pcs per carton</p>
+                <div className="rounded-xl px-3 py-2.5" style={{ background: "color-mix(in srgb, var(--snm-success) 10%, transparent)" }}>
+                  <p className="text-[12px] font-medium" style={{ color: "var(--snm-success)" }}>
+                    {pcsPerCarton} {unit.toLowerCase()}s per carton total
+                  </p>
+                </div>
               )}
 
+              {/* Carton dimensions */}
               <div className="space-y-1.5">
-                <Label>Carton dimensions (cm) *</Label>
+                <Label className="text-[13px]">Carton dimensions (cm) *</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  <Input type="number" step="0.1" value={lenCm} onChange={(e) => setLenCm(e.target.value)} placeholder="L" />
-                  <Input type="number" step="0.1" value={widCm} onChange={(e) => setWidCm(e.target.value)} placeholder="W" />
-                  <Input type="number" step="0.1" value={htCm}  onChange={(e) => setHtCm(e.target.value)}  placeholder="H" />
+                  <Input type="number" inputMode="decimal" step="0.1" className="h-11"
+                    value={lenCm} onChange={(e) => setLenCm(e.target.value)} placeholder="L" />
+                  <Input type="number" inputMode="decimal" step="0.1" className="h-11"
+                    value={widCm} onChange={(e) => setWidCm(e.target.value)} placeholder="W" />
+                  <Input type="number" inputMode="decimal" step="0.1" className="h-11"
+                    value={htCm}  onChange={(e) => setHtCm(e.target.value)}  placeholder="H" />
                 </div>
                 {cbm !== null && (
-                  <p className="text-[11px]" style={{ color: "var(--snm-success)" }}>→ {cbm.toFixed(5)} CBM</p>
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                    {cbm.toFixed(5)} CBM per carton
+                  </p>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Weight (kg)</Label>
-                  <Input type="number" step="0.01" value={wgtKg} onChange={(e) => setWgtKg(e.target.value)} placeholder="Optional" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Supplier barcode</Label>
-                  <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Optional" />
-                </div>
-              </div>
-
+              {/* Internal code */}
               <div className="space-y-1.5">
-                <Label>Internal code *</Label>
-                <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Auto-generated" />
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Auto-built — edit freely.</p>
+                <Label className="text-[13px]">Internal code *</Label>
+                <Input className="h-11 font-mono text-[13px]"
+                  value={code} onChange={(e) => setCode(e.target.value)} placeholder="Auto-generated" />
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Auto-built from product details — edit freely.</p>
               </div>
-            </>
-          )}
 
-          {/* ── Step 3: confirm ── */}
-          {step === "confirm" && brand && model && variant && (
-            <div className="space-y-3">
-              <div className="rounded-xl p-4 space-y-2"
-                style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-                <div className="flex justify-between text-[13px]">
-                  <span style={{ color: "var(--muted-foreground)" }}>Brand</span>
-                  <span className="text-foreground font-medium">{brand.name}</span>
+              {/* Optional details — collapsed by default */}
+              <button
+                type="button"
+                onClick={() => setShowDetails(!showDetails)}
+                className="flex items-center gap-1.5 text-[12px] font-medium py-1 active:opacity-60"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                <ChevronRight
+                  className="h-3.5 w-3.5 transition-transform duration-150"
+                  style={{ transform: showDetails ? "rotate(90deg)" : "rotate(0deg)" }}
+                />
+                {showDetails ? "Hide" : "Show"} optional details
+              </button>
+
+              {showDetails && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px]">Weight (kg)</Label>
+                    <Input type="number" inputMode="decimal" step="0.01" className="h-11"
+                      value={wgtKg} onChange={(e) => setWgtKg(e.target.value)} placeholder="Optional" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px]">Supplier barcode</Label>
+                    <Input className="h-11"
+                      value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Optional" />
+                  </div>
                 </div>
-                <div className="flex justify-between text-[13px]">
-                  <span style={{ color: "var(--muted-foreground)" }}>Model</span>
-                  <span className="text-foreground font-medium">{model.name}</span>
-                </div>
-                <div className="flex justify-between text-[13px]">
-                  <span style={{ color: "var(--muted-foreground)" }}>Variant</span>
-                  <span className="text-foreground font-medium">{variant.display_name}</span>
-                </div>
-                <div className="flex justify-between text-[13px]">
-                  <span style={{ color: "var(--muted-foreground)" }}>Pack</span>
-                  <span className="text-foreground font-medium">{pcsPerPack}/pk × {packsPerCtn}/ctn = {pcsPerCarton} pcs/ctn</span>
-                </div>
-                <div className="flex justify-between text-[13px]">
-                  <span style={{ color: "var(--muted-foreground)" }}>Dimensions</span>
-                  <span className="text-foreground font-medium">{lenCm}×{widCm}×{htCm} cm · {cbm?.toFixed(4)} CBM</span>
-                </div>
-                <div className="flex justify-between text-[13px]">
-                  <span style={{ color: "var(--muted-foreground)" }}>Code</span>
-                  <span className="text-foreground font-mono">{code}</span>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-2">
-          {step !== "hierarchy" && (
-            <Button variant="ghost" onClick={() => setStep(step === "confirm" ? "pack" : "hierarchy")}>
-              Back
-            </Button>
-          )}
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          {step === "hierarchy" && (
-            <Button onClick={() => setStep("pack")} disabled={!step1Complete}>Next</Button>
-          )}
-          {step === "pack" && (
-            <Button onClick={() => setStep("confirm")} disabled={!step2Complete}>Review</Button>
-          )}
-          {step === "confirm" && (
-            <Button onClick={save} disabled={saving} style={{ background: "var(--snm-brand)", color: "#ffffff" }}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create SKU"}
-            </Button>
-          )}
-        </DialogFooter>
+        {/* Fixed footer */}
+        <div className="px-5 py-4 flex gap-3 shrink-0" style={{ borderTop: "1px solid var(--glass-border)" }}>
+          <Button variant="ghost" className="h-12 flex-1" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            className="h-12 flex-1 font-semibold"
+            onClick={save}
+            disabled={saving || !canSave}
+            style={{ background: canSave ? "var(--snm-brand)" : undefined, color: canSave ? "#ffffff" : undefined }}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create SKU"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
