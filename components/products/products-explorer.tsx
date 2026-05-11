@@ -37,7 +37,7 @@ import {
   listBrands,
   listModels,
   listVariants,
-  listSkus,
+  listSkusFlat,
   createBrand,
   createModel,
   createVariant,
@@ -50,6 +50,7 @@ import {
   type ModelRow,
   type VariantRow,
   type SkuRow,
+  type SkuFullRow,
   type AttrKey,
   type UnitUom,
   type CostBasis,
@@ -106,7 +107,7 @@ export function ProductsExplorer() {
   const [brands, setBrands] = useState<BrandRow[]>([]);
   const [models, setModels] = useState<ModelRow[]>([]);
   const [variants, setVariants] = useState<VariantRow[]>([]);
-  const [skus, setSkus] = useState<SkuRow[]>([]);
+  const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openBrand, setOpenBrand] = useState<string | null>(null);
@@ -122,7 +123,7 @@ export function ProductsExplorer() {
   const [editBrand, setEditBrand] = useState<BrandRow | null>(null);
   const [editModel, setEditModel] = useState<ModelRow | null>(null);
   const [editVariant, setEditVariant] = useState<VariantRow | null>(null);
-  const [editSku, setEditSku] = useState<SkuRow | null>(null);
+  const [editSku, setEditSku] = useState<SkuFullRow | null>(null);
 
   // Cascade-delete dialog (admin only)
   const [cascadeTarget, setCascadeTarget] = useState<CascadeTarget | null>(null);
@@ -142,7 +143,7 @@ export function ProductsExplorer() {
         listBrands(),
         listModels(),
         listVariants(),
-        listSkus(),
+        listSkusFlat(),
       ]);
       setCategories(c);
       setBrands(b);
@@ -350,7 +351,7 @@ function BrandCard({
   categories: CategoryRow[];
   models: ModelRow[];
   variants: VariantRow[];
-  skus: SkuRow[];
+  skus: SkuFullRow[];
   isOpen: boolean;
   openModel: string | null;
   openVariant: string | null;
@@ -364,11 +365,11 @@ function BrandCard({
   onEditBrand: () => void;
   onEditModel: (m: ModelRow) => void;
   onEditVariant: (v: VariantRow) => void;
-  onEditSku: (s: SkuRow) => void;
+  onEditSku: (s: SkuFullRow) => void;
   onDeleteBrand: () => void;
   onDeleteModel: (m: ModelRow) => void;
   onDeleteVariant: (v: VariantRow) => void;
-  onDeleteSku: (s: SkuRow) => void;
+  onDeleteSku: (s: SkuFullRow) => void;
   onToggleSku: (id: string, active: boolean) => void;
 }) {
   const skuCount = skus.filter((s) =>
@@ -484,7 +485,7 @@ function ModelRowCard({
   model: ModelRow;
   category?: CategoryRow;
   variants: VariantRow[];
-  skus: SkuRow[];
+  skus: SkuFullRow[];
   isOpen: boolean;
   openVariant: string | null;
   isAdmin: boolean;
@@ -496,8 +497,8 @@ function ModelRowCard({
   onDelete: () => void;
   onEditVariant: (v: VariantRow) => void;
   onDeleteVariant: (v: VariantRow) => void;
-  onEditSku: (s: SkuRow) => void;
-  onDeleteSku: (s: SkuRow) => void;
+  onEditSku: (s: SkuFullRow) => void;
+  onDeleteSku: (s: SkuFullRow) => void;
   onToggleSku: (id: string, active: boolean) => void;
 }) {
   const variantWord = category?.name === "Diapers" ? "Sizes" : "Variants";
@@ -597,48 +598,60 @@ function ModelRowCard({
                     {variantSkus.map((sku) => (
                       <div
                         key={sku.id}
-                        className="grid grid-cols-12 gap-2 items-center text-xs px-2.5 py-2 rounded-lg bg-card/40 border border-border"
+                        className="rounded-lg bg-card/40 border border-border px-2.5 py-2 space-y-1.5 text-xs"
                       >
-                        <span className="col-span-3 text-foreground font-mono truncate" title={sku.internal_code}>
-                          {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
-                        </span>
-                        <span className="col-span-2 text-muted-foreground">
-                          = {sku.pcs_per_pack * sku.packs_per_carton} pcs/ctn
-                        </span>
-                        <span className="col-span-2 text-muted-foreground">
-                          {Number(sku.cbm_per_carton).toFixed(4)} CBM
-                        </span>
-                        <span className="col-span-2 text-muted-foreground truncate" title={sku.internal_code}>
-                          {sku.internal_code}
-                        </span>
-                        <div className="col-span-1">
-                          <button
-                            onClick={() => onToggleSku(sku.id, !sku.is_active)}
-                            className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
-                              sku.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {sku.is_active ? "On" : "Off"}
-                          </button>
-                        </div>
-                        <div className="col-span-2 flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => onEditSku(sku)}
-                            className="p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-secondary transition"
-                            title="Edit"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                          {isAdmin && (
+                        {/* Row 1: pack config + actions */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-foreground font-mono">
+                            {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
+                          </span>
+                          <span className="text-muted-foreground">· {sku.pcs_per_pack * sku.packs_per_carton} pcs/ctn</span>
+                          <span className="text-muted-foreground hidden sm:inline">· {Number(sku.cbm_per_carton).toFixed(4)} CBM</span>
+                          <span className="text-muted-foreground truncate hidden md:inline">{sku.internal_code}</span>
+                          <div className="ml-auto flex items-center gap-1">
                             <button
-                              onClick={() => onDeleteSku(sku)}
-                              className="p-1 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
-                              title="Delete (admin)"
+                              onClick={() => onToggleSku(sku.id, !sku.is_active)}
+                              className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
+                                sku.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
+                              }`}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              {sku.is_active ? "On" : "Off"}
                             </button>
-                          )}
+                            <button
+                              onClick={() => onEditSku(sku)}
+                              className="p-1 rounded text-muted-foreground/70 hover:text-foreground hover:bg-secondary transition"
+                              title="Edit"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => onDeleteSku(sku)}
+                                className="p-1 rounded text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                                title="Delete (admin)"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
+                        {/* Row 2: prices */}
+                        {sku.selling_price_per_piece_mvr != null ? (
+                          <div className="flex gap-3 text-[11px]">
+                            <span className="text-muted-foreground">pc <span className="text-foreground font-semibold">MVR {Number(sku.selling_price_per_piece_mvr).toFixed(2)}</span></span>
+                            <span className="text-muted-foreground">pk <span className="text-foreground font-semibold">MVR {Number(sku.selling_price_per_pack_mvr).toFixed(2)}</span></span>
+                            <span className="text-muted-foreground">ctn <span className="text-foreground font-semibold">MVR {Number(sku.selling_price_per_carton_mvr).toFixed(2)}</span></span>
+                            {sku.target_margin_pct != null && (
+                              <span className="text-emerald-600 dark:text-emerald-400">{sku.target_margin_pct}% margin</span>
+                            )}
+                          </div>
+                        ) : sku.target_margin_pct != null ? (
+                          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                            {sku.target_margin_pct}% margin set — price available after first shipment
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">No margin set — tap edit to configure pricing</p>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -35,6 +35,7 @@ import {
   type ModelRow,
   type VariantRow,
   type SkuRow,
+  type SkuFullRow,
   type CategoryRow,
   type AttrKey,
 } from "@/lib/queries/products";
@@ -310,7 +311,7 @@ export function EditSkuDialog({
   onOpenChange,
   onSaved,
 }: {
-  sku: SkuRow | null;
+  sku: SkuFullRow | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
@@ -347,7 +348,7 @@ export function EditSkuDialog({
   }, [l, w, h]);
 
   // Live selling price preview using the landed cost already on the SKU (from v_skus)
-  const landedPerPiece = (sku as (SkuRow & { landed_per_piece_mvr?: number | null }) | null)?.landed_per_piece_mvr ?? null;
+  const landedPerPiece = sku?.landed_per_piece_mvr ?? null;
   const previewPrices = useMemo(() => {
     const margin = parseFloat(marginPct);
     const pcs = parseInt(pcsPerPack, 10);
@@ -393,6 +394,32 @@ export function EditSkuDialog({
           <DialogTitle>Edit Pack Configuration</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Current saved prices */}
+          {sku?.selling_price_per_piece_mvr != null && (
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1">
+              <p className="text-[10px] uppercase tracking-wider text-primary font-medium">Current selling prices</p>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Per piece</p>
+                  <p className="font-semibold text-foreground">MVR {Number(sku.selling_price_per_piece_mvr).toFixed(2)}</p>
+                </div>
+                <div className="text-center border-x border-border">
+                  <p className="text-[10px] text-muted-foreground uppercase">Per pack</p>
+                  <p className="font-semibold text-foreground">MVR {Number(sku.selling_price_per_pack_mvr).toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Per carton</p>
+                  <p className="font-semibold text-foreground">MVR {Number(sku.selling_price_per_carton_mvr).toFixed(2)}</p>
+                </div>
+              </div>
+              {sku.target_margin_pct != null && (
+                <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
+                  {sku.target_margin_pct}% gross margin · landed cost {landedPerPiece?.toFixed(4)} MVR/pc
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Pcs per Pack *</Label>
