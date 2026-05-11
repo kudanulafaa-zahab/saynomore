@@ -174,39 +174,21 @@ export async function updateUser(userId: string, fullName: string, role: UserRol
 }
 
 export async function deleteUser(userId: string) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not authenticated");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-user`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ user_id: userId }),
-    },
-  );
+  const res = await fetch("/api/admin/delete-user", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId }),
+  });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Delete failed");
 }
 
 export async function inviteUser(email: string, fullName: string, role: UserRole) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not authenticated");
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/invite-user`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ email, full_name: fullName, role }),
-    },
-  );
+  const res = await fetch("/api/admin/invite-user", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, full_name: fullName, role }),
+  });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Invite failed");
 }
