@@ -28,10 +28,10 @@ interface OrderWithLines {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: "#fb923c",
-  dispatched: "#c4c7c8",
-  delivered: "#4ade80",
-  cancelled: "#ffb4ab",
+  pending:   "var(--snm-warning)",
+  dispatched:"var(--muted-foreground)",
+  delivered: "var(--snm-success)",
+  cancelled: "var(--snm-error)",
 };
 
 export function DispatchView() {
@@ -116,8 +116,8 @@ export function DispatchView() {
         </div>
         <div style={{ gridColumn: "span 4", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
           {pending.length > 0 && (
-            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 999, padding: "8px 18px", display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: 999, background: "#fb923c", boxShadow: "0 0 8px rgba(251,146,60,0.5)" }} />
+            <div style={{ background: "var(--glass-bg-2)", backdropFilter: "var(--glass-blur)", borderRadius: 999, padding: "8px 18px", display: "flex", alignItems: "center", gap: 6, border: "1px solid var(--glass-border-lo)" }}>
+              <div style={{ width: 8, height: 8, borderRadius: 999, background: "var(--snm-warning)" }} />
               <span style={{ color: "var(--foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em" }}>
                 URGENT: {String(pending.length).padStart(2, "0")}
               </span>
@@ -134,7 +134,7 @@ export function DispatchView() {
         </div>
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Completed Today</p>
-          <p style={{ color: "#4ade80", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{completed.length}</p>
+          <p style={{ color: "var(--snm-success)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{completed.length}</p>
         </div>
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Completion Rate</p>
@@ -158,9 +158,9 @@ export function DispatchView() {
               const isExpanded = expanded === item.order.id;
               const totalMvr = item.lines.reduce((a, l) => a + Number(l.line_total_mvr), 0);
               return (
-                <div key={item.order.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, overflow: "hidden" }}>
+                <div key={item.order.id} style={{ background: "var(--glass-bg-1)", borderRadius: 12, overflow: "hidden" }}>
                   <div
-                    style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", borderLeft: "2px solid rgba(255,255,255,0.3)" }}
+                    style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", borderLeft: "2px solid var(--glass-border)" }}
                     onClick={() => setExpanded(isExpanded ? null : item.order.id)}
                   >
                     <div>
@@ -172,17 +172,17 @@ export function DispatchView() {
                     <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
                       <div>
                         <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>MVR {totalMvr.toFixed(0)}</p>
-                        <p style={{ color: "#fb923c", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>ETA</p>
+                        <p style={{ color: "var(--snm-warning)", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>Active</p>
                       </div>
                       <ChevronDown style={{ color: "var(--muted-foreground)", width: 18, height: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                     </div>
                   </div>
                   {isExpanded && (
-                    <div style={{ padding: "0 20px 16px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ padding: "0 20px 16px", borderTop: "1px solid var(--glass-border-lo)" }}>
                       {item.lines.map((line) => {
                         const sku = skus.find((s) => s.id === line.sku_id);
                         return (
-                          <div key={line.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                          <div key={line.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--glass-border-lo)" }}>
                             <p style={{ color: "var(--foreground)", fontSize: 14 }}>{sku ? `${sku.brand_name} ${sku.variant_display}` : line.sku_id}</p>
                             <p style={{ color: "var(--foreground)", fontSize: 14 }}>{line.qty_pieces} pcs</p>
                           </div>
@@ -209,15 +209,15 @@ export function DispatchView() {
           <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 20 }}>Completed</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {completed.map((item) => (
-              <div key={item.order.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 10, opacity: 0.7 }}>
+              <div key={item.order.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "var(--glass-bg-1)", borderRadius: 10, opacity: 0.7 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <CheckCircle2 style={{ color: "#4ade80", width: 18, height: 18 }} />
+                  <CheckCircle2 style={{ color: "var(--snm-success)", width: 18, height: 18 }} />
                   <div>
                     <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 500 }}>{item.order.order_number}</p>
                     <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{item.customer?.name ?? "Walk-in"}</p>
                   </div>
                 </div>
-                <span style={{ color: "#4ade80", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>DELIVERED</span>
+                <span style={{ color: "var(--snm-success)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>DELIVERED</span>
               </div>
             ))}
           </div>

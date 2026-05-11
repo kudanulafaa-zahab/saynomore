@@ -273,7 +273,7 @@ export function ExpensesView() {
                       </button>
                       <button
                         onClick={() => setDeleteTarget(r)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -326,7 +326,8 @@ export function ExpensesView() {
                   } catch (e) { toast.error((e as Error).message); }
                   finally { setDeleting(false); }
                 }}
-                className="flex-1 h-11 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition"
+                className="flex-1 h-11 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
+                style={{ background: "var(--snm-error)", color: "var(--background)" }}
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>

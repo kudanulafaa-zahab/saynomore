@@ -80,7 +80,7 @@ export function CustomersManager() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3" style={{ color: "#8e9192" }}>
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
         <p className="text-sm">Loading…</p>
       </div>
@@ -93,15 +93,15 @@ export function CustomersManager() {
       {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-white">Customer Directory</h1>
-          <p className="text-sm mt-1" style={{ color: "#8e9192" }}>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Customer Directory</h1>
+          <p className="text-sm mt-1 text-muted-foreground">
             Manage and track your logistics partners and clients.
           </p>
         </div>
         <button
           onClick={() => setDialog({ open: true })}
           className="flex items-center gap-2 px-5 py-3 rounded-full text-sm font-semibold transition active:scale-95"
-          style={{ background: "#ffffff", color: "#2f3131" }}
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
           <Plus className="h-4 w-4" />
           Add New Customer
@@ -111,48 +111,47 @@ export function CustomersManager() {
       {/* Search */}
       <div
         className="flex items-center rounded-2xl px-4 gap-3"
-        style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)", height: 52 }}
+        style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)", height: 52 }}
       >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by name, phone, island…"
-          className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-opacity-40"
-          style={{ color: "#e5e2e1" }}
+          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
         />
-        <Filter className="h-4 w-4 shrink-0" style={{ color: "#8e9192" }} />
+        <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
       </div>
 
       {/* Stats bento */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div
           className="rounded-3xl p-5 flex flex-col justify-between"
-          style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)", minHeight: 140 }}
+          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)", minHeight: 140 }}
         >
-          <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>Active Clients</p>
+          <p className="label-caps text-[10px] text-muted-foreground">Active Clients</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-semibold text-white">{rows.length.toLocaleString()}</span>
+            <span className="text-4xl font-semibold text-foreground">{rows.length.toLocaleString()}</span>
           </div>
         </div>
         <div
           className="rounded-3xl p-5 flex flex-col justify-between"
-          style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)", minHeight: 140 }}
+          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)", minHeight: 140 }}
         >
-          <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>Avg. Lifetime Value</p>
+          <p className="label-caps text-[10px] text-muted-foreground">Avg. Lifetime Value</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-light tracking-tight text-white">—</span>
-            <span className="text-sm" style={{ color: "#8e9192" }}>MVR</span>
+            <span className="text-3xl font-light tracking-tight text-foreground">—</span>
+            <span className="text-sm text-muted-foreground">MVR</span>
           </div>
         </div>
         <div
           className="rounded-3xl p-5 flex flex-col justify-between"
-          style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)", minHeight: 140 }}
+          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)", minHeight: 140 }}
         >
-          <p className="label-caps text-[10px]" style={{ color: "#8e9192" }}>Top Channel</p>
+          <p className="label-caps text-[10px] text-muted-foreground">Top Channel</p>
           <div className="flex items-center gap-3 mt-2">
             <span className="text-2xl">💬</span>
-            <span className="text-lg font-semibold text-white">{topChannel}</span>
+            <span className="text-lg font-semibold text-foreground">{topChannel}</span>
           </div>
         </div>
       </div>
@@ -161,12 +160,12 @@ export function CustomersManager() {
       {filtered.length === 0 ? (
         <div
           className="rounded-3xl p-12 text-center space-y-4"
-          style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
         >
-          <p className="text-base font-semibold text-white">
+          <p className="text-base font-semibold text-foreground">
             {rows.length === 0 ? "No customers yet" : "No matches"}
           </p>
-          <p className="text-sm" style={{ color: "#8e9192" }}>
+          <p className="text-sm text-muted-foreground">
             {rows.length === 0
               ? "Add your first customer to get started."
               : "Try a different search term."}
@@ -175,7 +174,7 @@ export function CustomersManager() {
             <button
               onClick={() => setDialog({ open: true })}
               className="px-5 py-2.5 rounded-full text-sm font-semibold"
-              style={{ background: "#ffffff", color: "#2f3131" }}
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Add first customer
             </button>
@@ -187,24 +186,24 @@ export function CustomersManager() {
             <div
               key={c.id}
               className="rounded-3xl p-5 transition cursor-pointer"
-              style={{ background: "rgba(18,19,23,0.70)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.07)" }}
+              style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
             >
               <div className="flex items-center justify-between gap-4">
                 {/* Avatar + name */}
                 <div className="flex items-center gap-4 min-w-0">
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold"
-                    style={{ background: "rgba(255,255,255,0.10)", color: "#e5e2e1" }}
+                    style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
                   >
                     {getInitials(c.name)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-base font-semibold text-white">{c.name}</p>
+                    <p className="text-base font-semibold text-foreground">{c.name}</p>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {c.channel && (
                         <span
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
-                          style={{ background: "rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+                          style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           {channelIcon(c.channel)} {CHANNEL_LABEL[c.channel] ?? c.channel}
                         </span>
@@ -212,7 +211,7 @@ export function CustomersManager() {
                       {c.phone && (
                         <span
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
-                          style={{ background: "rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+                          style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <Phone className="h-2.5 w-2.5" /> {c.phone}
                         </span>
@@ -220,7 +219,7 @@ export function CustomersManager() {
                       {c.island && (
                         <span
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
-                          style={{ background: "rgba(255,255,255,0.08)", color: "#c4c7c8" }}
+                          style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <MapPin className="h-2.5 w-2.5" /> {c.island}
                         </span>
@@ -233,8 +232,7 @@ export function CustomersManager() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => setDialog({ open: true, editing: c })}
-                    className="p-2 rounded-lg transition"
-                    style={{ color: "#8e9192" }}
+                    className="p-2 rounded-lg transition text-muted-foreground hover:text-foreground hover:bg-secondary"
                     title="Edit"
                   >
                     <Pencil className="h-4 w-4" />
@@ -246,8 +244,7 @@ export function CustomersManager() {
                         try { await deleteCustomer(c.id); toast.success("Deleted"); load(); }
                         catch (e) { toast.error((e as Error).message); }
                       }}
-                      className="p-2 rounded-lg transition hover:text-red-400"
-                      style={{ color: "#8e9192" }}
+                      className="p-2 rounded-lg transition text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)]"
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -258,12 +255,12 @@ export function CustomersManager() {
 
               {/* Extra row */}
               {(c.company || c.email) && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
                   {c.company && (
-                    <p className="text-xs" style={{ color: "#8e9192" }}>{c.company}</p>
+                    <p className="text-xs text-muted-foreground">{c.company}</p>
                   )}
                   {c.email && (
-                    <p className="text-xs flex items-center gap-1" style={{ color: "#8e9192" }}>
+                    <p className="text-xs flex items-center gap-1 text-muted-foreground">
                       <Mail className="h-3 w-3" /> {c.email}
                     </p>
                   )}
@@ -343,70 +340,67 @@ function CustomerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-lg border-white/10"
-        style={{ background: "rgba(18,19,23,0.95)", backdropFilter: "blur(40px)", color: "#e5e2e1" }}
-      >
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">{editing ? "Edit Customer" : "New Customer"}</DialogTitle>
-          <DialogDescription style={{ color: "#8e9192" }}>
+          <DialogTitle>{editing ? "Edit Customer" : "New Customer"}</DialogTitle>
+          <DialogDescription>
             {editing ? "Update customer details." : "Register a new contact."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Full Name *</Label>
-            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ahmed" className="bg-white/5 border-white/10 text-white placeholder:text-white/30" />
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Full Name *</Label>
+            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ahmed" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Phone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+960…" className="bg-white/5 border-white/10 text-white placeholder:text-white/30" />
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Phone</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+960…" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Channel</Label>
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Channel</Label>
               <Select value={channel} onValueChange={(v) => v && setChannel(v as CustomerChannel)}>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger>
                   <SelectValue>{CHANNEL_LABEL[channel] ?? "Pick"}</SelectValue>
                 </SelectTrigger>
-                <SelectContent className="bg-[#1c1b1b] border-white/10">
-                  {CHANNELS.map((c) => <SelectItem key={c.value} value={c.value} className="text-white focus:bg-white/10">{c.label}</SelectItem>)}
+                <SelectContent>
+                  {CHANNELS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Island</Label>
-              <Input value={island} onChange={(e) => setIsland(e.target.value)} placeholder="Malé…" className="bg-white/5 border-white/10 text-white placeholder:text-white/30" />
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Island</Label>
+              <Input value={island} onChange={(e) => setIsland(e.target.value)} placeholder="Malé…" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/5 border-white/10 text-white placeholder:text-white/30" />
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Company / Shop</Label>
-            <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Optional" className="bg-white/5 border-white/10 text-white placeholder:text-white/30" />
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Company / Shop</Label>
+            <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Optional" />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Address</Label>
-            <Textarea value={address} onChange={(e) => setAddress(e.target.value)} className="bg-white/5 border-white/10 text-white min-h-[50px]" />
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Address</Label>
+            <Textarea value={address} onChange={(e) => setAddress(e.target.value)} className="min-h-[50px]" />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest" style={{ color: "#8e9192" }}>Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="bg-white/5 border-white/10 text-white min-h-[50px]" />
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[50px]" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-white/60 hover:text-white hover:bg-white/10">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
             onClick={save}
             disabled={saving || !name.trim()}
             className="font-semibold"
-            style={{ background: "#ffffff", color: "#2f3131" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Save" : "Create"}
           </Button>

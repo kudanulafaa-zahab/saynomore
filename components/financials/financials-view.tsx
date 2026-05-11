@@ -94,14 +94,14 @@ export function FinancialsView() {
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
             Net Profit — {today.toLocaleString("en-MV", { month: "long" })}
           </p>
-          <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "#ffb4ab", fontSize: 48, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "56px" }}>
+          <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 48, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "56px" }}>
             MVR {fmt(netProfit, 2)}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12 }}>
             {netProfit >= 0
-              ? <TrendingUp style={{ color: "#4ade80", width: 16, height: 16 }} />
-              : <TrendingDown style={{ color: "#ffb4ab", width: 16, height: 16 }} />}
-            <span style={{ color: netProfit >= 0 ? "#4ade80" : "#ffb4ab", fontSize: 14 }}>
+              ? <TrendingUp style={{ color: "var(--snm-success)", width: 16, height: 16 }} />
+              : <TrendingDown style={{ color: "var(--snm-error)", width: 16, height: 16 }} />}
+            <span style={{ color: netProfit >= 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 14 }}>
               {profitPct >= 0 ? "+" : ""}{profitPct.toFixed(1)}% margin
             </span>
             <span style={{ color: "var(--muted-foreground)", fontSize: 12, marginLeft: 4 }}>
@@ -109,7 +109,7 @@ export function FinancialsView() {
             </span>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 32, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--glass-border-lo)" }}>
           {[
             { label: "Sales Revenue", value: fmtShort(totalRevenue) },
             { label: "Landed Costs", value: fmtShort(totalLandedCost) },
@@ -132,7 +132,7 @@ export function FinancialsView() {
           <div style={{ display: "flex", gap: 16 }}>
             {[
               { label: "Revenue",  color: "var(--foreground)" },
-              { label: "OpEx",     color: "rgba(255,255,255,0.25)" },
+              { label: "OpEx",     color: "var(--glass-border)" },
             ].map((l) => (
               <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />
@@ -153,8 +153,8 @@ export function FinancialsView() {
               return (
                 <div key={m.month_start} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                   <div style={{ width: "100%", display: "flex", alignItems: "flex-end", gap: 3, height: 100 }}>
-                    <div style={{ flex: 1, background: "rgba(255,255,255,0.2)", borderRadius: "3px 3px 0 0", height: `${opexH}%` }} />
-                    <div style={{ flex: 1, background: isCurrent ? "#4ade80" : "var(--foreground)", borderRadius: "3px 3px 0 0", height: `${revH}%`, opacity: isCurrent ? 1 : 0.8 }} />
+                    <div style={{ flex: 1, background: "var(--glass-border)", borderRadius: "3px 3px 0 0", height: `${opexH}%` }} />
+                    <div style={{ flex: 1, background: isCurrent ? "var(--snm-success)" : "var(--foreground)", borderRadius: "3px 3px 0 0", height: `${revH}%`, opacity: isCurrent ? 1 : 0.8 }} />
                   </div>
                   <span style={{ color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 10, fontWeight: isCurrent ? 700 : 400 }}>{m.month_label}</span>
                 </div>
@@ -165,7 +165,7 @@ export function FinancialsView() {
 
         {/* Axis labels */}
         {monthly.length > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 8, borderTop: "1px solid var(--glass-border-lo)" }}>
             <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>0</span>
             <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>Peak: MVR {fmtShort(chartMax)}</span>
           </div>
@@ -190,7 +190,7 @@ export function FinancialsView() {
             {brandMap.map((b) => {
               const margin = b.revenue > 0 ? ((b.revenue - b.cost) / b.revenue * 100) : 0;
               return (
-                <div key={b.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: "rgba(255,255,255,0.04)", borderRadius: 12 }}>
+                <div key={b.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", background: "var(--glass-bg-1)", borderRadius: 12 }}>
                   <div>
                     <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>{b.label}</p>
                     <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
@@ -199,7 +199,7 @@ export function FinancialsView() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 500 }}>MVR {fmt(b.revenue, 2)}</p>
-                    <p style={{ color: margin >= 20 ? "#4ade80" : margin >= 10 ? "#fb923c" : "#ffb4ab", fontSize: 12 }}>
+                    <p style={{ color: margin >= 20 ? "var(--snm-success)" : margin >= 10 ? "var(--snm-warning)" : "var(--snm-error)", fontSize: 12 }}>
                       {margin.toFixed(1)}% Gross Margin
                     </p>
                   </div>

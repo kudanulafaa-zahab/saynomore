@@ -255,7 +255,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Top nav ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <Link href="/sales" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)", textDecoration: "none" }}>
+        <Link href="/sales" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "var(--glass-bg-1)", color: "var(--muted-foreground)", textDecoration: "none" }}>
           <ArrowLeft style={{ width: 18, height: 18 }} />
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -268,7 +268,7 @@ export function SaleDetail({ id }: { id: string }) {
         {isAdmin && !isDelivered && (
           <button
             onClick={() => setPanel("delete")}
-            style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,59,48,0.10)", border: "none", color: "#ff3b30", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
           >
             <Trash2 style={{ width: 16, height: 16 }} />
           </button>
@@ -285,11 +285,11 @@ export function SaleDetail({ id }: { id: string }) {
               <div key={step.status} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
                 {/* connector line */}
                 {i < STEPS.length - 1 && (
-                  <div style={{ position: "absolute", top: 18, left: "50%", right: "-50%", height: 2, background: done ? "var(--foreground)" : "rgba(255,255,255,0.08)", zIndex: 0, transition: "background 0.3s" }} />
+                  <div style={{ position: "absolute", top: 18, left: "50%", right: "-50%", height: 2, background: done ? "var(--foreground)" : "var(--glass-border-lo)", zIndex: 0, transition: "background 0.3s" }} />
                 )}
                 <div style={{
                   width: 36, height: 36, borderRadius: "50%",
-                  background: done ? "var(--foreground)" : active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)",
+                  background: done ? "var(--foreground)" : active ? "var(--glass-bg-2)" : "var(--glass-bg-1)",
                   border: active ? "2px solid var(--foreground)" : "2px solid transparent",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all 0.3s", position: "relative", zIndex: 1,
@@ -309,15 +309,15 @@ export function SaleDetail({ id }: { id: string }) {
       )}
 
       {isCancelled && (
-        <div style={{ background: "rgba(255,59,48,0.08)", borderRadius: 12, padding: "12px 16px", marginBottom: 12, border: "1px solid rgba(255,59,48,0.2)" }}>
-          <p style={{ color: "#ff3b30", fontSize: 13, fontWeight: 600 }}>Order cancelled</p>
+        <div style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", borderRadius: 12, padding: "12px 16px", marginBottom: 12, border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}>
+          <p style={{ color: "var(--snm-error)", fontSize: 13, fontWeight: 600 }}>Order cancelled</p>
         </div>
       )}
 
       {/* ── Customer card ─────────────────────────────────────────────────── */}
       {customer && (
         <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--glass-bg-1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <User style={{ color: "var(--muted-foreground)", width: 20, height: 20 }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -334,12 +334,12 @@ export function SaleDetail({ id }: { id: string }) {
         <>
           {/* Payment method badge */}
           <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "rgba(251,146,60,0.08)" : "rgba(96,165,250,0.08)", borderRadius: 12, border: `1px solid ${isCOD ? "rgba(251,146,60,0.2)" : "rgba(96,165,250,0.2)"}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: `1px solid ${isCOD ? "color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "color-mix(in srgb, var(--snm-brand) 25%, transparent)"}` }}>
               {isCOD
-                ? <Banknote style={{ color: "#fb923c", width: 22, height: 22, flexShrink: 0 }} />
-                : <Smartphone style={{ color: "#60a5fa", width: 22, height: 22, flexShrink: 0 }} />}
+                ? <Banknote style={{ color: "var(--snm-warning)", width: 22, height: 22, flexShrink: 0 }} />
+                : <Smartphone style={{ color: "var(--snm-brand)", width: 22, height: 22, flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: isCOD ? "#fb923c" : "#60a5fa", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                <p style={{ color: isCOD ? "var(--snm-warning)" : "var(--snm-brand)", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                   {isCOD ? "Cash on Delivery" : "Bank Transfer"}
                 </p>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
@@ -354,13 +354,13 @@ export function SaleDetail({ id }: { id: string }) {
                           value={refInput}
                           onChange={(e) => setRefInput(e.target.value)}
                           placeholder="e.g. TRF-20240511-0042"
-                          style={{ flex: 1, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--foreground)", outline: "none" }}
+                          style={{ flex: 1, background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--foreground)", outline: "none" }}
                           onKeyDown={(e) => { if (e.key === "Enter") savePaymentRef(); if (e.key === "Escape") setEditingRef(false); }}
                         />
                         <button
                           onClick={savePaymentRef}
                           disabled={savingRef}
-                          style={{ background: "#60a5fa", color: "#000", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+                          style={{ background: "var(--snm-brand)", color: "var(--background)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
                         >
                           {savingRef ? "…" : "Save"}
                         </button>
@@ -374,7 +374,7 @@ export function SaleDetail({ id }: { id: string }) {
                     ) : (
                       <button
                         onClick={() => { setRefInput(order.payment_proof_url ?? ""); setEditingRef(true); }}
-                        style={{ background: "rgba(96,165,250,0.08)", border: "1px dashed rgba(96,165,250,0.3)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: order.payment_proof_url ? "#60a5fa" : "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                        style={{ background: "var(--glass-bg-1)", border: "1px dashed var(--glass-border)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: order.payment_proof_url ? "var(--snm-brand)" : "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
                       >
                         <Smartphone style={{ width: 12, height: 12 }} />
                         {order.payment_proof_url ? order.payment_proof_url : "Tap to add transfer reference"}
@@ -387,7 +387,7 @@ export function SaleDetail({ id }: { id: string }) {
 
             <LineList lines={lines} skus={skus} editable={false} />
             {totals.count > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid var(--glass-border-lo)" }}>
                 <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
                 <span style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
               </div>
@@ -408,10 +408,10 @@ export function SaleDetail({ id }: { id: string }) {
           <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
             {/* Driver badge */}
             {order.assigned_driver_id && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "12px 14px", background: "rgba(74,222,128,0.08)", borderRadius: 12, border: "1px solid rgba(74,222,128,0.15)" }}>
-                <Truck style={{ color: "#4ade80", width: 20, height: 20, flexShrink: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "12px 14px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>
+                <Truck style={{ color: "var(--snm-success)", width: 20, height: 20, flexShrink: 0 }} />
                 <div>
-                  <p style={{ color: "#4ade80", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Out for Delivery</p>
+                  <p style={{ color: "var(--snm-success)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Out for Delivery</p>
                   <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>
                     {drivers.find((d) => d.id === order.assigned_driver_id)?.full_name ?? "Driver"}
                   </p>
@@ -421,14 +421,14 @@ export function SaleDetail({ id }: { id: string }) {
 
             {/* COD reminder */}
             {isCOD && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", background: "rgba(251,146,60,0.08)", borderRadius: 10 }}>
-                <Banknote style={{ color: "#fb923c", width: 18, height: 18, flexShrink: 0 }} />
-                <p style={{ color: "#fb923c", fontSize: 12, fontWeight: 600 }}>COD — driver must collect MVR {fmt(totals.mvr)}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", borderRadius: 10 }}>
+                <Banknote style={{ color: "var(--snm-warning)", width: 18, height: 18, flexShrink: 0 }} />
+                <p style={{ color: "var(--snm-warning)", fontSize: 12, fontWeight: 600 }}>COD — driver must collect MVR {fmt(totals.mvr)}</p>
               </div>
             )}
 
             <LineList lines={lines} skus={skus} editable={false} />
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid var(--glass-border-lo)" }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
               <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
             </div>
@@ -446,20 +446,20 @@ export function SaleDetail({ id }: { id: string }) {
       {isDelivered && (
         <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-            <CheckCircle2 style={{ color: "#4ade80", width: 22, height: 22 }} />
-            <p style={{ color: "#4ade80", fontSize: 16, fontWeight: 700 }}>Delivered</p>
+            <CheckCircle2 style={{ color: "var(--snm-success)", width: 22, height: 22 }} />
+            <p style={{ color: "var(--snm-success)", fontSize: 16, fontWeight: 700 }}>Delivered</p>
           </div>
 
           {/* Financial summary */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16 }}>
+            <div style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 16 }}>
               <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Order Total</p>
               <p style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
             </div>
             {order.cash_collected_mvr != null && (
-              <div style={{ background: "rgba(74,222,128,0.06)", borderRadius: 12, padding: 16 }}>
+              <div style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", borderRadius: 12, padding: 16 }}>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Cash Collected</p>
-                <p style={{ color: "#4ade80", fontSize: 20, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
+                <p style={{ color: "var(--snm-success)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
               </div>
             )}
           </div>
@@ -475,9 +475,9 @@ export function SaleDetail({ id }: { id: string }) {
                 Mark Cash Deposited to Bank
               </button>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 12, marginBottom: 16, border: "1px solid rgba(74,222,128,0.15)" }}>
-                <CheckCircle2 style={{ color: "#4ade80", width: 18, height: 18 }} />
-                <p style={{ color: "#4ade80", fontSize: 13, fontWeight: 600 }}>Cash deposited to bank</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>
+                <CheckCircle2 style={{ color: "var(--snm-success)", width: 18, height: 18 }} />
+                <p style={{ color: "var(--snm-success)", fontSize: 13, fontWeight: 600 }}>Cash deposited to bank</p>
                 {order.cash_deposited_at && (
                   <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginLeft: "auto" }}>
                     {new Date(order.cash_deposited_at).toLocaleDateString()}
@@ -495,9 +495,9 @@ export function SaleDetail({ id }: { id: string }) {
                 Mark Payment Received
               </button>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 12, marginBottom: 16, border: "1px solid rgba(74,222,128,0.15)" }}>
-                <CheckCircle2 style={{ color: "#4ade80", width: 18, height: 18 }} />
-                <p style={{ color: "#4ade80", fontSize: 13, fontWeight: 600 }}>Bank transfer received</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>
+                <CheckCircle2 style={{ color: "var(--snm-success)", width: 18, height: 18 }} />
+                <p style={{ color: "var(--snm-success)", fontSize: 13, fontWeight: 600 }}>Bank transfer received</p>
               </div>
             )
           )}
@@ -519,7 +519,7 @@ export function SaleDetail({ id }: { id: string }) {
           <select
             value={selectedDriver}
             onChange={(e) => setSelectedDriver(e.target.value)}
-            style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px", fontSize: 14, outline: "none", cursor: "pointer" }}
+            style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 14, outline: "none", cursor: "pointer" }}
           >
             <option value="">Select driver…</option>
             {drivers.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
@@ -548,7 +548,7 @@ export function SaleDetail({ id }: { id: string }) {
               placeholder={String(totals.mvr.toFixed(0))}
               value={cashCollected}
               onChange={(e) => setCashCollected(e.target.value)}
-              style={{ width: "100%", background: "rgba(255,255,255,0.06)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
             />
           </div>
         )}
@@ -579,13 +579,13 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* Delete order */}
       <Sheet open={panel === "delete"} onClose={() => setPanel(null)}>
-        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Order?</h2>
+        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Order?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
           <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> and all its items will be permanently deleted. This cannot be undone.
         </p>
         <SheetActions>
           <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
-          <button onClick={handleDeleteOrder} disabled={deleting} style={{ ...primaryBtn, background: "#ff3b30" }}>
+          <button onClick={handleDeleteOrder} disabled={deleting} style={{ ...primaryBtn, background: "var(--snm-error)" }}>
             {deleting ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Delete"}
           </button>
         </SheetActions>
@@ -593,7 +593,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* Delete line */}
       <Sheet open={panel === "deleteLine"} onClose={() => { setPendingDeleteLine(null); setPanel(null); }}>
-        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove item?</h2>
+        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove item?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
           {pendingDeleteLine && (() => {
             const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
@@ -602,7 +602,7 @@ export function SaleDetail({ id }: { id: string }) {
         </p>
         <SheetActions>
           <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} style={ghostBtn}>Cancel</button>
-          <button onClick={handleDeleteLine} disabled={deletingLine} style={{ ...primaryBtn, background: "#ff3b30" }}>
+          <button onClick={handleDeleteLine} disabled={deletingLine} style={{ ...primaryBtn, background: "var(--snm-error)" }}>
             {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
           </button>
         </SheetActions>
@@ -629,7 +629,7 @@ export function SaleDetail({ id }: { id: string }) {
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 const ghostBtn: React.CSSProperties = {
-  flex: 1, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)",
+  flex: 1, background: "var(--glass-bg-1)", color: "var(--muted-foreground)",
   border: "none", borderRadius: 999, padding: "14px", fontSize: 14, cursor: "pointer",
 };
 const primaryBtn: React.CSSProperties = {
@@ -641,12 +641,12 @@ const primaryBtn: React.CSSProperties = {
 function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "85vh", overflowY: "auto" }}
       >
-        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         {children}
       </div>
     </div>
@@ -675,7 +675,7 @@ function LineList({
       {lines.map((l) => {
         const sku = skus.find((s) => s.id === l.sku_id);
         return (
-          <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+          <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--glass-bg-1)", borderRadius: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {sku ? `${sku.brand_name} › ${sku.variant_display}` : l.sku_id}
@@ -691,7 +691,7 @@ function LineList({
               {editable && onEdit && onDelete && (
                 <div style={{ display: "flex", gap: 4 }}>
                   <button onClick={() => onEdit(l)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>Edit</button>
-                  <button onClick={() => onDelete(l)} style={{ background: "none", border: "none", color: "#ff3b30", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>✕</button>
+                  <button onClick={() => onDelete(l)} style={{ background: "none", border: "none", color: "var(--snm-error)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>✕</button>
                 </div>
               )}
             </div>
@@ -778,18 +778,18 @@ function LineDialog({
   }
 
   const inputStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.06)", color: "var(--foreground)",
-    border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+    background: "var(--glass-bg-1)", color: "var(--foreground)",
+    border: "1px solid var(--glass-border-lo)", borderRadius: 10,
     padding: "10px 12px", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "90vh", overflowY: "auto" }}
       >
-        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{editing ? "Edit item" : "Add item"}</h2>
 
         {/* Product picker */}
@@ -804,7 +804,7 @@ function LineDialog({
                 placeholder="Search brand, product, variant…"
                 style={inputStyle}
               />
-              <div style={{ borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", maxHeight: 220, overflowY: "auto", marginTop: 8, background: "rgba(0,0,0,0.3)" }}>
+              <div style={{ borderRadius: 10, border: "1px solid var(--glass-border-lo)", maxHeight: 220, overflowY: "auto", marginTop: 8, background: "var(--glass-bg-2)" }}>
                 {filtered.length === 0 ? (
                   <p style={{ color: "var(--muted-foreground)", fontSize: 13, padding: "12px" }}>No matches</p>
                 ) : filtered.map((s) => {
@@ -812,13 +812,13 @@ function LineDialog({
                     ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === sourceGodownId)?.qty_pieces ?? 0
                     : null;
                   return (
-                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
                         <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{s.brand_name} › {s.model_name} › {s.variant_display}</p>
                         <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
                       </div>
                       {stock !== null && (
-                        <span style={{ color: stock > 0 ? "#4ade80" : "#ff3b30", fontSize: 11, flexShrink: 0, marginLeft: 12 }}>{stock} pcs</span>
+                        <span style={{ color: stock > 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 11, flexShrink: 0, marginLeft: 12 }}>{stock} pcs</span>
                       )}
                     </button>
                   );
@@ -826,7 +826,7 @@ function LineDialog({
               </div>
             </>
           ) : sku ? (
-            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "12px 14px" }}>
+            <div style={{ background: "var(--glass-bg-1)", borderRadius: 10, padding: "12px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div>
                   <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
@@ -835,7 +835,7 @@ function LineDialog({
                 <button onClick={() => setSkuId("")} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>Change</button>
               </div>
               {stockHere !== null && (
-                <p style={{ color: stockHere === 0 ? "#ff3b30" : "var(--muted-foreground)", fontSize: 11, marginTop: 6 }}>
+                <p style={{ color: stockHere === 0 ? "var(--snm-error)" : "var(--muted-foreground)", fontSize: 11, marginTop: 6 }}>
                   In warehouse: <strong style={{ color: "var(--foreground)" }}>{stockHere.toLocaleString()} pcs</strong>
                 </p>
               )}
@@ -861,7 +861,7 @@ function LineDialog({
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>
               Price (MVR) *{" "}
               {sku && (uom === "piece" ? sku.selling_price_per_piece_mvr : uom === "pack" ? sku.selling_price_per_pack_mvr : sku.selling_price_per_carton_mvr) != null && (
-                <span style={{ color: "#4ade80", fontSize: 9, letterSpacing: "0.06em" }}>AUTO</span>
+                <span style={{ color: "var(--snm-success)", fontSize: 9, letterSpacing: "0.06em" }}>AUTO</span>
               )}
             </p>
             <input type="number" inputMode="decimal" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} style={inputStyle} />
@@ -870,7 +870,7 @@ function LineDialog({
 
         {/* Summary */}
         {sku && qtyPieces > 0 && (
-          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+          <div style={{ background: "var(--glass-bg-1)", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Pieces</span>
               <span style={{ color: "var(--foreground)", fontSize: 12 }}>{qtyPieces.toLocaleString()}</span>
@@ -883,8 +883,8 @@ function LineDialog({
         )}
 
         {insufficient && (
-          <div style={{ background: "rgba(255,59,48,0.1)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, border: "1px solid rgba(255,59,48,0.25)" }}>
-            <p style={{ color: "#ff3b30", fontSize: 12 }}>⚠ Not enough stock — only {stockHere} pcs available.</p>
+          <div style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}>
+            <p style={{ color: "var(--snm-error)", fontSize: 12 }}>⚠ Not enough stock — only {stockHere} pcs available.</p>
           </div>
         )}
 

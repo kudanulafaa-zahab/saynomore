@@ -47,8 +47,8 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
       {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-[#444748] transition"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
       />
     </div>
   );
@@ -62,7 +62,7 @@ function GlassSelect({ label, value, onChange, children }: { label?: string; val
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
       >
         {children}
       </select>
@@ -76,8 +76,8 @@ function GlassTextarea({ label, ...props }: { label?: string } & React.TextareaH
       {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <textarea
         {...props}
-        className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-[#444748] resize-none transition"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none transition"
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
         rows={3}
       />
     </div>
@@ -139,7 +139,7 @@ export function SuppliersManager() {
         <button
           onClick={() => setDialog({ open: true })}
           className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
-          style={{ background: "#ffffff", color: "#2f3131" }}
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
           <Plus className="h-4 w-4" />
           Add Vendor
@@ -149,7 +149,7 @@ export function SuppliersManager() {
       {/* ── Search ── */}
       <div
         className="flex items-center gap-3 rounded-2xl px-4 h-12"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
       >
         <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input
@@ -163,7 +163,7 @@ export function SuppliersManager() {
       {/* ── Empty state ── */}
       {rows.length === 0 ? (
         <div className="rounded-3xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
-          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
             <Package className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-semibold text-foreground">No vendors yet</h3>
@@ -173,7 +173,7 @@ export function SuppliersManager() {
           <button
             onClick={() => setDialog({ open: true })}
             className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
-            style={{ background: "#ffffff", color: "#2f3131" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             Create first vendor
           </button>
@@ -205,7 +205,7 @@ export function SuppliersManager() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 h-11 px-6 rounded-full text-sm font-bold transition active:scale-95"
-                        style={{ background: "#ffffff", color: "#2f3131" }}
+                        style={{ background: "var(--foreground)", color: "var(--background)" }}
                       >
                         <Phone className="h-4 w-4" />
                         WhatsApp
@@ -215,7 +215,7 @@ export function SuppliersManager() {
                       <a
                         href={`mailto:${featured.contact_email}`}
                         className="flex items-center gap-2 h-11 px-6 rounded-full text-sm font-bold transition"
-                        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.10)", color: "var(--foreground)" }}
+                        style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}
                       >
                         <Mail className="h-4 w-4" />
                         Email
@@ -224,7 +224,7 @@ export function SuppliersManager() {
                     <button
                       onClick={() => setDialog({ open: true, editing: featured })}
                       className="flex items-center gap-2 h-11 px-4 rounded-full text-sm transition"
-                      style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "#8e9192" }}
+                      style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -238,7 +238,7 @@ export function SuppliersManager() {
                 >
                   <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>RELIABILITY SCORE</p>
                   <p className="text-[42px] font-light tracking-tight text-foreground leading-none">98<span className="text-[22px]">%</span></p>
-                  <div className="w-full rounded-full overflow-hidden mt-4" style={{ background: "rgba(255,255,255,0.08)", height: 4 }}>
+                  <div className="w-full rounded-full overflow-hidden mt-4" style={{ background: "var(--glass-bg-2)", height: 4 }}>
                     <div className="h-full rounded-full bg-white" style={{ width: "98%" }} />
                   </div>
                 </div>
@@ -271,7 +271,7 @@ export function SuppliersManager() {
                 <div
                   key={s.id}
                   className="rounded-3xl p-5 transition"
-                  style={{ ...CARD, border: "1px solid rgba(255,255,255,0.05)" }}
+                  style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -280,7 +280,7 @@ export function SuppliersManager() {
                         {i === 0 && !q && (
                           <span
                             className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.10)" }}
+                            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)" }}
                           >
                             Primary
                           </span>
@@ -312,7 +312,7 @@ export function SuppliersManager() {
                       <button
                         onClick={() => { setFeatured(s); setDialog({ open: true, editing: s }); }}
                         className="h-9 w-9 rounded-xl flex items-center justify-center transition"
-                        style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
+                        style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}
                         title="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -325,7 +325,7 @@ export function SuppliersManager() {
                             catch (e) { toast.error((e as Error).message); }
                           }}
                           className="h-9 w-9 rounded-xl flex items-center justify-center transition"
-                          style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}
+                          style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                           title="Delete"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -334,7 +334,7 @@ export function SuppliersManager() {
                       <button
                         onClick={() => setFeatured(s)}
                         className="h-9 w-9 rounded-xl flex items-center justify-center transition"
-                        style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}
+                        style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}
                         title="Feature"
                       >
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -430,14 +430,14 @@ function SupplierModal({
         <GlassTextarea label="NOTES" value={notes} onChange={(e) => setNotes((e.target as HTMLTextAreaElement).value)} placeholder="Optional" />
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving || !name.trim()}
             className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-            style={{ background: "#ffffff", color: "#2f3131" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save Changes" : "Create Vendor"}
           </button>
