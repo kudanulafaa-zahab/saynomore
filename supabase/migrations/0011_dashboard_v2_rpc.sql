@@ -1,6 +1,8 @@
 -- Dashboard v2: updated get_dashboard_metrics()
 -- Adds gross profit, dispatched/awaiting-dispatch order splits, overdue orders
 
+DROP FUNCTION IF EXISTS get_dashboard_metrics();
+
 CREATE OR REPLACE FUNCTION get_dashboard_metrics()
 RETURNS TABLE (
   -- Revenue
