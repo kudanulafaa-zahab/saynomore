@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar role={role} />
       <Topbar name={name} role={role} />
       {/* pt-[52px] = fixed header height; pb-24 = bottom nav clearance on mobile */}
-      <div className="lg:pl-60 pt-[52px]">
+      <div className="lg:pl-60" style={{ paddingTop: "calc(52px + env(safe-area-inset-top, 0px))" }}>
         <main className="px-4 py-5 pb-28 lg:pb-8 max-w-5xl mx-auto lg:max-w-none">
           {children}
         </main>
