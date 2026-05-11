@@ -149,6 +149,39 @@ export function CompetitorsView() {
         .sort((a, b) => Number(b.price_mvr) - Number(a.price_mvr))[0]
     : null;
 
+  // Per-piece comparison: group all competitor prices by variant, normalize to per-piece
+  const perPieceComparison = useMemo(() => {
+    // Collect variant IDs that have competitor prices
+    const variantIds = Array.from(new Set(prices.map((p) => p.variant_id)));
+    return variantIds.map((vid) => {
+      const sku = skus.find((s) => s.variant_id === vid);
+      const variantPrices = prices.filter((p) => p.variant_id === vid);
+      const ourPcsPerPack = sku?.pcs_per_pack ?? 1;
+      const ourPcsPerCarton = ourPcsPerPack * (sku?.packs_per_carton ?? 1);
+
+      const normalized = variantPrices.map((p) => {
+        const competitor = competitors.find((c) => c.id === p.competitor_id);
+        let pricePiece: number | null = null;
+        if (p.price_basis === "per_piece") {
+          pricePiece = Number(p.price_mvr);
+        } else if (p.price_basis === "per_pack") {
+          const pcs = p.their_pcs_per_pack ?? ourPcsPerPack;
+          pricePiece = Number(p.price_mvr) / pcs;
+        } else if (p.price_basis === "per_carton") {
+          pricePiece = Number(p.price_mvr) / ourPcsPerCarton;
+        }
+        // per_100ml / per_100g — cannot normalize to pieces
+        return { price: p, competitor, pricePiece, observedDate: p.observed_date };
+      }).sort((a, b) => {
+        if (a.pricePiece === null) return 1;
+        if (b.pricePiece === null) return -1;
+        return a.pricePiece - b.pricePiece;
+      });
+
+      return { vid, sku, normalized };
+    }).filter((v) => v.sku != null);
+  }, [prices, skus, competitors]);
+
   if (loading) {
     return (
       <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
@@ -345,6 +378,120 @@ export function CompetitorsView() {
                 Set Selling Price
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Per-Piece Comparison ── */}
+      {perPieceComparison.length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={CARD}>
+          <div
+            className="px-5 py-4"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}
+          >
+            <h2 className="text-[18px] font-semibold text-foreground">Per-Piece Price Comparison</h2>
+            <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+              All competitor prices normalized to MVR per piece · sorted cheapest first
+            </p>
+          </div>
+          <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+            {perPieceComparison.map(({ vid, sku, normalized }) => {
+              if (!sku) return null;
+              const ourCost = sku.landed_per_piece_mvr;
+              return (
+                <div key={vid} className="p-5">
+                  {/* Variant header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-[14px] font-semibold text-foreground">
+                        {sku.brand_name} · {sku.model_name} · {sku.variant_display}
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                        {sku.pcs_per_pack} pcs/pk · {sku.packs_per_carton} pk/ctn
+                        {ourCost != null && (
+                          <> · Our landed: <span className="text-foreground font-medium">MVR {Number(ourCost).toFixed(2)}/pc</span></>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Competitor rows */}
+                  <div className="space-y-2">
+                    {normalized.map(({ price, competitor, pricePiece, observedDate }) => {
+                      const delta = ourCost != null && pricePiece != null ? pricePiece - Number(ourCost) : null;
+                      const deltaColor = delta === null ? "var(--muted-foreground)" : delta > 0 ? "#4ade80" : "#ffb4ab";
+                      return (
+                        <div
+                          key={price.id}
+                          className="flex items-center justify-between rounded-xl px-4 py-3"
+                          style={{ background: "rgba(255,255,255,0.04)" }}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                              style={{ background: "rgba(255,255,255,0.07)" }}
+                            >
+                              <Store className="h-3.5 w-3.5 text-white" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-medium text-foreground truncate">
+                                {competitor?.name ?? "Unknown"}
+                              </p>
+                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                                {BASIS_LABEL[price.price_basis]} · {new Date(observedDate).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                                {price.their_pcs_per_pack && <> · {price.their_pcs_per_pack} pcs/pk</>}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 ml-4">
+                            {pricePiece != null ? (
+                              <>
+                                <p className="text-[15px] font-semibold text-foreground">
+                                  MVR {pricePiece.toFixed(2)}
+                                </p>
+                                {delta !== null && (
+                                  <p className="text-[11px] font-medium" style={{ color: deltaColor }}>
+                                    {delta > 0 ? "+" : ""}{delta.toFixed(2)} vs us
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                                {Number(price.price_mvr).toFixed(2)} ({BASIS_LABEL[price.price_basis]})
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Our selling price bar if available */}
+                  {ourCost != null && sku.selling_price_per_piece_mvr != null && (
+                    <div
+                      className="flex items-center justify-between rounded-xl px-4 py-3 mt-2"
+                      style={{ background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.20)" }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: "rgba(99,102,241,0.20)" }}
+                        >
+                          <Tag className="h-3.5 w-3.5" style={{ color: "#818cf8" }} />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-medium" style={{ color: "#c7d2fe" }}>Our Selling Price</p>
+                          <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.6)" }}>at target margin</p>
+                        </div>
+                      </div>
+                      <p className="text-[15px] font-semibold" style={{ color: "#c7d2fe" }}>
+                        MVR {Number(sku.selling_price_per_piece_mvr).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
