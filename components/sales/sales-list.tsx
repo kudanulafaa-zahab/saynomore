@@ -44,11 +44,11 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
 const STATUS_COLOR: Record<OrderStatus, { bg: string; text: string }> = {
   draft:            { bg: "var(--muted)",                   text: "var(--muted-foreground)" },
-  confirmed:        { bg: "rgba(255,64,0,0.10)",            text: "var(--snm-brand)"        },
-  picked:           { bg: "rgba(251,146,60,0.15)",          text: "var(--snm-warning)"      },
-  out_for_delivery: { bg: "rgba(251,146,60,0.10)",          text: "var(--snm-warning)"      },
-  delivered:        { bg: "rgba(74,222,128,0.15)",          text: "var(--snm-success)"      },
-  cancelled:        { bg: "rgba(255,180,171,0.10)",         text: "var(--snm-error)"        },
+  confirmed:        { bg: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", text: "var(--snm-brand)" },
+  picked:           { bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)",  text: "var(--snm-warning)"      },
+  out_for_delivery: { bg: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",  text: "var(--snm-warning)"      },
+  delivered:        { bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)",  text: "var(--snm-success)"      },
+  cancelled:        { bg: "color-mix(in srgb, var(--snm-error) 10%, transparent)",    text: "var(--snm-error)"        },
 };
 
 const STATUS_ICON: Record<OrderStatus, typeof Clock> = {
@@ -91,7 +91,7 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
       <input
         {...props}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
       />
     </div>
   );
@@ -106,7 +106,7 @@ function GlassSelect({ label, value, onChange, children }: {
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
       >
         {children}
       </select>
@@ -175,14 +175,14 @@ export function SalesList() {
       </div>
 
       <div className="flex gap-2">
-        <div className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
           <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
         </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
           className="h-12 rounded-2xl px-4 text-sm text-foreground outline-none appearance-none"
-          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
           <option value="all">All</option>
           {(Object.keys(STATUS_LABEL) as OrderStatus[]).map((s) => (
             <option key={s} value={s}>{STATUS_LABEL[s]}</option>
@@ -192,7 +192,7 @@ export function SalesList() {
 
       {filtered.length === 0 ? (
         <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
-          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
             <ShoppingCart className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-semibold text-foreground">{rows.length === 0 ? "No sales yet" : "No matches"}</h3>
@@ -419,7 +419,7 @@ function NewSaleSheet({
             <div key={s} className="flex items-center gap-2 flex-1">
               <div className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all"
                 style={step === s ? { background: "var(--foreground)", color: "var(--background)" }
-                  : step > s ? { background: "rgba(74,222,128,0.20)", color: "#4ade80" }
+                  : step > s ? { background: "color-mix(in srgb, var(--snm-success) 20%, transparent)", color: "var(--snm-success)" }
                   : { background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                 {step > s ? "✓" : s}
               </div>
@@ -435,7 +435,7 @@ function NewSaleSheet({
             {!customerId && !showNewCustomer && (
               <>
                 <div className="flex gap-2">
-                  <div className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                     <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                     <input autoFocus value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
                       placeholder="Search name, phone…"
@@ -443,7 +443,7 @@ function NewSaleSheet({
                   </div>
                   <button onClick={() => setShowNewCustomer(true)}
                     className="flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold transition"
-                    style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)", color: "var(--foreground)" }}>
+                    style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>
                     <UserPlus className="h-4 w-4" /> New
                   </button>
                 </div>
@@ -459,9 +459,9 @@ function NewSaleSheet({
                         <button key={c.id}
                           onClick={() => { setCustomerId(c.id); setChannel((c.channel as OrderChannel) ?? "whatsapp"); }}
                           className="flex-shrink-0 p-4 rounded-xl w-36 text-left transition active:scale-95"
-                          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)" }}>
+                          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                           <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm mb-2"
-                            style={{ background: "rgba(255,255,255,0.10)", color: "var(--foreground)" }}>
+                            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>
                             {initials}
                           </div>
                           <p className="text-[12px] font-bold text-foreground truncate">{c.name}</p>
@@ -486,7 +486,7 @@ function NewSaleSheet({
             )}
 
             {showNewCustomer && !customerId && (
-              <div className="rounded-xl p-5 space-y-4" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl p-5 space-y-4" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                 <p className="text-[13px] font-bold text-foreground flex items-center gap-2"><UserPlus className="h-4 w-4" /> New Customer</p>
                 <GlassInput label="Name *" value={newCustName} onChange={(e) => setNewCustName((e.target as HTMLInputElement).value)} placeholder="Full name or company" autoFocus />
                 <div className="grid grid-cols-2 gap-3">
@@ -497,7 +497,7 @@ function NewSaleSheet({
                   {CUSTOMER_CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </GlassSelect>
                 <div className="flex gap-2">
-                  <button onClick={() => setShowNewCustomer(false)} className="flex-1 h-11 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)" }}>Back</button>
+                  <button onClick={() => setShowNewCustomer(false)} className="flex-1 h-11 rounded-xl text-sm" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>Back</button>
                   <button onClick={handleCreateCustomer} disabled={savingCustomer || !newCustName.trim()}
                     className="flex-[2] h-11 rounded-xl text-sm font-bold transition disabled:opacity-40"
                     style={{ background: "var(--foreground)", color: "var(--background)" }}>
@@ -508,7 +508,7 @@ function NewSaleSheet({
             )}
 
             {customerId && customerId !== "walkin" && customer && (
-              <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}>
+              <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border)" }}>
                 <div>
                   <p className="text-[14px] font-semibold text-foreground">{customer.name}</p>
                   <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
@@ -517,7 +517,7 @@ function NewSaleSheet({
               </div>
             )}
             {customerId === "walkin" && (
-              <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}>
+              <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border)" }}>
                 <div>
                   <p className="text-[14px] font-semibold text-foreground">Walk-in customer</p>
                   <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>No account</p>
@@ -544,7 +544,7 @@ function NewSaleSheet({
             {/* Product picker */}
             {!selectedSkuId ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                   <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                   <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)}
                     placeholder="Search brand, product, variant…"
@@ -557,14 +557,14 @@ function NewSaleSheet({
                     return (
                       <button key={s.id} onClick={() => setSelectedSkuId(s.id)}
                         className="rounded-xl p-4 text-left transition active:scale-[0.98]"
-                        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+                        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="min-w-0">
                             <p className="text-[13px] font-semibold text-foreground truncate">{s.brand_name} · {s.model_name}</p>
                             <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
                           </div>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
-                            style={{ background: stock != null && stock > 0 ? "rgba(74,222,128,0.12)" : "rgba(255,180,171,0.12)", color: stock != null && stock > 0 ? "#4ade80" : "#ffb4ab" }}>
+                            style={{ background: stock != null && stock > 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: stock != null && stock > 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                             {stock != null ? `${stock} pcs` : "—"}
                           </span>
                         </div>
@@ -581,13 +581,13 @@ function NewSaleSheet({
                 </div>
               </div>
             ) : selectedSku ? (
-              <div className="rounded-xl p-4 space-y-4" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl p-4 space-y-4" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-[14px] font-semibold text-foreground">{selectedSku.brand_name} · {selectedSku.model_name}</p>
                     <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{selectedSku.variant_display}</p>
                     {stockHere !== null && (
-                      <p className="text-[11px] mt-1 font-semibold" style={{ color: stockHere === 0 ? "#ffb4ab" : "#4ade80" }}>
+                      <p className="text-[11px] mt-1 font-semibold" style={{ color: stockHere === 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
                         {stockHere === 0 ? "Out of stock" : `${stockHere.toLocaleString()} pcs in warehouse`}
                       </p>
                     )}
@@ -605,12 +605,12 @@ function NewSaleSheet({
                   <div className="space-y-1.5">
                     <p className="text-[10px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
                       Price (MVR)
-                      {linePrice && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(74,222,128,0.15)", color: "#4ade80" }}>AUTO</span>}
+                      {linePrice && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>}
                     </p>
                     <input type="number" inputMode="decimal" step="0.01" min="0" value={linePrice}
                       onChange={(e) => setLinePrice((e.target as HTMLInputElement).value)}
                       className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none"
-                      style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+                      style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
                   </div>
                 </div>
 
@@ -620,7 +620,7 @@ function NewSaleSheet({
                     <span className="text-foreground font-semibold text-[14px]">MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
-                {insufficient && <p className="text-[11px]" style={{ color: "#ffb4ab" }}>⚠ Only {stockHere} pcs available in this warehouse</p>}
+                {insufficient && <p className="text-[11px]" style={{ color: "var(--snm-error)" }}>⚠ Only {stockHere} pcs available in this warehouse</p>}
                 <button onClick={handleAddLine} disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
                   className="w-full h-11 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
                   style={{ background: "var(--foreground)", color: "var(--background)" }}>
@@ -631,12 +631,12 @@ function NewSaleSheet({
 
             {/* Draft lines */}
             {draftLines.length > 0 && (
-              <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                 <p className="px-4 pt-3 pb-2 text-[10px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
                   Order items · {draftLines.length}
                 </p>
                 {draftLines.map((l) => (
-                  <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                  <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
                       <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {l.uom} · MVR {l.unit_price_mvr.toLocaleString()}/{l.uom}</p>
@@ -649,7 +649,7 @@ function NewSaleSheet({
                     </div>
                   </div>
                 ))}
-                <div className="flex justify-between px-4 py-3 text-sm font-semibold" style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}>
+                <div className="flex justify-between px-4 py-3 text-sm font-semibold" style={{ borderTop: "1px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                   <span style={{ color: "var(--muted-foreground)" }}>Total</span>
                   <span className="text-foreground">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </div>
@@ -663,7 +663,7 @@ function NewSaleSheet({
           <div className="space-y-4">
 
             {/* Order total hero */}
-            <div className="rounded-2xl p-5" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="rounded-2xl p-5" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
               <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Order Total</p>
               <p className="text-[36px] font-light tracking-tight text-foreground leading-none mb-1">
                 {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -677,7 +677,7 @@ function NewSaleSheet({
             {/* Line items */}
             <div className="rounded-xl overflow-hidden" style={CARD}>
               {draftLines.map((l, i) => (
-                <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 text-sm" style={{ borderBottom: i < draftLines.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 text-sm" style={{ borderBottom: i < draftLines.length - 1 ? "1px solid var(--glass-border-lo)" : "none" }}>
                   <div className="min-w-0 flex-1">
                     <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {l.uom} · MVR {l.unit_price_mvr.toLocaleString()}/{l.uom}</p>
@@ -694,8 +694,8 @@ function NewSaleSheet({
                 <button
                   onClick={() => setPaymentMethod("bank_transfer")}
                   className="rounded-xl p-4 text-left transition active:scale-95 space-y-2"
-                  style={{ ...CARD, border: paymentMethod === "bank_transfer" ? "2px solid var(--foreground)" : "1px solid rgba(255,255,255,0.08)" }}>
-                  <div className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+                  style={{ ...CARD, border: paymentMethod === "bank_transfer" ? "2px solid var(--foreground)" : "1px solid var(--glass-border-lo)" }}>
+                  <div className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
                     <Smartphone className="h-4 w-4 text-foreground" />
                   </div>
                   <p className="text-[13px] font-semibold text-foreground">Bank Transfer</p>
@@ -704,8 +704,8 @@ function NewSaleSheet({
                 <button
                   onClick={() => setPaymentMethod("cod")}
                   className="rounded-xl p-4 text-left transition active:scale-95 space-y-2"
-                  style={{ ...CARD, border: paymentMethod === "cod" ? "2px solid var(--foreground)" : "1px solid rgba(255,255,255,0.08)" }}>
-                  <div className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+                  style={{ ...CARD, border: paymentMethod === "cod" ? "2px solid var(--foreground)" : "1px solid var(--glass-border-lo)" }}>
+                  <div className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
                     <Banknote className="h-4 w-4 text-foreground" />
                   </div>
                   <p className="text-[13px] font-semibold text-foreground">Cash on Delivery</p>
@@ -721,7 +721,7 @@ function NewSaleSheet({
                 placeholder="e.g. Leave at the gate, call before arriving…"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm text-foreground outline-none resize-none"
-                style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+                style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
             </div>
 
             <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
@@ -735,7 +735,7 @@ function NewSaleSheet({
       <footer className="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-5 h-24 snm-bottom-nav">
         {step === 1 && (
           <>
-            <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)" }}>Cancel</button>
+            <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
             <button disabled={!customerId} onClick={() => setStep(2)}
               className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>
@@ -745,7 +745,7 @@ function NewSaleSheet({
         )}
         {step === 2 && (
           <>
-            <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)" }}>← Back</button>
+            <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
             <button disabled={draftLines.length === 0} onClick={() => setStep(3)}
               className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>
@@ -755,7 +755,7 @@ function NewSaleSheet({
         )}
         {step === 3 && (
           <>
-            <button onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)", color: "var(--foreground)" }}>← Back</button>
+            <button onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
             <button disabled={saving} onClick={handleSubmit}
               className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>

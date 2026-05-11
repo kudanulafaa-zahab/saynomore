@@ -139,9 +139,9 @@ export function UsersManager() {
         <div className="glass p-10 text-center space-y-3">
           <div
             className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+            style={{ background: "var(--glass-bg-2)" }}
           >
-            <Users className="h-6 w-6 text-white" />
+            <Users className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-medium text-foreground">No team members yet</h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -188,7 +188,7 @@ export function UsersManager() {
                       </button>
                       <button
                         onClick={() => setDeleteDialog(u)}
-                        className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                        className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
                         title="Delete"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -221,7 +221,7 @@ export function UsersManager() {
         <DialogContent className="bg-popover border-border">
           <DialogHeader>
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <DialogTitle>Remove team member?</DialogTitle>
@@ -234,7 +234,7 @@ export function UsersManager() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleteDialog(null)}>Cancel</Button>
             <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
+              style={{ background: "var(--snm-error)", color: "var(--background)" }}
               disabled={deleting}
               onClick={async () => {
                 if (!deleteDialog) return;

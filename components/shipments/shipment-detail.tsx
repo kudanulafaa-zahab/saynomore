@@ -45,9 +45,9 @@ const CARD: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "rgba(255,255,255,0.06)",
+  background: "var(--glass-bg-1)",
   color: "var(--foreground)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--glass-border-lo)",
   borderRadius: 10,
   padding: "10px 12px",
   fontSize: 14,
@@ -79,11 +79,11 @@ const STATUS_OPTIONS: { value: ShipmentStatus; label: string }[] = [
 ];
 
 const STATUS_COLOR: Record<ShipmentStatus, string> = {
-  draft:         "rgba(255,255,255,0.15)",
-  ordered:       "rgba(96,165,250,0.3)",
-  in_transit:    "rgba(251,146,60,0.3)",
-  arrived:       "rgba(163,230,53,0.3)",
-  grn_confirmed: "rgba(74,222,128,0.3)",
+  draft:         "var(--glass-border)",
+  ordered:       "color-mix(in srgb, var(--snm-brand) 30%, transparent)",
+  in_transit:    "color-mix(in srgb, var(--snm-warning) 30%, transparent)",
+  arrived:       "color-mix(in srgb, var(--snm-warning) 20%, transparent)",
+  grn_confirmed: "color-mix(in srgb, var(--snm-success) 30%, transparent)",
 };
 
 /* ── Main component ──────────────────────────────────────────────────────── */
@@ -222,7 +222,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <Link href="/shipments" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)", textDecoration: "none", flexShrink: 0 }}>
+        <Link href="/shipments" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "var(--glass-bg-1)", color: "var(--muted-foreground)", textDecoration: "none", flexShrink: 0 }}>
           <ArrowLeft style={{ width: 18, height: 18 }} />
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -231,14 +231,14 @@ export function ShipmentDetail({ id }: { id: string }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {locked && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", background: "rgba(74,222,128,0.12)", color: "#4ade80", borderRadius: 999, padding: "4px 10px" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", background: "color-mix(in srgb, var(--snm-success) 12%, transparent)", color: "var(--snm-success)", borderRadius: 999, padding: "4px 10px" }}>
               <Lock style={{ width: 10, height: 10 }} /> Locked
             </span>
           )}
           {isAdmin && !locked && (
             <button
               onClick={() => setPanel("deleteShipment")}
-              style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,59,48,0.08)", border: "none", color: "#ff3b30", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
               title="Delete shipment"
             >
               <Trash2 style={{ width: 16, height: 16 }} />
@@ -252,9 +252,9 @@ export function ShipmentDetail({ id }: { id: string }) {
         <div>
           <span style={labelStyle}>Status</span>
           {locked ? (
-            <div style={{ ...inputStyle, display: "flex", alignItems: "center", gap: 8, background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)" }}>
-              <Truck style={{ width: 14, height: 14, color: "#4ade80", flexShrink: 0 }} />
-              <span style={{ color: "#4ade80", fontSize: 14, fontWeight: 600 }}>Received</span>
+            <div style={{ ...inputStyle, display: "flex", alignItems: "center", gap: 8, background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+              <Truck style={{ width: 14, height: 14, color: "var(--snm-success)", flexShrink: 0 }} />
+              <span style={{ color: "var(--snm-success)", fontSize: 14, fontWeight: 600 }}>Received</span>
             </div>
           ) : (
             <div style={{ position: "relative" }}>
@@ -356,7 +356,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           />
 
           {preview && (
-            <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+            <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--glass-bg-1)", borderRadius: 10 }}>
               <p style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>= MVR</p>
               <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>{preview.freightMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
             </div>
@@ -375,7 +375,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             <NumberField label="Other"      value={shipment.other_mvr}        onChange={(v) => patch("other_mvr",        v ?? 0)} disabled={locked} compact />
           </div>
           {preview && (
-            <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+            <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--glass-bg-1)", borderRadius: 10 }}>
               <p style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>Total local</p>
               <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>{preview.localMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
             </div>
@@ -394,7 +394,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           ].map((s) => (
             <div key={s.label} style={{ ...CARD, padding: "14px 16px" }}>
               <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</p>
-              <p style={{ color: s.highlight ? "#4ade80" : "var(--foreground)", fontSize: 18, fontWeight: 700 }}>{s.value}</p>
+              <p style={{ color: s.highlight ? "var(--snm-success)" : "var(--foreground)", fontSize: 18, fontWeight: 700 }}>{s.value}</p>
               {s.sub && <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>{s.sub}</p>}
             </div>
           ))}
@@ -427,7 +427,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               const godown  = godowns.find((g) => g.id === l.destination_godown_id);
               const livePer = preview?.lines.find((p) => p.line.id === l.id);
               return (
-                <div key={l.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "14px 16px" }}>
+                <div key={l.id} style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: "14px 16px" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
@@ -447,7 +447,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         >Edit</button>
                         <button
                           onClick={() => { setPendingDeleteLine(l); setPanel("deleteLine"); }}
-                          style={{ background: "none", border: "none", color: "#ff3b30", fontSize: 12, cursor: "pointer", padding: "4px 8px" }}
+                          style={{ background: "none", border: "none", color: "var(--snm-error)", fontSize: 12, cursor: "pointer", padding: "4px 8px" }}
                         >Remove</button>
                       </div>
                     )}
@@ -455,16 +455,16 @@ export function ShipmentDetail({ id }: { id: string }) {
 
                   {/* Per-line landed cost breakdown */}
                   {livePer && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--glass-border-lo)" }}>
                       {[
                         { label: "Total", value: "MVR " + livePer.lineTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
                         { label: "/carton", value: livePer.perCarton.toFixed(0) },
                         { label: "/pack", value: livePer.perPack.toFixed(2) },
                         { label: "/piece", value: livePer.perPiece.toFixed(3), highlight: true },
                       ].map((c) => (
-                        <div key={c.label} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: "8px 10px" }}>
+                        <div key={c.label} style={{ background: "var(--glass-bg-1)", borderRadius: 8, padding: "8px 10px" }}>
                           <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>{c.label}</p>
-                          <p style={{ color: c.highlight ? "#4ade80" : "var(--foreground)", fontSize: 14, fontWeight: 600 }}>{c.value}</p>
+                          <p style={{ color: c.highlight ? "var(--snm-success)" : "var(--foreground)", fontSize: 14, fontWeight: 600 }}>{c.value}</p>
                         </div>
                       ))}
                     </div>
@@ -485,7 +485,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           onClick={() => setPanel("confirmGrn")}
           disabled={!preview || lines.length === 0}
           style={{
-            width: "100%", background: preview && lines.length > 0 ? "var(--foreground)" : "rgba(255,255,255,0.1)",
+            width: "100%", background: preview && lines.length > 0 ? "var(--foreground)" : "var(--glass-bg-2)",
             color: preview && lines.length > 0 ? "var(--background)" : "var(--muted-foreground)",
             border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700,
             letterSpacing: "0.06em", textTransform: "uppercase",
@@ -497,10 +497,10 @@ export function ShipmentDetail({ id }: { id: string }) {
       ) : (
         <>
           {/* Confirmed state */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "rgba(74,222,128,0.08)", borderRadius: 14, border: "1px solid rgba(74,222,128,0.15)", marginBottom: 10 }}>
-            <Truck style={{ color: "#4ade80", width: 20, height: 20, flexShrink: 0 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", borderRadius: 14, border: "1px solid color-mix(in srgb, var(--snm-success) 15%, transparent)", marginBottom: 10 }}>
+            <Truck style={{ color: "var(--snm-success)", width: 20, height: 20, flexShrink: 0 }} />
             <div>
-              <p style={{ color: "#4ade80", fontSize: 14, fontWeight: 700 }}>Goods received — stock live</p>
+              <p style={{ color: "var(--snm-success)", fontSize: 14, fontWeight: 700 }}>Goods received — stock live</p>
               {shipment.grn_confirmed_at && (
                 <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
                   Confirmed {new Date(shipment.grn_confirmed_at).toLocaleString()}
@@ -513,20 +513,20 @@ export function ShipmentDetail({ id }: { id: string }) {
           {isAdmin && (
             <div style={{ ...CARD, padding: 20 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(251,146,60,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <RotateCcw style={{ color: "#fb923c", width: 18, height: 18 }} />
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <RotateCcw style={{ color: "var(--snm-warning)", width: 18, height: 18 }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Made a mistake in the figures?</p>
                   <p style={{ color: "var(--muted-foreground)", fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
                     Once GRN is confirmed, costs are locked to protect stock valuations. To correct a figure, you need to <strong style={{ color: "var(--foreground)" }}>void this GRN</strong> — which removes all inventory batches and stock movements — then re-enter the correct figures and confirm GRN again.
                   </p>
-                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginBottom: 16, padding: "8px 12px", background: "rgba(255,59,48,0.06)", borderRadius: 8, border: "1px solid rgba(255,59,48,0.12)" }}>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginBottom: 16, padding: "8px 12px", background: "color-mix(in srgb, var(--snm-error) 6%, transparent)", borderRadius: 8, border: "1px solid color-mix(in srgb, var(--snm-error) 12%, transparent)" }}>
                     ⚠ If any stock from this shipment has already been sold, voiding will also delete those sales orders.
                   </p>
                   <button
                     onClick={() => setPanel("voidGrn")}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,59,48,0.1)", color: "#ff3b30", border: "1px solid rgba(255,59,48,0.2)", borderRadius: 999, padding: "10px 20px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "1px solid color-mix(in srgb, var(--snm-error) 20%, transparent)", borderRadius: 999, padding: "10px 20px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer" }}
                   >
                     <RotateCcw style={{ width: 14, height: 14 }} /> Void GRN & Re-enter
                   </button>
@@ -542,8 +542,8 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* Confirm GRN */}
       <Sheet open={panel === "confirmGrn"} onClose={() => setPanel(null)}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(251,191,36,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <AlertTriangle style={{ color: "#fbbf24", width: 20, height: 20 }} />
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <AlertTriangle style={{ color: "var(--snm-warning)", width: 20, height: 20 }} />
           </div>
           <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600 }}>Confirm GRN?</h2>
         </div>
@@ -551,13 +551,13 @@ export function ShipmentDetail({ id }: { id: string }) {
           Forex rates and all costs will be <strong style={{ color: "var(--foreground)" }}>permanently locked</strong>. Stock is created in the destination warehouses and becomes available for sale immediately.
         </p>
         {preview && (
-          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16, marginBottom: 24 }}>
+          <div style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 16, marginBottom: 24 }}>
             {[
               { label: "Lines", value: String(lines.length) },
               { label: "Total CBM", value: preview.totalCbm.toFixed(4) },
               { label: "Total Landed (MVR)", value: preview.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }), bold: true },
             ].map((r) => (
-              <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--glass-border-lo)" }}>
                 <span style={{ color: "var(--muted-foreground)", fontSize: 13 }}>{r.label}</span>
                 <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: r.bold ? 700 : 500 }}>{r.value}</span>
               </div>
@@ -566,7 +566,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         )}
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
-          <button onClick={handleConfirmGrn} disabled={confirming} style={{ ...primaryBtn, background: "#16a34a" }}>
+          <button onClick={handleConfirmGrn} disabled={confirming} style={{ ...primaryBtn, background: "var(--snm-success)" }}>
             {confirming ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Confirm & Lock"}
           </button>
         </div>
@@ -575,10 +575,10 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* Void GRN */}
       <Sheet open={panel === "voidGrn"} onClose={() => setPanel(null)}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,59,48,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <AlertTriangle style={{ color: "#ff3b30", width: 20, height: 20 }} />
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <AlertTriangle style={{ color: "var(--snm-error)", width: 20, height: 20 }} />
           </div>
-          <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600 }}>Void GRN & Delete?</h2>
+          <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600 }}>Void GRN & Delete?</h2>
         </div>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> will be completely removed — all inventory batches, stock movements, and any linked sales orders will be deleted. This cannot be undone.
@@ -596,7 +596,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               finally { setVoiding(false); }
             }}
             disabled={voiding}
-            style={{ ...primaryBtn, background: "#ff3b30" }}
+            style={{ ...primaryBtn, background: "var(--snm-error)" }}
           >
             {voiding ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Void & Delete"}
           </button>
@@ -605,7 +605,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
       {/* Delete shipment */}
       <Sheet open={panel === "deleteShipment"} onClose={() => setPanel(null)}>
-        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Shipment?</h2>
+        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Shipment?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> and all its lines will be permanently removed.
         </p>
@@ -622,7 +622,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               finally { setDeletingShipment(false); }
             }}
             disabled={deletingShipment}
-            style={{ ...primaryBtn, background: "#ff3b30" }}
+            style={{ ...primaryBtn, background: "var(--snm-error)" }}
           >
             {deletingShipment ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Delete"}
           </button>
@@ -631,7 +631,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
       {/* Delete line */}
       <Sheet open={panel === "deleteLine"} onClose={() => { setPendingDeleteLine(null); setPanel(null); }}>
-        <h2 style={{ color: "#ff3b30", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove line?</h2>
+        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove line?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
           {pendingDeleteLine && (() => {
             const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
@@ -654,7 +654,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               finally { setDeletingLine(false); }
             }}
             disabled={deletingLine}
-            style={{ ...primaryBtn, background: "#ff3b30" }}
+            style={{ ...primaryBtn, background: "var(--snm-error)" }}
           >
             {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
           </button>
@@ -679,7 +679,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 /* ── Shared button styles ─────────────────────────────────────────────────── */
 
 const ghostBtn: React.CSSProperties = {
-  flex: 1, background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)",
+  flex: 1, background: "var(--glass-bg-1)", color: "var(--muted-foreground)",
   border: "none", borderRadius: 999, padding: "14px", fontSize: 14, cursor: "pointer",
 };
 const primaryBtn: React.CSSProperties = {
@@ -698,7 +698,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
         onClick={(e) => e.stopPropagation()}
         style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "85vh", overflowY: "auto" }}
       >
-        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         {children}
       </div>
     </div>
@@ -863,7 +863,7 @@ function LineDialog({
         onClick={(e) => e.stopPropagation()}
         style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "90vh", overflowY: "auto" }}
       >
-        <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 999, margin: "0 auto 24px" }} />
+        <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{editing ? "Edit Line" : "Add Line"}</h2>
 
         {/* SKU picker */}
@@ -878,12 +878,12 @@ function LineDialog({
                 placeholder="Search brand, model, code…"
                 style={inputStyle}
               />
-              <div style={{ borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", maxHeight: 240, overflowY: "auto", marginTop: 8, background: "rgba(0,0,0,0.3)" }}>
+              <div style={{ borderRadius: 10, border: "1px solid var(--glass-border-lo)", maxHeight: 240, overflowY: "auto", marginTop: 8, background: "var(--glass-bg-1)" }}>
                 {filteredSkus.length === 0 ? (
                   <p style={{ color: "var(--muted-foreground)", fontSize: 13, padding: 12 }}>No matches.</p>
                 ) : filteredSkus.map((s) => (
                   <button key={s.id} onClick={() => setSkuId(s.id)}
-                    style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer" }}
+                    style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid var(--glass-border-lo)", cursor: "pointer" }}
                   >
                     <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{s.brand_name} › {s.model_name} › {s.variant_display}</p>
                     <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
@@ -894,7 +894,7 @@ function LineDialog({
               </div>
             </>
           ) : sku ? (
-            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "12px 14px" }}>
+            <div style={{ background: "var(--glass-bg-1)", borderRadius: 10, padding: "12px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div>
                   <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
@@ -906,13 +906,13 @@ function LineDialog({
               </div>
               {/* CBM verification row — always shows what will be saved */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 10px" }}>
+                <div style={{ background: "var(--glass-bg-1)", borderRadius: 8, padding: "8px 10px" }}>
                   <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>CBM / carton (from SKU)</p>
-                  <p style={{ color: "#4ade80", fontSize: 15, fontWeight: 700 }}>{Number(sku.cbm_per_carton).toFixed(6)}</p>
+                  <p style={{ color: "var(--snm-success)", fontSize: 15, fontWeight: 700 }}>{Number(sku.cbm_per_carton).toFixed(6)}</p>
                   <p style={{ color: "var(--muted-foreground)", fontSize: 9, marginTop: 1 }}>{sku.carton_length_cm} × {sku.carton_width_cm} × {sku.carton_height_cm} cm</p>
                 </div>
                 {qtyCartons && !isNaN(parseInt(qtyCartons)) && parseInt(qtyCartons) > 0 && (
-                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 10px" }}>
+                  <div style={{ background: "var(--glass-bg-1)", borderRadius: 8, padding: "8px 10px" }}>
                     <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>Total CBM ({qtyCartons} ctn)</p>
                     <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 700 }}>{(Number(sku.cbm_per_carton) * parseInt(qtyCartons)).toFixed(4)}</p>
                   </div>
@@ -958,7 +958,7 @@ function LineDialog({
             </select>
             <ChevronDown style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--muted-foreground)", pointerEvents: "none" }} />
           </div>
-          {godowns.length === 0 && <p style={{ color: "#fb923c", fontSize: 11, marginTop: 4 }}>No warehouses yet — add one in Settings.</p>}
+          {godowns.length === 0 && <p style={{ color: "var(--snm-warning)", fontSize: 11, marginTop: 4 }}>No warehouses yet — add one in Settings.</p>}
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>

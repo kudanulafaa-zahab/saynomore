@@ -592,8 +592,8 @@ export function CascadeDeleteDialog({
       <DialogContent className="bg-popover border-border max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-red-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
+              <AlertTriangle className="h-4 w-4" />
             </div>
             <DialogTitle>Delete {target.kind}</DialogTitle>
           </div>
@@ -618,7 +618,7 @@ export function CascadeDeleteDialog({
           <Button
             onClick={go}
             disabled={!matches || busy}
-            className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+            style={{ background: "var(--snm-error)", color: "var(--background)" }} className="disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `Delete ${target.kind}`}
           </Button>

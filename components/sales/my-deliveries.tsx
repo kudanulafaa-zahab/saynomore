@@ -113,9 +113,9 @@ export function MyDeliveries() {
         <div className="glass p-10 text-center space-y-3">
           <div
             className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+            style={{ background: "var(--glass-bg-2)" }}
           >
-            <Truck className="h-6 w-6 text-white" />
+            <Truck className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-medium text-foreground">All caught up</h3>
           <p className="text-sm text-muted-foreground">
@@ -209,7 +209,7 @@ export function MyDeliveries() {
                     {order.status === "picked" && (
                       <Button
                         onClick={() => setStatus(order.id, { status: "out_for_delivery" })}
-                        className="w-full h-12 text-base bg-purple-600 hover:bg-purple-700 text-white"
+                        className="w-full h-12 text-base" style={{ background: "var(--snm-brand)", color: "var(--background)" }}
                       >
                         <Truck className="h-5 w-5 mr-2" />
                         Out for delivery
@@ -220,7 +220,7 @@ export function MyDeliveries() {
                         {isCod ? (
                           <Button
                             onClick={() => setCashDialog({ open: true, order })}
-                            className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="w-full h-12 text-base" style={{ background: "var(--snm-success)", color: "var(--background)" }}
                           >
                             <CheckCircle2 className="h-5 w-5 mr-2" />
                             Delivered + Collect cash
@@ -228,7 +228,7 @@ export function MyDeliveries() {
                         ) : (
                           <Button
                             onClick={() => setStatus(order.id, { status: "delivered", delivered_at: new Date().toISOString() })}
-                            className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="w-full h-12 text-base" style={{ background: "var(--snm-success)", color: "var(--background)" }}
                           >
                             <CheckCircle2 className="h-5 w-5 mr-2" />
                             Delivered
@@ -309,7 +309,7 @@ function CashCollectDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !amount} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={save} disabled={saving || !amount} style={{ background: "var(--snm-success)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mark delivered"}
           </Button>
         </DialogFooter>

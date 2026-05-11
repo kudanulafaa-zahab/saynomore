@@ -83,9 +83,9 @@ export function GodownsManager() {
         <div className="glass p-10 text-center space-y-3">
           <div
             className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+            style={{ background: "var(--glass-bg-2)" }}
           >
-            <Warehouse className="h-6 w-6 text-white" />
+            <Warehouse className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-medium text-foreground">No godowns yet</h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -143,7 +143,7 @@ export function GodownsManager() {
                       try { await deleteGodown(g.id); toast.success("Deleted"); load(); }
                       catch (e) { toast.error((e as Error).message); }
                     }}
-                    className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition"
+                    className="p-2 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
                     title="Delete (admin)"
                   >
                     <Trash2 className="h-4 w-4" />

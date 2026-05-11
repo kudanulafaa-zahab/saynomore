@@ -110,7 +110,7 @@ export function CategoriesManager() {
                   try { await deleteCategory(c.id); toast.success("Deleted"); load(); }
                   catch (e) { toast.error((e as Error).message); }
                 }}
-                className="p-2 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-500/10 transition shrink-0"
+                className="p-2 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition shrink-0"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

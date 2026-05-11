@@ -53,10 +53,10 @@ const STATUS_LABEL: Record<ShipmentStatus, string> = {
 
 const STATUS_COLOR: Record<ShipmentStatus, { bg: string; text: string; dot: string }> = {
   draft:         { bg: "var(--muted)",             text: "var(--muted-foreground)", dot: "var(--muted-foreground)" },
-  ordered:       { bg: "rgba(255,64,0,0.10)",      text: "var(--snm-brand)",        dot: "var(--snm-brand)"        },
-  in_transit:    { bg: "rgba(251,146,60,0.15)",    text: "var(--snm-warning)",      dot: "var(--snm-warning)"      },
-  arrived:       { bg: "rgba(251,146,60,0.10)",    text: "var(--snm-warning)",      dot: "var(--snm-warning)"      },
-  grn_confirmed: { bg: "rgba(74,222,128,0.15)",    text: "var(--snm-success)",      dot: "var(--snm-success)"      },
+  ordered:       { bg: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",   text: "var(--snm-brand)",    dot: "var(--snm-brand)"    },
+  in_transit:    { bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", text: "var(--snm-warning)", dot: "var(--snm-warning)" },
+  arrived:       { bg: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", text: "var(--snm-warning)", dot: "var(--snm-warning)" },
+  grn_confirmed: { bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)", text: "var(--snm-success)", dot: "var(--snm-success)" },
 };
 
 const STATUS_ICON: Record<ShipmentStatus, typeof Truck> = {
@@ -73,8 +73,8 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
       {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-[#444748] transition"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
       />
     </div>
   );
@@ -88,7 +88,7 @@ function GlassSelect({ label, value, onChange, children }: { label?: string; val
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
-        style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
       >
         {children}
       </select>
@@ -162,7 +162,7 @@ export function ShipmentsList() {
         <button
           onClick={() => setNewDialog(true)}
           className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
-          style={{ background: "#ffffff", color: "#2f3131" }}
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
           <Plus className="h-4 w-4" />
           New Batch
@@ -173,7 +173,7 @@ export function ShipmentsList() {
       <div className="flex gap-2">
         <div
           className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12"
-          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
         >
           <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input
@@ -191,7 +191,7 @@ export function ShipmentsList() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
           className="h-12 rounded-2xl px-4 text-sm text-foreground outline-none appearance-none"
-          style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
         >
           <option value="all">All Status</option>
           {(Object.keys(STATUS_LABEL) as ShipmentStatus[]).map((s) => (
@@ -203,7 +203,7 @@ export function ShipmentsList() {
       {/* ── Empty state ── */}
       {filtered.length === 0 ? (
         <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
-          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
             <Truck className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-semibold text-foreground">
@@ -218,7 +218,7 @@ export function ShipmentsList() {
             <button
               onClick={() => setNewDialog(true)}
               className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
-              style={{ background: "#ffffff", color: "#2f3131" }}
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Create first shipment
             </button>
@@ -271,7 +271,7 @@ export function ShipmentsList() {
                       <button
                         onClick={() => setEditDialog(s)}
                         className="h-8 w-8 rounded-lg flex items-center justify-center transition"
-                        style={{ background: "rgba(255,255,255,0.06)", color: "var(--muted-foreground)" }}
+                        style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}
                         title="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -281,7 +281,7 @@ export function ShipmentsList() {
                       <button
                         onClick={() => setDeleteDialog(s)}
                         className="h-8 w-8 rounded-lg flex items-center justify-center transition"
-                        style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}
+                        style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}
                         title="Delete"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -323,7 +323,7 @@ export function ShipmentsList() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,180,171,0.15)", color: "#ffb4ab" }}>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div>
@@ -338,7 +338,7 @@ export function ShipmentsList() {
               <button
                 onClick={() => setDeleteDialog(null)}
                 className="flex-1 h-12 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}
+                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
               >
                 Cancel
               </button>
@@ -358,7 +358,7 @@ export function ShipmentsList() {
                   }
                 }}
                 className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                style={{ background: "rgba(255,180,171,0.20)", color: "#ffb4ab", border: "1px solid rgba(255,180,171,0.20)" }}
+                style={{ background: "var(--snm-error)", color: "var(--background)" }}
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
@@ -406,7 +406,7 @@ function NewShipmentModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-5" style={CARD_L2}>
         <div className="flex items-center gap-3 mb-1">
-          <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
             <Factory className="h-5 w-5 text-foreground" />
           </div>
           <div>
@@ -430,7 +430,7 @@ function NewShipmentModal({
         </GlassSelect>
 
         {suppliers.length === 0 && (
-          <p className="text-[11px]" style={{ color: "#fb923c" }}>
+          <p className="text-[11px]" style={{ color: "var(--snm-warning)" }}>
             No suppliers yet. Add one under Vendors first.
           </p>
         )}
@@ -439,7 +439,7 @@ function NewShipmentModal({
           <button
             onClick={onClose}
             className="flex-1 h-12 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}
+            style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
           >
             Cancel
           </button>
@@ -447,7 +447,7 @@ function NewShipmentModal({
             onClick={save}
             disabled={saving || !reference.trim()}
             className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-            style={{ background: "#ffffff", color: "#2f3131" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Create Batch"}
           </button>
@@ -503,12 +503,12 @@ function EditShipmentModal({
         <GlassInput label="NOTES" value={notes} onChange={(e) => setNotes((e.target as HTMLInputElement).value)} placeholder="Optional" />
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={save}
             disabled={saving || !reference.trim()}
             className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-            style={{ background: "#ffffff", color: "#2f3131" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Save Changes"}
           </button>

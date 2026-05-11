@@ -207,7 +207,7 @@ export function CompetitorsView() {
           <button
             onClick={() => setPriceDialog({ open: true })}
             className="flex items-center gap-2 h-11 px-4 rounded-full text-sm font-bold transition active:scale-95"
-            style={{ background: "rgba(255,255,255,0.10)", color: "var(--foreground)", border: "1px solid rgba(255,255,255,0.10)" }}
+            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)" }}
           >
             <Tag className="h-4 w-4" />
             Log Price
@@ -237,7 +237,7 @@ export function CompetitorsView() {
               }
             }}
             className="h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none w-full"
-            style={{ ...CARD, border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
           >
             {skus.filter((s) => s.is_active).map((s) => (
               <option key={s.id} value={s.id}>
@@ -307,7 +307,7 @@ export function CompetitorsView() {
                   ctn <span className="text-foreground font-semibold">MVR {fmt2(Number(simSku.selling_price_per_carton_mvr))}</span>
                 </p>
                 {simSku.target_margin_pct != null && (
-                  <p className="text-[10px]" style={{ color: "#4ade80" }}>{simSku.target_margin_pct}% margin</p>
+                  <p className="text-[10px]" style={{ color: "var(--snm-success)" }}>{simSku.target_margin_pct}% margin</p>
                 )}
               </div>
             ) : (
@@ -320,10 +320,10 @@ export function CompetitorsView() {
       {/* ── Margin Simulator ── */}
       {simSku && landedPerPiece > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
-          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Margin Simulator</h2>
             {/* Unit toggle */}
-            <div className="flex rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <div className="flex rounded-lg overflow-hidden" style={{ background: "var(--glass-bg-1)" }}>
               {(["piece", "pack", "carton"] as const).map((m) => (
                 <button
                   key={m}
@@ -346,7 +346,7 @@ export function CompetitorsView() {
               <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>
                 SELLING PRICE — {simLabel.toUpperCase()}
               </p>
-              <div className="flex items-center justify-between rounded-xl px-5 py-4 gap-4" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div className="flex items-center justify-between rounded-xl px-5 py-4 gap-4" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
                 <button
                   onClick={() => setSimDisplayPrice(Math.max(0, simDisplayPrice - (simMode === "carton" ? 10 : 1)))}
                   className="text-[24px] font-light text-foreground/60 hover:text-foreground transition w-10 text-center"
@@ -379,9 +379,9 @@ export function CompetitorsView() {
                 { label: "Per carton", value: cartonPrice, landed: landedPerCarton },
               ].map(({ label, value, landed }) => {
                 const margin = landed > 0 ? ((value - landed) / value) * 100 : 0;
-                const color = margin >= 20 ? "#4ade80" : margin >= 5 ? "#fb923c" : "#ffb4ab";
+                const color = margin >= 20 ? "var(--snm-success)" : margin >= 5 ? "var(--snm-warning)" : "var(--snm-error)";
                 return (
-                  <div key={label} className="rounded-xl p-3 text-center space-y-1" style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <div key={label} className="rounded-xl p-3 text-center space-y-1" style={{ background: "var(--glass-bg-1)" }}>
                     <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <p className="text-[16px] font-semibold text-foreground">MVR {fmt2(value)}</p>
                     <p className="text-[11px] font-medium" style={{ color }}>{margin.toFixed(1)}%</p>
@@ -392,7 +392,7 @@ export function CompetitorsView() {
 
             {/* Competitor gap row (if data exists) */}
             {topCompPerPiece != null && (
-              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
                 <div>
                   <p className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
                     vs <span className="text-foreground">{topCompEntry?.comp?.name}</span> (cheapest)
@@ -402,7 +402,7 @@ export function CompetitorsView() {
                 <div className="text-right">
                   {(() => {
                     const delta = piecePrice - topCompPerPiece;
-                    const col = delta <= 0 ? "#4ade80" : "#fb923c";
+                    const col = delta <= 0 ? "var(--snm-success)" : "var(--snm-warning)";
                     return (
                       <p className="text-[13px] font-bold" style={{ color: col }}>
                         {delta <= 0 ? "▼ " : "▲ "}{Math.abs(delta).toFixed(2)} MVR/pc
@@ -421,7 +421,7 @@ export function CompetitorsView() {
               onClick={handleSetPrice}
               disabled={saving || !landedPerPack || packPrice <= landedPerPack}
               className="w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest transition active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: isPriceChanged ? "var(--foreground)" : "rgba(255,255,255,0.08)", color: isPriceChanged ? "var(--background)" : "var(--muted-foreground)" }}
+              style={{ background: isPriceChanged ? "var(--foreground)" : "var(--glass-bg-2)", color: isPriceChanged ? "var(--background)" : "var(--muted-foreground)" }}
             >
               {saving
                 ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -436,11 +436,11 @@ export function CompetitorsView() {
       {/* ── Per-Piece Comparison Table ── */}
       {perPieceComparison.length > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Price Comparison</h2>
             <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>All prices normalised to per piece · sorted cheapest first</p>
           </div>
-          <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+          <div className="divide-y divide-border">
             {perPieceComparison.map(({ vid, sku, normalized }) => {
               const ourCost = sku.landed_per_piece_mvr;
               return (
@@ -455,12 +455,12 @@ export function CompetitorsView() {
                   <div className="space-y-2">
                     {normalized.map(({ price, competitor, pricePiece }) => {
                       const delta = ourCost != null && pricePiece != null ? pricePiece - Number(ourCost) : null;
-                      const deltaColor = delta == null ? "var(--muted-foreground)" : delta > 0 ? "#4ade80" : "#ffb4ab";
+                      const deltaColor = delta == null ? "var(--muted-foreground)" : delta > 0 ? "var(--snm-success)" : "var(--snm-error)";
                       return (
-                        <div key={price.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                        <div key={price.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "var(--glass-bg-1)" }}>
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.07)" }}>
-                              <Store className="h-3.5 w-3.5 text-white" />
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--glass-bg-2)" }}>
+                              <Store className="h-3.5 w-3.5 text-foreground" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-[13px] font-medium text-foreground truncate">{competitor?.name ?? "Unknown"}</p>
@@ -490,19 +490,19 @@ export function CompetitorsView() {
                       );
                     })}
                     {sku.selling_price_per_piece_mvr != null && (
-                      <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.20)" }}>
+                      <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(99,102,241,0.20)" }}>
-                            <Tag className="h-3.5 w-3.5" style={{ color: "#818cf8" }} />
+                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
+                            <Tag className="h-3.5 w-3.5" style={{ color: "var(--snm-brand)" }} />
                           </div>
                           <div>
-                            <p className="text-[13px] font-medium" style={{ color: "#c7d2fe" }}>Our Selling Price</p>
-                            <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.6)" }}>{sku.target_margin_pct}% margin</p>
+                            <p className="text-[13px] font-medium" style={{ color: "var(--snm-brand)" }}>Our Selling Price</p>
+                            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{sku.target_margin_pct}% margin</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-[14px] font-semibold" style={{ color: "#c7d2fe" }}>MVR {fmt2(Number(sku.selling_price_per_piece_mvr))}<span className="text-[10px] opacity-60">/pc</span></p>
-                          <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.6)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
+                          <p className="text-[14px] font-semibold" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(Number(sku.selling_price_per_piece_mvr))}<span className="text-[10px] opacity-60">/pc</span></p>
+                          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
                         </div>
                       </div>
                     )}
@@ -521,14 +521,14 @@ export function CompetitorsView() {
           <button
             onClick={() => setCompetitorDialog({ open: true })}
             className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
-            style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
+            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
           >
             + Add
           </button>
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-3 rounded-xl px-4 h-11 mb-3" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-3 rounded-xl px-4 h-11 mb-3" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
           <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input
             value={q}
@@ -540,10 +540,10 @@ export function CompetitorsView() {
 
         {filtered.length === 0 ? (
           <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
-            <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.08)" }}>
-              <Store className="h-6 w-6 text-white" />
+            <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
+              <Store className="h-6 w-6 text-foreground" />
             </div>
-            <h3 className="text-base font-semibold text-white">No competitors yet</h3>
+            <h3 className="text-base font-semibold text-foreground">No competitors yet</h3>
             <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
               Add competitors to start tracking their prices.
             </p>
@@ -560,11 +560,11 @@ export function CompetitorsView() {
                 <div key={comp.id} className="rounded-2xl overflow-hidden" style={CARD}>
                   <div className="px-4 py-3 flex items-center justify-between gap-3">
                     <button onClick={() => toggleExpanded(comp.id)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
-                      <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}>
-                        <Store className="h-4 w-4 text-white" />
+                      <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-bg-2)" }}>
+                        <Store className="h-4 w-4 text-foreground" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[14px] font-semibold text-white">{comp.name}</p>
+                        <p className="text-[14px] font-semibold text-foreground">{comp.name}</p>
                         <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                           {compPrices.length} price{compPrices.length !== 1 ? "s" : ""} logged
                           {comp.notes ? ` · ${comp.notes}` : ""}
@@ -578,25 +578,25 @@ export function CompetitorsView() {
                       <button
                         onClick={() => setPriceDialog({ open: true, competitorId: comp.id })}
                         className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
-                        style={{ background: "rgba(255,255,255,0.08)", color: "var(--foreground)" }}
+                        style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
                       >
                         + Price
                       </button>
-                      <button onClick={() => setCompetitorDialog({ open: true, editing: comp })} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}>
+                      <button onClick={() => setCompetitorDialog({ open: true, editing: comp })} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setDeleteCompDialog(comp)} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}>
+                      <button onClick={() => setDeleteCompDialog(comp)} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
 
                   {isExpanded && (
-                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
                       {compPrices.length === 0 ? (
                         <div className="px-4 py-4 text-center">
                           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
-                          <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-white opacity-60 hover:opacity-100 mt-1">Log first price</button>
+                          <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-foreground opacity-60 hover:opacity-100 mt-1">Log first price</button>
                         </div>
                       ) : (
                         compPrices.map((p) => {
@@ -604,17 +604,17 @@ export function CompetitorsView() {
                           return (
                             <div
                               key={p.id}
-                              className="px-4 py-3 flex items-start justify-between gap-3 transition"
-                              style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+                              className="px-4 py-3 flex items-start justify-between gap-3"
+                              style={{ borderBottom: "1px solid var(--glass-border-lo)" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--glass-bg-1)")}
                               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             >
                               <div className="min-w-0 flex-1">
-                                <p className="text-[13px] text-white truncate">
+                                <p className="text-[13px] text-foreground truncate">
                                   {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown"}
                                 </p>
                                 <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                                  <span className="text-white font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
+                                  <span className="text-foreground font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
                                   {" "}{BASIS_LABEL[p.price_basis]}
                                   {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/pk` : ""}
                                   {" · "}{new Date(p.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
@@ -622,10 +622,10 @@ export function CompetitorsView() {
                                 {p.notes && <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
-                                <button onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "#8e9192" }}>
+                                <button onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
                                   <Pencil className="h-3 w-3" />
                                 </button>
-                                <button onClick={() => setDeletePriceDialog(p)} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,180,171,0.08)", color: "#ffb4ab" }}>
+                                <button onClick={() => setDeletePriceDialog(p)} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
                                   <Trash2 className="h-3 w-3" />
                                 </button>
                               </div>
@@ -664,15 +664,15 @@ export function CompetitorsView() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,180,171,0.15)", color: "#ffb4ab" }}><AlertTriangle className="h-5 w-5" /></div>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}><AlertTriangle className="h-5 w-5" /></div>
               <div>
-                <p className="text-[15px] font-bold text-white">Delete competitor?</p>
+                <p className="text-[15px] font-bold text-foreground">Delete competitor?</p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{deleteCompDialog.name}</p>
               </div>
             </div>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>All logged prices will also be removed.</p>
             <div className="flex gap-2">
-              <button onClick={() => setDeleteCompDialog(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
+              <button onClick={() => setDeleteCompDialog(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
               <button
                 disabled={deleting}
                 onClick={async () => {
@@ -682,7 +682,7 @@ export function CompetitorsView() {
                   finally { setDeleting(false); }
                 }}
                 className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                style={{ background: "rgba(255,180,171,0.20)", color: "#ffb4ab", border: "1px solid rgba(255,180,171,0.20)" }}
+                style={{ background: "var(--snm-error)", color: "var(--background)" }}
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
@@ -693,10 +693,10 @@ export function CompetitorsView() {
       {deletePriceDialog && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
-            <p className="text-[15px] font-bold text-white">Remove price entry?</p>
+            <p className="text-[15px] font-bold text-foreground">Remove price entry?</p>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
             <div className="flex gap-2">
-              <button onClick={() => setDeletePriceDialog(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
+              <button onClick={() => setDeletePriceDialog(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
               <button
                 disabled={deleting}
                 onClick={async () => {
@@ -706,7 +706,7 @@ export function CompetitorsView() {
                   finally { setDeleting(false); }
                 }}
                 className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                style={{ background: "rgba(255,180,171,0.20)", color: "#ffb4ab", border: "1px solid rgba(255,180,171,0.20)" }}
+                style={{ background: "var(--snm-error)", color: "var(--background)" }}
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
@@ -742,17 +742,17 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4" style={CARD_L2}>
-        <p className="text-[16px] font-bold text-white">{editing ? "Edit Competitor" : "Add Competitor"}</p>
+        <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
           <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748]" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
         <div className="space-y-1.5">
           <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-[#444748] resize-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button onClick={save} disabled={saving || !name.trim()} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Add"}
           </button>
@@ -836,13 +836,13 @@ function PriceModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={CARD_L2}>
-        <p className="text-[16px] font-bold text-white">{editing ? "Edit Price" : "Log Competitor Price"}</p>
+        <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Price" : "Log Competitor Price"}</p>
 
         {/* Competitor selector — show all, or allow adding inline */}
         <div className="space-y-1.5">
           <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
           {competitors.length > 0 ? (
-            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
               <option value="">Pick competitor</option>
               {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -856,10 +856,10 @@ function PriceModal({
           <p className="label-caps text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!variantId ? (
             <>
-              <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748] mb-2" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+              <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
               <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
                 {filteredVariants.map((s) => (
-                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-white transition" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-foreground" style={{ borderBottom: "1px solid var(--glass-border-lo)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--glass-bg-1)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                     <p className="font-medium">{s.brand_name} · {s.model_name} · {s.variant_display}</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
                   </button>
@@ -868,12 +868,12 @@ function PriceModal({
               </div>
             </>
           ) : selectedSku ? (
-            <div className="rounded-xl p-3 flex justify-between items-start" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="rounded-xl p-3 flex justify-between items-start" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
               <div>
-                <p className="text-[13px] text-white">{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
+                <p className="text-[13px] text-foreground">{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
               </div>
-              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="text-[11px] text-white opacity-60 hover:opacity-100">Change</button>
+              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
             </div>
           ) : null}
         </div>
@@ -881,11 +881,11 @@ function PriceModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
-            <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+            <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
           </div>
           <div className="space-y-1.5">
             <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
-            <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
               {(Object.keys(BASIS_LABEL) as PriceBasis[]).map((b) => <option key={b} value={b}>{BASIS_LABEL[b]}</option>)}
             </select>
           </div>
@@ -893,9 +893,9 @@ function PriceModal({
 
         {/* Live per-piece preview */}
         {perPiecePreview != null && (
-          <div className="rounded-xl px-4 py-3 text-center" style={{ background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.20)" }}>
-            <p className="text-[11px]" style={{ color: "rgba(199,210,254,0.7)" }}>
-              = <span className="font-bold text-[14px]" style={{ color: "#c7d2fe" }}>MVR {fmt2(perPiecePreview)}</span> per piece
+          <div className="rounded-xl px-4 py-3 text-center" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              = <span className="font-bold text-[14px]" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
             </p>
           </div>
         )}
@@ -903,22 +903,22 @@ function PriceModal({
         {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
           <div className="space-y-1.5">
             <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
-            <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none placeholder:text-[#444748]" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+            <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
           </div>
         )}
 
         <div className="space-y-1.5">
           <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
-          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-white outline-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="space-y-1.5">
           <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-[#444748] resize-none" style={{ ...CARD, border: "1px solid rgba(255,255,255,0.06)" }} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button onClick={save} disabled={saving || !selectedCompId || !variantId || !priceMvr} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Log Price"}
           </button>
