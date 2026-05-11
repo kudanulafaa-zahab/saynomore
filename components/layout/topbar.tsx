@@ -37,7 +37,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       <div className="flex items-center gap-2.5">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-bold"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
+          style={{ background: "var(--snm-brand)", color: "#ffffff" }}
         >
           S
         </div>
@@ -90,7 +90,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors"
-                style={{ color: "var(--snm-error, #ffb4ab)" }}
+                style={{ color: "var(--snm-error)" }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,59,48,0.08)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
@@ -104,3 +104,4 @@ export function Topbar({ name, role }: { name: string; role: string }) {
     </header>
   );
 }
+

@@ -43,12 +43,12 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 };
 
 const STATUS_COLOR: Record<OrderStatus, { bg: string; text: string }> = {
-  draft:            { bg: "rgba(255,255,255,0.06)", text: "#8e9192" },
-  confirmed:        { bg: "rgba(255,255,255,0.10)", text: "#ffffff" },
-  picked:           { bg: "rgba(251,146,60,0.15)",  text: "#fb923c" },
-  out_for_delivery: { bg: "rgba(196,199,200,0.12)", text: "#c4c7c8" },
-  delivered:        { bg: "rgba(74,222,128,0.15)",  text: "#4ade80" },
-  cancelled:        { bg: "rgba(255,180,171,0.12)", text: "#ffb4ab" },
+  draft:            { bg: "var(--muted)",                   text: "var(--muted-foreground)" },
+  confirmed:        { bg: "rgba(255,64,0,0.10)",            text: "var(--snm-brand)"        },
+  picked:           { bg: "rgba(251,146,60,0.15)",          text: "var(--snm-warning)"      },
+  out_for_delivery: { bg: "rgba(251,146,60,0.10)",          text: "var(--snm-warning)"      },
+  delivered:        { bg: "rgba(74,222,128,0.15)",          text: "var(--snm-success)"      },
+  cancelled:        { bg: "rgba(255,180,171,0.10)",         text: "var(--snm-error)"        },
 };
 
 const STATUS_ICON: Record<OrderStatus, typeof Clock> = {

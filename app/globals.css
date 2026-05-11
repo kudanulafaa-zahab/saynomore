@@ -41,6 +41,11 @@
   --radius-2xl: calc(var(--radius) * 2);
   --radius-3xl: calc(var(--radius) * 2.5);
 
+  /* Brand */
+  --snm-brand: #FF4000;
+  --snm-brand-muted: rgba(255, 64, 0, 0.12);
+  --snm-brand-border: rgba(255, 64, 0, 0.25);
+
   /* Semantic tokens shared across modes */
   --snm-error: #ffb4ab;
   --snm-success: #4ade80;
@@ -50,6 +55,10 @@
 /* ── LIGHT MODE ─────────────────────────────────────────────────────────── */
 :root {
   color-scheme: light dark;
+  /* Light-mode semantic overrides */
+  --snm-success: #16a34a;
+  --snm-error: #dc2626;
+  --snm-warning: #d97706;
 
   --background: #f2f2f7;
   --foreground: #1c1c1e;
@@ -161,6 +170,9 @@
 /* .light class — for manual toggle override */
 .light {
   color-scheme: light;
+  --snm-success: #16a34a;
+  --snm-error: #dc2626;
+  --snm-warning: #d97706;
 
   --background: #f2f2f7;
   --foreground: #1c1c1e;

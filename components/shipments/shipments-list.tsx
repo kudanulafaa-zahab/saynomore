@@ -52,11 +52,11 @@ const STATUS_LABEL: Record<ShipmentStatus, string> = {
 };
 
 const STATUS_COLOR: Record<ShipmentStatus, { bg: string; text: string; dot: string }> = {
-  draft:         { bg: "rgba(255,255,255,0.06)",  text: "#8e9192",  dot: "#8e9192"  },
-  ordered:       { bg: "rgba(255,255,255,0.10)",  text: "#ffffff",  dot: "#ffffff"  },
-  in_transit:    { bg: "rgba(251,146,60,0.15)",   text: "#fb923c",  dot: "#fb923c"  },
-  arrived:       { bg: "rgba(196,199,200,0.12)",  text: "#c4c7c8",  dot: "#c4c7c8"  },
-  grn_confirmed: { bg: "rgba(74,222,128,0.15)",   text: "#4ade80",  dot: "#4ade80"  },
+  draft:         { bg: "var(--muted)",             text: "var(--muted-foreground)", dot: "var(--muted-foreground)" },
+  ordered:       { bg: "rgba(255,64,0,0.10)",      text: "var(--snm-brand)",        dot: "var(--snm-brand)"        },
+  in_transit:    { bg: "rgba(251,146,60,0.15)",    text: "var(--snm-warning)",      dot: "var(--snm-warning)"      },
+  arrived:       { bg: "rgba(251,146,60,0.10)",    text: "var(--snm-warning)",      dot: "var(--snm-warning)"      },
+  grn_confirmed: { bg: "rgba(74,222,128,0.15)",    text: "var(--snm-success)",      dot: "var(--snm-success)"      },
 };
 
 const STATUS_ICON: Record<ShipmentStatus, typeof Truck> = {

@@ -120,7 +120,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         border: isLow
-          ? "1px solid color-mix(in srgb, var(--snm-error, #ffb4ab) 30%, transparent)"
+          ? "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)"
           : "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
       }}
     >
@@ -128,7 +128,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
       <div className="px-4 pt-4 pb-3 flex items-start gap-3">
         <div
           className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-          style={{ background: isLow ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)" }}
+          style={{ background: isLow ? "var(--snm-error)" : "var(--snm-success)" }}
         />
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-semibold text-foreground leading-snug">
@@ -145,7 +145,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         <div className="text-right shrink-0 ml-2">
           <p
             className="text-[22px] font-bold leading-none tracking-tight"
-            style={{ color: isLow ? "var(--snm-error, #ffb4ab)" : "var(--foreground)" }}
+            style={{ color: isLow ? "var(--snm-error)" : "var(--foreground)" }}
           >
             {totalCtns}
             <span className="text-[13px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
@@ -249,12 +249,12 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             <div
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
               style={{
-                background: "color-mix(in srgb, var(--snm-error, #ffb4ab) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--snm-error, #ffb4ab) 20%, transparent)",
+                background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--snm-error) 20%, transparent)",
               }}
             >
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-error, #ffb4ab)" }} />
-              <p className="text-[12px]" style={{ color: "var(--snm-error, #ffb4ab)" }}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-error)" }} />
+              <p className="text-[12px]" style={{ color: "var(--snm-error)" }}>
                 Only {totalCtns} carton{totalCtns !== 1 ? "s" : ""} left — consider reordering.
               </p>
             </div>
@@ -371,7 +371,7 @@ export function InventoryView() {
           label="Low Stock"
           value={String(lowStockCount)}
           sub={lowStockCount > 0 ? "SKUs below 5 cartons" : "All OK"}
-          accent={lowStockCount > 0 ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)"}
+          accent={lowStockCount > 0 ? "var(--snm-error)" : "var(--snm-success)"}
         />
       </div>
 
@@ -416,7 +416,7 @@ export function InventoryView() {
                   <div className="flex items-center gap-2">
                     <div
                       className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ background: brandData.hasLow ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)" }}
+                      style={{ background: brandData.hasLow ? "var(--snm-error)" : "var(--snm-success)" }}
                     />
                     <p className="text-[13px] font-bold uppercase tracking-wider text-foreground">{brand}</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
@@ -451,3 +451,4 @@ export function InventoryView() {
     </div>
   );
 }
+

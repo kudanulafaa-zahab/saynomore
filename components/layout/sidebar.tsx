@@ -33,13 +33,13 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href}
       className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all"
       style={{
-        background: active ? "var(--secondary)" : "transparent",
-        color: active ? "var(--foreground)" : "var(--muted-foreground)",
+        background: active ? "var(--snm-brand-muted)" : "transparent",
+        color: active ? "var(--snm-brand)" : "var(--muted-foreground)",
       }}
     >
       <Icon
         className="h-[15px] w-[15px] shrink-0"
-        style={{ opacity: active ? 1 : 0.65 }}
+        style={{ opacity: active ? 1 : 0.6 }}
       />
       {item.label}
     </Link>
@@ -69,7 +69,7 @@ export function Sidebar({ role }: { role: string }) {
         <div className="flex items-center gap-2.5">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
+            style={{ background: "var(--snm-brand)", color: "#ffffff" }}
           >
             S
           </div>
@@ -116,11 +116,11 @@ export function Sidebar({ role }: { role: string }) {
             href="/settings"
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all"
             style={{
-              background: pathname === "/settings" ? "var(--secondary)" : "transparent",
-              color: pathname === "/settings" ? "var(--foreground)" : "var(--muted-foreground)",
+              background: pathname === "/settings" ? "var(--snm-brand-muted)" : "transparent",
+              color: pathname === "/settings" ? "var(--snm-brand)" : "var(--muted-foreground)",
             }}
           >
-            <Settings className="h-[15px] w-[15px] shrink-0" style={{ opacity: pathname === "/settings" ? 1 : 0.65 }} />
+            <Settings className="h-[15px] w-[15px] shrink-0" style={{ opacity: pathname === "/settings" ? 1 : 0.6 }} />
             Settings
           </Link>
         </div>

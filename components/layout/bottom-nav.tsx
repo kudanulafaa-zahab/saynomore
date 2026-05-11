@@ -68,11 +68,11 @@ export function BottomNav({ role }: { role: string }) {
                 <>
                   <div
                     className="h-[30px] w-[52px] rounded-full flex items-center justify-center"
-                    style={{ background: "var(--foreground)" }}
+                    style={{ background: "var(--snm-brand)" }}
                   >
-                    <Icon className="h-[17px] w-[17px]" style={{ color: "var(--background)", strokeWidth: 2.2 }} />
+                    <Icon className="h-[17px] w-[17px]" style={{ color: "#ffffff", strokeWidth: 2.2 }} />
                   </div>
-                  <span className="label-caps" style={{ color: "var(--foreground)", fontSize: 9 }}>{item.label}</span>
+                  <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 9 }}>{item.label}</span>
                 </>
               ) : (
                 <>
@@ -93,11 +93,11 @@ export function BottomNav({ role }: { role: string }) {
               <>
                 <div
                   className="h-[30px] w-[52px] rounded-full flex items-center justify-center"
-                  style={{ background: "var(--foreground)" }}
+                  style={{ background: "var(--snm-brand)" }}
                 >
-                  <MoreHorizontal className="h-[17px] w-[17px]" style={{ color: "var(--background)", strokeWidth: 2.2 }} />
+                  <MoreHorizontal className="h-[17px] w-[17px]" style={{ color: "#ffffff", strokeWidth: 2.2 }} />
                 </div>
-                <span className="label-caps" style={{ color: "var(--foreground)", fontSize: 9 }}>More</span>
+                <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 9 }}>More</span>
               </>
             ) : (
               <>
@@ -183,19 +183,19 @@ export function BottomNav({ role }: { role: string }) {
                           onClick={() => setSheetOpen(false)}
                           className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-colors"
                           style={{
-                            background: active ? "var(--secondary)" : "var(--muted)",
-                            color: active ? "var(--foreground)" : "var(--muted-foreground)",
+                            background: active ? "var(--snm-brand-muted)" : "var(--muted)",
+                            color: active ? "var(--snm-brand)" : "var(--muted-foreground)",
                           }}
                         >
                           <div
                             className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
                             style={{
-                              background: active ? "var(--foreground)" : "var(--secondary)",
+                              background: active ? "var(--snm-brand)" : "var(--secondary)",
                             }}
                           >
                             <Icon
                               className="h-[15px] w-[15px]"
-                              style={{ color: active ? "var(--background)" : "var(--muted-foreground)" }}
+                              style={{ color: active ? "#ffffff" : "var(--muted-foreground)" }}
                             />
                           </div>
                           <span className="text-[13px] font-medium">{item.label}</span>
@@ -221,17 +221,17 @@ export function BottomNav({ role }: { role: string }) {
                   onClick={() => setSheetOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-colors"
                   style={{
-                    background: pathname === "/settings" ? "var(--secondary)" : "var(--muted)",
-                    color: pathname === "/settings" ? "var(--foreground)" : "var(--muted-foreground)",
+                    background: pathname === "/settings" ? "var(--snm-brand-muted)" : "var(--muted)",
+                    color: pathname === "/settings" ? "var(--snm-brand)" : "var(--muted-foreground)",
                   }}
                 >
                   <div
                     className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: pathname === "/settings" ? "var(--foreground)" : "var(--secondary)" }}
+                    style={{ background: pathname === "/settings" ? "var(--snm-brand)" : "var(--secondary)" }}
                   >
                     <Settings
                       className="h-[15px] w-[15px]"
-                      style={{ color: pathname === "/settings" ? "var(--background)" : "var(--muted-foreground)" }}
+                      style={{ color: pathname === "/settings" ? "#ffffff" : "var(--muted-foreground)" }}
                     />
                   </div>
                   <span className="text-[13px] font-medium">Settings</span>

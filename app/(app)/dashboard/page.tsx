@@ -102,7 +102,7 @@ export default async function DashboardPage() {
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
             {grossMargin > 0 && (
-              <p className="text-[11px] mt-1 font-medium" style={{ color: "var(--snm-success, #4ade80)" }}>
+              <p className="text-[11px] mt-1 font-medium" style={{ color: "var(--snm-success)" }}>
                 {grossMargin.toFixed(1)}% margin
               </p>
             )}
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
         {revChangePct !== null && (
           <div
             className="flex items-center gap-1.5 mt-3"
-            style={{ color: revChangePct >= 0 ? "var(--snm-success, #4ade80)" : "var(--snm-error, #ffb4ab)" }}
+            style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}
           >
             {revChangePct >= 0
               ? <TrendingUp className="h-3.5 w-3.5" />
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
             <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Awaiting</p>
             <p
               className="text-sm font-semibold"
-              style={{ color: awaitingDispatch > 0 ? "var(--snm-warning, #f59e0b)" : "var(--foreground)" }}
+              style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--foreground)" }}
             >
               {awaitingDispatch} orders
             </p>
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
           </div>
           <p
             className="text-2xl font-semibold"
-            style={{ color: pendingPayments > 0 ? "var(--snm-error, #ffb4ab)" : "var(--foreground)" }}
+            style={{ color: pendingPayments > 0 ? "var(--snm-error)" : "var(--foreground)" }}
           >
             {pendingPayments > 0 ? `${mvr(pendingPayments)}` : "—"}
           </p>
@@ -205,11 +205,11 @@ export default async function DashboardPage() {
             <Link
               href="/dispatch"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 block"
-              style={{ borderColor: "color-mix(in srgb, var(--snm-error, #ffb4ab) 30%, transparent)", borderWidth: 1, borderStyle: "solid" }}
+              style={{ borderColor: "color-mix(in srgb, var(--snm-error) 30%, transparent)", borderWidth: 1, borderStyle: "solid" }}
             >
               <div
                 className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "color-mix(in srgb, var(--snm-error, #ffb4ab) 12%, transparent)", color: "var(--snm-error, #ffb4ab)" }}
+                style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}
               >
                 <Timer className="h-4 w-4" />
               </div>
@@ -228,11 +228,11 @@ export default async function DashboardPage() {
             <Link
               href="/inventory"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 block"
-              style={{ borderColor: "color-mix(in srgb, var(--snm-warning, #f59e0b) 30%, transparent)", borderWidth: 1, borderStyle: "solid" }}
+              style={{ borderColor: "color-mix(in srgb, var(--snm-warning) 30%, transparent)", borderWidth: 1, borderStyle: "solid" }}
             >
               <div
                 className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "color-mix(in srgb, var(--snm-warning, #f59e0b) 12%, transparent)", color: "var(--snm-warning, #f59e0b)" }}
+                style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}
               >
                 <AlertTriangle className="h-4 w-4" />
               </div>
@@ -251,11 +251,11 @@ export default async function DashboardPage() {
             <Link
               href="/sales"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 block"
-              style={{ borderColor: "color-mix(in srgb, var(--snm-error, #ffb4ab) 20%, transparent)", borderWidth: 1, borderStyle: "solid" }}
+              style={{ borderColor: "color-mix(in srgb, var(--snm-error) 20%, transparent)", borderWidth: 1, borderStyle: "solid" }}
             >
               <div
                 className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "color-mix(in srgb, var(--snm-error, #ffb4ab) 12%, transparent)", color: "var(--snm-error, #ffb4ab)" }}
+                style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}
               >
                 <Clock className="h-4 w-4" />
               </div>
