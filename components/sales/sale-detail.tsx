@@ -75,6 +75,11 @@ export function SaleDetail({ id }: { id: string }) {
   const [selectedDriver, setSelectedDriver] = useState("");
   const [cashCollected, setCashCollected]   = useState("");
 
+  // payment reference (bank transfer)
+  const [refInput, setRefInput]       = useState("");
+  const [editingRef, setEditingRef]   = useState(false);
+  const [savingRef, setSavingRef]     = useState(false);
+
   // inline dialogs (sheet-style bottom panels)
   const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | null>(null);
   const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
@@ -132,6 +137,17 @@ export function SaleDetail({ id }: { id: string }) {
       await updateOrder(order.id, { [field]: value } as Record<string, unknown>);
       setOrder({ ...order, [field]: value } as SalesOrderRow);
     } catch (e) { toast.error((e as Error).message); }
+  }
+
+  async function savePaymentRef() {
+    if (!order) return;
+    setSavingRef(true);
+    try {
+      await updateOrder(order.id, { payment_proof_url: refInput.trim() || null });
+      setOrder({ ...order, payment_proof_url: refInput.trim() || null });
+      setEditingRef(false);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSavingRef(false); }
   }
 
   async function handleDispatch() {
@@ -322,13 +338,50 @@ export function SaleDetail({ id }: { id: string }) {
               {isCOD
                 ? <Banknote style={{ color: "#fb923c", width: 22, height: 22, flexShrink: 0 }} />
                 : <Smartphone style={{ color: "#60a5fa", width: 22, height: 22, flexShrink: 0 }} />}
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ color: isCOD ? "#fb923c" : "#60a5fa", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                   {isCOD ? "Cash on Delivery" : "Bank Transfer"}
                 </p>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
                   {isCOD ? "Driver collects MVR " + fmt(totals.mvr) + " on delivery" : "Customer will send payment slip"}
                 </p>
+                {!isCOD && (
+                  <div style={{ marginTop: 8 }}>
+                    {editingRef ? (
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input
+                          autoFocus
+                          value={refInput}
+                          onChange={(e) => setRefInput(e.target.value)}
+                          placeholder="e.g. TRF-20240511-0042"
+                          style={{ flex: 1, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--foreground)", outline: "none" }}
+                          onKeyDown={(e) => { if (e.key === "Enter") savePaymentRef(); if (e.key === "Escape") setEditingRef(false); }}
+                        />
+                        <button
+                          onClick={savePaymentRef}
+                          disabled={savingRef}
+                          style={{ background: "#60a5fa", color: "#000", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+                        >
+                          {savingRef ? "…" : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setEditingRef(false)}
+                          style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "var(--muted-foreground)", cursor: "pointer" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setRefInput(order.payment_proof_url ?? ""); setEditingRef(true); }}
+                        style={{ background: "rgba(96,165,250,0.08)", border: "1px dashed rgba(96,165,250,0.3)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: order.payment_proof_url ? "#60a5fa" : "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                      >
+                        <Smartphone style={{ width: 12, height: 12 }} />
+                        {order.payment_proof_url ? order.payment_proof_url : "Tap to add transfer reference"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

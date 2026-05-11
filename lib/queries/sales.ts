@@ -57,6 +57,7 @@ export interface SalesOrderInput {
   delivery_island?: string | null;
   delivery_to_boat?: boolean;
   assigned_driver_id?: string | null;
+  payment_proof_url?: string | null;
   notes?: string | null;
 }
 
