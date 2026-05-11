@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin, Layers } from "lucide-react";
+import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin } from "lucide-react";
 import { listBatchStock, type BatchStock } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
@@ -110,7 +110,6 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
   const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
   const landedPerCarton = landedPerPack * sku.packs_per_carton;
 
-  // Godown pills sorted by qty descending — biggest location first
   const sortedGodowns = [...byGodown].sort((a, b) => b.pieces - a.pieces);
 
   return (
@@ -125,12 +124,12 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
           : "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
       }}
     >
-      <button className="w-full text-left px-4 pt-4 pb-3 flex items-start gap-3" onClick={() => setExpanded(!expanded)}>
+      {/* ── Top: SKU name + total qty ── */}
+      <div className="px-4 pt-4 pb-3 flex items-start gap-3">
         <div
           className="w-2 h-2 rounded-full mt-1.5 shrink-0"
           style={{ background: isLow ? "var(--snm-error, #ffb4ab)" : "var(--snm-success, #4ade80)" }}
         />
-
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-semibold text-foreground leading-snug">
             {searchActive && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
@@ -142,44 +141,63 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
           <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
           </p>
-
-          {/* Godown pills — sorted by qty desc */}
-          {sortedGodowns.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {sortedGodowns.map(({ godown, pieces }) => (
-                <span
-                  key={godown.id}
-                  className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
-                  style={{
-                    background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                    color: "var(--foreground)",
-                  }}
-                >
-                  <MapPin className="h-2.5 w-2.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                  {godown.name}
-                  <span className="ml-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn)}
-                  </span>
-                </span>
-              ))}
-            </div>
-          )}
         </div>
-
         <div className="text-right shrink-0 ml-2">
           <p
-            className="text-[20px] font-bold leading-none tracking-tight"
+            className="text-[22px] font-bold leading-none tracking-tight"
             style={{ color: isLow ? "var(--snm-error, #ffb4ab)" : "var(--foreground)" }}
           >
             {totalCtns}
             <span className="text-[13px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
           </p>
           <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
-          <ChevronDown
-            className="h-4 w-4 mt-1.5 ml-auto transition-transform duration-200"
-            style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(180deg)" : "none" }}
-          />
         </div>
+      </div>
+
+      {/* ── Godown breakdown — always visible, no tap needed ── */}
+      {sortedGodowns.length > 0 && (
+        <div
+          className="mx-4 mb-3 rounded-xl overflow-hidden"
+          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
+        >
+          {sortedGodowns.map(({ godown, pieces }, i) => {
+            const ctns  = toCtns(pieces, pcsPerCtn);
+            const packs = remPacks(pieces, sku.pcs_per_pack, pcsPerCtn);
+            return (
+              <div
+                key={godown.id}
+                className="flex items-center justify-between px-3 py-2.5"
+                style={{
+                  borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" : undefined,
+                }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                  <p className="text-[13px] font-medium text-foreground truncate">{godown.name}</p>
+                </div>
+                <p className="text-[13px] font-semibold text-foreground ml-4 shrink-0">
+                  {ctns > 0 && <>{ctns} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
+                  {packs > 0 && <><span className="mx-1 text-[11px]" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
+                  {ctns === 0 && packs === 0 && <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Expand button for FIFO batch detail ── */}
+      <button
+        className="w-full flex items-center justify-center gap-1.5 pb-3"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+          {expanded ? "Hide" : "FIFO batches & landed cost"}
+        </span>
+        <ChevronDown
+          className="h-3.5 w-3.5 transition-transform duration-200"
+          style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(180deg)" : "none" }}
+        />
       </button>
 
       {expanded && (
