@@ -840,7 +840,7 @@ function NewSkuWizard({
                     </Button>
                   </div>
                 ) : (
-                  <Select value={brandId} onValueChange={(v) => { setBrandId(v); setModelId(""); setVariantId(""); }}>
+                  <Select value={brandId} onValueChange={(v) => { setBrandId(v ?? ""); setModelId(""); setVariantId(""); }}>
                     <SelectTrigger><SelectValue placeholder="Pick a brand" /></SelectTrigger>
                     <SelectContent>
                       {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
@@ -878,7 +878,7 @@ function NewSkuWizard({
                       </div>
                     </div>
                   ) : (
-                    <Select value={modelId} onValueChange={(v) => { setModelId(v); setVariantId(""); }}>
+                    <Select value={modelId} onValueChange={(v) => { setModelId(v ?? ""); setVariantId(""); }}>
                       <SelectTrigger><SelectValue placeholder="Pick a model" /></SelectTrigger>
                       <SelectContent>
                         {brandModels.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
@@ -923,7 +923,7 @@ function NewSkuWizard({
                       </div>
                     </div>
                   ) : (
-                    <Select value={variantId} onValueChange={setVariantId}>
+                    <Select value={variantId} onValueChange={(v) => setVariantId(v ?? "")}>
                       <SelectTrigger><SelectValue placeholder="Pick a variant" /></SelectTrigger>
                       <SelectContent>
                         {modelVariants.map((v) => <SelectItem key={v.id} value={v.id}>{v.display_name}</SelectItem>)}
