@@ -863,7 +863,7 @@ function NewSkuWizard({
                     <div className="space-y-2 rounded-xl p-3"
                       style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
                       <Input autoFocus value={newModelName} onChange={(e) => setNewModelName(e.target.value)} placeholder="e.g. Xtra Kering" />
-                      <Select value={newModelCat} onValueChange={setNewModelCat}>
+                      <Select value={newModelCat} onValueChange={(v) => setNewModelCat(v ?? "")}>
                         <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                         <SelectContent>
                           {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -904,7 +904,7 @@ function NewSkuWizard({
                       {schema.map((key) => {
                         const spec = ATTR_SPECS[key];
                         return spec?.options ? (
-                          <Select key={key} value={newVariantAttrs[key] ?? ""} onValueChange={(v) => setNewVariantAttrs({ ...newVariantAttrs, [key]: v })}>
+                          <Select key={key} value={newVariantAttrs[key] ?? ""} onValueChange={(v) => setNewVariantAttrs({ ...newVariantAttrs, [key]: v ?? "" })}>
                             <SelectTrigger><SelectValue placeholder={spec.label} /></SelectTrigger>
                             <SelectContent>{spec.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                           </Select>
