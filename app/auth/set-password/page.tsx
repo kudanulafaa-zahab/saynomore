@@ -8,7 +8,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 export default function SetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(true);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,34 +19,7 @@ export default function SetPasswordPage() {
     // If the callback redirected here with ?error=expired the token was invalid.
     if (searchParams.get("error") === "expired") {
       setError("This invite link has expired. Ask your admin to send a new invite.");
-      setReady(true);
-      return;
     }
-
-    // The /auth/callback route ran verifyOtp server-side and set the session
-    // in the cookie before redirecting here. Just read it directly.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setReady(true);
-        return;
-      }
-
-      // Fallback: no session in cookie yet — wait briefly for it to propagate,
-      // or for onAuthStateChange if somehow a hash token was used.
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
-          setReady(true);
-        }
-      });
-
-      // After 6s with no session, the link is broken.
-      const timeout = setTimeout(() => {
-        setError("This invite link has expired. Ask your admin to send a new invite.");
-        setReady(true);
-      }, 6000);
-
-      return () => { subscription.unsubscribe(); clearTimeout(timeout); };
-    });
   }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
