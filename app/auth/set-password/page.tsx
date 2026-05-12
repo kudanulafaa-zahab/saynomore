@@ -2,21 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 export default function SetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [ready, setReady] = useState(true);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [welcomeEmail, setWelcomeEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // If the callback redirected here with ?error=expired the token was invalid.
     if (searchParams.get("error") === "expired") {
       setError("This invite link has expired. Ask your admin to send a new invite.");
     }
@@ -29,12 +27,22 @@ export default function SetPasswordPage() {
     if (password !== confirm) { setError("Passwords don't match."); return; }
 
     setLoading(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    // Call the server-side API route which reads the invited user's cookie session
+    // and sets the password via the admin SDK — never touches the browser's localStorage.
+    const res = await fetch("/api/admin/set-invited-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const json = await res.json();
     setLoading(false);
 
-    if (updateError) { setError(updateError.message); return; }
+    if (!res.ok) { setError(json.error ?? "Failed to set password."); return; }
+
+    setWelcomeEmail(json.email);
     setDone(true);
-    setTimeout(() => router.push("/dashboard"), 1500);
+    // Give them 2s to see the success message, then go to login so they sign in fresh
+    setTimeout(() => router.push("/login"), 2000);
   }
 
   const inputStyle = {
@@ -48,17 +56,6 @@ export default function SetPasswordPage() {
     border: "1px solid var(--glass-border)",
     color: "var(--foreground)",
   } as React.CSSProperties;
-
-  if (!ready) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center" style={{ background: "var(--background)" }}>
-        <div className="flex flex-col items-center gap-3" style={{ color: "var(--muted-foreground)" }}>
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <p className="text-sm">Verifying invite link…</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
@@ -79,7 +76,8 @@ export default function SetPasswordPage() {
         {done ? (
           <div className="flex flex-col items-center gap-3 py-6 rounded-xl text-center" style={{ background: "color-mix(in srgb, var(--snm-success) 12%, transparent)" }}>
             <CheckCircle2 className="h-8 w-8" style={{ color: "var(--snm-success)" }} />
-            <p className="font-medium" style={{ color: "var(--snm-success)" }}>Password set! Entering app…</p>
+            <p className="font-medium" style={{ color: "var(--snm-success)" }}>Password set! Signing you in…</p>
+            {welcomeEmail && <p className="text-xs" style={{ color: "var(--snm-success)" }}>{welcomeEmail}</p>}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
