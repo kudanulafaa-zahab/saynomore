@@ -507,21 +507,24 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<UserRole>("staff");
+  const [tempPassword, setTempPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const canSave = !!email.trim() && !!fullName.trim() && tempPassword.length >= 6;
+
   async function save() {
-    if (!email.trim() || !fullName.trim()) return;
+    if (!canSave) return;
     setSaving(true);
     try {
-      await inviteUser(email.trim().toLowerCase(), fullName.trim(), role);
-      toast.success(`Invite sent to ${email.trim()}`);
+      await inviteUser(email.trim().toLowerCase(), fullName.trim(), role, tempPassword);
+      toast.success(`${fullName.trim()} added. They can log in with the password you set.`);
       onDone();
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
   }
 
   return (
-    <Sheet title="Invite Team Member" onClose={onClose}>
+    <Sheet title="Add Team Member" onClose={onClose}>
       <SheetInput label="Full Name" required>
         <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Ahmed Hassan" className={inputCls} />
       </SheetInput>
@@ -535,7 +538,11 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
         </select>
         <p className="text-xs text-muted-foreground mt-1.5">{ROLE_DESC[role]}</p>
       </SheetInput>
-      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !email.trim() || !fullName.trim()} label={saving ? "Sending…" : "SEND INVITE"} />
+      <SheetInput label="Temporary Password" required>
+        <input type="text" value={tempPassword} onChange={(e) => setTempPassword(e.target.value)} placeholder="Min 6 characters — share this with them" className={inputCls} />
+        <p className="text-xs text-muted-foreground mt-1.5">Share this password with the user so they can log in immediately.</p>
+      </SheetInput>
+      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !canSave} label={saving ? "Adding…" : "ADD MEMBER"} />
     </Sheet>
   );
 }

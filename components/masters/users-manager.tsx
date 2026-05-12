@@ -352,8 +352,8 @@ function InviteDialog({
     if (!email.trim() || !fullName.trim()) return;
     setSaving(true);
     try {
-      await inviteUser(email.trim().toLowerCase(), fullName.trim(), selectedRole);
-      toast.success(`Invite sent to ${email.trim()}`);
+      await inviteUser(email.trim().toLowerCase(), fullName.trim(), selectedRole, "");
+      toast.success(`User added: ${email.trim()}`);
       onDone();
     } catch (e) {
       toast.error((e as Error).message);

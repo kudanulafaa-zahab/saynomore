@@ -183,12 +183,12 @@ export async function deleteUser(userId: string) {
   if (!res.ok) throw new Error(json.error ?? "Delete failed");
 }
 
-export async function inviteUser(email: string, fullName: string, role: UserRole) {
+export async function inviteUser(email: string, fullName: string, role: UserRole, tempPassword: string) {
   const res = await fetch("/api/admin/invite-user", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, full_name: fullName, role }),
+    body: JSON.stringify({ email, full_name: fullName, role, temp_password: tempPassword }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? "Invite failed");
+  if (!res.ok) throw new Error(json.error ?? "Failed to add user");
 }
