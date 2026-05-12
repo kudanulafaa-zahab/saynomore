@@ -1,20 +1,26 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// These routes are always public — never redirect away from them
-const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/set-password"];
-
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  const path = request.nextUrl.pathname;
+
+  // Auth routes: always pass through, no session check, no redirect ever
+  if (
+    path.startsWith("/auth/") ||
+    path.startsWith("/login") ||
+    path.startsWith("/signup")
+  ) {
+    return response;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
+        getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
@@ -26,28 +32,17 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_ROUTES.some((p) => path.startsWith(p));
-
-  // Always let public routes through — never redirect /auth/callback or /auth/set-password
-  if (isPublic) {
-    return response;
-  }
-
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Not logged in + protected route → /login
+  // Not logged in → send to login
   if (!user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    if (path === "/") return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Logged in + root → /dashboard
+  // Root → dashboard
   if (path === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

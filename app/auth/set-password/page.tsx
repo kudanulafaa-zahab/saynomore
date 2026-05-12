@@ -12,12 +12,10 @@ function SetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [welcomeEmail, setWelcomeEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get("error") === "expired") {
-      const msg = searchParams.get("msg") ?? "";
-      setError(`Link error: ${msg || "expired or already used"}`);
+      setError("This link has expired or already been used. Request a new one from the login page.");
     }
   }, [searchParams]);
 
@@ -28,8 +26,6 @@ function SetPasswordForm() {
     if (password !== confirm) { setError("Passwords don't match."); return; }
 
     setLoading(true);
-    // Call the server-side API route which reads the invited user's cookie session
-    // and sets the password via the admin SDK — never touches the browser's localStorage.
     const res = await fetch("/api/admin/set-invited-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -40,30 +36,20 @@ function SetPasswordForm() {
 
     if (!res.ok) { setError(json.error ?? "Failed to set password."); return; }
 
-    setWelcomeEmail(json.email);
     setDone(true);
-    // Give them 2s to see the success message, then go to login so they sign in fresh
     setTimeout(() => router.push("/login"), 2000);
   }
 
   const inputStyle = {
-    width: "100%",
-    height: "44px",
-    borderRadius: "12px",
-    padding: "0 12px",
-    fontSize: "14px",
-    outline: "none",
-    background: "var(--glass-1)",
-    border: "1px solid var(--glass-border)",
-    color: "var(--foreground)",
+    width: "100%", height: "44px", borderRadius: "12px", padding: "0 12px",
+    fontSize: "14px", outline: "none", background: "var(--glass-1)",
+    border: "1px solid var(--glass-border)", color: "var(--foreground)",
   } as React.CSSProperties;
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
-      <div
-        className="w-full max-w-md p-10 space-y-7 rounded-2xl"
-        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}
-      >
+      <div className="w-full max-w-md p-10 space-y-7 rounded-2xl"
+        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}>
         <div className="space-y-3 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: "var(--snm-brand)" }}>
             <span className="text-xl font-bold text-white">S</span>
@@ -75,36 +61,38 @@ function SetPasswordForm() {
         </div>
 
         {done ? (
-          <div className="flex flex-col items-center gap-3 py-6 rounded-xl text-center" style={{ background: "color-mix(in srgb, var(--snm-success) 12%, transparent)" }}>
+          <div className="flex flex-col items-center gap-3 py-6 rounded-xl text-center"
+            style={{ background: "color-mix(in srgb, var(--snm-success) 12%, transparent)" }}>
             <CheckCircle2 className="h-8 w-8" style={{ color: "var(--snm-success)" }} />
-            <p className="font-medium" style={{ color: "var(--snm-success)" }}>Password set! Signing you in…</p>
-            {welcomeEmail && <p className="text-xs" style={{ color: "var(--snm-success)" }}>{welcomeEmail}</p>}
+            <p className="font-medium" style={{ color: "var(--snm-success)" }}>Password set! Taking you to login…</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>New password</label>
-              <input type="password" required autoFocus value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" style={inputStyle} disabled={!!error} />
+              <input type="password" required autoFocus value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters" style={inputStyle} disabled={!!error} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Confirm password</label>
-              <input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat your password" style={inputStyle} disabled={!!error} />
+              <input type="password" required value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Repeat your password" style={inputStyle} disabled={!!error} />
             </div>
 
             {error && (
-              <div className="rounded-xl px-3 py-2.5 text-sm" style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)", color: "var(--snm-error)" }}>
+              <div className="rounded-xl px-3 py-2.5 text-sm"
+                style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)", color: "var(--snm-error)" }}>
                 {error}
               </div>
             )}
 
             {!error && (
-              <button
-                type="submit"
-                disabled={loading}
+              <button type="submit" disabled={loading}
                 className="w-full h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-50"
-                style={{ background: "var(--foreground)", color: "var(--background)" }}
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set password & enter app"}
+                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set password & continue"}
               </button>
             )}
           </form>
