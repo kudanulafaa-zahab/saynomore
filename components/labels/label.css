@@ -1,0 +1,411 @@
+/* ============================================================
+   SayNoMore — Shipping Label CSS
+   A6 = 105mm × 148mm at 96dpi ≈ 397px × 559px
+   All sizes in mm so they translate 1:1 to the printer.
+   ============================================================ */
+
+/* ── Screen: scale-down preview inside the app ── */
+.label-scale-wrapper {
+  width: 397px;
+  max-width: 100%;
+  margin: 0 auto;
+  transform-origin: top center;
+}
+
+/* On narrow phones, scale the preview to fit */
+@media (max-width: 430px) {
+  .label-scale-wrapper {
+    transform: scale(0.88);
+    transform-origin: top left;
+    width: 397px;
+  }
+}
+
+/* ── The label itself ── */
+.label-root {
+  width: 105mm;
+  min-height: 148mm;
+  background: white;
+  color: black;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  box-sizing: border-box;
+  padding: 4mm 4mm 3mm;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Header ── */
+.label-header {
+  text-align: center;
+  margin-bottom: 2mm;
+}
+
+.snm-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5mm;
+  color: black;
+}
+
+.snm-logo svg {
+  color: black;
+}
+
+.tagline {
+  font-size: 6pt;
+  letter-spacing: 0.15em;
+  color: #555;
+  margin: 0;
+}
+
+/* ── Tables (product / delivery / phone / boat) ── */
+.label-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.2pt solid black;
+  margin-bottom: 0;
+  margin-top: -1.2pt; /* collapse borders between adjacent tables */
+}
+
+.label-table td {
+  border: 1.2pt solid black;
+  padding: 1.5mm 2mm;
+  vertical-align: middle;
+}
+
+/* Product icon cell */
+.icon-cell {
+  width: 14mm;
+  text-align: center;
+  vertical-align: middle;
+  border-right: 1.2pt solid black;
+}
+
+.icon-cell svg {
+  width: 10mm;
+  height: auto;
+  color: black;
+}
+
+/* Product name */
+.product-name-cell {
+  vertical-align: middle;
+  padding: 2mm 2.5mm;
+}
+
+.product-main {
+  display: block;
+  font-size: 10pt;
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+.product-main--large {
+  font-size: 12pt;
+  font-weight: bold;
+}
+
+.product-sub {
+  display: block;
+  font-size: 9pt;
+  font-weight: bold;
+  margin-top: 0.5mm;
+}
+
+/* Pack size cell */
+.pack-cell {
+  vertical-align: middle;
+  padding: 1.5mm 2mm;
+}
+
+.pack-line {
+  font-size: 8.5pt;
+  line-height: 1.5;
+}
+
+.pack-line strong {
+  font-size: 10pt;
+  margin-right: 1mm;
+}
+
+/* Size badge */
+.size-cell {
+  width: 16mm;
+  text-align: center;
+  vertical-align: middle;
+  border-left: 1.2pt solid black;
+  padding: 1mm;
+}
+
+.size-label {
+  display: block;
+  font-size: 6.5pt;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.size-value {
+  display: block;
+  font-size: 18pt;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Field label cells (DELIVER TO, PHONE, BOAT) */
+.field-label-cell {
+  font-size: 7pt;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  width: 20mm;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Deliver to value */
+.field-value-cell {
+  font-size: 10pt;
+  vertical-align: middle;
+}
+
+.deliver-to-large {
+  font-size: 14pt;
+}
+
+/* Phone */
+.phone-value-cell {
+  font-size: 14pt;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.dhivehi-cell {
+  width: 22mm;
+  text-align: right;
+  vertical-align: middle;
+  padding-right: 2mm;
+}
+
+.dhivehi {
+  font-size: 7.5pt;
+  direction: rtl;
+  unicode-bidi: bidi-override;
+}
+
+.dhivehi.small {
+  font-size: 6pt;
+}
+
+/* Boat section */
+.boat-label {
+  font-size: 7pt;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  width: 12mm;
+}
+
+.boat-key {
+  font-size: 7pt;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  width: 20mm;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.boat-val {
+  font-size: 8.5pt;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+/* ── Thank you block ── */
+.thankyou-block {
+  text-align: center;
+  padding: 3mm 2mm 2mm;
+  position: relative;
+}
+
+.quote-open {
+  font-size: 22pt;
+  font-family: Georgia, serif;
+  color: #333;
+  line-height: 0;
+  vertical-align: -4mm;
+  margin-right: 1mm;
+}
+
+.quote-close {
+  font-size: 22pt;
+  font-family: Georgia, serif;
+  color: #333;
+  line-height: 0;
+  vertical-align: -4mm;
+  margin-left: 1mm;
+}
+
+.thankyou-text {
+  font-size: 7.5pt;
+  line-height: 1.5;
+  margin: 0;
+  display: inline;
+}
+
+.thankyou-text strong {
+  font-size: 7.5pt;
+}
+
+/* ── Dividers ── */
+.divider {
+  border: none;
+  border-top: 1pt solid black;
+  margin: 1.5mm 0;
+}
+
+/* ── Social row ── */
+.social-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3mm;
+  padding: 1.5mm 0;
+}
+
+.social-icons {
+  display: flex;
+  gap: 2mm;
+  align-items: center;
+}
+
+.social-icons svg {
+  width: 5.5mm;
+  height: 5.5mm;
+  color: black;
+}
+
+.social-handle {
+  font-size: 10pt;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
+
+/* ── Follow us bar ── */
+.follow-bar {
+  border: 1.2pt solid black;
+  text-align: center;
+  font-size: 7pt;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  padding: 1.5mm;
+  text-transform: uppercase;
+  margin: 1mm 0 0;
+}
+
+/* ── Footer row ── */
+.footer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 2mm;
+  margin-top: 1mm;
+  border: 1.2pt solid black;
+  padding: 2mm;
+}
+
+.undeliverable-block {
+  flex: 1;
+}
+
+.undeliverable-text {
+  font-size: 6.5pt;
+  margin: 0 0 0.5mm;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.undeliverable-number {
+  font-size: 11pt;
+  font-weight: bold;
+  margin: 0 0 0.5mm;
+}
+
+.qr-placeholder {
+  flex-shrink: 0;
+}
+
+.qr-placeholder svg {
+  width: 16mm;
+  height: 16mm;
+  color: black;
+}
+
+/* ── Barcode row ── */
+.barcode-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1.5mm;
+  gap: 0.5mm;
+}
+
+.barcode-row svg {
+  width: 50mm;
+  height: 10mm;
+  color: black;
+}
+
+.barcode-nums {
+  font-size: 6.5pt;
+  letter-spacing: 0.3em;
+}
+
+/* ============================================================
+   PRINT STYLES — these fire when window.print() is called
+   ============================================================ */
+@media print {
+  /* Hide everything on the page except the print label */
+  body > * {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* A6 page */
+  @page {
+    size: 105mm 148mm;
+    margin: 0;
+  }
+
+  .label-root {
+    width: 105mm;
+    min-height: 148mm;
+    padding: 4mm 4mm 3mm;
+    page-break-after: avoid;
+  }
+
+  /* Make sure tables don't break across pages */
+  .label-table,
+  .thankyou-block,
+  .follow-bar,
+  .footer-row {
+    page-break-inside: avoid;
+  }
+}
+
+/* Screen: hide the print-only version */
+@media screen {
+  .print-only {
+    display: none;
+  }
+
+  .no-print {
+    display: block;
+  }
+}

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -81,7 +81,7 @@ export function SaleDetail({ id }: { id: string }) {
   const [savingRef, setSavingRef]     = useState(false);
 
   // inline dialogs (sheet-style bottom panels)
-  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | null>(null);
+  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | "printLabels" | null>(null);
   const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
   const [editingLine, setEditingLine]             = useState<SalesOrderLineRow | undefined>(undefined);
   const [deletingLine, setDeletingLine]           = useState(false);
@@ -395,9 +395,16 @@ export function SaleDetail({ id }: { id: string }) {
           </div>
           <button
             onClick={() => { setSelectedDriver(order.assigned_driver_id ?? ""); setPanel("dispatch"); }}
-            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 12 }}
+            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
           >
             Assign Driver & Dispatch →
+          </button>
+          <button
+            onClick={() => setPanel("printLabels")}
+            style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "1px solid var(--glass-border)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            <Printer style={{ width: 16, height: 16 }} />
+            Print Labels
           </button>
         </>
       )}
@@ -435,9 +442,16 @@ export function SaleDetail({ id }: { id: string }) {
           </div>
           <button
             onClick={() => { setCashCollected(isCOD ? String(totals.mvr.toFixed(0)) : ""); setPanel("deliver"); }}
-            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 12 }}
+            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
           >
             Mark as Delivered →
+          </button>
+          <button
+            onClick={() => setPanel("printLabels")}
+            style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "1px solid var(--glass-border)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            <Printer style={{ width: 16, height: 16 }} />
+            Print Labels
           </button>
         </>
       )}
@@ -606,6 +620,36 @@ export function SaleDetail({ id }: { id: string }) {
             {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
           </button>
         </SheetActions>
+      </Sheet>
+
+      {/* Print labels */}
+      <Sheet open={panel === "printLabels"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 6 }}>Print Labels</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 13, marginBottom: 20 }}>
+          Tap a product below to open its label preview and print.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {lines.map((l) => {
+            const sku = skus.find((s) => s.id === l.sku_id);
+            return (
+              <a
+                key={l.id}
+                href={`/sales/${id}/label/${l.id}`}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "var(--glass-bg-1)", borderRadius: 12, textDecoration: "none", border: "1px solid var(--glass-border-lo)" }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {sku ? `${sku.model_name} · ${sku.variant_display}` : "Product"}
+                  </p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
+                    {l.qty} {l.uom} · {sku?.pcs_per_pack ?? "?"} pcs/pack
+                  </p>
+                </div>
+                <Printer style={{ width: 18, height: 18, color: "var(--muted-foreground)", flexShrink: 0, marginLeft: 12 }} />
+              </a>
+            );
+          })}
+        </div>
       </Sheet>
 
       {/* Add / edit line */}
