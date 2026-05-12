@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// These routes are always public — never redirect away from them
 const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/set-password"];
 
 export async function middleware(request: NextRequest) {
@@ -25,20 +26,25 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
-
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_ROUTES.some((p) => path.startsWith(p));
 
+  // Always let public routes through — never redirect /auth/callback or /auth/set-password
+  if (isPublic) {
+    return response;
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+
   // Not logged in + protected route → /login
-  if (!user && !isPublic && path !== "/") {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Logged in + on auth page → /dashboard (but not set-password — they need to finish setup)
-  if (user && (path === "/login" || path === "/signup" || path === "/")) {
+  // Logged in + root → /dashboard
+  if (path === "/") {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
