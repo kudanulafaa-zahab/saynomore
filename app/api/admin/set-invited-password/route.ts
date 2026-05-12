@@ -9,17 +9,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
     }
 
-    // Read the invited user's session from the cookie (set by /auth/callback verifyOtp).
-    // This is the invited user's session — NOT the admin's browser session.
+    // Get the user from the server cookie session.
+    // When the invite hash is processed client-side, Supabase sets the session
+    // in both localStorage AND cookies, so this will return the invited user.
     const supabase = await getSupabaseServer();
     const { data: { user }, error: sessionError } = await supabase.auth.getUser();
 
     if (sessionError || !user) {
-      return NextResponse.json({ error: "Session expired. Ask your admin to send a new invite." }, { status: 401 });
+      return NextResponse.json({ error: "Session not found. Please click the invite link again." }, { status: 401 });
     }
 
-    // Use the admin client to set the password for this specific user by ID.
-    // This bypasses any browser session confusion entirely.
+    // Set password via admin SDK using the exact user ID from the cookie session.
     const admin = getSupabaseAdmin();
     const { error: updateError } = await admin.auth.admin.updateUserById(user.id, { password });
 

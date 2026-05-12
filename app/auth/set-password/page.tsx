@@ -1,12 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 function SetPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,8 +15,28 @@ function SetPasswordForm() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    // Supabase sends the token as a URL hash: #access_token=...&type=invite
+    // The Supabase JS client automatically detects and processes this hash.
+    // We listen for the SIGNED_IN event which fires once the hash is consumed.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
+        setReady(true);
+      }
+    });
+
+    // Also check if session already exists (page refresh after hash consumed)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Handle ?error=expired from /auth/callback fallback
+  useEffect(() => {
     if (searchParams.get("error") === "expired") {
       setError("This link has expired or already been used. Request a new one from the login page.");
+      setReady(true);
     }
   }, [searchParams]);
 
@@ -26,6 +47,8 @@ function SetPasswordForm() {
     if (password !== confirm) { setError("Passwords don't match."); return; }
 
     setLoading(true);
+    // Use the server API so password is set against the cookie session user,
+    // not whoever is in the browser's localStorage.
     const res = await fetch("/api/admin/set-invited-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,9 +58,8 @@ function SetPasswordForm() {
     setLoading(false);
 
     if (!res.ok) { setError(json.error ?? "Failed to set password."); return; }
-
     setDone(true);
-    setTimeout(() => router.push("/login"), 2000);
+    setTimeout(() => { window.location.href = "/login"; }, 2000);
   }
 
   const inputStyle = {
@@ -45,6 +67,17 @@ function SetPasswordForm() {
     fontSize: "14px", outline: "none", background: "var(--glass-1)",
     border: "1px solid var(--glass-border)", color: "var(--foreground)",
   } as React.CSSProperties;
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="flex flex-col items-center gap-3" style={{ color: "var(--muted-foreground)" }}>
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <p className="text-sm">Verifying link…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
