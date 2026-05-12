@@ -1,34 +1,24 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import {
-  Loader2, ShieldCheck, Network, ArrowRightLeft, BellRing,
-  Warehouse, ShieldHalf, ExternalLink, Star, Pencil, Trash2,
-  UserCheck, UserCog, Truck,
+  Loader2, Users, Warehouse, Pencil, Trash2, Star,
+  UserCheck, UserCog, Truck, Plus, ShieldCheck,
 } from "lucide-react";
 import {
-  listGodowns,
-  createGodown,
-  updateGodown,
-  deleteGodown,
-  listUsers,
-  updateUser,
-  deleteUser,
-  inviteUser,
-  type GodownRow,
-  type GodownInput,
-  type UserProfileRow,
-  type UserRole,
+  listGodowns, createGodown, updateGodown, deleteGodown,
+  listUsers, updateUser, deleteUser, inviteUser,
+  type GodownRow, type GodownInput, type UserProfileRow, type UserRole,
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  admin: "Administrator",
-  manager: "Manager",
-  staff: "Delivery Staff",
+  admin: "Admin", manager: "Manager", staff: "Staff",
+};
+const ROLE_LABEL_FULL: Record<UserRole, string> = {
+  admin: "Administrator", manager: "Manager", staff: "Delivery Staff",
 };
 const ROLE_DESC: Record<UserRole, string> = {
   admin: "Full access. Can delete master data and manage users.",
@@ -36,16 +26,13 @@ const ROLE_DESC: Record<UserRole, string> = {
   staff: "Can only see and update their own deliveries.",
 };
 const ROLE_ICON: Record<UserRole, React.ElementType> = {
-  admin: UserCheck,
-  manager: UserCog,
-  staff: Truck,
+  admin: UserCheck, manager: UserCog, staff: Truck,
 };
-
-const ALERT_TOGGLES = [
-  { key: "low_stock", label: "Critical Low Stock", desc: "Alert when SKU drops below 5% threshold" },
-  { key: "wholesale", label: "Wholesale Fulfillment", desc: "Push notification for high-value sales" },
-  { key: "route_latency", label: "Driver Route Latency", desc: "Alert if shipment is >30m delayed" },
-];
+const ROLE_COLOR: Record<UserRole, string> = {
+  admin: "var(--foreground)",
+  manager: "var(--snm-brand)",
+  staff: "var(--muted-foreground)",
+};
 
 export default function SettingsPage() {
   const [users, setUsers] = useState<UserProfileRow[]>([]);
@@ -53,9 +40,6 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
-  const [alerts, setAlerts] = useState<Record<string, boolean>>({
-    low_stock: true, wholesale: true, route_latency: false,
-  });
 
   const [inviteSheet, setInviteSheet] = useState(false);
   const [editUserSheet, setEditUserSheet] = useState<UserProfileRow | null>(null);
@@ -91,7 +75,7 @@ export default function SettingsPage() {
       const current = godowns.find((g) => g.is_default);
       if (current && current.id !== id) await updateGodown(current.id, { is_default: false });
       await updateGodown(id, { is_default: true });
-      toast.success("Default godown set");
+      toast.success("Default godown updated");
       load();
     } catch (e) {
       toast.error((e as Error).message);
@@ -100,253 +84,221 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 pb-8">
-      {/* Header */}
-      <div className="mb-6">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">System</p>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Settings &amp; Security</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your enterprise architecture and security protocols.</p>
+    <div className="space-y-5 pb-10">
+
+      {/* Page header */}
+      <div>
+        <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>System</p>
+        <h1 className="text-2xl font-semibold" style={{ color: "var(--foreground)" }}>Settings</h1>
       </div>
 
-      {/* Row 1: Roles (wide) + Integrations (narrow) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-        {/* Roles & Permissions — 2/3 width on large */}
-        <div className="glass p-6 lg:col-span-2">
-          <div className="flex justify-between items-center mb-5">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-foreground" />
-              <h2 className="text-lg font-semibold text-foreground">Roles &amp; Permissions</h2>
+      {/* ── Team Members ──────────────────────────────────────── */}
+      <section
+        className="rounded-2xl p-5"
+        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}
+      >
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+              <Users className="h-4 w-4" style={{ color: "var(--foreground)" }} />
             </div>
-            {isAdmin && (
-              <button
-                onClick={() => setInviteSheet(true)}
-                className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 active:scale-95 transition-all"
-              >
-                Invite
-              </button>
-            )}
-          </div>
-
-          {/* Role legend */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
-            {(Object.keys(ROLE_LABEL) as UserRole[]).map((r) => (
-              <div key={r} className="glass-flat p-3 rounded-xl">
-                <div className="flex items-center gap-2 mb-1">
-                  {React.createElement(ROLE_ICON[r], { className: "h-4 w-4 text-muted-foreground" })}
-                  <span className="text-sm font-medium text-foreground">{ROLE_LABEL[r]}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">{ROLE_DESC[r]}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Users list */}
-          {!isAdmin ? (
-            <p className="text-sm text-muted-foreground text-center py-5">Only administrators can manage users.</p>
-          ) : users.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-5">No team members yet.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {users.map((u) => {
-                const isMe = u.id === myId;
-                return (
-                  <div
-                    key={u.id}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/50"
-                    style={{ borderLeft: u.role === "admin" ? "2px solid var(--foreground)" : "2px solid transparent" }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {React.createElement(ROLE_ICON[u.role], { className: "h-4 w-4 text-muted-foreground shrink-0" })}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-foreground truncate">{u.full_name ?? "—"}</p>
-                          {isMe && (
-                            <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-secondary text-secondary-foreground shrink-0">YOU</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <span className="text-[10px] font-medium uppercase tracking-widest px-2 py-1 rounded-full bg-secondary text-secondary-foreground hidden sm:block">
-                        {ROLE_LABEL[u.role]}
-                      </span>
-                      {!isMe && (
-                        <>
-                          <button onClick={() => setEditUserSheet(u)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => setDeleteUserTarget(u)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div>
+              <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Team Members</h2>
+              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{users.length} {users.length === 1 ? "member" : "members"}</p>
             </div>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => setInviteSheet(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
+              style={{ background: "var(--foreground)", color: "var(--background)", minHeight: "36px" }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Member
+            </button>
           )}
         </div>
 
-        {/* Integrations — 1/3 width on large */}
-        <div className="glass p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-5">
-              <Network className="h-5 w-5 text-foreground" />
-              <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
-            </div>
-            <div className="glass-flat p-4 rounded-xl mb-4 relative overflow-hidden">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">WhatsApp API</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500" style={{ boxShadow: "0 0 6px rgba(74,222,128,0.6)" }} />
-                  <span className="text-[10px] font-bold text-green-500">ACTIVE</span>
-                </div>
-              </div>
-              <p className="text-sm text-foreground mb-1">Connected to <strong>+960 900...</strong></p>
-              <p className="text-xs text-muted-foreground">Last handshake: 2m ago</p>
-            </div>
+        {/* Users list */}
+        {!isAdmin ? (
+          <div className="flex items-center gap-3 px-4 py-4 rounded-xl" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Only administrators can manage team members.</p>
           </div>
-          <button className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm">
-            Sync Handshake
-          </button>
-        </div>
-      </div>
-
-      {/* Row 2: Currency + Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        {/* Currency Rates */}
-        <div className="glass p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <ArrowRightLeft className="h-5 w-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Forex Rates</h2>
+        ) : users.length === 0 ? (
+          <div className="text-center py-8">
+            <Users className="h-8 w-8 mx-auto mb-3" style={{ color: "var(--muted-foreground)", opacity: 0.4 }} />
+            <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No team members yet</p>
+            <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Add your first team member above</p>
           </div>
-          <div className="glass-flat rounded-xl p-4 mb-4">
-            <p className="text-sm font-medium text-foreground mb-1">Rates are entered per shipment</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Exchange rates vary with every shipment, so they are locked at the time of GRN confirmation — not set globally. Open a shipment and enter the rate you paid that day before confirming goods receipt.
-            </p>
-          </div>
-          <div className="space-y-3">
-            {[
-              { label: "USD → IDR", desc: "e.g. 1 USD = 15,800 IDR" },
-              { label: "USD → MVR", desc: "e.g. 1 USD = 15.42 MVR" },
-              { label: "IDR → MVR", desc: "Auto-calculated from the two above" },
-            ].map((r) => (
-              <div key={r.label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{r.label}</p>
-                  <p className="text-xs text-muted-foreground">{r.desc}</p>
-                </div>
-                <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full bg-secondary text-secondary-foreground">Per shipment</span>
-              </div>
-            ))}
-          </div>
-          <Link
-            href="/shipments"
-            className="mt-5 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-accent transition"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Go to Shipments to enter rates
-          </Link>
-        </div>
-
-        {/* Stock & System Alerts */}
-        <div className="glass p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <BellRing className="h-5 w-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Stock &amp; System Alerts</h2>
-          </div>
-          <div className="space-y-5">
-            {ALERT_TOGGLES.map((a) => (
-              <div key={a.key} className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{a.label}</p>
-                  <p className="text-xs text-muted-foreground">{a.desc}</p>
-                </div>
-                <button
-                  onClick={() => setAlerts((prev) => ({ ...prev, [a.key]: !prev[a.key] }))}
-                  className="shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200"
-                  style={{ background: alerts[a.key] ? "var(--foreground)" : "var(--muted)" }}
-                  aria-checked={alerts[a.key]}
-                  role="switch"
-                >
-                  <div
-                    className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200"
-                    style={{
-                      background: alerts[a.key] ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                      left: alerts[a.key] ? "calc(100% - 22px)" : "2px",
-                    }}
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Godowns */}
-      <div className="glass p-6">
-        <div className="flex justify-between items-center mb-5">
-          <div className="flex items-center gap-3">
-            <Warehouse className="h-5 w-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Godowns / Warehouses</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/godowns"
-              className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition flex items-center gap-1.5"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Manage
-            </Link>
-            <button
-              onClick={() => setGodownSheet({ open: true })}
-              className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-full bg-secondary text-secondary-foreground hover:bg-accent transition"
-            >
-              + New
-            </button>
-          </div>
-        </div>
-        {godowns.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No godowns yet. Add the warehouses where you keep stock.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {godowns.map((g) => (
-              <div key={g.id} className="glass-flat p-4 rounded-xl flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Warehouse className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
-                      {g.is_default && (
-                        <span className="text-[10px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground shrink-0">Default</span>
-                      )}
+          <div className="space-y-2">
+            {users.map((u) => {
+              const isMe = u.id === myId;
+              const Icon = ROLE_ICON[u.role];
+              return (
+                <div
+                  key={u.id}
+                  className="flex items-center justify-between px-4 py-3 rounded-xl"
+                  style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
+                >
+                  {/* Avatar + info */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
+                      style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--foreground)" }}
+                    >
+                      {(u.full_name ?? u.email ?? "?")[0].toUpperCase()}
                     </div>
-                    {g.location && <p className="text-xs text-muted-foreground truncate">{g.location}</p>}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
+                          {u.full_name ?? "—"}
+                        </p>
+                        {isMe && (
+                          <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
+                            style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--muted-foreground)" }}>
+                            You
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{u.email ?? "—"}</p>
+                    </div>
+                  </div>
+
+                  {/* Role + actions */}
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                      style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                      <Icon className="h-3 w-3 shrink-0" style={{ color: ROLE_COLOR[u.role] }} />
+                      <span className="text-[11px] font-semibold hidden sm:block" style={{ color: "var(--foreground)" }}>
+                        {ROLE_LABEL[u.role]}
+                      </span>
+                    </div>
+                    {!isMe && (
+                      <>
+                        <button
+                          onClick={() => setEditUserSheet(u)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
+                          style={{ color: "var(--muted-foreground)" }}
+                          aria-label="Edit user"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteUserTarget(u)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                          style={{ color: "var(--muted-foreground)" }}
+                          onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
+                          onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
+                          aria-label="Remove user"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-1 shrink-0">
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── Godowns ───────────────────────────────────────────── */}
+      <section
+        className="rounded-2xl p-5"
+        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+              <Warehouse className="h-4 w-4" style={{ color: "var(--foreground)" }} />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Godowns</h2>
+              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{godowns.length} {godowns.length === 1 ? "warehouse" : "warehouses"}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setGodownSheet({ open: true })}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
+            style={{ background: "var(--foreground)", color: "var(--background)", minHeight: "36px" }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New
+          </button>
+        </div>
+
+        {godowns.length === 0 ? (
+          <div className="text-center py-8">
+            <Warehouse className="h-8 w-8 mx-auto mb-3" style={{ color: "var(--muted-foreground)", opacity: 0.4 }} />
+            <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No godowns yet</p>
+            <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Add the warehouses where you keep stock</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {godowns.map((g) => (
+              <div
+                key={g.id}
+                className="flex items-center justify-between p-4 rounded-xl"
+                style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: g.is_default ? "color-mix(in srgb, var(--snm-brand) 15%, transparent)" : "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                    <Warehouse className="h-3.5 w-3.5" style={{ color: g.is_default ? "var(--snm-brand)" : "var(--muted-foreground)" }} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>{g.name}</p>
+                      {g.is_default && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
+                          style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    {g.location && <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{g.location}</p>}
+                  </div>
+                </div>
+                <div className="flex gap-1 shrink-0 ml-2">
                   {!g.is_default && (
-                    <button onClick={() => setDefaultGodown(g.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition" title="Set default">
+                    <button
+                      onClick={() => setDefaultGodown(g.id)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
+                      style={{ color: "var(--muted-foreground)" }}
+                      title="Set as default"
+                      aria-label="Set as default godown"
+                    >
                       <Star className="h-3.5 w-3.5" />
                     </button>
                   )}
-                  <button onClick={() => setGodownSheet({ open: true, editing: g })} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition">
+                  <button
+                    onClick={() => setGodownSheet({ open: true, editing: g })}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
+                    style={{ color: "var(--muted-foreground)" }}
+                    aria-label="Edit godown"
+                  >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   {isAdmin && (
-                    <button onClick={() => setDeleteGodownTarget(g)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition">
+                    <button
+                      onClick={() => setDeleteGodownTarget(g)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                      style={{ color: "var(--muted-foreground)" }}
+                      onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
+                      onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
+                      aria-label="Delete godown"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   )}
@@ -355,41 +307,9 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Row 4: Enterprise Security */}
-      <div className="glass p-8 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-3 mb-3">
-              <ShieldHalf className="h-7 w-7 text-foreground" />
-              <h2 className="text-lg font-semibold text-foreground">Enterprise Security Core</h2>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              SayNoMore ERP utilizes end-to-end AES-256 encryption for all database handshakes. Your data integrity is monitored by real-time heuristic analysis.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 shrink-0">
-            <div className="flex flex-col items-start gap-1">
-              <button disabled className="px-6 py-3 bg-secondary text-muted-foreground font-bold rounded-xl opacity-50 cursor-not-allowed text-sm">
-                Download Audit Log
-              </button>
-              <span className="text-[10px] uppercase tracking-widest font-semibold px-2" style={{ color: "var(--muted-foreground)" }}>Coming soon</span>
-            </div>
-            <div className="flex flex-col items-start gap-1">
-              <button disabled className="px-6 py-3 bg-secondary text-muted-foreground font-bold rounded-xl opacity-50 cursor-not-allowed text-sm">
-                View Access Keys
-              </button>
-              <span className="text-[10px] uppercase tracking-widest font-semibold px-2" style={{ color: "var(--muted-foreground)" }}>Coming soon</span>
-            </div>
-          </div>
-        </div>
-        {/* Decorative glow */}
-        <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full pointer-events-none"
-          style={{ background: "var(--primary)", opacity: 0.04, filter: "blur(60px)" }} />
-      </div>
-
-      {/* ── Sheets ── */}
+      {/* ── Sheets ─────────────────────────────────────────────── */}
       {inviteSheet && (
         <InviteSheet onClose={() => setInviteSheet(false)} onDone={() => { setInviteSheet(false); load(); }} />
       )}
@@ -399,7 +319,7 @@ export default function SettingsPage() {
       {deleteUserTarget && (
         <ConfirmSheet
           title="Remove team member?"
-          body={`${deleteUserTarget.full_name ?? deleteUserTarget.email} will lose all access immediately.`}
+          body={`${deleteUserTarget.full_name ?? deleteUserTarget.email} will immediately lose all access.`}
           danger loading={deletingUser}
           onCancel={() => setDeleteUserTarget(null)}
           onConfirm={async () => {
@@ -426,7 +346,7 @@ export default function SettingsPage() {
             setDeletingGodown(true);
             try {
               await deleteGodown(deleteGodownTarget.id);
-              toast.success("Deleted");
+              toast.success("Godown deleted");
               setDeleteGodownTarget(null); load();
             } catch (e) { toast.error((e as Error).message); }
             finally { setDeletingGodown(false); }
@@ -437,16 +357,23 @@ export default function SettingsPage() {
   );
 }
 
-/* ── Shared sheet wrapper ─────────────────────────────────────────────── */
-
+/* ── Sheet wrapper ─────────────────────────────────────────────────────── */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.5)" }}>
-      <div className="glass-modal w-full rounded-t-3xl p-6 max-h-[88vh] overflow-y-auto">
-        <div className="w-10 h-1 rounded-full bg-border mx-auto mb-5" />
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
+      <div
+        className="w-full p-6 max-h-[90vh] overflow-y-auto"
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", border: "1px solid var(--glass-border)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--glass-border)" }} />
         <div className="flex justify-between items-center mb-5">
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition text-lg leading-none">×</button>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>{title}</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-lg leading-none transition-opacity hover:opacity-70"
+            style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
+          >×</button>
         </div>
         {children}
       </div>
@@ -457,7 +384,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
 function SheetInput({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="mb-4">
-      <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+      <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
         {label}{required && " *"}
       </label>
       {children}
@@ -465,17 +392,27 @@ function SheetInput({ label, required, children }: { label: string; required?: b
   );
 }
 
-const inputCls = "w-full bg-muted border-0 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-ring outline-none";
+const inputCls = "w-full rounded-xl px-4 py-3 text-sm outline-none transition-all focus:ring-1"
+  + " bg-[color-mix(in_srgb,var(--foreground)_5%,transparent)]"
+  + " text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]"
+  + " border border-[var(--glass-border)] focus:ring-[var(--foreground)]";
 
 function SheetActions({ onCancel, onConfirm, disabled, label }: {
   onCancel: () => void; onConfirm: () => void; disabled?: boolean; label: string;
 }) {
   return (
     <div className="flex gap-3 mt-6">
-      <button onClick={onCancel} className="flex-1 py-3 rounded-full bg-secondary text-secondary-foreground text-sm font-medium hover:bg-accent transition">Cancel</button>
-      <button onClick={onConfirm} disabled={disabled} className="flex-[2] py-3 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all">
-        {label}
-      </button>
+      <button
+        onClick={onCancel}
+        className="flex-1 py-3 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+        style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
+      >Cancel</button>
+      <button
+        onClick={onConfirm}
+        disabled={disabled}
+        className="flex-[2] py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-85 active:scale-95 disabled:opacity-40"
+        style={{ background: "var(--foreground)", color: "var(--background)" }}
+      >{label}</button>
     </div>
   );
 }
@@ -484,25 +421,32 @@ function ConfirmSheet({ title, body, danger, loading, onCancel, onConfirm }: {
   title: string; body: string; danger?: boolean; loading?: boolean; onCancel: () => void; onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ background: "rgba(0,0,0,0.5)" }}>
-      <div className="glass-modal rounded-3xl p-6 w-full max-w-sm">
-        <p className="text-base font-semibold text-foreground mb-2">{title}</p>
-        <p className="text-sm text-muted-foreground mb-6">{body}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ background: "rgba(0,0,0,0.6)" }}>
+      <div className="w-full max-w-sm p-6 rounded-3xl" style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", border: "1px solid var(--glass-border)" }}>
+        <p className="text-base font-semibold mb-2" style={{ color: "var(--foreground)" }}>{title}</p>
+        <p className="text-sm mb-6" style={{ color: "var(--muted-foreground)" }}>{body}</p>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 py-3 rounded-full bg-secondary text-secondary-foreground text-sm font-medium hover:bg-accent transition">Cancel</button>
           <button
-            onClick={onConfirm} disabled={loading}
-            className={`flex-1 py-3 rounded-full text-sm font-bold disabled:opacity-50 active:scale-95 transition-all ${danger ? "bg-destructive/10 text-destructive" : "bg-primary text-primary-foreground"}`}
-          >
-            {loading ? "Working…" : "Confirm"}
-          </button>
+            onClick={onCancel}
+            className="flex-1 py-3 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+            style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
+          >Cancel</button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 py-3 rounded-full text-sm font-bold disabled:opacity-40 active:scale-95 transition-all"
+            style={danger
+              ? { background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)", border: "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)" }
+              : { background: "var(--foreground)", color: "var(--background)" }
+            }
+          >{loading ? "Working…" : "Confirm"}</button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Invite Sheet ─────────────────────────────────────────────────────── */
+/* ── Invite Sheet ──────────────────────────────────────────────────────── */
 function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
@@ -517,7 +461,7 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
     setSaving(true);
     try {
       await inviteUser(email.trim().toLowerCase(), fullName.trim(), role, tempPassword);
-      toast.success(`${fullName.trim()} added. They can log in with the password you set.`);
+      toast.success(`${fullName.trim()} added successfully`);
       onDone();
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
@@ -533,21 +477,28 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
       </SheetInput>
       <SheetInput label="Role" required>
         <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={inputCls}>
-          <option value="manager">Manager</option>
-          <option value="staff">Delivery Staff</option>
+          <option value="manager">Manager — Full operational access</option>
+          <option value="staff">Delivery Staff — Deliveries only</option>
         </select>
-        <p className="text-xs text-muted-foreground mt-1.5">{ROLE_DESC[role]}</p>
       </SheetInput>
       <SheetInput label="Temporary Password" required>
-        <input type="text" value={tempPassword} onChange={(e) => setTempPassword(e.target.value)} placeholder="Min 6 characters — share this with them" className={inputCls} />
-        <p className="text-xs text-muted-foreground mt-1.5">Share this password with the user so they can log in immediately.</p>
+        <input
+          type="text"
+          value={tempPassword}
+          onChange={(e) => setTempPassword(e.target.value)}
+          placeholder="Min 6 characters"
+          className={inputCls}
+        />
+        <p className="text-xs mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+          Share this with the user. They can change it later via Forgot password.
+        </p>
       </SheetInput>
       <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !canSave} label={saving ? "Adding…" : "ADD MEMBER"} />
     </Sheet>
   );
 }
 
-/* ── Edit User Sheet ──────────────────────────────────────────────────── */
+/* ── Edit User Sheet ───────────────────────────────────────────────────── */
 function EditUserSheet({ user, onClose, onDone }: { user: UserProfileRow; onClose: () => void; onDone: () => void }) {
   const [fullName, setFullName] = useState(user.full_name ?? "");
   const [role, setRole] = useState<UserRole>(user.role);
@@ -558,25 +509,25 @@ function EditUserSheet({ user, onClose, onDone }: { user: UserProfileRow; onClos
     setSaving(true);
     try {
       await updateUser(user.id, fullName.trim(), role);
-      toast.success("Updated");
+      toast.success("Member updated");
       onDone();
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
   }
 
   return (
-    <Sheet title="Edit Team Member" onClose={onClose}>
-      <p className="text-xs text-muted-foreground mb-4">{user.email}</p>
+    <Sheet title="Edit Member" onClose={onClose}>
+      <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>{user.email}</p>
       <SheetInput label="Full Name" required>
         <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} />
       </SheetInput>
       {user.role !== "admin" && (
         <SheetInput label="Role">
           <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={inputCls}>
-            <option value="manager">Manager</option>
-            <option value="staff">Delivery Staff</option>
+            <option value="manager">Manager — Full operational access</option>
+            <option value="staff">Delivery Staff — Deliveries only</option>
           </select>
-          <p className="text-xs text-muted-foreground mt-1.5">{ROLE_DESC[role]}</p>
+          <p className="text-xs mt-1.5" style={{ color: "var(--muted-foreground)" }}>{ROLE_DESC[role]}</p>
         </SheetInput>
       )}
       <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !fullName.trim()} label={saving ? "Saving…" : "SAVE CHANGES"} />
@@ -584,7 +535,7 @@ function EditUserSheet({ user, onClose, onDone }: { user: UserProfileRow; onClos
   );
 }
 
-/* ── Godown Sheet ─────────────────────────────────────────────────────── */
+/* ── Godown Sheet ──────────────────────────────────────────────────────── */
 function GodownSheet({ editing, onClose, onDone }: { editing?: GodownRow; onClose: () => void; onDone: () => void }) {
   const [name, setName] = useState(editing?.name ?? "");
   const [location, setLocation] = useState(editing?.location ?? "");
@@ -597,7 +548,7 @@ function GodownSheet({ editing, onClose, onDone }: { editing?: GodownRow; onClos
     try {
       if (editing) await updateGodown(editing.id, payload);
       else await createGodown(payload);
-      toast.success(editing ? "Saved" : "Godown created");
+      toast.success(editing ? "Godown updated" : "Godown created");
       onDone();
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
@@ -608,8 +559,8 @@ function GodownSheet({ editing, onClose, onDone }: { editing?: GodownRow; onClos
       <SheetInput label="Name" required>
         <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Warehouse" className={inputCls} />
       </SheetInput>
-      <SheetInput label="Location / Address">
-        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Optional" className={inputCls} />
+      <SheetInput label="Location">
+        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Optional address" className={inputCls} />
       </SheetInput>
       <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !name.trim()} label={saving ? "Saving…" : editing ? "SAVE CHANGES" : "CREATE GODOWN"} />
     </Sheet>
