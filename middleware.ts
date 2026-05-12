@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/set-password"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged in + on auth page → /dashboard
+  // Logged in + on auth page → /dashboard (but not set-password — they need to finish setup)
   if (user && (path === "/login" || path === "/signup" || path === "/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
