@@ -130,20 +130,27 @@ function SkuPanel({
         <div>
           <p className="label-caps text-[10px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Selling Price</p>
           {sku.selling_price_per_piece_mvr != null ? (
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: "Per Piece",  value: `MVR ${fmtPrice(sku.selling_price_per_piece_mvr)}` },
-                { label: "Per Pack",   value: `MVR ${fmtPrice(sku.selling_price_per_pack_mvr)}` },
-                { label: "Per Carton", value: `MVR ${fmtPrice(sku.selling_price_per_carton_mvr)}` },
-              ].map((c) => (
-                <div key={c.label} className="rounded-xl p-3 text-center"
-                  style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)",
-                           border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
-                  <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                  <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "Per Piece",  value: `MVR ${fmtPrice(sku.selling_price_per_piece_mvr)}` },
+                  { label: "Per Pack",   value: `MVR ${fmtPrice(sku.selling_price_per_pack_mvr)}` },
+                  { label: "Per Carton", value: `MVR ${fmtPrice(sku.selling_price_per_carton_mvr)}` },
+                ].map((c) => (
+                  <div key={c.label} className="rounded-xl p-3 text-center"
+                    style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)",
+                             border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+                    <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                    <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
+                  </div>
+                ))}
+              </div>
+              {sku.target_margin_pct != null && (
+                <p className="text-[11px] mt-2 text-center" style={{ color: "var(--muted-foreground)" }}>
+                  Target margin: {sku.target_margin_pct}%
+                </p>
+              )}
+            </>
           ) : sku.target_margin_pct != null ? (
             <div className="rounded-xl px-4 py-3"
               style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",
@@ -153,17 +160,19 @@ function SkuPanel({
               </p>
             </div>
           ) : (
-            <div className="rounded-xl px-4 py-3"
-              style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                No margin set — tap Edit to configure pricing
+            <button
+              onClick={onEdit}
+              className="w-full rounded-xl px-4 py-3 text-left transition active:scale-[0.98]"
+              style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)",
+                       border: "1px dashed color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
+            >
+              <p className="text-[12px] font-semibold" style={{ color: "var(--snm-brand)" }}>
+                + Set margin &amp; pricing
               </p>
-            </div>
-          )}
-          {sku.target_margin_pct != null && (
-            <p className="text-[11px] mt-2 text-center" style={{ color: "var(--muted-foreground)" }}>
-              Target margin: {sku.target_margin_pct}%
-            </p>
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                Tap to open Edit SKU and enter your target margin %
+              </p>
+            </button>
           )}
         </div>
 
@@ -892,7 +901,7 @@ function NewSkuWizard({
             {brandId && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[13px]">Product Line *</Label>
+                  <Label className="text-[13px]">Model *</Label>
                   {!showNewModel && (
                     <button type="button" onClick={() => setShowNewModel(true)}
                       className="text-[12px] font-medium py-1 px-2 rounded-lg active:opacity-60"
