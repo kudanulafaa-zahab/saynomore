@@ -5,12 +5,18 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type"); // "invite", "recovery", "signup", etc.
+  const type = searchParams.get("type");
   const next = searchParams.get("next") ?? "/dashboard";
 
   const supabase = await getSupabaseServer();
 
-  // Path A: PKCE code exchange (OAuth, magic link with code_verifier)
+  // For invite/recovery links: sign out any existing session first so the
+  // invited user's token is exchanged cleanly with no prior session in the way.
+  if (type === "invite" || type === "recovery") {
+    await supabase.auth.signOut();
+  }
+
+  // Path A: PKCE code exchange
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
@@ -33,11 +39,13 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
   }
 
-  // Path B: token_hash exchange (Supabase invite emails in PKCE mode send this)
+  // Path B: token_hash exchange (Supabase invite emails send this)
   if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "invite" | "recovery" | "signup" | "email" | "magiclink" | "sms" | "email_change" | "phone_change" });
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as "invite" | "recovery" | "signup" | "email" | "magiclink" | "sms" | "email_change" | "phone_change",
+    });
     if (!error) {
-      // After verifyOtp the session is set in cookies — go set password
       if (type === "invite" || type === "recovery") {
         return NextResponse.redirect(`${origin}/auth/set-password`);
       }

@@ -15,25 +15,27 @@ export default function SetPasswordPage() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Case 1: session already in cookies (came via /auth/callback after code exchange)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { setReady(true); return; }
+    // Sign out the browser-side client first so any existing admin session
+    // cached in localStorage doesn't override the invited user's cookie session.
+    supabase.auth.signOut({ scope: "local" }).finally(() => {
+      // After clearing local state, read the session from cookies (set by /auth/callback)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) { setReady(true); return; }
 
-      // Case 2: invite link with hash token (#access_token=...) — handled by Supabase JS automatically
-      // onAuthStateChange fires when Supabase parses the hash
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
+        // Fallback: hash-based invite link (#access_token=...) handled by Supabase JS
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
+            setReady(true);
+          }
+        });
+
+        const timeout = setTimeout(() => {
+          setError("This link has expired or is invalid. Use 'Forgot password?' on the login page to get a new one.");
           setReady(true);
-        }
+        }, 8000);
+
+        return () => { subscription.unsubscribe(); clearTimeout(timeout); };
       });
-
-      // Timeout: if no session after 8s, something went wrong
-      const timeout = setTimeout(() => {
-        setError("This link has expired or is invalid. Use 'Forgot password?' on the login page to get a new one.");
-        setReady(true); // show form anyway so error is visible
-      }, 8000);
-
-      return () => { subscription.unsubscribe(); clearTimeout(timeout); };
     });
   }, []);
 
