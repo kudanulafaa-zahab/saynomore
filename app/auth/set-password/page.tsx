@@ -16,7 +16,8 @@ function SetPasswordForm() {
 
   useEffect(() => {
     if (searchParams.get("error") === "expired") {
-      setError("This invite link has expired. Ask your admin to send a new invite.");
+      const msg = searchParams.get("msg") ?? "";
+      setError(`Link error: ${msg || "expired or already used"}`);
     }
   }, [searchParams]);
 
