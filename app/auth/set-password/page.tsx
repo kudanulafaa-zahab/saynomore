@@ -15,28 +15,27 @@ export default function SetPasswordPage() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Sign out the browser-side client first so any existing admin session
-    // cached in localStorage doesn't override the invited user's cookie session.
-    supabase.auth.signOut({ scope: "local" }).finally(() => {
-      // After clearing local state, read the session from cookies (set by /auth/callback)
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) { setReady(true); return; }
-
-        // Fallback: hash-based invite link (#access_token=...) handled by Supabase JS
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
-            setReady(true);
-          }
-        });
-
-        const timeout = setTimeout(() => {
-          setError("This link has expired or is invalid. Use 'Forgot password?' on the login page to get a new one.");
-          setReady(true);
-        }, 8000);
-
-        return () => { subscription.unsubscribe(); clearTimeout(timeout); };
-      });
+    // Supabase automatically parses the #access_token hash from the invite link
+    // and fires SIGNED_IN. Catch it here to mark the page ready.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
+        setReady(true);
+      }
     });
+
+    // Also handle the case where the user refreshed the page after the hash
+    // was already consumed — session will be in cookies.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+
+    // If nothing fires after 10s the link is expired.
+    const timeout = setTimeout(() => {
+      setError("This link has expired or is invalid. Use 'Forgot password?' on the login page to get a new link.");
+      setReady(true);
+    }, 10000);
+
+    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -71,7 +70,7 @@ export default function SetPasswordPage() {
       <div className="flex min-h-dvh items-center justify-center" style={{ background: "var(--background)" }}>
         <div className="flex flex-col items-center gap-3" style={{ color: "var(--muted-foreground)" }}>
           <Loader2 className="h-6 w-6 animate-spin" />
-          <p className="text-sm">Verifying link…</p>
+          <p className="text-sm">Verifying invite link…</p>
         </div>
       </div>
     );
