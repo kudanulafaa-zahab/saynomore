@@ -668,8 +668,29 @@ function NewSkuWizard({
   const [showNewVariant, setShowNewVariant]     = useState(false);
   const [inlineLoading, setInlineLoading]       = useState(false);
 
-  const brandModels   = models.filter((m) => m.brand_id === brandId);
-  const modelVariants = variants.filter((v) => v.model_id === modelId);
+  // Local pending items — merged into dropdown lists so newly created entries
+  // display correctly before the parent reload completes
+  const [localBrands,   setLocalBrands]   = useState<BrandRow[]>([]);
+  const [localModels,   setLocalModels]   = useState<ModelRow[]>([]);
+  const [localVariants, setLocalVariants] = useState<VariantRow[]>([]);
+
+  const allBrands   = useMemo(() => {
+    const ids = new Set(brands.map((b) => b.id));
+    return [...brands, ...localBrands.filter((b) => !ids.has(b.id))];
+  }, [brands, localBrands]);
+
+  const allModels   = useMemo(() => {
+    const ids = new Set(models.map((m) => m.id));
+    return [...models, ...localModels.filter((m) => !ids.has(m.id))];
+  }, [models, localModels]);
+
+  const allVariants = useMemo(() => {
+    const ids = new Set(variants.map((v) => v.id));
+    return [...variants, ...localVariants.filter((v) => !ids.has(v.id))];
+  }, [variants, localVariants]);
+
+  const brandModels   = allModels.filter((m) => m.brand_id === brandId);
+  const modelVariants = allVariants.filter((v) => v.model_id === modelId);
   const model         = models.find((m) => m.id === modelId);
   const brand         = brands.find((b) => b.id === brandId);
   const variant       = variants.find((v) => v.id === variantId);
@@ -719,6 +740,7 @@ function NewSkuWizard({
     setShowNewBrand(false); setShowNewModel(false); setShowNewVariant(false);
     setNewBrandName(""); setNewModelName(""); setNewModelCat("");
     setNewVariantAttrs({}); setShowDetails(false);
+    setLocalBrands([]); setLocalModels([]); setLocalVariants([]);
   }
 
   useEffect(() => { if (open) reset(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -728,10 +750,14 @@ function NewSkuWizard({
     setInlineLoading(true);
     try {
       const b = await createBrand(newBrandName.trim());
-      await onSaved();
-      setBrandId(b.id);
+      // Add to local list immediately so the Select shows the name right away
+      setLocalBrands((prev) => [...prev, b]);
       setShowNewBrand(false);
       setNewBrandName("");
+      setModelId("");
+      setVariantId("");
+      setBrandId(b.id);
+      onSaved(); // reload parent lists in background
       toast.success("Brand created");
     } catch (e) { toast.error((e as Error).message); }
     finally { setInlineLoading(false); }
@@ -742,10 +768,12 @@ function NewSkuWizard({
     setInlineLoading(true);
     try {
       const m = await createModel({ brand_id: brandId, category_id: newModelCat, name: newModelName.trim() });
-      await onSaved();
-      setModelId(m.id);
+      setLocalModels((prev) => [...prev, m]);
       setShowNewModel(false);
       setNewModelName("");
+      setVariantId("");
+      setModelId(m.id);
+      onSaved();
       toast.success("Model created");
     } catch (e) { toast.error((e as Error).message); }
     finally { setInlineLoading(false); }
@@ -763,10 +791,11 @@ function NewSkuWizard({
     setInlineLoading(true);
     try {
       const v = await createVariant({ model_id: modelId, attributes: cleaned, display_name: display });
-      await onSaved();
-      setVariantId(v.id);
+      setLocalVariants((prev) => [...prev, v]);
       setShowNewVariant(false);
       setNewVariantAttrs({});
+      setVariantId(v.id);
+      onSaved();
       toast.success("Variant created");
     } catch (e) { toast.error((e as Error).message); }
     finally { setInlineLoading(false); }
@@ -853,7 +882,7 @@ function NewSkuWizard({
                 <Select value={brandId} onValueChange={(v) => { setBrandId(v ?? ""); setModelId(""); setVariantId(""); }}>
                   <SelectTrigger className="h-11"><SelectValue placeholder="Select brand" /></SelectTrigger>
                   <SelectContent>
-                    {brands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    {allBrands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
