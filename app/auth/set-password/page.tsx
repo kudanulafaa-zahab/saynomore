@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 export default function SetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -15,28 +16,38 @@ export default function SetPasswordPage() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Supabase automatically parses the #access_token hash from the invite link
-    // and fires SIGNED_IN. Catch it here to mark the page ready.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
-        setReady(true);
-      }
-    });
-
-    // Also handle the case where the user refreshed the page after the hash
-    // was already consumed — session will be in cookies.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
-
-    // If nothing fires after 10s the link is expired.
-    const timeout = setTimeout(() => {
-      setError("This link has expired or is invalid. Use 'Forgot password?' on the login page to get a new link.");
+    // If the callback redirected here with ?error=expired the token was invalid.
+    if (searchParams.get("error") === "expired") {
+      setError("This invite link has expired. Ask your admin to send a new invite.");
       setReady(true);
-    }, 10000);
+      return;
+    }
 
-    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
-  }, []);
+    // The /auth/callback route ran verifyOtp server-side and set the session
+    // in the cookie before redirecting here. Just read it directly.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setReady(true);
+        return;
+      }
+
+      // Fallback: no session in cookie yet — wait briefly for it to propagate,
+      // or for onAuthStateChange if somehow a hash token was used.
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session && (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY")) {
+          setReady(true);
+        }
+      });
+
+      // After 6s with no session, the link is broken.
+      const timeout = setTimeout(() => {
+        setError("This invite link has expired. Ask your admin to send a new invite.");
+        setReady(true);
+      }, 6000);
+
+      return () => { subscription.unsubscribe(); clearTimeout(timeout); };
+    });
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,11 +112,11 @@ export default function SetPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>New password</label>
-              <input type="password" required autoFocus value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" style={inputStyle} />
+              <input type="password" required autoFocus value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" style={inputStyle} disabled={!!error} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Confirm password</label>
-              <input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat your password" style={inputStyle} />
+              <input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat your password" style={inputStyle} disabled={!!error} />
             </div>
 
             {error && (
@@ -114,14 +125,16 @@ export default function SetPasswordPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-50"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set password & enter app"}
-            </button>
+            {!error && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-85 disabled:opacity-50"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set password & enter app"}
+              </button>
+            )}
           </form>
         )}
       </div>
