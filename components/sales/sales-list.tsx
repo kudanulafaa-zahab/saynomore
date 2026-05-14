@@ -595,6 +595,33 @@ function NewSaleSheet({
                   <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
                 </div>
 
+                {/* Cost + margin transparency row */}
+                {selectedSku.landed_per_piece_mvr != null && (
+                  <div className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-4"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost / piece</p>
+                      <p className="text-[13px] font-semibold text-foreground">MVR {Number(selectedSku.landed_per_piece_mvr).toFixed(4)}</p>
+                    </div>
+                    {linePrice && parseFloat(linePrice) > 0 && selectedSku.landed_per_piece_mvr > 0 && (() => {
+                      const piecePriceForUom = lineUom === "piece"
+                        ? parseFloat(linePrice)
+                        : lineUom === "pack"
+                          ? parseFloat(linePrice) / selectedSku.pcs_per_pack
+                          : parseFloat(linePrice) / (selectedSku.pcs_per_pack * selectedSku.packs_per_carton);
+                      const margin = ((piecePriceForUom - selectedSku.landed_per_piece_mvr!) / piecePriceForUom) * 100;
+                      return (
+                        <div className="text-right">
+                          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Margin</p>
+                          <p className="text-[15px] font-bold" style={{ color: margin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                            {margin.toFixed(1)}%
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-2">
                   <GlassSelect label="Sell by" value={lineUom} onChange={(v) => setLineUom(v as SaleUom)}>
                     <option value="carton">Carton</option>

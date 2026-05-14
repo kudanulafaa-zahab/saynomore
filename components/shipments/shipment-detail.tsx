@@ -98,6 +98,8 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [voiding, setVoiding] = useState(false);
+  type PriceChange = { skuPath: string; before: number; after: number; changePct: number };
+  const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);
   const [deletingShipment, setDeletingShipment] = useState(false);
   const [deletingLine, setDeletingLine] = useState(false);
   const [role, setRole] = useState<string | null>(null);
@@ -188,10 +190,40 @@ export function ShipmentDetail({ id }: { id: string }) {
     if (!shipment) return;
     setConfirming(true);
     try {
+      // Snapshot selling prices before confirmation
+      const beforePrices = new Map(
+        skus
+          .filter((s) => lines.some((l) => l.sku_id === s.id))
+          .map((s) => [s.id, s.selling_price_per_piece_mvr])
+      );
+
       await confirmGrn(shipment.id);
-      toast.success("GRN confirmed — stock is now live");
       setPanel(null);
-      load();
+
+      // Reload, then compare new prices
+      await load();
+
+      // After load(), skus state updates asynchronously — compare via fresh fetch
+      const { listSkusFlat: freshFetch } = await import("@/lib/queries/products");
+      const freshSkus = await freshFetch();
+      const changes: PriceChange[] = [];
+      for (const line of lines) {
+        const fresh = freshSkus.find((s) => s.id === line.sku_id);
+        const before = beforePrices.get(line.sku_id) ?? null;
+        const after  = fresh?.selling_price_per_piece_mvr ?? null;
+        if (before != null && after != null && before > 0) {
+          const changePct = ((after - before) / before) * 100;
+          if (Math.abs(changePct) >= 2) {
+            changes.push({ skuPath: fresh?.full_path ?? line.sku_id, before, after, changePct });
+          }
+        }
+      }
+      setPriceChanges(changes);
+      if (changes.length > 0) {
+        toast.warning(`${changes.length} SKU${changes.length > 1 ? "s" : ""} had a price change — review below`);
+      } else {
+        toast.success("GRN confirmed — stock is now live");
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -454,19 +486,42 @@ export function ShipmentDetail({ id }: { id: string }) {
                   </div>
 
                   {/* Per-line landed cost breakdown */}
-                  {livePer && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--glass-border-lo)" }}>
-                      {[
-                        { label: "Total", value: "MVR " + livePer.lineTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
-                        { label: "/carton", value: livePer.perCarton.toFixed(0) },
-                        { label: "/pack", value: livePer.perPack.toFixed(2) },
-                        { label: "/piece", value: livePer.perPiece.toFixed(3), highlight: true },
-                      ].map((c) => (
-                        <div key={c.label} style={{ background: "var(--glass-bg-1)", borderRadius: 8, padding: "8px 10px" }}>
-                          <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>{c.label}</p>
-                          <p style={{ color: c.highlight ? "var(--snm-success)" : "var(--foreground)", fontSize: 14, fontWeight: 600 }}>{c.value}</p>
+                  {(livePer || locked) && (
+                    <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--glass-border-lo)" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                        {(livePer ? [
+                          { label: "Total", value: "MVR " + livePer.lineTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+                          { label: "/carton", value: livePer.perCarton.toFixed(0) },
+                          { label: "/pack", value: livePer.perPack.toFixed(2) },
+                          { label: "/piece", value: livePer.perPiece.toFixed(3), highlight: true },
+                        ] : [
+                          { label: "Total", value: l.landed_total_mvr != null ? "MVR " + Number(l.landed_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—" },
+                          { label: "/carton", value: l.landed_per_carton_mvr != null ? Number(l.landed_per_carton_mvr).toFixed(0) : "—" },
+                          { label: "/pack", value: l.landed_per_pack_mvr != null ? Number(l.landed_per_pack_mvr).toFixed(2) : "—" },
+                          { label: "/piece", value: l.landed_per_piece_mvr != null ? Number(l.landed_per_piece_mvr).toFixed(3) : "—", highlight: true },
+                        ]).map((c) => (
+                          <div key={c.label} style={{ background: "var(--glass-bg-1)", borderRadius: 8, padding: "8px 10px" }}>
+                            <p style={{ color: "var(--muted-foreground)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>{c.label}</p>
+                            <p style={{ color: c.highlight ? "var(--snm-success)" : "var(--foreground)", fontSize: 14, fontWeight: 600 }}>{c.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Locked: show resulting selling price for this SKU */}
+                      {locked && sku && (sku.selling_price_per_piece_mvr != null) && l.landed_per_piece_mvr != null && (
+                        <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between",
+                          background: "color-mix(in srgb, var(--snm-success) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 15%, transparent)" }}>
+                          <span style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
+                            Current selling price / piece
+                            {sku.fixed_selling_price_mvr != null
+                              ? <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: "var(--snm-brand)" }}>FIXED</span>
+                              : <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: "var(--snm-success)" }}>AUTO</span>
+                            }
+                          </span>
+                          <span style={{ color: "var(--snm-success)", fontSize: 14, fontWeight: 700 }}>
+                            MVR {Number(sku.selling_price_per_piece_mvr).toFixed(2)}
+                          </span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
@@ -508,6 +563,45 @@ export function ShipmentDetail({ id }: { id: string }) {
               )}
             </div>
           </div>
+
+          {/* Price change alert */}
+          {priceChanges.length > 0 && (
+            <div style={{ ...CARD, padding: 20, marginBottom: 10, border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
+              <p style={{ color: "var(--snm-warning)", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>
+                ⚠ {priceChanges.length} SKU{priceChanges.length > 1 ? "s" : ""} had a selling price change from this shipment
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {priceChanges.map((c) => (
+                  <div key={c.skuPath} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                    background: "var(--glass-bg-1)", borderRadius: 10, padding: "10px 14px" }}>
+                    <p style={{ color: "var(--foreground)", fontSize: 12, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {c.skuPath}
+                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                      <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>MVR {c.before.toFixed(2)}</span>
+                      <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>→</span>
+                      <span style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)", fontSize: 13, fontWeight: 700 }}>
+                        MVR {c.after.toFixed(2)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 600,
+                        color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
+                        {c.changePct > 0 ? "+" : ""}{c.changePct.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 12 }}>
+                These prices are live in your sales modal now. If you want to lock a price, go to Products → Edit SKU → set a fixed price.
+              </p>
+              <button
+                onClick={() => setPriceChanges([])}
+                style={{ marginTop: 10, fontSize: 11, color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* Made a mistake? */}
           {isAdmin && (

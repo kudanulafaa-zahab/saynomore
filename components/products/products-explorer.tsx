@@ -126,37 +126,66 @@ function SkuPanel({
           </div>
         </div>
 
-        {/* Selling prices */}
+        {/* Landed cost + selling prices */}
         <div>
-          <p className="label-caps text-[10px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Selling Price</p>
+          <p className="label-caps text-[10px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pricing</p>
+
+          {/* Landed cost row */}
+          {sku.landed_per_piece_mvr != null && (
+            <div className="rounded-xl px-4 py-3 mb-2 flex items-center justify-between"
+              style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+              <div>
+                <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost</p>
+                <p className="text-[15px] font-bold text-foreground">MVR {Number(sku.landed_per_piece_mvr).toFixed(4)}</p>
+                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>per piece · from last shipment</p>
+              </div>
+              {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null ? (
+                <div className="text-right">
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Actual margin</p>
+                  <p className="text-[17px] font-bold" style={{ color: sku.actual_margin_pct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                    {sku.actual_margin_pct}%
+                  </p>
+                </div>
+              ) : sku.target_margin_pct != null ? (
+                <div className="text-right">
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Target margin</p>
+                  <p className="text-[17px] font-bold" style={{ color: "var(--snm-success)" }}>{sku.target_margin_pct}%</p>
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* Selling prices grid */}
           {sku.selling_price_per_piece_mvr != null ? (
             <>
+              <div className="flex items-center gap-1.5 mb-2">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
+                {sku.fixed_selling_price_mvr != null
+                  ? <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
+                  : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                }
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Per Piece",  value: `MVR ${fmtPrice(sku.selling_price_per_piece_mvr)}` },
-                  { label: "Per Pack",   value: `MVR ${fmtPrice(sku.selling_price_per_pack_mvr)}` },
-                  { label: "Per Carton", value: `MVR ${fmtPrice(sku.selling_price_per_carton_mvr)}` },
+                  { label: "Per Piece",  value: fmtPrice(sku.selling_price_per_piece_mvr) },
+                  { label: "Per Pack",   value: fmtPrice(sku.selling_price_per_pack_mvr) },
+                  { label: "Per Carton", value: fmtPrice(sku.selling_price_per_carton_mvr) },
                 ].map((c) => (
                   <div key={c.label} className="rounded-xl p-3 text-center"
                     style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)",
                              border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                     <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                    <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
+                    <p className="text-[13px] font-semibold text-foreground">MVR {c.value}</p>
                   </div>
                 ))}
               </div>
-              {sku.target_margin_pct != null && (
-                <p className="text-[11px] mt-2 text-center" style={{ color: "var(--muted-foreground)" }}>
-                  Target margin: {sku.target_margin_pct}%
-                </p>
-              )}
             </>
-          ) : sku.target_margin_pct != null ? (
+          ) : (sku.target_margin_pct != null || sku.fixed_selling_price_mvr != null) ? (
             <div className="rounded-xl px-4 py-3"
               style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",
                        border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}>
               <p className="text-[12px]" style={{ color: "var(--snm-warning)" }}>
-                {sku.target_margin_pct}% margin set — price available after first GRN
+                Pricing configured — price available after first GRN
               </p>
             </div>
           ) : (
@@ -167,10 +196,10 @@ function SkuPanel({
                        border: "1px dashed color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
             >
               <p className="text-[12px] font-semibold" style={{ color: "var(--snm-brand)" }}>
-                + Set margin &amp; pricing
+                + Set pricing
               </p>
               <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                Tap to open Edit SKU and enter your target margin %
+                Tap Edit SKU → set margin % or a fixed price per piece
               </p>
             </button>
           )}

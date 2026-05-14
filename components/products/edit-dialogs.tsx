@@ -325,6 +325,7 @@ export function EditSkuDialog({
   const [h, setH] = useState("");
   const [kg, setKg] = useState("");
   const [marginPct, setMarginPct] = useState("");
+  const [fixedPrice, setFixedPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -338,6 +339,7 @@ export function EditSkuDialog({
       setH(String(sku.carton_height_cm));
       setKg(sku.carton_weight_kg?.toString() ?? "");
       setMarginPct(sku.target_margin_pct?.toString() ?? "");
+      setFixedPrice(sku.fixed_selling_price_mvr?.toString() ?? "");
     }
   }, [open, sku]);
 
@@ -347,12 +349,13 @@ export function EditSkuDialog({
     return (lv * wv * hv) / 1_000_000;
   }, [l, w, h]);
 
-  // Live selling price preview using the landed cost already on the SKU (from v_skus)
   const landedPerPiece = sku?.landed_per_piece_mvr ?? null;
-  const previewPrices = useMemo(() => {
+  const pcs = parseInt(pcsPerPack, 10);
+  const packs = parseInt(packsPerCarton, 10);
+
+  // Preview from margin formula
+  const marginPreview = useMemo(() => {
     const margin = parseFloat(marginPct);
-    const pcs = parseInt(pcsPerPack, 10);
-    const packs = parseInt(packsPerCarton, 10);
     if (!landedPerPiece || isNaN(margin) || margin <= 0 || margin >= 100) return null;
     const perPiece = landedPerPiece / (1 - margin / 100);
     return {
@@ -360,7 +363,25 @@ export function EditSkuDialog({
       pack: perPiece * (isNaN(pcs) ? 0 : pcs),
       carton: perPiece * (isNaN(pcs) ? 0 : pcs) * (isNaN(packs) ? 0 : packs),
     };
-  }, [marginPct, landedPerPiece, pcsPerPack, packsPerCarton]);
+  }, [marginPct, landedPerPiece, pcs, packs]);
+
+  // Preview from fixed price
+  const fixedPreview = useMemo(() => {
+    const fp = parseFloat(fixedPrice);
+    if (isNaN(fp) || fp <= 0) return null;
+    const actualMargin = landedPerPiece && landedPerPiece > 0
+      ? ((1 - landedPerPiece / fp) * 100)
+      : null;
+    return {
+      piece: fp,
+      pack: fp * (isNaN(pcs) ? 0 : pcs),
+      carton: fp * (isNaN(pcs) ? 0 : pcs) * (isNaN(packs) ? 0 : packs),
+      actualMargin,
+    };
+  }, [fixedPrice, landedPerPiece, pcs, packs]);
+
+  // Which pricing method is active?
+  const usingFixed = fixedPrice.trim() !== "";
 
   async function save() {
     if (!sku) return;
@@ -376,6 +397,7 @@ export function EditSkuDialog({
         carton_height_cm: parseFloat(h),
         carton_weight_kg: kg ? parseFloat(kg) : null,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
+        fixed_selling_price_mvr: fixedPrice ? parseFloat(fixedPrice) : null,
       });
       toast.success("Saved");
       onOpenChange(false);
@@ -387,42 +409,66 @@ export function EditSkuDialog({
     }
   }
 
-  // Derive unit label from variant format attribute (Bottle, Pouch, Sachet, etc.)
   const unit = (sku?.attributes as Record<string, string> | undefined)?.format || "Pc";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-xl">
+      <DialogContent className="bg-popover border-border max-w-xl overflow-y-auto max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>Edit Pack Configuration</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {/* Current saved prices */}
-          {sku?.selling_price_per_piece_mvr != null && (
-            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1">
-              <p className="text-[10px] uppercase tracking-wider text-primary font-medium">Current selling prices</p>
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">Per {unit.toLowerCase()}</p>
-                  <p className="font-semibold text-foreground">MVR {Number(sku.selling_price_per_piece_mvr).toFixed(2)}</p>
-                </div>
-                <div className="text-center border-x border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase">Per pack</p>
-                  <p className="font-semibold text-foreground">MVR {Number(sku.selling_price_per_pack_mvr).toFixed(2)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">Per carton</p>
-                  <p className="font-semibold text-foreground">MVR {Number(sku.selling_price_per_carton_mvr).toFixed(2)}</p>
-                </div>
+
+          {/* ── Current live prices (read-only summary) ── */}
+          {sku?.landed_per_piece_mvr != null && (
+            <div className="rounded-xl p-3 space-y-2"
+              style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
+              <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                Current landed cost
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[18px] font-bold text-foreground">
+                  MVR {Number(sku.landed_per_piece_mvr).toFixed(4)}
+                </span>
+                <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>per {unit.toLowerCase()}</span>
               </div>
-              {sku.target_margin_pct != null && (
-                <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-                  {sku.target_margin_pct}% gross margin · landed cost {landedPerPiece?.toFixed(4)} MVR/{unit.toLowerCase()}
-                </p>
+              {sku.selling_price_per_piece_mvr != null && (
+                <div className="pt-2 border-t" style={{ borderColor: "var(--glass-border-lo)" }}>
+                  <p className="text-[10px] uppercase tracking-wider mb-1.5 font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                    Active selling prices
+                    {sku.fixed_selling_price_mvr != null
+                      ? <span className="ml-2 px-1.5 py-0.5 rounded text-[9px]" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
+                      : <span className="ml-2 px-1.5 py-0.5 rounded text-[9px]" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                    }
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    {[
+                      { label: `Per ${unit.toLowerCase()}`, value: Number(sku.selling_price_per_piece_mvr).toFixed(2) },
+                      { label: "Per pack",   value: Number(sku.selling_price_per_pack_mvr).toFixed(2) },
+                      { label: "Per carton", value: Number(sku.selling_price_per_carton_mvr).toFixed(2) },
+                    ].map((c) => (
+                      <div key={c.label} className="text-center">
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                        <p className="font-semibold text-foreground text-[13px]">MVR {c.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null && (
+                    <p className="text-[10px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
+                      Actual margin on current cost: <strong style={{ color: "var(--snm-success)" }}>{sku.actual_margin_pct}%</strong>
+                    </p>
+                  )}
+                  {sku.fixed_selling_price_mvr == null && sku.target_margin_pct != null && (
+                    <p className="text-[10px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
+                      Target margin: {sku.target_margin_pct}% — price updates automatically with each shipment
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}
 
+          {/* Pack config */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>{unit}s per Pack *</Label>
@@ -441,7 +487,7 @@ export function EditSkuDialog({
               <Input type="number" step="0.1" value={h} onChange={(e) => setH(e.target.value)} placeholder="H" />
             </div>
             {cbm !== null && (
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400">→ {cbm.toFixed(5)} CBM per carton</p>
+              <p className="text-[11px]" style={{ color: "var(--snm-success)" }}>→ {cbm.toFixed(5)} CBM per carton</p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -460,72 +506,128 @@ export function EditSkuDialog({
           </div>
 
           {/* ── Pricing section ── */}
-          <div className="border-t border-border pt-4 space-y-3">
+          <div className="border-t border-border pt-4 space-y-4">
             <div>
-              <p className="text-sm font-medium text-foreground">Selling Price (Margin)</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Set your target profit margin. The system auto-calculates the selling price from your landed cost.
+              <p className="text-sm font-semibold text-foreground">Pricing</p>
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                Use margin % (price auto-updates with cost) or set a fixed price per {unit.toLowerCase()} (overrides margin).
               </p>
             </div>
+
+            {/* Option A: Target margin */}
             <div className="space-y-2">
-              <Label>Target Margin %</Label>
+              <Label>
+                Option A — Target Margin %
+                {!usingFixed && marginPct && (
+                  <span className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>
+                    ACTIVE
+                  </span>
+                )}
+              </Label>
               <div className="flex items-center gap-2">
                 <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.5"
-                  min="1"
-                  max="99"
+                  type="number" inputMode="decimal" step="0.5" min="1" max="99"
                   value={marginPct}
                   onChange={(e) => setMarginPct(e.target.value)}
                   placeholder="e.g. 30"
                   className="max-w-[120px]"
+                  disabled={usingFixed}
                 />
-                <span className="text-sm text-muted-foreground">%</span>
-                {marginPct && (
-                  <span className="text-[11px] text-muted-foreground ml-1">
-                    = {marginPct}% gross margin on each sale
+                <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>%</span>
+                {usingFixed && (
+                  <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                    (overridden by fixed price below)
                   </span>
                 )}
               </div>
+              {marginPreview && !usingFixed && (
+                <div className="rounded-lg p-2.5 grid grid-cols-3 gap-2 text-center"
+                  style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+                  {[
+                    { label: `Per ${unit.toLowerCase()}`, value: marginPreview.piece.toFixed(2) },
+                    { label: "Per pack",   value: marginPreview.pack.toFixed(2) },
+                    { label: "Per carton", value: marginPreview.carton.toFixed(2) },
+                  ].map((c) => (
+                    <div key={c.label}>
+                      <p className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                      <p className="text-[13px] font-semibold text-foreground">MVR {c.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!marginPreview && !usingFixed && landedPerPiece && marginPct && (
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  Enter a valid margin (1–99%) to preview prices.
+                </p>
+              )}
             </div>
 
-            {/* Live preview */}
-            {previewPrices ? (
-              <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1.5">
-                <p className="text-[11px] uppercase tracking-wider text-primary font-medium">Calculated selling prices</p>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase">Per {unit.toLowerCase()}</p>
-                    <p className="font-semibold text-foreground">{previewPrices.piece.toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground">MVR</p>
-                  </div>
-                  <div className="text-center border-x border-border">
-                    <p className="text-[10px] text-muted-foreground uppercase">Per pack</p>
-                    <p className="font-semibold text-foreground">{previewPrices.pack.toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground">MVR</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase">Per carton</p>
-                    <p className="font-semibold text-foreground">{previewPrices.carton.toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground">MVR</p>
-                  </div>
-                </div>
-                {landedPerPiece && (
-                  <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-                    Based on landed cost: {landedPerPiece.toFixed(4)} MVR/{unit.toLowerCase()}
-                  </p>
+            {/* Option B: Fixed price */}
+            <div className="space-y-2">
+              <Label>
+                Option B — Fixed Price per {unit} (MVR)
+                {usingFixed && (
+                  <span className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>
+                    ACTIVE
+                  </span>
+                )}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number" inputMode="decimal" step="0.01" min="0.01"
+                  value={fixedPrice}
+                  onChange={(e) => setFixedPrice(e.target.value)}
+                  placeholder="e.g. 4.50"
+                  className="max-w-[140px]"
+                />
+                <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>MVR / {unit.toLowerCase()}</span>
+                {fixedPrice && (
+                  <button
+                    type="button"
+                    onClick={() => setFixedPrice("")}
+                    className="text-[11px] underline"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    Clear
+                  </button>
                 )}
               </div>
-            ) : landedPerPiece ? (
-              <p className="text-[11px] text-muted-foreground">
-                Enter a margin % above to see the selling price.
-                Landed cost: {landedPerPiece.toFixed(4)} MVR/{unit.toLowerCase()}
-              </p>
-            ) : (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                ⚠ No stock received yet — selling price preview available after the first shipment is confirmed.
-                You can still set the margin now and the price will calculate automatically.
+              {fixedPreview && (
+                <div className="rounded-lg p-2.5 space-y-2"
+                  style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 18%, transparent)" }}>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    {[
+                      { label: `Per ${unit.toLowerCase()}`, value: fixedPreview.piece.toFixed(2) },
+                      { label: "Per pack",   value: fixedPreview.pack.toFixed(2) },
+                      { label: "Per carton", value: fixedPreview.carton.toFixed(2) },
+                    ].map((c) => (
+                      <div key={c.label}>
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                        <p className="text-[13px] font-semibold text-foreground">MVR {c.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {fixedPreview.actualMargin != null && (
+                    <p className="text-[11px] pt-1.5 border-t text-center"
+                      style={{ borderColor: "color-mix(in srgb, var(--snm-brand) 20%, transparent)", color: fixedPreview.actualMargin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                      Actual margin on current cost: <strong>{fixedPreview.actualMargin.toFixed(1)}%</strong>
+                      {fixedPreview.actualMargin < 0 && " — ⚠ below cost!"}
+                    </p>
+                  )}
+                  {!landedPerPiece && (
+                    <p className="text-[11px] pt-1 border-t" style={{ borderColor: "color-mix(in srgb, var(--snm-brand) 20%, transparent)", color: "var(--muted-foreground)" }}>
+                      Margin % visible after first shipment is confirmed.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {!landedPerPiece && !fixedPrice && (
+              <p className="text-[11px]" style={{ color: "var(--snm-warning)" }}>
+                No stock received yet — margin preview available after first GRN. You can set pricing now.
               </p>
             )}
           </div>
