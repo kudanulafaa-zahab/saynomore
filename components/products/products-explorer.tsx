@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Loader2, Search, X, ChevronRight,
@@ -625,13 +625,7 @@ export function ProductsExplorer() {
   );
 }
 
-/* ── New SKU form — single scrollable sheet, no wizard steps ── */
-
-function unitLabel(attrs: Record<string, string> | undefined): string {
-  const fmt = attrs?.format;
-  if (!fmt) return "Pc";
-  return fmt; // Bottle, Pouch, Sachet, Jar, Box, Tube, Pack, Can → used verbatim
-}
+/* ── New SKU form — single card, everything inline ── */
 
 function SectionHead({ children }: { children: React.ReactNode }) {
   return (
@@ -639,6 +633,135 @@ function SectionHead({ children }: { children: React.ReactNode }) {
       {children}
     </p>
   );
+}
+
+/* ── Combobox: type to search, shows "Create X" when no match ── */
+function Combobox({
+  value, onChange, options, placeholder, createLabel, onCreateClick, disabled,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  options: { id: string; label: string }[];
+  placeholder: string;
+  createLabel?: string;
+  onCreateClick?: () => void;
+  disabled?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  const selected = options.find((o) => o.id === value);
+  const filtered = q.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(q.trim().toLowerCase()))
+    : options;
+  const showCreate = onCreateClick && q.trim().length > 0 && !options.some(
+    (o) => o.label.toLowerCase() === q.trim().toLowerCase()
+  );
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <div
+        onClick={() => { if (!disabled) { setOpen(!open); setQ(""); } }}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          height: 44, padding: "0 12px", borderRadius: 10, cursor: disabled ? "default" : "pointer",
+          background: disabled ? "color-mix(in srgb, var(--foreground) 3%, transparent)" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
+          border: "1px solid var(--glass-border-lo)",
+          opacity: disabled ? 0.5 : 1,
+        }}
+      >
+        <span style={{ fontSize: 14, color: selected ? "var(--foreground)" : "var(--muted-foreground)" }}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", transform: open ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
+      </div>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 100,
+          background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
+          border: "1px solid var(--glass-border)", borderRadius: 12, overflow: "hidden",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+        }}>
+          <div style={{ padding: "8px 8px 4px" }}>
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search…"
+              style={{
+                width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--glass-border-lo)",
+                background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                color: "var(--foreground)", fontSize: 13, outline: "none", boxSizing: "border-box",
+              }}
+            />
+          </div>
+          <div style={{ maxHeight: 180, overflowY: "auto" }}>
+            {filtered.map((o) => (
+              <button
+                key={o.id}
+                onClick={() => { onChange(o.id); setOpen(false); setQ(""); }}
+                style={{
+                  width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent",
+                  border: "none", cursor: "pointer", fontSize: 13,
+                  color: o.id === value ? "var(--snm-brand)" : "var(--foreground)",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}
+              >
+                {o.id === value && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-brand)", flexShrink: 0 }} />}
+                {o.label}
+              </button>
+            ))}
+            {filtered.length === 0 && !showCreate && (
+              <p style={{ padding: "10px 14px", fontSize: 13, color: "var(--muted-foreground)" }}>No results</p>
+            )}
+          </div>
+          {showCreate && onCreateClick && (
+            <button
+              onClick={() => { onCreateClick(); setOpen(false); setQ(""); }}
+              style={{
+                width: "100%", textAlign: "left", padding: "10px 14px",
+                borderTop: "1px solid var(--glass-border-lo)",
+                background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)",
+                border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                color: "var(--snm-brand)",
+              }}
+            >
+              + Create &ldquo;{q.trim()}&rdquo;
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ATTR_SPECS_WIZARD: Record<string, { label: string; placeholder?: string; type: "text" | "number"; options?: string[]; suffix?: string }> = {
+  size:      { label: "Size",    placeholder: "NB / S / M / L / XL / XXL", type: "text" },
+  scent:     { label: "Scent",   placeholder: "e.g. Mint",                  type: "text" },
+  format:    { label: "Format",  type: "text",
+               options: ["Bottle","Pouch","Sachet","Jar","Box","Tube","Pack","Can"] },
+  volume_ml: { label: "Volume",  placeholder: "e.g. 700",  type: "number", suffix: "ml" },
+  weight_g:  { label: "Weight",  placeholder: "e.g. 250",  type: "number", suffix: "g"  },
+  colour:    { label: "Colour",  placeholder: "e.g. Pink", type: "text" },
+  other:     { label: "Other",   placeholder: "Optional",  type: "text" },
+};
+
+function attrsToDisplayName(attrs: Record<string, string>, schema: AttrKey[]): string {
+  return schema.map((k) => {
+    const v = attrs[k];
+    if (!v || !v.trim()) return "";
+    const spec = ATTR_SPECS_WIZARD[k];
+    return spec?.suffix ? `${v.trim()}${spec.suffix}` : v.trim();
+  }).filter(Boolean).join(" ");
 }
 
 function NewSkuWizard({
@@ -653,61 +776,45 @@ function NewSkuWizard({
   existingSkus: SkuFullRow[];
   onSaved: () => void;
 }) {
-  const [brandId, setBrandId]         = useState("");
-  const [modelId, setModelId]         = useState("");
-  const [variantId, setVariantId]     = useState("");
-  const [pcsPerPack, setPcsPerPack]   = useState("");
+  // ── Identity fields (typed inline, not selected from a list first)
+  const [brandInput,  setBrandInput]  = useState("");   // typed name or selected name
+  const [brandId,     setBrandId]     = useState("");   // resolved id after match/create
+  const [modelInput,  setModelInput]  = useState("");
+  const [modelId,     setModelId]     = useState("");
+  const [categoryId,  setCategoryId]  = useState("");
+  const [variantAttrs, setVariantAttrs] = useState<Record<string, string>>({});
+
+  // ── Pack config
+  const [pcsPerPack,  setPcsPerPack]  = useState("");
   const [packsPerCtn, setPacksPerCtn] = useState("");
-  const [lenCm, setLenCm]             = useState("");
-  const [widCm, setWidCm]             = useState("");
-  const [htCm, setHtCm]               = useState("");
-  const [wgtKg, setWgtKg]             = useState("");
-  const [code, setCode]               = useState("");
-  const [barcode, setBarcode]         = useState("");
-  const [saving, setSaving]           = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [lenCm, setLenCm] = useState("");
+  const [widCm, setWidCm] = useState("");
+  const [htCm,  setHtCm]  = useState("");
+  const [wgtKg, setWgtKg] = useState("");
+  const [code,    setCode]    = useState("");
+  const [barcode, setBarcode] = useState("");
+  const [marginPct, setMarginPct] = useState("");
+  const [saving,  setSaving]  = useState(false);
+  const [showOptional, setShowOptional] = useState(false);
 
-  // Inline creation state
-  const [newBrandName, setNewBrandName]         = useState("");
-  const [showNewBrand, setShowNewBrand]         = useState(false);
-  const [newModelName, setNewModelName]         = useState("");
-  const [newModelCat, setNewModelCat]           = useState("");
-  const [showNewModel, setShowNewModel]         = useState(false);
-  const [newVariantAttrs, setNewVariantAttrs]   = useState<Record<string, string>>({});
-  const [showNewVariant, setShowNewVariant]     = useState(false);
-  const [inlineLoading, setInlineLoading]       = useState(false);
+  // ── Local items created during this session (so combos show them instantly)
+  const [localBrands, setLocalBrands] = useState<BrandRow[]>([]);
+  const [localModels, setLocalModels] = useState<ModelRow[]>([]);
 
-  // Local pending items — merged into dropdown lists so newly created entries
-  // display correctly before the parent reload completes
-  const [localBrands,   setLocalBrands]   = useState<BrandRow[]>([]);
-  const [localModels,   setLocalModels]   = useState<ModelRow[]>([]);
-  const [localVariants, setLocalVariants] = useState<VariantRow[]>([]);
-
-  const allBrands   = useMemo(() => {
+  const allBrands = useMemo(() => {
     const ids = new Set(brands.map((b) => b.id));
     return [...brands, ...localBrands.filter((b) => !ids.has(b.id))];
   }, [brands, localBrands]);
 
-  const allModels   = useMemo(() => {
+  const allModels = useMemo(() => {
     const ids = new Set(models.map((m) => m.id));
     return [...models, ...localModels.filter((m) => !ids.has(m.id))];
   }, [models, localModels]);
 
-  const allVariants = useMemo(() => {
-    const ids = new Set(variants.map((v) => v.id));
-    return [...variants, ...localVariants.filter((v) => !ids.has(v.id))];
-  }, [variants, localVariants]);
-
-  const brandModels   = allModels.filter((m) => m.brand_id === brandId);
-  const modelVariants = allVariants.filter((v) => v.model_id === modelId);
-  const model         = models.find((m) => m.id === modelId);
-  const brand         = brands.find((b) => b.id === brandId);
-  const variant       = variants.find((v) => v.id === variantId);
-  const category      = categories.find((c) => c.id === model?.category_id);
+  // Derived
+  const brandModels  = allModels.filter((m) => m.brand_id === brandId);
+  const category     = categories.find((c) => c.id === categoryId);
   const schema: AttrKey[] = (category?.variant_attributes ?? []) as AttrKey[];
-
-  // Derive unit label from the variant's format attribute
-  const unit = unitLabel(variant ? (variant.attributes as Record<string, string>) : undefined);
 
   const pcsPerCarton = useMemo(() => {
     const p = parseInt(pcsPerPack), c = parseInt(packsPerCtn);
@@ -719,106 +826,89 @@ function NewSkuWizard({
     return l > 0 && w > 0 && h > 0 ? (l * w * h) / 1_000_000 : null;
   }, [lenCm, widCm, htCm]);
 
-  // Auto-fill dimensions from sibling SKU on same variant
+  // Auto-fill dims from a sibling SKU when model is chosen
   useEffect(() => {
-    if (!variantId) return;
-    const sib = existingSkus.find((s) => s.variant_id === variantId);
+    if (!modelId) return;
+    const sib = existingSkus.find((s) => s.model_id === modelId);
     if (sib && !lenCm && !widCm && !htCm) {
       setLenCm(String(sib.carton_length_cm));
       setWidCm(String(sib.carton_width_cm));
       setHtCm(String(sib.carton_height_cm));
       if (sib.carton_weight_kg) setWgtKg(String(sib.carton_weight_kg));
     }
-  }, [variantId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [modelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-generate internal code
   useEffect(() => {
-    if (!brand || !model || !variant) return;
-    const b = brand.name.replace(/\s/g, "").toUpperCase().slice(0, 4);
-    const m = model.name.replace(/\s/g, "").toUpperCase().slice(0, 4);
-    const v = variant.display_name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 6);
+    const b = brandInput.replace(/\s/g, "").toUpperCase().slice(0, 4);
+    const m = modelInput.replace(/\s/g, "").toUpperCase().slice(0, 4);
+    const v = attrsToDisplayName(variantAttrs, schema).replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 6);
     const p = pcsPerPack && packsPerCtn ? `${pcsPerPack}x${packsPerCtn}` : "";
-    setCode([b, m, v, p].filter(Boolean).join("-"));
-  }, [variant?.id, model?.id, brand?.id, pcsPerPack, packsPerCtn]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (b || m) setCode([b, m, v, p].filter(Boolean).join("-"));
+  }, [brandInput, modelInput, variantAttrs, pcsPerPack, packsPerCtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function reset() {
-    setBrandId(""); setModelId(""); setVariantId("");
+    setBrandInput(""); setBrandId("");
+    setModelInput(""); setModelId(""); setCategoryId("");
+    setVariantAttrs({});
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
-    setCode(""); setBarcode("");
-    setShowNewBrand(false); setShowNewModel(false); setShowNewVariant(false);
-    setNewBrandName(""); setNewModelName(""); setNewModelCat("");
-    setNewVariantAttrs({}); setShowDetails(false);
-    setLocalBrands([]); setLocalModels([]); setLocalVariants([]);
+    setCode(""); setBarcode(""); setMarginPct("");
+    setShowOptional(false);
+    setLocalBrands([]); setLocalModels([]);
   }
 
   useEffect(() => { if (open) reset(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function createInlineBrand() {
-    if (!newBrandName.trim()) return;
-    setInlineLoading(true);
-    try {
-      const b = await createBrand(newBrandName.trim());
-      // Add to local list immediately so the Select shows the name right away
-      setLocalBrands((prev) => [...prev, b]);
-      setShowNewBrand(false);
-      setNewBrandName("");
-      setModelId("");
-      setVariantId("");
-      setBrandId(b.id);
-      onSaved(); // reload parent lists in background
-      toast.success("Brand created");
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setInlineLoading(false); }
+  // ── Resolve brand: find existing or create new
+  async function resolveBrand(name: string): Promise<string> {
+    const existing = allBrands.find((b) => b.name.toLowerCase() === name.trim().toLowerCase());
+    if (existing) return existing.id;
+    const b = await createBrand(name.trim());
+    setLocalBrands((prev) => [...prev, b]);
+    return b.id;
   }
 
-  async function createInlineModel() {
-    if (!newModelName.trim() || !brandId || !newModelCat) return;
-    setInlineLoading(true);
-    try {
-      const m = await createModel({ brand_id: brandId, category_id: newModelCat, name: newModelName.trim() });
-      setLocalModels((prev) => [...prev, m]);
-      setShowNewModel(false);
-      setNewModelName("");
-      setVariantId("");
-      setModelId(m.id);
-      onSaved();
-      toast.success("Model created");
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setInlineLoading(false); }
+  // ── Resolve model: find existing for this brand+name, or create new
+  async function resolveModel(name: string, bId: string, catId: string): Promise<string> {
+    const existing = allModels.find(
+      (m) => m.brand_id === bId && m.name.toLowerCase() === name.trim().toLowerCase()
+    );
+    if (existing) return existing.id;
+    const m = await createModel({ brand_id: bId, category_id: catId, name: name.trim() });
+    setLocalModels((prev) => [...prev, m]);
+    return m.id;
   }
 
-  async function createInlineVariant() {
-    if (!modelId) return;
-    const cleaned: Record<string, string | number> = {};
-    for (const k of schema) {
-      const v = newVariantAttrs[k];
-      if (v && v.trim()) cleaned[k] = ATTR_SPECS[k]?.type === "number" ? Number(v) : v.trim();
-    }
-    if (Object.keys(cleaned).length === 0) { toast.error("Fill at least one attribute."); return; }
-    const display = attrsToDisplay(cleaned, schema) || "Variant";
-    setInlineLoading(true);
-    try {
-      const v = await createVariant({ model_id: modelId, attributes: cleaned, display_name: display });
-      setLocalVariants((prev) => [...prev, v]);
-      setShowNewVariant(false);
-      setNewVariantAttrs({});
-      setVariantId(v.id);
-      onSaved();
-      toast.success("Variant created");
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setInlineLoading(false); }
-  }
-
+  // ── Save: creates everything needed in sequence, then the SKU
   async function save() {
-    if (!variantId || !pcsPerPack || !packsPerCtn || !lenCm || !widCm || !htCm || !code.trim()) {
-      toast.error("Fill all required fields before saving.");
+    if (!brandInput.trim() || !modelInput.trim() || !categoryId || !pcsPerPack || !packsPerCtn || !lenCm || !widCm || !htCm || !code.trim()) {
+      toast.error("Fill all required fields.");
       return;
     }
+    const variantDisplay = attrsToDisplayName(variantAttrs, schema) || modelInput.trim();
     setSaving(true);
     try {
+      const bId = await resolveBrand(brandInput);
+      const mId = await resolveModel(modelInput, bId, categoryId);
+
+      // Resolve variant: find or create
+      const existingVariant = variants.find(
+        (v) => v.model_id === mId && v.display_name.toLowerCase() === variantDisplay.toLowerCase()
+      );
+      const cleanedAttrs: Record<string, string | number> = {};
+      for (const k of schema) {
+        const val = variantAttrs[k];
+        if (val && val.trim()) {
+          cleanedAttrs[k] = ATTR_SPECS_WIZARD[k]?.type === "number" ? Number(val) : val.trim();
+        }
+      }
+      const vId = existingVariant
+        ? existingVariant.id
+        : (await createVariant({ model_id: mId, attributes: cleanedAttrs, display_name: variantDisplay })).id;
+
       await createSku({
-        variant_id: variantId,
+        variant_id: vId,
         internal_code: code.trim(),
         supplier_barcode: barcode.trim() || null,
         pcs_per_pack: parseInt(pcsPerPack),
@@ -827,7 +917,9 @@ function NewSkuWizard({
         carton_width_cm: parseFloat(widCm),
         carton_height_cm: parseFloat(htCm),
         carton_weight_kg: wgtKg ? parseFloat(wgtKg) : null,
+        target_margin_pct: marginPct ? parseFloat(marginPct) : null,
       });
+
       toast.success("SKU created");
       onOpenChange(false);
       onSaved();
@@ -835,250 +927,283 @@ function NewSkuWizard({
     finally { setSaving(false); }
   }
 
-  const canSave = !!variantId && !!pcsPerPack && !!packsPerCtn && !!lenCm && !!widCm && !!htCm && !!code.trim();
+  const hasVariantFields = schema.length > 0;
+  const variantFilled = !hasVariantFields || schema.some((k) => variantAttrs[k]?.trim());
+  const canSave = !!brandInput.trim() && !!modelInput.trim() && !!categoryId &&
+    variantFilled && !!pcsPerPack && !!packsPerCtn && !!lenCm && !!widCm && !!htCm && !!code.trim();
 
-  // Inline creation card style
-  const inlineCard: React.CSSProperties = {
-    background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)",
-    border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)",
-    borderRadius: 12,
-    padding: 12,
+  const inp: React.CSSProperties = {
+    width: "100%", height: 44, padding: "0 12px", borderRadius: 10,
+    background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+    border: "1px solid var(--glass-border-lo)", color: "var(--foreground)",
+    fontSize: 14, outline: "none", boxSizing: "border-box",
   };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
       <DialogContent className="bg-popover border-border max-w-lg p-0 gap-0 overflow-hidden">
 
-        {/* Fixed header */}
+        {/* Header */}
         <div className="px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: "1px solid var(--glass-border)" }}>
           <DialogTitle className="text-[17px] font-semibold">New SKU</DialogTitle>
           <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-            Fill in product details — all fields on one screen
+            Type to search or create — everything in one card
           </p>
         </div>
 
         {/* Scrollable body */}
         <div className="overflow-y-auto px-5 py-4 space-y-5" style={{ maxHeight: "calc(100dvh - 200px)" }}>
 
-          {/* ── Product identity ── */}
-          <div className="space-y-3">
-            <SectionHead>Product</SectionHead>
-
-            {/* Brand */}
+          {/* ── Row 1: Brand + Category ── */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-[13px]">Brand *</Label>
-                {!showNewBrand && (
-                  <button type="button" onClick={() => setShowNewBrand(true)}
-                    className="text-[12px] font-medium py-1 px-2 rounded-lg active:opacity-60"
-                    style={{ color: "var(--snm-brand)" }}>+ New</button>
-                )}
-              </div>
-              {showNewBrand ? (
-                <div style={inlineCard} className="space-y-2">
-                  <Input autoFocus value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)}
-                    placeholder="Brand name" className="h-11" />
-                  <div className="flex gap-2">
-                    <Button className="flex-1 h-11" onClick={createInlineBrand}
-                      disabled={inlineLoading || !newBrandName.trim()}
-                      style={{ background: "var(--snm-brand)", color: "#fff" }}>
-                      {inlineLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save brand"}
-                    </Button>
-                    <Button variant="ghost" className="h-11 px-4" onClick={() => setShowNewBrand(false)}>Cancel</Button>
-                  </div>
-                </div>
-              ) : (
-                <Select value={brandId} onValueChange={(v) => { setBrandId(v ?? ""); setModelId(""); setVariantId(""); }}>
-                  <SelectTrigger className="h-11"><SelectValue placeholder="Select brand" /></SelectTrigger>
-                  <SelectContent>
-                    {allBrands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <Label className="text-[13px]">Brand *</Label>
+              <Combobox
+                value={brandId}
+                onChange={(id) => {
+                  setBrandId(id);
+                  const name = allBrands.find((b) => b.id === id)?.name ?? "";
+                  setBrandInput(name);
+                  setModelInput(""); setModelId("");
+                }}
+                options={allBrands.map((b) => ({ id: b.id, label: b.name }))}
+                placeholder="Search or type new…"
+                onCreateClick={() => {/* handled via typed input below */}}
+              />
+              {/* Typed input shown when not yet matched to an id */}
+              {!brandId && (
+                <input
+                  value={brandInput}
+                  onChange={(e) => { setBrandInput(e.target.value); setBrandId(""); }}
+                  placeholder="Type brand name…"
+                  style={inp}
+                />
+              )}
+              {!brandId && brandInput.trim() && (
+                <p className="text-[11px]" style={{ color: "var(--snm-brand)" }}>
+                  Will create &ldquo;{brandInput.trim()}&rdquo; as a new brand
+                </p>
               )}
             </div>
 
-            {/* Model — only shown once brand selected */}
-            {brandId && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[13px]">Model *</Label>
-                  {!showNewModel && (
-                    <button type="button" onClick={() => setShowNewModel(true)}
-                      className="text-[12px] font-medium py-1 px-2 rounded-lg active:opacity-60"
-                      style={{ color: "var(--snm-brand)" }}>+ New</button>
-                  )}
-                </div>
-                {showNewModel ? (
-                  <div style={inlineCard} className="space-y-2">
-                    <Input autoFocus value={newModelName} onChange={(e) => setNewModelName(e.target.value)}
-                      placeholder="e.g. SoSoft Detergent" className="h-11" />
-                    <Select value={newModelCat} onValueChange={(v) => setNewModelCat(v ?? "")}>
-                      <SelectTrigger className="h-11"><SelectValue placeholder="Category" /></SelectTrigger>
-                      <SelectContent>
-                        {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex gap-2">
-                      <Button className="flex-1 h-11" onClick={createInlineModel}
-                        disabled={inlineLoading || !newModelName.trim() || !newModelCat}
-                        style={{ background: "var(--snm-brand)", color: "#fff" }}>
-                        {inlineLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save product line"}
-                      </Button>
-                      <Button variant="ghost" className="h-11 px-4" onClick={() => setShowNewModel(false)}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Select value={modelId} onValueChange={(v) => { setModelId(v ?? ""); setVariantId(""); }}>
-                    <SelectTrigger className="h-11"><SelectValue placeholder="Select product line" /></SelectTrigger>
-                    <SelectContent>
-                      {brandModels.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">Category *</Label>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {categories.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => { setCategoryId(c.id); setVariantAttrs({}); }}
+                    style={{
+                      padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                      border: "1px solid",
+                      background: categoryId === c.id ? "var(--snm-brand)" : "transparent",
+                      borderColor: categoryId === c.id ? "var(--snm-brand)" : "var(--glass-border)",
+                      color: categoryId === c.id ? "#fff" : "var(--muted-foreground)",
+                      cursor: "pointer", whiteSpace: "nowrap",
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+          </div>
 
-            {/* Variant — only shown once model selected */}
-            {modelId && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[13px]">
-                    {category?.name === "Diapers" ? "Size *" : "Variant *"}
-                  </Label>
-                  {!showNewVariant && (
-                    <button type="button" onClick={() => setShowNewVariant(true)}
-                      className="text-[12px] font-medium py-1 px-2 rounded-lg active:opacity-60"
-                      style={{ color: "var(--snm-brand)" }}>+ New</button>
-                  )}
-                </div>
-                {showNewVariant ? (
-                  <div style={inlineCard} className="space-y-2">
-                    {schema.map((key) => {
-                      const spec = ATTR_SPECS[key];
-                      return spec?.options ? (
-                        <Select key={key} value={newVariantAttrs[key] ?? ""}
-                          onValueChange={(v) => setNewVariantAttrs({ ...newVariantAttrs, [key]: v ?? "" })}>
-                          <SelectTrigger className="h-11"><SelectValue placeholder={spec.label} /></SelectTrigger>
-                          <SelectContent>
-                            {spec.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input key={key} className="h-11"
-                          placeholder={`${spec?.label}${spec?.suffix ? ` (${spec.suffix})` : ""}`}
-                          type={spec?.type === "number" ? "number" : "text"}
-                          value={newVariantAttrs[key] ?? ""}
-                          onChange={(e) => setNewVariantAttrs({ ...newVariantAttrs, [key]: e.target.value })} />
-                      );
-                    })}
-                    <div className="flex gap-2">
-                      <Button className="flex-1 h-11" onClick={createInlineVariant}
-                        disabled={inlineLoading}
-                        style={{ background: "var(--snm-brand)", color: "#fff" }}>
-                        {inlineLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save variant"}
-                      </Button>
-                      <Button variant="ghost" className="h-11 px-4" onClick={() => setShowNewVariant(false)}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Select value={variantId} onValueChange={(v) => setVariantId(v ?? "")}>
-                    <SelectTrigger className="h-11"><SelectValue placeholder="Select variant" /></SelectTrigger>
-                    <SelectContent>
-                      {modelVariants.map((v) => <SelectItem key={v.id} value={v.id}>{v.display_name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+          {/* ── Row 2: Model ── */}
+          <div className="space-y-1.5">
+            <Label className="text-[13px]">Model name *</Label>
+            <Combobox
+              value={modelId}
+              onChange={(id) => {
+                setModelId(id);
+                const name = brandModels.find((m) => m.id === id)?.name ?? "";
+                setModelInput(name);
+                // auto-select category from existing model
+                const m = allModels.find((x) => x.id === id);
+                if (m && !categoryId) setCategoryId(m.category_id);
+              }}
+              options={brandModels.map((m) => ({ id: m.id, label: m.name }))}
+              placeholder={brandInput ? `Search models under ${brandInput}…` : "Select brand first"}
+              disabled={!brandInput.trim()}
+            />
+            <input
+              value={modelInput}
+              onChange={(e) => { setModelInput(e.target.value); setModelId(""); }}
+              placeholder="e.g. Mamypoko Diaper Pants"
+              style={{ ...inp, marginTop: 6 }}
+            />
+            {!modelId && modelInput.trim() && (
+              <p className="text-[11px]" style={{ color: "var(--snm-brand)" }}>
+                Will create &ldquo;{modelInput.trim()}&rdquo; as a new model
+              </p>
             )}
           </div>
 
-          {/* ── Pack config — shown once variant is selected ── */}
-          {variantId && (
-            <div className="space-y-3">
-              <SectionHead>Pack Configuration</SectionHead>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">{unit}s per Pack *</Label>
-                  <Input type="number" inputMode="numeric" min="1" className="h-11"
-                    value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)}
-                    placeholder={unit === "Pc" ? "34" : "1"} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">Packs per Carton *</Label>
-                  <Input type="number" inputMode="numeric" min="1" className="h-11"
-                    value={packsPerCtn} onChange={(e) => setPacksPerCtn(e.target.value)}
-                    placeholder="4" />
-                </div>
+          {/* ── Row 3: Variant attributes (category-driven) ── */}
+          {categoryId && hasVariantFields && (
+            <div className="space-y-2">
+              <Label className="text-[13px]">
+                {category?.name === "Diapers" ? "Size *" : "Variant *"}
+                <span className="font-normal ml-1" style={{ color: "var(--muted-foreground)" }}>
+                  — {schema.join(", ")}
+                </span>
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {schema.map((key) => {
+                  const spec = ATTR_SPECS_WIZARD[key];
+                  if (spec?.options) {
+                    return (
+                      <div key={key} className="flex flex-wrap gap-1">
+                        {spec.options.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setVariantAttrs({ ...variantAttrs, [key]: opt })}
+                            style={{
+                              padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                              border: "1px solid",
+                              background: variantAttrs[key] === opt ? "var(--snm-brand)" : "transparent",
+                              borderColor: variantAttrs[key] === opt ? "var(--snm-brand)" : "var(--glass-border)",
+                              color: variantAttrs[key] === opt ? "#fff" : "var(--muted-foreground)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={key} className="space-y-1">
+                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                        {spec?.label}{spec?.suffix ? ` (${spec.suffix})` : ""}
+                      </p>
+                      <input
+                        type={spec?.type === "number" ? "number" : "text"}
+                        value={variantAttrs[key] ?? ""}
+                        onChange={(e) => setVariantAttrs({ ...variantAttrs, [key]: e.target.value })}
+                        placeholder={spec?.placeholder ?? ""}
+                        style={inp}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-
-              {pcsPerCarton && (
-                <div className="rounded-xl px-3 py-2.5" style={{ background: "color-mix(in srgb, var(--snm-success) 10%, transparent)" }}>
-                  <p className="text-[12px] font-medium" style={{ color: "var(--snm-success)" }}>
-                    {pcsPerCarton} {unit.toLowerCase()}s per carton total
-                  </p>
-                </div>
-              )}
-
-              {/* Carton dimensions */}
-              <div className="space-y-1.5">
-                <Label className="text-[13px]">Carton dimensions (cm) *</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Input type="number" inputMode="decimal" step="0.1" className="h-11"
-                    value={lenCm} onChange={(e) => setLenCm(e.target.value)} placeholder="L" />
-                  <Input type="number" inputMode="decimal" step="0.1" className="h-11"
-                    value={widCm} onChange={(e) => setWidCm(e.target.value)} placeholder="W" />
-                  <Input type="number" inputMode="decimal" step="0.1" className="h-11"
-                    value={htCm}  onChange={(e) => setHtCm(e.target.value)}  placeholder="H" />
-                </div>
-                {cbm !== null && (
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                    {cbm.toFixed(5)} CBM per carton
-                  </p>
-                )}
-              </div>
-
-              {/* Internal code */}
-              <div className="space-y-1.5">
-                <Label className="text-[13px]">Internal code *</Label>
-                <Input className="h-11 font-mono text-[13px]"
-                  value={code} onChange={(e) => setCode(e.target.value)} placeholder="Auto-generated" />
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Auto-built from product details — edit freely.</p>
-              </div>
-
-              {/* Optional details — collapsed by default */}
-              <button
-                type="button"
-                onClick={() => setShowDetails(!showDetails)}
-                className="flex items-center gap-1.5 text-[12px] font-medium py-1 active:opacity-60"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                <ChevronRight
-                  className="h-3.5 w-3.5 transition-transform duration-150"
-                  style={{ transform: showDetails ? "rotate(90deg)" : "rotate(0deg)" }}
-                />
-                {showDetails ? "Hide" : "Show"} optional details
-              </button>
-
-              {showDetails && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px]">Weight (kg)</Label>
-                    <Input type="number" inputMode="decimal" step="0.01" className="h-11"
-                      value={wgtKg} onChange={(e) => setWgtKg(e.target.value)} placeholder="Optional" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px]">Supplier barcode</Label>
-                    <Input className="h-11"
-                      value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Optional" />
-                  </div>
-                </div>
+              {variantFilled && (
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  Variant: <strong style={{ color: "var(--foreground)" }}>{attrsToDisplayName(variantAttrs, schema) || "—"}</strong>
+                </p>
               )}
             </div>
           )}
+
+          {/* ── Divider ── */}
+          <div style={{ borderTop: "1px solid var(--glass-border-lo)" }} />
+
+          {/* ── Pack config ── */}
+          <div className="space-y-3">
+            <SectionHead>Pack Configuration</SectionHead>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[13px]">Pcs per Pack *</Label>
+                <input type="number" inputMode="numeric" min="1"
+                  value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)}
+                  placeholder="e.g. 34" style={inp} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[13px]">Packs per Carton *</Label>
+                <input type="number" inputMode="numeric" min="1"
+                  value={packsPerCtn} onChange={(e) => setPacksPerCtn(e.target.value)}
+                  placeholder="e.g. 4" style={inp} />
+              </div>
+            </div>
+
+            {pcsPerCarton && (
+              <div className="rounded-xl px-3 py-2" style={{ background: "color-mix(in srgb, var(--snm-success) 10%, transparent)" }}>
+                <p className="text-[12px] font-medium" style={{ color: "var(--snm-success)" }}>
+                  {pcsPerCarton} pcs per carton total
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">Carton dimensions (cm) *</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" inputMode="decimal" step="0.1"
+                  value={lenCm} onChange={(e) => setLenCm(e.target.value)}
+                  placeholder="L" style={inp} />
+                <input type="number" inputMode="decimal" step="0.1"
+                  value={widCm} onChange={(e) => setWidCm(e.target.value)}
+                  placeholder="W" style={inp} />
+                <input type="number" inputMode="decimal" step="0.1"
+                  value={htCm} onChange={(e) => setHtCm(e.target.value)}
+                  placeholder="H" style={inp} />
+              </div>
+              {cbm !== null && (
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  {cbm.toFixed(5)} CBM per carton
+                </p>
+              )}
+            </div>
+
+            {/* Internal code */}
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">Internal code *</Label>
+              <input className="font-mono"
+                value={code} onChange={(e) => setCode(e.target.value)}
+                placeholder="Auto-generated" style={{ ...inp, fontSize: 13 }} />
+            </div>
+
+            {/* Margin — optional but shown by default */}
+            <div className="space-y-1.5">
+              <Label className="text-[13px]">
+                Target margin %
+                <span className="font-normal ml-1" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>optional — can set later</span>
+              </Label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="number" inputMode="decimal" step="0.5" min="1" max="99"
+                  value={marginPct} onChange={(e) => setMarginPct(e.target.value)}
+                  placeholder="e.g. 30" style={{ ...inp, width: 120 }} />
+                <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>%</span>
+              </div>
+            </div>
+
+            {/* Optional details */}
+            <button
+              type="button"
+              onClick={() => setShowOptional(!showOptional)}
+              className="flex items-center gap-1.5 text-[12px] font-medium py-1"
+              style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}
+            >
+              <ChevronRight
+                className="h-3.5 w-3.5 transition-transform duration-150"
+                style={{ transform: showOptional ? "rotate(90deg)" : "rotate(0)" }}
+              />
+              {showOptional ? "Hide" : "Show"} optional fields
+            </button>
+
+            {showOptional && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">Weight (kg)</Label>
+                  <input type="number" inputMode="decimal" step="0.01"
+                    value={wgtKg} onChange={(e) => setWgtKg(e.target.value)}
+                    placeholder="Optional" style={inp} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">Supplier barcode</Label>
+                  <input value={barcode} onChange={(e) => setBarcode(e.target.value)}
+                    placeholder="Optional" style={inp} />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Fixed footer */}
+        {/* Footer */}
         <div className="px-5 py-4 flex gap-3 shrink-0" style={{ borderTop: "1px solid var(--glass-border)" }}>
           <Button variant="ghost" className="h-12 flex-1" onClick={() => onOpenChange(false)}>
             Cancel

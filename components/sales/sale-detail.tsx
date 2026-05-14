@@ -766,19 +766,30 @@ function LineDialog({
   const [uom, setUom]             = useState<SaleUom>(editing?.uom ?? "pack");
   const [qty, setQty]             = useState(editing ? String(editing.qty) : "");
   const [unitPrice, setUnitPrice] = useState(editing ? String(editing.unit_price_mvr) : "");
+  const [priceOverride, setPriceOverride] = useState(!!editing);
   const [saving, setSaving]       = useState(false);
 
   const sku = skus.find((s) => s.id === skuId);
 
-  useEffect(() => {
-    if (!skuId || editing) return;
+  const autoPrice = useMemo(() => {
+    if (!skuId) return null;
     const s = skus.find((x) => x.id === skuId);
-    if (!s) return;
-    const p = uom === "piece" ? s.selling_price_per_piece_mvr : uom === "pack" ? s.selling_price_per_pack_mvr : s.selling_price_per_carton_mvr;
-    if (p != null) setUnitPrice(p.toFixed(2));
-    else setUnitPrice("");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skuId, uom]);
+    if (!s) return null;
+    return uom === "piece" ? s.selling_price_per_piece_mvr
+      : uom === "pack" ? s.selling_price_per_pack_mvr
+      : s.selling_price_per_carton_mvr;
+  }, [skuId, uom, skus]);
+
+  useEffect(() => {
+    if (editing) return;
+    if (autoPrice != null) {
+      setUnitPrice(autoPrice.toFixed(2));
+      setPriceOverride(false);
+    } else {
+      setUnitPrice("");
+      setPriceOverride(true);
+    }
+  }, [autoPrice, editing]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -902,13 +913,37 @@ function LineDialog({
             <input type="number" inputMode={uom === "piece" ? "numeric" : "decimal"} step={uom === "piece" ? "1" : "0.5"} min="1" value={qty} onChange={(e) => setQty(e.target.value)} style={inputStyle} />
           </div>
           <div>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>
-              Price (MVR) *{" "}
-              {sku && (uom === "piece" ? sku.selling_price_per_piece_mvr : uom === "pack" ? sku.selling_price_per_pack_mvr : sku.selling_price_per_carton_mvr) != null && (
-                <span style={{ color: "var(--snm-success)", fontSize: 9, letterSpacing: "0.06em" }}>AUTO</span>
-              )}
-            </p>
-            <input type="number" inputMode="decimal" step="0.01" min="0" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} style={inputStyle} />
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Price (MVR) *</p>
+            {!priceOverride && autoPrice != null ? (
+              <div
+                style={{ ...inputStyle, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                onClick={() => setPriceOverride(true)}
+              >
+                <span style={{ color: "var(--foreground)", fontWeight: 600, fontSize: 14 }}>{autoPrice.toFixed(2)}</span>
+                <span style={{
+                  background: "color-mix(in srgb, var(--snm-success) 18%, transparent)",
+                  color: "var(--snm-success)", fontSize: 9, fontWeight: 700,
+                  letterSpacing: "0.08em", padding: "2px 5px", borderRadius: 4,
+                }}>AUTO</span>
+              </div>
+            ) : (
+              <div style={{ position: "relative" }}>
+                <input
+                  autoFocus={priceOverride && !editing}
+                  type="number" inputMode="decimal" step="0.01" min="0"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                  style={inputStyle}
+                />
+                {autoPrice != null && (
+                  <button
+                    type="button"
+                    onClick={() => { setUnitPrice(autoPrice.toFixed(2)); setPriceOverride(false); }}
+                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--snm-success)", fontSize: 10, cursor: "pointer", fontWeight: 600 }}
+                  >Reset</button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
