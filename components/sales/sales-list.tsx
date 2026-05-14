@@ -317,16 +317,40 @@ function NewSaleSheet({
     ? stockLevels.find((l) => l.sku_id === selectedSku.id && l.godown_id === godownId)?.qty_pieces ?? 0
     : null;
 
-  // Auto-fill price when SKU or UoM changes
+  const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
+
+  function autoPrice(sku: typeof selectedSku, uom: SaleUom): string {
+    if (!sku) return "";
+    const p = uom === "piece" ? sku.selling_price_per_piece_mvr
+      : uom === "pack" ? sku.selling_price_per_pack_mvr
+      : sku.selling_price_per_carton_mvr;
+    return p != null ? p.toFixed(2) : "";
+  }
+
+  // Auto-fill price when SKU or UoM changes — always reset manual flag
   useEffect(() => {
     if (!selectedSku) return;
-    const price = lineUom === "piece" ? selectedSku.selling_price_per_piece_mvr
-      : lineUom === "pack" ? selectedSku.selling_price_per_pack_mvr
-      : selectedSku.selling_price_per_carton_mvr;
-    if (price != null) setLinePrice(price.toFixed(2));
-    else setLinePrice("");
+    setLinePrice(autoPrice(selectedSku, lineUom));
+    setPriceManuallyEdited(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSkuId, lineUom]);
+
+  function handlePriceChange(raw: string) {
+    if (raw === "") {
+      // User cleared the field — restore auto price if available
+      const ap = autoPrice(selectedSku, lineUom);
+      if (ap) {
+        setLinePrice(ap);
+        setPriceManuallyEdited(false);
+      } else {
+        setLinePrice("");
+        setPriceManuallyEdited(false);
+      }
+    } else {
+      setLinePrice(raw);
+      setPriceManuallyEdited(raw !== autoPrice(selectedSku, lineUom));
+    }
+  }
 
   const lineQtyPieces = useMemo(() => {
     if (!selectedSku || !lineQty) return 0;
@@ -365,7 +389,7 @@ function NewSaleSheet({
       sku: selectedSku, uom: lineUom, qty: parseFloat(lineQty),
       qty_pieces: lineQtyPieces, unit_price_mvr: parseFloat(linePrice), line_total_mvr: lineTotal,
     }]);
-    setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack");
+    setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack"); setPriceManuallyEdited(false);
   }
 
   // Create order + lines + immediately confirm (post_sale) in one shot
@@ -592,35 +616,46 @@ function NewSaleSheet({
                       </p>
                     )}
                   </div>
-                  <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
+                  <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); setPriceManuallyEdited(false); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
                 </div>
 
-                {/* Cost + margin transparency row */}
-                {selectedSku.landed_per_piece_mvr != null && (
-                  <div className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-4"
-                    style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost / piece</p>
-                      <p className="text-[13px] font-semibold text-foreground">MVR {Number(selectedSku.landed_per_piece_mvr).toFixed(4)}</p>
-                    </div>
-                    {linePrice && parseFloat(linePrice) > 0 && selectedSku.landed_per_piece_mvr > 0 && (() => {
-                      const piecePriceForUom = lineUom === "piece"
-                        ? parseFloat(linePrice)
-                        : lineUom === "pack"
-                          ? parseFloat(linePrice) / selectedSku.pcs_per_pack
-                          : parseFloat(linePrice) / (selectedSku.pcs_per_pack * selectedSku.packs_per_carton);
-                      const margin = ((piecePriceForUom - selectedSku.landed_per_piece_mvr!) / piecePriceForUom) * 100;
-                      return (
+                {/* Context-aware cost + margin pill */}
+                {selectedSku.landed_per_piece_mvr != null && (() => {
+                  const landed = selectedSku.landed_per_piece_mvr!;
+                  const costForUom = lineUom === "piece" ? landed
+                    : lineUom === "pack" ? landed * selectedSku.pcs_per_pack
+                    : landed * selectedSku.pcs_per_pack * selectedSku.packs_per_carton;
+                  const uomLabel = lineUom === "piece" ? "pc" : lineUom === "pack" ? "pack" : "carton";
+                  const priceVal = parseFloat(linePrice);
+                  const margin = (!isNaN(priceVal) && priceVal > 0 && costForUom > 0)
+                    ? ((priceVal - costForUom) / priceVal) * 100
+                    : null;
+                  return (
+                    <div className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-4"
+                      style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
+                      <div>
+                        <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                          Cost / {uomLabel}
+                        </p>
+                        <p className="text-[13px] font-semibold text-foreground">
+                          MVR {costForUom.toFixed(lineUom === "piece" ? 4 : 2)}
+                        </p>
+                      </div>
+                      {margin !== null && (
                         <div className="text-right">
                           <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Margin</p>
-                          <p className="text-[15px] font-bold" style={{ color: margin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                          <p className="text-[17px] font-bold leading-none"
+                            style={{ color: margin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                             {margin.toFixed(1)}%
                           </p>
+                          {margin < 0 && (
+                            <p className="text-[9px] mt-0.5" style={{ color: "var(--snm-error)" }}>below cost</p>
+                          )}
                         </div>
-                      );
-                    })()}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-3 gap-2">
                   <GlassSelect label="Sell by" value={lineUom} onChange={(v) => setLineUom(v as SaleUom)}>
@@ -632,10 +667,14 @@ function NewSaleSheet({
                   <div className="space-y-1.5">
                     <p className="text-[10px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
                       Price (MVR)
-                      {linePrice && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>}
+                      {linePrice && !priceManuallyEdited
+                        ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                        : linePrice && priceManuallyEdited
+                          ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>MANUAL</span>
+                          : null}
                     </p>
                     <input type="number" inputMode="decimal" step="0.01" min="0" value={linePrice}
-                      onChange={(e) => setLinePrice((e.target as HTMLInputElement).value)}
+                      onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
                       className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none"
                       style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
                   </div>
