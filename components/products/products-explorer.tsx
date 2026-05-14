@@ -18,7 +18,7 @@ import {
 import {
   listCategories, listBrands, listModels, listVariants, listSkusFlat,
   createBrand, createModel, createVariant, createSku, createCategory,
-  toggleSkuActive, getCurrentUserRole,
+  toggleSkuActive, getCurrentUserRole, updateSku,
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
   type SkuFullRow, type AttrKey, type UnitUom, type CostBasis,
 } from "@/lib/queries/products";
@@ -63,7 +63,7 @@ function fmtPrice(n: number | null | undefined) {
 /* ── SKU detail panel ── */
 
 function SkuPanel({
-  sku, isAdmin, onEdit, onDelete, onToggle, onClose,
+  sku, isAdmin, onEdit, onDelete, onToggle, onClose, onPricingUpdated,
 }: {
   sku: SkuFullRow;
   isAdmin: boolean;
@@ -71,8 +71,33 @@ function SkuPanel({
   onDelete: () => void;
   onToggle: () => void;
   onClose: () => void;
+  onPricingUpdated: () => void;
 }) {
   const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
+
+  // Inline pricing state (only shown when no pricing is configured yet)
+  const [inlineMargin, setInlineMargin] = useState("");
+  const [inlineFixed,  setInlineFixed]  = useState("");
+  const [savingPrice,  setSavingPrice]  = useState(false);
+
+  // Reset inline fields when a different SKU is shown
+  useEffect(() => { setInlineMargin(""); setInlineFixed(""); }, [sku.id]);
+
+  async function saveInlinePrice() {
+    const margin = inlineMargin ? parseFloat(inlineMargin) : null;
+    const fixed  = inlineFixed  ? parseFloat(inlineFixed)  : null;
+    if (margin == null && fixed == null) return;
+    setSavingPrice(true);
+    try {
+      await updateSku(sku.id, {
+        target_margin_pct:       fixed != null ? null : margin,
+        fixed_selling_price_mvr: fixed,
+      });
+      toast.success("Pricing saved");
+      onPricingUpdated();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSavingPrice(false); }
+  }
 
   return (
     <div
@@ -189,19 +214,59 @@ function SkuPanel({
               </p>
             </div>
           ) : (
-            <button
-              onClick={onEdit}
-              className="w-full rounded-xl px-4 py-3 text-left transition active:scale-[0.98]"
-              style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)",
-                       border: "1px dashed color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
-            >
-              <p className="text-[12px] font-semibold" style={{ color: "var(--snm-brand)" }}>
-                + Set pricing
+            <div className="rounded-xl px-4 py-3 space-y-3"
+              style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)",
+                       border: "1px dashed color-mix(in srgb, var(--snm-brand) 30%, transparent)" }}>
+              <p className="text-[11px] font-semibold" style={{ color: "var(--snm-brand)" }}>
+                Set pricing — margin % or fixed price
               </p>
-              <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                Tap Edit SKU → set margin % or a fixed price per piece
-              </p>
-            </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <p className="text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Margin %</p>
+                  <input
+                    type="number" inputMode="decimal" step="0.5" min="1" max="99"
+                    value={inlineMargin}
+                    onChange={(e) => { setInlineMargin(e.target.value); if (e.target.value) setInlineFixed(""); }}
+                    disabled={!!inlineFixed || savingPrice}
+                    placeholder="e.g. 30"
+                    style={{
+                      width: "100%", height: 38, padding: "0 10px", borderRadius: 8,
+                      background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      border: "1px solid var(--glass-border-lo)",
+                      color: "var(--foreground)", fontSize: 13, outline: "none",
+                      boxSizing: "border-box", opacity: inlineFixed ? 0.4 : 1,
+                    }}
+                  />
+                </div>
+                <div>
+                  <p className="text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Fixed price / piece (MVR)</p>
+                  <input
+                    type="number" inputMode="decimal" step="0.01" min="0.01"
+                    value={inlineFixed}
+                    onChange={(e) => { setInlineFixed(e.target.value); if (e.target.value) setInlineMargin(""); }}
+                    disabled={savingPrice}
+                    placeholder="e.g. 4.50"
+                    style={{
+                      width: "100%", height: 38, padding: "0 10px", borderRadius: 8,
+                      background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      border: "1px solid var(--glass-border-lo)",
+                      color: "var(--foreground)", fontSize: 13, outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+              {(inlineMargin || inlineFixed) && (
+                <button
+                  onClick={saveInlinePrice}
+                  disabled={savingPrice}
+                  className="w-full h-9 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+                  style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+                >
+                  {savingPrice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save pricing"}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -570,6 +635,7 @@ export function ProductsExplorer() {
                 catch (e) { toast.error((e as Error).message); }
               }}
               onClose={() => setSelectedSku(null)}
+              onPricingUpdated={loadAll}
             />
           </div>
         ) : (
@@ -617,6 +683,7 @@ export function ProductsExplorer() {
                   catch (e) { toast.error((e as Error).message); }
                 }}
                 onClose={() => setSelectedSku(null)}
+                onPricingUpdated={loadAll}
               />
             </div>
           </>
@@ -820,10 +887,11 @@ function NewSkuWizard({
   const [widCm, setWidCm] = useState("");
   const [htCm,  setHtCm]  = useState("");
   const [wgtKg, setWgtKg] = useState("");
-  const [code,    setCode]    = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [marginPct, setMarginPct] = useState("");
-  const [saving,  setSaving]  = useState(false);
+  const [code,       setCode]       = useState("");
+  const [barcode,    setBarcode]    = useState("");
+  const [marginPct,  setMarginPct]  = useState("");
+  const [fixedPrice, setFixedPrice] = useState("");
+  const [saving,     setSaving]     = useState(false);
   const [showOptional, setShowOptional] = useState(false);
 
   // ── Local items created during this session (so combos show them instantly)
@@ -882,7 +950,7 @@ function NewSkuWizard({
     setVariantAttrs({});
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
-    setCode(""); setBarcode(""); setMarginPct("");
+    setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice("");
     setShowOptional(false);
     setLocalBrands([]); setLocalModels([]);
   }
@@ -947,6 +1015,7 @@ function NewSkuWizard({
         carton_height_cm: parseFloat(htCm),
         carton_weight_kg: wgtKg ? parseFloat(wgtKg) : null,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
+        fixed_selling_price_mvr: fixedPrice ? parseFloat(fixedPrice) : null,
       });
 
       toast.success("SKU created");
@@ -1186,18 +1255,46 @@ function NewSkuWizard({
                 placeholder="Auto-generated" style={{ ...inp, fontSize: 13 }} />
             </div>
 
-            {/* Margin — optional but shown by default */}
-            <div className="space-y-1.5">
-              <Label className="text-[13px]">
-                Target margin %
-                <span className="font-normal ml-1" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>optional — can set later</span>
-              </Label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="number" inputMode="decimal" step="0.5" min="1" max="99"
-                  value={marginPct} onChange={(e) => setMarginPct(e.target.value)}
-                  placeholder="e.g. 30" style={{ ...inp, width: 120 }} />
-                <span style={{ fontSize: 13, color: "var(--muted-foreground)" }}>%</span>
+            {/* Pricing — margin OR fixed price */}
+            <div style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 16 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Pricing</p>
+              <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 12 }}>
+                Optional — can set after first shipment. Use margin % (auto-calculates) or a fixed price per piece.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">
+                    Margin %
+                    {fixedPrice && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--muted-foreground)" }}>(ignored if fixed set)</span>}
+                  </Label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <input type="number" inputMode="decimal" step="0.5" min="1" max="99"
+                      value={marginPct} onChange={(e) => { setMarginPct(e.target.value); if (e.target.value) setFixedPrice(""); }}
+                      placeholder="e.g. 30" style={{ ...inp, width: "100%" }}
+                      disabled={!!fixedPrice} />
+                    <span style={{ fontSize: 13, color: "var(--muted-foreground)", flexShrink: 0 }}>%</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px]">
+                    Fixed price / piece
+                    {marginPct && !fixedPrice && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--muted-foreground)" }}>(overrides margin)</span>}
+                  </Label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                      value={fixedPrice} onChange={(e) => { setFixedPrice(e.target.value); if (e.target.value) setMarginPct(""); }}
+                      placeholder="e.g. 4.50" style={{ ...inp, width: "100%" }} />
+                    <span style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0 }}>MVR</span>
+                  </div>
+                </div>
               </div>
+              {(marginPct || fixedPrice) && (
+                <p style={{ fontSize: 11, color: "var(--snm-brand)", marginTop: 8 }}>
+                  {fixedPrice
+                    ? `Fixed: MVR ${fixedPrice}/piece — price stays constant`
+                    : `${marginPct}% margin — price updates automatically with each shipment`}
+                </p>
+              )}
             </div>
 
             {/* Optional details */}
