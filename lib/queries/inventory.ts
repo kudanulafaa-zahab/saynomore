@@ -33,6 +33,23 @@ export async function listBatchStock(): Promise<BatchStock[]> {
   return (data ?? []) as BatchStock[];
 }
 
+// ── Reorder alerts (DIR-based) ───────────────────────────────────────────
+
+export interface SkuReorderAlert {
+  sku_id:            string;
+  stock_pieces:      number;
+  daily_avg_pieces:  number;
+  dir:               number | null;   // null = no sales history
+  reorder_point_pcs: number;
+  alert_level:       "critical" | "low" | "ok";
+}
+
+export async function listReorderAlerts(): Promise<SkuReorderAlert[]> {
+  const { data, error } = await supabase.rpc("get_sku_reorder_alerts");
+  if (error) throw error;
+  return (data ?? []) as SkuReorderAlert[];
+}
+
 // ── Manual adjustment (admin/manager) ────────────────────────────────────
 
 export interface AdjustInput {

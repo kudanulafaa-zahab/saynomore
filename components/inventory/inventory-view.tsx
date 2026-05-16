@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin, Layers } from "lucide-react";
-import { listBatchStock, type BatchStock } from "@/lib/queries/inventory";
+import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw } from "lucide-react";
+import { listBatchStock, listReorderAlerts, type BatchStock, type SkuReorderAlert } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 
@@ -45,6 +45,7 @@ interface SkuStock {
   byGodown: GodownSlot[];
   fifoLandedPerPiece: number;
   isLow: boolean;
+  alert: SkuReorderAlert | null;
 }
 
 interface BrandGroup {
@@ -52,6 +53,7 @@ interface BrandGroup {
   totalCartons: number;
   totalValue: number;
   hasLow: boolean;
+  hasCritical: boolean;
 }
 
 /* ── Sub-components ── */
@@ -102,13 +104,33 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
   );
 }
 
+function DirBadge({ alert }: { alert: SkuReorderAlert | null }) {
+  if (!alert || alert.alert_level === "ok") return null;
+  const isCritical = alert.alert_level === "critical";
+  const color = isCritical ? "var(--snm-error)" : "var(--snm-warning)";
+  const dirText = alert.dir != null ? `${alert.dir}d left` : "No sales data";
+  return (
+    <span
+      className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0"
+      style={{
+        background: `color-mix(in srgb, ${color} 15%, transparent)`,
+        color,
+        border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+      }}
+    >
+      {isCritical ? "⚠ " : ""}{dirText}
+    </span>
+  );
+}
+
 function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow } = row;
+  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
   const totalCtns       = toCtns(totalPieces, pcsPerCtn);
   const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
   const landedPerCarton = landedPerPack * sku.packs_per_carton;
+  const isCritical      = alert?.alert_level === "critical";
 
   const sortedGodowns = [...byGodown].sort((a, b) => b.pieces - a.pieces);
 
@@ -119,8 +141,10 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         background: "var(--glass-1)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        border: isLow
-          ? "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)"
+        border: isCritical
+          ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
+          : isLow
+          ? "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)"
           : "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
       }}
     >
@@ -128,16 +152,19 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
       <div className="px-4 pt-4 pb-3 flex items-start gap-3">
         <div
           className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-          style={{ background: isLow ? "var(--snm-error)" : "var(--snm-success)" }}
+          style={{ background: isCritical ? "var(--snm-error)" : isLow ? "var(--snm-warning)" : "var(--snm-success)" }}
         />
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-semibold text-foreground leading-snug">
-            {searchActive && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
-            {sku.model_name}
-            {sku.variant_display
-              ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
-              : null}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[15px] font-semibold text-foreground leading-snug">
+              {searchActive && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
+              {sku.model_name}
+              {sku.variant_display
+                ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
+                : null}
+            </p>
+            <DirBadge alert={alert} />
+          </div>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
           </p>
@@ -245,18 +272,31 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             </div>
           ))}
 
-          {isLow && (
+          {(isCritical || isLow) && (
             <div
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+              className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl"
               style={{
-                background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--snm-error) 20%, transparent)",
+                background: `color-mix(in srgb, ${isCritical ? "var(--snm-error)" : "var(--snm-warning)"} 10%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${isCritical ? "var(--snm-error)" : "var(--snm-warning)"} 20%, transparent)`,
               }}
             >
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-error)" }} />
-              <p className="text-[12px]" style={{ color: "var(--snm-error)" }}>
-                Only {totalCtns} carton{totalCtns !== 1 ? "s" : ""} left — consider reordering.
-              </p>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? "var(--snm-error)" : "var(--snm-warning)" }} />
+              <div>
+                <p className="text-[12px] font-semibold" style={{ color: isCritical ? "var(--snm-error)" : "var(--snm-warning)" }}>
+                  {isCritical ? "Critical — reorder now" : "Low stock — reorder soon"}
+                </p>
+                {alert?.dir != null && (
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    ~{alert.dir} days left · avg {alert.daily_avg_pieces.toFixed(1)} pcs/day
+                    {alert.reorder_point_pcs > 0 && ` · reorder point ${Math.round(alert.reorder_point_pcs).toLocaleString()} pcs`}
+                  </p>
+                )}
+                {alert?.dir == null && (
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    Only {totalCtns} carton{totalCtns !== 1 ? "s" : ""} left — no recent sales to calculate DIR
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -268,19 +308,26 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
 /* ── Main ── */
 
 export function InventoryView() {
-  const [skus, setSkus]       = useState<SkuFullRow[]>([]);
-  const [godowns, setGodowns] = useState<GodownRow[]>([]);
-  const [batches, setBatches] = useState<BatchStock[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [q, setQ]             = useState("");
+  const [skus, setSkus]         = useState<SkuFullRow[]>([]);
+  const [godowns, setGodowns]   = useState<GodownRow[]>([]);
+  const [batches, setBatches]   = useState<BatchStock[]>([]);
+  const [alerts, setAlerts]     = useState<SkuReorderAlert[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [q, setQ]               = useState("");
   const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([listSkusFlat(), listGodowns(), listBatchStock()])
-      .then(([s, g, b]) => { setSkus(s); setGodowns(g); setBatches(b); })
+    Promise.all([listSkusFlat(), listGodowns(), listBatchStock(), listReorderAlerts()])
+      .then(([s, g, b, a]) => { setSkus(s); setGodowns(g); setBatches(b); setAlerts(a); })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
   }, []);
+
+  const alertMap = useMemo(() => {
+    const m = new Map<string, SkuReorderAlert>();
+    for (const a of alerts) m.set(a.sku_id, a);
+    return m;
+  }, [alerts]);
 
   const stockList = useMemo<SkuStock[]>(() => {
     return skus
@@ -304,12 +351,16 @@ export function InventoryView() {
         const totalValue         = skuBatches.reduce((s, b) => s + b.qty_pieces_remaining * b.landed_per_piece_mvr, 0);
         const pcsPerCtn          = sku.pcs_per_pack * sku.packs_per_carton;
         const fifoLandedPerPiece = [...skuBatches].sort((a, b) => a.received_at.localeCompare(b.received_at))[0]?.landed_per_piece_mvr ?? 0;
-        const isLow              = toCtns(totalPieces, pcsPerCtn) < 5;
+        const alert              = alertMap.get(sku.id) ?? null;
+        // isLow: use DIR if we have sales history, else fall back to < 5 cartons
+        const isLow              = alert
+          ? alert.alert_level !== "ok"
+          : toCtns(totalPieces, pcsPerCtn) < 5;
 
-        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow };
+        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, alert };
       })
       .filter((r) => r.sku.is_active && r.totalPieces > 0);
-  }, [skus, batches, godowns]);
+  }, [skus, batches, godowns, alertMap]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -324,33 +375,39 @@ export function InventoryView() {
     const map = new Map<string, BrandGroup>();
     for (const row of filtered) {
       const brand  = row.sku.brand_name;
-      const entry  = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasLow: false };
+      const entry  = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasLow: false, hasCritical: false };
       const pcsPerCtn = row.sku.pcs_per_pack * row.sku.packs_per_carton;
       entry.skus.push(row);
       entry.totalCartons += toCtns(row.totalPieces, pcsPerCtn);
       entry.totalValue   += row.totalValue;
       entry.hasLow        = entry.hasLow || row.isLow;
+      entry.hasCritical   = entry.hasCritical || (row.alert?.alert_level === "critical");
       map.set(brand, entry);
     }
-    // Sort each brand's SKUs: low stock first, then by value descending
+    // Sort each brand's SKUs: critical first, then low, then by value descending
     for (const [, g] of map) {
       g.skus.sort((a, b) => {
-        if (a.isLow !== b.isLow) return a.isLow ? -1 : 1;
+        const aLevel = a.alert?.alert_level ?? (a.isLow ? "low" : "ok");
+        const bLevel = b.alert?.alert_level ?? (b.isLow ? "low" : "ok");
+        const order = { critical: 0, low: 1, ok: 2 };
+        if (aLevel !== bLevel) return order[aLevel as keyof typeof order] - order[bLevel as keyof typeof order];
         return b.totalValue - a.totalValue;
       });
     }
-    // Sort brands: brands with low stock first, then by total value descending
+    // Sort brands: critical first, then low, then by value descending
     return Array.from(map.entries()).sort(([, a], [, b]) => {
+      if (a.hasCritical !== b.hasCritical) return a.hasCritical ? -1 : 1;
       if (a.hasLow !== b.hasLow) return a.hasLow ? -1 : 1;
       return b.totalValue - a.totalValue;
     });
   }, [filtered]);
 
-  const totalValue    = stockList.reduce((s, r) => s + r.totalValue, 0);
-  const totalCartons  = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
-  const lowStockCount = stockList.filter((r) => r.isLow).length;
-  const activeBatches = batches.filter((b) => b.qty_pieces_remaining > 0).length;
-  const searchActive  = q.trim() !== "";
+  const totalValue     = stockList.reduce((s, r) => s + r.totalValue, 0);
+  const totalCartons   = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
+  const lowStockCount  = stockList.filter((r) => r.isLow).length;
+  const criticalCount  = stockList.filter((r) => r.alert?.alert_level === "critical").length;
+  const activeBatches  = batches.filter((b) => b.qty_pieces_remaining > 0).length;
+  const searchActive   = q.trim() !== "";
 
   if (loading) {
     return (
@@ -362,16 +419,38 @@ export function InventoryView() {
 
   return (
     <div className="space-y-4 pb-28 lg:pb-10">
+
+      {/* ── Critical alert banner — only shown when urgent ── */}
+      {criticalCount > 0 && (
+        <div
+          className="rounded-2xl px-4 py-3 flex items-center gap-3"
+          style={{
+            background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)",
+          }}
+        >
+          <TrendingDown className="h-5 w-5 shrink-0" style={{ color: "var(--snm-error)" }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: "var(--snm-error)" }}>
+              {criticalCount} SKU{criticalCount !== 1 ? "s" : ""} critically low — less than 7 days remaining
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              Reorder immediately to avoid stock-out
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="SKUs in Stock" value={String(stockList.length)} sub={`${activeBatches} active batch${activeBatches !== 1 ? "es" : ""}`} />
         <StatCard label="Total Cartons" value={totalCartons.toLocaleString()} sub="across all SKUs" />
         <StatCard label="Inventory Value" value={`MVR ${fmtMvr(totalValue)}`} sub="at landed cost" />
         <StatCard
-          label="Low Stock"
+          label="Reorder Alerts"
           value={String(lowStockCount)}
-          sub={lowStockCount > 0 ? "SKUs below 5 cartons" : "All OK"}
-          accent={lowStockCount > 0 ? "var(--snm-error)" : "var(--snm-success)"}
+          sub={criticalCount > 0 ? `${criticalCount} critical · ${lowStockCount - criticalCount} low` : lowStockCount > 0 ? "SKUs below 14 days" : "All OK"}
+          accent={criticalCount > 0 ? "var(--snm-error)" : lowStockCount > 0 ? "var(--snm-warning)" : "var(--snm-success)"}
         />
       </div>
 
@@ -416,7 +495,7 @@ export function InventoryView() {
                   <div className="flex items-center gap-2">
                     <div
                       className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ background: brandData.hasLow ? "var(--snm-error)" : "var(--snm-success)" }}
+                      style={{ background: brandData.hasCritical ? "var(--snm-error)" : brandData.hasLow ? "var(--snm-warning)" : "var(--snm-success)" }}
                     />
                     <p className="text-[13px] font-bold uppercase tracking-wider text-foreground">{brand}</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
