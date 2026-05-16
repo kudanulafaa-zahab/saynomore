@@ -247,7 +247,7 @@ export function FinancialsView() {
   }, []);
 
   const totalRevenue    = useMemo(() => rows.reduce((a, r) => a + Number(r.total_revenue_mvr), 0), [rows]);
-  const totalLandedCost = useMemo(() => rows.reduce((a, r) => a + (Number(r.landed_per_piece_mvr) * Number(r.total_qty_pieces)), 0), [rows]);
+  const totalLandedCost = useMemo(() => rows.reduce((a, r) => a + Number(r.total_landed_cost_mvr), 0), [rows]);
   const totalOpex       = useMemo(() => expenses.reduce((a, e) => a + Number(e.amount_mvr), 0), [expenses]);
   const netProfit       = totalRevenue - totalLandedCost - totalOpex;
   const profitPct       = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
@@ -257,7 +257,7 @@ export function FinancialsView() {
     const m = new Map<string, { revenue: number; cost: number; skuCount: number }>();
     for (const r of rows) {
       const rev  = Number(r.total_revenue_mvr);
-      const cost = Number(r.landed_per_piece_mvr) * Number(r.total_qty_pieces);
+      const cost = Number(r.total_landed_cost_mvr);
       const entry = m.get(r.brand_name);
       if (entry) {
         entry.revenue  += rev;

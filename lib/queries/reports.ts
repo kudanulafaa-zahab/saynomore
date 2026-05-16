@@ -8,13 +8,13 @@ export interface ReportRow {
   model_name: string;
   variant_display: string;
   internal_code: string;
-  unit_uom: "pcs" | "ml" | "g";
   pcs_per_pack: number;
   packs_per_carton: number;
   total_qty_pieces: number;
   total_revenue_mvr: number;
   avg_unit_price_mvr: number;
   landed_per_piece_mvr: number;
+  total_landed_cost_mvr: number;
   gross_margin_pct: number | null;
   stock_pieces: number;
   days_of_stock: number | null;
