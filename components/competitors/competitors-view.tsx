@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Plus, Search, Store, Pencil, Trash2, AlertTriangle,
-  ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2,
+  ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2, Settings,
 } from "lucide-react";
 import {
   listCompetitors,
@@ -59,12 +59,15 @@ export function CompetitorsView() {
   const [deletePriceDialog, setDeletePriceDialog] = useState<CompetitorPriceRow | null>(null);
 
   // Simulator
-  const [simSku, setSimSku]       = useState<SkuFullRow | null>(null);
-  const [simPrice, setSimPrice]   = useState(0); // per PACK price
-  const [simMode, setSimMode]     = useState<"pack" | "piece" | "carton">("pack");
-  const [simEditing, setSimEditing] = useState(false); // tapped the big price to type directly
-  const [simTyped, setSimTyped]   = useState("");      // raw string while typing
-  const [saving, setSaving]       = useState(false);
+  const [simSku, setSimSku]         = useState<SkuFullRow | null>(null);
+  const [simPrice, setSimPrice]     = useState(0); // per PACK price
+  const [simMode, setSimMode]       = useState<"pack" | "piece" | "carton">("pack");
+  const [simEditing, setSimEditing] = useState(false);
+  const [simTyped, setSimTyped]     = useState("");
+  const [saving, setSaving]         = useState(false);
+  const [saveMode, setSaveMode]     = useState<"margin" | "fixed">("margin"); // save as margin% or fixed price
+  const [alertThreshold, setAlertThreshold] = useState(10); // % above cheapest competitor to warn
+  const [showAlertSettings, setShowAlertSettings] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -174,11 +177,16 @@ export function CompetitorsView() {
   }
 
   async function handleSetPrice() {
-    if (!simSku || !landedPerPack || impliedMarginPct <= 0) return;
+    if (!simSku || !landedPerPack || packPrice <= landedPerPack) return;
     setSaving(true);
     try {
-      await updateSku(simSku.id, { target_margin_pct: impliedMarginPct });
-      toast.success(`Selling price saved — ${impliedMarginPct}% margin (MVR ${fmt2(piecePrice)}/pc · MVR ${fmt2(packPrice)}/pk · MVR ${fmt2(cartonPrice)}/ctn)`);
+      if (saveMode === "fixed") {
+        await updateSku(simSku.id, { fixed_selling_price_mvr: piecePrice, target_margin_pct: null });
+        toast.success(`Fixed price saved — MVR ${fmt2(piecePrice)}/pc · MVR ${fmt2(packPrice)}/pk · MVR ${fmt2(cartonPrice)}/ctn`);
+      } else {
+        await updateSku(simSku.id, { target_margin_pct: impliedMarginPct, fixed_selling_price_mvr: null });
+        toast.success(`Margin saved — ${impliedMarginPct}% → MVR ${fmt2(piecePrice)}/pc · MVR ${fmt2(packPrice)}/pk · MVR ${fmt2(cartonPrice)}/ctn`);
+      }
       await load();
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
@@ -229,24 +237,27 @@ export function CompetitorsView() {
       {skus.length > 0 && (
         <div>
           <p className="label-caps text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>Analysing</p>
-          <select
-            value={simSku?.id ?? ""}
-            onChange={(e) => {
-              const s = skus.find((sk) => sk.id === e.target.value);
-              if (s) {
-                setSimSku(s);
-                setSimPrice(s.selling_price_per_pack_mvr ?? (s.landed_per_piece_mvr ?? 0) * s.pcs_per_pack * 1.3);
-              }
-            }}
-            className="h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none w-full"
-            style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
-          >
-            {skus.filter((s) => s.is_active).map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.brand_name} · {s.model_name} · {s.variant_display} ({s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn)
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={simSku?.id ?? ""}
+              onChange={(e) => {
+                const s = skus.find((sk) => sk.id === e.target.value);
+                if (s) {
+                  setSimSku(s);
+                  setSimPrice(s.selling_price_per_pack_mvr ?? (s.landed_per_piece_mvr ?? 0) * s.pcs_per_pack * 1.3);
+                }
+              }}
+              className="h-12 rounded-xl pl-4 pr-10 text-sm font-medium text-foreground outline-none appearance-none w-full cursor-pointer"
+              style={{ ...CARD, border: "1px solid var(--glass-border)" }}
+            >
+              {skus.filter((s) => s.is_active).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.brand_name} · {s.model_name} · {s.variant_display} ({s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn)
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
+          </div>
         </div>
       )}
 
@@ -343,124 +354,183 @@ export function CompetitorsView() {
           </div>
 
           <div className="p-5 space-y-5">
-            {/* Price stepper */}
+            {/* Price input — tap to type */}
             <div>
               <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>
-                SELLING PRICE — {simLabel.toUpperCase()}
+                SELLING PRICE — {simLabel.toUpperCase()} · tap number to type
               </p>
-              <div className="flex items-center justify-between rounded-xl px-5 py-4 gap-4" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
-                <button
-                  onClick={() => setSimDisplayPrice(Math.max(0, simDisplayPrice - (simMode === "carton" ? 10 : 1)))}
-                  className="text-[24px] font-light text-foreground/60 hover:text-foreground transition w-10 text-center"
-                >−</button>
-                <div className="text-center flex-1">
-                  {simEditing ? (
-                    <input
-                      autoFocus
-                      type="number"
-                      inputMode="decimal"
-                      value={simTyped}
-                      onChange={(e) => setSimTyped(e.target.value)}
-                      onBlur={() => {
+              <div className="rounded-xl px-5 py-4 text-center" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
+                {simEditing ? (
+                  <input
+                    autoFocus
+                    type="number"
+                    inputMode="decimal"
+                    value={simTyped}
+                    onChange={(e) => setSimTyped(e.target.value)}
+                    onBlur={() => {
+                      const v = parseFloat(simTyped);
+                      if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
+                      setSimEditing(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
                         const v = parseFloat(simTyped);
                         if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
                         setSimEditing(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const v = parseFloat(simTyped);
-                          if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
-                          setSimEditing(false);
-                        }
-                        if (e.key === "Escape") setSimEditing(false);
-                      }}
-                      className="text-[36px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
-                    />
-                  ) : (
-                    <button
-                      onClick={() => { setSimTyped(fmt2(simDisplayPrice)); setSimEditing(true); }}
-                      className="text-[36px] font-light tracking-tight text-foreground hover:opacity-70 transition"
-                      title="Tap to type a price directly"
-                    >
-                      {fmt2(simDisplayPrice)}
-                    </button>
-                  )}
-                  <span className="text-[14px] text-foreground/40 ml-2">MVR</span>
-                </div>
-                <button
-                  onClick={() => setSimDisplayPrice(simDisplayPrice + (simMode === "carton" ? 10 : 1))}
-                  className="text-[24px] font-light text-foreground hover:text-foreground/70 transition w-10 text-center"
-                >+</button>
+                      }
+                      if (e.key === "Escape") setSimEditing(false);
+                    }}
+                    className="text-[40px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
+                  />
+                ) : (
+                  <button
+                    onClick={() => { setSimTyped(String(simDisplayPrice)); setSimEditing(true); }}
+                    className="text-[40px] font-light tracking-tight text-foreground hover:opacity-70 transition w-full"
+                  >
+                    {fmt2(simDisplayPrice)}
+                  </button>
+                )}
+                <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</p>
               </div>
+
+              {/* Slider */}
               <input
                 type="range"
                 min={simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack}
                 max={simMode === "carton" ? landedPerCarton / 0.05 : simMode === "piece" ? landedPerPiece / 0.05 : landedPerPack / 0.05}
-                step={simMode === "carton" ? 5 : 0.1}
+                step={simMode === "carton" ? 1 : 0.01}
                 value={Math.min(simDisplayPrice, simMode === "carton" ? landedPerCarton / 0.05 : simMode === "piece" ? landedPerPiece / 0.05 : landedPerPack / 0.05)}
                 onChange={(e) => setSimDisplayPrice(Number(e.target.value))}
                 className="w-full mt-3 accent-white"
               />
+
+              {/* Margin nudge preset buttons */}
+              <div className="flex gap-2 mt-3">
+                {[5, 10, 15, 20, 30, 40, 50].map((pct) => {
+                  const landed = simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack;
+                  const targetPrice = landed / (1 - pct / 100);
+                  const currentMargin = landed > 0 ? ((simDisplayPrice - landed) / simDisplayPrice) * 100 : 0;
+                  const isActive = Math.abs(currentMargin - pct) < 0.5;
+                  return (
+                    <button
+                      key={pct}
+                      onClick={() => setSimDisplayPrice(Math.round(targetPrice * 100) / 100)}
+                      className="flex-1 h-8 rounded-lg text-[11px] font-semibold transition active:scale-95"
+                      style={{
+                        background: isActive ? "var(--foreground)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                        color: isActive ? "var(--background)" : "var(--muted-foreground)",
+                      }}
+                    >
+                      {pct}%
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* All three price levels */}
+            {/* All three price levels — with both margin % AND markup % */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: "Per piece", value: piecePrice, landed: landedPerPiece },
-                { label: "Per pack",  value: packPrice,  landed: landedPerPack  },
+                { label: "Per piece",  value: piecePrice,  landed: landedPerPiece },
+                { label: "Per pack",   value: packPrice,   landed: landedPerPack  },
                 { label: "Per carton", value: cartonPrice, landed: landedPerCarton },
               ].map(({ label, value, landed }) => {
                 const margin = landed > 0 ? ((value - landed) / value) * 100 : 0;
+                const markup = landed > 0 ? ((value - landed) / landed) * 100 : 0;
                 const color = margin >= 20 ? "var(--snm-success)" : margin >= 5 ? "var(--snm-warning)" : "var(--snm-error)";
                 return (
                   <div key={label} className="rounded-xl p-3 text-center space-y-1" style={{ background: "var(--glass-bg-1)" }}>
                     <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
-                    <p className="text-[16px] font-semibold text-foreground">MVR {fmt2(value)}</p>
-                    <p className="text-[11px] font-medium" style={{ color }}>{margin.toFixed(1)}%</p>
+                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(value)}</p>
+                    <p className="text-[11px] font-bold" style={{ color }}>{margin.toFixed(1)}% margin</p>
+                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : markup.toFixed(0)}% markup</p>
                   </div>
                 );
               })}
             </div>
 
-            {/* Competitor gap row (if data exists) */}
-            {topCompPerPiece != null && (
-              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
-                <div>
-                  <p className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
-                    vs <span className="text-foreground">{topCompEntry?.comp?.name}</span> (cheapest)
-                  </p>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Piece · Pack · Carton</p>
+            {/* Competitor gap row */}
+            {topCompPerPiece != null && (() => {
+              const delta = piecePrice - topCompPerPiece;
+              const pctAbove = topCompPerPiece > 0 ? (delta / topCompPerPiece) * 100 : 0;
+              const isAlert = delta > 0 && pctAbove > alertThreshold;
+              const col = delta <= 0 ? "var(--snm-success)" : isAlert ? "var(--snm-error)" : "var(--snm-warning)";
+              return (
+                <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: isAlert ? "color-mix(in srgb, var(--snm-error) 8%, transparent)" : "var(--glass-bg-1)", border: `1px solid ${isAlert ? "color-mix(in srgb, var(--snm-error) 25%, transparent)" : "var(--glass-border-lo)"}` }}>
+                  <div>
+                    <p className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+                      vs <span className="text-foreground">{topCompEntry?.comp?.name}</span> (cheapest)
+                    </p>
+                    <p className="text-[10px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      Alert if &gt;{alertThreshold}% above competitor
+                      <button onClick={() => setShowAlertSettings(!showAlertSettings)} className="ml-2 inline-flex items-center" style={{ color: "var(--snm-brand)" }}>
+                        <Settings className="h-3 w-3" />
+                      </button>
+                    </p>
+                    {showAlertSettings && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Alert at</span>
+                        {[5, 10, 15, 20, 25].map((t) => (
+                          <button key={t} onClick={() => { setAlertThreshold(t); setShowAlertSettings(false); }}
+                            className="px-2 py-0.5 rounded text-[11px] font-semibold"
+                            style={{ background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 8%, transparent)", color: alertThreshold === t ? "#fff" : "var(--muted-foreground)" }}>
+                            {t}%
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[13px] font-bold" style={{ color: col }}>
+                      {delta <= 0 ? "▼ " : "▲ "}{Math.abs(delta).toFixed(2)} MVR/pc
+                    </p>
+                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                      {delta <= 0 ? "You're cheaper" : isAlert ? `${pctAbove.toFixed(0)}% above — review price` : "Competitor cheaper"}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  {(() => {
-                    const delta = piecePrice - topCompPerPiece;
-                    const col = delta <= 0 ? "var(--snm-success)" : "var(--snm-warning)";
-                    return (
-                      <p className="text-[13px] font-bold" style={{ color: col }}>
-                        {delta <= 0 ? "▼ " : "▲ "}{Math.abs(delta).toFixed(2)} MVR/pc
-                      </p>
-                    );
-                  })()}
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                    {topCompEntry && piecePrice <= topCompPerPiece ? "You're cheaper" : "Competitor cheaper"}
-                  </p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
-            {/* Save button */}
-            <button
-              onClick={handleSetPrice}
-              disabled={saving || !landedPerPack || packPrice <= landedPerPack}
-              className="w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest transition active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: isPriceChanged ? "var(--foreground)" : "var(--glass-bg-2)", color: isPriceChanged ? "var(--background)" : "var(--muted-foreground)" }}
-            >
-              {saving
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : isPriceChanged
-                  ? <><TrendingUp className="h-4 w-4" /> Save Selling Price</>
-                  : <><CheckCircle2 className="h-4 w-4" /> Price Up to Date</>}
-            </button>
+            {/* Save mode toggle + save button */}
+            <div className="space-y-2">
+              {/* Toggle: save as margin % or fixed price */}
+              <div className="flex rounded-xl overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
+                <button
+                  onClick={() => setSaveMode("margin")}
+                  className="flex-1 h-9 text-[12px] font-semibold transition"
+                  style={{ background: saveMode === "margin" ? "var(--foreground)" : "transparent", color: saveMode === "margin" ? "var(--background)" : "var(--muted-foreground)" }}
+                >
+                  Save as margin % ({impliedMarginPct}%)
+                </button>
+                <button
+                  onClick={() => setSaveMode("fixed")}
+                  className="flex-1 h-9 text-[12px] font-semibold transition"
+                  style={{ background: saveMode === "fixed" ? "var(--foreground)" : "transparent", color: saveMode === "fixed" ? "var(--background)" : "var(--muted-foreground)" }}
+                >
+                  Save as fixed price (MVR {fmt2(piecePrice)}/pc)
+                </button>
+              </div>
+              <p className="text-[10px] px-1" style={{ color: "var(--muted-foreground)" }}>
+                {saveMode === "margin"
+                  ? "Price auto-updates with each new shipment as landed cost changes."
+                  : "Price stays fixed regardless of landed cost changes."}
+              </p>
+
+              {/* Save button */}
+              <button
+                onClick={handleSetPrice}
+                disabled={saving || !landedPerPack || packPrice <= landedPerPack}
+                className="w-full h-12 rounded-xl text-sm font-bold uppercase tracking-widest transition active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
+                style={{ background: isPriceChanged ? "var(--foreground)" : "var(--glass-bg-2)", color: isPriceChanged ? "var(--background)" : "var(--muted-foreground)" }}
+              >
+                {saving
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : isPriceChanged
+                    ? <><TrendingUp className="h-4 w-4" /> Save Selling Price</>
+                    : <><CheckCircle2 className="h-4 w-4" /> Price Up to Date</>}
+              </button>
+            </div>
           </div>
         </div>
       )}
