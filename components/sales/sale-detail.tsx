@@ -14,11 +14,13 @@ import {
   updateOrderLine,
   deleteOrderLine,
   toPieces,
+  getTierPricesForSkus,
   type SalesOrderRow,
   type SalesOrderLineRow,
   type OrderStatus,
   type PaymentStatus,
   type SaleUom,
+  type TierPrice,
 } from "@/lib/queries/sales";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
@@ -660,6 +662,7 @@ export function SaleDetail({ id }: { id: string }) {
           skus={skus}
           stockLevels={stockLevels}
           sourceGodownId={order.source_godown_id}
+          customerTier={customer?.price_tier ?? "retail"}
           onClose={() => { setEditingLine(undefined); setPanel(null); }}
           onSaved={() => { setEditingLine(undefined); setPanel(null); load(); }}
         />
@@ -751,13 +754,14 @@ function LineList({
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 function LineDialog({
-  editing, orderId, skus, stockLevels, sourceGodownId, onClose, onSaved,
+  editing, orderId, skus, stockLevels, sourceGodownId, customerTier, onClose, onSaved,
 }: {
   editing?: SalesOrderLineRow;
   orderId: string;
   skus: SkuFullRow[];
   stockLevels: StockLevel[];
   sourceGodownId: string | null;
+  customerTier: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -767,18 +771,41 @@ function LineDialog({
   const [qty, setQty]             = useState(editing ? String(editing.qty) : "");
   const [unitPrice, setUnitPrice] = useState(editing ? String(editing.unit_price_mvr) : "");
   const [priceOverride, setPriceOverride] = useState(!!editing);
+  const [tierPriceMap, setTierPriceMap]   = useState<Map<string, TierPrice>>(new Map());
   const [saving, setSaving]       = useState(false);
+
+  // Load tier prices for all active SKUs once (one RPC call)
+  useEffect(() => {
+    const allIds = skus.filter((s) => s.is_active).map((s) => s.id);
+    if (allIds.length === 0) return;
+    getTierPricesForSkus(allIds, customerTier)
+      .then(setTierPriceMap)
+      .catch(() => {/* fallback to sku defaults silently */});
+  }, [skus, customerTier]);
 
   const sku = skus.find((s) => s.id === skuId);
 
   const autoPrice = useMemo(() => {
     if (!skuId) return null;
+    const tierPx = tierPriceMap.get(skuId);
+    if (tierPx) {
+      return uom === "piece" ? Number(tierPx.price_per_piece_mvr)
+        : uom === "pack" ? Number(tierPx.price_per_pack_mvr)
+        : Number(tierPx.price_per_carton_mvr);
+    }
+    // Fallback to SKU default
     const s = skus.find((x) => x.id === skuId);
     if (!s) return null;
     return uom === "piece" ? s.selling_price_per_piece_mvr
       : uom === "pack" ? s.selling_price_per_pack_mvr
       : s.selling_price_per_carton_mvr;
-  }, [skuId, uom, skus]);
+  }, [skuId, uom, skus, tierPriceMap]);
+
+  const autoSource = useMemo(() => {
+    if (!skuId) return null;
+    const tierPx = tierPriceMap.get(skuId);
+    return tierPx?.source ?? "sku_default";
+  }, [skuId, tierPriceMap]);
 
   useEffect(() => {
     if (editing) return;
@@ -921,10 +948,15 @@ function LineDialog({
               >
                 <span style={{ color: "var(--foreground)", fontWeight: 600, fontSize: 14 }}>{autoPrice.toFixed(2)}</span>
                 <span style={{
-                  background: "color-mix(in srgb, var(--snm-success) 18%, transparent)",
-                  color: "var(--snm-success)", fontSize: 9, fontWeight: 700,
+                  background: autoSource === "price_list"
+                    ? "color-mix(in srgb, var(--snm-brand) 18%, transparent)"
+                    : "color-mix(in srgb, var(--snm-success) 18%, transparent)",
+                  color: autoSource === "price_list" ? "var(--snm-brand)" : "var(--snm-success)",
+                  fontSize: 9, fontWeight: 700,
                   letterSpacing: "0.08em", padding: "2px 5px", borderRadius: 4,
-                }}>AUTO</span>
+                }}>
+                  {autoSource === "price_list" ? customerTier.toUpperCase() : "DEFAULT"}
+                </span>
               </div>
             ) : (
               <div style={{ position: "relative" }}>

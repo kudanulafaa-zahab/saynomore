@@ -163,6 +163,34 @@ export function nextOrderNumber(existing: SalesOrderRow[]): string {
   return `${prefix}${String(max + 1).padStart(3, "0")}`;
 }
 
+// ── Tier pricing (price_lists / price_list_items) ─────────────────────────
+
+export interface TierPrice {
+  sku_id:               string;
+  price_per_piece_mvr:  number;
+  price_per_pack_mvr:   number;
+  price_per_carton_mvr: number;
+  source:               "price_list" | "sku_default";
+}
+
+/** Fetch tier-aware prices for a batch of SKU IDs. Returns a map sku_id → TierPrice. */
+export async function getTierPricesForSkus(
+  skuIds: string[],
+  tier: string = "retail",
+): Promise<Map<string, TierPrice>> {
+  if (skuIds.length === 0) return new Map();
+  const { data, error } = await supabase.rpc("get_tier_prices_for_skus", {
+    p_sku_ids: skuIds,
+    p_tier: tier,
+  });
+  if (error) throw error;
+  const map = new Map<string, TierPrice>();
+  for (const row of (data ?? []) as TierPrice[]) {
+    map.set(row.sku_id, row);
+  }
+  return map;
+}
+
 // Convert qty in any UoM to pieces, given the SKU
 export function toPieces(uom: SaleUom, qty: number, pcsPerPack: number, packsPerCarton: number): number {
   if (uom === "piece") return Math.round(qty);

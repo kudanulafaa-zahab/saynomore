@@ -53,6 +53,7 @@ export async function deleteSupplier(id: string) {
 // ── Customers ────────────────────────────────────────────────────────────
 
 export type CustomerChannel = "whatsapp" | "viber" | "messenger" | "instagram" | "tiktok" | "facebook" | "walkin" | "phone" | "other";
+export type PriceTier = "retail" | "wholesale" | "vip" | "promo";
 
 export interface CustomerRow {
   id: string;
@@ -63,6 +64,7 @@ export interface CustomerRow {
   address: string | null;
   island: string | null;
   channel: CustomerChannel | null;
+  price_tier: PriceTier;
   notes: string | null;
   created_at: string;
 }
@@ -75,6 +77,7 @@ export interface CustomerInput {
   address?: string | null;
   island?: string | null;
   channel?: CustomerChannel | null;
+  price_tier?: PriceTier;
   notes?: string | null;
 }
 

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   listCustomers, createCustomer, updateCustomer, deleteCustomer,
-  type CustomerRow, type CustomerInput, type CustomerChannel,
+  type CustomerRow, type CustomerInput, type CustomerChannel, type PriceTier,
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 
@@ -32,6 +32,14 @@ const CHANNELS: { value: CustomerChannel; label: string }[] = [
 ];
 
 const CHANNEL_LABEL: Record<string, string> = Object.fromEntries(CHANNELS.map((c) => [c.value, c.label]));
+
+const TIERS: { value: PriceTier; label: string; color: string }[] = [
+  { value: "retail",    label: "Retail",    color: "var(--muted-foreground)" },
+  { value: "wholesale", label: "Wholesale", color: "var(--snm-warning)" },
+  { value: "vip",       label: "VIP",       color: "var(--snm-brand)" },
+  { value: "promo",     label: "Promo",     color: "var(--snm-success)" },
+];
+const TIER_MAP = Object.fromEntries(TIERS.map((t) => [t.value, t]));
 
 function channelIcon(ch: string | null) {
   if (!ch) return "person";
@@ -200,6 +208,18 @@ export function CustomersManager() {
                   <div className="min-w-0">
                     <p className="text-base font-semibold text-foreground">{c.name}</p>
                     <div className="flex flex-wrap gap-2 mt-1">
+                      {/* Price tier badge */}
+                      {(() => {
+                        const t = TIER_MAP[c.price_tier ?? "retail"];
+                        return (
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: `color-mix(in srgb, ${t.color} 15%, transparent)`, color: t.color }}
+                          >
+                            {t.label}
+                          </span>
+                        );
+                      })()}
                       {c.channel && (
                         <span
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
@@ -295,9 +315,10 @@ function CustomerDialog({
   const [email, setEmail] = useState("");
   const [island, setIsland] = useState("");
   const [address, setAddress] = useState("");
-  const [channel, setChannel] = useState<CustomerChannel | "">("whatsapp");
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [channel, setChannel]   = useState<CustomerChannel | "">("whatsapp");
+  const [priceTier, setPriceTier] = useState<PriceTier>("retail");
+  const [notes, setNotes]       = useState("");
+  const [saving, setSaving]     = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -308,6 +329,7 @@ function CustomerDialog({
       setIsland(editing?.island ?? "");
       setAddress(editing?.address ?? "");
       setChannel(editing?.channel ?? "whatsapp");
+      setPriceTier(editing?.price_tier ?? "retail");
       setNotes(editing?.notes ?? "");
     }
   }, [open, editing]);
@@ -322,6 +344,7 @@ function CustomerDialog({
       island: island.trim() || null,
       address: address.trim() || null,
       channel: (channel || null) as CustomerChannel | null,
+      price_tier: priceTier,
       notes: notes.trim() || null,
     };
     setSaving(true);
@@ -369,6 +392,32 @@ function CustomerDialog({
               </Select>
             </div>
           </div>
+          {/* Price tier selector */}
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Price Tier</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {TIERS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setPriceTier(t.value)}
+                  className="py-2 rounded-xl text-xs font-bold transition"
+                  style={{
+                    background: priceTier === t.value
+                      ? `color-mix(in srgb, ${t.color} 18%, transparent)`
+                      : "var(--glass-bg-1)",
+                    color: priceTier === t.value ? t.color : "var(--muted-foreground)",
+                    border: priceTier === t.value
+                      ? `1px solid color-mix(in srgb, ${t.color} 35%, transparent)`
+                      : "1px solid var(--glass-border-lo)",
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-widest text-muted-foreground">Island</Label>
