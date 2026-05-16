@@ -163,6 +163,45 @@ export function nextOrderNumber(existing: SalesOrderRow[]): string {
   return `${prefix}${String(max + 1).padStart(3, "0")}`;
 }
 
+// ── COD Reconciliation ───────────────────────────────────────────────────
+
+export interface CodReconRow {
+  driver_id:           string;
+  driver_name:         string;
+  orders_count:        number;
+  expected_mvr:        number;
+  collected_mvr:       number;
+  variance_mvr:        number;
+  deposited_count:     number;
+  pending_deposit_mvr: number;
+  recon_status:        "balanced" | "shortfall" | "overage" | "pending_deposit";
+}
+
+export interface CodOrderRow {
+  order_id:        string;
+  order_number:    string;
+  customer_name:   string;
+  order_total_mvr: number;
+  collected_mvr:   number;
+  payment_status:  string;
+  delivered_at:    string;
+}
+
+export async function getCodReconciliation(date: string): Promise<CodReconRow[]> {
+  const { data, error } = await supabase.rpc("get_cod_reconciliation", { p_date: date });
+  if (error) throw error;
+  return (data ?? []) as CodReconRow[];
+}
+
+export async function getCodOrdersForDriver(driverId: string, date: string): Promise<CodOrderRow[]> {
+  const { data, error } = await supabase.rpc("get_cod_orders_for_driver", {
+    p_driver_id: driverId,
+    p_date: date,
+  });
+  if (error) throw error;
+  return (data ?? []) as CodOrderRow[];
+}
+
 // ── Tier pricing (price_lists / price_list_items) ─────────────────────────
 
 export interface TierPrice {
