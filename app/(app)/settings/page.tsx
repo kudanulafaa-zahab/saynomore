@@ -1,18 +1,25 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Users, Warehouse, Pencil, Trash2, Star,
   UserCheck, UserCog, Truck, Plus, ShieldCheck,
+  Tag, ChevronRight, ChevronDown, X,
 } from "lucide-react";
 import {
   listGodowns, createGodown, updateGodown, deleteGodown,
   listUsers, updateUser, deleteUser, inviteUser,
   type GodownRow, type GodownInput, type UserProfileRow, type UserRole,
+  type PriceTier,
 } from "@/lib/queries/masters";
-import { getCurrentUserRole } from "@/lib/queries/products";
+import { getCurrentUserRole, listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
+import {
+  listPriceLists, createPriceList, deletePriceList,
+  listPriceListItems, upsertPriceListItem, deletePriceListItem,
+  type PriceListRow, type PriceListItemRow,
+} from "@/lib/queries/pricelists";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Admin", manager: "Manager", staff: "Staff",
@@ -48,13 +55,17 @@ export default function SettingsPage() {
   const [godownSheet, setGodownSheet] = useState<{ open: boolean; editing?: GodownRow }>({ open: false });
   const [deleteGodownTarget, setDeleteGodownTarget] = useState<GodownRow | null>(null);
   const [deletingGodown, setDeletingGodown] = useState(false);
+  const [priceLists, setPriceLists] = useState<PriceListRow[]>([]);
+  const [skus, setSkus] = useState<SkuFullRow[]>([]);
 
   async function load() {
     setLoading(true);
     try {
-      const [u, g] = await Promise.all([listUsers(), listGodowns()]);
+      const [u, g, pl, sk] = await Promise.all([listUsers(), listGodowns(), listPriceLists(), listSkusFlat()]);
       setUsers(u);
       setGodowns(g);
+      setPriceLists(pl);
+      setSkus(sk);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -308,6 +319,15 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+
+      {/* ── Price Lists ──────────────────────────────────────── */}
+      {isAdmin && (
+        <PriceListsSection
+          priceLists={priceLists}
+          skus={skus}
+          onChanged={load}
+        />
+      )}
 
       {/* ── Sheets ─────────────────────────────────────────────── */}
       {inviteSheet && (
@@ -563,6 +583,475 @@ function GodownSheet({ editing, onClose, onDone }: { editing?: GodownRow; onClos
         <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Optional address" className={inputCls} />
       </SheetInput>
       <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !name.trim()} label={saving ? "Saving…" : editing ? "SAVE CHANGES" : "CREATE GODOWN"} />
+    </Sheet>
+  );
+}
+
+/* ── Price Lists Section ───────────────────────────────────────────────── */
+
+const TIERS: { value: PriceTier; label: string; color: string }[] = [
+  { value: "retail",    label: "Retail",    color: "var(--muted-foreground)" },
+  { value: "wholesale", label: "Wholesale", color: "var(--snm-warning)" },
+  { value: "vip",       label: "VIP",       color: "var(--snm-brand)" },
+  { value: "promo",     label: "Promo",     color: "var(--snm-success)" },
+];
+
+function PriceListsSection({ priceLists, skus, onChanged }: {
+  priceLists: PriceListRow[];
+  skus: SkuFullRow[];
+  onChanged: () => void;
+}) {
+  const [openList, setOpenList]       = useState<PriceListRow | null>(null);
+  const [newListTier, setNewListTier] = useState<PriceTier | null>(null);
+  const [deleting, setDeleting]       = useState<string | null>(null);
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete price list "${name}"? All prices in it will be lost.`)) return;
+    setDeleting(id);
+    try {
+      await deletePriceList(id);
+      toast.success("Price list deleted");
+      onChanged();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setDeleting(null); }
+  }
+
+  const byTier = useMemo(() => {
+    const m = new Map<PriceTier, PriceListRow[]>();
+    for (const t of TIERS) m.set(t.value, []);
+    for (const pl of priceLists) {
+      m.get(pl.tier as PriceTier)?.push(pl);
+    }
+    return m;
+  }, [priceLists]);
+
+  return (
+    <section
+      className="rounded-2xl p-5"
+      style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}
+    >
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+          <Tag className="h-4 w-4" style={{ color: "var(--foreground)" }} />
+        </div>
+        <div>
+          <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Price Lists</h2>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+            Tier-specific selling prices per SKU — auto-applied at order entry
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {TIERS.map(({ value: tier, label, color }) => {
+          const lists = byTier.get(tier) ?? [];
+          return (
+            <div key={tier}>
+              {/* Tier header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
+                    style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
+                  >
+                    {label.toUpperCase()}
+                  </span>
+                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                    {lists.length} list{lists.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setNewListTier(tier)}
+                  className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80 active:scale-95"
+                  style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
+                >
+                  <Plus className="h-3 w-3" /> New list
+                </button>
+              </div>
+
+              {/* Lists */}
+              {lists.length === 0 ? (
+                <p className="text-xs px-1 py-2" style={{ color: "var(--muted-foreground)" }}>
+                  No price list yet — all {label.toLowerCase()} customers use SKU default prices.
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {lists.map((pl) => (
+                    <div
+                      key={pl.id}
+                      className="flex items-center justify-between px-4 py-3 rounded-xl"
+                      style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
+                    >
+                      <button
+                        className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                        onClick={() => setOpenList(pl)}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>{pl.name}</p>
+                          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                            Effective {new Date(pl.effective_from + "T00:00:00").toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+                            {pl.notes ? ` · ${pl.notes}` : ""}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(pl.id, pl.name)}
+                        disabled={deleting === pl.id}
+                        className="ml-3 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                        style={{ color: "var(--muted-foreground)" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
+                      >
+                        {deleting === pl.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* New list sheet */}
+      {newListTier && (
+        <NewPriceListSheet
+          tier={newListTier}
+          onClose={() => setNewListTier(null)}
+          onDone={() => { setNewListTier(null); onChanged(); }}
+        />
+      )}
+
+      {/* Edit items sheet */}
+      {openList && (
+        <PriceListItemsSheet
+          priceList={openList}
+          skus={skus}
+          onClose={() => setOpenList(null)}
+          onDone={() => { setOpenList(null); onChanged(); }}
+        />
+      )}
+    </section>
+  );
+}
+
+/* ── New Price List sheet ──────────────────────────────────────────────── */
+function NewPriceListSheet({ tier, onClose, onDone }: {
+  tier: PriceTier; onClose: () => void; onDone: () => void;
+}) {
+  const t = TIERS.find((x) => x.value === tier)!;
+  const [name, setName] = useState(`${t.label} Price List`);
+  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await createPriceList({ name: name.trim(), tier, effective_from: effectiveFrom, notes: notes.trim() || null });
+      toast.success("Price list created");
+      onDone();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <Sheet title={`New ${t.label} Price List`} onClose={onClose}>
+      <SheetInput label="Name" required>
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
+      </SheetInput>
+      <SheetInput label="Effective From" required>
+        <input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} className={inputCls} />
+        <p className="text-xs mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+          This list applies to orders on or after this date. Old lists remain intact.
+        </p>
+      </SheetInput>
+      <SheetInput label="Notes (optional)">
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Ramadan 2025 promo" className={inputCls} />
+      </SheetInput>
+      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !name.trim()} label={saving ? "Creating…" : "CREATE LIST"} />
+    </Sheet>
+  );
+}
+
+/* ── Price List Items sheet ────────────────────────────────────────────── */
+function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
+  priceList: PriceListRow;
+  skus: SkuFullRow[];
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const t = TIERS.find((x) => x.value === priceList.tier)!;
+  const [items, setItems]     = useState<PriceListItemRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState("");
+  const [addSkuId, setAddSkuId] = useState("");
+  const [addSheet, setAddSheet] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  async function loadItems() {
+    setLoading(true);
+    try { setItems(await listPriceListItems(priceList.id)); }
+    catch (e) { toast.error((e as Error).message); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadItems(); }, [priceList.id]);
+
+  const setSkuIds = useMemo(() => new Set(items.map((i) => i.sku_id)), [items]);
+
+  const filteredSkus = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return skus
+      .filter((s) => s.is_active && !setSkuIds.has(s.id))
+      .filter((s) => !term || [s.brand_name, s.model_name, s.variant_display ?? "", s.internal_code ?? ""].join(" ").toLowerCase().includes(term))
+      .slice(0, 40);
+  }, [skus, setSkuIds, search]);
+
+  async function handleDelete(itemId: string) {
+    setDeleting(itemId);
+    try {
+      await deletePriceListItem(itemId);
+      toast.success("Removed");
+      loadItems();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setDeleting(null); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--background)" }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+        <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}>
+          <X className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs uppercase tracking-widest" style={{ color: t.color }}>{t.label}</p>
+          <h2 className="text-base font-semibold truncate" style={{ color: "var(--foreground)" }}>{priceList.name}</h2>
+        </div>
+        <button
+          onClick={() => setAddSheet(true)}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold shrink-0"
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
+        >
+          <Plus className="h-3.5 w-3.5" /> Add SKU
+        </button>
+      </div>
+
+      {/* Item list */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--muted-foreground)" }} /></div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-16">
+            <Tag className="h-8 w-8 mx-auto mb-3 opacity-30" style={{ color: "var(--muted-foreground)" }} />
+            <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No SKUs added yet</p>
+            <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Tap "Add SKU" to set prices for this tier</p>
+          </div>
+        ) : (
+          items.map((item) => {
+            const sku = skus.find((s) => s.id === item.sku_id);
+            return (
+              <div key={item.id} className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+                      {sku ? `${sku.brand_name} › ${sku.model_name}` : item.sku_id}
+                    </p>
+                    {sku?.variant_display && (
+                      <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deleting === item.id}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ color: "var(--muted-foreground)" }}
+                    onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
+                  >
+                    {deleting === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  {[
+                    { label: "/ piece",  value: item.price_per_piece_mvr },
+                    { label: "/ pack",   value: item.price_per_pack_mvr },
+                    { label: "/ carton", value: item.price_per_carton_mvr },
+                  ].map((p) => (
+                    <div key={p.label} className="rounded-xl px-3 py-2 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+                      <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
+                      <p className="text-sm font-semibold" style={{ color: t.color }}>MVR {Number(p.value).toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+                {item.margin_pct != null && (
+                  <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>
+                    Margin: {Number(item.margin_pct).toFixed(1)}%
+                  </p>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add SKU sheet */}
+      {addSheet && (
+        <AddSkuToListSheet
+          priceListId={priceList.id}
+          skus={filteredSkus}
+          search={search}
+          onSearch={setSearch}
+          selectedSkuId={addSkuId}
+          onSelectSku={setAddSkuId}
+          onClose={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); }}
+          onSaved={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); loadItems(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Add SKU to price list sheet ───────────────────────────────────────── */
+function AddSkuToListSheet({ priceListId, skus, search, onSearch, selectedSkuId, onSelectSku, onClose, onSaved }: {
+  priceListId:   string;
+  skus:          SkuFullRow[];
+  search:        string;
+  onSearch:      (s: string) => void;
+  selectedSkuId: string;
+  onSelectSku:   (id: string) => void;
+  onClose:       () => void;
+  onSaved:       () => void;
+}) {
+  const sku = skus.find((s) => s.id === selectedSkuId) ?? null;
+
+  const [piece,   setPiece]   = useState("");
+  const [pack,    setPack]    = useState("");
+  const [carton,  setCarton]  = useState("");
+  const [saving,  setSaving]  = useState(false);
+
+  // Auto-fill pack/carton when piece changes
+  useEffect(() => {
+    if (!sku || !piece) return;
+    const p = parseFloat(piece);
+    if (isNaN(p) || p <= 0) return;
+    setPack((p * sku.pcs_per_pack).toFixed(2));
+    setCarton((p * sku.pcs_per_pack * sku.packs_per_carton).toFixed(2));
+  }, [piece, sku]);
+
+  // Auto-fill margin hint
+  const marginHint = useMemo(() => {
+    if (!sku || !piece) return null;
+    const p = parseFloat(piece);
+    const landed = sku.landed_per_piece_mvr ?? null;
+    if (!landed || isNaN(p) || p <= 0) return null;
+    return ((p - landed) / p * 100).toFixed(1);
+  }, [piece, sku]);
+
+  async function save() {
+    if (!selectedSkuId || !piece || !pack || !carton) return;
+    const p = parseFloat(piece); const pk = parseFloat(pack); const c = parseFloat(carton);
+    if (isNaN(p) || isNaN(pk) || isNaN(c) || p <= 0) return;
+    setSaving(true);
+    try {
+      await upsertPriceListItem({
+        price_list_id: priceListId,
+        sku_id: selectedSkuId,
+        price_per_piece_mvr:   p,
+        price_per_pack_mvr:    pk,
+        price_per_carton_mvr:  c,
+        margin_pct: marginHint != null ? parseFloat(marginHint) : null,
+      });
+      toast.success("Price saved");
+      onSaved();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSaving(false); }
+  }
+
+  const canSave = !!selectedSkuId && !!piece && !!pack && !!carton && parseFloat(piece) > 0;
+
+  return (
+    <Sheet title="Add SKU Price" onClose={onClose}>
+      {!selectedSkuId ? (
+        <>
+          <input
+            autoFocus
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Search brand, SKU, code…"
+            className={inputCls + " mb-3"}
+          />
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 260, overflowY: "auto" }}>
+            {skus.length === 0 ? (
+              <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
+                {search ? "No matches" : "All active SKUs already have prices in this list"}
+              </p>
+            ) : skus.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onSelectSku(s.id)}
+                className="w-full text-left px-4 py-3 flex flex-col transition-colors hover:bg-accent"
+                style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}
+              >
+                <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                  {s.brand_name} › {s.model_name}
+                  {s.variant_display ? <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}> · {s.variant_display}</span> : null}
+                </p>
+                {s.landed_per_piece_mvr != null && (
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc
+                  </p>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : sku ? (
+        <>
+          <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>
+              {sku.variant_display && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
+              {sku.landed_per_piece_mvr != null && (
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  Landed: MVR {Number(sku.landed_per_piece_mvr).toFixed(3)}/pc
+                </p>
+              )}
+            </div>
+            <button onClick={() => onSelectSku("")} className="text-xs" style={{ color: "var(--muted-foreground)" }}>Change</button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 mb-2">
+            <SheetInput label="Price per piece (MVR) *">
+              <input
+                autoFocus
+                type="number" inputMode="decimal" step="0.01" min="0.01"
+                value={piece} onChange={(e) => setPiece(e.target.value)}
+                placeholder="e.g. 12.50"
+                className={inputCls}
+              />
+              {marginHint != null && (
+                <p className="text-xs mt-1" style={{ color: parseFloat(marginHint) >= 20 ? "var(--snm-success)" : parseFloat(marginHint) >= 10 ? "var(--snm-warning)" : "var(--snm-error)" }}>
+                  Gross margin: {marginHint}%
+                </p>
+              )}
+            </SheetInput>
+            <div className="grid grid-cols-2 gap-3">
+              <SheetInput label="Price per pack">
+                <input type="number" inputMode="decimal" step="0.01" value={pack} onChange={(e) => setPack(e.target.value)} className={inputCls} />
+              </SheetInput>
+              <SheetInput label="Price per carton">
+                <input type="number" inputMode="decimal" step="0.01" value={carton} onChange={(e) => setCarton(e.target.value)} className={inputCls} />
+              </SheetInput>
+            </div>
+          </div>
+
+          <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !canSave} label={saving ? "Saving…" : "SAVE PRICE"} />
+        </>
+      ) : null}
     </Sheet>
   );
 }
