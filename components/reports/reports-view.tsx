@@ -538,7 +538,7 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
                   </td>
                   <td className="px-3 py-3 text-right">
                     <p className="text-foreground text-sm">
-                      {formatStock(r.stock_pieces, r.pcs_per_pack, r.packs_per_carton, r.unit_uom)}
+                      {formatStock(r.stock_pieces, r.pcs_per_pack, r.packs_per_carton, "pcs")}
                     </p>
                     <p className="text-[11px] text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
                   </td>
