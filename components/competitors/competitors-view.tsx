@@ -591,6 +591,7 @@ export function CompetitorsView() {
                         </div>
                       );
                     })}
+                    {/* Current saved price */}
                     {sku.selling_price_per_piece_mvr != null && (
                       <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
                         <div className="flex items-center gap-3">
@@ -599,12 +600,32 @@ export function CompetitorsView() {
                           </div>
                           <div>
                             <p className="text-[13px] font-medium" style={{ color: "var(--snm-brand)" }}>Our Selling Price</p>
-                            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{sku.target_margin_pct}% margin</p>
+                            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                              {sku.fixed_selling_price_mvr != null ? "Fixed price" : `${sku.target_margin_pct}% margin`} · saved
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[14px] font-semibold" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(Number(sku.selling_price_per_piece_mvr))}<span className="text-[10px] opacity-60">/pc</span></p>
                           <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Simulated price — only shown for the selected SKU when simulator differs */}
+                    {simSku?.id === sku.id && isPriceChanged && (
+                      <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px dashed color-mix(in srgb, var(--snm-warning) 35%, transparent)" }}>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}>
+                            <TrendingUp className="h-3.5 w-3.5" style={{ color: "var(--snm-warning)" }} />
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-medium" style={{ color: "var(--snm-warning)" }}>Simulated Price</p>
+                            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{impliedMarginPct}% margin · not saved yet</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold" style={{ color: "var(--snm-warning)" }}>MVR {fmt2(piecePrice)}<span className="text-[10px] opacity-60">/pc</span></p>
+                          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(cartonPrice)}/ctn</p>
                         </div>
                       </div>
                     )}
