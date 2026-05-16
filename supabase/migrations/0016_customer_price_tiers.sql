@@ -89,12 +89,14 @@ AS $$
   ),
   sku_default AS (
     SELECT
-      s.selling_price_per_piece_mvr   AS price_per_piece_mvr,
-      s.selling_price_per_pack_mvr    AS price_per_pack_mvr,
-      s.selling_price_per_carton_mvr  AS price_per_carton_mvr,
-      'sku_default'::TEXT             AS source
+      s.fixed_selling_price_mvr                                        AS price_per_piece_mvr,
+      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack,         2)    AS price_per_pack_mvr,
+      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack
+            * s.packs_per_carton,                                2)    AS price_per_carton_mvr,
+      'sku_default'::TEXT                                              AS source
     FROM skus s
     WHERE s.id = p_sku_id
+      AND s.fixed_selling_price_mvr IS NOT NULL
     LIMIT 1
   )
   SELECT * FROM list_price
@@ -145,13 +147,15 @@ AS $$
   ),
   sku_defaults AS (
     SELECT
-      s.id                            AS sku_id,
-      s.selling_price_per_piece_mvr   AS price_per_piece_mvr,
-      s.selling_price_per_pack_mvr    AS price_per_pack_mvr,
-      s.selling_price_per_carton_mvr  AS price_per_carton_mvr,
-      'sku_default'::TEXT             AS source
+      s.id                                                              AS sku_id,
+      s.fixed_selling_price_mvr                                        AS price_per_piece_mvr,
+      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack,         2)    AS price_per_pack_mvr,
+      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack
+            * s.packs_per_carton,                                2)    AS price_per_carton_mvr,
+      'sku_default'::TEXT                                              AS source
     FROM skus s
     WHERE s.id = ANY(p_sku_ids)
+      AND s.fixed_selling_price_mvr IS NOT NULL
   )
   -- List price wins over SKU default (DISTINCT ON keeps first match)
   SELECT DISTINCT ON (all_prices.sku_id)
