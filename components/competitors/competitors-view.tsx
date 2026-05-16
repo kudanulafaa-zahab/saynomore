@@ -363,7 +363,7 @@ export function CompetitorsView() {
               <input
                 type="range"
                 min={simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack}
-                max={simMode === "carton" ? landedPerCarton * 4 : simMode === "piece" ? landedPerPiece * 4 : landedPerPack * 4}
+                max={simMode === "carton" ? landedPerCarton * 10 : simMode === "piece" ? landedPerPiece * 10 : landedPerPack * 10}
                 step={simMode === "carton" ? 5 : 0.5}
                 value={simDisplayPrice}
                 onChange={(e) => setSimDisplayPrice(Number(e.target.value))}
