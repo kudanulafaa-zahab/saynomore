@@ -428,6 +428,52 @@ export function CompetitorsView() {
               </div>
             </div>
 
+            {/* Markup reference guide — read-only cheat sheet */}
+            {(() => {
+              const REFS = [
+                { margin: 10, mult: 1.11 },
+                { margin: 20, mult: 1.25 },
+                { margin: 25, mult: 1.33 },
+                { margin: 30, mult: 1.43 },
+                { margin: 40, mult: 1.67 },
+                { margin: 50, mult: 2.00 },
+                { margin: 60, mult: 2.50 },
+                { margin: 67, mult: 3.00 },
+                { margin: 75, mult: 4.00 },
+              ];
+              const closest = REFS.reduce((best, r) => Math.abs(r.margin - impliedMarginPct) < Math.abs(best.margin - impliedMarginPct) ? r : best, REFS[0]);
+              return (
+                <div className="rounded-xl px-4 py-3" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
+                  <p className="text-[10px] uppercase tracking-wider mb-2.5" style={{ color: "var(--muted-foreground)" }}>Margin → Multiplier Reference</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {REFS.map(({ margin, mult }) => {
+                      const isActive = closest.margin === margin;
+                      return (
+                        <div
+                          key={margin}
+                          className="rounded-lg px-2.5 py-1 text-center"
+                          style={{
+                            background: isActive ? "color-mix(in srgb, var(--foreground) 12%, transparent)" : "transparent",
+                            border: isActive ? "1px solid color-mix(in srgb, var(--foreground) 25%, transparent)" : "1px solid transparent",
+                          }}
+                        >
+                          <p className="text-[11px] font-semibold" style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                            {margin}%
+                          </p>
+                          <p className="text-[10px]" style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)", opacity: isActive ? 1 : 0.6 }}>
+                            ×{mult.toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] mt-2" style={{ color: "var(--muted-foreground)" }}>
+                    Cost × multiplier = selling price &nbsp;·&nbsp; currently <span style={{ color: "var(--foreground)", fontWeight: 600 }}>×{landedPerPack > 0 ? (packPrice / landedPerPack).toFixed(2) : "—"}</span> &nbsp;·&nbsp; nearest: {closest.margin}% margin
+                  </p>
+                </div>
+              );
+            })()}
+
             {/* All three price levels — with both margin % AND markup % */}
             <div className="grid grid-cols-3 gap-3">
               {[
