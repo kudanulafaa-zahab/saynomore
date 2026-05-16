@@ -5,109 +5,90 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  Loader2,
-  Plus,
-  Search,
-  Truck,
-  Package,
-  CheckCircle2,
-  Clock,
-  Anchor,
-  Pencil,
-  Trash2,
-  AlertTriangle,
-  ChevronRight,
-  Factory,
+  Loader2, Plus, Package, CheckCircle2, Clock, Anchor, Truck,
+  Trash2, AlertTriangle, ChevronRight, Factory, ShoppingCart,
 } from "lucide-react";
 import {
-  listShipments,
-  createShipment,
-  updateShipment,
-  deleteShipment,
+  listShipments, createShipment, deleteShipment,
   nextShipmentRef,
-  type ShipmentRow,
-  type ShipmentStatus,
+  type ShipmentRow, type ShipmentStatus,
 } from "@/lib/queries/shipments";
 import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 
-const CARD = {
+/* ── Style helpers ───────────────────────────────────────────────────────── */
+
+const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
-} as const;
+};
 
-const CARD_L2 = {
+const CARD_L2: React.CSSProperties = {
   background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
-} as const;
+};
+
+/* ── Status config ───────────────────────────────────────────────────────── */
 
 const STATUS_LABEL: Record<ShipmentStatus, string> = {
-  draft: "Draft",
-  ordered: "Ordered",
-  in_transit: "In Transit",
-  arrived: "Arrived",
+  draft:         "Draft",
+  ordered:       "Ordered",
+  in_transit:    "In Transit",
+  arrived:       "Arrived",
   grn_confirmed: "Received",
 };
 
-const STATUS_COLOR: Record<ShipmentStatus, { bg: string; text: string; dot: string }> = {
-  draft:         { bg: "var(--muted)",             text: "var(--muted-foreground)", dot: "var(--muted-foreground)" },
-  ordered:       { bg: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",   text: "var(--snm-brand)",    dot: "var(--snm-brand)"    },
-  in_transit:    { bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", text: "var(--snm-warning)", dot: "var(--snm-warning)" },
-  arrived:       { bg: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", text: "var(--snm-warning)", dot: "var(--snm-warning)" },
-  grn_confirmed: { bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)", text: "var(--snm-success)", dot: "var(--snm-success)" },
+const STATUS_COLOR: Record<ShipmentStatus, { bg: string; text: string }> = {
+  draft:         { bg: "var(--glass-2)",                                              text: "var(--muted-foreground)" },
+  ordered:       { bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)",    text: "var(--snm-warning)"      },
+  in_transit:    { bg: "color-mix(in srgb, #3B82F6 15%, transparent)",               text: "#3B82F6"                 },
+  arrived:       { bg: "color-mix(in srgb, var(--snm-warning) 20%, transparent)",    text: "var(--snm-warning)"      },
+  grn_confirmed: { bg: "color-mix(in srgb, var(--snm-success) 20%, transparent)",    text: "var(--snm-success)"      },
 };
 
 const STATUS_ICON: Record<ShipmentStatus, typeof Truck> = {
-  draft: Package,
-  ordered: Clock,
-  in_transit: Truck,
-  arrived: Anchor,
+  draft:         Package,
+  ordered:       Clock,
+  in_transit:    Truck,
+  arrived:       Anchor,
   grn_confirmed: CheckCircle2,
 };
 
-function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
-      <input
-        {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
-        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
-      />
-    </div>
-  );
+const STATUS_ORDER: ShipmentStatus[] = ["draft", "ordered", "in_transit", "arrived", "grn_confirmed"];
+const ACTIVE_STATUSES: ShipmentStatus[] = ["draft", "ordered", "in_transit", "arrived"];
+
+/* ── Date helpers ────────────────────────────────────────────────────────── */
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-MV", { day: "numeric", month: "short" });
 }
 
-function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      {label && <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
-        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
-      >
-        {children}
-      </select>
-    </div>
-  );
+function etaState(date: string | null | undefined): "overdue" | "today" | "upcoming" | null {
+  if (!date) return null;
+  const d = new Date(date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  if (d < today) return "overdue";
+  if (d.getTime() === today.getTime()) return "today";
+  return "upcoming";
 }
+
+/* ── Main component ──────────────────────────────────────────────────────── */
 
 export function ShipmentsList() {
   const router = useRouter();
-  const [rows, setRows] = useState<ShipmentRow[]>([]);
+  const [rows, setRows]         = useState<ShipmentRow[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "all">("all");
-  const [newDialog, setNewDialog] = useState(false);
-  const [editDialog, setEditDialog] = useState<ShipmentRow | null>(null);
+  const [newSheet, setNewSheet] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<ShipmentRow | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole]         = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -115,30 +96,32 @@ export function ShipmentsList() {
       const [s, sup] = await Promise.all([listShipments(), listSuppliers()]);
       setRows(s);
       setSuppliers(sup);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setLoading(false); }
   }
 
   useEffect(() => { load(); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
 
-  const filtered = useMemo(() => {
-    let r = rows;
-    if (statusFilter !== "all") r = r.filter((x) => x.status === statusFilter);
-    const term = q.trim().toLowerCase();
-    if (term) {
-      r = r.filter((x) => x.reference.toLowerCase().includes(term) || (x.notes ?? "").toLowerCase().includes(term));
-    }
-    return r;
-  }, [rows, statusFilter, q]);
+  /* counts per status */
+  const counts = useMemo(() => {
+    const m: Record<string, number> = { all: rows.length };
+    for (const s of STATUS_ORDER) m[s] = rows.filter((r) => r.status === s).length;
+    return m;
+  }, [rows]);
 
-  function supplierName(id: string | null): string {
-    if (!id) return "—";
-    return suppliers.find((s) => s.id === id)?.name ?? "—";
+  const filtered = useMemo(() => {
+    if (statusFilter === "all") return rows;
+    return rows.filter((r) => r.status === statusFilter);
+  }, [rows, statusFilter]);
+
+  const activeFiltered    = filtered.filter((r) => ACTIVE_STATUSES.includes(r.status));
+  const completedFiltered = filtered.filter((r) => r.status === "grn_confirmed");
+
+  function supplierFor(id: string | null) {
+    if (!id) return null;
+    return suppliers.find((s) => s.id === id) ?? null;
   }
 
   if (loading) {
@@ -151,183 +134,126 @@ export function ShipmentsList() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0 pb-28">
 
       {/* ── Header ── */}
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Batch Lifecycle Phase 1</p>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Shipment Intake</h1>
-        </div>
-        <button
-          onClick={() => setNewDialog(true)}
-          className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          <Plus className="h-4 w-4" />
-          New Batch
-        </button>
+      <div className="mb-4">
+        <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Inventory Procurement</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Purchase Orders</h1>
       </div>
 
-      {/* ── Search + Filter ── */}
-      <div className="flex gap-2">
-        <div
-          className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12"
-          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
-        >
-          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search reference…"
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-            inputMode="search"
-            autoCapitalize="none"
-            autoCorrect="off"
-            autoComplete="off"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="h-12 rounded-2xl px-4 text-sm text-foreground outline-none appearance-none"
-          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
-        >
-          <option value="all">All Status</option>
-          {(Object.keys(STATUS_LABEL) as ShipmentStatus[]).map((s) => (
-            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-          ))}
-        </select>
+      {/* ── Status filter chips ── */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
+        {([
+          { key: "all",          label: "All"        },
+          { key: "draft",        label: "Draft"      },
+          { key: "ordered",      label: "Ordered"    },
+          { key: "in_transit",   label: "In Transit" },
+          { key: "arrived",      label: "Arrived"    },
+          { key: "grn_confirmed",label: "Received"   },
+        ] as { key: ShipmentStatus | "all"; label: string }[]).map(({ key, label }) => {
+          const active = statusFilter === key;
+          const count  = counts[key] ?? 0;
+          return (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className="shrink-0 h-9 px-3 rounded-full text-[11px] font-semibold transition active:scale-95 flex items-center gap-1.5"
+              style={{
+                background: active ? "var(--foreground)" : "var(--glass-1)",
+                color:      active ? "var(--background)" : "var(--muted-foreground)",
+                border:     active ? "none" : "1px solid var(--glass-border-lo)",
+              }}
+            >
+              {label}
+              <span className="text-[10px] opacity-70">{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Empty state ── */}
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && (
         <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
           <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
-            <Truck className="h-6 w-6 text-foreground" />
+            <ShoppingCart className="h-6 w-6" style={{ color: "var(--muted-foreground)" }} />
           </div>
           <h3 className="text-base font-semibold text-foreground">
-            {rows.length === 0 ? "No shipments yet" : "No matches"}
+            {rows.length === 0 ? "No purchase orders yet" : "No matches"}
           </h3>
-          <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-sm max-w-[260px]" style={{ color: "var(--muted-foreground)" }}>
             {rows.length === 0
-              ? "Create a shipment when you place an order. Add lines, set FX rate, then confirm GRN when goods arrive."
+              ? "Tap + to create your first PO. Add supplier, products and costs before goods arrive."
               : "Try a different filter."}
           </p>
           {rows.length === 0 && (
             <button
-              onClick={() => setNewDialog(true)}
+              onClick={() => setNewSheet(true)}
               className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
-              Create first shipment
+              Create first PO
             </button>
           )}
         </div>
-      ) : (
-        <div className="space-y-1.5">
-          {filtered.map((s) => {
-            const Icon = STATUS_ICON[s.status];
-            const locked = s.status === "grn_confirmed";
-            const colors = STATUS_COLOR[s.status];
-            const sup = suppliers.find((x) => x.id === s.supplier_id);
-            return (
-              <div
-                key={s.id}
-                className="flex items-center gap-3 p-4 rounded-2xl transition"
-                style={CARD}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-              >
-                <Link href={`/shipments/${s.id}`} className="flex items-center gap-3 min-w-0 flex-1">
-                  <div
-                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: colors.bg, color: colors.text }}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-bold text-foreground">{s.reference}</p>
-                      <span
-                        className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1"
-                        style={{ background: colors.bg, color: colors.text }}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: colors.dot }} />
-                        {STATUS_LABEL[s.status]}
-                      </span>
-                    </div>
-                    <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
-                      {sup ? `${sup.name}${sup.country ? ` · ${sup.country}` : ""}` : "No supplier assigned"}
-                      {s.notes && <> · {s.notes}</>}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                </Link>
+      )}
 
-                {(!locked || isAdmin) && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    {!locked && (
-                      <button
-                        onClick={() => setEditDialog(s)}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center transition"
-                        style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}
-                        title="Edit"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                    {isAdmin && !locked && (
-                      <button
-                        onClick={() => setDeleteDialog(s)}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center transition"
-                        style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}
-                        title="Delete"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {/* ── Active POs ── */}
+      {activeFiltered.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {activeFiltered.map((s) => (
+            <PoCard key={s.id} shipment={s} supplier={supplierFor(s.supplier_id)} isAdmin={isAdmin} onDelete={setDeleteDialog} />
+          ))}
         </div>
       )}
 
-      {/* ── New Shipment Modal ── */}
-      {newDialog && (
-        <NewShipmentModal
+      {/* ── Completed divider ── */}
+      {completedFiltered.length > 0 && (
+        <>
+          <div className="flex items-center gap-3 py-2 mb-2">
+            <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>Completed</span>
+            <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
+          </div>
+          <div className="space-y-2">
+            {completedFiltered.map((s) => (
+              <PoCard key={s.id} shipment={s} supplier={supplierFor(s.supplier_id)} isAdmin={isAdmin} onDelete={setDeleteDialog} dimmed />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── FAB ── */}
+      <button
+        onClick={() => setNewSheet(true)}
+        className="fixed bottom-24 right-4 h-14 w-14 rounded-full flex items-center justify-center transition active:scale-95 z-40"
+        style={{ background: "var(--foreground)", boxShadow: "0 4px 16px rgba(0,0,0,0.24)" }}
+        aria-label="New purchase order"
+      >
+        <Plus className="h-6 w-6" style={{ color: "var(--background)" }} />
+      </button>
+
+      {/* ── New PO sheet ── */}
+      {newSheet && (
+        <NewPoSheet
           suppliers={suppliers}
           existing={rows}
-          onClose={() => setNewDialog(false)}
-          onCreated={(id) => {
-            setNewDialog(false);
-            router.push(`/shipments/${id}`);
-          }}
+          onClose={() => setNewSheet(false)}
+          onCreated={(id) => { setNewSheet(false); router.push(`/shipments/${id}`); }}
         />
       )}
 
-      {/* ── Edit Modal ── */}
-      {editDialog && (
-        <EditShipmentModal
-          shipment={editDialog}
-          suppliers={suppliers}
-          onClose={() => setEditDialog(null)}
-          onSaved={() => { setEditDialog(null); load(); }}
-        />
-      )}
-
-      {/* ── Delete Confirm Modal ── */}
+      {/* ── Delete confirm ── */}
       {deleteDialog && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[15px] font-bold text-foreground">Delete shipment?</p>
+                <p className="text-[15px] font-bold text-foreground">Delete purchase order?</p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{deleteDialog.reference}</p>
               </div>
             </div>
@@ -335,11 +261,9 @@ export function ShipmentsList() {
               All lines will be permanently removed. This cannot be undone.
             </p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setDeleteDialog(null)}
+              <button onClick={() => setDeleteDialog(null)}
                 className="flex-1 h-12 rounded-xl text-sm font-semibold"
-                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
-              >
+                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>
                 Cancel
               </button>
               <button
@@ -348,17 +272,14 @@ export function ShipmentsList() {
                   setDeleting(true);
                   try {
                     await deleteShipment(deleteDialog.id);
-                    toast.success("Shipment deleted");
+                    toast.success("Purchase order deleted");
                     setDeleteDialog(null);
                     load();
-                  } catch (e) {
-                    toast.error((e as Error).message);
-                  } finally {
-                    setDeleting(false);
-                  }
+                  } catch (e) { toast.error((e as Error).message); }
+                  finally { setDeleting(false); }
                 }}
                 className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                style={{ background: "var(--snm-error)", color: "var(--background)" }}
+                style={{ background: "var(--snm-error)", color: "#fff" }}
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
@@ -370,9 +291,112 @@ export function ShipmentsList() {
   );
 }
 
-// ── New Shipment Modal ────────────────────────────────────────────────────────
+/* ── PO Card ─────────────────────────────────────────────────────────────── */
 
-function NewShipmentModal({
+function PoCard({
+  shipment, supplier, isAdmin, onDelete, dimmed,
+}: {
+  shipment: ShipmentRow;
+  supplier: SupplierRow | null;
+  isAdmin: boolean;
+  onDelete: (s: ShipmentRow) => void;
+  dimmed?: boolean;
+}) {
+  const colors = STATUS_COLOR[shipment.status];
+  const Icon   = STATUS_ICON[shipment.status];
+  const locked = shipment.status === "grn_confirmed";
+
+  /* ETA display */
+  const eta  = shipment.expected_arrival_date;
+  const etaS = etaState(eta);
+  const etaColor =
+    etaS === "overdue" ? "var(--snm-error)"   :
+    etaS === "today"   ? "var(--snm-warning)"  :
+                         "var(--muted-foreground)";
+  const etaLabel =
+    etaS === "overdue"  ? `Overdue · ${fmtDate(eta)}` :
+    etaS === "today"    ? "Arriving today"              :
+    eta                 ? `ETA ${fmtDate(eta)}`         : "ETA not set";
+
+  const confirmedLabel = shipment.grn_confirmed_at
+    ? `Received ${fmtDate(shipment.grn_confirmed_at)}`
+    : "Received";
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden transition"
+      style={{
+        ...(!dimmed ? {
+          background: "var(--glass-1)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid var(--glass-border-lo)",
+        } : {
+          background: "transparent",
+          border: "1px solid var(--glass-border-lo)",
+          opacity: 0.65,
+        }),
+      }}
+    >
+      <Link href={`/shipments/${shipment.id}`} className="block p-4">
+        {/* Row 1: reference + status badge */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg }}>
+              <Icon className="h-3.5 w-3.5" style={{ color: colors.text }} />
+            </div>
+            <p className="text-[14px] font-bold text-foreground truncate">{shipment.reference}</p>
+          </div>
+          <span
+            className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg"
+            style={{ background: colors.bg, color: colors.text }}
+          >
+            {STATUS_LABEL[shipment.status]}
+          </span>
+        </div>
+
+        {/* Row 2: supplier */}
+        <p className="text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+          {supplier ? supplier.name : <span style={{ fontStyle: "italic" }}>No supplier assigned</span>}
+          {supplier?.country ? ` · ${supplier.country}` : ""}
+        </p>
+
+        {/* Row 3: ETA / confirmed date — right side; notes left */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            {shipment.notes ? shipment.notes : "No notes"}
+          </p>
+          {locked ? (
+            <p className="text-[11px] shrink-0 font-medium" style={{ color: "var(--snm-success)" }}>{confirmedLabel}</p>
+          ) : (
+            <p className="text-[11px] shrink-0" style={{ color: etaColor }}>{etaLabel}</p>
+          )}
+        </div>
+      </Link>
+
+      {/* Admin delete strip — only for non-locked, admin */}
+      {isAdmin && !locked && (
+        <div
+          className="flex justify-end px-3 py-1.5"
+          style={{ borderTop: "1px solid var(--glass-border-lo)" }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(shipment); }}
+            className="h-8 w-8 rounded-lg flex items-center justify-center transition active:scale-95"
+            style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}
+            title="Delete"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── New PO bottom sheet ─────────────────────────────────────────────────── */
+
+function NewPoSheet({
   suppliers, existing, onClose, onCreated,
 }: {
   suppliers: SupplierRow[];
@@ -380,11 +404,11 @@ function NewShipmentModal({
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
-  const [reference, setReference] = useState(nextShipmentRef(existing));
+  const [reference, setReference]   = useState(nextShipmentRef(existing));
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]         = useState(false);
 
-  async function save() {
+  async function create() {
     if (!reference.trim()) return;
     setSaving(true);
     try {
@@ -393,49 +417,79 @@ function NewShipmentModal({
         supplier_id: supplierId || null,
         status: "draft",
       });
-      toast.success("Shipment created");
+      toast.success("Purchase order created");
       onCreated(created.id);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { toast.error((err as Error).message); }
+    finally { setSaving(false); }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
-      <div className="w-full max-w-md rounded-3xl p-6 space-y-5" style={CARD_L2}>
-        <div className="flex items-center gap-3 mb-1">
-          <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: "rgba(0,0,0,0.60)" }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-t-3xl"
+        style={{
+          background: "var(--glass-2)",
+          backdropFilter: "blur(40px)",
+          WebkitBackdropFilter: "blur(40px)",
+          padding: "12px 24px 40px",
+          maxWidth: 480,
+        }}
+      >
+        {/* Handle */}
+        <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "var(--glass-border)" }} />
+
+        {/* Icon + title */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-bg-2)" }}>
             <Factory className="h-5 w-5 text-foreground" />
           </div>
           <div>
-            <p className="text-[16px] font-bold text-foreground">New Shipment</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Draft → Add lines → Confirm GRN on arrival</p>
+            <p className="text-[17px] font-bold text-foreground">New Purchase Order</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Draft → add products → confirm on arrival</p>
           </div>
         </div>
 
-        <GlassInput
-          label="BATCH REFERENCE *"
-          value={reference}
-          onChange={(e) => setReference((e.target as HTMLInputElement).value)}
-          placeholder="SH-2026-001"
-          autoFocus
-        />
-        <p className="text-[11px] -mt-3" style={{ color: "var(--muted-foreground)" }}>Auto-generated. Edit if you have your own scheme.</p>
+        {/* Reference */}
+        <div className="space-y-1.5 mb-4">
+          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>PO REFERENCE</p>
+          <input
+            autoFocus
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="PO-2026-001"
+            className="w-full h-12 rounded-xl px-4 text-sm text-foreground outline-none"
+            style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}
+          />
+          <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Auto-generated — edit if you have your own reference.</p>
+        </div>
 
-        <GlassSelect label="VENDOR" value={supplierId} onChange={setSupplierId}>
-          <option value="">No vendor selected</option>
-          {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </GlassSelect>
+        {/* Supplier */}
+        <div className="space-y-1.5 mb-6">
+          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>SUPPLIER</p>
+          <div className="relative">
+            <select
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+              className="w-full h-12 rounded-xl px-4 pr-10 text-sm text-foreground outline-none appearance-none"
+              style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}
+            >
+              <option value="">No supplier yet</option>
+              {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}{s.country ? ` · ${s.country}` : ""}</option>)}
+            </select>
+            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 rotate-90 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
+          </div>
+          {suppliers.length === 0 && (
+            <p className="text-[11px]" style={{ color: "var(--snm-warning)" }}>No suppliers yet — add one under Vendors first.</p>
+          )}
+        </div>
 
-        {suppliers.length === 0 && (
-          <p className="text-[11px]" style={{ color: "var(--snm-warning)" }}>
-            No suppliers yet. Add one under Vendors first.
-          </p>
-        )}
-
-        <div className="flex gap-2 pt-1">
+        {/* Buttons */}
+        <div className="flex gap-2">
           <button
             onClick={onClose}
             className="flex-1 h-12 rounded-xl text-sm font-semibold"
@@ -444,73 +498,14 @@ function NewShipmentModal({
             Cancel
           </button>
           <button
-            onClick={save}
+            onClick={create}
             disabled={saving || !reference.trim()}
-            className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
+            className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Create Batch"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Edit Shipment Modal ───────────────────────────────────────────────────────
-
-function EditShipmentModal({
-  shipment, suppliers, onClose, onSaved,
-}: {
-  shipment: ShipmentRow;
-  suppliers: SupplierRow[];
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [reference, setReference] = useState(shipment.reference);
-  const [supplierId, setSupplierId] = useState(shipment.supplier_id ?? "");
-  const [notes, setNotes] = useState(shipment.notes ?? "");
-  const [saving, setSaving] = useState(false);
-
-  async function save() {
-    if (!reference.trim()) return;
-    setSaving(true);
-    try {
-      await updateShipment(shipment.id, {
-        reference: reference.trim(),
-        supplier_id: supplierId || null,
-        notes: notes.trim() || null,
-      });
-      toast.success("Shipment updated");
-      onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
-      <div className="w-full max-w-md rounded-3xl p-6 space-y-5" style={CARD_L2}>
-        <p className="text-[16px] font-bold text-foreground">Edit Shipment</p>
-
-        <GlassInput label="REFERENCE *" value={reference} onChange={(e) => setReference((e.target as HTMLInputElement).value)} />
-        <GlassSelect label="VENDOR" value={supplierId} onChange={setSupplierId}>
-          <option value="">No vendor</option>
-          {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </GlassSelect>
-        <GlassInput label="NOTES" value={notes} onChange={(e) => setNotes((e.target as HTMLInputElement).value)} placeholder="Optional" />
-
-        <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
-          <button
-            onClick={save}
-            disabled={saving || !reference.trim()}
-            className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Save Changes"}
+            {saving
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <><span>Create & Add Products</span><ChevronRight className="h-4 w-4" /></>}
           </button>
         </div>
       </div>

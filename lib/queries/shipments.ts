@@ -12,6 +12,8 @@ export interface ShipmentRow {
   reference: string;
   supplier_id: string | null;
   status: ShipmentStatus;
+  supplier_po_number: string | null;
+  expected_arrival_date: string | null;
   rate_idr_to_mvr: number | null;
   rate_usd_to_mvr: number | null;
   rate_idr_to_usd: number | null;
@@ -39,6 +41,7 @@ export interface ShipmentLineRow {
   shipment_id: string;
   sku_id: string;
   qty_cartons: number;
+  qty_cartons_actual: number | null;
   cbm_per_carton: number;
   fob_per_carton: number;
   fob_currency: FobCurrency;
@@ -51,12 +54,16 @@ export interface ShipmentLineRow {
   landed_per_pack_mvr: number | null;
   landed_per_piece_mvr: number | null;
   landed_per_unit_mvr: number | null;
+  estimated_landed_per_piece_mvr: number | null;
+  grn_variance_pct: number | null;
 }
 
 export interface ShipmentInput {
   reference: string;
   supplier_id?: string | null;
   status?: ShipmentStatus;
+  supplier_po_number?: string | null;
+  expected_arrival_date?: string | null;
   rate_idr_to_mvr?: number | null;
   rate_usd_to_mvr?: number | null;
   rate_idr_to_usd?: number | null;
@@ -79,10 +86,12 @@ export interface ShipmentLineInput {
   shipment_id: string;
   sku_id: string;
   qty_cartons: number;
+  qty_cartons_actual?: number | null;
   cbm_per_carton: number;
   fob_per_carton: number;
   fob_currency: FobCurrency;
   destination_godown_id: string;
+  estimated_landed_per_piece_mvr?: number | null;
 }
 
 // ── Reads ────────────────────────────────────────────────────────────────
