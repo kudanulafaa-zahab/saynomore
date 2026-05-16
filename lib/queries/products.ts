@@ -203,6 +203,7 @@ export interface CreateSkuInput {
   carton_height_cm: number;
   carton_weight_kg?: number | null;
   target_margin_pct?: number | null;
+  fixed_selling_price_mvr?: number | null;
 }
 export async function createSku(input: CreateSkuInput) {
   const { data, error } = await supabase
