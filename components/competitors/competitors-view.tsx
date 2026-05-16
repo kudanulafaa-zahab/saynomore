@@ -59,10 +59,12 @@ export function CompetitorsView() {
   const [deletePriceDialog, setDeletePriceDialog] = useState<CompetitorPriceRow | null>(null);
 
   // Simulator
-  const [simSku, setSimSku]     = useState<SkuFullRow | null>(null);
-  const [simPrice, setSimPrice] = useState(0); // per PACK price
-  const [simMode, setSimMode]   = useState<"pack" | "piece" | "carton">("pack");
-  const [saving, setSaving]     = useState(false);
+  const [simSku, setSimSku]       = useState<SkuFullRow | null>(null);
+  const [simPrice, setSimPrice]   = useState(0); // per PACK price
+  const [simMode, setSimMode]     = useState<"pack" | "piece" | "carton">("pack");
+  const [simEditing, setSimEditing] = useState(false); // tapped the big price to type directly
+  const [simTyped, setSimTyped]   = useState("");      // raw string while typing
+  const [saving, setSaving]       = useState(false);
 
   async function load() {
     setLoading(true);
@@ -352,7 +354,37 @@ export function CompetitorsView() {
                   className="text-[24px] font-light text-foreground/60 hover:text-foreground transition w-10 text-center"
                 >−</button>
                 <div className="text-center flex-1">
-                  <span className="text-[36px] font-light tracking-tight text-foreground">{fmt2(simDisplayPrice)}</span>
+                  {simEditing ? (
+                    <input
+                      autoFocus
+                      type="number"
+                      inputMode="decimal"
+                      value={simTyped}
+                      onChange={(e) => setSimTyped(e.target.value)}
+                      onBlur={() => {
+                        const v = parseFloat(simTyped);
+                        if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
+                        setSimEditing(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const v = parseFloat(simTyped);
+                          if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
+                          setSimEditing(false);
+                        }
+                        if (e.key === "Escape") setSimEditing(false);
+                      }}
+                      className="text-[36px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => { setSimTyped(fmt2(simDisplayPrice)); setSimEditing(true); }}
+                      className="text-[36px] font-light tracking-tight text-foreground hover:opacity-70 transition"
+                      title="Tap to type a price directly"
+                    >
+                      {fmt2(simDisplayPrice)}
+                    </button>
+                  )}
                   <span className="text-[14px] text-foreground/40 ml-2">MVR</span>
                 </div>
                 <button
@@ -363,9 +395,9 @@ export function CompetitorsView() {
               <input
                 type="range"
                 min={simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack}
-                max={simMode === "carton" ? landedPerCarton * 10 : simMode === "piece" ? landedPerPiece * 10 : landedPerPack * 10}
-                step={simMode === "carton" ? 5 : 0.5}
-                value={simDisplayPrice}
+                max={simMode === "carton" ? landedPerCarton / 0.05 : simMode === "piece" ? landedPerPiece / 0.05 : landedPerPack / 0.05}
+                step={simMode === "carton" ? 5 : 0.1}
+                value={Math.min(simDisplayPrice, simMode === "carton" ? landedPerCarton / 0.05 : simMode === "piece" ? landedPerPiece / 0.05 : landedPerPack / 0.05)}
                 onChange={(e) => setSimDisplayPrice(Number(e.target.value))}
                 className="w-full mt-3 accent-white"
               />
