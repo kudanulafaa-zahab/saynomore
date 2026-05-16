@@ -192,15 +192,20 @@ function SkuPanel({
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Per Piece",  value: fmtPrice(sku.selling_price_per_piece_mvr) },
-                  { label: "Per Pack",   value: fmtPrice(sku.selling_price_per_pack_mvr) },
-                  { label: "Per Carton", value: fmtPrice(sku.selling_price_per_carton_mvr) },
+                  { label: "Per Piece",  value: fmtPrice(sku.selling_price_per_piece_mvr), override: false },
+                  { label: "Per Pack",   value: fmtPrice(sku.selling_price_per_pack_mvr),   override: sku.fixed_price_per_pack_mvr != null },
+                  { label: "Per Carton", value: fmtPrice(sku.selling_price_per_carton_mvr), override: sku.fixed_price_per_carton_mvr != null },
                 ].map((c) => (
                   <div key={c.label} className="rounded-xl p-3 text-center"
-                    style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)",
-                             border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+                    style={{ background: c.override
+                      ? "color-mix(in srgb, var(--snm-brand) 8%, transparent)"
+                      : "color-mix(in srgb, var(--snm-success) 8%, transparent)",
+                      border: `1px solid ${c.override
+                        ? "color-mix(in srgb, var(--snm-brand) 20%, transparent)"
+                        : "color-mix(in srgb, var(--snm-success) 20%, transparent)"}` }}>
                     <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
                     <p className="text-[13px] font-semibold text-foreground">MVR {c.value}</p>
+                    {c.override && <p className="text-[8px] font-bold mt-0.5" style={{ color: "var(--snm-brand)" }}>VOL. PRICE</p>}
                   </div>
                 ))}
               </div>
@@ -889,9 +894,11 @@ function NewSkuWizard({
   const [wgtKg, setWgtKg] = useState("");
   const [code,       setCode]       = useState("");
   const [barcode,    setBarcode]    = useState("");
-  const [marginPct,  setMarginPct]  = useState("");
-  const [fixedPrice, setFixedPrice] = useState("");
-  const [saving,     setSaving]     = useState(false);
+  const [marginPct,       setMarginPct]       = useState("");
+  const [fixedPrice,      setFixedPrice]      = useState("");
+  const [fixedPackPrice,  setFixedPackPrice]  = useState("");
+  const [fixedCartonPrice,setFixedCartonPrice]= useState("");
+  const [saving,          setSaving]          = useState(false);
   const [showOptional, setShowOptional] = useState(false);
 
   // ── Local items created during this session (so combos show them instantly)
@@ -950,7 +957,7 @@ function NewSkuWizard({
     setVariantAttrs({});
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
-    setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice("");
+    setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice("");
     setShowOptional(false);
     setLocalBrands([]); setLocalModels([]);
   }
@@ -1016,6 +1023,8 @@ function NewSkuWizard({
         carton_weight_kg: wgtKg ? parseFloat(wgtKg) : null,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         fixed_selling_price_mvr: fixedPrice ? parseFloat(fixedPrice) : null,
+        fixed_price_per_pack_mvr: fixedPackPrice ? parseFloat(fixedPackPrice) : null,
+        fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
       });
 
       toast.success("SKU created");
@@ -1295,6 +1304,39 @@ function NewSkuWizard({
                     : `${marginPct}% margin — price updates automatically with each shipment`}
                 </p>
               )}
+
+              {/* Volume-break pricing */}
+              <div style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 14, marginTop: 4 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Volume-Break Prices</p>
+                <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10 }}>
+                  Optional — set a lower price for pack or carton buyers (discount for buying more).
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px]">Pack price (MVR)</Label>
+                    <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                      value={fixedPackPrice}
+                      onChange={(e) => setFixedPackPrice(e.target.value)}
+                      placeholder="e.g. 88.00"
+                      style={{ ...inp, width: "100%" }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px]">Carton price (MVR)</Label>
+                    <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                      value={fixedCartonPrice}
+                      onChange={(e) => setFixedCartonPrice(e.target.value)}
+                      placeholder="e.g. 320.00"
+                      style={{ ...inp, width: "100%" }} />
+                  </div>
+                </div>
+                {(fixedPackPrice || fixedCartonPrice) && (
+                  <p style={{ fontSize: 11, color: "var(--snm-success)", marginTop: 8 }}>
+                    Volume-break active —{fixedPackPrice ? ` pack: MVR ${fixedPackPrice}` : ""}
+                    {fixedPackPrice && fixedCartonPrice ? " ·" : ""}
+                    {fixedCartonPrice ? ` carton: MVR ${fixedCartonPrice}` : ""}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Optional details */}

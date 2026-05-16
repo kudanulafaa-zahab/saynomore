@@ -326,6 +326,8 @@ export function EditSkuDialog({
   const [kg, setKg] = useState("");
   const [marginPct, setMarginPct] = useState("");
   const [fixedPrice, setFixedPrice] = useState("");
+  const [fixedPackPrice, setFixedPackPrice] = useState("");
+  const [fixedCartonPrice, setFixedCartonPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -340,6 +342,8 @@ export function EditSkuDialog({
       setKg(sku.carton_weight_kg?.toString() ?? "");
       setMarginPct(sku.target_margin_pct?.toString() ?? "");
       setFixedPrice(sku.fixed_selling_price_mvr?.toString() ?? "");
+      setFixedPackPrice(sku.fixed_price_per_pack_mvr?.toString() ?? "");
+      setFixedCartonPrice(sku.fixed_price_per_carton_mvr?.toString() ?? "");
     }
   }, [open, sku]);
 
@@ -398,6 +402,8 @@ export function EditSkuDialog({
         carton_weight_kg: kg ? parseFloat(kg) : null,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         fixed_selling_price_mvr: fixedPrice ? parseFloat(fixedPrice) : null,
+        fixed_price_per_pack_mvr: fixedPackPrice ? parseFloat(fixedPackPrice) : null,
+        fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
       });
       toast.success("Saved");
       onOpenChange(false);
@@ -629,6 +635,62 @@ export function EditSkuDialog({
               <p className="text-[11px]" style={{ color: "var(--snm-warning)" }}>
                 No stock received yet — margin preview available after first GRN. You can set pricing now.
               </p>
+            )}
+          </div>
+
+          {/* ── Volume-break pricing ── */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Volume-Break Pricing</p>
+              <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                Optional — set a lower price for pack or carton buyers. Overrides the base price above for that unit only.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Fixed pack price */}
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">Pack price (MVR)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number" inputMode="decimal" step="0.01" min="0.01"
+                    value={fixedPackPrice}
+                    onChange={(e) => setFixedPackPrice(e.target.value)}
+                    placeholder={marginPreview ? `Auto: ${marginPreview.pack.toFixed(2)}` : "e.g. 88.00"}
+                  />
+                </div>
+                {fixedPackPrice && landedPerPiece && pcs > 0 && (
+                  <p className="text-[10px]" style={{ color: "var(--snm-success)" }}>
+                    MVR {(parseFloat(fixedPackPrice) / pcs).toFixed(2)}/pc · {(((parseFloat(fixedPackPrice) - landedPerPiece * pcs) / parseFloat(fixedPackPrice)) * 100).toFixed(1)}% margin
+                  </p>
+                )}
+              </div>
+              {/* Fixed carton price */}
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">Carton price (MVR)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number" inputMode="decimal" step="0.01" min="0.01"
+                    value={fixedCartonPrice}
+                    onChange={(e) => setFixedCartonPrice(e.target.value)}
+                    placeholder={marginPreview && packs > 0 ? `Auto: ${(marginPreview.pack * packs).toFixed(2)}` : "e.g. 320.00"}
+                  />
+                </div>
+                {fixedCartonPrice && landedPerPiece && pcs > 0 && packs > 0 && (
+                  <p className="text-[10px]" style={{ color: "var(--snm-success)" }}>
+                    MVR {(parseFloat(fixedCartonPrice) / (pcs * packs)).toFixed(2)}/pc · {(((parseFloat(fixedCartonPrice) - landedPerPiece * pcs * packs) / parseFloat(fixedCartonPrice)) * 100).toFixed(1)}% margin
+                  </p>
+                )}
+              </div>
+            </div>
+            {(fixedPackPrice || fixedCartonPrice) && (
+              <div className="rounded-lg px-3 py-2" style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+                <p className="text-[11px]" style={{ color: "var(--snm-success)" }}>
+                  Volume-break active — customers buying
+                  {fixedPackPrice ? ` packs get MVR ${parseFloat(fixedPackPrice).toFixed(2)}/pack` : ""}
+                  {fixedPackPrice && fixedCartonPrice ? " ·" : ""}
+                  {fixedCartonPrice ? ` cartons get MVR ${parseFloat(fixedCartonPrice).toFixed(2)}/carton` : ""}
+                </p>
+              </div>
             )}
           </div>
         </div>

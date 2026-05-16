@@ -68,6 +68,8 @@ export interface SkuRow {
   // Pricing
   target_margin_pct: number | null;
   fixed_selling_price_mvr: number | null;
+  fixed_price_per_pack_mvr: number | null;
+  fixed_price_per_carton_mvr: number | null;
 }
 
 // Flat read from v_skus view — handy for the Master Data list
@@ -90,6 +92,9 @@ export interface SkuFullRow extends SkuRow {
   selling_price_per_pack_mvr: number | null;
   selling_price_per_carton_mvr: number | null;
   actual_margin_pct: number | null; // only set when fixed_selling_price_mvr is used
+  // Volume-break overrides (from v_skus, mirrors skus columns)
+  fixed_price_per_pack_mvr: number | null;
+  fixed_price_per_carton_mvr: number | null;
 }
 
 // ── Reads ────────────────────────────────────────────────────────────────
@@ -204,6 +209,8 @@ export interface CreateSkuInput {
   carton_weight_kg?: number | null;
   target_margin_pct?: number | null;
   fixed_selling_price_mvr?: number | null;
+  fixed_price_per_pack_mvr?: number | null;
+  fixed_price_per_carton_mvr?: number | null;
 }
 export async function createSku(input: CreateSkuInput) {
   const { data, error } = await supabase
@@ -287,6 +294,8 @@ export async function updateSku(
     carton_weight_kg: number | null;
     target_margin_pct: number | null;
     fixed_selling_price_mvr: number | null;
+    fixed_price_per_pack_mvr: number | null;
+    fixed_price_per_carton_mvr: number | null;
   }>,
 ) {
   const { error } = await supabase.from("skus").update(patch).eq("id", id);
