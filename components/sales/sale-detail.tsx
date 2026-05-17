@@ -1014,6 +1014,35 @@ function LineDialog({
         {/* Summary */}
         {sku && qtyPieces > 0 && (
           <div style={{ background: "var(--glass-bg-1)", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+            {/* Effective per-pack rate — shows the discount when selling by carton */}
+            {uom === "carton" && (() => {
+              const tierPx = tierPriceMap.get(skuId);
+              const cartonPrice = parseFloat(unitPrice);
+              const packPrice   = tierPx ? Number(tierPx.price_per_pack_mvr)
+                : sku.selling_price_per_pack_mvr ?? null;
+              const effectivePerPack = !isNaN(cartonPrice) && sku.packs_per_carton > 0
+                ? cartonPrice / sku.packs_per_carton : null;
+              const saving = packPrice && effectivePerPack
+                ? packPrice - effectivePerPack : null;
+              return effectivePerPack != null ? (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid var(--glass-border-lo)" }}>
+                  <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Effective / pack</span>
+                  <span style={{ fontSize: 12 }}>
+                    <span style={{ color: "var(--foreground)", fontWeight: 600 }}>MVR {effectivePerPack.toFixed(2)}</span>
+                    {saving != null && saving > 0.005 && (
+                      <span style={{ color: "var(--snm-success)", marginLeft: 6, fontSize: 11 }}>
+                        (MVR {saving.toFixed(2)} off vs pack rate)
+                      </span>
+                    )}
+                    {saving != null && saving <= 0.005 && (
+                      <span style={{ color: "var(--snm-warning)", marginLeft: 6, fontSize: 11 }}>
+                        ⚠ No carton discount set
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ) : null;
+            })()}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Pieces</span>
               <span style={{ color: "var(--foreground)", fontSize: 12 }}>{qtyPieces.toLocaleString()}</span>
@@ -1022,6 +1051,14 @@ function LineDialog({
               <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Line total</span>
               <span style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
+          </div>
+        )}
+
+        {/* No price list warning */}
+        {sku && autoSource === "sku_default" && (
+          <div style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+            <p style={{ color: "var(--snm-warning)", fontSize: 12, fontWeight: 600 }}>⚠ No price list set for {customerTier} tier</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>Using SKU default price. Carton and pack have no volume discount. Go to Settings → Price Lists to set tier prices.</p>
           </div>
         )}
 
