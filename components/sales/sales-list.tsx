@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
-  Banknote, Smartphone, ArrowRight, X,
+  Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown,
 } from "lucide-react";
 import {
   listOrders, createOrder, nextOrderNumber, createOrderLine, postSale,
@@ -153,6 +153,8 @@ export function SalesList() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [newDialog, setNewDialog] = useState(false);
+  const [groupBy, setGroupBy] = useState<"orders" | "customers">("orders");
+  const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
 
   async function load() {
     setLoading(true);
@@ -178,6 +180,24 @@ export function SalesList() {
     return r;
   }, [rows, q, statusFilter, customers]);
 
+  // Group by customer — collapse all orders per customer into one expandable row.
+  // Walk-in orders are grouped under a single "Walk-in" bucket.
+  const grouped = useMemo(() => {
+    const map = new Map<string, { customer: CustomerRow | null; orders: SalesOrderRow[] }>();
+    for (const o of filtered) {
+      const key = o.customer_id ?? "__walkin__";
+      const cust = o.customer_id ? customers.find((c) => c.id === o.customer_id) ?? null : null;
+      if (!map.has(key)) map.set(key, { customer: cust, orders: [] });
+      map.get(key)!.orders.push(o);
+    }
+    // Sort buckets: most recent order first
+    return Array.from(map.values()).sort((a, b) => {
+      const aDate = a.orders[0]?.created_at ?? "";
+      const bDate = b.orders[0]?.created_at ?? "";
+      return bDate.localeCompare(aDate);
+    });
+  }, [filtered, customers]);
+
   if (loading) return (
     <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
       <Loader2 className="h-6 w-6 animate-spin mb-3" /><p className="text-sm">Loading…</p>
@@ -200,6 +220,7 @@ export function SalesList() {
         </button>
       </div>
 
+      {/* Search + status filter + view toggle */}
       <div className="flex gap-2">
         <div className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
           <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
@@ -222,6 +243,22 @@ export function SalesList() {
         </select>
       </div>
 
+      {/* View toggle — Orders (flat) vs Customers (grouped) */}
+      <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", ...CARD }}>
+        {([
+          { val: "orders",    icon: List,  label: "Orders"    },
+          { val: "customers", icon: Users, label: "Customers" },
+        ] as const).map(({ val, icon: Icon, label }) => (
+          <button key={val} onClick={() => setGroupBy(val)}
+            className="flex-1 flex items-center justify-center gap-2 h-10 text-[13px] font-semibold transition"
+            style={groupBy === val
+              ? { background: "var(--foreground)", color: "var(--background)" }
+              : { background: "transparent", color: "var(--muted-foreground)" }}>
+            <Icon className="h-3.5 w-3.5" />{label}
+          </button>
+        ))}
+      </div>
+
       {filtered.length === 0 ? (
         <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
           <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
@@ -238,7 +275,9 @@ export function SalesList() {
             </button>
           )}
         </div>
-      ) : (
+
+      ) : groupBy === "orders" ? (
+        /* ── Flat order list ── */
         <div className="space-y-1.5">
           {filtered.map((o) => {
             const Icon = STATUS_ICON[o.status];
@@ -270,6 +309,95 @@ export function SalesList() {
                   <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
                 </div>
               </Link>
+            );
+          })}
+        </div>
+
+      ) : (
+        /* ── Grouped by customer ── */
+        <div className="space-y-2">
+          {grouped.map(({ customer, orders }) => {
+            const key = customer?.id ?? "__walkin__";
+            const isOpen = expandedCustomers.has(key);
+            const toggle = () => setExpandedCustomers((prev) => {
+              const next = new Set(prev);
+              isOpen ? next.delete(key) : next.add(key);
+              return next;
+            });
+            const name = customer?.name ?? "Walk-in";
+            const initials = name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+            // Count by status for the summary badge row
+            const active = orders.filter((o) => !["delivered", "cancelled"].includes(o.status));
+            const delivered = orders.filter((o) => o.status === "delivered").length;
+
+            return (
+              <div key={key} className="rounded-2xl overflow-hidden" style={CARD}>
+                {/* Customer header row — always visible */}
+                <button onClick={toggle} className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-80">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                    style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)" }}>
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-semibold text-foreground">{name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                        {orders.length} order{orders.length !== 1 ? "s" : ""}
+                      </span>
+                      {active.length > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>
+                          {active.length} active
+                        </span>
+                      )}
+                      {customer?.island && (
+                        <span className="text-[11px]" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>{customer.island}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 mr-1">
+                    <p className="text-[13px] font-semibold text-foreground">{delivered} done</p>
+                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>of {orders.length}</p>
+                  </div>
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform"
+                    style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                  />
+                </button>
+
+                {/* Expanded order rows */}
+                {isOpen && (
+                  <div style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+                    {orders.map((o) => {
+                      const Icon = STATUS_ICON[o.status];
+                      const colors = STATUS_COLOR[o.status];
+                      return (
+                        <Link key={o.id} href={`/sales/${o.id}`}
+                          className="flex items-center justify-between gap-3 px-4 py-3 transition-opacity hover:opacity-90"
+                          style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+                              <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-foreground">{o.order_number}</p>
+                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                                {new Date(o.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · via {o.channel}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2 py-1" style={{ background: colors.bg, color: colors.text }}>
+                              {STATUS_LABEL[o.status]}
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
