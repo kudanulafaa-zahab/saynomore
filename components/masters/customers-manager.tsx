@@ -267,20 +267,18 @@ export function CustomersManager() {
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
-                  {isAdmin && (
-                    <button
-                      onClick={async () => {
-                        if (!confirm(`Delete "${c.name}"?`)) return;
-                        try { await deleteCustomer(c.id); toast.success("Deleted"); load(); }
-                        catch (e) { toast.error((e as Error).message); }
-                      }}
-                      className="flex items-center justify-center rounded-xl transition text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)]"
-                      style={{ width: 44, height: 44 }}
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
+                      try { await deleteCustomer(c.id); toast.success("Deleted"); load(); }
+                      catch (e) { toast.error((e as Error).message); }
+                    }}
+                    className="flex items-center justify-center rounded-xl transition text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)]"
+                    style={{ width: 44, height: 44 }}
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
