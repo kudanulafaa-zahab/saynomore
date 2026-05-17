@@ -47,6 +47,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
+  // true when the price-list form is open → collapse Team Members + Godowns
+  const [pricingFocused, setPricingFocused] = useState(false);
 
   const [inviteSheet, setInviteSheet] = useState(false);
   const [editUserSheet, setEditUserSheet] = useState<UserProfileRow | null>(null);
@@ -112,21 +114,32 @@ export default function SettingsPage() {
 
       {/* ── Team Members ──────────────────────────────────────── */}
       <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--glass-1)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid var(--glass-border)",
+          transition: "all 0.35s cubic-bezier(0.4,0,0.2,1)",
+        }}
       >
-        {/* Section header */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Section header — always visible */}
+        <div className="flex items-center justify-between px-5 py-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
               <Users className="h-4 w-4" style={{ color: "var(--foreground)" }} />
             </div>
             <div>
               <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Team Members</h2>
-              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{users.length} {users.length === 1 ? "member" : "members"}</p>
+              {!pricingFocused && (
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{users.length} {users.length === 1 ? "member" : "members"}</p>
+              )}
+              {pricingFocused && (
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{users.length} {users.length === 1 ? "member" : "members"} · tap to expand</p>
+              )}
             </div>
           </div>
-          {isAdmin && (
+          {isAdmin && !pricingFocused && (
             <button
               onClick={() => setInviteSheet(true)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
@@ -138,117 +151,150 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Users list */}
-        {!isAdmin ? (
-          <div className="flex items-center gap-3 px-4 py-4 rounded-xl" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Only administrators can manage team members.</p>
-          </div>
-        ) : users.length === 0 ? (
-          <div className="text-center py-8">
-            <Users className="h-8 w-8 mx-auto mb-3" style={{ color: "var(--muted-foreground)", opacity: 0.4 }} />
-            <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No team members yet</p>
-            <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Add your first team member above</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {users.map((u) => {
-              const isMe = u.id === myId;
-              const Icon = ROLE_ICON[u.role];
-              return (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between px-4 py-3 rounded-xl"
-                  style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
-                >
-                  {/* Avatar + info */}
-                  <div className="flex items-center gap-3 min-w-0">
+        {/* Users list — collapses when pricingFocused */}
+        <div
+          style={{
+            maxHeight: pricingFocused ? 0 : "600px",
+            overflow: "hidden",
+            transition: "max-height 0.35s cubic-bezier(0.4,0,0.2,1)",
+          }}
+        >
+          <div className="px-5 pb-5">
+            {!isAdmin ? (
+              <div className="flex items-center gap-3 px-4 py-4 rounded-xl" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+                <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Only administrators can manage team members.</p>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-8 w-8 mx-auto mb-3" style={{ color: "var(--muted-foreground)", opacity: 0.4 }} />
+                <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No team members yet</p>
+                <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Add your first team member above</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {users.map((u) => {
+                  const isMe = u.id === myId;
+                  const Icon = ROLE_ICON[u.role];
+                  return (
                     <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
-                      style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--foreground)" }}
+                      key={u.id}
+                      className="flex items-center justify-between px-4 py-3 rounded-xl"
+                      style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
                     >
-                      {(u.full_name ?? u.email ?? "?")[0].toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
-                          {u.full_name ?? "—"}
-                        </p>
-                        {isMe && (
-                          <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
-                            style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--muted-foreground)" }}>
-                            You
+                      {/* Avatar + info */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
+                          style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--foreground)" }}
+                        >
+                          {(u.full_name ?? u.email ?? "?")[0].toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
+                              {u.full_name ?? "—"}
+                            </p>
+                            {isMe && (
+                              <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
+                                style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--muted-foreground)" }}>
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{u.email ?? "—"}</p>
+                        </div>
+                      </div>
+
+                      {/* Role + actions */}
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                          style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                          <Icon className="h-3 w-3 shrink-0" style={{ color: ROLE_COLOR[u.role] }} />
+                          <span className="text-[11px] font-semibold hidden sm:block" style={{ color: "var(--foreground)" }}>
+                            {ROLE_LABEL[u.role]}
                           </span>
+                        </div>
+                        {!isMe && (
+                          <>
+                            <button
+                              onClick={() => setEditUserSheet(u)}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
+                              style={{ color: "var(--muted-foreground)" }}
+                              aria-label="Edit user"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteUserTarget(u)}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                              style={{ color: "var(--muted-foreground)" }}
+                              onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
+                              onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
+                              aria-label="Remove user"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
                         )}
                       </div>
-                      <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{u.email ?? "—"}</p>
                     </div>
-                  </div>
-
-                  {/* Role + actions */}
-                  <div className="flex items-center gap-2 shrink-0 ml-3">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                      style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
-                      <Icon className="h-3 w-3 shrink-0" style={{ color: ROLE_COLOR[u.role] }} />
-                      <span className="text-[11px] font-semibold hidden sm:block" style={{ color: "var(--foreground)" }}>
-                        {ROLE_LABEL[u.role]}
-                      </span>
-                    </div>
-                    {!isMe && (
-                      <>
-                        <button
-                          onClick={() => setEditUserSheet(u)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
-                          style={{ color: "var(--muted-foreground)" }}
-                          aria-label="Edit user"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteUserTarget(u)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                          style={{ color: "var(--muted-foreground)" }}
-                          onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
-                          onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
-                          aria-label="Remove user"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </section>
 
       {/* ── Godowns ───────────────────────────────────────────── */}
       <section
-        className="rounded-2xl p-5"
-        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--glass-1)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid var(--glass-border)",
+          transition: "all 0.35s cubic-bezier(0.4,0,0.2,1)",
+        }}
       >
-        <div className="flex items-center justify-between mb-4">
+        {/* Section header — always visible */}
+        <div className="flex items-center justify-between px-5 py-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
               <Warehouse className="h-4 w-4" style={{ color: "var(--foreground)" }} />
             </div>
             <div>
               <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Godowns</h2>
-              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{godowns.length} {godowns.length === 1 ? "warehouse" : "warehouses"}</p>
+              {!pricingFocused && (
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{godowns.length} {godowns.length === 1 ? "warehouse" : "warehouses"}</p>
+              )}
+              {pricingFocused && (
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{godowns.length} {godowns.length === 1 ? "warehouse" : "warehouses"} · tap to expand</p>
+              )}
             </div>
           </div>
-          <button
-            onClick={() => setGodownSheet({ open: true })}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
-            style={{ background: "var(--foreground)", color: "var(--background)", minHeight: "36px" }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New
-          </button>
+          {!pricingFocused && (
+            <button
+              onClick={() => setGodownSheet({ open: true })}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
+              style={{ background: "var(--foreground)", color: "var(--background)", minHeight: "36px" }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New
+            </button>
+          )}
         </div>
 
+        {/* Godowns content — collapses when pricingFocused */}
+        <div
+          style={{
+            maxHeight: pricingFocused ? 0 : "600px",
+            overflow: "hidden",
+            transition: "max-height 0.35s cubic-bezier(0.4,0,0.2,1)",
+          }}
+        >
+          <div className="px-5 pb-5">
         {godowns.length === 0 ? (
           <div className="text-center py-8">
             <Warehouse className="h-8 w-8 mx-auto mb-3" style={{ color: "var(--muted-foreground)", opacity: 0.4 }} />
@@ -318,6 +364,8 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+          </div>
+        </div>
       </section>
 
       {/* ── Price Lists ──────────────────────────────────────── */}
@@ -326,6 +374,7 @@ export default function SettingsPage() {
           priceLists={priceLists}
           skus={skus}
           onChanged={load}
+          onFocusChange={setPricingFocused}
         />
       )}
 
@@ -596,16 +645,52 @@ const TIERS: { value: PriceTier; label: string; color: string }[] = [
   { value: "promo",     label: "Promo",     color: "var(--snm-success)" },
 ];
 
-function PriceListsSection({ priceLists, skus, onChanged }: {
+function PriceListsSection({ priceLists, skus, onChanged, onFocusChange }: {
   priceLists: PriceListRow[];
   skus: SkuFullRow[];
   onChanged: () => void;
+  onFocusChange: (focused: boolean) => void;
 }) {
   const [openList, setOpenList]       = useState<PriceListRow | null>(null);
   const [newListTier, setNewListTier] = useState<PriceTier | null>(null);
   const [deleting, setDeleting]       = useState<string | null>(null);
   // createdList: price list created inline during the new-list flow
   const [createdList, setCreatedList] = useState<PriceListRow | null>(null);
+
+  // Notify parent whenever a price-list form opens or closes
+  const openForm = React.useCallback((tier: PriceTier) => {
+    setNewListTier(tier);
+    onFocusChange(true);
+  }, [onFocusChange]);
+
+  const closeNewForm = React.useCallback(() => {
+    setNewListTier(null);
+    setCreatedList(null);
+    onFocusChange(false);
+  }, [onFocusChange]);
+
+  const doneNewForm = React.useCallback(() => {
+    setNewListTier(null);
+    setCreatedList(null);
+    onFocusChange(false);
+    onChanged();
+  }, [onFocusChange, onChanged]);
+
+  const openEdit = React.useCallback((pl: PriceListRow) => {
+    setOpenList(pl);
+    onFocusChange(true);
+  }, [onFocusChange]);
+
+  const closeEdit = React.useCallback(() => {
+    setOpenList(null);
+    onFocusChange(false);
+  }, [onFocusChange]);
+
+  const doneEdit = React.useCallback(() => {
+    setOpenList(null);
+    onFocusChange(false);
+    onChanged();
+  }, [onFocusChange, onChanged]);
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete price list "${name}"? All prices in it will be lost.`)) return;
@@ -663,7 +748,7 @@ function PriceListsSection({ priceLists, skus, onChanged }: {
                   </span>
                 </div>
                 <button
-                  onClick={() => setNewListTier(tier)}
+                  onClick={() => openForm(tier)}
                   className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80 active:scale-95"
                   style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
                 >
@@ -686,7 +771,7 @@ function PriceListsSection({ priceLists, skus, onChanged }: {
                     >
                       <button
                         className="flex items-center gap-3 min-w-0 flex-1 text-left"
-                        onClick={() => setOpenList(pl)}
+                        onClick={() => openEdit(pl)}
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>{pl.name}</p>
@@ -723,8 +808,8 @@ function PriceListsSection({ priceLists, skus, onChanged }: {
           skus={skus}
           createdList={createdList}
           onListCreated={setCreatedList}
-          onClose={() => { setNewListTier(null); setCreatedList(null); }}
-          onDone={() => { setNewListTier(null); setCreatedList(null); onChanged(); }}
+          onClose={closeNewForm}
+          onDone={doneNewForm}
         />
       )}
 
@@ -733,8 +818,8 @@ function PriceListsSection({ priceLists, skus, onChanged }: {
         <PriceListItemsSheet
           priceList={openList}
           skus={skus}
-          onClose={() => setOpenList(null)}
-          onDone={() => { setOpenList(null); onChanged(); }}
+          onClose={closeEdit}
+          onDone={doneEdit}
         />
       )}
     </section>
