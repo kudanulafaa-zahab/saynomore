@@ -925,37 +925,69 @@ function LineDialog({
           ) : null}
         </div>
 
-        {/* Qty / UoM / Price */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
-          <div>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Sell by *</p>
-            <select value={uom} onChange={(e) => setUom(e.target.value as SaleUom)} style={inputStyle}>
-              <option value="carton">Carton</option>
-              <option value="pack">Pack</option>
-              <option value="piece">Piece</option>
-            </select>
+        {/* UOM selector — 3 big tap targets, carton first */}
+        {skuId && sku && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Selling unit *</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {([
+                { value: "carton" as SaleUom, label: "Carton", sub: `${sku.pcs_per_pack * sku.packs_per_carton} pcs` },
+                { value: "pack"   as SaleUom, label: "Pack",   sub: `${sku.pcs_per_pack} pcs` },
+                { value: "piece"  as SaleUom, label: "Piece",  sub: "1 pc" },
+              ] as { value: SaleUom; label: string; sub: string }[]).map((opt) => {
+                const active = uom === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setUom(opt.value)}
+                    style={{
+                      background: active ? "var(--foreground)" : "var(--glass-bg-1)",
+                      color: active ? "var(--background)" : "var(--muted-foreground)",
+                      border: active ? "none" : "1px solid var(--glass-border-lo)",
+                      borderRadius: 12, padding: "12px 8px", cursor: "pointer",
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{opt.label}</span>
+                    <span style={{ fontSize: 10, opacity: active ? 0.7 : 0.6 }}>{opt.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+        )}
+
+        {/* Qty + Price — side by side */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
           <div>
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Qty *</p>
-            <input type="number" inputMode={uom === "piece" ? "numeric" : "decimal"} step={uom === "piece" ? "1" : "0.5"} min="1" value={qty} onChange={(e) => setQty(e.target.value)} style={inputStyle} />
+            <input
+              autoFocus={!!skuId}
+              type="number" inputMode={uom === "piece" ? "numeric" : "decimal"}
+              step={uom === "piece" ? "1" : "0.5"} min="1"
+              value={qty} onChange={(e) => setQty(e.target.value)}
+              style={{ ...inputStyle, fontSize: 22, fontWeight: 600, textAlign: "center" }}
+            />
           </div>
           <div>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Price (MVR) *</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>
+              Price / {uom} (MVR) *
+            </p>
             {!priceOverride && autoPrice != null ? (
               <div
-                style={{ ...inputStyle, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                style={{ ...inputStyle, display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", cursor: "pointer", gap: 2 }}
                 onClick={() => setPriceOverride(true)}
               >
-                <span style={{ color: "var(--foreground)", fontWeight: 600, fontSize: 14 }}>{autoPrice.toFixed(2)}</span>
+                <span style={{ color: "var(--foreground)", fontWeight: 700, fontSize: 18 }}>{autoPrice.toFixed(2)}</span>
                 <span style={{
                   background: autoSource === "price_list"
                     ? "color-mix(in srgb, var(--snm-brand) 18%, transparent)"
                     : "color-mix(in srgb, var(--snm-success) 18%, transparent)",
                   color: autoSource === "price_list" ? "var(--snm-brand)" : "var(--snm-success)",
-                  fontSize: 9, fontWeight: 700,
-                  letterSpacing: "0.08em", padding: "2px 5px", borderRadius: 4,
+                  fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", padding: "2px 5px", borderRadius: 4,
                 }}>
-                  {autoSource === "price_list" ? customerTier.toUpperCase() : "DEFAULT"}
+                  {autoSource === "price_list" ? customerTier.toUpperCase() : "DEFAULT"} · tap to edit
                 </span>
               </div>
             ) : (
@@ -965,13 +997,13 @@ function LineDialog({
                   type="number" inputMode="decimal" step="0.01" min="0"
                   value={unitPrice}
                   onChange={(e) => setUnitPrice(e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, fontSize: 20, fontWeight: 600 }}
                 />
                 {autoPrice != null && (
                   <button
                     type="button"
                     onClick={() => { setUnitPrice(autoPrice.toFixed(2)); setPriceOverride(false); }}
-                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--snm-success)", fontSize: 10, cursor: "pointer", fontWeight: 600 }}
+                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--snm-success)", fontSize: 10, cursor: "pointer", fontWeight: 700 }}
                   >Reset</button>
                 )}
               </div>
