@@ -82,6 +82,32 @@ interface DraftLine {
   line_total_mvr: number;
 }
 
+// ── UOM intelligence ──────────────────────────────────────────────────────────
+// Derives a human label for what a "pack" actually is for this SKU.
+// The SaleUom value stays "pack" in the DB — only the display word changes.
+
+function packLabel(sku: SkuFullRow): string {
+  const fmt = String(sku.attributes?.format ?? "").toLowerCase();
+  if (fmt === "bottle")  return "Bottle";
+  if (fmt === "pouch")   return "Pouch";
+  if (fmt === "sachet")  return "Sachet";
+  if (fmt === "jar")     return "Jar";
+  if (fmt === "can")     return "Can";
+  if (fmt === "tube")    return "Tube";
+  if (fmt === "box")     return "Box";
+  // Fall back to unit_uom hint
+  if (sku.unit_uom === "ml") return "Bottle";
+  if (sku.unit_uom === "g")  return "Pouch";
+  return "Pack";
+}
+
+// Default UOM for a SKU: liquids/powder sell by carton (master carton),
+// diapers/unit goods sell by pack (single retail pack).
+function defaultUom(sku: SkuFullRow): SaleUom {
+  if (sku.unit_uom === "ml" || sku.unit_uom === "g") return "carton";
+  return "pack";
+}
+
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
 function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
@@ -333,13 +359,23 @@ function NewSaleSheet({
     return p != null ? p.toFixed(2) : "";
   }
 
-  // Auto-fill price when SKU or UoM changes — always reset manual flag
+  // When a new SKU is selected: set smart default UOM, then auto-fill price
+  useEffect(() => {
+    if (!selectedSku) return;
+    const smartUom = defaultUom(selectedSku);
+    setLineUom(smartUom);
+    setLinePrice(autoPrice(selectedSku, smartUom));
+    setPriceManuallyEdited(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSkuId]);
+
+  // When UOM changes (user picks a different one): re-fill price
   useEffect(() => {
     if (!selectedSku) return;
     setLinePrice(autoPrice(selectedSku, lineUom));
     setPriceManuallyEdited(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSkuId, lineUom]);
+  }, [lineUom]);
 
   function handlePriceChange(raw: string) {
     if (raw === "") {
@@ -593,7 +629,12 @@ function NewSaleSheet({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {filteredSkus.map((s) => {
                     const stock = godownId ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0 : null;
-                    const pricePerPack = s.selling_price_per_pack_mvr;
+                    const pl = packLabel(s);
+                    // Show price per default UOM on the card
+                    const cardUom = defaultUom(s);
+                    const cardPrice = cardUom === "carton" ? s.selling_price_per_carton_mvr : s.selling_price_per_pack_mvr;
+                    const cardUomLabel = cardUom === "carton" ? "carton" : pl.toLowerCase();
+                    const hasPrice = cardPrice != null;
                     return (
                       <button key={s.id} onClick={() => setSelectedSkuId(s.id)}
                         className="rounded-xl p-4 text-left transition active:scale-[0.98]"
@@ -609,10 +650,10 @@ function NewSaleSheet({
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-[20px] font-semibold text-foreground">
-                            {pricePerPack != null ? pricePerPack.toFixed(2) : "—"}
+                          <span className="text-[20px] font-semibold" style={{ color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                            {hasPrice ? cardPrice!.toFixed(2) : "No GRN"}
                           </span>
-                          <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR / pack</span>
+                          {hasPrice && <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
                         </div>
                       </button>
                     );
@@ -641,7 +682,7 @@ function NewSaleSheet({
                   const costForUom = lineUom === "piece" ? landed
                     : lineUom === "pack" ? landed * selectedSku.pcs_per_pack
                     : landed * selectedSku.pcs_per_pack * selectedSku.packs_per_carton;
-                  const uomLabel = lineUom === "piece" ? "pc" : lineUom === "pack" ? "pack" : "carton";
+                  const uomLabel = lineUom === "piece" ? "pc" : lineUom === "pack" ? packLabel(selectedSku).toLowerCase() : "carton";
                   const priceVal = parseFloat(linePrice);
                   const margin = (!isNaN(priceVal) && priceVal > 0 && costForUom > 0)
                     ? ((priceVal - costForUom) / priceVal) * 100
@@ -673,32 +714,52 @@ function NewSaleSheet({
                   );
                 })()}
 
-                <div className="grid grid-cols-3 gap-2">
-                  <GlassSelect label="Sell by" value={lineUom} onChange={(v) => setLineUom(v as SaleUom)}>
-                    <option value="carton">Carton</option>
-                    <option value="pack">Pack</option>
-                    <option value="piece">Piece</option>
-                  </GlassSelect>
-                  <GlassInput label="Qty" type="number" inputMode="decimal" min="1" value={lineQty} onChange={(e) => setLineQty((e.target as HTMLInputElement).value)} placeholder="0" autoFocus />
-                  <div className="space-y-1.5">
-                    <p className="text-[11px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
-                      Price (MVR)
-                      {linePrice && !priceManuallyEdited
-                        ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
-                        : linePrice && priceManuallyEdited
-                          ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>MANUAL</span>
-                          : null}
-                    </p>
-                    <input type="number" inputMode="decimal" step="0.01" min="0" value={linePrice}
-                      onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
-                      className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none"
-                      style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+                {/* No-GRN warning — shown when there's no landed cost yet */}
+                {selectedSku.landed_per_piece_mvr == null && (
+                  <div className="rounded-xl px-3 py-2.5 flex items-center gap-3"
+                    style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
+                    <span className="text-base">⚠️</span>
+                    <div>
+                      <p className="text-[12px] font-semibold" style={{ color: "var(--snm-warning)" }}>No confirmed shipment yet</p>
+                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Confirm a GRN for this product first — selling price will auto-fill from landed cost.</p>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {(() => {
+                  const pl = packLabel(selectedSku);
+                  const uomLabel = lineUom === "carton" ? "Carton" : lineUom === "piece" ? "Piece" : pl;
+                  const hasNoPrice = !linePrice && selectedSku.landed_per_piece_mvr != null;
+                  return (
+                    <div className="grid grid-cols-3 gap-2">
+                      <GlassSelect label={`Sell by · ${lineUom === "pack" ? pl : lineUom === "carton" ? "Carton" : "Piece"}`} value={lineUom} onChange={(v) => setLineUom(v as SaleUom)}>
+                        <option value="carton">Carton ({selectedSku.packs_per_carton} {pl}s)</option>
+                        <option value="pack">{pl}</option>
+                        <option value="piece">Piece ({selectedSku.pcs_per_pack}/{pl})</option>
+                      </GlassSelect>
+                      <GlassInput label={`Qty · ${uomLabel}s`} type="number" inputMode="decimal" min="1" value={lineQty} onChange={(e) => setLineQty((e.target as HTMLInputElement).value)} placeholder="0" autoFocus />
+                      <div className="space-y-1.5">
+                        <p className="text-[11px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+                          MVR / {uomLabel}
+                          {linePrice && !priceManuallyEdited
+                            ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                            : linePrice && priceManuallyEdited
+                              ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>MANUAL</span>
+                              : null}
+                        </p>
+                        <input type="number" inputMode="decimal" step="0.01" min="0" value={linePrice}
+                          onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
+                          placeholder={hasNoPrice ? "Enter price" : "0.00"}
+                          className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none"
+                          style={{ ...CARD, border: hasNoPrice ? "1px solid color-mix(in srgb, var(--snm-warning) 40%, transparent)" : "1px solid var(--glass-border-lo)" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {lineQtyPieces > 0 && (
                   <div className="flex justify-between text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                    <span>= {lineQtyPieces.toLocaleString()} pieces</span>
+                    <span>= {lineQtyPieces.toLocaleString()} pcs total</span>
                     <span className="text-foreground font-semibold text-[14px]">MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
@@ -717,11 +778,14 @@ function NewSaleSheet({
                 <p className="px-4 pt-3 pb-2 text-[11px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
                   Order items · {draftLines.length}
                 </p>
-                {draftLines.map((l) => (
+                {draftLines.map((l) => {
+                  const pl = packLabel(l.sku);
+                  const uomWord = l.uom === "carton" ? "carton" : l.uom === "piece" ? "pc" : pl.toLowerCase();
+                  return (
                   <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {l.uom} · MVR {l.unit_price_mvr.toLocaleString()}/{l.uom}</p>
+                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-foreground font-semibold text-[13px]">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
@@ -730,7 +794,8 @@ function NewSaleSheet({
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 <div className="flex justify-between px-4 py-3 text-sm font-semibold" style={{ borderTop: "1px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                   <span style={{ color: "var(--muted-foreground)" }}>Total</span>
                   <span className="text-foreground">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
@@ -758,15 +823,19 @@ function NewSaleSheet({
 
             {/* Line items */}
             <div className="rounded-xl overflow-hidden" style={CARD}>
-              {draftLines.map((l, i) => (
-                <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 text-sm" style={{ borderBottom: i < draftLines.length - 1 ? "1px solid var(--glass-border-lo)" : "none" }}>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {l.uom} · MVR {l.unit_price_mvr.toLocaleString()}/{l.uom}</p>
+              {draftLines.map((l, i) => {
+                const pl = packLabel(l.sku);
+                const uomWord = l.uom === "carton" ? "carton" : l.uom === "piece" ? "pc" : pl.toLowerCase();
+                return (
+                  <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 text-sm" style={{ borderBottom: i < draftLines.length - 1 ? "1px solid var(--glass-border-lo)" : "none" }}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
+                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
+                    </div>
+                    <span className="text-foreground font-semibold text-[13px] shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   </div>
-                  <span className="text-foreground font-semibold text-[13px] shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Payment method */}
