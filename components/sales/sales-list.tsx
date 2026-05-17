@@ -10,7 +10,7 @@ import {
   Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown,
 } from "lucide-react";
 import {
-  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale,
+  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom,
 } from "@/lib/queries/sales";
 import {
@@ -284,31 +284,46 @@ export function SalesList() {
             const cust = customers.find((c) => c.id === o.customer_id);
             const colors = STATUS_COLOR[o.status];
             return (
-              <Link key={o.id} href={`/sales/${o.id}`}
-                className="flex items-center justify-between gap-3 p-4 rounded-2xl transition-opacity hover:opacity-90"
-                style={CARD}
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
-                    <Icon className="h-4 w-4" />
+              <div key={o.id} className="flex items-center gap-2">
+                <Link href={`/sales/${o.id}`}
+                  className="flex-1 flex items-center justify-between gap-3 p-4 rounded-2xl transition-opacity hover:opacity-90"
+                  style={CARD}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-semibold text-foreground">
+                        {cust?.name ?? "Walk-in"}
+                        <span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+                      </p>
+                      <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
+                        via {o.channel}{cust?.island && <> · {cust.island}</>}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-foreground">
-                      {cust?.name ?? "Walk-in"}
-                      <span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
-                    </p>
-                    <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
-                      via {o.channel}{cust?.island && <> · {cust.island}</>}
-                    </p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2.5 py-1" style={{ background: colors.bg, color: colors.text }}>
+                      {STATUS_LABEL[o.status]}
+                    </span>
+                    <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2.5 py-1" style={{ background: colors.bg, color: colors.text }}>
-                    {STATUS_LABEL[o.status]}
-                  </span>
-                  <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-                </div>
-              </Link>
+                </Link>
+                {/* Delete button — outside the link so tap doesn't navigate */}
+                <button
+                  onClick={async () => {
+                    if (!confirm(`Delete ${o.order_number}? This cannot be undone.`)) return;
+                    try { await deleteOrder(o.id); toast.success("Order deleted"); load(); }
+                    catch (e) { toast.error((e as Error).message); }
+                  }}
+                  className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition"
+                  style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "none" }}
+                  title="Delete order"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -372,27 +387,40 @@ export function SalesList() {
                       const Icon = STATUS_ICON[o.status];
                       const colors = STATUS_COLOR[o.status];
                       return (
-                        <Link key={o.id} href={`/sales/${o.id}`}
-                          className="flex items-center justify-between gap-3 px-4 py-3 transition-opacity hover:opacity-90"
+                        <div key={o.id} className="flex items-center"
                           style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
-                              <Icon className="h-3.5 w-3.5" />
+                          <Link href={`/sales/${o.id}`}
+                            className="flex-1 flex items-center justify-between gap-3 px-4 py-3 transition-opacity hover:opacity-90">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+                                <Icon className="h-3.5 w-3.5" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-semibold text-foreground">{o.order_number}</p>
+                                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                                  {new Date(o.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · via {o.channel}
+                                </p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-[13px] font-semibold text-foreground">{o.order_number}</p>
-                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                                {new Date(o.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · via {o.channel}
-                              </p>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2 py-1" style={{ background: colors.bg, color: colors.text }}>
+                                {STATUS_LABEL[o.status]}
+                              </span>
+                              <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2 py-1" style={{ background: colors.bg, color: colors.text }}>
-                              {STATUS_LABEL[o.status]}
-                            </span>
-                            <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
-                          </div>
-                        </Link>
+                          </Link>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete ${o.order_number}? This cannot be undone.`)) return;
+                              try { await deleteOrder(o.id); toast.success("Order deleted"); load(); }
+                              catch (e) { toast.error((e as Error).message); }
+                            }}
+                            className="h-9 w-9 mr-2 rounded-lg flex items-center justify-center shrink-0 transition"
+                            style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "none" }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

@@ -267,14 +267,12 @@ export function SaleDetail({ id }: { id: string }) {
             <span style={{ color: "var(--muted-foreground)", fontSize: 13, fontWeight: 400, marginLeft: 8 }}>{order.order_number}</span>
           </h1>
         </div>
-        {isAdmin && !isDelivered && (
-          <button
-            onClick={() => setPanel("delete")}
-            style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-          >
-            <Trash2 style={{ width: 16, height: 16 }} />
-          </button>
-        )}
+        <button
+          onClick={() => setPanel("delete")}
+          style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+        >
+          <Trash2 style={{ width: 16, height: 16 }} />
+        </button>
       </div>
 
       {/* ── Progress stepper ─────────────────────────────────────────────── */}
