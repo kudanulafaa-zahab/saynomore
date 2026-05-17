@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -226,6 +226,8 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [role, setRole]           = useState<string | null>(null);
   const [showMore, setShowMore]   = useState(false);
   const [costsOpen, setCostsOpen] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   type PriceChange = { skuPath: string; before: number; after: number; changePct: number };
   const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);
@@ -302,10 +304,17 @@ export function ShipmentDetail({ id }: { id: string }) {
 
   async function patch(field: string, value: number | string | boolean | null) {
     if (!shipment || locked) return;
+    setSaveState("saving");
     try {
       await updateShipment(shipment.id, { [field]: value } as Parameters<typeof updateShipment>[1]);
       setShipment((prev) => prev ? { ...prev, [field]: value } as ShipmentRow : prev);
-    } catch (e) { toast.error((e as Error).message); }
+      setSaveState("saved");
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSaveState("idle"), 2500);
+    } catch (e) {
+      setSaveState("idle");
+      toast.error((e as Error).message);
+    }
   }
 
   async function patchStatus(newStatus: ShipmentStatus) {
@@ -403,6 +412,19 @@ export function ShipmentDetail({ id }: { id: string }) {
           <h1 className="text-[17px] font-semibold text-foreground leading-tight truncate">{shipment.reference}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Auto-save indicator */}
+          {!locked && saveState === "saving" && (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-medium"
+              style={{ color: "var(--muted-foreground)" }}>
+              <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+            </span>
+          )}
+          {!locked && saveState === "saved" && (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold"
+              style={{ color: "var(--snm-success)" }}>
+              <CheckCircle2 className="h-3 w-3" /> Saved
+            </span>
+          )}
           {locked && (
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"
               style={{ background: "color-mix(in srgb, var(--snm-success) 12%, transparent)", color: "var(--snm-success)" }}>
