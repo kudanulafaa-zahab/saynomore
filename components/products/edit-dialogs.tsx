@@ -460,12 +460,12 @@ export function EditSkuDialog({
                     ))}
                   </div>
                   {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null && (
-                    <p className="text-[10px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
+                    <p className="text-[11px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
                       Actual margin on current cost: <strong style={{ color: "var(--snm-success)" }}>{sku.actual_margin_pct}%</strong>
                     </p>
                   )}
                   {sku.fixed_selling_price_mvr == null && sku.target_margin_pct != null && (
-                    <p className="text-[10px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
+                    <p className="text-[11px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
                       Target margin: {sku.target_margin_pct}% — price updates automatically with each shipment
                     </p>
                   )}
@@ -659,7 +659,7 @@ export function EditSkuDialog({
                   />
                 </div>
                 {fixedPackPrice && landedPerPiece && pcs > 0 && (
-                  <p className="text-[10px]" style={{ color: "var(--snm-success)" }}>
+                  <p className="text-[11px]" style={{ color: "var(--snm-success)" }}>
                     MVR {(parseFloat(fixedPackPrice) / pcs).toFixed(2)}/pc · {(((parseFloat(fixedPackPrice) - landedPerPiece * pcs) / parseFloat(fixedPackPrice)) * 100).toFixed(1)}% margin
                   </p>
                 )}
@@ -676,7 +676,7 @@ export function EditSkuDialog({
                   />
                 </div>
                 {fixedCartonPrice && landedPerPiece && pcs > 0 && packs > 0 && (
-                  <p className="text-[10px]" style={{ color: "var(--snm-success)" }}>
+                  <p className="text-[11px]" style={{ color: "var(--snm-success)" }}>
                     MVR {(parseFloat(fixedCartonPrice) / (pcs * packs)).toFixed(2)}/pc · {(((parseFloat(fixedCartonPrice) - landedPerPiece * pcs * packs) / parseFloat(fixedCartonPrice)) * 100).toFixed(1)}% margin
                   </p>
                 )}

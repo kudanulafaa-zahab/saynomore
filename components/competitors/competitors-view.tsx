@@ -320,7 +320,7 @@ export function CompetitorsView() {
                   ctn <span className="text-foreground font-semibold">MVR {fmt2(Number(simSku.selling_price_per_carton_mvr))}</span>
                 </p>
                 {simSku.target_margin_pct != null && (
-                  <p className="text-[10px]" style={{ color: "var(--snm-success)" }}>{simSku.target_margin_pct}% margin</p>
+                  <p className="text-[11px]" style={{ color: "var(--snm-success)" }}>{simSku.target_margin_pct}% margin</p>
                 )}
               </div>
             ) : (
@@ -460,7 +460,7 @@ export function CompetitorsView() {
                           <p className="text-[11px] font-semibold" style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)" }}>
                             {margin}%
                           </p>
-                          <p className="text-[10px]" style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)", opacity: isActive ? 1 : 0.6 }}>
+                          <p className="text-[11px]" style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)", opacity: isActive ? 1 : 0.6 }}>
                             ×{mult.toFixed(2)}
                           </p>
                         </div>
@@ -489,7 +489,7 @@ export function CompetitorsView() {
                     <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(value)}</p>
                     <p className="text-[11px] font-bold" style={{ color }}>{margin.toFixed(1)}% margin</p>
-                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : markup.toFixed(0)}% markup</p>
+                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : markup.toFixed(0)}% markup</p>
                   </div>
                 );
               })}

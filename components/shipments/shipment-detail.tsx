@@ -720,7 +720,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
                   {/* Ordered qty */}
                   <div className="px-4 pb-3">
-                    <p className="text-[10px] mb-1.5 font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                       Ordered
                     </p>
                     <div className="flex items-center gap-3">
@@ -742,7 +742,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   {/* Actual received qty — only when arrived or grn_confirmed */}
                   {(arrived || locked) && (
                     <div className="px-4 pb-4" style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 4 }}>
-                      <p className="text-[10px] mb-1.5 font-semibold uppercase tracking-wider"
+                      <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-wider"
                         style={{ color: isShort ? "var(--snm-warning)" : "var(--muted-foreground)" }}>
                         Actually Received {isShort ? "⚠ Short shipment" : ""}
                       </p>
@@ -870,7 +870,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   />
                 </Field>
               </div>
-              <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                 IDR → MVR (auto): {shipment.rate_idr_to_mvr != null ? shipment.rate_idr_to_mvr.toFixed(6) : "—"}
               </p>
             </div>
@@ -900,7 +900,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   { label: "Other",         field: "other_mvr"        },
                 ].map(({ label, field }) => (
                   <div key={field} className="space-y-1">
-                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <NumInput
                       value={(shipment as unknown as Record<string, number>)[field]}
                       disabled={locked}
@@ -996,7 +996,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             <div>
               <p className="text-[13px] font-semibold" style={{ color: "var(--snm-success)" }}>Stock Live</p>
               {shipment.grn_confirmed_at && (
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                   Confirmed {fmtDate(shipment.grn_confirmed_at)}
                 </p>
               )}
@@ -1023,7 +1023,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           <div className="flex items-center justify-between gap-3 h-14">
             {preview && preview.ratesSet ? (
               <div>
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Est. landed total</p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Est. landed total</p>
                 <p className="text-[17px] font-semibold text-foreground">MVR {fmt0(preview.grandTotal)}</p>
               </div>
             ) : (
@@ -1386,7 +1386,7 @@ function LineDialog({
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
                 </div>
               </div>
-              <p className="text-[10px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                 Price on this shipment&apos;s invoice — can differ from previous shipments.
               </p>
             </div>

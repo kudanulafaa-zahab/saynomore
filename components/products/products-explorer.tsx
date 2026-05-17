@@ -162,7 +162,7 @@ function SkuPanel({
               <div>
                 <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost</p>
                 <p className="text-[15px] font-bold text-foreground">MVR {Number(sku.landed_per_piece_mvr).toFixed(4)}</p>
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>per piece · from last shipment</p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>per piece · from last shipment</p>
               </div>
               {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null ? (
                 <div className="text-right">
@@ -184,7 +184,7 @@ function SkuPanel({
           {sku.selling_price_per_piece_mvr != null ? (
             <>
               <div className="flex items-center gap-1.5 mb-2">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
+                <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
                 {sku.fixed_selling_price_mvr != null
                   ? <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
                   : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
@@ -227,7 +227,7 @@ function SkuPanel({
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
-                  <p className="text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Margin %</p>
+                  <p className="text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Margin %</p>
                   <input
                     type="number" inputMode="decimal" step="0.5" min="1" max="99"
                     value={inlineMargin}
@@ -244,7 +244,7 @@ function SkuPanel({
                   />
                 </div>
                 <div>
-                  <p className="text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Fixed price / piece (MVR)</p>
+                  <p className="text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Fixed price / piece (MVR)</p>
                   <input
                     type="number" inputMode="decimal" step="0.01" min="0.01"
                     value={inlineFixed}
@@ -410,7 +410,7 @@ function SkuRow({
             <p className="text-[13px] font-semibold text-foreground">
               MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
             </p>
-            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>per ctn</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>per ctn</p>
           </>
         ) : (
           <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>no price</p>

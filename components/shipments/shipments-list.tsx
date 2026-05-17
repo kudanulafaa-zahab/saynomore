@@ -303,7 +303,7 @@ export function ShipmentsList() {
         <>
           <div className="flex items-center gap-3 py-2 mb-2">
             <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
-            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>Completed</span>
+            <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>Completed</span>
             <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
           </div>
           <div className="space-y-2">
@@ -556,7 +556,7 @@ function NewPoSheet({
             className="w-full h-12 rounded-xl px-4 text-sm text-foreground outline-none"
             style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}
           />
-          <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Auto-generated — edit if you have your own reference.</p>
+          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Auto-generated — edit if you have your own reference.</p>
         </div>
 
         {/* Supplier */}
