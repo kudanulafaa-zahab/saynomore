@@ -249,7 +249,7 @@ export function ShipmentsList() {
             <button
               key={key}
               onClick={() => setStatusFilter(key)}
-              className="shrink-0 h-9 px-3 rounded-full text-[11px] font-semibold transition active:scale-95 flex items-center gap-1.5"
+              className="shrink-0 h-11 px-3 rounded-full text-[12px] font-semibold transition active:scale-95 flex items-center gap-1.5"
               style={{
                 background: active ? "var(--foreground)" : "var(--glass-1)",
                 color:      active ? "var(--background)" : "var(--muted-foreground)",

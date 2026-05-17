@@ -67,12 +67,12 @@ export function BottomNav({ role }: { role: string }) {
                   >
                     <Icon className="h-[17px] w-[17px]" style={{ color: "#ffffff", strokeWidth: 2.2 }} />
                   </div>
-                  <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 9 }}>{item.label}</span>
+                  <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 11 }}>{item.label}</span>
                 </>
               ) : (
                 <>
                   <Icon className="h-[22px] w-[22px]" style={{ color: "var(--muted-foreground)", strokeWidth: 1.6 }} />
-                  <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 9 }}>{item.label}</span>
+                  <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{item.label}</span>
                 </>
               )}
             </Link>
@@ -92,12 +92,12 @@ export function BottomNav({ role }: { role: string }) {
                 >
                   <MoreHorizontal className="h-[17px] w-[17px]" style={{ color: "#ffffff", strokeWidth: 2.2 }} />
                 </div>
-                <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 9 }}>More</span>
+                <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 11 }}>More</span>
               </>
             ) : (
               <>
                 <MoreHorizontal className="h-[22px] w-[22px]" style={{ color: "var(--muted-foreground)", strokeWidth: 1.6 }} />
-                <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 9 }}>More</span>
+                <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>More</span>
               </>
             )}
           </button>
@@ -136,7 +136,7 @@ export function BottomNav({ role }: { role: string }) {
               <ThemeToggle />
               <button
                 onClick={() => setSheetOpen(false)}
-                className="h-7 w-7 rounded-full flex items-center justify-center transition active:scale-90"
+                className="h-9 w-9 rounded-full flex items-center justify-center transition active:scale-90"
                 style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
               >
                 <X className="h-3.5 w-3.5" />
@@ -156,7 +156,7 @@ export function BottomNav({ role }: { role: string }) {
                 <div key={section.label}>
                   <p
                     className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: "var(--muted-foreground)", opacity: 0.45 }}
+                    style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
                   >
                     {section.label}
                   </p>
@@ -199,7 +199,7 @@ export function BottomNav({ role }: { role: string }) {
               <div>
                 <p
                   className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: "var(--muted-foreground)", opacity: 0.45 }}
+                  style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
                 >
                   Account
                 </p>

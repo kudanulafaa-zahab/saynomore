@@ -78,13 +78,13 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
   const date = new Date(batch.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
   return (
     <div
-      className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+      className="flex items-center justify-between px-3 py-3 rounded-xl"
       style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
     >
       <div className="flex items-center gap-2 min-w-0">
         {idx === 0 && (
           <span
-            className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
+            className="text-[11px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
             style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--foreground)" }}
           >
             FIFO
@@ -111,7 +111,7 @@ function DirBadge({ alert }: { alert: SkuReorderAlert | null }) {
   const dirText = alert.dir != null ? `${alert.dir}d left` : "No sales data";
   return (
     <span
-      className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0"
+      className="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0"
       style={{
         background: `color-mix(in srgb, ${color} 15%, transparent)`,
         color,

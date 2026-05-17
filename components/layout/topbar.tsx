@@ -53,7 +53,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
         {/* Avatar + popover — CSS-driven focus-within */}
         <div className="relative group">
           <button
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-foreground transition-opacity hover:opacity-75 focus:outline-none"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold text-foreground transition-opacity hover:opacity-75 focus:outline-none"
             style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
           >
             {initials}

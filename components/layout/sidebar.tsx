@@ -18,15 +18,16 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}
-      className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all active:scale-[0.97]"
+      className="flex items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-all active:scale-[0.97]"
       style={{
+        minHeight: 44,
         background: active ? "var(--snm-brand-muted)" : "transparent",
         color:      active ? "var(--snm-brand)"       : "var(--muted-foreground)",
       }}
     >
       <Icon
-        className="h-[15px] w-[15px] shrink-0"
-        style={{ opacity: active ? 1 : 0.55 }}
+        className="h-[16px] w-[16px] shrink-0"
+        style={{ opacity: active ? 1 : 0.65 }}
       />
       {item.label}
     </Link>
@@ -73,8 +74,8 @@ export function Sidebar({ role }: { role: string }) {
           return (
             <div key={section.label}>
               <p
-                className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest"
-                style={{ color: "var(--muted-foreground)", opacity: 0.45 }}
+                className="px-3 mb-1 text-[11px] font-bold uppercase tracking-widest"
+                style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
               >
                 {section.label}
               </p>

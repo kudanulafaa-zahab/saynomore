@@ -411,9 +411,9 @@
 
   /* ── Typography ── */
   .label-caps {
-    font-size:      10px;
+    font-size:      11px;
     font-weight:    700;
-    letter-spacing: 0.10em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .label-md {
@@ -430,19 +430,19 @@
 
   /* ── Status pills ── */
   .pill-critical {
-    background: rgba(255, 59, 48, 0.12);
+    background: color-mix(in srgb, var(--snm-error) 12%, transparent);
     color:      var(--snm-error);
-    border:     1px solid rgba(255, 59, 48, 0.22);
+    border:     1px solid color-mix(in srgb, var(--snm-error) 22%, transparent);
   }
   .pill-success {
-    background: rgba(74, 222, 128, 0.12);
+    background: color-mix(in srgb, var(--snm-success) 12%, transparent);
     color:      var(--snm-success);
-    border:     1px solid rgba(74, 222, 128, 0.22);
+    border:     1px solid color-mix(in srgb, var(--snm-success) 22%, transparent);
   }
   .pill-warning {
-    background: rgba(251, 146, 60, 0.12);
+    background: color-mix(in srgb, var(--snm-warning) 12%, transparent);
     color:      var(--snm-warning);
-    border:     1px solid rgba(251, 146, 60, 0.22);
+    border:     1px solid color-mix(in srgb, var(--snm-warning) 22%, transparent);
   }
   .pill-neutral {
     background: var(--muted);
@@ -454,6 +454,47 @@
     color:      var(--snm-brand);
     border:     1px solid var(--snm-brand-border);
   }
+
+  /* ── Touch-safe interactive elements ── */
+  /* Minimum 44px hit target for all interactive controls (Apple HIG) */
+  .snm-btn {
+    min-height: 44px;
+    display:    inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .snm-btn:active { transform: scale(0.97); }
+  .snm-btn-primary {
+    background: var(--foreground);
+    color:      var(--background);
+  }
+  .snm-btn-ghost {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    color:      var(--muted-foreground);
+  }
+
+  /* ── Consistent form input height ── */
+  .snm-input {
+    height:     48px;
+    border-radius: 12px;
+    padding:    0 16px;
+    font-size:  14px;
+    width:      100%;
+    outline:    none;
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+    border:     1px solid var(--glass-border-lo);
+    color:      var(--foreground);
+    transition: border-color 0.15s;
+  }
+  .snm-input:focus { border-color: var(--foreground); }
+  .snm-input::placeholder { color: var(--muted-foreground); }
+  .snm-input:disabled { opacity: 0.45; cursor: not-allowed; }
 
   /* ── Text colour helpers ── */
   .snm-text-primary   { color: var(--foreground); }

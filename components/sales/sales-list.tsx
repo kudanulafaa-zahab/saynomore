@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
-  Banknote, Smartphone, ArrowRight,
+  Banknote, Smartphone, ArrowRight, X,
 } from "lucide-react";
 import {
   listOrders, createOrder, nextOrderNumber, createOrderLine, postSale,
@@ -179,6 +179,12 @@ export function SalesList() {
           <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+          {q && (
+            <button onClick={() => setQ("")} className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-opacity hover:opacity-70"
+              style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
           className="h-12 rounded-2xl px-4 text-sm text-foreground outline-none appearance-none"

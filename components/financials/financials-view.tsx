@@ -74,20 +74,20 @@ function CodView() {
     <div style={{ paddingBottom: 40 }}>
       {/* Date picker */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", flexShrink: 0 }}>Date</p>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>Date</p>
         <input
           type="date"
           value={date}
           max={today}
           onChange={(e) => setDate(e.target.value)}
-          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border-lo)", borderRadius: 10, padding: "8px 12px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer" }}
+          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer" }}
         />
       </div>
 
       {/* Summary strip */}
       {rows.length > 0 && (
         <div style={{ ...CARD, borderRadius: 16, padding: 20, marginBottom: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
             {[
               { label: "Expected",       value: `MVR ${fmt(totalExpected)}`,  color: "var(--foreground)" },
               { label: "Collected",      value: `MVR ${fmt(totalCollected)}`, color: Math.abs(totalVariance) < 0.01 ? "var(--snm-success)" : "var(--snm-error)" },
@@ -95,7 +95,7 @@ function CodView() {
               { label: "Pending Deposit",value: `MVR ${fmt(totalPending)}`,   color: totalPending > 0 ? "var(--snm-warning)" : "var(--snm-success)" },
             ].map((s) => (
               <div key={s.label}>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</p>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</p>
                 <p style={{ color: s.color, fontSize: 18, fontWeight: 700 }}>{s.value}</p>
               </div>
             ))}
@@ -132,7 +132,7 @@ function CodView() {
                 {/* Driver header */}
                 <button
                   onClick={() => toggleDriver(r.driver_id)}
-                  style={{ width: "100%", padding: "16px 20px", background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+                  style={{ width: "100%", minHeight: 64, padding: "14px 20px", background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `color-mix(in srgb, ${color} 14%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -173,7 +173,7 @@ function CodView() {
                       return (
                         <div
                           key={o.order_id}
-                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--glass-border-lo)" }}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--glass-border-lo)" }}
                         >
                           <div style={{ minWidth: 0 }}>
                             <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{o.customer_name}</p>
@@ -186,7 +186,7 @@ function CodView() {
                               <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>MVR {fmt(Number(o.collected_mvr))}</p>
                               {isDeposited
                                 ? <CheckCircle2 style={{ width: 14, height: 14, color: "var(--snm-success)" }} />
-                                : <span style={{ fontSize: 9, fontWeight: 700, color: "var(--snm-warning)", background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", padding: "2px 5px", borderRadius: 4 }}>NOT DEPOSITED</span>}
+                                : <span style={{ fontSize: 11, fontWeight: 700, color: "var(--snm-warning)", background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", padding: "2px 6px", borderRadius: 5 }}>NOT DEPOSITED</span>}
                             </div>
                             {Math.abs(variance) >= 0.01 && (
                               <p style={{ color: variance < 0 ? "var(--snm-error)" : "var(--snm-warning)", fontSize: 11 }}>

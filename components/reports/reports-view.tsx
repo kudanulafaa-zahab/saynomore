@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, TrendingUp, TrendingDown, Package,
-  Clock, BarChart3, Search, Megaphone,
+  Clock, BarChart3, Search, Megaphone, X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -147,11 +147,13 @@ export function ReportsView() {
             <button
               key={p.label}
               onClick={() => { const f = p.from(); const t = p.to(); setFrom(f); setTo(t); load(f, t); }}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                from === p.from() && to === p.to()
-                  ? "bg-foreground text-background border-foreground"
-                  : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-              }`}
+              className={`text-[12px] font-medium px-3 rounded-lg border transition active:scale-95`}
+              style={{
+                minHeight: 36,
+                background: from === p.from() && to === p.to() ? "var(--foreground)" : "transparent",
+                color: from === p.from() && to === p.to() ? "var(--background)" : "var(--muted-foreground)",
+                borderColor: from === p.from() && to === p.to() ? "var(--foreground)" : "var(--glass-border-lo)",
+              }}
             >
               {p.label}
             </button>
@@ -162,18 +164,25 @@ export function ReportsView() {
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="h-9 px-3 text-sm rounded-lg border border-border bg-background text-foreground"
+            className="h-11 px-3 text-sm rounded-xl border text-foreground"
+            style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
           />
-          <span className="text-muted-foreground text-sm">to</span>
+          <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>to</span>
           <input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="h-9 px-3 text-sm rounded-lg border border-border bg-background text-foreground"
+            className="h-11 px-3 text-sm rounded-xl border text-foreground"
+            style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
           />
-          <Button size="sm" onClick={() => load()} disabled={loading}>
+          <button
+            onClick={() => load()}
+            disabled={loading}
+            className="h-11 px-5 rounded-xl text-[13px] font-semibold transition active:scale-95 disabled:opacity-40"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -212,7 +221,7 @@ export function ReportsView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-secondary border border-border rounded-xl p-1 w-fit">
+      <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)" }}>
         {([
           { key: "bestsellers", label: "Best Sellers" },
           { key: "margins",     label: "Margins" },
@@ -221,11 +230,13 @@ export function ReportsView() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
-              tab === t.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className="px-4 rounded-lg text-[13px] font-medium transition active:scale-95"
+            style={{
+              minHeight: 40,
+              background: tab === t.key ? "var(--background)" : "transparent",
+              color: tab === t.key ? "var(--foreground)" : "var(--muted-foreground)",
+              boxShadow: tab === t.key ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+            }}
           >
             {t.label}
           </button>
@@ -234,13 +245,23 @@ export function ReportsView() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
+        <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by brand, model, variant…"
-          className="pl-9 h-11"
+          className="w-full h-11 pl-9 pr-10 rounded-xl text-sm text-foreground outline-none"
+          style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}
         />
+        {q && (
+          <button
+            onClick={() => setQ("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center transition-opacity hover:opacity-70"
+            style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       {loading ? (
