@@ -801,54 +801,80 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--background)" }}>
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
-        <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}>
-          <X className="h-4 w-4" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
-          <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>New Price List</h2>
-        </div>
-        {items.length > 0 && (
+    /* z-[200] — above topbar (z-40), sidebar, bottom nav, and any other overlay */
+    <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
+
+      {/* ── Fixed header: close + name + date + Done ── */}
+      <div
+        className="shrink-0 px-4 pt-4 pb-3 space-y-3"
+        style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "var(--background)" }}
+      >
+        {/* Row 1: back button + tier label + Done */}
+        <div className="flex items-center gap-3">
           <button
-            onClick={onDone}
-            className="px-4 py-2 rounded-full text-xs font-bold"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition"
+            style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}
           >
-            Done ({items.length})
+            <X className="h-4 w-4" />
           </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
+            <p className="text-[15px] font-semibold leading-tight" style={{ color: "var(--foreground)" }}>New Price List</p>
+          </div>
+          {items.length > 0 ? (
+            <button
+              onClick={onDone}
+              className="px-4 py-2 rounded-full text-xs font-bold active:scale-95 transition"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              Done ({items.length})
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-full text-xs font-medium"
+              style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+
+        {/* Row 2: name + date — always visible, never scrolls away */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>List name *</p>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={!!createdList}
+              placeholder="e.g. Retail Price List"
+              className={inputCls + (createdList ? " opacity-50 cursor-not-allowed" : "")}
+              style={{ height: 40, fontSize: 13 }}
+            />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Effective from *</p>
+            <input
+              type="date"
+              value={effectiveFrom}
+              onChange={(e) => setEffectiveFrom(e.target.value)}
+              disabled={!!createdList}
+              min={today}
+              className={inputCls + (createdList ? " opacity-50 cursor-not-allowed" : "")}
+              style={{ height: 40, fontSize: 13 }}
+            />
+          </div>
+        </div>
+        {createdList && (
+          <p className="text-[11px] font-medium" style={{ color: "var(--snm-success)" }}>✓ List created — keep adding SKU prices below</p>
         )}
       </div>
 
+      {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-        {/* List header — name + date, compact */}
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
-          <div className="grid grid-cols-2 gap-3">
-            <SheetInput label="List name" required>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={!!createdList}
-                className={inputCls + (createdList ? " opacity-50" : "")}
-              />
-            </SheetInput>
-            <SheetInput label="Effective from" required>
-              <input
-                type="date"
-                value={effectiveFrom}
-                onChange={(e) => setEffectiveFrom(e.target.value)}
-                disabled={!!createdList}
-                min={today}
-                className={inputCls + (createdList ? " opacity-50" : "")}
-              />
-            </SheetInput>
-          </div>
-          {createdList && (
-            <p className="text-xs" style={{ color: "var(--snm-success)" }}>✓ List created — add SKU prices below</p>
-          )}
-        </div>
 
         {/* Added SKUs so far */}
         {items.length > 0 && (
@@ -994,7 +1020,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--background)" }}>
+    <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
         <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}>
@@ -1125,7 +1151,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
 
       {/* Add SKU — full-screen overlay */}
       {addSheet && (
-        <div className="fixed inset-0 z-60 flex flex-col" style={{ background: "var(--background)" }}>
+        <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 210 }}>
           <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
             <button onClick={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); }} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}>
               <X className="h-4 w-4" />
