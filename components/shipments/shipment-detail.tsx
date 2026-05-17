@@ -112,26 +112,54 @@ function QtyStepper({
   disabled?: boolean;
   min?: number;
 }) {
+  const [draft, setDraft] = useState(String(value));
+
+  // Keep draft in sync when value changes externally (e.g. after save)
+  useEffect(() => { setDraft(String(value)); }, [value]);
+
+  function commit(raw: string) {
+    const n = parseInt(raw, 10);
+    if (!isNaN(n) && n >= min) {
+      onChange(n);
+      setDraft(String(n));
+    } else {
+      // revert to current value if invalid
+      setDraft(String(value));
+    }
+  }
+
   return (
     <div className="flex items-center gap-2">
       <button
-        onClick={() => onChange(Math.max(min, value - 1))}
+        onClick={() => { const v = Math.max(min, value - 1); onChange(v); setDraft(String(v)); }}
         disabled={disabled || value <= min}
-        className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition active:scale-95 disabled:opacity-30"
+        className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition active:scale-95 disabled:opacity-30"
         style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}
       >
         <Minus className="h-4 w-4" />
       </button>
-      <div
-        className="flex-1 h-10 rounded-xl flex items-center justify-center text-sm font-semibold text-foreground"
-        style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)", minWidth: 56 }}
-      >
-        {value}
-      </div>
-      <button
-        onClick={() => onChange(value + 1)}
+      <input
+        type="number"
+        inputMode="numeric"
+        value={draft}
         disabled={disabled}
-        className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition active:scale-95 disabled:opacity-30"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
+        onFocus={(e) => e.target.select()}
+        className="flex-1 h-11 rounded-xl text-center text-[15px] font-semibold text-foreground outline-none"
+        style={{
+          background: "var(--glass-bg-1)",
+          border: "1px solid var(--glass-border-lo)",
+          minWidth: 56,
+          // hide browser spin arrows — keyboard +/- buttons handle stepping
+          MozAppearance: "textfield",
+        } as React.CSSProperties}
+      />
+      <button
+        onClick={() => { const v = value + 1; onChange(v); setDraft(String(v)); }}
+        disabled={disabled}
+        className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition active:scale-95 disabled:opacity-30"
         style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}
       >
         <Plus className="h-4 w-4" />

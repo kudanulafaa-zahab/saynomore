@@ -466,4 +466,11 @@
   .custom-scroll::-webkit-scrollbar-thumb  { background: var(--outline-variant); border-radius: 10px; }
   .no-scrollbar::-webkit-scrollbar         { display: none; }
   .no-scrollbar                            { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ── Hide browser spin arrows on number inputs app-wide ──
+     Steppers are handled by our own +/- buttons; native arrows look broken
+     on mobile and clash with the glass design system.                     */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
 }
