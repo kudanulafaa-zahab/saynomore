@@ -916,6 +916,9 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
 }
 
 /* ── Add SKU to price list sheet ───────────────────────────────────────── */
+// UX: primary input is margin % → all prices auto-calculate.
+// User can also type carton or pack price directly → margin + other prices update.
+// Nobody thinks in price-per-piece in FMCG distribution.
 function AddSkuToListSheet({ priceListId, skus, search, onSearch, selectedSkuId, onSelectSku, onClose, onSaved }: {
   priceListId:   string;
   skus:          SkuFullRow[];
@@ -927,43 +930,86 @@ function AddSkuToListSheet({ priceListId, skus, search, onSearch, selectedSkuId,
   onSaved:       () => void;
 }) {
   const sku = skus.find((s) => s.id === selectedSkuId) ?? null;
+  const landed = sku?.landed_per_piece_mvr ? Number(sku.landed_per_piece_mvr) : null;
+  const pcsPerPack    = sku?.pcs_per_pack    ?? 1;
+  const packsPerCarton = sku?.packs_per_carton ?? 1;
+  const pcsPerCarton  = pcsPerPack * packsPerCarton;
 
-  const [piece,   setPiece]   = useState("");
-  const [pack,    setPack]    = useState("");
-  const [carton,  setCarton]  = useState("");
-  const [saving,  setSaving]  = useState(false);
+  // Which field the user last typed in — drives the calculation direction
+  type LastEdited = "margin" | "carton" | "pack" | "piece";
+  const [lastEdited, setLastEdited] = useState<LastEdited>("margin");
 
-  // Auto-fill pack/carton when piece changes
+  const [marginStr, setMarginStr] = useState("");
+  const [cartonStr, setCartonStr] = useState("");
+  const [packStr,   setPackStr]   = useState("");
+  const [pieceStr,  setPieceStr]  = useState("");
+  const [saving,    setSaving]    = useState(false);
+
+  // Reset all fields when SKU changes
   useEffect(() => {
-    if (!sku || !piece) return;
-    const p = parseFloat(piece);
-    if (isNaN(p) || p <= 0) return;
-    setPack((p * sku.pcs_per_pack).toFixed(2));
-    setCarton((p * sku.pcs_per_pack * sku.packs_per_carton).toFixed(2));
-  }, [piece, sku]);
+    setMarginStr(""); setCartonStr(""); setPackStr(""); setPieceStr("");
+    setLastEdited("margin");
+  }, [selectedSkuId]);
 
-  // Auto-fill margin hint
-  const marginHint = useMemo(() => {
-    if (!sku || !piece) return null;
-    const p = parseFloat(piece);
-    const landed = sku.landed_per_piece_mvr ?? null;
-    if (!landed || isNaN(p) || p <= 0) return null;
-    return ((p - landed) / p * 100).toFixed(1);
-  }, [piece, sku]);
+  // Core calculation: whenever any field changes, derive all others
+  useEffect(() => {
+    if (!sku) return;
+
+    if (lastEdited === "margin") {
+      const m = parseFloat(marginStr);
+      if (!landed || isNaN(m) || m >= 100) return;
+      const piece  = landed / (1 - m / 100);
+      setPieceStr(piece.toFixed(2));
+      setPackStr((piece * pcsPerPack).toFixed(2));
+      setCartonStr((piece * pcsPerCarton).toFixed(2));
+
+    } else if (lastEdited === "carton") {
+      const c = parseFloat(cartonStr);
+      if (isNaN(c) || c <= 0 || pcsPerCarton <= 0) return;
+      const piece = c / pcsPerCarton;
+      setPieceStr(piece.toFixed(2));
+      setPackStr((piece * pcsPerPack).toFixed(2));
+      if (landed && piece > 0) setMarginStr(((1 - landed / piece) * 100).toFixed(1));
+
+    } else if (lastEdited === "pack") {
+      const pk = parseFloat(packStr);
+      if (isNaN(pk) || pk <= 0 || pcsPerPack <= 0) return;
+      const piece = pk / pcsPerPack;
+      setPieceStr(piece.toFixed(2));
+      setCartonStr((piece * pcsPerCarton).toFixed(2));
+      if (landed && piece > 0) setMarginStr(((1 - landed / piece) * 100).toFixed(1));
+
+    } else if (lastEdited === "piece") {
+      const p = parseFloat(pieceStr);
+      if (isNaN(p) || p <= 0) return;
+      setPackStr((p * pcsPerPack).toFixed(2));
+      setCartonStr((p * pcsPerCarton).toFixed(2));
+      if (landed && p > 0) setMarginStr(((1 - landed / p) * 100).toFixed(1));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marginStr, cartonStr, packStr, pieceStr, lastEdited]);
+
+  const margin = parseFloat(marginStr);
+  const piece  = parseFloat(pieceStr);
+  const marginColor = isNaN(margin) ? "var(--muted-foreground)"
+    : margin >= 25 ? "var(--snm-success)"
+    : margin >= 15 ? "var(--snm-warning)"
+    : "var(--snm-error)";
+
+  const canSave = !!selectedSkuId && !isNaN(piece) && piece > 0
+    && !isNaN(parseFloat(packStr)) && !isNaN(parseFloat(cartonStr));
 
   async function save() {
-    if (!selectedSkuId || !piece || !pack || !carton) return;
-    const p = parseFloat(piece); const pk = parseFloat(pack); const c = parseFloat(carton);
-    if (isNaN(p) || isNaN(pk) || isNaN(c) || p <= 0) return;
+    if (!canSave) return;
     setSaving(true);
     try {
       await upsertPriceListItem({
-        price_list_id: priceListId,
-        sku_id: selectedSkuId,
-        price_per_piece_mvr:   p,
-        price_per_pack_mvr:    pk,
-        price_per_carton_mvr:  c,
-        margin_pct: marginHint != null ? parseFloat(marginHint) : null,
+        price_list_id:        priceListId,
+        sku_id:               selectedSkuId,
+        price_per_piece_mvr:  parseFloat(pieceStr),
+        price_per_pack_mvr:   parseFloat(packStr),
+        price_per_carton_mvr: parseFloat(cartonStr),
+        margin_pct:           isNaN(margin) ? null : parseFloat(margin.toFixed(1)),
       });
       toast.success("Price saved");
       onSaved();
@@ -971,11 +1017,10 @@ function AddSkuToListSheet({ priceListId, skus, search, onSearch, selectedSkuId,
     finally { setSaving(false); }
   }
 
-  const canSave = !!selectedSkuId && !!piece && !!pack && !!carton && parseFloat(piece) > 0;
-
   return (
-    <Sheet title="Add SKU Price" onClose={onClose}>
+    <Sheet title="Set Price" onClose={onClose}>
       {!selectedSkuId ? (
+        /* ── Step 1: pick a SKU ── */
         <>
           <input
             autoFocus
@@ -984,7 +1029,7 @@ function AddSkuToListSheet({ priceListId, skus, search, onSearch, selectedSkuId,
             placeholder="Search brand, SKU, code…"
             className={inputCls + " mb-3"}
           />
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 260, overflowY: "auto" }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 300, overflowY: "auto" }}>
             {skus.length === 0 ? (
               <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
                 {search ? "No matches" : "All active SKUs already have prices in this list"}
@@ -1010,44 +1055,104 @@ function AddSkuToListSheet({ priceListId, skus, search, onSearch, selectedSkuId,
           </div>
         </>
       ) : sku ? (
+        /* ── Step 2: set pricing ── */
         <>
-          <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+          {/* SKU identity card */}
+          <div className="rounded-xl px-4 py-3 mb-5 flex items-center justify-between" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
             <div>
               <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>
               {sku.variant_display && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
-              {sku.landed_per_piece_mvr != null && (
+              <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+                {pcsPerPack} pcs/pack · {packsPerCarton} packs/carton · {pcsPerCarton} pcs/carton
+              </p>
+              {landed != null && (
                 <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                  Landed: MVR {Number(sku.landed_per_piece_mvr).toFixed(3)}/pc
+                  Landed cost: <span style={{ color: "var(--foreground)", fontWeight: 600 }}>MVR {landed.toFixed(3)}/pc</span>
                 </p>
               )}
             </div>
-            <button onClick={() => onSelectSku("")} className="text-xs" style={{ color: "var(--muted-foreground)" }}>Change</button>
+            <button onClick={() => onSelectSku("")} className="text-xs px-2 py-1 rounded-lg" style={{ color: "var(--muted-foreground)", background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>Change</button>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 mb-2">
-            <SheetInput label="Price per piece (MVR) *">
+          {/* ── PRIMARY: Margin % ── */}
+          <div className="mb-4">
+            <p className="text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
+              Target Gross Margin %
+            </p>
+            <div className="relative">
               <input
                 autoFocus
-                type="number" inputMode="decimal" step="0.01" min="0.01"
-                value={piece} onChange={(e) => setPiece(e.target.value)}
-                placeholder="e.g. 12.50"
+                type="number" inputMode="decimal" step="0.5" min="0" max="99"
+                value={marginStr}
+                onChange={(e) => { setLastEdited("margin"); setMarginStr(e.target.value); }}
+                placeholder={landed ? "e.g. 30" : "No landed cost yet"}
+                disabled={!landed}
+                className={inputCls}
+                style={{ paddingRight: 36 }}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>%</span>
+            </div>
+            {!landed && (
+              <p className="text-xs mt-1" style={{ color: "var(--snm-warning)" }}>No landed cost recorded — enter prices manually below.</p>
+            )}
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
+            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>or enter a price directly</p>
+            <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
+          </div>
+
+          {/* ── SECONDARY: Carton / Pack / Piece ── */}
+          <div className="grid grid-cols-1 gap-3 mb-4">
+            <SheetInput label={`Price per carton (${pcsPerCarton} pcs)`}>
+              <input
+                type="number" inputMode="decimal" step="1" min="0.01"
+                value={cartonStr}
+                onChange={(e) => { setLastEdited("carton"); setCartonStr(e.target.value); }}
+                placeholder="e.g. 350"
                 className={inputCls}
               />
-              {marginHint != null && (
-                <p className="text-xs mt-1" style={{ color: parseFloat(marginHint) >= 20 ? "var(--snm-success)" : parseFloat(marginHint) >= 10 ? "var(--snm-warning)" : "var(--snm-error)" }}>
-                  Gross margin: {marginHint}%
-                </p>
-              )}
             </SheetInput>
             <div className="grid grid-cols-2 gap-3">
-              <SheetInput label="Price per pack">
-                <input type="number" inputMode="decimal" step="0.01" value={pack} onChange={(e) => setPack(e.target.value)} className={inputCls} />
+              <SheetInput label={`Per pack (${pcsPerPack} pcs)`}>
+                <input
+                  type="number" inputMode="decimal" step="0.5" min="0.01"
+                  value={packStr}
+                  onChange={(e) => { setLastEdited("pack"); setPackStr(e.target.value); }}
+                  placeholder="e.g. 88"
+                  className={inputCls}
+                />
               </SheetInput>
-              <SheetInput label="Price per carton">
-                <input type="number" inputMode="decimal" step="0.01" value={carton} onChange={(e) => setCarton(e.target.value)} className={inputCls} />
+              <SheetInput label="Per piece">
+                <input
+                  type="number" inputMode="decimal" step="0.01" min="0.01"
+                  value={pieceStr}
+                  onChange={(e) => { setLastEdited("piece"); setPieceStr(e.target.value); }}
+                  placeholder="e.g. 2"
+                  className={inputCls}
+                />
               </SheetInput>
             </div>
           </div>
+
+          {/* ── Live margin summary ── */}
+          {!isNaN(margin) && marginStr !== "" && (
+            <div className="rounded-xl px-4 py-3 mb-4" style={{ background: `color-mix(in srgb, ${marginColor} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${marginColor} 25%, transparent)` }}>
+              <p className="text-sm font-bold" style={{ color: marginColor }}>
+                {margin.toFixed(1)}% gross margin
+              </p>
+              {landed && !isNaN(piece) && piece > 0 && (
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  MVR {landed.toFixed(3)} cost → MVR {piece.toFixed(2)}/pc selling
+                </p>
+              )}
+              {margin < 15 && (
+                <p className="text-xs mt-1 font-semibold" style={{ color: "var(--snm-error)" }}>⚠ Below minimum recommended margin (15%)</p>
+              )}
+            </div>
+          )}
 
           <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !canSave} label={saving ? "Saving…" : "SAVE PRICE"} />
         </>
