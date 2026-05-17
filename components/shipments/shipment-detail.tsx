@@ -771,18 +771,35 @@ export function ShipmentDetail({ id }: { id: string }) {
 
                   {/* Locked: landed cost breakdown */}
                   {locked && (
-                    <div className="grid grid-cols-4 gap-2 px-4 pb-4" style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 0 }}>
-                      {[
-                        { label: "Total",   value: l.landed_total_mvr     != null ? `MVR ${fmt0(Number(l.landed_total_mvr))}` : "—" },
-                        { label: "/carton", value: l.landed_per_carton_mvr != null ? fmt0(Number(l.landed_per_carton_mvr)) : "—" },
-                        { label: "/pack",   value: l.landed_per_pack_mvr   != null ? fmt2(Number(l.landed_per_pack_mvr)) : "—" },
-                        { label: "/piece",  value: l.landed_per_piece_mvr  != null ? fmt2(Number(l.landed_per_piece_mvr)) : "—", highlight: true },
-                      ].map((c) => (
-                        <div key={c.label} className="rounded-lg p-2 text-center" style={{ background: "var(--glass-bg-2)" }}>
-                          <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                          <p className="text-[12px] font-semibold" style={{ color: c.highlight ? "var(--snm-success)" : "var(--foreground)" }}>{c.value}</p>
+                    <div className="px-4 pb-4 space-y-2" style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 0 }}>
+                      {/* Row 1: Total + per-carton (bulk view) */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { label: "Total landed",  value: l.landed_total_mvr     != null ? `MVR ${fmt0(Number(l.landed_total_mvr))}` : "—" },
+                          { label: "Per carton",    value: l.landed_per_carton_mvr != null ? `MVR ${fmt0(Number(l.landed_per_carton_mvr))}` : "—" },
+                        ].map((c) => (
+                          <div key={c.label} className="rounded-lg p-2 text-center" style={{ background: "var(--glass-bg-2)" }}>
+                            <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                            <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Row 2: Per pack (trade unit, primary) + /pc (secondary, for competitor comparison) */}
+                      <div className="rounded-lg p-3 flex items-center justify-between"
+                        style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack — trade price</p>
+                          <p className="text-[18px] font-bold" style={{ color: "var(--snm-success)" }}>
+                            {l.landed_per_pack_mvr != null ? `MVR ${fmt2(Number(l.landed_per_pack_mvr))}` : "—"}
+                          </p>
                         </div>
-                      ))}
+                        <div className="text-right">
+                          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · for comparison</p>
+                          <p className="text-[13px] font-semibold text-foreground">
+                            {l.landed_per_piece_mvr != null ? `MVR ${fmt2(Number(l.landed_per_piece_mvr))}` : "—"}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

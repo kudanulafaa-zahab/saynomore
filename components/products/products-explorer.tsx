@@ -60,6 +60,16 @@ function fmtPrice(n: number | null | undefined) {
   return Number(n).toFixed(2);
 }
 
+/** Returns the trade unit label for a SKU — what the seller actually trades in. */
+function packLabel(sku: SkuFullRow): string {
+  const fmt = (sku.attributes as Record<string, string> | undefined)?.format;
+  if (fmt) return fmt; // "Bottle", "Pouch", "Sachet", etc.
+  const uom = sku.unit_uom;
+  if (uom === "ml") return "Bottle";
+  if (uom === "g")  return "Pouch";
+  return "Pack";
+}
+
 /* ── SKU detail panel ── */
 
 function SkuPanel({
@@ -160,9 +170,18 @@ function SkuPanel({
             <div className="rounded-xl px-4 py-3 mb-2 flex items-center justify-between"
               style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
               <div>
-                <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost</p>
-                <p className="text-[15px] font-bold text-foreground">MVR {Number(sku.landed_per_piece_mvr).toFixed(4)}</p>
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>per piece · from last shipment</p>
+                <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost · from last shipment</p>
+                {/* Primary: per trade unit (Pack/Bottle) */}
+                <p className="text-[17px] font-bold text-foreground">
+                  MVR {(Number(sku.landed_per_piece_mvr) * (sku.pcs_per_pack ?? 1)).toFixed(2)}
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  per {packLabel(sku).toLowerCase()}
+                </p>
+                {/* Secondary: per piece for competitor comparison */}
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
+                  MVR {Number(sku.landed_per_piece_mvr).toFixed(4)} /pc
+                </p>
               </div>
               {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null ? (
                 <div className="text-right">
@@ -190,24 +209,50 @@ function SkuPanel({
                   : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                 }
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { label: "Per Piece",  value: fmtPrice(sku.selling_price_per_piece_mvr), override: false },
-                  { label: "Per Pack",   value: fmtPrice(sku.selling_price_per_pack_mvr),   override: sku.fixed_price_per_pack_mvr != null },
-                  { label: "Per Carton", value: fmtPrice(sku.selling_price_per_carton_mvr), override: sku.fixed_price_per_carton_mvr != null },
-                ].map((c) => (
-                  <div key={c.label} className="rounded-xl p-3 text-center"
-                    style={{ background: c.override
+              <div className="space-y-2">
+                {/* Primary: per pack/bottle (trade unit) — large */}
+                <div className="rounded-xl px-4 py-3 flex items-center justify-between"
+                  style={{
+                    background: sku.fixed_price_per_pack_mvr != null
                       ? "color-mix(in srgb, var(--snm-brand) 8%, transparent)"
                       : "color-mix(in srgb, var(--snm-success) 8%, transparent)",
-                      border: `1px solid ${c.override
-                        ? "color-mix(in srgb, var(--snm-brand) 20%, transparent)"
-                        : "color-mix(in srgb, var(--snm-success) 20%, transparent)"}` }}>
-                    <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                    <p className="text-[13px] font-semibold text-foreground">MVR {c.value}</p>
-                    {c.override && <p className="text-[8px] font-bold mt-0.5" style={{ color: "var(--snm-brand)" }}>VOL. PRICE</p>}
+                    border: `1px solid ${sku.fixed_price_per_pack_mvr != null
+                      ? "color-mix(in srgb, var(--snm-brand) 20%, transparent)"
+                      : "color-mix(in srgb, var(--snm-success) 20%, transparent)"}`,
+                  }}>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      Per {packLabel(sku).toLowerCase()} · selling price
+                    </p>
+                    <p className="text-[20px] font-bold" style={{ color: sku.fixed_price_per_pack_mvr != null ? "var(--snm-brand)" : "var(--snm-success)" }}>
+                      MVR {fmtPrice(sku.selling_price_per_pack_mvr)}
+                    </p>
                   </div>
-                ))}
+                  <div className="text-right">
+                    <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · comparison</p>
+                    <p className="text-[13px] font-semibold text-foreground">
+                      MVR {fmtPrice(sku.selling_price_per_piece_mvr)}
+                    </p>
+                  </div>
+                </div>
+                {/* Secondary: per carton (bulk) */}
+                <div className="rounded-xl px-4 py-2 flex items-center justify-between"
+                  style={{
+                    background: sku.fixed_price_per_carton_mvr != null
+                      ? "color-mix(in srgb, var(--snm-brand) 6%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                    border: `1px solid ${sku.fixed_price_per_carton_mvr != null
+                      ? "color-mix(in srgb, var(--snm-brand) 15%, transparent)"
+                      : "var(--glass-border-lo)"}`,
+                  }}>
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                  <p className="text-[13px] font-semibold text-foreground">
+                    MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
+                    {sku.fixed_price_per_carton_mvr != null && (
+                      <span className="ml-1.5 text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>VOL.</span>
+                    )}
+                  </p>
+                </div>
               </div>
             </>
           ) : (sku.target_margin_pct != null || sku.fixed_selling_price_mvr != null) ? (
