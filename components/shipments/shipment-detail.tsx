@@ -501,8 +501,10 @@ export function ShipmentDetail({ id }: { id: string }) {
 
         {/* Status stepper */}
         {!locked && (
-          <div>
-            <p className="label-caps text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>STATUS</p>
+          <div className="space-y-3">
+            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>STATUS</p>
+
+            {/* Read-only visual track */}
             <div className="flex items-center">
               {STEPS.map((step, i) => {
                 const done    = currentStepIdx > i;
@@ -510,13 +512,9 @@ export function ShipmentDetail({ id }: { id: string }) {
                 const isLast  = i === STEPS.length - 1;
                 return (
                   <div key={step.value} className="flex items-center" style={{ flex: isLast ? "none" : 1 }}>
-                    <button
-                      onClick={() => !locked && patchStatus(step.value)}
-                      disabled={locked}
-                      className="flex flex-col items-center gap-1.5 transition"
-                    >
+                    <div className="flex flex-col items-center gap-1.5">
                       <div
-                        className="h-6 w-6 rounded-full flex items-center justify-center transition"
+                        className="h-6 w-6 rounded-full flex items-center justify-center"
                         style={{
                           background: done || current ? "var(--foreground)" : "transparent",
                           border: done || current ? "none" : "2px solid var(--glass-border)",
@@ -533,14 +531,43 @@ export function ShipmentDetail({ id }: { id: string }) {
                         style={{ color: done || current ? "var(--foreground)" : "var(--muted-foreground)" }}>
                         {step.label}
                       </p>
-                    </button>
+                    </div>
                     {!isLast && (
-                      <div className="flex-1 h-px mx-1" style={{ background: done ? "var(--foreground)" : "var(--glass-border)" }} />
+                      <div className="flex-1 h-px mx-1 mb-4" style={{ background: done ? "var(--foreground)" : "var(--glass-border)" }} />
                     )}
                   </div>
                 );
               })}
             </div>
+
+            {/* Explicit advance + back buttons */}
+            {(() => {
+              const nextStep = STEPS[currentStepIdx + 1];
+              const prevStep = currentStepIdx > 0 ? STEPS[currentStepIdx - 1] : null;
+              return (
+                <div className="flex gap-2 pt-1">
+                  {prevStep && (
+                    <button
+                      onClick={() => patchStatus(prevStep.value)}
+                      className="flex items-center gap-1.5 h-11 px-4 rounded-xl text-[13px] font-medium transition active:scale-95"
+                      style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
+                    >
+                      ← {prevStep.label}
+                    </button>
+                  )}
+                  {nextStep && (
+                    <button
+                      onClick={() => patchStatus(nextStep.value)}
+                      className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-[13px] font-semibold transition active:scale-95"
+                      style={{ background: "var(--foreground)", color: "var(--background)" }}
+                    >
+                      <Truck className="h-4 w-4" />
+                      Mark as {nextStep.label} →
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
         {locked && (
