@@ -221,6 +221,47 @@ export default async function DashboardPage() {
 
       </div>
 
+      {/* ── Next Action strip (Frog: speed-to-decision) ──
+           One line. One button. The single most urgent thing right now.
+           Priority: overdue > awaiting dispatch > low stock > uncollected.
+           Disappears when nothing is pending. ── */}
+      {(overdueOrders > 0 || awaitingDispatch > 0 || lowStockCount > 0 || pendingPayments > 0) && (() => {
+        const action =
+          overdueOrders > 0
+            ? { label: `${overdueOrders} order${overdueOrders !== 1 ? "s" : ""} overdue`, cta: "Dispatch now", href: "/dispatch", color: "var(--snm-error)" }
+            : awaitingDispatch > 0
+            ? { label: `${awaitingDispatch} order${awaitingDispatch !== 1 ? "s" : ""} ready to dispatch`, cta: "Assign delivery", href: "/dispatch", color: "var(--snm-warning)" }
+            : lowStockCount > 0
+            ? { label: `${lowStockCount} SKU${lowStockCount !== 1 ? "s" : ""} running low`, cta: "Check stock", href: "/inventory", color: "var(--snm-warning)" }
+            : { label: `MVR ${mvr(pendingPayments)} uncollected`, cta: "View payments", href: "/financials", color: "var(--snm-error)" };
+        return (
+          <Link
+            href={action.href}
+            className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 transition active:scale-[0.98]"
+            style={{
+              background: `color-mix(in srgb, ${action.color} 8%, var(--glass-1))`,
+              border: `1px solid color-mix(in srgb, ${action.color} 30%, transparent)`,
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+            }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className="w-2 h-2 rounded-full shrink-0 animate-pulse"
+                style={{ background: action.color }}
+              />
+              <p className="text-[14px] font-semibold text-foreground truncate">{action.label}</p>
+            </div>
+            <span
+              className="text-[12px] font-bold shrink-0 px-3 py-1.5 rounded-xl transition"
+              style={{ background: action.color, color: "#fff" }}
+            >
+              {action.cta} →
+            </span>
+          </Link>
+        );
+      })()}
+
       {/* ── Alerts — only shown when something needs attention ── */}
       {hasAlerts && (
         <div className="space-y-2">

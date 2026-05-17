@@ -551,14 +551,19 @@ export function MyDeliveries() {
                           <button
                             onClick={() => setCashSheet({ open: true, order, expected: totalMvr })}
                             style={{
-                              height: 60, borderRadius: 14, border: "none",
+                              height: 68, borderRadius: 14, border: "none",
                               background: "#22c55e", color: "#fff",
-                              fontSize: 16, fontWeight: 700, cursor: "pointer",
-                              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                              cursor: "pointer",
+                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                              width: "100%",
                             }}
                           >
-                            <CheckCircle2 size={20} />
-                            Delivered · Collect MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1 }}>
+                              MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, display: "flex", alignItems: "center", gap: 4 }}>
+                              <CheckCircle2 size={13} /> Collect &amp; Mark Delivered
+                            </span>
                           </button>
                         ) : (
                           <button

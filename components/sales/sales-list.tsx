@@ -331,7 +331,23 @@ function NewSaleSheet({
   const customer = customers.find((c) => c.id === customerId);
   const selectedSku = skus.find((s) => s.id === selectedSkuId);
 
-  const recentCustomers = useMemo(() => customers.slice(0, 8), [customers]);
+  // ── Recent customers from localStorage (IDEO: Recents first) ──
+  // Store the last 3 used customer IDs so repeat orders need zero search.
+  const [recentIds, setRecentIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("snm_recent_customers") ?? "[]"); }
+    catch { return []; }
+  });
+  function touchRecentCustomer(id: string) {
+    const next = [id, ...recentIds.filter((x) => x !== id)].slice(0, 3);
+    setRecentIds(next);
+    try { localStorage.setItem("snm_recent_customers", JSON.stringify(next)); } catch { /* ignore */ }
+  }
+  const recentCustomers = useMemo(() => {
+    const pinned = recentIds.map((id) => customers.find((c) => c.id === id)).filter(Boolean) as CustomerRow[];
+    // Fill remaining slots from the head of the list so there's always something to show
+    const rest = customers.filter((c) => !recentIds.includes(c.id)).slice(0, Math.max(0, 5 - pinned.length));
+    return [...pinned, ...rest].slice(0, 5);
+  }, [customers, recentIds]);
   const filteredCustomers = useMemo(() => {
     const term = customerSearch.trim().toLowerCase();
     if (!term) return [];
@@ -522,15 +538,38 @@ function NewSaleSheet({
                 </div>
 
                 <div>
+                  {/* Pinned recent chips — 1-tap reselect for repeat orders */}
+                  {!customerSearch.trim() && recentIds.length > 0 && (
+                    <div className="flex gap-2 mb-3 flex-wrap">
+                      {recentIds.map((id) => {
+                        const rc = customers.find((c) => c.id === id);
+                        if (!rc) return null;
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => { setCustomerId(id); setChannel((rc.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(id); }}
+                            className="flex items-center gap-2 px-3 h-9 rounded-full text-[13px] font-semibold transition active:scale-95"
+                            style={{
+                              background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
+                              border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)",
+                              color: "var(--snm-brand)",
+                            }}
+                          >
+                            ★ {rc.name.split(" ")[0]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <p className="text-[11px] uppercase tracking-widest mb-3 font-medium" style={{ color: "var(--muted-foreground)" }}>
-                    {customerSearch.trim() ? "Results" : "Recent Customers"}
+                    {customerSearch.trim() ? "Results" : "All Customers"}
                   </p>
                   <div className="space-y-1.5">
                     {(customerSearch.trim() ? filteredCustomers : recentCustomers).map((c) => {
                       const initials = c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
                       return (
                         <button key={c.id}
-                          onClick={() => { setCustomerId(c.id); setChannel((c.channel as OrderChannel) ?? "whatsapp"); }}
+                          onClick={() => { setCustomerId(c.id); setChannel((c.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(c.id); }}
                           className="w-full flex items-center gap-3 px-4 h-14 rounded-xl text-left transition active:scale-[0.99]"
                           style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                           <div className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
@@ -635,27 +674,73 @@ function NewSaleSheet({
                     const cardPrice = cardUom === "carton" ? s.selling_price_per_carton_mvr : s.selling_price_per_pack_mvr;
                     const cardUomLabel = cardUom === "carton" ? "carton" : pl.toLowerCase();
                     const hasPrice = cardPrice != null;
+                    const inCart = draftLines.filter((l) => l.sku.id === s.id).reduce((a, l) => a + l.qty, 0);
+
+                    // Work & Co: quick-add adds 1 unit of the default UOM directly to cart.
+                    // Tapping the card body still opens the detail editor for custom qty/price.
+                    function handleQuickAdd(e: React.MouseEvent) {
+                      e.stopPropagation();
+                      if (!hasPrice || (stock != null && stock <= 0)) return;
+                      const qty = 1;
+                      const pcs = toPieces(cardUom, qty, s.pcs_per_pack, s.packs_per_carton);
+                      setDraftLines((prev) => [...prev, {
+                        key: `${s.id}-${Date.now()}`,
+                        sku: s, uom: cardUom, qty,
+                        qty_pieces: pcs,
+                        unit_price_mvr: cardPrice!,
+                        line_total_mvr: cardPrice!,
+                      }]);
+                      toast.success(`${s.brand_name} ${s.variant_display} added`);
+                    }
+
                     return (
-                      <button key={s.id} onClick={() => setSelectedSkuId(s.id)}
-                        className="rounded-xl p-4 text-left transition active:scale-[0.98]"
-                        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-foreground truncate">{s.brand_name} · {s.model_name}</p>
-                            <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
+                      <div key={s.id} className="relative">
+                        <button onClick={() => setSelectedSkuId(s.id)}
+                          className="w-full rounded-xl p-4 text-left transition active:scale-[0.98]"
+                          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="min-w-0 flex-1 pr-8">
+                              <p className="text-[13px] font-semibold text-foreground truncate">{s.brand_name} · {s.model_name}</p>
+                              <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
+                              style={{ background: stock != null && stock > 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: stock != null && stock > 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                              {stock != null ? `${stock} pcs` : "—"}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
-                            style={{ background: stock != null && stock > 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: stock != null && stock > 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-                            {stock != null ? `${stock} pcs` : "—"}
-                          </span>
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-[20px] font-semibold" style={{ color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)" }}>
-                            {hasPrice ? cardPrice!.toFixed(2) : "No GRN"}
-                          </span>
-                          {hasPrice && <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
-                        </div>
-                      </button>
+                          <div className="flex items-baseline justify-between gap-1">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[20px] font-semibold" style={{ color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                                {hasPrice ? cardPrice!.toFixed(2) : "No GRN"}
+                              </span>
+                              {hasPrice && <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
+                            </div>
+                            {inCart > 0 && (
+                              <span className="text-[11px] font-bold" style={{ color: "var(--snm-brand)" }}>
+                                ×{inCart} in cart
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        {/* Quick-add button — Work & Co progressive disclosure:
+                            tap + to add 1 unit instantly; tap card to customise */}
+                        {hasPrice && stock !== 0 && (
+                          <button
+                            onClick={handleQuickAdd}
+                            className="absolute bottom-3 right-3 h-8 w-8 rounded-full flex items-center justify-center transition active:scale-90"
+                            style={{
+                              background: "var(--foreground)",
+                              color: "var(--background)",
+                              fontSize: 18,
+                              fontWeight: 700,
+                              lineHeight: 1,
+                            }}
+                            aria-label={`Quick add ${s.brand_name} ${s.variant_display}`}
+                          >
+                            +
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                   {filteredSkus.length === 0 && <p className="text-sm col-span-2 py-4" style={{ color: "var(--muted-foreground)" }}>No products found.</p>}

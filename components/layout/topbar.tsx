@@ -3,7 +3,33 @@
 import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
+
+// Calm Technology: peripheral sync awareness — never blocks, never pops up.
+// Shows "Updated Xm ago" so field staff know how fresh their data is.
+function SyncStamp() {
+  const [loadedAt] = useState(() => Date.now());
+  const [label, setLabel] = useState("Just updated");
+
+  useEffect(() => {
+    const tick = () => {
+      const mins = Math.floor((Date.now() - loadedAt) / 60_000);
+      setLabel(mins < 1 ? "Just updated" : `Updated ${mins}m ago`);
+    };
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [loadedAt]);
+
+  return (
+    <span
+      className="hidden sm:inline text-[11px] tabular-nums"
+      style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
+    >
+      {label}
+    </span>
+  );
+}
 
 export function Topbar({ name, role }: { name: string; role: string }) {
   const router = useRouter();
@@ -45,6 +71,9 @@ export function Topbar({ name, role }: { name: string; role: string }) {
           SayNoMore
         </span>
       </div>
+
+      {/* Centre: sync stamp — calm peripheral awareness */}
+      <SyncStamp />
 
       {/* Right: theme toggle + avatar dropdown */}
       <div className="flex items-center gap-1">

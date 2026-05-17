@@ -116,9 +116,17 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
   const [expanded, setExpanded] = useState(false);
   const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
   const qty = fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn);
+  const ctns = pcsPerCtn > 0 ? Math.floor(pieces / pcsPerCtn) : 0;
+
+  // Visual urgency accent — IDEO: colour as primary signal, no text needed
+  const urgency = ctns <= 2 ? "critical" : ctns <= 6 ? "low" : "ok";
+  const urgencyColor =
+    urgency === "critical" ? "var(--snm-error)"
+    : urgency === "low"    ? "var(--snm-warning)"
+    : "transparent";
 
   return (
-    <div>
+    <div style={{ borderLeft: urgency !== "ok" ? `3px solid ${urgencyColor}` : "3px solid transparent", marginLeft: -2, paddingLeft: urgency !== "ok" ? 8 : 0, borderRadius: urgency !== "ok" ? "0 0 0 0" : undefined }}>
       <button
         className="w-full flex items-center justify-between py-3.5 text-left"
         style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" }}
@@ -133,6 +141,11 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code}
+            {urgency !== "ok" && (
+              <span className="ml-2 font-bold" style={{ color: urgencyColor }}>
+                {urgency === "critical" ? "· critically low" : "· low stock"}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3 ml-3 shrink-0">
