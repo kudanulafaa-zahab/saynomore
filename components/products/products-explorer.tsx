@@ -93,9 +93,51 @@ function SkuPanel({
   // Reset inline fields when a different SKU is shown
   useEffect(() => { setInlineMargin(""); setInlineFixed(""); }, [sku.id]);
 
+  // Live profit preview — computed as the user types, zero DB calls
+  const tradeLabel = packLabel(sku).toLowerCase(); // "bottle", "pack", etc.
+  const landedPerPiece = sku.landed_per_piece_mvr != null ? Number(sku.landed_per_piece_mvr) : null;
+  const landedPerPack  = landedPerPiece != null ? landedPerPiece * sku.pcs_per_pack : null;
+  const landedPerCtn   = landedPerPack  != null ? landedPerPack * sku.packs_per_carton : null;
+
+  const livePreview = useMemo(() => {
+    if (!landedPerPiece) return null;
+
+    // Fixed price path: user enters per-pack price
+    const fp = inlineFixed ? parseFloat(inlineFixed) : NaN;
+    if (!isNaN(fp) && fp > 0) {
+      const sellingPerPiece = fp / sku.pcs_per_pack;
+      const margin = ((sellingPerPiece - landedPerPiece) / sellingPerPiece) * 100;
+      const profitPerPack = fp - landedPerPack!;
+      const profitPerCtn  = profitPerPack * sku.packs_per_carton;
+      return { margin, profitPerPack, profitPerCtn, sellingPerPack: fp, mode: "fixed" as const };
+    }
+
+    // Margin path
+    const m = inlineMargin ? parseFloat(inlineMargin) : NaN;
+    if (!isNaN(m) && m > 0 && m < 100) {
+      const sellingPerPiece = landedPerPiece / (1 - m / 100);
+      const sellingPerPack  = sellingPerPiece * sku.pcs_per_pack;
+      const profitPerPack   = sellingPerPack - landedPerPack!;
+      const profitPerCtn    = profitPerPack * sku.packs_per_carton;
+      return { margin: m, profitPerPack, profitPerCtn, sellingPerPack, mode: "margin" as const };
+    }
+
+    return null;
+  }, [inlineFixed, inlineMargin, landedPerPiece, landedPerPack, sku.pcs_per_pack, sku.packs_per_carton]);
+
+  // Colour signal: green ≥20%, amber 10–19%, red <10% (or negative)
+  const marginColor = livePreview == null ? "var(--muted-foreground)"
+    : livePreview.margin >= 20 ? "var(--snm-success)"
+    : livePreview.margin >= 10 ? "var(--snm-warning)"
+    : "var(--snm-error)";
+
   async function saveInlinePrice() {
     const margin = inlineMargin ? parseFloat(inlineMargin) : null;
-    const fixed  = inlineFixed  ? parseFloat(inlineFixed)  : null;
+    // Fixed price entered per-pack → convert to per-piece for storage
+    const fixedPackVal = inlineFixed ? parseFloat(inlineFixed) : null;
+    const fixed = fixedPackVal != null && sku.pcs_per_pack > 0
+      ? fixedPackVal / sku.pcs_per_pack
+      : null;
     if (margin == null && fixed == null) return;
     setSavingPrice(true);
     try {
@@ -264,58 +306,145 @@ function SkuPanel({
               </p>
             </div>
           ) : (
-            <div className="rounded-xl px-4 py-3 space-y-3"
-              style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)",
-                       border: "1px dashed color-mix(in srgb, var(--snm-brand) 30%, transparent)" }}>
-              <p className="text-[11px] font-semibold" style={{ color: "var(--snm-brand)" }}>
-                Set pricing — margin % or fixed price
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div>
-                  <p className="text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Margin %</p>
-                  <input
-                    type="number" inputMode="decimal" step="0.5" min="1" max="99"
-                    value={inlineMargin}
-                    onChange={(e) => { setInlineMargin(e.target.value); if (e.target.value) setInlineFixed(""); }}
-                    disabled={!!inlineFixed || savingPrice}
-                    placeholder="e.g. 30"
-                    style={{
-                      width: "100%", height: 38, padding: "0 10px", borderRadius: 8,
-                      background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
-                      border: "1px solid var(--glass-border-lo)",
-                      color: "var(--foreground)", fontSize: 13, outline: "none",
-                      boxSizing: "border-box", opacity: inlineFixed ? 0.4 : 1,
-                    }}
-                  />
-                </div>
-                <div>
-                  <p className="text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Fixed price / piece (MVR)</p>
-                  <input
-                    type="number" inputMode="decimal" step="0.01" min="0.01"
-                    value={inlineFixed}
-                    onChange={(e) => { setInlineFixed(e.target.value); if (e.target.value) setInlineMargin(""); }}
-                    disabled={savingPrice}
-                    placeholder="e.g. 4.50"
-                    style={{
-                      width: "100%", height: 38, padding: "0 10px", borderRadius: 8,
-                      background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
-                      border: "1px solid var(--glass-border-lo)",
-                      color: "var(--foreground)", fontSize: 13, outline: "none",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
+            <div className="rounded-xl overflow-hidden"
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)" }}>
+
+              {/* Header */}
+              <div className="px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)" }}>
+                <p className="text-[11px] font-semibold" style={{ color: "var(--snm-brand)" }}>
+                  Set pricing — see your profit before saving
+                </p>
               </div>
-              {(inlineMargin || inlineFixed) && (
-                <button
-                  onClick={saveInlinePrice}
-                  disabled={savingPrice}
-                  className="w-full h-9 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
-                  style={{ background: "var(--snm-brand)", color: "#ffffff" }}
-                >
-                  {savingPrice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save pricing"}
-                </button>
-              )}
+
+              <div className="px-4 py-3 space-y-3" style={{ background: "color-mix(in srgb, var(--foreground) 3%, transparent)" }}>
+                {/* Two inputs side by side */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <div>
+                    <p className="text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                      Price per {tradeLabel} (MVR)
+                    </p>
+                    <input
+                      type="number" inputMode="decimal" step="0.01" min="0.01"
+                      value={inlineFixed}
+                      onChange={(e) => { setInlineFixed(e.target.value); if (e.target.value) setInlineMargin(""); }}
+                      disabled={savingPrice}
+                      placeholder={landedPerPack ? `cost: ${landedPerPack.toFixed(2)}` : "e.g. 12.00"}
+                      style={{
+                        width: "100%", height: 40, padding: "0 10px", borderRadius: 8,
+                        background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                        border: `1px solid ${inlineFixed ? "color-mix(in srgb, var(--snm-brand) 40%, transparent)" : "var(--glass-border-lo)"}`,
+                        color: "var(--foreground)", fontSize: 14, fontWeight: 600, outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                      Or target margin %
+                    </p>
+                    <input
+                      type="number" inputMode="decimal" step="0.5" min="1" max="99"
+                      value={inlineMargin}
+                      onChange={(e) => { setInlineMargin(e.target.value); if (e.target.value) setInlineFixed(""); }}
+                      disabled={!!inlineFixed || savingPrice}
+                      placeholder="e.g. 30"
+                      style={{
+                        width: "100%", height: 40, padding: "0 10px", borderRadius: 8,
+                        background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                        border: `1px solid ${inlineMargin ? "color-mix(in srgb, var(--snm-success) 40%, transparent)" : "var(--glass-border-lo)"}`,
+                        color: "var(--foreground)", fontSize: 14, fontWeight: 600, outline: "none",
+                        boxSizing: "border-box", opacity: inlineFixed ? 0.35 : 1,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* ── Live profit meter — appears as you type ── */}
+                {livePreview && landedPerPack != null && landedPerCtn != null && (
+                  <div className="rounded-xl overflow-hidden"
+                    style={{ border: `1px solid color-mix(in srgb, ${marginColor} 25%, transparent)` }}>
+
+                    {/* Margin headline */}
+                    <div className="px-4 py-3 flex items-center justify-between"
+                      style={{ background: `color-mix(in srgb, ${marginColor} 10%, transparent)` }}>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: marginColor, opacity: 0.8 }}>Gross margin</p>
+                        <p className="text-[28px] font-black leading-none" style={{ color: marginColor }}>
+                          {livePreview.margin.toFixed(1)}%
+                        </p>
+                        {livePreview.margin < 0 && (
+                          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--snm-error)" }}>⚠ Selling below cost</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                          Selling / {tradeLabel}
+                        </p>
+                        <p className="text-[17px] font-bold text-foreground">
+                          MVR {livePreview.sellingPerPack.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Cost vs profit bar */}
+                    {livePreview.margin > 0 && livePreview.margin < 100 && (
+                      <div className="px-4 pt-2 pb-1">
+                        <div className="flex rounded-full overflow-hidden h-2" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                          <div style={{ width: `${100 - livePreview.margin}%`, background: "color-mix(in srgb, var(--muted-foreground) 50%, transparent)", transition: "width 0.2s" }} />
+                          <div style={{ flex: 1, background: marginColor, transition: "width 0.2s" }} />
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+                            Cost {(100 - livePreview.margin).toFixed(1)}%
+                          </p>
+                          <p className="text-[9px]" style={{ color: marginColor }}>
+                            Profit {livePreview.margin.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Profit in MVR — the numbers a trader thinks in */}
+                    <div className="grid grid-cols-2 gap-0" style={{ borderTop: `1px solid color-mix(in srgb, ${marginColor} 15%, transparent)` }}>
+                      <div className="px-4 py-2.5" style={{ borderRight: `1px solid color-mix(in srgb, ${marginColor} 15%, transparent)` }}>
+                        <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                          Profit / {tradeLabel}
+                        </p>
+                        <p className="text-[14px] font-bold" style={{ color: marginColor }}>
+                          {livePreview.profitPerPack >= 0 ? "+" : ""}MVR {livePreview.profitPerPack.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="px-4 py-2.5">
+                        <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                          Profit / carton
+                        </p>
+                        <p className="text-[14px] font-bold" style={{ color: marginColor }}>
+                          {livePreview.profitPerCtn >= 0 ? "+" : ""}MVR {livePreview.profitPerCtn.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* No GRN yet — explain why meter can't show */}
+                {!landedPerPiece && (inlineFixed || inlineMargin) && (
+                  <p className="text-[11px]" style={{ color: "var(--snm-warning)" }}>
+                    Profit preview available after first shipment is confirmed.
+                  </p>
+                )}
+
+                {/* Save button — only appears once a value is typed */}
+                {(inlineMargin || inlineFixed) && (
+                  <button
+                    onClick={saveInlinePrice}
+                    disabled={savingPrice}
+                    className="w-full h-10 rounded-lg text-[13px] font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+                    style={{ background: "var(--snm-brand)", color: "#ffffff", opacity: savingPrice ? 0.6 : 1 }}
+                  >
+                    {savingPrice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save pricing →"}
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
