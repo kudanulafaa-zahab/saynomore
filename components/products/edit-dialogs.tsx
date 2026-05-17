@@ -429,7 +429,7 @@ export function EditSkuDialog({
           {sku?.landed_per_piece_mvr != null && (
             <div className="rounded-xl p-3 space-y-2"
               style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
-              <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted-foreground)" }}>
                 Current landed cost
               </p>
               <div className="flex items-baseline gap-2">
@@ -440,7 +440,7 @@ export function EditSkuDialog({
               </div>
               {sku.selling_price_per_piece_mvr != null && (
                 <div className="pt-2 border-t" style={{ borderColor: "var(--glass-border-lo)" }}>
-                  <p className="text-[10px] uppercase tracking-wider mb-1.5 font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[11px] uppercase tracking-wider mb-1.5 font-semibold" style={{ color: "var(--muted-foreground)" }}>
                     Active selling prices
                     {sku.fixed_selling_price_mvr != null
                       ? <span className="ml-2 px-1.5 py-0.5 rounded text-[9px]" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>

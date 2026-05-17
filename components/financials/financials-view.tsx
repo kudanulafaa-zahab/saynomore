@@ -365,7 +365,7 @@ export function FinancialsView() {
             ].map((l) => (
               <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />
-                <span style={{ color: "var(--muted-foreground)", fontSize: 10, textTransform: "uppercase" }}>{l.label}</span>
+                <span style={{ color: "var(--muted-foreground)", fontSize: 11, textTransform: "uppercase" }}>{l.label}</span>
               </div>
             ))}
           </div>
@@ -385,7 +385,7 @@ export function FinancialsView() {
                     <div style={{ flex: 1, background: "var(--glass-border)", borderRadius: "3px 3px 0 0", height: `${opexH}%` }} />
                     <div style={{ flex: 1, background: isCurrent ? "var(--snm-success)" : "var(--foreground)", borderRadius: "3px 3px 0 0", height: `${revH}%`, opacity: isCurrent ? 1 : 0.8 }} />
                   </div>
-                  <span style={{ color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 10, fontWeight: isCurrent ? 700 : 400 }}>{m.month_label}</span>
+                  <span style={{ color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: isCurrent ? 700 : 400 }}>{m.month_label}</span>
                 </div>
               );
             })}

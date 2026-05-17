@@ -171,7 +171,7 @@ export function DispatchView() {
                     <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
                       <div>
                         <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 700 }}>MVR {totalMvr.toFixed(0)}</p>
-                        <p style={{ color: "var(--snm-warning)", fontSize: 10, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.06em" }}>Out for delivery</p>
+                        <p style={{ color: "var(--snm-warning)", fontSize: 11, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.06em" }}>Out for delivery</p>
                       </div>
                       <ChevronDown style={{ color: "var(--muted-foreground)", width: 18, height: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                     </div>

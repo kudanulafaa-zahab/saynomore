@@ -261,7 +261,7 @@ export function SaleDetail({ id }: { id: string }) {
           <ArrowLeft style={{ width: 18, height: 18 }} />
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>Sales Order</p>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>Sales Order</p>
           <h1 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {customer?.name ?? "Walk-in"}
             <span style={{ color: "var(--muted-foreground)", fontSize: 13, fontWeight: 400, marginLeft: 8 }}>{order.order_number}</span>
@@ -301,7 +301,7 @@ export function SaleDetail({ id }: { id: string }) {
                     color: done ? "var(--background)" : active ? "var(--foreground)" : "var(--muted-foreground)",
                   }} />
                 </div>
-                <p style={{ color: active ? "var(--foreground)" : done ? "var(--muted-foreground)" : "var(--muted-foreground)", fontSize: 10, fontWeight: active ? 700 : 400, marginTop: 6, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "center" }}>
+                <p style={{ color: active ? "var(--foreground)" : done ? "var(--muted-foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: active ? 700 : 400, marginTop: 6, letterSpacing: "0.04em", textTransform: "uppercase", textAlign: "center" }}>
                   {step.label}
                 </p>
               </div>
@@ -469,12 +469,12 @@ export function SaleDetail({ id }: { id: string }) {
           {/* Financial summary */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
             <div style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 16 }}>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Order Total</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Order Total</p>
               <p style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
             </div>
             {order.cash_collected_mvr != null && (
               <div style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", borderRadius: 12, padding: 16 }}>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Cash Collected</p>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Cash Collected</p>
                 <p style={{ color: "var(--snm-success)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
               </div>
             )}
@@ -950,7 +950,7 @@ function LineDialog({
                     }}
                   >
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{opt.label}</span>
-                    <span style={{ fontSize: 10, opacity: active ? 0.7 : 0.6 }}>{opt.sub}</span>
+                    <span style={{ fontSize: 11, opacity: active ? 0.7 : 0.6 }}>{opt.sub}</span>
                   </button>
                 );
               })}
@@ -1003,7 +1003,7 @@ function LineDialog({
                   <button
                     type="button"
                     onClick={() => { setUnitPrice(autoPrice.toFixed(2)); setPriceOverride(false); }}
-                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--snm-success)", fontSize: 10, cursor: "pointer", fontWeight: 700 }}
+                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--snm-success)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
                   >Reset</button>
                 )}
               </div>

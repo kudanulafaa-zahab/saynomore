@@ -57,7 +57,7 @@ export function Sidebar({ role }: { role: string }) {
           </div>
           <div className="leading-tight">
             <p className="text-[13px] font-semibold text-foreground">SayNoMore</p>
-            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
           </div>
         </div>
         <ThemeToggle />

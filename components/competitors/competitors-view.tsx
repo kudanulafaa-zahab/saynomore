@@ -444,7 +444,7 @@ export function CompetitorsView() {
               const closest = REFS.reduce((best, r) => Math.abs(r.margin - impliedMarginPct) < Math.abs(best.margin - impliedMarginPct) ? r : best, REFS[0]);
               return (
                 <div className="rounded-xl px-4 py-3" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
-                  <p className="text-[10px] uppercase tracking-wider mb-2.5" style={{ color: "var(--muted-foreground)" }}>Margin → Multiplier Reference</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-2.5" style={{ color: "var(--muted-foreground)" }}>Margin → Multiplier Reference</p>
                   <div className="flex flex-wrap gap-1.5">
                     {REFS.map(({ margin, mult }) => {
                       const isActive = closest.margin === margin;
@@ -467,7 +467,7 @@ export function CompetitorsView() {
                       );
                     })}
                   </div>
-                  <p className="text-[10px] mt-2" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>
                     Cost × multiplier = selling price &nbsp;·&nbsp; currently <span style={{ color: "var(--foreground)", fontWeight: 600 }}>×{landedPerPack > 0 ? (packPrice / landedPerPack).toFixed(2) : "—"}</span> &nbsp;·&nbsp; nearest: {closest.margin}% margin
                   </p>
                 </div>
@@ -486,7 +486,7 @@ export function CompetitorsView() {
                 const color = margin >= 20 ? "var(--snm-success)" : margin >= 5 ? "var(--snm-warning)" : "var(--snm-error)";
                 return (
                   <div key={label} className="rounded-xl p-3 text-center space-y-1" style={{ background: "var(--glass-bg-1)" }}>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(value)}</p>
                     <p className="text-[11px] font-bold" style={{ color }}>{margin.toFixed(1)}% margin</p>
                     <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : markup.toFixed(0)}% markup</p>
@@ -507,7 +507,7 @@ export function CompetitorsView() {
                     <p className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
                       vs <span className="text-foreground">{topCompEntry?.comp?.name}</span> (cheapest)
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                       Alert if &gt;{alertThreshold}% above competitor
                       <button onClick={() => setShowAlertSettings(!showAlertSettings)} className="ml-2 inline-flex items-center" style={{ color: "var(--snm-brand)" }}>
                         <Settings className="h-3 w-3" />
@@ -557,7 +557,7 @@ export function CompetitorsView() {
                   Save as fixed price (MVR {fmt2(piecePrice)}/pc)
                 </button>
               </div>
-              <p className="text-[10px] px-1" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[11px] px-1" style={{ color: "var(--muted-foreground)" }}>
                 {saveMode === "margin"
                   ? "Price auto-updates with each new shipment as landed cost changes."
                   : "Price stays fixed regardless of landed cost changes."}

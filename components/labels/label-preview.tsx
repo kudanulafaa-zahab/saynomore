@@ -69,7 +69,7 @@ export function LabelPreview({ data }: { data: LabelData }) {
             <ArrowLeft style={{ width: 18, height: 18 }} />
           </button>
           <div style={{ flex: 1 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>Label Preview</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>Label Preview</p>
             <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>
               {data.modelName}
               {data.variantDisplay ? ` · ${data.variantDisplay}` : ""}
