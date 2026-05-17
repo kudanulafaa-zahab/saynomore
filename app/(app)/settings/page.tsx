@@ -954,12 +954,14 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
   onDone: () => void;
 }) {
   const t = TIERS.find((x) => x.value === priceList.tier)!;
-  const [items, setItems]     = useState<PriceListItemRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState("");
+  const [items, setItems]       = useState<PriceListItemRow[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState("");
   const [addSkuId, setAddSkuId] = useState("");
   const [addSheet, setAddSheet] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Which item is currently open for inline editing (by item.id)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   async function loadItems() {
     setLoading(true);
@@ -981,6 +983,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
   }, [skus, setSkuIds, search]);
 
   async function handleDelete(itemId: string) {
+    if (!confirm("Remove this SKU from the price list?")) return;
     setDeleting(itemId);
     try {
       await deletePriceListItem(itemId);
@@ -998,12 +1001,15 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
           <X className="h-4 w-4" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase tracking-widest" style={{ color: t.color }}>{t.label}</p>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
           <h2 className="text-base font-semibold truncate" style={{ color: "var(--foreground)" }}>{priceList.name}</h2>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+            Effective {new Date(priceList.effective_from + "T00:00:00").toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
         </div>
         <button
-          onClick={() => setAddSheet(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold shrink-0"
+          onClick={() => { setAddSheet(true); setAddSkuId(""); setSearch(""); }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold shrink-0 active:scale-95 transition"
           style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
           <Plus className="h-3.5 w-3.5" /> Add SKU
@@ -1017,71 +1023,126 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
         ) : items.length === 0 ? (
           <div className="text-center py-16">
             <Tag className="h-8 w-8 mx-auto mb-3 opacity-30" style={{ color: "var(--muted-foreground)" }} />
-            <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No SKUs added yet</p>
-            <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Tap "Add SKU" to set prices for this tier</p>
+            <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No SKUs yet</p>
+            <p className="text-xs mt-1 mb-5" style={{ color: "var(--muted-foreground)" }}>Tap "Add SKU" to set prices for this tier</p>
+            <button
+              onClick={() => { setAddSheet(true); setAddSkuId(""); setSearch(""); }}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold active:scale-95 transition"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              <Plus className="h-4 w-4" /> Add first SKU
+            </button>
           </div>
         ) : (
-          items.map((item) => {
-            const sku = skus.find((s) => s.id === item.sku_id);
-            return (
-              <div key={item.id} className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-                      {sku ? `${sku.brand_name} › ${sku.model_name}` : item.sku_id}
-                    </p>
-                    {sku?.variant_display && (
-                      <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>
-                    )}
-                  </div>
+          <>
+            <p className="text-xs px-1 pb-1" style={{ color: "var(--muted-foreground)" }}>
+              {items.length} SKU{items.length !== 1 ? "s" : ""} — tap any row to edit prices
+            </p>
+            {items.map((item) => {
+              const sku = skus.find((s) => s.id === item.sku_id);
+              const isEditing = editingItemId === item.id;
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    background: "var(--glass-1)",
+                    border: isEditing
+                      ? `1px solid color-mix(in srgb, ${t.color} 40%, transparent)`
+                      : "1px solid var(--glass-border-lo)",
+                  }}
+                >
+                  {/* Summary row — always visible, tap to expand editor */}
                   <button
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deleting === item.id}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ color: "var(--muted-foreground)" }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
+                    className="w-full text-left px-4 py-3 flex items-center gap-3 transition active:bg-black/5"
+                    onClick={() => setEditingItemId(isEditing ? null : item.id)}
                   >
-                    {deleting === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  {[
-                    { label: "/ piece",  value: item.price_per_piece_mvr },
-                    { label: "/ pack",   value: item.price_per_pack_mvr },
-                    { label: "/ carton", value: item.price_per_carton_mvr },
-                  ].map((p) => (
-                    <div key={p.label} className="rounded-xl px-3 py-2 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
-                      <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
-                      <p className="text-sm font-semibold" style={{ color: t.color }}>MVR {Number(p.value).toFixed(2)}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                        {sku ? `${sku.brand_name} › ${sku.model_name}` : item.sku_id}
+                      </p>
+                      {sku?.variant_display && (
+                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>
+                      )}
                     </div>
-                  ))}
+                    {/* Price pills — compact summary */}
+                    <div className="flex gap-1.5 shrink-0">
+                      {[
+                        { label: "pc",  value: item.price_per_piece_mvr },
+                        { label: "pk",  value: item.price_per_pack_mvr },
+                        { label: "ctn", value: item.price_per_carton_mvr },
+                      ].map((p) => (
+                        <div key={p.label} className="rounded-lg px-2 py-1 text-center" style={{ background: `color-mix(in srgb, ${t.color} 10%, transparent)` }}>
+                          <p className="text-[8px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
+                          <p className="text-[11px] font-bold" style={{ color: t.color }}>{Number(p.value).toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Edit/chevron indicator */}
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: isEditing ? `color-mix(in srgb, ${t.color} 15%, transparent)` : "color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
+                      <Pencil className="h-3 w-3" style={{ color: isEditing ? t.color : "var(--muted-foreground)" }} />
+                    </div>
+                  </button>
+
+                  {/* Inline edit form — expands when tapped */}
+                  {isEditing && sku && (
+                    <div className="px-4 pb-4 pt-1" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+                      <SkuPriceEntry
+                        sku={sku}
+                        initialPrices={{
+                          piece:  Number(item.price_per_piece_mvr),
+                          pack:   Number(item.price_per_pack_mvr),
+                          carton: Number(item.price_per_carton_mvr),
+                        }}
+                        creatingHeader={false}
+                        onBack={() => setEditingItemId(null)}
+                        onSave={async (prices) => {
+                          await upsertPriceListItem({ price_list_id: priceList.id, sku_id: item.sku_id, ...prices });
+                          toast.success("Price updated");
+                          setEditingItemId(null);
+                          loadItems();
+                        }}
+                        saveLabel="UPDATE PRICE"
+                        extraAction={
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            disabled={deleting === item.id}
+                            className="flex-1 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-1.5 transition-opacity hover:opacity-70"
+                            style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}
+                          >
+                            {deleting === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Trash2 className="h-3.5 w-3.5" /> Remove</>}
+                          </button>
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
-                {item.margin_pct != null && (
-                  <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>
-                    Margin: {Number(item.margin_pct).toFixed(1)}%
-                  </p>
-                )}
-              </div>
-            );
-          })
+              );
+            })}
+          </>
         )}
       </div>
 
-      {/* Add SKU — inline below list */}
+      {/* Add SKU — full-screen overlay */}
       {addSheet && (
         <div className="fixed inset-0 z-60 flex flex-col" style={{ background: "var(--background)" }}>
           <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
             <button onClick={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); }} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}>
               <X className="h-4 w-4" />
             </button>
-            <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>
-              {addSkuId ? "Set Price" : "Add SKU"}
-            </h2>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label}</p>
+              <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>
+                {addSkuId ? "Set Prices" : "Add SKU"}
+              </h2>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             {!addSkuId ? (
               <>
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                  Search and select a SKU to set its {t.label.toLowerCase()} tier prices.
+                </p>
                 <input
                   autoFocus
                   value={search}
@@ -1092,10 +1153,10 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                 <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 400, overflowY: "auto" }}>
                   {filteredSkus.length === 0 ? (
                     <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
-                      {search ? "No matches" : "All active SKUs already have prices"}
+                      {search ? "No matches" : "All active SKUs already have prices in this list"}
                     </p>
                   ) : filteredSkus.map((s) => (
-                    <button key={s.id} onClick={() => setAddSkuId(s.id)} className="w-full text-left px-4 py-3 flex flex-col" style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}>
+                    <button key={s.id} onClick={() => setAddSkuId(s.id)} className="w-full text-left px-4 py-3.5 flex flex-col transition active:bg-black/5" style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}>
                       <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
                         {s.brand_name} › {s.model_name}
                         {s.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span> : null}
@@ -1140,21 +1201,27 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
 //   This means pack and carton can be set to DIFFERENT effective-per-piece rates
 //   which is exactly how volume discounts work in FMCG.
 
-function SkuPriceEntry({ sku, creatingHeader, onBack, onSave }: {
+function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, saveLabel, extraAction }: {
   sku: SkuFullRow | null;
   creatingHeader: boolean;
   onBack: () => void;
   onSave: (prices: { price_per_piece_mvr: number; price_per_pack_mvr: number; price_per_carton_mvr: number; margin_pct: number | null }) => Promise<void>;
+  initialPrices?: { piece: number; pack: number; carton: number };
+  saveLabel?: string;
+  extraAction?: React.ReactNode;
 }) {
   const landed        = sku?.landed_per_piece_mvr ? Number(sku.landed_per_piece_mvr) : null;
   const pcsPerPack    = sku?.pcs_per_pack    ?? 1;
   const packsPerCarton = sku?.packs_per_carton ?? 1;
   const pcsPerCarton  = pcsPerPack * packsPerCarton;
 
-  const [marginStr, setMarginStr] = useState("");
-  const [packStr,   setPackStr]   = useState("");
-  const [cartonStr, setCartonStr] = useState("");
-  const [pieceStr,  setPieceStr]  = useState("");
+  const [marginStr, setMarginStr] = useState(() => {
+    if (!initialPrices || !landed || initialPrices.piece <= 0) return "";
+    return ((1 - landed / initialPrices.piece) * 100).toFixed(1);
+  });
+  const [packStr,   setPackStr]   = useState(() => initialPrices ? String(initialPrices.pack)   : "");
+  const [cartonStr, setCartonStr] = useState(() => initialPrices ? String(initialPrices.carton) : "");
+  const [pieceStr,  setPieceStr]  = useState(() => initialPrices ? String(initialPrices.piece)  : "");
   const [saving,    setSaving]    = useState(false);
 
   // Margin → derive all three prices proportionally (initial fill only)
@@ -1328,12 +1395,23 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave }: {
         />
       </SheetInput>
 
-      <SheetActions
-        onCancel={onBack}
-        onConfirm={handleSave}
-        disabled={saving || creatingHeader || !canSave}
-        label={saving || creatingHeader ? "Saving…" : "SAVE PRICE"}
-      />
+      {/* Actions row: optional extraAction (e.g. Remove button) + save */}
+      <div className="flex gap-3 mt-6">
+        {extraAction}
+        <button
+          onClick={onBack}
+          className="flex-1 py-3 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+          style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
+        >Cancel</button>
+        <button
+          onClick={handleSave}
+          disabled={saving || creatingHeader || !canSave}
+          className="flex-[2] py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-85 active:scale-95 disabled:opacity-40"
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
+        >
+          {saving || creatingHeader ? "Saving…" : (saveLabel ?? "SAVE PRICE")}
+        </button>
+      </div>
     </div>
   );
 }
