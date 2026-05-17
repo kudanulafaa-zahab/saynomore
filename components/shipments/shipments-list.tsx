@@ -14,7 +14,8 @@ import {
   type ShipmentRow, type ShipmentStatus,
 } from "@/lib/queries/shipments";
 import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
-import { getCurrentUserRole } from "@/lib/queries/products";
+import { getCurrentUserRole, listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
@@ -83,6 +84,8 @@ export function ShipmentsList() {
   const router = useRouter();
   const [rows, setRows]         = useState<ShipmentRow[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
+  const [skus, setSkus]         = useState<SkuFullRow[]>([]);
+  const [alerts, setAlerts]     = useState<SkuReorderAlert[]>([]);
   const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "all">("all");
   const [newSheet, setNewSheet] = useState(false);
@@ -93,9 +96,13 @@ export function ShipmentsList() {
   async function load() {
     setLoading(true);
     try {
-      const [s, sup] = await Promise.all([listShipments(), listSuppliers()]);
+      const [s, sup, sk, al] = await Promise.all([
+        listShipments(), listSuppliers(), listSkusFlat(), listReorderAlerts(),
+      ]);
       setRows(s);
       setSuppliers(sup);
+      setSkus(sk);
+      setAlerts(al);
     } catch (e) { toast.error((e as Error).message); }
     finally { setLoading(false); }
   }
@@ -119,6 +126,27 @@ export function ShipmentsList() {
   const activeFiltered    = filtered.filter((r) => ACTIVE_STATUSES.includes(r.status));
   const completedFiltered = filtered.filter((r) => r.status === "grn_confirmed");
 
+  // Reorder suggestions: critical/low SKUs that don't already have an active PO
+  const reorderSuggestions = useMemo(() => {
+    const urgentAlerts = alerts.filter((a) => a.alert_level !== "ok");
+    return urgentAlerts
+      .map((a) => {
+        const sku = skus.find((s) => s.id === a.sku_id);
+        if (!sku) return null;
+        return { alert: a, sku };
+      })
+      .filter((x): x is { alert: SkuReorderAlert; sku: SkuFullRow } => x !== null)
+      .sort((a, b) => {
+        // critical first, then sort by DIR ascending (most urgent first)
+        if (a.alert.alert_level !== b.alert.alert_level) {
+          return a.alert.alert_level === "critical" ? -1 : 1;
+        }
+        const aDir = a.alert.dir ?? 999;
+        const bDir = b.alert.dir ?? 999;
+        return aDir - bDir;
+      });
+  }, [alerts, skus]);
+
   function supplierFor(id: string | null) {
     if (!id) return null;
     return suppliers.find((s) => s.id === id) ?? null;
@@ -141,6 +169,69 @@ export function ShipmentsList() {
         <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Inventory Procurement</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Purchase Orders</h1>
       </div>
+
+      {/* ── Reorder suggestions banner ── */}
+      {reorderSuggestions.length > 0 && (
+        <div
+          className="rounded-2xl overflow-hidden mb-2"
+          style={{
+            border: reorderSuggestions.some((r) => r.alert.alert_level === "critical")
+              ? "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)"
+              : "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)",
+            background: reorderSuggestions.some((r) => r.alert.alert_level === "critical")
+              ? "color-mix(in srgb, var(--snm-error) 8%, transparent)"
+              : "color-mix(in srgb, var(--snm-warning) 8%, transparent)",
+          }}
+        >
+          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+            <AlertTriangle
+              className="h-4 w-4 shrink-0"
+              style={{
+                color: reorderSuggestions.some((r) => r.alert.alert_level === "critical")
+                  ? "var(--snm-error)" : "var(--snm-warning)",
+              }}
+            />
+            <p className="text-[13px] font-bold" style={{
+              color: reorderSuggestions.some((r) => r.alert.alert_level === "critical")
+                ? "var(--snm-error)" : "var(--snm-warning)",
+            }}>
+              {reorderSuggestions.length} SKU{reorderSuggestions.length !== 1 ? "s" : ""} need reordering
+            </p>
+          </div>
+          <div className="px-4 pb-3 flex flex-wrap gap-2">
+            {reorderSuggestions.map(({ alert: a, sku }) => {
+              const isCritical = a.alert_level === "critical";
+              const dirText = a.dir != null ? `${a.dir}d` : "No data";
+              return (
+                <button
+                  key={a.sku_id}
+                  onClick={() => setNewSheet(true)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 12px", borderRadius: 20,
+                    background: isCritical
+                      ? "color-mix(in srgb, var(--snm-error) 15%, transparent)"
+                      : "color-mix(in srgb, var(--snm-warning) 15%, transparent)",
+                    border: `1px solid color-mix(in srgb, ${isCritical ? "var(--snm-error)" : "var(--snm-warning)"} 25%, transparent)`,
+                    color: isCritical ? "var(--snm-error)" : "var(--snm-warning)",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  {isCritical ? "🔴" : "🟡"}
+                  <span>{sku.brand_name} {sku.model_name}{sku.variant_display ? ` ${sku.variant_display}` : ""}</span>
+                  <span style={{ opacity: 0.7, fontWeight: 400 }}>{dirText}</span>
+                  <Plus style={{ width: 12, height: 12 }} />
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-4 pb-3">
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              Tap any SKU to create a purchase order. Days shown = estimated stock remaining.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Status filter chips ── */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
