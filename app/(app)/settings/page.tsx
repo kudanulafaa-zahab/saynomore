@@ -604,6 +604,8 @@ function PriceListsSection({ priceLists, skus, onChanged }: {
   const [openList, setOpenList]       = useState<PriceListRow | null>(null);
   const [newListTier, setNewListTier] = useState<PriceTier | null>(null);
   const [deleting, setDeleting]       = useState<string | null>(null);
+  // createdList: price list created inline during the new-list flow
+  const [createdList, setCreatedList] = useState<PriceListRow | null>(null);
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete price list "${name}"? All prices in it will be lost.`)) return;
@@ -714,16 +716,19 @@ function PriceListsSection({ priceLists, skus, onChanged }: {
         })}
       </div>
 
-      {/* New list sheet */}
+      {/* New list + add SKUs — combined single-screen flow */}
       {newListTier && (
-        <NewPriceListSheet
+        <NewPriceListWithSkusSheet
           tier={newListTier}
-          onClose={() => setNewListTier(null)}
-          onDone={() => { setNewListTier(null); onChanged(); }}
+          skus={skus}
+          createdList={createdList}
+          onListCreated={setCreatedList}
+          onClose={() => { setNewListTier(null); setCreatedList(null); }}
+          onDone={() => { setNewListTier(null); setCreatedList(null); onChanged(); }}
         />
       )}
 
-      {/* Edit items sheet */}
+      {/* Edit existing list items */}
       {openList && (
         <PriceListItemsSheet
           priceList={openList}
@@ -736,43 +741,208 @@ function PriceListsSection({ priceLists, skus, onChanged }: {
   );
 }
 
-/* ── New Price List sheet ──────────────────────────────────────────────── */
-function NewPriceListSheet({ tier, onClose, onDone }: {
-  tier: PriceTier; onClose: () => void; onDone: () => void;
+/* ── Combined: New Price List + Add SKUs in one screen ────────────────── */
+// UX fix: no more two-step flow. Name/date at top, SKU pricing below.
+// The list header is created lazily when the first SKU price is saved.
+function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onClose, onDone }: {
+  tier: PriceTier;
+  skus: SkuFullRow[];
+  createdList: PriceListRow | null;
+  onListCreated: (pl: PriceListRow) => void;
+  onClose: () => void;
+  onDone: () => void;
 }) {
   const t = TIERS.find((x) => x.value === tier)!;
-  const [name, setName] = useState(`${t.label} Price List`);
-  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().slice(0, 10));
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const [name, setName]                   = useState(`${t.label} Price List`);
+  const [effectiveFrom, setEffectiveFrom] = useState(today);
+  const [items, setItems]                 = useState<PriceListItemRow[]>([]);
+  const [search, setSearch]               = useState("");
+  const [selectedSkuId, setSelectedSkuId] = useState("");
+  const [showSkuPrice, setShowSkuPrice]   = useState(false);
+  const [creatingHeader, setCreatingHeader] = useState(false);
+  const [deleting, setDeleting]           = useState<string | null>(null);
 
-  async function save() {
-    if (!name.trim()) return;
-    setSaving(true);
+  const setSkuIds = useMemo(() => new Set(items.map((i) => i.sku_id)), [items]);
+  const filteredSkus = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return skus
+      .filter((s) => s.is_active && !setSkuIds.has(s.id))
+      .filter((s) => !term || [s.brand_name, s.model_name, s.variant_display ?? "", s.internal_code ?? ""].join(" ").toLowerCase().includes(term))
+      .slice(0, 40);
+  }, [skus, setSkuIds, search]);
+
+  // Ensure list header exists before saving an item
+  async function ensureList(): Promise<PriceListRow> {
+    if (createdList) return createdList;
+    setCreatingHeader(true);
     try {
-      await createPriceList({ name: name.trim(), tier, effective_from: effectiveFrom, notes: notes.trim() || null });
-      toast.success("Price list created");
-      onDone();
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setSaving(false); }
+      const pl = await createPriceList({ name: name.trim() || `${t.label} Price List`, tier, effective_from: effectiveFrom, notes: null });
+      onListCreated(pl);
+      return pl;
+    } finally { setCreatingHeader(false); }
+  }
+
+  async function handleSkuSaved(item: PriceListItemRow) {
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.sku_id === item.sku_id);
+      return idx >= 0 ? prev.map((i, n) => n === idx ? item : i) : [...prev, item];
+    });
+    setShowSkuPrice(false);
+    setSelectedSkuId("");
+    setSearch("");
+  }
+
+  async function handleDelete(itemId: string) {
+    setDeleting(itemId);
+    try { await deletePriceListItem(itemId); setItems((p) => p.filter((i) => i.id !== itemId)); toast.success("Removed"); }
+    catch (e) { toast.error((e as Error).message); }
+    finally { setDeleting(null); }
   }
 
   return (
-    <Sheet title={`New ${t.label} Price List`} onClose={onClose}>
-      <SheetInput label="Name" required>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
-      </SheetInput>
-      <SheetInput label="Effective From" required>
-        <input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} className={inputCls} />
-        <p className="text-xs mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-          This list applies to orders on or after this date. Old lists remain intact.
-        </p>
-      </SheetInput>
-      <SheetInput label="Notes (optional)">
-        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Ramadan 2025 promo" className={inputCls} />
-      </SheetInput>
-      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !name.trim()} label={saving ? "Creating…" : "CREATE LIST"} />
-    </Sheet>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--background)" }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+        <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}>
+          <X className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
+          <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>New Price List</h2>
+        </div>
+        {items.length > 0 && (
+          <button
+            onClick={onDone}
+            className="px-4 py-2 rounded-full text-xs font-bold"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            Done ({items.length})
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {/* List header — name + date, compact */}
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+          <div className="grid grid-cols-2 gap-3">
+            <SheetInput label="List name" required>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={!!createdList}
+                className={inputCls + (createdList ? " opacity-50" : "")}
+              />
+            </SheetInput>
+            <SheetInput label="Effective from" required>
+              <input
+                type="date"
+                value={effectiveFrom}
+                onChange={(e) => setEffectiveFrom(e.target.value)}
+                disabled={!!createdList}
+                min={today}
+                className={inputCls + (createdList ? " opacity-50" : "")}
+              />
+            </SheetInput>
+          </div>
+          {createdList && (
+            <p className="text-xs" style={{ color: "var(--snm-success)" }}>✓ List created — add SKU prices below</p>
+          )}
+        </div>
+
+        {/* Added SKUs so far */}
+        {items.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--muted-foreground)" }}>Added ({items.length})</p>
+            {items.map((item) => {
+              const sku = skus.find((s) => s.id === item.sku_id);
+              return (
+                <div key={item.id} className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                        {sku ? `${sku.brand_name} › ${sku.model_name}` : item.sku_id}
+                      </p>
+                      {sku?.variant_display && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
+                    </div>
+                    <button onClick={() => handleDelete(item.id)} disabled={deleting === item.id} className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                      {deleting === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {[
+                      { label: "/ piece",  value: item.price_per_piece_mvr },
+                      { label: "/ pack",   value: item.price_per_pack_mvr },
+                      { label: "/ carton", value: item.price_per_carton_mvr },
+                    ].map((p) => (
+                      <div key={p.label} className="rounded-xl px-3 py-2 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+                        <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
+                        <p className="text-sm font-semibold" style={{ color: t.color }}>MVR {Number(p.value).toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Add SKU area */}
+        {!showSkuPrice ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--muted-foreground)" }}>Add SKU prices</p>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search brand, SKU, variant…"
+              className={inputCls}
+            />
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 280, overflowY: "auto" }}>
+              {filteredSkus.length === 0 ? (
+                <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
+                  {search ? "No matches" : skus.filter(s => s.is_active).length === setSkuIds.size ? "All SKUs added" : "Search for a SKU above"}
+                </p>
+              ) : filteredSkus.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => { setSelectedSkuId(s.id); setShowSkuPrice(true); }}
+                  className="w-full text-left px-4 py-3 flex flex-col transition-colors"
+                  style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}
+                >
+                  <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                    {s.brand_name} › {s.model_name}
+                    {s.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span> : null}
+                  </p>
+                  {s.landed_per_piece_mvr != null && (
+                    <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <SkuPriceEntry
+            sku={skus.find((s) => s.id === selectedSkuId) ?? null}
+            creatingHeader={creatingHeader}
+            onBack={() => { setShowSkuPrice(false); setSelectedSkuId(""); }}
+            onSave={async (prices) => {
+              try {
+                const list = await ensureList();
+                await upsertPriceListItem({ price_list_id: list.id, sku_id: selectedSkuId, ...prices });
+                // upsertPriceListItem doesn't return the row — reload by fetching items
+                const updated = await listPriceListItems(list.id);
+                const newItem = updated.find((i) => i.sku_id === selectedSkuId);
+                if (newItem) handleSkuSaved(newItem);
+                else { setShowSkuPrice(false); setSelectedSkuId(""); }
+                toast.success("Price saved");
+              } catch (e) { toast.error((e as Error).message); }
+            }}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -898,265 +1068,272 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
         )}
       </div>
 
-      {/* Add SKU sheet */}
+      {/* Add SKU — inline below list */}
       {addSheet && (
-        <AddSkuToListSheet
-          priceListId={priceList.id}
-          skus={filteredSkus}
-          search={search}
-          onSearch={setSearch}
-          selectedSkuId={addSkuId}
-          onSelectSku={setAddSkuId}
-          onClose={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); }}
-          onSaved={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); loadItems(); }}
-        />
+        <div className="fixed inset-0 z-60 flex flex-col" style={{ background: "var(--background)" }}>
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+            <button onClick={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); }} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}>
+              <X className="h-4 w-4" />
+            </button>
+            <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>
+              {addSkuId ? "Set Price" : "Add SKU"}
+            </h2>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+            {!addSkuId ? (
+              <>
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search brand, SKU, variant…"
+                  className={inputCls}
+                />
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 400, overflowY: "auto" }}>
+                  {filteredSkus.length === 0 ? (
+                    <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
+                      {search ? "No matches" : "All active SKUs already have prices"}
+                    </p>
+                  ) : filteredSkus.map((s) => (
+                    <button key={s.id} onClick={() => setAddSkuId(s.id)} className="w-full text-left px-4 py-3 flex flex-col" style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}>
+                      <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                        {s.brand_name} › {s.model_name}
+                        {s.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span> : null}
+                      </p>
+                      {s.landed_per_piece_mvr != null && (
+                        <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <SkuPriceEntry
+                sku={filteredSkus.find((s) => s.id === addSkuId) ?? skus.find((s) => s.id === addSkuId) ?? null}
+                creatingHeader={false}
+                onBack={() => setAddSkuId("")}
+                onSave={async (prices) => {
+                  await upsertPriceListItem({ price_list_id: priceList.id, sku_id: addSkuId, ...prices });
+                  toast.success("Price saved");
+                  setAddSheet(false); setAddSkuId(""); setSearch("");
+                  loadItems();
+                }}
+              />
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-/* ── Add SKU to price list sheet ───────────────────────────────────────── */
-// UX: primary input is margin % → all prices auto-calculate.
-// User can also type carton or pack price directly → margin + other prices update.
-// Nobody thinks in price-per-piece in FMCG distribution.
-function AddSkuToListSheet({ priceListId, skus, search, onSearch, selectedSkuId, onSelectSku, onClose, onSaved }: {
-  priceListId:   string;
-  skus:          SkuFullRow[];
-  search:        string;
-  onSearch:      (s: string) => void;
-  selectedSkuId: string;
-  onSelectSku:   (id: string) => void;
-  onClose:       () => void;
-  onSaved:       () => void;
+/* ── SkuPriceEntry ─────────────────────────────────────────────────────── */
+// Reusable price entry component used in both new-list and edit-list flows.
+//
+// KEY UX FIX (Problem 2):
+//   - Margin % → fills all three prices (piece/pack/carton) proportionally
+//   - Pack price typed manually → ONLY updates piece (÷ pcsPerPack) + margin
+//     Carton is NOT touched — it stays independent
+//   - Carton price typed manually → ONLY updates margin display
+//     Pack is NOT touched — they are decoupled
+//   - Piece typed → ONLY updates margin
+//   This means pack and carton can be set to DIFFERENT effective-per-piece rates
+//   which is exactly how volume discounts work in FMCG.
+
+function SkuPriceEntry({ sku, creatingHeader, onBack, onSave }: {
+  sku: SkuFullRow | null;
+  creatingHeader: boolean;
+  onBack: () => void;
+  onSave: (prices: { price_per_piece_mvr: number; price_per_pack_mvr: number; price_per_carton_mvr: number; margin_pct: number | null }) => Promise<void>;
 }) {
-  const sku = skus.find((s) => s.id === selectedSkuId) ?? null;
-  const landed = sku?.landed_per_piece_mvr ? Number(sku.landed_per_piece_mvr) : null;
+  const landed        = sku?.landed_per_piece_mvr ? Number(sku.landed_per_piece_mvr) : null;
   const pcsPerPack    = sku?.pcs_per_pack    ?? 1;
   const packsPerCarton = sku?.packs_per_carton ?? 1;
   const pcsPerCarton  = pcsPerPack * packsPerCarton;
 
-  // Which field the user last typed in — drives the calculation direction
-  type LastEdited = "margin" | "carton" | "pack" | "piece";
-  const [lastEdited, setLastEdited] = useState<LastEdited>("margin");
-
   const [marginStr, setMarginStr] = useState("");
-  const [cartonStr, setCartonStr] = useState("");
   const [packStr,   setPackStr]   = useState("");
+  const [cartonStr, setCartonStr] = useState("");
   const [pieceStr,  setPieceStr]  = useState("");
   const [saving,    setSaving]    = useState(false);
 
-  // Reset all fields when SKU changes
-  useEffect(() => {
-    setMarginStr(""); setCartonStr(""); setPackStr(""); setPieceStr("");
-    setLastEdited("margin");
-  }, [selectedSkuId]);
+  // Margin → derive all three prices proportionally (initial fill only)
+  function applyMargin(mStr: string) {
+    setMarginStr(mStr);
+    const m = parseFloat(mStr);
+    if (!landed || isNaN(m) || m >= 100 || m < 0) return;
+    const piece = landed / (1 - m / 100);
+    setPieceStr(piece.toFixed(2));
+    setPackStr((piece * pcsPerPack).toFixed(2));
+    setCartonStr((piece * pcsPerCarton).toFixed(2));
+  }
 
-  // Core calculation: whenever any field changes, derive all others
-  useEffect(() => {
-    if (!sku) return;
+  // Pack typed → update piece + margin, leave carton alone
+  function applyPack(pStr: string) {
+    setPackStr(pStr);
+    const pk = parseFloat(pStr);
+    if (isNaN(pk) || pk <= 0) return;
+    const piece = pk / pcsPerPack;
+    setPieceStr(piece.toFixed(2));
+    if (landed && piece > 0) setMarginStr(((1 - landed / piece) * 100).toFixed(1));
+  }
 
-    if (lastEdited === "margin") {
-      const m = parseFloat(marginStr);
-      if (!landed || isNaN(m) || m >= 100) return;
-      const piece  = landed / (1 - m / 100);
-      setPieceStr(piece.toFixed(2));
-      setPackStr((piece * pcsPerPack).toFixed(2));
-      setCartonStr((piece * pcsPerCarton).toFixed(2));
+  // Carton typed → update margin display based on carton's effective piece price, leave pack alone
+  function applyCarton(cStr: string) {
+    setCartonStr(cStr);
+    const c = parseFloat(cStr);
+    if (isNaN(c) || c <= 0) return;
+    // Don't change pack or piece — carton is independent
+    // Show carton margin as a separate indicator (handled in render)
+  }
 
-    } else if (lastEdited === "carton") {
-      const c = parseFloat(cartonStr);
-      if (isNaN(c) || c <= 0 || pcsPerCarton <= 0) return;
-      const piece = c / pcsPerCarton;
-      setPieceStr(piece.toFixed(2));
-      setPackStr((piece * pcsPerPack).toFixed(2));
-      if (landed && piece > 0) setMarginStr(((1 - landed / piece) * 100).toFixed(1));
+  // Piece typed → update margin only
+  function applyPiece(pStr: string) {
+    setPieceStr(pStr);
+    const p = parseFloat(pStr);
+    if (isNaN(p) || p <= 0) return;
+    if (landed && p > 0) setMarginStr(((1 - landed / p) * 100).toFixed(1));
+  }
 
-    } else if (lastEdited === "pack") {
-      const pk = parseFloat(packStr);
-      if (isNaN(pk) || pk <= 0 || pcsPerPack <= 0) return;
-      const piece = pk / pcsPerPack;
-      setPieceStr(piece.toFixed(2));
-      setCartonStr((piece * pcsPerCarton).toFixed(2));
-      if (landed && piece > 0) setMarginStr(((1 - landed / piece) * 100).toFixed(1));
+  const packMargin  = landed && parseFloat(packStr)   > 0 ? ((1 - landed / (parseFloat(packStr)   / pcsPerPack))   * 100) : null;
+  const cartonMargin = landed && parseFloat(cartonStr) > 0 ? ((1 - landed / (parseFloat(cartonStr) / pcsPerCarton)) * 100) : null;
 
-    } else if (lastEdited === "piece") {
-      const p = parseFloat(pieceStr);
-      if (isNaN(p) || p <= 0) return;
-      setPackStr((p * pcsPerPack).toFixed(2));
-      setCartonStr((p * pcsPerCarton).toFixed(2));
-      if (landed && p > 0) setMarginStr(((1 - landed / p) * 100).toFixed(1));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marginStr, cartonStr, packStr, pieceStr, lastEdited]);
+  function marginColor(m: number | null) {
+    if (m === null) return "var(--muted-foreground)";
+    return m >= 25 ? "var(--snm-success)" : m >= 15 ? "var(--snm-warning)" : "var(--snm-error)";
+  }
 
-  const margin = parseFloat(marginStr);
-  const piece  = parseFloat(pieceStr);
-  const marginColor = isNaN(margin) ? "var(--muted-foreground)"
-    : margin >= 25 ? "var(--snm-success)"
-    : margin >= 15 ? "var(--snm-warning)"
-    : "var(--snm-error)";
+  const canSave = sku
+    && parseFloat(packStr)   > 0
+    && parseFloat(cartonStr) > 0
+    && parseFloat(pieceStr)  > 0;
 
-  const canSave = !!selectedSkuId && !isNaN(piece) && piece > 0
-    && !isNaN(parseFloat(packStr)) && !isNaN(parseFloat(cartonStr));
-
-  async function save() {
-    if (!canSave) return;
+  async function handleSave() {
+    if (!canSave || !sku) return;
     setSaving(true);
     try {
-      await upsertPriceListItem({
-        price_list_id:        priceListId,
-        sku_id:               selectedSkuId,
+      await onSave({
         price_per_piece_mvr:  parseFloat(pieceStr),
         price_per_pack_mvr:   parseFloat(packStr),
         price_per_carton_mvr: parseFloat(cartonStr),
-        margin_pct:           isNaN(margin) ? null : parseFloat(margin.toFixed(1)),
+        margin_pct:           packMargin !== null ? parseFloat(packMargin.toFixed(1)) : null,
       });
-      toast.success("Price saved");
-      onSaved();
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setSaving(false); }
+    } finally { setSaving(false); }
   }
 
+  if (!sku) return null;
+
   return (
-    <Sheet title="Set Price" onClose={onClose}>
-      {!selectedSkuId ? (
-        /* ── Step 1: pick a SKU ── */
-        <>
+    <div className="rounded-2xl p-4 space-y-4" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+      {/* SKU identity */}
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>
+          {sku.variant_display && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
+          <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+            {pcsPerPack} pcs/pack · {packsPerCarton} packs/carton · {pcsPerCarton} pcs/carton
+          </p>
+          {landed != null && (
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              Landed: <span className="font-semibold" style={{ color: "var(--foreground)" }}>MVR {landed.toFixed(3)}/pc</span>
+            </p>
+          )}
+        </div>
+        <button onClick={onBack} className="text-xs px-2 py-1 rounded-lg shrink-0" style={{ color: "var(--muted-foreground)", background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+          ← Back
+        </button>
+      </div>
+
+      {/* Margin quick-fill */}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+          Quick fill: target margin %
+        </p>
+        <div className="relative">
           <input
             autoFocus
-            value={search}
-            onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search brand, SKU, code…"
-            className={inputCls + " mb-3"}
+            type="number" inputMode="decimal" step="0.5" min="0" max="99"
+            value={marginStr}
+            onChange={(e) => applyMargin(e.target.value)}
+            placeholder={landed ? "e.g. 30 → fills all prices" : "No landed cost yet"}
+            disabled={!landed}
+            className={inputCls}
+            style={{ paddingRight: 36 }}
           />
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 300, overflowY: "auto" }}>
-            {skus.length === 0 ? (
-              <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
-                {search ? "No matches" : "All active SKUs already have prices in this list"}
-              </p>
-            ) : skus.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => onSelectSku(s.id)}
-                className="w-full text-left px-4 py-3 flex flex-col transition-colors hover:bg-accent"
-                style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}
-              >
-                <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                  {s.brand_name} › {s.model_name}
-                  {s.variant_display ? <span style={{ color: "var(--muted-foreground)", fontWeight: 400 }}> · {s.variant_display}</span> : null}
-                </p>
-                {s.landed_per_piece_mvr != null && (
-                  <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc
-                  </p>
-                )}
-              </button>
-            ))}
-          </div>
-        </>
-      ) : sku ? (
-        /* ── Step 2: set pricing ── */
-        <>
-          {/* SKU identity card */}
-          <div className="rounded-xl px-4 py-3 mb-5 flex items-center justify-between" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>
-              {sku.variant_display && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
-              <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
-                {pcsPerPack} pcs/pack · {packsPerCarton} packs/carton · {pcsPerCarton} pcs/carton
-              </p>
-              {landed != null && (
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                  Landed cost: <span style={{ color: "var(--foreground)", fontWeight: 600 }}>MVR {landed.toFixed(3)}/pc</span>
-                </p>
-              )}
-            </div>
-            <button onClick={() => onSelectSku("")} className="text-xs px-2 py-1 rounded-lg" style={{ color: "var(--muted-foreground)", background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>Change</button>
-          </div>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>%</span>
+        </div>
+        {!landed && <p className="text-xs mt-1" style={{ color: "var(--snm-warning)" }}>No landed cost — enter prices manually below.</p>}
+      </div>
 
-          {/* ── PRIMARY: Margin % ── */}
-          <div className="mb-4">
-            <p className="text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
-              Target Gross Margin %
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
+        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>set each price independently</p>
+        <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
+      </div>
+
+      {/* Pack price — independent */}
+      <SheetInput label={`Pack price — ${pcsPerPack} pcs`} required>
+        <input
+          type="number" inputMode="decimal" step="0.5" min="0.01"
+          value={packStr}
+          onChange={(e) => applyPack(e.target.value)}
+          placeholder="e.g. 100"
+          className={inputCls}
+        />
+        {packMargin !== null && (
+          <p className="text-xs mt-1 font-semibold" style={{ color: marginColor(packMargin) }}>
+            {packMargin.toFixed(1)}% margin on packs
+            {packMargin < 15 && " · ⚠ below minimum"}
+          </p>
+        )}
+      </SheetInput>
+
+      {/* Carton price — fully independent from pack */}
+      <SheetInput label={`Carton price — ${pcsPerCarton} pcs (volume discount)`} required>
+        <input
+          type="number" inputMode="decimal" step="1" min="0.01"
+          value={cartonStr}
+          onChange={(e) => applyCarton(e.target.value)}
+          placeholder="e.g. 360 (lower than 4 × pack = 400)"
+          className={inputCls}
+        />
+        {cartonMargin !== null && packMargin !== null && (
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-xs font-semibold" style={{ color: marginColor(cartonMargin) }}>
+              {cartonMargin.toFixed(1)}% margin on cartons
             </p>
-            <div className="relative">
-              <input
-                autoFocus
-                type="number" inputMode="decimal" step="0.5" min="0" max="99"
-                value={marginStr}
-                onChange={(e) => { setLastEdited("margin"); setMarginStr(e.target.value); }}
-                placeholder={landed ? "e.g. 30" : "No landed cost yet"}
-                disabled={!landed}
-                className={inputCls}
-                style={{ paddingRight: 36 }}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>%</span>
-            </div>
-            {!landed && (
-              <p className="text-xs mt-1" style={{ color: "var(--snm-warning)" }}>No landed cost recorded — enter prices manually below.</p>
+            {parseFloat(cartonStr) < parseFloat(packStr) * packsPerCarton && (
+              <p className="text-xs" style={{ color: "var(--snm-success)" }}>
+                ✓ MVR {(parseFloat(packStr) * packsPerCarton - parseFloat(cartonStr)).toFixed(2)} carton discount
+              </p>
+            )}
+            {parseFloat(cartonStr) >= parseFloat(packStr) * packsPerCarton && (
+              <p className="text-xs" style={{ color: "var(--snm-warning)" }}>
+                ⚠ No discount vs buying packs
+              </p>
             )}
           </div>
+        )}
+      </SheetInput>
 
-          {/* ── Divider ── */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>or enter a price directly</p>
-            <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
-          </div>
+      {/* Piece price */}
+      <SheetInput label="Piece price (optional)">
+        <input
+          type="number" inputMode="decimal" step="0.01" min="0.01"
+          value={pieceStr}
+          onChange={(e) => applyPiece(e.target.value)}
+          placeholder="auto-filled from pack ÷ pcs"
+          className={inputCls}
+        />
+      </SheetInput>
 
-          {/* ── SECONDARY: Carton / Pack / Piece ── */}
-          <div className="grid grid-cols-1 gap-3 mb-4">
-            <SheetInput label={`Price per carton (${pcsPerCarton} pcs)`}>
-              <input
-                type="number" inputMode="decimal" step="1" min="0.01"
-                value={cartonStr}
-                onChange={(e) => { setLastEdited("carton"); setCartonStr(e.target.value); }}
-                placeholder="e.g. 350"
-                className={inputCls}
-              />
-            </SheetInput>
-            <div className="grid grid-cols-2 gap-3">
-              <SheetInput label={`Per pack (${pcsPerPack} pcs)`}>
-                <input
-                  type="number" inputMode="decimal" step="0.5" min="0.01"
-                  value={packStr}
-                  onChange={(e) => { setLastEdited("pack"); setPackStr(e.target.value); }}
-                  placeholder="e.g. 88"
-                  className={inputCls}
-                />
-              </SheetInput>
-              <SheetInput label="Per piece">
-                <input
-                  type="number" inputMode="decimal" step="0.01" min="0.01"
-                  value={pieceStr}
-                  onChange={(e) => { setLastEdited("piece"); setPieceStr(e.target.value); }}
-                  placeholder="e.g. 2"
-                  className={inputCls}
-                />
-              </SheetInput>
-            </div>
-          </div>
-
-          {/* ── Live margin summary ── */}
-          {!isNaN(margin) && marginStr !== "" && (
-            <div className="rounded-xl px-4 py-3 mb-4" style={{ background: `color-mix(in srgb, ${marginColor} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${marginColor} 25%, transparent)` }}>
-              <p className="text-sm font-bold" style={{ color: marginColor }}>
-                {margin.toFixed(1)}% gross margin
-              </p>
-              {landed && !isNaN(piece) && piece > 0 && (
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                  MVR {landed.toFixed(3)} cost → MVR {piece.toFixed(2)}/pc selling
-                </p>
-              )}
-              {margin < 15 && (
-                <p className="text-xs mt-1 font-semibold" style={{ color: "var(--snm-error)" }}>⚠ Below minimum recommended margin (15%)</p>
-              )}
-            </div>
-          )}
-
-          <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !canSave} label={saving ? "Saving…" : "SAVE PRICE"} />
-        </>
-      ) : null}
-    </Sheet>
+      <SheetActions
+        onCancel={onBack}
+        onConfirm={handleSave}
+        disabled={saving || creatingHeader || !canSave}
+        label={saving || creatingHeader ? "Saving…" : "SAVE PRICE"}
+      />
+    </div>
   );
 }
