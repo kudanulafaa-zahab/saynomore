@@ -393,7 +393,7 @@ export function ShipmentDetail({ id }: { id: string }) {
   /* ════════════════════════════════════════════════════════════════════════ */
 
   return (
-    <div className="pb-28">
+    <div className="pb-48 lg:pb-28">
 
       {/* ── Sticky header ── */}
       <div
@@ -973,15 +973,19 @@ export function ShipmentDetail({ id }: { id: string }) {
       )}
 
       {/* ── Sticky bottom bar (id for smooth scroll anchor) ── */}
+      {/* Mobile: z-50 sits above the bottom nav (z-40), offset by nav height.  */}
+      {/* Desktop (lg): nav is lg:hidden, bar sits at true viewport bottom.      */}
+      {/* We use a CSS var --grn-bottom set by a style tag below.                */}
       <div
         id="grn-bar"
-        className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3"
+        className="fixed left-0 lg:left-60 right-0 z-50 px-4 pt-3"
         style={{
-          background: "var(--background)",
+          bottom: 0,
+          paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))",
+          background: "color-mix(in srgb, var(--background) 92%, transparent)",
           borderTop: "1px solid var(--glass-border-lo)",
-          paddingBottom: "max(16px, env(safe-area-inset-bottom))",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
         }}
       >
         {locked ? (
