@@ -191,7 +191,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
 function SectionHeader({ label, action }: { label: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <p className="label-caps text-[10px] font-semibold" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+      <p className="label-caps text-[11px] font-semibold" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       {action}
     </div>
   );
@@ -202,7 +202,7 @@ function SectionHeader({ label, action }: { label: string; action?: React.ReactN
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+      <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       {children}
     </div>
   );
@@ -408,7 +408,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1 min-w-0">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>Purchase Order</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Purchase Order</p>
           <h1 className="text-[17px] font-semibold text-foreground leading-tight truncate">{shipment.reference}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -502,7 +502,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         {/* Status stepper */}
         {!locked && (
           <div className="space-y-3">
-            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>STATUS</p>
+            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>STATUS</p>
 
             {/* Read-only visual track */}
             <div className="flex items-center">
@@ -815,7 +815,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           className="w-full flex items-center justify-between p-5 transition"
         >
           <div>
-            <p className="label-caps text-[10px] text-left mb-0.5" style={{ color: "var(--muted-foreground)" }}>COSTS & FOREX</p>
+            <p className="label-caps text-[11px] text-left mb-0.5" style={{ color: "var(--muted-foreground)" }}>COSTS & FOREX</p>
             {!costsOpen && preview && (
               <p className="text-[12px] font-semibold text-foreground">
                 Total landed: MVR {fmt0(preview.grandTotal)}
@@ -889,7 +889,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
             {/* Local costs */}
             <div>
-              <p className="label-caps text-[10px] mb-3" style={{ color: "var(--muted-foreground)" }}>LOCAL COSTS (MVR)</p>
+              <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>LOCAL COSTS (MVR)</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: "Customs duty",  field: "customs_duty_mvr" },
@@ -1301,7 +1301,7 @@ function LineDialog({
 
         {/* SKU picker */}
         <div className="mb-4">
-          <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
+          <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!skuId ? (
             <>
               <input
@@ -1349,7 +1349,7 @@ function LineDialog({
         {skuId && (
           <>
             <div className="mb-4">
-              <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>QTY CARTONS *</p>
+              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>QTY CARTONS *</p>
               <QtyStepper value={qtyCartons} min={1} onChange={setQtyCartons} />
               {sku && (
                 <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
@@ -1361,7 +1361,7 @@ function LineDialog({
 
             {/* FOB price */}
             <div className="mb-4">
-              <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>SUPPLIER PRICE / CARTON *</p>
+              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>SUPPLIER PRICE / CARTON *</p>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -1393,7 +1393,7 @@ function LineDialog({
 
             {/* Destination godown */}
             <div className="mb-6">
-              <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>DESTINATION WAREHOUSE *</p>
+              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>DESTINATION WAREHOUSE *</p>
               <div className="relative">
                 <select
                   value={godownId}

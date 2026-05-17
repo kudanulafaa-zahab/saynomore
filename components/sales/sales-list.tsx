@@ -87,7 +87,7 @@ interface DraftLine {
 function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
+      {label && <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
@@ -102,7 +102,7 @@ function GlassSelect({ label, value, onChange, children }: {
 }) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
+      {label && <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
@@ -162,7 +162,7 @@ export function SalesList() {
     <div className="space-y-4">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
+          <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Sales</h1>
         </div>
         <button
@@ -470,6 +470,13 @@ function NewSaleSheet({
                     <input autoFocus value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
                       placeholder="Search name, phone…"
                       className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                    {customerSearch && (
+                      <button onClick={() => setCustomerSearch("")}
+                        className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-opacity hover:opacity-70"
+                        style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                   <button onClick={() => setShowNewCustomer(true)}
                     className="flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold transition"
@@ -479,28 +486,31 @@ function NewSaleSheet({
                 </div>
 
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest mb-3" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[11px] uppercase tracking-widest mb-3 font-medium" style={{ color: "var(--muted-foreground)" }}>
                     {customerSearch.trim() ? "Results" : "Recent Customers"}
                   </p>
-                  <div className="flex gap-3 overflow-x-auto pb-1">
+                  <div className="space-y-1.5">
                     {(customerSearch.trim() ? filteredCustomers : recentCustomers).map((c) => {
                       const initials = c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
                       return (
                         <button key={c.id}
                           onClick={() => { setCustomerId(c.id); setChannel((c.channel as OrderChannel) ?? "whatsapp"); }}
-                          className="flex-shrink-0 p-4 rounded-xl w-36 text-left transition active:scale-95"
+                          className="w-full flex items-center gap-3 px-4 h-14 rounded-xl text-left transition active:scale-[0.99]"
                           style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
-                          <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm mb-2"
+                          <div className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
                             style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>
                             {initials}
                           </div>
-                          <p className="text-[12px] font-bold text-foreground truncate">{c.name}</p>
-                          <p className="text-[10px] truncate" style={{ color: "var(--muted-foreground)" }}>{c.island ?? c.channel}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[14px] font-semibold text-foreground truncate">{c.name}</p>
+                            <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>{[c.island, c.channel].filter(Boolean).join(" · ")}</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                         </button>
                       );
                     })}
                     {(customerSearch.trim() ? filteredCustomers : recentCustomers).length === 0 && (
-                      <p className="text-sm py-4" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="text-sm py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
                         {customerSearch.trim() ? "No matches." : "No customers yet."}
                       </p>
                     )}
@@ -671,7 +681,7 @@ function NewSaleSheet({
                   </GlassSelect>
                   <GlassInput label="Qty" type="number" inputMode="decimal" min="1" value={lineQty} onChange={(e) => setLineQty((e.target as HTMLInputElement).value)} placeholder="0" autoFocus />
                   <div className="space-y-1.5">
-                    <p className="text-[10px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[11px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
                       Price (MVR)
                       {linePrice && !priceManuallyEdited
                         ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
@@ -704,7 +714,7 @@ function NewSaleSheet({
             {/* Draft lines */}
             {draftLines.length > 0 && (
               <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
-                <p className="px-4 pt-3 pb-2 text-[10px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
+                <p className="px-4 pt-3 pb-2 text-[11px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
                   Order items · {draftLines.length}
                 </p>
                 {draftLines.map((l) => (
@@ -736,7 +746,7 @@ function NewSaleSheet({
 
             {/* Order total hero */}
             <div className="rounded-2xl p-5" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
-              <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Order Total</p>
+              <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Order Total</p>
               <p className="text-[36px] font-light tracking-tight text-foreground leading-none mb-1">
                 {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 <span className="text-[16px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
@@ -761,7 +771,7 @@ function NewSaleSheet({
 
             {/* Payment method */}
             <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>How will the customer pay?</p>
+              <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>How will the customer pay?</p>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setPaymentMethod("bank_transfer")}
@@ -788,7 +798,7 @@ function NewSaleSheet({
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Delivery notes (optional)</p>
+              <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Delivery notes (optional)</p>
               <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)}
                 placeholder="e.g. Leave at the gate, call before arriving…"
                 rows={2}

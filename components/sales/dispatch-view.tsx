@@ -126,24 +126,23 @@ export function DispatchView() {
         </div>
       </div>
 
-      {/* Stats bento */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 12 }}>
-        <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
+      {/* Stats bento — horizontal scroll on mobile, 3-col on sm+ */}
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        <div style={{ ...CARD, borderRadius: 16, padding: "16px 20px" }}>
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Active</p>
-          <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{pending.length}</p>
+          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.03em" }}>{pending.length}</p>
         </div>
-        <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Completed Today</p>
-          <p style={{ color: "var(--snm-success)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>{completed.length}</p>
+        <div style={{ ...CARD, borderRadius: 16, padding: "16px 20px" }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Done Today</p>
+          <p style={{ color: "var(--snm-success)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.03em" }}>{completed.length}</p>
         </div>
-        <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Completion Rate</p>
-          <p style={{ color: "var(--foreground)", fontSize: 32, fontWeight: 300, letterSpacing: "-0.03em" }}>
+        <div style={{ ...CARD, borderRadius: 16, padding: "16px 20px" }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Rate</p>
+          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.03em" }}>
             {(pending.length + completed.length) > 0
               ? `${Math.round((completed.length / (completed.length + pending.length)) * 100)}%`
               : "—"}
           </p>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 4 }}>today's assigned runs</p>
         </div>
       </div>
 
@@ -160,19 +159,19 @@ export function DispatchView() {
               return (
                 <div key={item.order.id} style={{ background: "var(--glass-bg-1)", borderRadius: 12, overflow: "hidden" }}>
                   <div
-                    style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", borderLeft: "2px solid var(--glass-border)" }}
+                    style={{ padding: "18px 20px", minHeight: 64, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", borderLeft: "3px solid var(--snm-warning)" }}
                     onClick={() => setExpanded(isExpanded ? null : item.order.id)}
                   >
                     <div>
-                      <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600 }}>{item.order.order_number}</p>
-                      <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
-                        {item.customer ? item.customer.name : "Walk-in"} · {item.godown?.name ?? "—"}
+                      <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 600 }}>{item.customer ? item.customer.name : "Walk-in"}</p>
+                      <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
+                        {item.order.order_number} · {item.godown?.name ?? "—"}
                       </p>
                     </div>
                     <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
                       <div>
-                        <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600 }}>MVR {totalMvr.toFixed(0)}</p>
-                        <p style={{ color: "var(--snm-warning)", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>Active</p>
+                        <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 700 }}>MVR {totalMvr.toFixed(0)}</p>
+                        <p style={{ color: "var(--snm-warning)", fontSize: 10, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.06em" }}>Out for delivery</p>
                       </div>
                       <ChevronDown style={{ color: "var(--muted-foreground)", width: 18, height: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                     </div>
@@ -190,7 +189,7 @@ export function DispatchView() {
                       })}
                       <button
                         onClick={() => setConfirmDelivery(item.order)}
-                        style={{ marginTop: 14, width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "12px", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
+                        style={{ marginTop: 14, width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, letterSpacing: "0.04em", cursor: "pointer", minHeight: 52 }}
                       >
                         Mark as Delivered
                       </button>
@@ -232,13 +231,13 @@ export function DispatchView() {
             <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, marginBottom: 8 }}>Confirm Delivery</h2>
             <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>{confirmDelivery.order_number}</p>
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setConfirmDelivery(null)} style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "var(--muted-foreground)", border: "none", borderRadius: 999, padding: 14, fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setConfirmDelivery(null)} style={{ flex: 1, background: "var(--glass-bg-1)", color: "var(--muted-foreground)", border: "1px solid var(--glass-border-lo)", borderRadius: 14, padding: 0, height: 52, fontSize: 14, cursor: "pointer" }}>Cancel</button>
               <button
                 onClick={markDelivered}
                 disabled={saving}
-                style={{ flex: 2, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: 14, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}
+                style={{ flex: 2, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 14, padding: 0, height: 52, fontSize: 14, fontWeight: 700, letterSpacing: "0.03em", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}
               >
-                {saving ? "Saving…" : "CONFIRM DELIVERED"}
+                {saving ? "Saving…" : "Confirm Delivered"}
               </button>
             </div>
           </div>

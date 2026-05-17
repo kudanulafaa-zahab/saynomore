@@ -210,7 +210,7 @@ export function CompetitorsView() {
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Intelligence</p>
+          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Intelligence</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Pricing</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -236,7 +236,7 @@ export function CompetitorsView() {
       {/* ── SKU Selector ── */}
       {skus.length > 0 && (
         <div>
-          <p className="label-caps text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>Analysing</p>
+          <p className="label-caps text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>Analysing</p>
           <div className="relative">
             <select
               value={simSku?.id ?? ""}
@@ -266,7 +266,7 @@ export function CompetitorsView() {
         <div className="grid grid-cols-3 gap-3">
           {/* Landed Cost */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
+            <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
             {landedPerPiece > 0 ? (
               <div className="space-y-1">
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
@@ -286,7 +286,7 @@ export function CompetitorsView() {
 
           {/* Cheapest Competitor */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>CHEAPEST COMPETITOR</p>
+            <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>CHEAPEST COMPETITOR</p>
             {topCompEntry && topCompPerPiece != null ? (
               <div className="space-y-1">
                 <p className="text-[11px] font-semibold truncate" style={{ color: "var(--foreground)" }}>{topCompEntry.comp?.name}</p>
@@ -307,7 +307,7 @@ export function CompetitorsView() {
 
           {/* Our Current Price */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>OUR SELLING PRICE</p>
+            <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>OUR SELLING PRICE</p>
             {simSku.selling_price_per_piece_mvr != null ? (
               <div className="space-y-1">
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
@@ -356,7 +356,7 @@ export function CompetitorsView() {
           <div className="p-5 space-y-5">
             {/* Price input — tap to type */}
             <div>
-              <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>
+              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>
                 SELLING PRICE — {simLabel.toUpperCase()} · tap number to type
               </p>
               <div className="rounded-xl px-5 py-4 text-center" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
@@ -932,11 +932,11 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
         <div className="space-y-1.5">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
         <div className="flex gap-2 pt-1">
@@ -1028,7 +1028,7 @@ function PriceModal({
 
         {/* Competitor selector — show all, or allow adding inline */}
         <div className="space-y-1.5">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
           {competitors.length > 0 ? (
             <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
               <option value="">Pick competitor</option>
@@ -1041,7 +1041,7 @@ function PriceModal({
 
         {/* Product */}
         <div>
-          <p className="label-caps text-[10px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
+          <p className="label-caps text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!variantId ? (
             <>
               <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
@@ -1068,11 +1068,11 @@ function PriceModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
+            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
             <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
           </div>
           <div className="space-y-1.5">
-            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
+            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
             <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
               {(Object.keys(BASIS_LABEL) as PriceBasis[]).map((b) => <option key={b} value={b}>{BASIS_LABEL[b]}</option>)}
             </select>
@@ -1090,18 +1090,18 @@ function PriceModal({
 
         {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
           <div className="space-y-1.5">
-            <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
+            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
             <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
           </div>
         )}
 
         <div className="space-y-1.5">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
           <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="space-y-1.5">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
         </div>
 

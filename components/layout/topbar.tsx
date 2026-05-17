@@ -82,7 +82,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
               </div>
               <div className="min-w-0">
                 <p className="text-[13px] font-semibold text-foreground truncate">{name}</p>
-                <p className="text-[10px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{role}</p>
+                <p className="text-[11px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{role}</p>
               </div>
             </div>
             {/* Actions */}

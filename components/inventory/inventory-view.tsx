@@ -64,7 +64,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
       className="rounded-2xl p-4"
       style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
     >
-      <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+      <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       <p className="text-[26px] font-light tracking-tight leading-none" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
       <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>{sub}</p>
     </div>

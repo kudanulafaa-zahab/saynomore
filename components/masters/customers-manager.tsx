@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, Filter } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,11 +108,12 @@ export function CustomersManager() {
         </div>
         <button
           onClick={() => setDialog({ open: true })}
-          className="flex items-center gap-2 px-5 py-3 rounded-full text-sm font-semibold transition active:scale-95"
+          className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95 shrink-0"
           style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
           <Plus className="h-4 w-4" />
-          Add New Customer
+          <span className="hidden sm:inline">Add Customer</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </div>
 
@@ -128,7 +129,15 @@ export function CustomersManager() {
           placeholder="Search by name, phone, island…"
           className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
         />
-        <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+        {q && (
+          <button
+            onClick={() => setQ("")}
+            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-opacity hover:opacity-70"
+            style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Stats bento */}
@@ -137,7 +146,7 @@ export function CustomersManager() {
           className="rounded-3xl p-5 flex flex-col justify-between"
           style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)", minHeight: 140 }}
         >
-          <p className="label-caps text-[10px] text-muted-foreground">Active Clients</p>
+          <p className="label-caps text-[11px] text-muted-foreground">Active Clients</p>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-semibold text-foreground">{rows.length.toLocaleString()}</span>
           </div>
@@ -146,7 +155,7 @@ export function CustomersManager() {
           className="rounded-3xl p-5 flex flex-col justify-between"
           style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)", minHeight: 140 }}
         >
-          <p className="label-caps text-[10px] text-muted-foreground">Avg. Lifetime Value</p>
+          <p className="label-caps text-[11px] text-muted-foreground">Avg. Lifetime Value</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-light tracking-tight text-foreground">—</span>
             <span className="text-sm text-muted-foreground">MVR</span>
@@ -156,7 +165,7 @@ export function CustomersManager() {
           className="rounded-3xl p-5 flex flex-col justify-between"
           style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)", minHeight: 140 }}
         >
-          <p className="label-caps text-[10px] text-muted-foreground">Top Channel</p>
+          <p className="label-caps text-[11px] text-muted-foreground">Top Channel</p>
           <div className="flex items-center gap-3 mt-2">
             <span className="text-2xl">💬</span>
             <span className="text-lg font-semibold text-foreground">{topChannel}</span>
@@ -252,7 +261,8 @@ export function CustomersManager() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => setDialog({ open: true, editing: c })}
-                    className="p-2 rounded-lg transition text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    className="flex items-center justify-center rounded-xl transition text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    style={{ width: 44, height: 44 }}
                     title="Edit"
                   >
                     <Pencil className="h-4 w-4" />
@@ -264,7 +274,8 @@ export function CustomersManager() {
                         try { await deleteCustomer(c.id); toast.success("Deleted"); load(); }
                         catch (e) { toast.error((e as Error).message); }
                       }}
-                      className="p-2 rounded-lg transition text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)]"
+                      className="flex items-center justify-center rounded-xl transition text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)]"
+                      style={{ width: 44, height: 44 }}
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />

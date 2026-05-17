@@ -155,7 +155,7 @@ export function BottomNav({ role }: { role: string }) {
               return (
                 <div key={section.label}>
                   <p
-                    className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest"
+                    className="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-widest"
                     style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
                   >
                     {section.label}
@@ -198,7 +198,7 @@ export function BottomNav({ role }: { role: string }) {
             {role !== "staff" && (
               <div>
                 <p
-                  className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest"
+                  className="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-widest"
                   style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
                 >
                   Account

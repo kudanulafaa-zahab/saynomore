@@ -166,7 +166,7 @@ export function ShipmentsList() {
 
       {/* ── Header ── */}
       <div className="mb-4">
-        <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>Inventory Procurement</p>
+        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Inventory Procurement</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Purchase Orders</h1>
       </div>
 
@@ -547,7 +547,7 @@ function NewPoSheet({
 
         {/* Reference */}
         <div className="space-y-1.5 mb-4">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>PO REFERENCE</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>PO REFERENCE</p>
           <input
             autoFocus
             value={reference}
@@ -561,7 +561,7 @@ function NewPoSheet({
 
         {/* Supplier */}
         <div className="space-y-1.5 mb-6">
-          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>SUPPLIER</p>
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>SUPPLIER</p>
           <div className="relative">
             <select
               value={supplierId}

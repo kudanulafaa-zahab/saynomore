@@ -110,7 +110,7 @@ function SkuPanel({
         style={{ borderBottom: "1px solid var(--glass-border)" }}
       >
         <div className="min-w-0 flex-1 pr-3">
-          <p className="label-caps text-[10px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>
             {sku.brand_name} · {sku.category_name}
           </p>
           <p className="text-[17px] font-semibold text-foreground leading-snug">
@@ -123,7 +123,7 @@ function SkuPanel({
         </div>
         <button
           onClick={onClose}
-          className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition"
+          className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 transition"
           style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}
         >
           <X className="h-4 w-4" />
@@ -135,7 +135,7 @@ function SkuPanel({
 
         {/* Pack config */}
         <div>
-          <p className="label-caps text-[10px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pack Configuration</p>
+          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pack Configuration</p>
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Pcs / Pack",   value: String(sku.pcs_per_pack) },
@@ -153,7 +153,7 @@ function SkuPanel({
 
         {/* Landed cost + selling prices */}
         <div>
-          <p className="label-caps text-[10px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pricing</p>
+          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pricing</p>
 
           {/* Landed cost row */}
           {sku.landed_per_piece_mvr != null && (
@@ -277,7 +277,7 @@ function SkuPanel({
 
         {/* Carton dimensions */}
         <div>
-          <p className="label-caps text-[10px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Carton Dimensions</p>
+          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Carton Dimensions</p>
           <div className="rounded-xl px-4 py-3 space-y-1.5"
             style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
             <div className="flex justify-between text-[12px]">
@@ -301,7 +301,7 @@ function SkuPanel({
 
         {/* Meta */}
         <div>
-          <p className="label-caps text-[10px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Details</p>
+          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Details</p>
           <div className="rounded-xl px-4 py-3 space-y-1.5"
             style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
             <div className="flex justify-between text-[12px]">
@@ -604,7 +604,7 @@ export function ProductsExplorer() {
                   borderBottom: "1px solid var(--glass-border)",
                 }}
               >
-                <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                   {brand} · {brandSkus.length} SKU{brandSkus.length !== 1 ? "s" : ""}
                 </p>
               </div>

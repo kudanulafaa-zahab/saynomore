@@ -186,8 +186,8 @@ export function ReportsView() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Summary cards — horizontal scroll on mobile, auto grid on sm+ */}
+      <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:overflow-visible">
         <SummaryCard
           label="Total Revenue"
           value={`MVR ${totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
@@ -213,7 +213,7 @@ export function ReportsView() {
           color={totals.lowStock > 0 ? "bg-red-500/15 text-red-500" : "bg-muted text-muted-foreground"}
         />
         <SummaryCard
-          label="Marketing Spend"
+          label="Mktg Spend"
           value={totals.totalSpend > 0 ? `MVR ${totals.totalSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
           icon={Megaphone}
           color="bg-purple-500/15 text-purple-600 dark:text-purple-300"
@@ -300,7 +300,7 @@ function SummaryCard({ label, value, icon: Icon, color }: {
   label: string; value: string; icon: typeof TrendingUp; color: string;
 }) {
   return (
-    <div className="glass p-4 space-y-2">
+    <div className="glass p-4 space-y-2 shrink-0 sm:shrink" style={{ minWidth: 140 }}>
       <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${color}`}>
         <Icon className="h-4 w-4" />
       </div>
