@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import { Loader2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ export function CustomersManager() {
   const [q, setQ] = useState("");
   const [dialog, setDialog] = useState<{ open: boolean; editing?: CustomerRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
+  const [confirmCustomer, setConfirmCustomer] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -268,11 +270,7 @@ export function CustomersManager() {
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={async () => {
-                      if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
-                      try { await deleteCustomer(c.id); toast.success("Deleted"); load(); }
-                      catch (e) { toast.error((e as Error).message); }
-                    }}
+                    onClick={() => setConfirmCustomer({ id: c.id, name: c.name })}
                     className="flex items-center justify-center rounded-xl transition text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)]"
                     style={{ width: 44, height: 44 }}
                     title="Delete"
@@ -305,6 +303,19 @@ export function CustomersManager() {
         editing={dialog.editing}
         onOpenChange={(o) => setDialog({ open: o })}
         onSaved={load}
+      />
+
+      <ConfirmSheet
+        open={confirmCustomer !== null}
+        onClose={() => setConfirmCustomer(null)}
+        title="Delete customer?"
+        message={confirmCustomer ? `"${confirmCustomer.name}" will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmCustomer) return;
+          try { await deleteCustomer(confirmCustomer.id); toast.success("Deleted"); setConfirmCustomer(null); load(); }
+          catch (e) { toast.error((e as Error).message); }
+        }}
       />
     </div>
   );

@@ -21,6 +21,7 @@ import {
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -156,6 +157,8 @@ export function SalesList() {
   const [newDialog, setNewDialog] = useState(false);
   const [groupBy, setGroupBy] = useState<"orders" | "customers">("orders");
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -313,11 +316,7 @@ export function SalesList() {
                 </Link>
                 {/* Delete button — outside the link so tap doesn't navigate */}
                 <button
-                  onClick={async () => {
-                    if (!confirm(`Delete ${o.order_number}? This cannot be undone.`)) return;
-                    try { await deleteOrder(o.id); toast.success("Order deleted"); load(); }
-                    catch (e) { toast.error((e as Error).message); }
-                  }}
+                  onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
                   className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition"
                   style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "none" }}
                   title="Delete order"
@@ -411,11 +410,7 @@ export function SalesList() {
                             </div>
                           </Link>
                           <button
-                            onClick={async () => {
-                              if (!confirm(`Delete ${o.order_number}? This cannot be undone.`)) return;
-                              try { await deleteOrder(o.id); toast.success("Order deleted"); load(); }
-                              catch (e) { toast.error((e as Error).message); }
-                            }}
+                            onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
                             className="h-9 w-9 mr-2 rounded-lg flex items-center justify-center shrink-0 transition"
                             style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "none" }}
                           >
@@ -441,6 +436,22 @@ export function SalesList() {
           onCustomerCreated={(c) => setCustomers((prev) => [c, ...prev])}
         />
       )}
+
+      <ConfirmSheet
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete order?"
+        message={confirmDelete ? `${confirmDelete.label} will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          setDeleting(true);
+          try { await deleteOrder(confirmDelete.id); toast.success("Order deleted"); load(); setConfirmDelete(null); }
+          catch (e) { toast.error((e as Error).message); }
+          finally { setDeleting(false); }
+        }}
+      />
     </div>
   );
 }

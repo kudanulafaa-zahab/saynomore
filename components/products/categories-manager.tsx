@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export function CategoriesManager() {
   const [rows, setRows] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmCat, setConfirmCat] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -108,11 +110,7 @@ export function CategoriesManager() {
             </div>
             {!c.is_system && (
               <button
-                onClick={async () => {
-                  if (!confirm(`Delete category "${c.name}"?`)) return;
-                  try { await deleteCategory(c.id); toast.success("Deleted"); load(); }
-                  catch (e) { toast.error((e as Error).message); }
-                }}
+                onClick={() => setConfirmCat({ id: c.id, name: c.name })}
                 className="p-2 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition shrink-0"
               >
                 <Trash2 className="h-4 w-4" />
@@ -123,6 +121,19 @@ export function CategoriesManager() {
       </div>
 
       <CategoryDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={load} />
+
+      <ConfirmSheet
+        open={confirmCat !== null}
+        onClose={() => setConfirmCat(null)}
+        title="Delete category?"
+        message={confirmCat ? `"${confirmCat.name}" will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmCat) return;
+          try { await deleteCategory(confirmCat.id); toast.success("Deleted"); setConfirmCat(null); load(); }
+          catch (e) { toast.error((e as Error).message); }
+        }}
+      />
     </div>
   );
 }

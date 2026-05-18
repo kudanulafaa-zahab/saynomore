@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
   Loader2, Tag, Plus, Trash2, Pencil, ChevronRight, X,
@@ -50,6 +51,8 @@ export function PriceListsView() {
   const [newListTier, setNewListTier] = useState<PriceTier | null>(null);
   const [createdList, setCreatedList] = useState<PriceListRow | null>(null);
   const [deleting, setDeleting]     = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [confirmDeleting, setConfirmDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -67,16 +70,21 @@ export function PriceListsView() {
   useEffect(() => { load(); }, []);
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete price list "${name}"? All prices in it will be lost.`)) return;
-    setDeleting(id);
+    setConfirmDelete({ id, name });
+  }
+
+  async function doDelete() {
+    if (!confirmDelete) return;
+    setConfirmDeleting(true);
     try {
-      await deletePriceList(id);
+      await deletePriceList(confirmDelete.id);
       toast.success("Price list deleted");
+      setConfirmDelete(null);
       load();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
-      setDeleting(null);
+      setConfirmDeleting(false);
     }
   }
 
@@ -219,6 +227,16 @@ export function PriceListsView() {
           onDone={() => { setOpenList(null); load(); }}
         />
       )}
+
+      <ConfirmSheet
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete price list?"
+        message={confirmDelete ? `"${confirmDelete.name}" and all its prices will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        loading={confirmDeleting}
+        onConfirm={doDelete}
+      />
     </>
   );
 }
@@ -472,6 +490,8 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
   const [addSheet, setAddSheet]     = useState(false);
   const [deleting, setDeleting]     = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [confirmRemoving, setConfirmRemoving] = useState(false);
 
   async function loadItems() {
     setLoading(true);
@@ -491,18 +511,8 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
       .slice(0, 40);
   }, [skus, setSkuIds, search]);
 
-  async function handleDelete(itemId: string) {
-    if (!confirm("Remove this SKU from the price list?")) return;
-    setDeleting(itemId);
-    try {
-      await deletePriceListItem(itemId);
-      toast.success("Removed");
-      loadItems();
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setDeleting(null);
-    }
+  function handleDelete(itemId: string) {
+    setConfirmRemove(itemId);
   }
 
   return (
@@ -710,6 +720,29 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
           </div>
         </div>
       )}
+
+      <ConfirmSheet
+        open={confirmRemove !== null}
+        onClose={() => setConfirmRemove(null)}
+        title="Remove SKU?"
+        message="This SKU will be removed from the price list."
+        confirmLabel="Remove"
+        loading={confirmRemoving}
+        onConfirm={async () => {
+          if (!confirmRemove) return;
+          setConfirmRemoving(true);
+          try {
+            await deletePriceListItem(confirmRemove);
+            toast.success("Removed");
+            setConfirmRemove(null);
+            loadItems();
+          } catch (e) {
+            toast.error((e as Error).message);
+          } finally {
+            setConfirmRemoving(false);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import { Loader2, Warehouse, ChevronDown, Plus, Pencil, Trash2, Star, X, Check } from "lucide-react";
 import { listBatchStock, type BatchStock } from "@/lib/queries/inventory";
@@ -339,6 +340,7 @@ export function GodownsView() {
   // Inline create/edit state
   const [showNew, setShowNew]           = useState(false);
   const [editingId, setEditingId]       = useState<string | null>(null);
+  const [confirmGodown, setConfirmGodown] = useState<GodownRow | null>(null);
 
   const isAdmin = role === "admin" || role === "manager";
 
@@ -416,7 +418,7 @@ export function GodownsView() {
     } catch (e) { toast.error((e as Error).message); }
   }
 
-  async function handleDelete(godown: GodownRow) {
+  function handleDelete(godown: GodownRow) {
     if (godown.is_default) {
       toast.error("Cannot delete the default godown — set another as default first.");
       return;
@@ -426,12 +428,7 @@ export function GodownsView() {
       toast.error("Cannot delete a godown that has stock in it.");
       return;
     }
-    if (!confirm(`Delete "${godown.name}"? This cannot be undone.`)) return;
-    try {
-      await deleteGodown(godown.id);
-      toast.success("Deleted");
-      await load();
-    } catch (e) { toast.error((e as Error).message); }
+    setConfirmGodown(godown);
   }
 
   if (loading) {
@@ -543,6 +540,19 @@ export function GodownsView() {
           />
         )
       ))}
+
+      <ConfirmSheet
+        open={confirmGodown !== null}
+        onClose={() => setConfirmGodown(null)}
+        title="Delete godown?"
+        message={confirmGodown ? `"${confirmGodown.name}" will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmGodown) return;
+          try { await deleteGodown(confirmGodown.id); toast.success("Deleted"); setConfirmGodown(null); await load(); }
+          catch (e) { toast.error((e as Error).message); }
+        }}
+      />
     </div>
   );
 }

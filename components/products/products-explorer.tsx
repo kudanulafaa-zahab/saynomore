@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Loader2, Search, X, ChevronRight,
@@ -1051,6 +1052,7 @@ function CategoryPills({
   const [adding, setAdding]   = useState(false);
   const [name, setName]       = useState("");
   const [saving, setSaving]   = useState(false);
+  const [confirmCat, setConfirmCat] = useState<{ id: string; name: string } | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (adding) setTimeout(() => inputRef.current?.focus(), 50); }, [adding]);
@@ -1073,10 +1075,8 @@ function CategoryPills({
     finally { setSaving(false); }
   }
 
-  async function remove(id: string, catName: string) {
-    if (!confirm(`Delete category "${catName}"? This cannot be undone.`)) return;
-    try { await deleteCategory(id); if (selectedId === id) onSelect(""); }
-    catch (e) { toast.error((e as Error).message); }
+  function remove(id: string, catName: string) {
+    setConfirmCat({ id, name: catName });
   }
 
   const pill: React.CSSProperties = {
@@ -1161,6 +1161,19 @@ function CategoryPills({
           + New
         </button>
       )}
+
+      <ConfirmSheet
+        open={confirmCat !== null}
+        onClose={() => setConfirmCat(null)}
+        title="Delete category?"
+        message={confirmCat ? `"${confirmCat.name}" will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmCat) return;
+          try { await deleteCategory(confirmCat.id); if (selectedId === confirmCat.id) onSelect(""); setConfirmCat(null); }
+          catch (e) { toast.error((e as Error).message); }
+        }}
+      />
     </div>
   );
 }

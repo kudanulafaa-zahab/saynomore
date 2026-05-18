@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import { Loader2, Plus, Pencil, Trash2, Warehouse, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function GodownsManager() {
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState<{ open: boolean; editing?: GodownRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
+  const [confirmGodown, setConfirmGodown] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -138,11 +140,7 @@ export function GodownsManager() {
                 </button>
                 {isAdmin && (
                   <button
-                    onClick={async () => {
-                      if (!confirm(`Delete godown "${g.name}"? Only works if no stock is in it.`)) return;
-                      try { await deleteGodown(g.id); toast.success("Deleted"); load(); }
-                      catch (e) { toast.error((e as Error).message); }
-                    }}
+                    onClick={() => setConfirmGodown({ id: g.id, name: g.name })}
                     className="p-2 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
                     title="Delete (admin)"
                   >
@@ -160,6 +158,19 @@ export function GodownsManager() {
         editing={dialog.editing}
         onOpenChange={(o) => setDialog({ open: o })}
         onSaved={load}
+      />
+
+      <ConfirmSheet
+        open={confirmGodown !== null}
+        onClose={() => setConfirmGodown(null)}
+        title="Delete godown?"
+        message={confirmGodown ? `"${confirmGodown.name}" will be deleted. Only works if no stock is in it.` : ""}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmGodown) return;
+          try { await deleteGodown(confirmGodown.id); toast.success("Deleted"); setConfirmGodown(null); load(); }
+          catch (e) { toast.error((e as Error).message); }
+        }}
       />
     </div>
   );

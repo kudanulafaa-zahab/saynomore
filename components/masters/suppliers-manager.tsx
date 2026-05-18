@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -92,6 +93,7 @@ export function SuppliersManager() {
   const [dialog, setDialog] = useState<{ open: boolean; editing?: SupplierRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
   const [featured, setFeatured] = useState<SupplierRow | null>(null);
+  const [confirmSupplier, setConfirmSupplier] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -329,11 +331,7 @@ export function SuppliersManager() {
                       </button>
                       {isAdmin && (
                         <button
-                          onClick={async () => {
-                            if (!confirm(`Delete "${s.name}"?`)) return;
-                            try { await deleteSupplier(s.id); toast.success("Deleted"); load(); }
-                            catch (e) { toast.error((e as Error).message); }
-                          }}
+                          onClick={() => setConfirmSupplier({ id: s.id, name: s.name })}
                           className="h-9 w-9 rounded-xl flex items-center justify-center transition"
                           style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                           title="Delete"
@@ -366,6 +364,19 @@ export function SuppliersManager() {
           onSaved={() => { setDialog({ open: false }); load(); }}
         />
       )}
+
+      <ConfirmSheet
+        open={confirmSupplier !== null}
+        onClose={() => setConfirmSupplier(null)}
+        title="Delete supplier?"
+        message={confirmSupplier ? `"${confirmSupplier.name}" will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmSupplier) return;
+          try { await deleteSupplier(confirmSupplier.id); toast.success("Deleted"); setConfirmSupplier(null); load(); }
+          catch (e) { toast.error((e as Error).message); }
+        }}
+      />
     </div>
   );
 }
