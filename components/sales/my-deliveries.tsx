@@ -3,32 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  Loader2,
-  Truck,
-  CheckCircle2,
-  Package,
-  MapPin,
-  Phone,
-  ChevronDown,
-  AlertTriangle,
+  Loader2, Truck, CheckCircle2, Package, MapPin, Phone,
+  ChevronDown, AlertTriangle, RefreshCw,
 } from "lucide-react";
 import {
-  listMyDeliveries,
-  listOrderLines,
-  updateOrder,
-  type SalesOrderRow,
-  type SalesOrderLineRow,
+  listMyDeliveries, listOrderLines, updateOrder,
+  type SalesOrderRow, type SalesOrderLineRow,
 } from "@/lib/queries/sales";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
-import {
-  listCustomers,
-  listGodowns,
-  type CustomerRow,
-  type GodownRow,
-} from "@/lib/queries/masters";
+import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
 
-/* ─── types ─────────────────────────────────────── */
+/* ─── types ─────────────────────────────────────────────────────────────── */
 
 interface OrderWithLines {
   order: SalesOrderRow;
@@ -37,22 +23,38 @@ interface OrderWithLines {
   godown?: GodownRow;
 }
 
-/* ─── reusable bottom sheet ─────────────────────── */
+/* ─── status config ─────────────────────────────────────────────────────── */
 
-function BottomSheet({
-  open,
-  onClose,
-  title,
-  children,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
+const STATUS_PRIORITY: Record<string, number> = {
+  out_for_delivery: 0,
+  picked: 1,
+  confirmed: 2,
+  delivered: 3,
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  confirmed: "Ready to pick",
+  picked: "Picked up",
+  out_for_delivery: "On the way",
+  delivered: "Delivered",
+};
+
+const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
+  confirmed:        { bg: "color-mix(in srgb, #f59e0b 14%, transparent)", text: "#f59e0b" },
+  picked:           { bg: "color-mix(in srgb, #3b82f6 14%, transparent)", text: "#3b82f6" },
+  out_for_delivery: { bg: "color-mix(in srgb, #8b5cf6 14%, transparent)", text: "#8b5cf6" },
+  delivered:        { bg: "color-mix(in srgb, #22c55e 14%, transparent)", text: "#22c55e" },
+};
+
+/* ─── bottom sheet ──────────────────────────────────────────────────────── */
+
+function BottomSheet({ open, onClose, title, children }: {
+  open: boolean; onClose: () => void; title: string; children: React.ReactNode;
 }) {
+  const startY = useRef<number | null>(null);
+
   useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
+    document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
@@ -60,66 +62,56 @@ function BottomSheet({
 
   return (
     <>
-      {/* backdrop */}
+      <div onClick={onClose} style={{
+        position: "fixed", inset: 0, zIndex: 60,
+        background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
+      }} />
       <div
-        onClick={onClose}
-        style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-          zIndex: 50, backdropFilter: "blur(2px)",
+        onTouchStart={(e) => { startY.current = e.touches[0].clientY; }}
+        onTouchEnd={(e) => {
+          if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 64) onClose();
+          startY.current = null;
         }}
-      />
-      {/* sheet */}
-      <div
         style={{
-          position: "fixed", bottom: 0, left: 0, right: 0,
-          background: "var(--glass-1)", borderRadius: "20px 20px 0 0",
-          padding: "28px 20px 40px",
-          boxShadow: "0 -12px 40px rgba(0,0,0,0.25)",
-          zIndex: 51, maxHeight: "85vh", overflowY: "auto",
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 61,
+          background: "var(--glass-bg-2)", backdropFilter: "blur(28px) saturate(180%)",
+          borderRadius: "24px 24px 0 0",
+          paddingBottom: "env(safe-area-inset-bottom, 24px)",
+          boxShadow: "0 -8px 40px rgba(0,0,0,0.20)",
+          maxHeight: "90vh", overflowY: "auto",
         }}
       >
         {/* drag handle */}
-        <div style={{
-          width: 40, height: 4, borderRadius: 2,
-          background: "var(--glass-border)", margin: "0 auto 20px",
-        }} />
-        <p style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginBottom: 20 }}>
-          {title}
-        </p>
-        {children}
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--glass-border-lo)", opacity: 0.5 }} />
+        </div>
+        <div style={{ padding: "4px 20px 32px" }}>
+          <p style={{ fontSize: 20, fontWeight: 700, color: "var(--foreground)", marginBottom: 20 }}>{title}</p>
+          {children}
+        </div>
       </div>
     </>
   );
 }
 
-/* ─── cash collection sheet ─────────────────────── */
+/* ─── cash collection sheet ─────────────────────────────────────────────── */
 
-function CashCollectSheet({
-  open,
-  order,
-  expectedMvr,
-  onClose,
-  onDone,
-}: {
-  open: boolean;
-  order?: SalesOrderRow;
-  expectedMvr: number;
-  onClose: () => void;
-  onDone: () => void;
+function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
+  open: boolean; order?: SalesOrderRow; expectedMvr: number;
+  onClose: () => void; onDone: () => void;
 }) {
   const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) {
-      setAmount("");
-      setTimeout(() => inputRef.current?.focus(), 120);
-    }
+    if (open) { setAmount(""); setTimeout(() => inputRef.current?.focus(), 150); }
   }, [open]);
 
   const collected = parseFloat(amount) || 0;
   const variance = collected - expectedMvr;
+  const isShort = collected > 0 && variance < -0.01;
+  const isOver = collected > 0 && variance > 0.01;
 
   async function save() {
     if (!order || !amount) return;
@@ -131,90 +123,71 @@ function CashCollectSheet({
         cash_collected_mvr: collected,
         delivered_at: new Date().toISOString(),
       });
-      toast.success("Delivered ✓ — remember to deposit the cash!");
+      toast.success("Delivered — remember to deposit the cash");
       onDone();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { toast.error((err as Error).message); }
+    finally { setSaving(false); }
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Cash collected">
-      <div style={{ marginBottom: 8 }}>
-        <p style={{ fontSize: 13, color: "var(--muted-foreground)", marginBottom: 4 }}>
-          Expected amount
-        </p>
-        <p style={{ fontSize: 24, fontWeight: 800, color: "var(--foreground)" }}>
+    <BottomSheet open={open} onClose={onClose} title="Collect cash">
+      {/* Expected */}
+      <div style={{ marginBottom: 20, padding: "16px 20px", borderRadius: 16, background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+        <p style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Expected</p>
+        <p style={{ fontSize: 36, fontWeight: 800, color: "var(--snm-success)", letterSpacing: "-0.02em", lineHeight: 1 }}>
           MVR {expectedMvr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: 13, color: "var(--muted-foreground)", marginBottom: 8 }}>
-          Amount collected (MVR)
-        </p>
-        <input
-          ref={inputRef}
-          type="number"
-          inputMode="decimal"
-          step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-          style={{
-            width: "100%", height: 64, fontSize: 32, fontWeight: 700,
-            border: "2px solid var(--glass-border)", borderRadius: 12,
-            background: "var(--glass-1)", color: "var(--foreground)",
-            padding: "0 16px", outline: "none", boxSizing: "border-box",
-          }}
-        />
-      </div>
+      {/* Input */}
+      <p style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Amount collected (MVR)</p>
+      <input
+        ref={inputRef}
+        type="number" inputMode="decimal" step="0.01"
+        value={amount} onChange={(e) => setAmount(e.target.value)}
+        placeholder="0.00"
+        style={{
+          width: "100%", height: 72, fontSize: 36, fontWeight: 800,
+          border: `2px solid ${isShort ? "var(--snm-error)" : isOver ? "var(--snm-success)" : "var(--glass-border-lo)"}`,
+          borderRadius: 16, background: "var(--glass-bg-1)",
+          color: "var(--foreground)", padding: "0 20px",
+          outline: "none", boxSizing: "border-box", letterSpacing: "-0.02em",
+        }}
+      />
 
+      {/* Variance */}
       {collected > 0 && Math.abs(variance) > 0.01 && (
         <div style={{
-          padding: "10px 14px", borderRadius: 10, marginBottom: 16,
-          background: variance < 0
-            ? "color-mix(in srgb, #ef4444 12%, transparent)"
-            : "color-mix(in srgb, #22c55e 12%, transparent)",
-          color: variance < 0 ? "#ef4444" : "#22c55e",
-          fontSize: 14, fontWeight: 600,
+          marginTop: 12, padding: "10px 16px", borderRadius: 12,
+          background: isShort ? "color-mix(in srgb, var(--snm-error) 10%, transparent)" : "color-mix(in srgb, var(--snm-success) 10%, transparent)",
+          color: isShort ? "var(--snm-error)" : "var(--snm-success)",
+          fontSize: 14, fontWeight: 700,
         }}>
-          {variance < 0
-            ? `⚠ MVR ${Math.abs(variance).toFixed(2)} short — check with customer`
-            : `+ MVR ${variance.toFixed(2)} over — return change`}
+          {isShort ? `⚠ MVR ${Math.abs(variance).toFixed(2)} short — check with customer` : `+MVR ${variance.toFixed(2)} over — return change`}
         </div>
       )}
 
       <button
-        onClick={save}
-        disabled={saving || !amount}
+        onClick={save} disabled={saving || !amount}
         style={{
-          width: "100%", height: 60, borderRadius: 14, border: "none",
-          background: saving || !amount ? "var(--glass-border)" : "#22c55e",
-          color: "#fff", fontSize: 17, fontWeight: 700, cursor: saving || !amount ? "not-allowed" : "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          marginTop: 20, width: "100%", height: 64, borderRadius: 18, border: "none",
+          background: saving || !amount ? "var(--glass-border-lo)" : "var(--snm-success)",
+          color: "#fff", fontSize: 18, fontWeight: 800, cursor: saving || !amount ? "not-allowed" : "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          transition: "background 0.15s",
         }}
       >
-        {saving ? <Loader2 size={20} className="animate-spin" /> : <><CheckCircle2 size={20} /> Mark Delivered</>}
+        {saving ? <Loader2 size={22} className="animate-spin" /> : <><CheckCircle2 size={22} /> Mark Delivered</>}
       </button>
     </BottomSheet>
   );
 }
 
-/* ─── issue report sheet ─────────────────────── */
+/* ─── issue report sheet ─────────────────────────────────────────────────── */
 
-function IssueSheet({
-  open,
-  order,
-  onClose,
-  onDone,
-}: {
-  open: boolean;
-  order?: SalesOrderRow;
-  onClose: () => void;
-  onDone: () => void;
+function IssueSheet({ open, order, onClose, onDone }: {
+  open: boolean; order?: SalesOrderRow;
+  onClose: () => void; onDone: () => void;
 }) {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -225,89 +198,348 @@ function IssueSheet({
     if (!order || !note.trim()) return;
     setSaving(true);
     try {
-      await updateOrder(order.id, {
-        notes: note.trim(),
-      });
-      toast.success("Issue reported — admin has been notified.");
+      await updateOrder(order.id, { notes: note.trim() });
+      toast.success("Issue reported — admin will see it on the order");
       onDone();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { toast.error((err as Error).message); }
+    finally { setSaving(false); }
   }
+
+  const QUICK_ISSUES = [
+    "Customer not home — will retry",
+    "Wrong address",
+    "Customer refused delivery",
+    "Damaged item",
+    "Partial delivery only",
+  ];
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Report an issue">
-      <p style={{ fontSize: 13, color: "var(--muted-foreground)", marginBottom: 8 }}>
-        Describe the problem (customer not home, damaged item, wrong address…)
+      <p style={{ fontSize: 14, color: "var(--muted-foreground)", marginBottom: 16 }}>
+        Admin will see this note on the order. Be specific.
       </p>
+
+      {/* Quick-pick common issues */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        {QUICK_ISSUES.map((q) => (
+          <button key={q} onClick={() => setNote(q)}
+            style={{
+              padding: "8px 14px", borderRadius: 20, border: "1px solid var(--glass-border-lo)",
+              background: note === q ? "color-mix(in srgb, var(--snm-error) 12%, transparent)" : "var(--glass-bg-1)",
+              color: note === q ? "var(--snm-error)" : "var(--foreground)",
+              fontSize: 13, fontWeight: 600, cursor: "pointer",
+              borderColor: note === q ? "color-mix(in srgb, var(--snm-error) 30%, transparent)" : "var(--glass-border-lo)",
+            }}>
+            {q}
+          </button>
+        ))}
+      </div>
+
       <textarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        rows={4}
-        placeholder="e.g. Customer not available, will retry tomorrow morning"
+        value={note} onChange={(e) => setNote(e.target.value)}
+        rows={3}
+        placeholder="Or type a custom note…"
         style={{
-          width: "100%", borderRadius: 12, padding: "12px 14px",
-          border: "2px solid var(--glass-border)", background: "var(--glass-1)",
+          width: "100%", borderRadius: 14, padding: "14px 16px",
+          border: "1px solid var(--glass-border-lo)", background: "var(--glass-bg-1)",
           color: "var(--foreground)", fontSize: 15, resize: "none",
-          outline: "none", boxSizing: "border-box", marginBottom: 16,
+          outline: "none", boxSizing: "border-box",
         }}
       />
+
       <button
-        onClick={save}
-        disabled={saving || !note.trim()}
+        onClick={save} disabled={saving || !note.trim()}
         style={{
-          width: "100%", height: 56, borderRadius: 14, border: "none",
-          background: saving || !note.trim() ? "var(--glass-border)" : "#ef4444",
-          color: "#fff", fontSize: 16, fontWeight: 700,
+          marginTop: 16, width: "100%", height: 60, borderRadius: 16, border: "none",
+          background: saving || !note.trim() ? "var(--glass-border-lo)" : "var(--snm-error)",
+          color: "#fff", fontSize: 17, fontWeight: 700,
           cursor: saving || !note.trim() ? "not-allowed" : "pointer",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
         }}
       >
-        {saving ? <Loader2 size={18} className="animate-spin" /> : <><AlertTriangle size={18} /> Send issue report</>}
+        {saving ? <Loader2 size={20} className="animate-spin" /> : <><AlertTriangle size={20} /> Send report</>}
       </button>
     </BottomSheet>
   );
 }
 
-/* ─── status badge ───────────────────────────── */
+/* ─── detail expand (items + address) ───────────────────────────────────── */
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; bg: string; color: string }> = {
-    confirmed:        { label: "Ready to pick", bg: "#f59e0b22", color: "#f59e0b" },
-    picked:           { label: "Picked up",     bg: "#3b82f622", color: "#3b82f6" },
-    out_for_delivery: { label: "On the way",    bg: "#8b5cf622", color: "#8b5cf6" },
-    delivered:        { label: "Delivered ✓",   bg: "#22c55e22", color: "#22c55e" },
-  };
-  const s = map[status] ?? { label: status, bg: "var(--glass-2)", color: "var(--muted-foreground)" };
+function OrderDetail({ lines, skus, order }: {
+  lines: SalesOrderLineRow[]; skus: SkuFullRow[]; order: SalesOrderRow;
+}) {
   return (
-    <span style={{
-      fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
-      padding: "3px 8px", borderRadius: 6, background: s.bg, color: s.color,
+    <div style={{
+      borderTop: "1px solid var(--glass-border-lo)",
+      padding: "16px 16px 20px",
+      background: "color-mix(in srgb, var(--background) 50%, transparent)",
     }}>
-      {s.label}
-    </span>
+      {/* address */}
+      {order.delivery_address && (
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 6 }}>Address</p>
+          <p style={{ fontSize: 14, color: "var(--foreground)", lineHeight: 1.5 }}>{order.delivery_address}</p>
+        </div>
+      )}
+
+      {/* items */}
+      <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 8 }}>Items</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {lines.map((l) => {
+          const sku = skus.find((s) => s.id === l.sku_id);
+          const name = sku ? `${sku.brand_name} ${sku.variant_display}` : l.sku_id;
+          const uomLabel = l.uom === "carton" ? "ctn" : l.uom === "pack" ? "pk" : "pc";
+          return (
+            <div key={l.id} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "10px 0",
+              borderBottom: "1px solid var(--glass-border-lo)",
+            }}>
+              <span style={{ fontSize: 14, color: "var(--foreground)", fontWeight: 500 }}>{name}</span>
+              <span style={{
+                fontSize: 14, fontWeight: 700, color: "var(--foreground)",
+                flexShrink: 0, marginLeft: 12,
+                padding: "3px 10px", borderRadius: 8,
+                background: "var(--glass-bg-2)",
+              }}>
+                {l.qty} {uomLabel}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* existing issue note — show if admin/driver has previously saved one */}
+      {order.notes && (
+        <div style={{
+          marginTop: 16, padding: "12px 14px", borderRadius: 12,
+          background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)",
+        }}>
+          <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--snm-warning)", marginBottom: 4 }}>Issue note</p>
+          <p style={{ fontSize: 14, color: "var(--foreground)" }}>{order.notes}</p>
+        </div>
+      )}
+    </div>
   );
 }
 
-/* ─── main component ─────────────────────────── */
+/* ─── delivery card ─────────────────────────────────────────────────────── */
+
+function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggle }: {
+  item: OrderWithLines;
+  skus: SkuFullRow[];
+  onAction: (id: string, patch: Record<string, string | number | null>) => void;
+  onIssue: (order: SalesOrderRow) => void;
+  onCash: (order: SalesOrderRow, expected: number) => void;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const { order, lines, customer, godown } = item;
+  const isCod = order.payment_status === "cod";
+  const totalMvr = lines.reduce((acc, l) => acc + Number(l.line_total_mvr), 0);
+  const itemCount = lines.length;
+  const sc = STATUS_COLOR[order.status] ?? { bg: "var(--glass-bg-2)", text: "var(--muted-foreground)" };
+
+  return (
+    <div style={{
+      background: "var(--glass-bg-1)",
+      backdropFilter: "blur(28px) saturate(180%)",
+      WebkitBackdropFilter: "blur(28px) saturate(180%)",
+      borderRadius: 20,
+      overflow: "hidden",
+      border: "1px solid var(--glass-border-lo)",
+      boxShadow: "var(--glass-shadow)",
+    }}>
+
+      {/* ── Card face (always visible) ──────────────────────────────────── */}
+      <div style={{ padding: "16px 16px 14px" }}>
+
+        {/* Row 1: status badge + COD pill + phone */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em",
+              padding: "4px 10px", borderRadius: 20,
+              background: sc.bg, color: sc.text,
+            }}>
+              {STATUS_LABEL[order.status] ?? order.status}
+            </span>
+            {isCod && (
+              <span style={{
+                fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em",
+                padding: "4px 10px", borderRadius: 20,
+                background: "color-mix(in srgb, #f59e0b 14%, transparent)", color: "#f59e0b",
+              }}>
+                COD
+              </span>
+            )}
+          </div>
+          {/* Phone — 44×44pt tap target, always visible */}
+          {customer?.phone && (
+            <a
+              href={`tel:${customer.phone}`}
+              style={{
+                width: 44, height: 44, borderRadius: 22, border: "none",
+                background: "color-mix(in srgb, var(--snm-success) 12%, transparent)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                textDecoration: "none", flexShrink: 0,
+              }}
+            >
+              <Phone size={18} style={{ color: "var(--snm-success)" }} />
+            </a>
+          )}
+        </div>
+
+        {/* Row 2: customer name */}
+        <p style={{ fontSize: 22, fontWeight: 700, color: "var(--foreground)", margin: "0 0 6px", lineHeight: 1.2 }}>
+          {customer?.name ?? "Walk-in"}
+        </p>
+
+        {/* Row 3: island + godown + item count */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 13, color: "var(--muted-foreground)", marginBottom: 14 }}>
+          {(order.delivery_island || customer?.island) && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <MapPin size={13} />
+              {order.delivery_island || customer?.island}
+            </span>
+          )}
+          {godown && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Package size={13} />
+              Pick: <strong style={{ color: "var(--foreground)" }}>{godown.name}</strong>
+            </span>
+          )}
+          <span>{itemCount} item{itemCount !== 1 ? "s" : ""}</span>
+        </div>
+
+        {/* ── Primary action button — always on face, never hidden ─────── */}
+        {order.status === "confirmed" && (
+          <button
+            onClick={() => onAction(order.id, { status: "picked", picked_at: new Date().toISOString() })}
+            style={{
+              width: "100%", height: 56, borderRadius: 16, border: "none",
+              background: "var(--foreground)", color: "var(--background)",
+              fontSize: 16, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            }}
+          >
+            <Package size={20} /> Picked from godown
+          </button>
+        )}
+
+        {order.status === "picked" && (
+          <button
+            onClick={() => onAction(order.id, { status: "out_for_delivery" })}
+            style={{
+              width: "100%", height: 56, borderRadius: 16, border: "none",
+              background: "#3b82f6", color: "#fff",
+              fontSize: 16, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            }}
+          >
+            <Truck size={20} /> Out for delivery
+          </button>
+        )}
+
+        {order.status === "out_for_delivery" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {isCod ? (
+              /* COD: big green button showing the amount — hardest to miss */
+              <button
+                onClick={() => onCash(order, totalMvr)}
+                style={{
+                  width: "100%", height: 72, borderRadius: 18, border: "none",
+                  background: "var(--snm-success)", color: "#fff", cursor: "pointer",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                }}
+              >
+                <span style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                  MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9, display: "flex", alignItems: "center", gap: 4 }}>
+                  <CheckCircle2 size={13} /> Collect &amp; Mark Delivered
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={() => onAction(order.id, { status: "delivered", delivered_at: new Date().toISOString() })}
+                style={{
+                  width: "100%", height: 64, borderRadius: 18, border: "none",
+                  background: "var(--snm-success)", color: "#fff",
+                  fontSize: 18, fontWeight: 800, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                }}
+              >
+                <CheckCircle2 size={22} /> Mark Delivered
+              </button>
+            )}
+
+            {/* Report issue — secondary, clearly below primary */}
+            <button
+              onClick={() => onIssue(order)}
+              style={{
+                width: "100%", height: 48, borderRadius: 14,
+                border: "1.5px solid color-mix(in srgb, var(--snm-error) 35%, transparent)",
+                background: "color-mix(in srgb, var(--snm-error) 6%, transparent)",
+                color: "var(--snm-error)",
+                fontSize: 14, fontWeight: 700, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}
+            >
+              <AlertTriangle size={16} /> Report issue
+            </button>
+          </div>
+        )}
+
+        {order.status === "delivered" && (
+          <div style={{
+            height: 48, borderRadius: 14,
+            background: "color-mix(in srgb, var(--snm-success) 10%, transparent)",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}>
+            <CheckCircle2 size={18} style={{ color: "var(--snm-success)" }} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--snm-success)" }}>Delivered</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Expand toggle (items + address detail) ──────────────────────── */}
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%", height: 44, border: "none", cursor: "pointer",
+          borderTop: "1px solid var(--glass-border-lo)",
+          background: "color-mix(in srgb, var(--background) 30%, transparent)",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          color: "var(--muted-foreground)", fontSize: 12, fontWeight: 600,
+        }}
+      >
+        {expanded ? "Hide details" : "Show items & address"}
+        <ChevronDown size={14} style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+      </button>
+
+      {expanded && <OrderDetail lines={lines} skus={skus} order={order} />}
+    </div>
+  );
+}
+
+/* ─── main component ─────────────────────────────────────────────────────── */
 
 export function MyDeliveries() {
   const [items, setItems] = useState<OrderWithLines[]>([]);
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const [cashSheet, setCashSheet] = useState<{ open: boolean; order?: SalesOrderRow; expected: number }>({
-    open: false, expected: 0,
-  });
+  const [cashSheet, setCashSheet] = useState<{ open: boolean; order?: SalesOrderRow; expected: number }>({ open: false, expected: 0 });
   const [issueSheet, setIssueSheet] = useState<{ open: boolean; order?: SalesOrderRow }>({ open: false });
 
   const CACHE_KEY = "snm_deliveries_cache";
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true); else setRefreshing(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not signed in");
@@ -318,22 +550,20 @@ export function MyDeliveries() {
         listSkusFlat(),
       ]);
       setSkus(skusFlat);
-
       const enriched: OrderWithLines[] = [];
       for (const o of orders) {
         const lines = await listOrderLines(o.id);
         enriched.push({
-          order: o,
-          lines,
+          order: o, lines,
           customer: customers.find((c) => c.id === o.customer_id),
           godown: godowns.find((g) => g.id === o.source_godown_id),
         });
       }
+      // Sort: out_for_delivery → picked → confirmed → delivered
+      enriched.sort((a, b) => (STATUS_PRIORITY[a.order.status] ?? 9) - (STATUS_PRIORITY[b.order.status] ?? 9));
       setItems(enriched);
-      // Persist to localStorage so signal loss mid-session shows stale data, not blank
       try { localStorage.setItem(CACHE_KEY, JSON.stringify({ enriched, skusFlat, at: Date.now() })); } catch { /* quota */ }
     } catch (e) {
-      // Network failure — try showing the last cached delivery list
       try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (raw) {
@@ -341,31 +571,32 @@ export function MyDeliveries() {
           setItems(cached.enriched ?? []);
           setSkus(cached.skusFlat ?? []);
           const mins = Math.round((Date.now() - cached.at) / 60_000);
-          toast.warning(`Offline — showing data from ${mins < 1 ? "just now" : `${mins}m ago`}`);
-          return; // don't show error toast — the warning is enough
+          toast.warning(`Offline — data from ${mins < 1 ? "just now" : `${mins}m ago`}`);
+          return;
         }
-      } catch { /* corrupt cache — ignore */ }
+      } catch { /* corrupt cache */ }
       toast.error((e as Error).message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
-  async function setStatus(id: string, patch: Record<string, string | number | null>) {
+  async function handleAction(id: string, patch: Record<string, string | number | null>) {
     try {
       await updateOrder(id, patch);
-      toast.success("Updated");
-      load();
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
+      load(true);
+    } catch (e) { toast.error((e as Error).message); }
   }
+
+  const delivered = items.filter((i) => i.order.status === "delivered").length;
+  const total = items.length;
 
   if (loading) {
     return (
-      <div style={{ padding: 48, display: "flex", flexDirection: "column", alignItems: "center", color: "var(--muted-foreground)" }}>
+      <div style={{ padding: 60, display: "flex", flexDirection: "column", alignItems: "center", color: "var(--muted-foreground)" }}>
         <Loader2 size={28} className="animate-spin" style={{ marginBottom: 12 }} />
         <p style={{ fontSize: 14 }}>Loading deliveries…</p>
       </div>
@@ -373,264 +604,96 @@ export function MyDeliveries() {
   }
 
   return (
-    <div style={{ paddingBottom: 80 }}>
-      {/* header */}
+    <div style={{ paddingBottom: 100 }}>
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--muted-foreground)", marginBottom: 4 }}>
-          Today
-        </p>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>My Deliveries</h1>
-        <p style={{ fontSize: 14, color: "var(--muted-foreground)", marginTop: 4 }}>
-          {items.length === 0 ? "No deliveries assigned." : `${items.length} delivery${items.length === 1 ? "" : "s"} to handle.`}
-        </p>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 2 }}>Today</p>
+            <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--foreground)", margin: 0, letterSpacing: "-0.02em" }}>My Deliveries</h1>
+          </div>
+          <button
+            onClick={() => load(true)} disabled={refreshing}
+            style={{
+              width: 44, height: 44, borderRadius: 22, border: "1px solid var(--glass-border-lo)",
+              background: "var(--glass-bg-1)", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <RefreshCw size={16} style={{ color: "var(--muted-foreground)", animation: refreshing ? "spin 1s linear infinite" : "none" }} />
+          </button>
+        </div>
+
+        {/* Progress bar — always visible if any orders */}
+        {total > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <p style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
+                {delivered} of {total} delivered
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: delivered === total ? "var(--snm-success)" : "var(--foreground)" }}>
+                {Math.round((delivered / total) * 100)}%
+              </p>
+            </div>
+            <div style={{ height: 6, borderRadius: 3, background: "var(--glass-border-lo)", overflow: "hidden" }}>
+              <div style={{
+                height: "100%", borderRadius: 3,
+                width: `${(delivered / total) * 100}%`,
+                background: delivered === total ? "var(--snm-success)" : "var(--snm-brand)",
+                transition: "width 0.4s ease",
+              }} />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* empty state */}
-      {items.length === 0 && (
+      {/* ── Empty state ─────────────────────────────────────────────────── */}
+      {total === 0 && (
         <div style={{
-          background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16,
-          padding: 40, textAlign: "center",
+          background: "var(--glass-bg-1)", backdropFilter: "blur(28px) saturate(180%)",
+          borderRadius: 20, padding: "48px 32px", textAlign: "center",
+          border: "1px solid var(--glass-border-lo)",
         }}>
           <div style={{
-            width: 56, height: 56, borderRadius: 14, background: "var(--glass-2)",
-            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px",
+            width: 64, height: 64, borderRadius: 18, background: "var(--glass-bg-2)",
+            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
           }}>
-            <Truck size={24} style={{ color: "var(--foreground)" }} />
+            <Truck size={26} style={{ color: "var(--muted-foreground)" }} />
           </div>
-          <p style={{ fontSize: 16, fontWeight: 600, color: "var(--foreground)", marginBottom: 6 }}>All caught up!</p>
-          <p style={{ fontSize: 14, color: "var(--muted-foreground)" }}>
-            New deliveries appear here when an admin assigns them to you.
+          <p style={{ fontSize: 18, fontWeight: 700, color: "var(--foreground)", marginBottom: 8 }}>All caught up!</p>
+          <p style={{ fontSize: 14, color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+            New deliveries will appear here when an admin assigns them to you.
           </p>
         </div>
       )}
 
-      {/* order cards */}
+      {/* ── Order cards ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {items.map(({ order, lines, customer, godown }) => {
-          const isOpen = expanded === order.id;
-          const isCod = order.payment_status === "cod";
-          const totalMvr = lines.reduce((acc, l) => acc + Number(l.line_total_mvr), 0);
-          const itemCount = lines.reduce((acc, l) => acc + (l.qty ?? 0), 0);
-
-          return (
-            <div key={order.id} style={{
-              background: "var(--glass-1)", backdropFilter: "blur(20px)",
-              borderRadius: 16, overflow: "hidden",
-              border: "1px solid var(--glass-border)",
-            }}>
-              {/* card header — tap to expand */}
-              <button
-                onClick={() => setExpanded(isOpen ? null : order.id)}
-                style={{
-                  width: "100%", padding: "16px 16px 14px",
-                  display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                  gap: 12, background: "none", border: "none", cursor: "pointer", textAlign: "left",
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* status + COD badge row */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                    <StatusBadge status={order.status} />
-                    {isCod && (
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, textTransform: "uppercase",
-                        padding: "3px 8px", borderRadius: 6,
-                        background: "#f59e0b22", color: "#f59e0b",
-                      }}>
-                        COD · MVR {totalMvr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* customer name */}
-                  <p style={{ fontSize: 20, fontWeight: 700, color: "var(--foreground)", margin: "0 0 6px" }}>
-                    {customer?.name ?? "—"}
-                  </p>
-
-                  {/* meta row */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 13, color: "var(--muted-foreground)" }}>
-                    {godown && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <Package size={13} />
-                        <span>Pick: <strong style={{ color: "var(--foreground)" }}>{godown.name}</strong></span>
-                      </span>
-                    )}
-                    {(order.delivery_island || customer?.island) && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <MapPin size={13} /> {order.delivery_island || customer?.island}
-                      </span>
-                    )}
-                    <span>{itemCount} items</span>
-                  </div>
-                </div>
-
-                <ChevronDown
-                  size={20}
-                  style={{
-                    color: "var(--muted-foreground)", flexShrink: 0, marginTop: 2,
-                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    transition: "transform 0.2s",
-                  }}
-                />
-              </button>
-
-              {/* expanded body */}
-              {isOpen && (
-                <div style={{
-                  borderTop: "1px solid var(--glass-border)",
-                  padding: "16px 16px 20px",
-                  background: "color-mix(in srgb, var(--background) 40%, transparent)",
-                }}>
-                  {/* phone link */}
-                  {customer?.phone && (
-                    <a
-                      href={`tel:${customer.phone}`}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                        fontSize: 15, fontWeight: 600,
-                        color: "var(--foreground)", textDecoration: "none",
-                        padding: "8px 14px", borderRadius: 10,
-                        background: "var(--glass-2)", marginBottom: 16,
-                      }}
-                    >
-                      <Phone size={16} style={{ color: "#22c55e" }} />
-                      {customer.phone}
-                    </a>
-                  )}
-
-                  {/* address */}
-                  {order.delivery_address && (
-                    <div style={{ marginBottom: 16 }}>
-                      <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted-foreground)", marginBottom: 4 }}>
-                        Address
-                      </p>
-                      <p style={{ fontSize: 14, color: "var(--foreground)" }}>{order.delivery_address}</p>
-                    </div>
-                  )}
-
-                  {/* items list */}
-                  <div style={{ marginBottom: 20 }}>
-                    <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted-foreground)", marginBottom: 6 }}>
-                      Items
-                    </p>
-                    {lines.map((l) => {
-                      const sku = skus.find((s) => s.id === l.sku_id);
-                      return (
-                        <div key={l.id} style={{
-                          display: "flex", justifyContent: "space-between", alignItems: "center",
-                          padding: "8px 0", borderBottom: "1px solid var(--glass-border)",
-                        }}>
-                          <span style={{ fontSize: 14, color: "var(--foreground)" }}>
-                            {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : l.sku_id}
-                          </span>
-                          <span style={{ fontSize: 14, color: "var(--muted-foreground)", flexShrink: 0, marginLeft: 12, fontWeight: 600 }}>
-                            {l.qty} {l.uom}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* action buttons — 60px tall, full width */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {order.status === "confirmed" && (
-                      <button
-                        onClick={() => setStatus(order.id, { status: "picked", picked_at: new Date().toISOString() })}
-                        style={{
-                          height: 60, borderRadius: 14, border: "none",
-                          background: "var(--foreground)", color: "var(--background)",
-                          fontSize: 16, fontWeight: 700, cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        }}
-                      >
-                        <Package size={20} /> Picked from godown
-                      </button>
-                    )}
-
-                    {order.status === "picked" && (
-                      <button
-                        onClick={() => setStatus(order.id, { status: "out_for_delivery" })}
-                        style={{
-                          height: 60, borderRadius: 14, border: "none",
-                          background: "#3b82f6", color: "#fff",
-                          fontSize: 16, fontWeight: 700, cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        }}
-                      >
-                        <Truck size={20} /> Out for delivery
-                      </button>
-                    )}
-
-                    {order.status === "out_for_delivery" && (
-                      <>
-                        {isCod ? (
-                          <button
-                            onClick={() => setCashSheet({ open: true, order, expected: totalMvr })}
-                            style={{
-                              height: 68, borderRadius: 14, border: "none",
-                              background: "#22c55e", color: "#fff",
-                              cursor: "pointer",
-                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
-                              width: "100%",
-                            }}
-                          >
-                            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1 }}>
-                              MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </span>
-                            <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, display: "flex", alignItems: "center", gap: 4 }}>
-                              <CheckCircle2 size={13} /> Collect &amp; Mark Delivered
-                            </span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setStatus(order.id, { status: "delivered", delivered_at: new Date().toISOString() })}
-                            style={{
-                              height: 60, borderRadius: 14, border: "none",
-                              background: "#22c55e", color: "#fff",
-                              fontSize: 16, fontWeight: 700, cursor: "pointer",
-                              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                            }}
-                          >
-                            <CheckCircle2 size={20} /> Delivered
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => setIssueSheet({ open: true, order })}
-                          style={{
-                            height: 52, borderRadius: 14, border: "2px solid #ef4444",
-                            background: "transparent", color: "#ef4444",
-                            fontSize: 15, fontWeight: 600, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                          }}
-                        >
-                          <AlertTriangle size={18} /> Report issue
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {items.map((item) => (
+          <DeliveryCard
+            key={item.order.id}
+            item={item}
+            skus={skus}
+            expanded={expanded === item.order.id}
+            onToggle={() => setExpanded(expanded === item.order.id ? null : item.order.id)}
+            onAction={handleAction}
+            onIssue={(order) => setIssueSheet({ open: true, order })}
+            onCash={(order, expected) => setCashSheet({ open: true, order, expected })}
+          />
+        ))}
       </div>
 
-      {/* cash collection sheet */}
+      {/* ── Sheets ──────────────────────────────────────────────────────── */}
       <CashCollectSheet
-        open={cashSheet.open}
-        order={cashSheet.order}
-        expectedMvr={cashSheet.expected}
+        open={cashSheet.open} order={cashSheet.order} expectedMvr={cashSheet.expected}
         onClose={() => setCashSheet({ open: false, expected: 0 })}
-        onDone={() => { setCashSheet({ open: false, expected: 0 }); load(); }}
+        onDone={() => { setCashSheet({ open: false, expected: 0 }); load(true); }}
       />
-
-      {/* issue sheet */}
       <IssueSheet
-        open={issueSheet.open}
-        order={issueSheet.order}
+        open={issueSheet.open} order={issueSheet.order}
         onClose={() => setIssueSheet({ open: false })}
-        onDone={() => { setIssueSheet({ open: false }); load(); }}
+        onDone={() => { setIssueSheet({ open: false }); load(true); }}
       />
     </div>
   );

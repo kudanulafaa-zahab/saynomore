@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer, AlertTriangle } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -434,6 +434,17 @@ export function SaleDetail({ id }: { id: string }) {
               </div>
             )}
 
+            {/* Driver issue note */}
+            {order.notes && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, padding: "12px 14px", background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--snm-error) 20%, transparent)" }}>
+                <AlertTriangle style={{ color: "var(--snm-error)", width: 16, height: 16, flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <p style={{ color: "var(--snm-error)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Driver issue report</p>
+                  <p style={{ color: "var(--foreground)", fontSize: 13 }}>{order.notes}</p>
+                </div>
+              </div>
+            )}
+
             <LineList lines={lines} skus={skus} editable={false} />
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid var(--glass-border-lo)" }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
@@ -514,6 +525,17 @@ export function SaleDetail({ id }: { id: string }) {
                 <p style={{ color: "var(--snm-success)", fontSize: 13, fontWeight: 600 }}>Bank transfer received</p>
               </div>
             )
+          )}
+
+          {/* Driver issue note — shown on delivered orders as audit trail */}
+          {order.notes && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16, padding: "12px 14px", background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", borderRadius: 10, border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}>
+              <AlertTriangle style={{ color: "var(--snm-warning)", width: 16, height: 16, flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <p style={{ color: "var(--snm-warning)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>Driver note</p>
+                <p style={{ color: "var(--foreground)", fontSize: 13 }}>{order.notes}</p>
+              </div>
+            </div>
           )}
 
           <LineList lines={lines} skus={skus} editable={false} />
