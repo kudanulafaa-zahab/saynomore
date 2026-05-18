@@ -527,7 +527,8 @@ function NewPoSheet({
           background: "var(--glass-2)",
           backdropFilter: "blur(40px)",
           WebkitBackdropFilter: "blur(40px)",
-          padding: "12px 24px 40px",
+          padding: "12px 24px",
+          paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))",
           maxWidth: 480,
         }}
       >

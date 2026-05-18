@@ -177,7 +177,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl"
-        style={{ ...SHEET, padding: "12px 24px 40px", maxHeight: "85vh", overflowY: "auto" }}
+        style={{ ...SHEET, padding: "12px 24px", paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))", maxHeight: "85vh", overflowY: "auto" }}
       >
         <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "var(--glass-border)" }} />
         {children}
@@ -527,7 +527,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                             : null
                         }
                       </div>
-                      <p className="text-[9px] font-semibold uppercase tracking-wider whitespace-nowrap"
+                      <p className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap"
                         style={{ color: done || current ? "var(--foreground)" : "var(--muted-foreground)" }}>
                         {step.label}
                       </p>
@@ -998,7 +998,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         className="fixed left-0 lg:left-60 right-0 z-50 px-4 pt-3"
         style={{
           bottom: 0,
-          paddingBottom: "calc(60px + env(safe-area-inset-bottom, 0px))",
+          paddingBottom: "calc(64px + env(safe-area-inset-bottom, 8px))",
           background: "color-mix(in srgb, var(--background) 92%, transparent)",
           borderTop: "1px solid var(--glass-border-lo)",
           backdropFilter: "blur(16px)",
@@ -1311,7 +1311,7 @@ function LineDialog({
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl"
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", padding: "12px 24px 40px", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", padding: "12px 24px", paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))", maxHeight: "90vh", overflowY: "auto" }}
       >
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--glass-border)" }} />
         <h2 className="text-[20px] font-semibold text-foreground mb-5">{editing ? "Edit Product" : "Add Product"}</h2>
@@ -1370,7 +1370,7 @@ function LineDialog({
               <QtyStepper value={qtyCartons} min={1} onChange={setQtyCartons} />
               {sku && (
                 <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  = {qtyCartons * sku.packs_per_carton * sku.pcs_per_pack} pcs
+                  = {qtyCartons * sku.packs_per_carton} packs · {qtyCartons * sku.packs_per_carton * sku.pcs_per_pack} pcs
                   · {(qtyCartons * Number(sku.cbm_per_carton)).toFixed(4)} CBM
                 </p>
               )}
