@@ -65,7 +65,7 @@ export function CompetitorsView() {
   const [simEditing, setSimEditing] = useState(false);
   const [simTyped, setSimTyped]     = useState("");
   const [saving, setSaving]         = useState(false);
-  const [saveMode, setSaveMode]     = useState<"margin" | "fixed">("margin"); // save as margin% or fixed price
+  const [saveMode, setSaveMode]     = useState<"margin" | "fixed">("fixed"); // save as margin% or fixed price
   const [alertThreshold, setAlertThreshold] = useState(10); // % above cheapest competitor to warn
   const [showAlertSettings, setShowAlertSettings] = useState(false);
 
