@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, TrendingDown, ArrowRight, ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Banknote } from "lucide-react";
 import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueRow } from "@/lib/queries/reports";
@@ -223,6 +224,7 @@ function CodView() {
 /* ─── Main FinancialsView with tabs ───────────────────────────────────── */
 
 export function FinancialsView() {
+  const router = useRouter();
   const [tab, setTab]           = useState<"profit" | "cod">("profit");
   const [rows, setRows]         = useState<ReportRow[]>([]);
   const [expenses, setExpenses] = useState<{ amount_mvr: number }[]>([]);
@@ -407,7 +409,7 @@ export function FinancialsView() {
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}>
             Profit by Brand — {today.toLocaleString("en-MV", { month: "long" })}
           </p>
-          <button style={{ color: "var(--foreground)", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => router.push("/reports")} style={{ color: "var(--foreground)", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             View Detailed Report
             <ArrowRight style={{ width: 14, height: 14 }} />
           </button>
