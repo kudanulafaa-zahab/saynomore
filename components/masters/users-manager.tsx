@@ -52,10 +52,10 @@ const ROLE_ICON: Record<UserRole, typeof Shield> = {
   staff: Truck,
 };
 
-const ROLE_COLOR: Record<UserRole, string> = {
-  admin: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300",
-  manager: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-  staff: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+const ROLE_TOKEN: Record<UserRole, string> = {
+  admin:   "var(--foreground)",
+  manager: "var(--snm-brand)",
+  staff:   "var(--muted-foreground)",
 };
 
 export function UsersManager() {
@@ -124,7 +124,10 @@ export function UsersManager() {
           return (
             <div key={r} className="glass-flat p-3 rounded-xl space-y-1">
               <div className="flex items-center gap-2">
-                <span className={`h-6 w-6 rounded-lg flex items-center justify-center ${ROLE_COLOR[r]}`}>
+                <span
+                  className="h-6 w-6 rounded-lg flex items-center justify-center"
+                  style={{ background: `color-mix(in srgb, ${ROLE_TOKEN[r]} 12%, transparent)`, color: ROLE_TOKEN[r] }}
+                >
                   <Icon className="h-3.5 w-3.5" />
                 </span>
                 <p className="text-sm font-medium text-foreground">{ROLE_LABEL[r]}</p>
@@ -160,7 +163,10 @@ export function UsersManager() {
             return (
               <div key={u.id} className="p-4 flex items-center justify-between gap-3 hover:bg-accent/30 transition">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${ROLE_COLOR[u.role]}`}>
+                  <div
+                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `color-mix(in srgb, ${ROLE_TOKEN[u.role]} 12%, transparent)`, color: ROLE_TOKEN[u.role] }}
+                  >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
@@ -174,7 +180,10 @@ export function UsersManager() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className={`text-[10px] uppercase tracking-wider rounded px-2 py-0.5 ${ROLE_COLOR[u.role]}`}>
+                  <span
+                    className="text-[10px] uppercase tracking-wider rounded px-2 py-0.5"
+                    style={{ background: `color-mix(in srgb, ${ROLE_TOKEN[u.role]} 12%, transparent)`, color: ROLE_TOKEN[u.role] }}
+                  >
                     {ROLE_LABEL[u.role]}
                   </span>
                   {!isMe && (

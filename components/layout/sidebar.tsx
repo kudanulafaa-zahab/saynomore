@@ -8,7 +8,7 @@ import { ThemeToggle } from "./theme-toggle";
 
 const SECTIONS = [
   { label: "Core",        hrefs: ["/dashboard", "/sales", "/inventory", "/shipments"] },
-  { label: "Finance",     hrefs: ["/financials", "/reports", "/expenses"] },
+  { label: "Finance",     hrefs: ["/financials", "/reports", "/pricelists", "/expenses"] },
   { label: "Procurement", hrefs: ["/suppliers"] },
   { label: "Catalogue",   hrefs: ["/products", "/godowns", "/competitors"] },
   { label: "Operations",  hrefs: ["/customers", "/dispatch"] },

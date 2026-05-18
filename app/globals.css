@@ -439,6 +439,11 @@
     color:      var(--snm-success);
     border:     1px solid color-mix(in srgb, var(--snm-success) 22%, transparent);
   }
+  /* Active/enabled toggle pill — used on SKU active state, any on/off badge */
+  .snm-active-pill {
+    background: color-mix(in srgb, var(--snm-success) 12%, transparent);
+    color:      var(--snm-success);
+  }
   .pill-warning {
     background: color-mix(in srgb, var(--snm-warning) 12%, transparent);
     color:      var(--snm-warning);

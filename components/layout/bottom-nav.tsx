@@ -8,7 +8,7 @@ import { navForRole, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
 
 const SHEET_SECTIONS: { label: string; hrefs: string[] }[] = [
-  { label: "Finance",     hrefs: ["/financials", "/reports", "/expenses"] },
+  { label: "Finance",     hrefs: ["/financials", "/reports", "/pricelists", "/expenses"] },
   { label: "Procurement", hrefs: ["/suppliers"] },
   { label: "Catalogue",   hrefs: ["/products", "/godowns", "/competitors"] },
   { label: "Operations",  hrefs: ["/customers", "/dispatch"] },

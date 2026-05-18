@@ -98,7 +98,7 @@ export function ProductsList() {
                     catch (e) { toast.error((e as Error).message); }
                   }}
                   className={`text-[10px] uppercase tracking-wider rounded px-2 py-1 shrink-0 ${
-                    r.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
+                    r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {r.is_active ? "Active" : "Off"}
@@ -124,7 +124,7 @@ export function ProductsList() {
                       catch (e) { toast.error((e as Error).message); }
                     }}
                     className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
-                      r.is_active ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-muted-foreground"
+                      r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {r.is_active ? "On" : "Off"}

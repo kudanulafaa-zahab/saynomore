@@ -8,6 +8,7 @@ import {
   Building2,
   Wallet,
   Tag,
+  Tags,
   Package,
   MapPin,
   Warehouse,
@@ -30,9 +31,10 @@ export const FULL_NAV: NavItem[] = [
   { href: "/shipments",  label: "Shipments",  icon: Truck,           primary: true },
 
   // Finance & reporting (overflow — deliberate navigation)
-  { href: "/financials", label: "Financials", icon: BarChart2   },
-  { href: "/reports",    label: "Reports",    icon: LineChart   },
-  { href: "/expenses",   label: "Expenses",   icon: Wallet      },
+  { href: "/financials", label: "Financials",  icon: BarChart2   },
+  { href: "/reports",    label: "Reports",     icon: LineChart   },
+  { href: "/pricelists", label: "Price Lists", icon: Tags        },
+  { href: "/expenses",   label: "Expenses",    icon: Wallet      },
 
   // Procurement
   { href: "/suppliers",  label: "Suppliers",  icon: Building2   },
