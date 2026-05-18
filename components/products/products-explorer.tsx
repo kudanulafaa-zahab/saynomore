@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   listCategories, listBrands, listModels, listVariants, listSkusFlat,
-  createBrand, createModel, createVariant, createSku, createCategory,
+  createBrand, createModel, createVariant, createSku, createCategory, deleteCategory,
   toggleSkuActive, getCurrentUserRole, updateSku,
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
   type SkuFullRow, type AttrKey, type UnitUom, type CostBasis,
@@ -1039,6 +1039,132 @@ function attrsToDisplayName(attrs: Record<string, string>, schema: AttrKey[]): s
   }).filter(Boolean).join(" ");
 }
 
+/* ── CategoryPills — select existing + inline create + delete non-system ── */
+function CategoryPills({
+  categories, selectedId, onSelect, onCreated,
+}: {
+  categories: CategoryRow[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onCreated: (cat: CategoryRow) => void;
+}) {
+  const [adding, setAdding]   = useState(false);
+  const [name, setName]       = useState("");
+  const [saving, setSaving]   = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (adding) setTimeout(() => inputRef.current?.focus(), 50); }, [adding]);
+
+  async function create() {
+    const n = name.trim();
+    if (!n) return;
+    setSaving(true);
+    try {
+      const created = await createCategory({
+        name: n,
+        description: null,
+        unit_uom: "pcs",
+        cost_basis: "piece",
+        variant_attributes: [],
+      }) as CategoryRow;
+      onCreated(created);
+      setName(""); setAdding(false);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSaving(false); }
+  }
+
+  async function remove(id: string, catName: string) {
+    if (!confirm(`Delete category "${catName}"? This cannot be undone.`)) return;
+    try { await deleteCategory(id); if (selectedId === id) onSelect(""); }
+    catch (e) { toast.error((e as Error).message); }
+  }
+
+  const pill: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 4,
+    padding: "4px 8px 4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+    border: "1px solid", cursor: "pointer", whiteSpace: "nowrap",
+  };
+
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-0.5">
+      {categories.map((c) => {
+        const active = selectedId === c.id;
+        return (
+          <span key={c.id} style={{
+            ...pill,
+            background: active ? "var(--snm-brand)" : "transparent",
+            borderColor: active ? "var(--snm-brand)" : "var(--glass-border)",
+            color: active ? "#fff" : "var(--muted-foreground)",
+          }}>
+            <button
+              type="button"
+              onClick={() => onSelect(c.id)}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0,
+                color: "inherit", fontSize: "inherit", fontWeight: "inherit" }}
+            >
+              {c.name}
+            </button>
+            {/* Delete only non-system categories */}
+            {!c.is_system && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); remove(c.id, c.name); }}
+                title="Delete category"
+                style={{
+                  background: "none", border: "none", cursor: "pointer", padding: "0 2px",
+                  color: active ? "rgba(255,255,255,0.7)" : "var(--muted-foreground)",
+                  lineHeight: 1, fontSize: 13,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        );
+      })}
+
+      {/* Inline new-category form */}
+      {adding ? (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <input
+            ref={inputRef}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") create(); if (e.key === "Escape") { setAdding(false); setName(""); } }}
+            placeholder="Category name"
+            style={{
+              height: 26, padding: "0 8px", borderRadius: 999, fontSize: 11,
+              border: "1px solid var(--snm-brand)", outline: "none",
+              background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)",
+              color: "var(--foreground)", width: 110,
+            }}
+          />
+          <button type="button" onClick={create} disabled={saving || !name.trim()}
+            style={{ height: 26, padding: "0 8px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+              background: "var(--snm-brand)", color: "#fff", border: "none", cursor: saving ? "wait" : "pointer",
+              opacity: !name.trim() ? 0.5 : 1 }}>
+            {saving ? "…" : "Add"}
+          </button>
+          <button type="button" onClick={() => { setAdding(false); setName(""); }}
+            style={{ height: 26, padding: "0 8px", borderRadius: 999, fontSize: 11,
+              background: "transparent", color: "var(--muted-foreground)", border: "1px solid var(--glass-border)", cursor: "pointer" }}>
+            Cancel
+          </button>
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          style={{ ...pill, borderStyle: "dashed", borderColor: "var(--glass-border)",
+            color: "var(--muted-foreground)", background: "transparent" }}
+        >
+          + New
+        </button>
+      )}
+    </div>
+  );
+}
+
 function NewSkuWizard({
   open, onOpenChange, brands, categories, models, variants, existingSkus, onSaved,
 }: {
@@ -1076,13 +1202,19 @@ function NewSkuWizard({
   const [showOptional, setShowOptional] = useState(false);
 
   // ── Local items created during this session (so combos show them instantly)
-  const [localBrands, setLocalBrands] = useState<BrandRow[]>([]);
-  const [localModels, setLocalModels] = useState<ModelRow[]>([]);
+  const [localBrands,     setLocalBrands]     = useState<BrandRow[]>([]);
+  const [localModels,     setLocalModels]     = useState<ModelRow[]>([]);
+  const [localCategories, setLocalCategories] = useState<CategoryRow[]>([]);
 
   const allBrands = useMemo(() => {
     const ids = new Set(brands.map((b) => b.id));
     return [...brands, ...localBrands.filter((b) => !ids.has(b.id))];
   }, [brands, localBrands]);
+
+  const allCategories = useMemo(() => {
+    const ids = new Set(categories.map((c) => c.id));
+    return [...categories, ...localCategories.filter((c) => !ids.has(c.id))];
+  }, [categories, localCategories]);
 
   const allModels = useMemo(() => {
     const ids = new Set(models.map((m) => m.id));
@@ -1091,7 +1223,7 @@ function NewSkuWizard({
 
   // Derived
   const brandModels  = allModels.filter((m) => m.brand_id === brandId);
-  const category     = categories.find((c) => c.id === categoryId);
+  const category     = allCategories.find((c) => c.id === categoryId);
   const schema: AttrKey[] = (category?.variant_attributes ?? []) as AttrKey[];
 
   const pcsPerCarton = useMemo(() => {
@@ -1135,7 +1267,7 @@ function NewSkuWizard({
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
     setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice("");
     setShowOptional(false);
-    setLocalBrands([]); setLocalModels([]);
+    setLocalBrands([]); setLocalModels([]); setLocalCategories([]);
   }
 
   useEffect(() => { if (open) reset(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1239,29 +1371,46 @@ function NewSkuWizard({
 
           {/* ── Row 1: Brand + Category ── */}
           <div className="grid grid-cols-2 gap-3">
+
+            {/* Brand — combobox for existing + always-visible text field for new */}
             <div className="space-y-1.5">
               <Label className="text-[13px]">Brand *</Label>
-              <Combobox
-                value={brandId}
-                onChange={(id) => {
-                  setBrandId(id);
-                  const name = allBrands.find((b) => b.id === id)?.name ?? "";
-                  setBrandInput(name);
-                  setModelInput(""); setModelId("");
-                }}
-                options={allBrands.map((b) => ({ id: b.id, label: b.name }))}
-                placeholder="Search or type new…"
-                onCreateClick={() => {/* handled via typed input below */}}
-              />
-              {/* Typed input shown when not yet matched to an id */}
-              {!brandId && (
-                <input
-                  value={brandInput}
-                  onChange={(e) => { setBrandInput(e.target.value); setBrandId(""); }}
-                  placeholder="Type brand name…"
-                  style={inp}
+              {/* Existing brand picker — shows selected brand with a clear button */}
+              <div style={{ position: "relative" }}>
+                <Combobox
+                  value={brandId}
+                  onChange={(id) => {
+                    setBrandId(id);
+                    const name = allBrands.find((b) => b.id === id)?.name ?? "";
+                    setBrandInput(name);
+                    setModelInput(""); setModelId("");
+                  }}
+                  options={allBrands.map((b) => ({ id: b.id, label: b.name }))}
+                  placeholder="Pick existing…"
                 />
-              )}
+                {brandId && (
+                  <button
+                    type="button"
+                    onClick={() => { setBrandId(""); setBrandInput(""); setModelInput(""); setModelId(""); }}
+                    title="Clear — type a new brand below"
+                    style={{
+                      position: "absolute", right: 32, top: "50%", transform: "translateY(-50%)",
+                      background: "none", border: "none", cursor: "pointer", padding: 2,
+                      color: "var(--muted-foreground)", lineHeight: 1, fontSize: 14,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              {/* Always-visible text field — type a NEW brand name here */}
+              <input
+                value={brandId ? "" : brandInput}
+                onChange={(e) => { setBrandInput(e.target.value); setBrandId(""); setModelInput(""); setModelId(""); }}
+                placeholder={brandId ? `Using: ${allBrands.find(b => b.id === brandId)?.name ?? ""}` : "Or type new brand name…"}
+                disabled={!!brandId}
+                style={{ ...inp, opacity: brandId ? 0.45 : 1 }}
+              />
               {!brandId && brandInput.trim() && (
                 <p className="text-[11px]" style={{ color: "var(--snm-brand)" }}>
                   Will create &ldquo;{brandInput.trim()}&rdquo; as a new brand
@@ -1269,27 +1418,19 @@ function NewSkuWizard({
               )}
             </div>
 
+            {/* Category — pills + inline "+ New category" */}
             <div className="space-y-1.5">
               <Label className="text-[13px]">Category *</Label>
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {categories.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => { setCategoryId(c.id); setVariantAttrs({}); }}
-                    style={{
-                      padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
-                      border: "1px solid",
-                      background: categoryId === c.id ? "var(--snm-brand)" : "transparent",
-                      borderColor: categoryId === c.id ? "var(--snm-brand)" : "var(--glass-border)",
-                      color: categoryId === c.id ? "#fff" : "var(--muted-foreground)",
-                      cursor: "pointer", whiteSpace: "nowrap",
-                    }}
-                  >
-                    {c.name}
-                  </button>
-                ))}
-              </div>
+              <CategoryPills
+                categories={allCategories}
+                selectedId={categoryId}
+                onSelect={(id) => { setCategoryId(id); setVariantAttrs({}); }}
+                onCreated={(newCat) => {
+                  setLocalCategories((prev) => [...prev, newCat]);
+                  setCategoryId(newCat.id);
+                  setVariantAttrs({});
+                }}
+              />
             </div>
           </div>
 
