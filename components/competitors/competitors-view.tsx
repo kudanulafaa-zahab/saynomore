@@ -205,7 +205,7 @@ export function CompetitorsView() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-28 lg:pb-10">
 
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
@@ -358,7 +358,7 @@ export function CompetitorsView() {
 
           <div className="p-5 space-y-5">
 
-            {/* ── Hero competitive gap (promoted to top per F-pattern research) ── */}
+            {/* ── Hero competitive gap — stacked layout, nothing truncated on narrow screens ── */}
             {topCompPerPiece != null && (() => {
               const delta = piecePrice - topCompPerPiece;
               const pctAbove = topCompPerPiece > 0 ? (delta / topCompPerPiece) * 100 : 0;
@@ -375,30 +375,34 @@ export function CompetitorsView() {
                   ? "color-mix(in srgb, var(--snm-error) 30%, transparent)"
                   : "color-mix(in srgb, var(--snm-warning) 30%, transparent)";
               return (
-                <div className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4" style={{ background: bg, border: `1px solid ${border}` }}>
-                  <div>
-                    <p className="text-[12px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: col }}>
-                      {delta <= 0 ? "You're cheaper" : isAlert ? "Review price" : "Slightly above"}
-                    </p>
-                    <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-                      vs <span className="font-semibold" style={{ color: "var(--foreground)" }}>{topCompEntry?.comp?.name}</span> · cheapest competitor
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Alert threshold</p>
-                      {[5, 10, 15, 20, 25].map((t) => (
-                        <button key={t} onClick={() => setAlertThreshold(t)}
-                          className="px-2 py-0.5 rounded-lg text-[11px] font-semibold transition active:scale-95"
-                          style={{ background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 8%, transparent)", color: alertThreshold === t ? "#fff" : "var(--muted-foreground)" }}>
-                          {t}%
-                        </button>
-                      ))}
+                <div className="rounded-2xl px-5 py-4 space-y-3" style={{ background: bg, border: `1px solid ${border}` }}>
+                  {/* Top row: status label + delta number side by side */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: col }}>
+                        {delta <= 0 ? "You're cheaper" : isAlert ? "Review price" : "Slightly above"}
+                      </p>
+                      <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                        vs <span className="font-semibold" style={{ color: "var(--foreground)" }}>{topCompEntry?.comp?.name}</span> · cheapest
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[26px] font-bold leading-none" style={{ color: col }}>
+                        {delta <= 0 ? "▼" : "▲"}&thinsp;{Math.abs(delta).toFixed(2)}
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR/pc · {Math.abs(pctAbove).toFixed(0)}%</p>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[28px] font-bold leading-none" style={{ color: col }}>
-                      {delta <= 0 ? "▼" : "▲"} {Math.abs(delta).toFixed(2)}
-                    </p>
-                    <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>MVR/pc · {Math.abs(pctAbove).toFixed(0)}%</p>
+                  {/* Bottom row: alert threshold chips on their own line, never truncated */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)" }}>Alert at</p>
+                    {[5, 10, 15, 20, 25].map((t) => (
+                      <button key={t} onClick={() => setAlertThreshold(t)}
+                        className="h-7 px-3 rounded-lg text-[11px] font-semibold transition active:scale-95 shrink-0"
+                        style={{ background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 10%, transparent)", color: alertThreshold === t ? "#fff" : "var(--muted-foreground)" }}>
+                        {t}%
+                      </button>
+                    ))}
                   </div>
                 </div>
               );
