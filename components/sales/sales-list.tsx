@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import {
   listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder,
-  type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom,
+  getTierPricesForSkus,
+  type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
 } from "@/lib/queries/sales";
 import {
   listCustomers, createCustomer, listGodowns,
@@ -484,6 +485,9 @@ function NewSaleSheet({
   const [orderNotes, setOrderNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Tier pricing — fetched once when customer is confirmed and we move to step 2
+  const [tierPrices, setTierPrices] = useState<Map<string, TierPrice>>(new Map());
+
   const customer = customers.find((c) => c.id === customerId);
   const selectedSku = skus.find((s) => s.id === selectedSkuId);
 
@@ -522,47 +526,55 @@ function NewSaleSheet({
     : null;
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
+  const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | null>(null);
 
-  function autoPrice(sku: typeof selectedSku, uom: SaleUom): string {
-    if (!sku) return "";
+  function autoPrice(sku: typeof selectedSku, uom: SaleUom): { price: string; source: "price_list" | "sku_default" | null } {
+    if (!sku) return { price: "", source: null };
+    const tp = tierPrices.get(sku.id);
+    if (tp) {
+      const p = uom === "piece" ? tp.price_per_piece_mvr
+        : uom === "pack" ? tp.price_per_pack_mvr
+        : tp.price_per_carton_mvr;
+      return { price: p.toFixed(2), source: tp.source };
+    }
     const p = uom === "piece" ? sku.selling_price_per_piece_mvr
       : uom === "pack" ? sku.selling_price_per_pack_mvr
       : sku.selling_price_per_carton_mvr;
-    return p != null ? p.toFixed(2) : "";
+    return { price: p != null ? p.toFixed(2) : "", source: p != null ? "sku_default" : null };
   }
 
   // When a new SKU is selected: set smart default UOM, then auto-fill price
   useEffect(() => {
     if (!selectedSku) return;
     const smartUom = defaultUom(selectedSku);
+    const ap = autoPrice(selectedSku, smartUom);
     setLineUom(smartUom);
-    setLinePrice(autoPrice(selectedSku, smartUom));
+    setLinePrice(ap.price);
+    setAutoPriceSource(ap.source);
     setPriceManuallyEdited(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSkuId]);
+  }, [selectedSkuId, tierPrices]);
 
   // When UOM changes (user picks a different one): re-fill price
   useEffect(() => {
     if (!selectedSku) return;
-    setLinePrice(autoPrice(selectedSku, lineUom));
+    const ap = autoPrice(selectedSku, lineUom);
+    setLinePrice(ap.price);
+    setAutoPriceSource(ap.source);
     setPriceManuallyEdited(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lineUom]);
+  }, [lineUom, tierPrices]);
 
   function handlePriceChange(raw: string) {
+    const ap = autoPrice(selectedSku, lineUom);
     if (raw === "") {
-      // User cleared the field — restore auto price if available
-      const ap = autoPrice(selectedSku, lineUom);
-      if (ap) {
-        setLinePrice(ap);
-        setPriceManuallyEdited(false);
-      } else {
-        setLinePrice("");
-        setPriceManuallyEdited(false);
-      }
+      setLinePrice(ap.price);
+      setAutoPriceSource(ap.source);
+      setPriceManuallyEdited(false);
     } else {
       setLinePrice(raw);
-      setPriceManuallyEdited(raw !== autoPrice(selectedSku, lineUom));
+      setPriceManuallyEdited(raw !== ap.price);
+      if (raw !== ap.price) setAutoPriceSource(null);
     }
   }
 
@@ -603,7 +615,7 @@ function NewSaleSheet({
       sku: selectedSku, uom: lineUom, qty: parseFloat(lineQty),
       qty_pieces: lineQtyPieces, unit_price_mvr: parseFloat(linePrice), line_total_mvr: lineTotal,
     }]);
-    setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack"); setPriceManuallyEdited(false);
+    setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack"); setPriceManuallyEdited(false); setAutoPriceSource(null);
   }
 
   // Create order + lines + immediately confirm (post_sale) in one shot
@@ -909,9 +921,12 @@ function NewSaleSheet({
                   {filteredSkus.map((s) => {
                     const stock = godownId ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0 : null;
                     const pl = packLabel(s);
-                    // Show price per default UOM on the card
+                    // Show price per default UOM on the card — tier price takes priority
                     const cardUom = defaultUom(s);
-                    const cardPrice = cardUom === "carton" ? s.selling_price_per_carton_mvr : s.selling_price_per_pack_mvr;
+                    const tp = tierPrices.get(s.id);
+                    const cardPrice = tp
+                      ? (cardUom === "carton" ? tp.price_per_carton_mvr : tp.price_per_pack_mvr)
+                      : (cardUom === "carton" ? s.selling_price_per_carton_mvr : s.selling_price_per_pack_mvr);
                     const cardUomLabel = cardUom === "carton" ? "carton" : pl.toLowerCase();
                     const hasPrice = cardPrice != null;
                     const inCart = draftLines.filter((l) => l.sku.id === s.id).reduce((a, l) => a + l.qty, 0);
@@ -1089,11 +1104,13 @@ function NewSaleSheet({
                       <div className="space-y-1.5">
                         <p className="text-[11px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
                           MVR / {uomLabel}
-                          {linePrice && !priceManuallyEdited
-                            ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
-                            : linePrice && priceManuallyEdited
-                              ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>MANUAL</span>
-                              : null}
+                          {linePrice && !priceManuallyEdited && autoPriceSource === "price_list"
+                            ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>{(customer?.price_tier ?? "TIER").toUpperCase()}</span>
+                            : linePrice && !priceManuallyEdited && autoPriceSource === "sku_default"
+                              ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                              : linePrice && priceManuallyEdited
+                                ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>MANUAL</span>
+                                : null}
                         </p>
                         <input type="number" inputMode="decimal" step="0.01" min="0" value={linePrice}
                           onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
@@ -1235,7 +1252,18 @@ function NewSaleSheet({
         {step === 1 && (
           <>
             <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
-            <button disabled={!customerId} onClick={() => setStep(2)}
+            <button disabled={!customerId} onClick={async () => {
+                const tier = customer?.price_tier ?? "retail";
+                try {
+                  const skuIds = skus.map((s) => s.id);
+                  const map = await getTierPricesForSkus(skuIds, tier);
+                  setTierPrices(map);
+                } catch {
+                  // Non-fatal: fall back to SKU defaults
+                  setTierPrices(new Map());
+                }
+                setStep(2);
+              }}
               className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>
               Add Products <ArrowRight className="h-4 w-4" />

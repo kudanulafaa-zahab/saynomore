@@ -36,11 +36,27 @@ export async function middleware(request: NextRequest) {
 
   // Not logged in → send to login
   if (!user) {
-    if (path === "/") return NextResponse.redirect(new URL("/login", request.url));
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Root → dashboard
+  // Fetch role — single lightweight query
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = profile?.role ?? "staff";
+
+  // Staff can only access /deliveries
+  if (role === "staff") {
+    if (!path.startsWith("/deliveries")) {
+      return NextResponse.redirect(new URL("/deliveries", request.url));
+    }
+    return response;
+  }
+
+  // Non-staff: root → dashboard
   if (path === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
