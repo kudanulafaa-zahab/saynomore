@@ -44,7 +44,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
 const STATUS_COLOR: Record<OrderStatus, { bg: string; text: string }> = {
   draft:            { bg: "var(--muted)",                   text: "var(--muted-foreground)" },
-  confirmed:        { bg: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", text: "var(--snm-brand)" },
+  confirmed:        { bg: "color-mix(in srgb, #3B82F6 12%, transparent)",          text: "#3B82F6"          },
   picked:           { bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)",  text: "var(--snm-warning)"      },
   out_for_delivery: { bg: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",  text: "var(--snm-warning)"      },
   delivered:        { bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)",  text: "var(--snm-success)"      },

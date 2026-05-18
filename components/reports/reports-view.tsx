@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, TrendingUp, TrendingDown, Package,
   Clock, BarChart3, Search, Megaphone, X,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { getReportsData, type ReportRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
 import { type UnitUom } from "@/lib/queries/products";
@@ -39,18 +37,18 @@ function formatStock(pieces: number, pcsPerPack: number, packsPerCarton: number,
   return parts.length > 0 ? parts.join(" + ") : "0";
 }
 
-function marginColor(pct: number | null) {
-  if (pct === null) return "text-muted-foreground";
-  if (pct >= 30) return "text-emerald-600 dark:text-emerald-400";
-  if (pct >= 15) return "text-amber-600 dark:text-amber-400";
-  return "text-red-500 dark:text-red-400";
+function marginColor(pct: number | null): React.CSSProperties {
+  if (pct === null) return { color: "var(--muted-foreground)" };
+  if (pct >= 30) return { color: "var(--snm-success)" };
+  if (pct >= 15) return { color: "var(--snm-warning)" };
+  return { color: "var(--snm-error)" };
 }
 
-function daysColor(days: number | null) {
-  if (days === null) return "text-muted-foreground";
-  if (days > 30) return "text-emerald-600 dark:text-emerald-400";
-  if (days > 14) return "text-amber-600 dark:text-amber-400";
-  return "text-red-500 dark:text-red-400";
+function daysColor(days: number | null): React.CSSProperties {
+  if (days === null) return { color: "var(--muted-foreground)" };
+  if (days > 30) return { color: "var(--snm-success)" };
+  if (days > 14) return { color: "var(--snm-warning)" };
+  return { color: "var(--snm-error)" };
 }
 
 const PRESETS = [
@@ -192,31 +190,31 @@ export function ReportsView() {
           label="Total Revenue"
           value={`MVR ${totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           icon={TrendingUp}
-          color="bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+          tokenColor="var(--snm-success)"
         />
         <SummaryCard
           label="SKUs Sold"
           value={String(totals.skusSold)}
           icon={Package}
-          color="bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+          tokenColor="var(--snm-brand)"
         />
         <SummaryCard
           label="Avg Margin"
           value={totals.avgMargin !== null ? `${totals.avgMargin.toFixed(1)}%` : "—"}
           icon={BarChart3}
-          color="bg-blue-500/15 text-blue-600 dark:text-blue-300"
+          tokenColor="#3B82F6"
         />
         <SummaryCard
           label="Low Stock SKUs"
           value={String(totals.lowStock)}
           icon={Clock}
-          color={totals.lowStock > 0 ? "bg-red-500/15 text-red-500" : "bg-muted text-muted-foreground"}
+          tokenColor={totals.lowStock > 0 ? "var(--snm-error)" : "var(--muted-foreground)"}
         />
         <SummaryCard
           label="Mktg Spend"
           value={totals.totalSpend > 0 ? `MVR ${totals.totalSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
           icon={Megaphone}
-          color="bg-purple-500/15 text-purple-600 dark:text-purple-300"
+          tokenColor="var(--snm-warning)"
         />
       </div>
 
@@ -296,12 +294,18 @@ export function ReportsView() {
 
 // ── Summary card ─────────────────────────────────────────────────────────
 
-function SummaryCard({ label, value, icon: Icon, color }: {
-  label: string; value: string; icon: typeof TrendingUp; color: string;
+function SummaryCard({ label, value, icon: Icon, tokenColor }: {
+  label: string; value: string; icon: typeof TrendingUp; tokenColor: string;
 }) {
   return (
     <div className="glass p-4 space-y-2 shrink-0 sm:shrink" style={{ minWidth: 140 }}>
-      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${color}`}>
+      <div
+        className="h-8 w-8 rounded-lg flex items-center justify-center"
+        style={{
+          background: `color-mix(in srgb, ${tokenColor} 12%, transparent)`,
+          color: tokenColor,
+        }}
+      >
         <Icon className="h-4 w-4" />
       </div>
       <p className="text-lg font-semibold text-foreground">{value}</p>
@@ -412,7 +416,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
                 </td>
                 <td className="px-3 py-3 text-right">
                   {r.gross_margin_pct !== null ? (
-                    <span className={`font-semibold ${marginColor(r.gross_margin_pct)}`}>
+                    <span className="font-semibold" style={marginColor(r.gross_margin_pct)}>
                       {r.gross_margin_pct}%
                       {r.gross_margin_pct >= 30
                         ? <TrendingUp className="inline h-3 w-3 ml-1" />
@@ -473,10 +477,10 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
                   <span className="text-xs ml-1">({pct.toFixed(0)}%)</span>
                 </span>
               </div>
-              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--glass-bg-2)" }}>
                 <div
-                  className="h-full rounded-full bg-purple-500 transition-all"
-                  style={{ width: `${pct}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, background: "var(--snm-warning)" }}
                 />
               </div>
             </div>
@@ -568,7 +572,7 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
                   </td>
                   <td className="px-3 py-3 text-right">
                     {r.days_of_stock !== null ? (
-                      <span className={`font-semibold ${daysColor(r.days_of_stock)}`}>
+                      <span className="font-semibold" style={daysColor(r.days_of_stock)}>
                         {r.days_of_stock} days
                       </span>
                     ) : (

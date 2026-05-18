@@ -23,26 +23,28 @@ export interface NavItem {
 }
 
 export const FULL_NAV: NavItem[] = [
-  // Primary 5 tabs
+  // Primary 4 tab-bar items (daily habit loop)
   { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard, primary: true },
-  { href: "/shipments",  label: "Shipments",  icon: Truck,           primary: true },
-  { href: "/inventory",  label: "Inventory",  icon: Boxes,           primary: true },
   { href: "/sales",      label: "Sales",      icon: ShoppingCart,    primary: true },
-  { href: "/financials", label: "Financials", icon: BarChart2,       primary: true },
+  { href: "/inventory",  label: "Inventory",  icon: Boxes,           primary: true },
+  { href: "/shipments",  label: "Shipments",  icon: Truck,           primary: true },
 
-  // Shipment sub-modules (overflow)
-  { href: "/suppliers",  label: "Suppliers",  icon: Building2 },
-  { href: "/expenses",   label: "Expenses",   icon: Wallet    },
+  // Finance & reporting (overflow — deliberate navigation)
+  { href: "/financials", label: "Financials", icon: BarChart2   },
+  { href: "/reports",    label: "Reports",    icon: LineChart   },
+  { href: "/expenses",   label: "Expenses",   icon: Wallet      },
 
-  // Inventory sub-modules (overflow)
-  { href: "/products",   label: "Products",   icon: Package   },
-  { href: "/godowns",    label: "Godowns",    icon: Warehouse },
-  { href: "/competitors",label: "Market",     icon: Tag       },
-  { href: "/reports",    label: "Reports",    icon: LineChart  },
+  // Procurement
+  { href: "/suppliers",  label: "Suppliers",  icon: Building2   },
 
-  // Sales sub-modules (overflow)
-  { href: "/customers",  label: "Customers",  icon: UserRound },
-  { href: "/dispatch",   label: "Dispatch",   icon: MapPin    },
+  // Catalogue
+  { href: "/products",   label: "Products",   icon: Package     },
+  { href: "/godowns",    label: "Godowns",    icon: Warehouse   },
+  { href: "/competitors",label: "Market",     icon: Tag         },
+
+  // Operations
+  { href: "/customers",  label: "Customers",  icon: UserRound   },
+  { href: "/dispatch",   label: "Dispatch",   icon: MapPin      },
 ];
 
 // Staff (delivery): dedicated driver screen
