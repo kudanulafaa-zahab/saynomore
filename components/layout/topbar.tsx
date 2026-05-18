@@ -7,10 +7,25 @@ import { useEffect, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
 // Calm Technology: peripheral sync awareness — never blocks, never pops up.
-// Shows "Updated Xm ago" so field staff know how fresh their data is.
+// Online: shows "Updated Xm ago". Offline: shows a quiet red pill.
 function SyncStamp() {
   const [loadedAt] = useState(() => Date.now());
-  const [label, setLabel] = useState("Just updated");
+  const [label, setLabel]   = useState("Just updated");
+  const [online, setOnline] = useState(true);
+
+  useEffect(() => {
+    // Initialise from browser state
+    setOnline(navigator.onLine);
+
+    const goOnline  = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online",  goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online",  goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const tick = () => {
@@ -20,6 +35,24 @@ function SyncStamp() {
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
   }, [loadedAt]);
+
+  if (!online) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+        style={{
+          background: "color-mix(in srgb, var(--snm-error) 12%, transparent)",
+          color: "var(--snm-error)",
+        }}
+      >
+        <span
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{ background: "var(--snm-error)" }}
+        />
+        No connection
+      </span>
+    );
+  }
 
   return (
     <span

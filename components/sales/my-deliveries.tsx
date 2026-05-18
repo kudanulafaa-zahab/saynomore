@@ -304,6 +304,8 @@ export function MyDeliveries() {
   });
   const [issueSheet, setIssueSheet] = useState<{ open: boolean; order?: SalesOrderRow }>({ open: false });
 
+  const CACHE_KEY = "snm_deliveries_cache";
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -328,12 +330,26 @@ export function MyDeliveries() {
         });
       }
       setItems(enriched);
+      // Persist to localStorage so signal loss mid-session shows stale data, not blank
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ enriched, skusFlat, at: Date.now() })); } catch { /* quota */ }
     } catch (e) {
+      // Network failure — try showing the last cached delivery list
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          setItems(cached.enriched ?? []);
+          setSkus(cached.skusFlat ?? []);
+          const mins = Math.round((Date.now() - cached.at) / 60_000);
+          toast.warning(`Offline — showing data from ${mins < 1 ? "just now" : `${mins}m ago`}`);
+          return; // don't show error toast — the warning is enough
+        }
+      } catch { /* corrupt cache — ignore */ }
       toast.error((e as Error).message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
