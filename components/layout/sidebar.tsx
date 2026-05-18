@@ -7,11 +7,11 @@ import { navForRole, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
 
 const SECTIONS = [
-  { label: "Core",        hrefs: ["/dashboard", "/sales", "/inventory", "/shipments"] },
+  { label: "Core",        hrefs: ["/dashboard", "/sales", "/inventory", "/dispatch"] },
   { label: "Finance",     hrefs: ["/financials", "/reports", "/pricelists", "/expenses"] },
-  { label: "Procurement", hrefs: ["/suppliers"] },
+  { label: "Procurement", hrefs: ["/shipments", "/suppliers"] },
   { label: "Catalogue",   hrefs: ["/products", "/godowns", "/competitors"] },
-  { label: "Operations",  hrefs: ["/customers", "/dispatch"] },
+  { label: "Operations",  hrefs: ["/customers"] },
 ];
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {

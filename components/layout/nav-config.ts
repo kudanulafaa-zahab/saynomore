@@ -28,7 +28,7 @@ export const FULL_NAV: NavItem[] = [
   { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard, primary: true },
   { href: "/sales",      label: "Sales",      icon: ShoppingCart,    primary: true },
   { href: "/inventory",  label: "Inventory",  icon: Boxes,           primary: true },
-  { href: "/shipments",  label: "Shipments",  icon: Truck,           primary: true },
+  { href: "/dispatch",   label: "Dispatch",   icon: MapPin,          primary: true },
 
   // Finance & reporting (overflow — deliberate navigation)
   { href: "/financials", label: "Financials",  icon: BarChart2   },
