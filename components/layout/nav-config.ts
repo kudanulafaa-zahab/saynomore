@@ -45,9 +45,9 @@ export const FULL_NAV: NavItem[] = [
   { href: "/dispatch",   label: "Dispatch",   icon: MapPin    },
 ];
 
-// Staff (delivery): dispatch screen only
+// Staff (delivery): dedicated driver screen
 export const STAFF_NAV: NavItem[] = [
-  { href: "/dispatch", label: "My Deliveries", icon: MapPin, primary: true },
+  { href: "/deliveries", label: "My Deliveries", icon: MapPin, primary: true },
 ];
 
 export function navForRole(role: string): NavItem[] {

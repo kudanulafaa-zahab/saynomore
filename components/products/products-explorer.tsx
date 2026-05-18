@@ -1104,9 +1104,11 @@ function NewSkuWizard({
     return l > 0 && w > 0 && h > 0 ? (l * w * h) / 1_000_000 : null;
   }, [lenCm, widCm, htCm]);
 
-  // Auto-fill dims from a sibling SKU when model is chosen
+  // Auto-fill dims from a sibling SKU when model is chosen;
+  // also reset variant attrs so stale selections from a previous pick don't bleed through
   useEffect(() => {
     if (!modelId) return;
+    setVariantAttrs({});
     const sib = existingSkus.find((s) => s.model_id === modelId);
     if (sib && !lenCm && !widCm && !htCm) {
       setLenCm(String(sib.carton_length_cm));

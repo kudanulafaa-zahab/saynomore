@@ -90,7 +90,10 @@ export function CategoriesManager() {
               <div className="flex items-center gap-2">
                 <p className="text-base font-medium text-foreground">{c.name}</p>
                 {c.is_system && (
-                  <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary px-1.5 py-0.5 rounded cursor-help"
+                    title="Built-in category — cannot be deleted. SKUs using this category are protected from misconfiguration."
+                  >
                     <Lock className="h-2.5 w-2.5" /> System
                   </span>
                 )}

@@ -850,7 +850,22 @@ function NewSaleSheet({
             {customerId && customerId !== "walkin" && customer && (
               <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border)" }}>
                 <div>
-                  <p className="text-[14px] font-semibold text-foreground">{customer.name}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-[14px] font-semibold text-foreground">{customer.name}</p>
+                    {customer.price_tier && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                        style={{
+                          background: customer.price_tier === "vip" ? "color-mix(in srgb, var(--snm-brand) 15%, transparent)"
+                            : customer.price_tier === "wholesale" ? "color-mix(in srgb, var(--snm-warning) 15%, transparent)"
+                            : "color-mix(in srgb, var(--muted-foreground) 15%, transparent)",
+                          color: customer.price_tier === "vip" ? "var(--snm-brand)"
+                            : customer.price_tier === "wholesale" ? "var(--snm-warning)"
+                            : "var(--muted-foreground)",
+                        }}>
+                        {customer.price_tier}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
                 </div>
                 <button onClick={() => { setCustomerId(""); setCustomerSearch(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
@@ -930,7 +945,18 @@ function NewSaleSheet({
                             </div>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
                               style={{ background: stock != null && stock > 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: stock != null && stock > 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-                              {stock != null ? `${stock} pcs` : "—"}
+                              {stock != null ? (() => {
+                                const dUom = defaultUom(s);
+                                if (dUom === "carton" && s.pcs_per_pack > 0 && s.packs_per_carton > 0) {
+                                  const cartons = Math.floor(stock / (s.pcs_per_pack * s.packs_per_carton));
+                                  return cartons > 0 ? `${cartons} ctn` : "< 1 ctn";
+                                }
+                                if (s.pcs_per_pack > 0) {
+                                  const packs = Math.floor(stock / s.pcs_per_pack);
+                                  return packs > 0 ? `${packs} ${packLabel(s).toLowerCase()}s` : `< 1 ${packLabel(s).toLowerCase()}`;
+                                }
+                                return `${stock} pcs`;
+                              })() : "—"}
                             </span>
                           </div>
                           <div className="flex items-baseline justify-between gap-1">
@@ -979,7 +1005,19 @@ function NewSaleSheet({
                     <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{selectedSku.variant_display}</p>
                     {stockHere !== null && (
                       <p className="text-[11px] mt-1 font-semibold" style={{ color: stockHere === 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
-                        {stockHere === 0 ? "Out of stock" : `${stockHere.toLocaleString()} pcs in warehouse`}
+                        {stockHere === 0 ? "Out of stock" : (() => {
+                          const dUom = defaultUom(selectedSku);
+                          if (dUom === "carton" && selectedSku.pcs_per_pack > 0 && selectedSku.packs_per_carton > 0) {
+                            const ctns = Math.floor(stockHere / (selectedSku.pcs_per_pack * selectedSku.packs_per_carton));
+                            const rem = Math.floor((stockHere % (selectedSku.pcs_per_pack * selectedSku.packs_per_carton)) / selectedSku.pcs_per_pack);
+                            return `${ctns} carton${ctns !== 1 ? "s" : ""}${rem > 0 ? ` + ${rem} ${packLabel(selectedSku).toLowerCase()}s` : ""} in warehouse`;
+                          }
+                          if (selectedSku.pcs_per_pack > 0) {
+                            const pks = Math.floor(stockHere / selectedSku.pcs_per_pack);
+                            return `${pks} ${packLabel(selectedSku).toLowerCase()}${pks !== 1 ? "s" : ""} in warehouse`;
+                          }
+                          return `${stockHere.toLocaleString()} pcs in warehouse`;
+                        })()}
                       </p>
                     )}
                   </div>

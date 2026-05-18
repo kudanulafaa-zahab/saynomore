@@ -130,7 +130,7 @@ function CashCollectSheet({
         payment_status: "paid",
         cash_collected_mvr: collected,
         delivered_at: new Date().toISOString(),
-      } as Record<string, unknown>);
+      });
       toast.success("Delivered ✓ — remember to deposit the cash!");
       onDone();
     } catch (err) {
@@ -227,7 +227,7 @@ function IssueSheet({
     try {
       await updateOrder(order.id, {
         notes: note.trim(),
-      } as Record<string, unknown>);
+      });
       toast.success("Issue reported — admin has been notified.");
       onDone();
     } catch (err) {

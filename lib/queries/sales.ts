@@ -46,7 +46,7 @@ export interface SalesOrderLineRow {
 }
 
 export interface SalesOrderInput {
-  order_number: string;
+  order_number?: string;
   customer_id?: string | null;
   status?: OrderStatus;
   channel?: OrderChannel;
@@ -58,6 +58,9 @@ export interface SalesOrderInput {
   delivery_to_boat?: boolean;
   assigned_driver_id?: string | null;
   payment_proof_url?: string | null;
+  picked_at?: string | null;
+  delivered_at?: string | null;
+  cash_collected_mvr?: number | null;
   notes?: string | null;
 }
 
@@ -95,7 +98,7 @@ export async function listOrderLines(orderId: string): Promise<SalesOrderLineRow
   return data ?? [];
 }
 
-// Driver-assigned orders (for staff view)
+// Driver-assigned orders (for staff view — only their own runs)
 export async function listMyDeliveries(driverId: string): Promise<SalesOrderRow[]> {
   const { data, error } = await supabase
     .from("sales_orders")
@@ -103,6 +106,17 @@ export async function listMyDeliveries(driverId: string): Promise<SalesOrderRow[
     .eq("assigned_driver_id", driverId)
     .in("status", ["confirmed", "picked", "out_for_delivery"])
     .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Admin/manager view — all confirmed/dispatching orders across all drivers
+export async function listAllDispatchOrders(): Promise<SalesOrderRow[]> {
+  const { data, error } = await supabase
+    .from("sales_orders")
+    .select("*")
+    .in("status", ["confirmed", "picked", "out_for_delivery", "delivered"])
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }

@@ -395,7 +395,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   const label = "block text-xs uppercase tracking-widest text-muted-foreground mb-1.5";
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-60 flex items-end">
+    <div className="fixed inset-0 bg-black/75 z-60 flex items-end backdrop-blur-sm">
       <div className="glass-modal rounded-t-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Handle */}
         <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-1" />
@@ -485,7 +485,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
               className="w-full px-3 py-2.5 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none resize-none" />
           </div>
 
-          <div className="flex gap-3 pb-2">
+          <div className="flex gap-3 pb-[env(safe-area-inset-bottom,16px)] pt-2">
             <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm text-muted-foreground bg-secondary">
               Cancel
             </button>
