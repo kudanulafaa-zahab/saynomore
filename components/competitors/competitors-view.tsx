@@ -448,35 +448,61 @@ export function CompetitorsView() {
                 <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</p>
               </div>
 
-              {/* Margin slider — drag to any integer %, no fixed steps */}
+              {/* Margin slider — drag to any integer 1–99%, custom styled track */}
               {(() => {
                 const landed = simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack;
                 const currentMargin = landed > 0 ? Math.round(((simDisplayPrice - landed) / simDisplayPrice) * 100) : 0;
-                const clampedMargin = Math.max(1, Math.min(80, currentMargin));
+                const sliderVal = Math.max(1, Math.min(99, currentMargin));
+                const fillPct = ((sliderVal - 1) / 98) * 100;
                 return (
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>Margin</p>
-                      <p className="text-[22px] font-bold leading-none" style={{ color: "var(--foreground)" }}>
-                        {clampedMargin}<span className="text-[14px] font-semibold ml-0.5" style={{ color: "var(--muted-foreground)" }}>%</span>
-                      </p>
+                  <div className="mt-4">
+                    {/* Label row */}
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
+                      <div className="flex items-baseline gap-0.5">
+                        <p className="text-[28px] font-bold leading-none" style={{ color: "var(--snm-brand)" }}>{sliderVal}</p>
+                        <p className="text-[16px] font-semibold" style={{ color: "var(--muted-foreground)" }}>%</p>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min={1}
-                      max={80}
-                      step={1}
-                      value={clampedMargin}
-                      onChange={(e) => {
-                        const pct = parseInt(e.target.value);
-                        if (landed > 0) setSimDisplayPrice(Math.ceil(landed / (1 - pct / 100)));
-                      }}
-                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                      style={{ accentColor: "var(--snm-brand)" }}
-                    />
-                    <div className="flex justify-between">
+                    {/* Track container — glass pill with filled portion */}
+                    <div className="relative w-full h-10 flex items-center">
+                      {/* Track background */}
+                      <div className="absolute inset-x-0 h-3 rounded-full overflow-hidden"
+                        style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>
+                        {/* Filled portion */}
+                        <div className="h-full rounded-full transition-all duration-75"
+                          style={{ width: `${fillPct}%`, background: "var(--snm-brand)" }} />
+                      </div>
+                      {/* Native range on top — transparent, same size, handles interaction */}
+                      <input
+                        type="range"
+                        min={1}
+                        max={99}
+                        step={1}
+                        value={sliderVal}
+                        onChange={(e) => {
+                          const pct = parseInt(e.target.value);
+                          if (landed > 0) setSimDisplayPrice(Math.ceil(landed / (1 - pct / 100)));
+                        }}
+                        className="absolute inset-x-0 w-full opacity-0 h-10 cursor-pointer"
+                        style={{ margin: 0 }}
+                      />
+                      {/* Custom thumb — positioned over native thumb */}
+                      <div
+                        className="absolute w-7 h-7 rounded-full shadow-lg pointer-events-none transition-all duration-75 flex items-center justify-center"
+                        style={{
+                          left: `calc(${fillPct}% - ${fillPct / 100 * 28}px + 2px)`,
+                          background: "var(--snm-brand)",
+                          boxShadow: "0 2px 12px color-mix(in srgb, var(--snm-brand) 50%, transparent)",
+                        }}
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.7)" }} />
+                      </div>
+                    </div>
+                    {/* Range labels */}
+                    <div className="flex justify-between mt-1">
                       <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>1%</p>
-                      <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>80%</p>
+                      <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>99%</p>
                     </div>
                   </div>
                 );
