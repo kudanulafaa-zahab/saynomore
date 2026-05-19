@@ -16,7 +16,7 @@ import {
 } from "@/lib/queries/sales";
 import {
   listCustomers, createCustomer, listGodowns,
-  type CustomerRow, type CustomerChannel, type CustomerInput, type GodownRow,
+  type CustomerRow, type CustomerChannel, type CustomerInput, type GodownRow, type PriceTier,
 } from "@/lib/queries/masters";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
@@ -511,8 +511,13 @@ function NewSaleSheet({
   const [newCustName, setNewCustName] = useState("");
   const [newCustPhone, setNewCustPhone] = useState("");
   const [newCustIsland, setNewCustIsland] = useState("");
+  const [newCustEmail, setNewCustEmail] = useState("");
+  const [newCustTier, setNewCustTier] = useState<PriceTier>("retail");
   const [newCustChannel, setNewCustChannel] = useState<CustomerChannel>("whatsapp");
   const [savingCustomer, setSavingCustomer] = useState(false);
+
+  // Order-level tier override — defaults to customer's tier, can be changed per order
+  const [orderTier, setOrderTier] = useState<PriceTier>("retail");
 
   // Step 2 — products
   const [draftLines, setDraftLines] = useState<DraftLine[]>([]);
@@ -671,10 +676,18 @@ function NewSaleSheet({
     if (!newCustName.trim()) return;
     setSavingCustomer(true);
     try {
-      const input: CustomerInput = { name: newCustName.trim(), phone: newCustPhone.trim() || null, island: newCustIsland.trim() || null, channel: newCustChannel };
+      const input: CustomerInput = {
+        name: newCustName.trim(),
+        phone: newCustPhone.trim() || null,
+        island: newCustIsland.trim() || null,
+        email: newCustEmail.trim() || null,
+        channel: newCustChannel,
+        price_tier: newCustTier,
+      };
       const created = await createCustomer(input);
       onCustomerCreated(created as CustomerRow);
       setCustomerId(created.id);
+      setOrderTier(newCustTier); // order starts with their tier
       setChannel(newCustChannel as OrderChannel);
       setShowNewCustomer(false);
     } catch (err) { toast.error((err as Error).message); }
@@ -804,7 +817,7 @@ function NewSaleSheet({
                         return (
                           <button
                             key={id}
-                            onClick={() => { setCustomerId(id); setChannel((rc.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(id); }}
+                            onClick={() => { const rc2 = customers.find((c) => c.id === id); setCustomerId(id); setOrderTier(rc2?.price_tier ?? "retail"); setChannel((rc2?.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(id); }}
                             className="flex items-center gap-2 px-3 h-9 rounded-full text-[13px] font-semibold transition active:scale-95"
                             style={{
                               background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
@@ -826,7 +839,7 @@ function NewSaleSheet({
                       const initials = c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
                       return (
                         <button key={c.id}
-                          onClick={() => { setCustomerId(c.id); setChannel((c.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(c.id); }}
+                          onClick={() => { setCustomerId(c.id); setOrderTier(c.price_tier ?? "retail"); setChannel((c.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(c.id); }}
                           className="w-full flex items-center gap-3 px-4 h-14 rounded-xl text-left transition active:scale-[0.99]"
                           style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
                           <div className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
@@ -900,6 +913,7 @@ function NewSaleSheet({
                               type="button"
                               onClick={() => {
                                 setCustomerId(c.id);
+                                setOrderTier(c.price_tier ?? "retail");
                                 setChannel((c.channel as OrderChannel) ?? "whatsapp");
                                 touchRecentCustomer(c.id);
                                 setShowNewCustomer(false);
@@ -928,11 +942,32 @@ function NewSaleSheet({
                     )}
                   </div>
 
-                  {/* Rest of new-customer form — only useful if they don't pick an existing one */}
+                  {/* Contact details */}
                   <div className="grid grid-cols-2 gap-3">
                     <GlassInput label="Phone" value={newCustPhone} onChange={(e) => setNewCustPhone((e.target as HTMLInputElement).value)} placeholder="+960…" inputMode="tel" />
                     <GlassInput label="Island" value={newCustIsland} onChange={(e) => setNewCustIsland((e.target as HTMLInputElement).value)} placeholder="Malé…" />
                   </div>
+                  <GlassInput label="Email (optional)" value={newCustEmail} onChange={(e) => setNewCustEmail((e.target as HTMLInputElement).value)} placeholder="name@example.com" inputMode="email" />
+
+                  {/* Price tier — critical: determines which price list applies to all their orders */}
+                  <div className="space-y-2">
+                    <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Price Tier *</p>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {(["retail", "wholesale", "vip", "promo"] as PriceTier[]).map((t) => (
+                        <button key={t} type="button" onClick={() => setNewCustTier(t)}
+                          className="py-2 rounded-xl text-[12px] font-semibold capitalize transition active:scale-95"
+                          style={newCustTier === t
+                            ? { background: "var(--foreground)", color: "var(--background)" }
+                            : { background: "color-mix(in srgb, var(--foreground) 7%, transparent)", color: "var(--muted-foreground)" }}>
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                      Determines which price list applies to this customer's orders by default.
+                    </p>
+                  </div>
+
                   <GlassSelect label="Usually orders via" value={newCustChannel} onChange={(v) => setNewCustChannel(v as CustomerChannel)}>
                     {CUSTOMER_CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </GlassSelect>
@@ -949,27 +984,58 @@ function NewSaleSheet({
             })()}
 
             {customerId && customerId !== "walkin" && customer && (
-              <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border)" }}>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border)" }}>
+                {/* Customer identity row */}
+                <div className="flex items-center justify-between">
+                  <div>
                     <p className="text-[14px] font-semibold text-foreground">{customer.name}</p>
-                    {customer.price_tier && (
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                        style={{
-                          background: customer.price_tier === "vip" ? "color-mix(in srgb, var(--snm-brand) 15%, transparent)"
-                            : customer.price_tier === "wholesale" ? "color-mix(in srgb, var(--snm-warning) 15%, transparent)"
-                            : "color-mix(in srgb, var(--muted-foreground) 15%, transparent)",
-                          color: customer.price_tier === "vip" ? "var(--snm-brand)"
-                            : customer.price_tier === "wholesale" ? "var(--snm-warning)"
-                            : "var(--muted-foreground)",
-                        }}>
-                        {customer.price_tier}
-                      </span>
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
+                  </div>
+                  <button onClick={() => { setCustomerId(""); setCustomerSearch(""); setOrderTier("retail"); }}
+                    className="text-[12px] font-semibold px-3 h-8 rounded-lg transition active:scale-95"
+                    style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                    Change
+                  </button>
+                </div>
+
+                {/* Order-level pricing tier — defaults to customer's tier, overrideable per order */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                      Pricing tier for this order
+                    </p>
+                    {orderTier !== customer.price_tier && (
+                      <button onClick={() => setOrderTier(customer.price_tier)}
+                        className="text-[10px] font-semibold"
+                        style={{ color: "var(--snm-brand)" }}>
+                        Reset to default ({customer.price_tier})
+                      </button>
                     )}
                   </div>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(["retail", "wholesale", "vip", "promo"] as PriceTier[]).map((t) => {
+                      const isDefault = t === customer.price_tier;
+                      const isActive = t === orderTier;
+                      return (
+                        <button key={t} type="button" onClick={() => setOrderTier(t)}
+                          className="py-2 rounded-xl text-[11px] font-semibold capitalize transition active:scale-95 relative"
+                          style={isActive
+                            ? { background: "var(--foreground)", color: "var(--background)" }
+                            : { background: "color-mix(in srgb, var(--foreground) 7%, transparent)", color: "var(--muted-foreground)" }}>
+                          {t}
+                          {isDefault && (
+                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ background: "var(--snm-brand)" }} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                    {orderTier !== customer.price_tier
+                      ? `⚠ Override active — customer's default is ${customer.price_tier}`
+                      : `Default tier for ${customer.name.split(" ")[0]}`}
+                  </p>
                 </div>
-                <button onClick={() => { setCustomerId(""); setCustomerSearch(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
               </div>
             )}
             {customerId === "walkin" && (
@@ -1123,7 +1189,7 @@ function NewSaleSheet({
 
               // Price badge
               const priceBadge = linePrice && !priceManuallyEdited && autoPriceSource === "price_list"
-                ? { label: (customer?.price_tier ?? "TIER").toUpperCase(), color: "var(--snm-brand)", bg: "color-mix(in srgb, var(--snm-brand) 15%, transparent)" }
+                ? { label: orderTier.toUpperCase(), color: "var(--snm-brand)", bg: "color-mix(in srgb, var(--snm-brand) 15%, transparent)" }
                 : linePrice && !priceManuallyEdited && autoPriceSource === "sku_default"
                   ? { label: "AUTO", color: "var(--snm-success)", bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)" }
                   : linePrice && priceManuallyEdited
@@ -1411,10 +1477,9 @@ function NewSaleSheet({
           <>
             <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
             <button disabled={!customerId} onClick={async () => {
-                const tier = customer?.price_tier ?? "retail";
                 try {
                   const skuIds = skus.map((s) => s.id);
-                  const map = await getTierPricesForSkus(skuIds, tier);
+                  const map = await getTierPricesForSkus(skuIds, orderTier);
                   setTierPrices(map);
                 } catch {
                   // Non-fatal: fall back to SKU defaults
