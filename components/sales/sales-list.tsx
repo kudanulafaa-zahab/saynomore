@@ -261,11 +261,12 @@ export function SalesList() {
         <div className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
           <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
+            aria-label="Search orders"
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
           {q && (
-            <button onClick={() => setQ("")} className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-              style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>
-              <X className="h-3 w-3" />
+            <button onClick={() => setQ("")} aria-label="Clear search" className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
+              style={{ color: "var(--muted-foreground)" }}>
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -349,9 +350,9 @@ export function SalesList() {
                 {/* Delete button — outside the link so tap doesn't navigate */}
                 <button
                   onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
-                  className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition"
-                  style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "none" }}
-                  title="Delete order"
+                  aria-label={`Delete order ${o.order_number}`}
+                  className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 active:opacity-60"
+                  style={{ color: "var(--snm-error)" }}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -443,10 +444,11 @@ export function SalesList() {
                           </Link>
                           <button
                             onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
-                            className="h-9 w-9 mr-2 rounded-lg flex items-center justify-center shrink-0 transition"
-                            style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "none" }}
+                            aria-label={`Delete order ${o.order_number}`}
+                            className="h-11 w-11 mr-1 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
+                            style={{ color: "var(--snm-error)" }}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       );
@@ -794,9 +796,10 @@ function NewSaleSheet({
                       className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                     {customerSearch && (
                       <button onClick={() => setCustomerSearch("")}
-                        className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-                        style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>
-                        <X className="h-3 w-3" />
+                        aria-label="Clear search"
+                        className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
+                        style={{ color: "var(--muted-foreground)" }}>
+                        <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>
@@ -1070,6 +1073,7 @@ function NewSaleSheet({
                   <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                   <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)}
                     placeholder="Search brand, product, variant…"
+                    aria-label="Search products"
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

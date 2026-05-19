@@ -473,11 +473,11 @@ function PoCard({
         >
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(shipment); }}
-            className="h-8 w-8 rounded-lg flex items-center justify-center transition active:scale-95"
-            style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}
-            title="Delete"
+            aria-label={`Delete shipment ${shipment.reference}`}
+            className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
+            style={{ color: "var(--snm-error)" }}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       )}

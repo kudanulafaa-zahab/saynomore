@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -129,15 +129,17 @@ export function CustomersManager() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by name, phone, island…"
+          aria-label="Search customers"
           className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
         />
         {q && (
           <button
             onClick={() => setQ("")}
-            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-            style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}
+            aria-label="Clear search"
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
+            style={{ color: "var(--muted-foreground)" }}
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -169,7 +171,9 @@ export function CustomersManager() {
         >
           <p className="label-caps text-[11px] text-muted-foreground">Top Channel</p>
           <div className="flex items-center gap-3 mt-2">
-            <span className="text-2xl">💬</span>
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-bg-2)" }}>
+              <MessageCircle className="h-4 w-4 text-foreground" />
+            </div>
             <span className="text-lg font-semibold text-foreground">{topChannel}</span>
           </div>
         </div>
@@ -263,17 +267,17 @@ export function CustomersManager() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => setDialog({ open: true, editing: c })}
-                    className="flex items-center justify-center rounded-xl transition text-muted-foreground hover:text-foreground hover:bg-secondary"
-                    style={{ width: 44, height: 44 }}
-                    title="Edit"
+                    aria-label={`Edit ${c.name}`}
+                    className="flex items-center justify-center rounded-xl active:opacity-60"
+                    style={{ width: 44, height: 44, color: "var(--muted-foreground)" }}
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setConfirmCustomer({ id: c.id, name: c.name })}
-                    className="flex items-center justify-center rounded-xl transition text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)]"
-                    style={{ width: 44, height: 44 }}
-                    title="Delete"
+                    aria-label={`Delete ${c.name}`}
+                    className="flex items-center justify-center rounded-xl active:opacity-60"
+                    style={{ width: 44, height: 44, color: "var(--snm-error)" }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

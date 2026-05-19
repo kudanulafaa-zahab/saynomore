@@ -470,17 +470,36 @@ export function InventoryView() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search brand, SKU, code…"
+          aria-label="Search inventory"
           className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Stock list */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl p-12 text-center" style={{ background: "var(--glass-1)" }}>
-          <Package className="h-8 w-8 mx-auto mb-3 opacity-25" style={{ color: "var(--muted-foreground)" }} />
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-            {stockList.length === 0 ? "No stock yet — confirm a GRN to populate inventory." : "No results."}
-          </p>
+        <div className="rounded-2xl p-12 flex flex-col items-center text-center gap-3" style={{ background: "var(--glass-1)" }}>
+          <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
+            <Package className="h-6 w-6" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-[15px] font-semibold text-foreground">
+              {stockList.length === 0 ? "No stock yet" : "No results"}
+            </p>
+            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+              {stockList.length === 0
+                ? "Confirm a shipment GRN to populate your inventory."
+                : "Try a different search term."}
+            </p>
+          </div>
+          {stockList.length === 0 && (
+            <a
+              href="/shipments"
+              className="mt-1 h-11 px-6 rounded-full text-sm font-semibold flex items-center justify-center active:opacity-70"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              Go to Shipments
+            </a>
+          )}
         </div>
       ) : (
         <div className="space-y-5">
@@ -489,7 +508,9 @@ export function InventoryView() {
             return (
               <div key={brand}>
                 <button
-                  className="w-full flex items-center justify-between px-1 py-2 mb-2"
+                  className="w-full flex items-center justify-between px-1 py-2 mb-2 active:opacity-70"
+                  aria-label={`${isOpen ? "Collapse" : "Expand"} ${brand}`}
+                  aria-expanded={isOpen}
                   onClick={() => !searchActive && setExpandedBrand(isOpen ? null : brand)}
                 >
                   <div className="flex items-center gap-2">

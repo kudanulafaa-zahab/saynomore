@@ -159,15 +159,17 @@ export function SuppliersManager() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search suppliers…"
+          aria-label="Search suppliers"
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
         />
         {q && (
           <button
             onClick={() => setQ("")}
-            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-            style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}
+            aria-label="Clear search"
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
+            style={{ color: "var(--muted-foreground)" }}
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -320,32 +322,32 @@ export function SuppliersManager() {
                         <p className="text-[12px] mt-1 italic" style={{ color: "var(--muted-foreground)" }}>{s.notes}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => { setFeatured(s); setDialog({ open: true, editing: s }); }}
-                        className="h-9 w-9 rounded-xl flex items-center justify-center transition"
-                        style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}
-                        title="Edit"
+                        aria-label={`Edit ${s.name}`}
+                        className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
+                        style={{ color: "var(--muted-foreground)" }}
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-4 w-4" />
                       </button>
                       {isAdmin && (
                         <button
                           onClick={() => setConfirmSupplier({ id: s.id, name: s.name })}
-                          className="h-9 w-9 rounded-xl flex items-center justify-center transition"
-                          style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                          title="Delete"
+                          aria-label={`Delete ${s.name}`}
+                          className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
+                          style={{ color: "var(--snm-error)" }}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       )}
                       <button
                         onClick={() => setFeatured(s)}
-                        className="h-9 w-9 rounded-xl flex items-center justify-center transition"
-                        style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}
-                        title="Feature"
+                        aria-label={`Feature ${s.name}`}
+                        className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
+                        style={{ color: "var(--muted-foreground)" }}
                       >
-                        <ChevronRight className="h-3.5 w-3.5" />
+                        <ChevronRight className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
