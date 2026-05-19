@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
@@ -145,7 +145,11 @@ function GlassSelect({ label, value, onChange, children }: {
 // ── SalesList ─────────────────────────────────────────────────────────────────
 
 export function SalesList() {
-  const router = useRouter();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  // ?filter=unpaid → pre-filter to delivered orders with pending payment
+  const unpaidMode   = searchParams.get("filter") === "unpaid";
+
   const [rows, setRows] = useState<SalesOrderRow[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
@@ -153,7 +157,7 @@ export function SalesList() {
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">(unpaidMode ? "delivered" : "all");
   const [newDialog, setNewDialog] = useState(false);
   const [groupBy, setGroupBy] = useState<"orders" | "customers">("orders");
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
@@ -176,13 +180,15 @@ export function SalesList() {
   const filtered = useMemo(() => {
     let r = rows;
     if (statusFilter !== "all") r = r.filter((x) => x.status === statusFilter);
+    // Unpaid mode: further restrict to delivered orders with pending/partial payment
+    if (unpaidMode) r = r.filter((x) => ["pending", "partial"].includes(x.payment_status));
     const term = q.trim().toLowerCase();
     if (term) r = r.filter((x) => {
       const cust = customers.find((c) => c.id === x.customer_id);
       return [x.order_number, cust?.name ?? "", cust?.phone ?? ""].join(" ").toLowerCase().includes(term);
     });
     return r;
-  }, [rows, q, statusFilter, customers]);
+  }, [rows, q, statusFilter, unpaidMode, customers]);
 
   // Group by customer — collapse all orders per customer into one expandable row.
   // Walk-in orders are grouped under a single "Walk-in" bucket.
@@ -223,6 +229,32 @@ export function SalesList() {
           <Plus className="h-4 w-4" /> New Sale
         </button>
       </div>
+
+      {/* Unpaid filter banner — shown when arriving from dashboard */}
+      {unpaidMode && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
+          style={{
+            background: "color-mix(in srgb, var(--snm-error) 8%, var(--glass-1))",
+            border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--snm-error)" }} />
+            <p className="text-[13px] font-semibold text-foreground">
+              Showing {filtered.length} unpaid delivered order{filtered.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/sales")}
+            className="text-[12px] font-medium shrink-0"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Clear ✕
+          </button>
+        </div>
+      )}
 
       {/* Search + status filter + view toggle */}
       <div className="flex gap-2">
@@ -270,7 +302,7 @@ export function SalesList() {
           </div>
           <h3 className="text-base font-semibold text-foreground">{rows.length === 0 ? "No sales yet" : "No matches"}</h3>
           <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
-            {rows.length === 0 ? "Record a sale when a customer messages you on WhatsApp, Viber, or other channels." : "Try a different filter."}
+            {unpaidMode ? "All delivered orders have been paid. Nothing outstanding." : rows.length === 0 ? "Record a sale when a customer messages you on WhatsApp, Viber, or other channels." : "Try a different filter."}
           </p>
           {rows.length === 0 && (
             <button onClick={() => setNewDialog(true)} className="mt-2 h-11 px-6 rounded-2xl text-sm font-semibold"

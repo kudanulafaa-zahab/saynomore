@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, TrendingDown, ArrowRight, ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Banknote } from "lucide-react";
 import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueRow } from "@/lib/queries/reports";
@@ -224,8 +224,11 @@ function CodView() {
 /* ─── Main FinancialsView with tabs ───────────────────────────────────── */
 
 export function FinancialsView() {
-  const router = useRouter();
-  const [tab, setTab]           = useState<"profit" | "cod">("profit");
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  // Deep-link support: /financials?tab=cod opens COD Cash directly
+  const initialTab   = searchParams.get("tab") === "cod" ? "cod" : "profit";
+  const [tab, setTab] = useState<"profit" | "cod">(initialTab);
   const [rows, setRows]         = useState<ReportRow[]>([]);
   const [expenses, setExpenses] = useState<{ amount_mvr: number }[]>([]);
   const [monthly, setMonthly]   = useState<MonthlyRevenueRow[]>([]);
