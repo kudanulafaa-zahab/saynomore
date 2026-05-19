@@ -4,12 +4,12 @@ import {
   TrendingDown,
   AlertTriangle,
   Clock,
-  Package,
   Banknote,
-  CheckCircle2,
   Timer,
   ChevronRight,
-  Navigation,
+  Truck,
+  PackageCheck,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,10 +33,8 @@ interface Metrics {
   low_stock_sku_count:         number;
   total_stock_value_mvr:       number;
   shipments_in_transit:        number;
-  // Delivered orders where money has not yet been received
   pending_payments_mvr:        number;
   pending_payments_count:      number;
-  // Subset: COD cash held by drivers, not yet banked
   cod_undeposited_mvr:         number;
 }
 
@@ -68,13 +66,11 @@ export default async function DashboardPage() {
   const grossProfit       = Number(m.gross_profit_this_month_mvr);
   const grossMargin       = Number(m.gross_margin_pct);
   const revenueToday      = Number(m.revenue_today_mvr);
-  const stockValue        = Number(m.total_stock_value_mvr);
   const pendingMvr        = Number(m.pending_payments_mvr);
   const pendingCount      = Number(m.pending_payments_count);
   const codUndeposited    = Number(m.cod_undeposited_mvr);
   const awaitingDispatch  = Number(m.orders_awaiting_dispatch);
   const onRoad            = Number(m.orders_out_for_delivery);
-  const dispatchedToday   = Number(m.orders_dispatched_today);
   const deliveredToday    = Number(m.orders_delivered_today);
   const overdueOrders     = Number(m.overdue_orders_count);
   const lowStockCount     = Number(m.low_stock_sku_count);
@@ -88,17 +84,31 @@ export default async function DashboardPage() {
   const lastMonthName = new Date(now.getFullYear(), now.getMonth() - 1).toLocaleString("en-MV", { month: "long" });
   const todayLabel    = now.toLocaleString("en-MV", { weekday: "short", day: "numeric", month: "short" });
 
-  const hasAlerts = overdueOrders > 0 || lowStockCount > 0 || pendingMvr > 0 || codUndeposited > 0;
-
   const marginColor =
     grossMargin < 10 ? "var(--snm-error)"
     : grossMargin < 20 ? "var(--snm-warning)"
     : "var(--snm-success)";
 
+  // Highest-priority exception right now
+  const exception =
+    overdueOrders > 0
+      ? { label: `${overdueOrders} order${overdueOrders !== 1 ? "s" : ""} overdue — not dispatched`, cta: "Dispatch now", href: "/dispatch", color: "var(--snm-error)" }
+      : awaitingDispatch > 0
+      ? { label: `${awaitingDispatch} order${awaitingDispatch !== 1 ? "s" : ""} waiting for a driver`, cta: "Assign now", href: "/dispatch", color: "var(--snm-warning)" }
+      : pendingMvr > 0
+      ? { label: `MVR ${mvr(pendingMvr)} unpaid — ${pendingCount} order${pendingCount !== 1 ? "s" : ""}`, cta: "View orders", href: "/sales?filter=unpaid", color: "var(--snm-error)" }
+      : codUndeposited > 0
+      ? { label: `MVR ${mvr(codUndeposited)} COD cash not yet banked`, cta: "Check COD", href: "/financials?tab=cod", color: "var(--snm-warning)" }
+      : lowStockCount > 0
+      ? { label: `${lowStockCount} SKU${lowStockCount !== 1 ? "s" : ""} running low`, cta: "Check stock", href: "/inventory", color: "var(--snm-warning)" }
+      : null;
+
+  const hasAlerts = overdueOrders > 0 || lowStockCount > 0 || pendingMvr > 0 || codUndeposited > 0;
+
   return (
     <div className="space-y-4">
 
-      {/* ── Hero: Revenue + Gross Profit ── */}
+      {/* ── Zone 1: Business Health ── */}
       <div className="snm-card rounded-2xl p-6" style={{ border: "1px solid var(--glass-border-lo)" }}>
         <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>
           {monthName} Performance
@@ -125,201 +135,174 @@ export default async function DashboardPage() {
         </div>
 
         {revChangePct !== null && (
-          <div
-            className="flex items-center gap-1.5 mt-3"
-            style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}
-          >
-            {revChangePct >= 0
-              ? <TrendingUp className="h-3.5 w-3.5" />
-              : <TrendingDown className="h-3.5 w-3.5" />}
+          <div className="flex items-center gap-1.5 mt-3"
+            style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+            {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
             <span className="text-sm">
               {revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(1)}% vs {lastMonthName}
             </span>
           </div>
         )}
 
-        {/* Today strip */}
-        <div
-          className="grid grid-cols-3 gap-4 mt-5 pt-4"
-          style={{ borderTop: "1px solid var(--glass-border-lo)" }}
-        >
-          <div>
-            <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>
-              {todayLabel}
-            </p>
-            <p className="text-sm font-semibold text-foreground">{mvr(revenueToday)} MVR</p>
-          </div>
-          <div>
-            <p className="label-caps text-[11px] mb-1 flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
-              On the Road
-              {onRoad > 0 && (
-                <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--snm-brand)" }} />
-              )}
-            </p>
-            <p className="text-sm font-semibold" style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--foreground)" }}>
-              {onRoad} {onRoad === 1 ? "order" : "orders"}
-            </p>
-          </div>
-          <div>
-            <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Awaiting Dispatch</p>
-            <p className="text-sm font-semibold" style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--foreground)" }}>
-              {awaitingDispatch}
-            </p>
-          </div>
+        {/* Today's revenue sub-line */}
+        <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
+          <p className="text-sm font-semibold text-foreground">{mvr(revenueToday)} MVR</p>
         </div>
       </div>
 
-      {/* ── Live delivery pulse — only shown when orders are on the road ── */}
-      {onRoad > 0 && (
-        <Link
-          href="/dispatch"
+      {/* ── Zone 2: Live Order Pipeline ──
+           All three tap to /dispatch which shows confirmed + out_for_delivery + delivered.
+           Each number is always meaningful — dispatch page always has content if any of these > 0.
+           If all are 0, the strip shows neutral zeros — no empty taps because /dispatch still exists.
+      ── */}
+      <Link href="/dispatch" className="block snm-card rounded-2xl overflow-hidden transition active:scale-[0.98]"
+        style={{ border: "1px solid var(--glass-border-lo)" }}>
+        <div className="px-4 pt-4 pb-1">
+          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Order Pipeline — Today</p>
+        </div>
+        <div className="grid grid-cols-3 divide-x" style={{ borderColor: "var(--glass-border-lo)" }}>
+
+          {/* Awaiting Dispatch */}
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <ClipboardList className="h-3.5 w-3.5 shrink-0"
+                style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--muted-foreground)" }} />
+              <p className="text-[10px] font-semibold uppercase tracking-wider leading-tight"
+                style={{ color: "var(--muted-foreground)" }}>Awaiting</p>
+            </div>
+            <p className="text-2xl font-bold leading-none"
+              style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--foreground)" }}>
+              {awaitingDispatch}
+            </p>
+            <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+              {awaitingDispatch === 1 ? "order" : "orders"}
+            </p>
+          </div>
+
+          {/* On the Road */}
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Truck className="h-3.5 w-3.5 shrink-0"
+                style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--muted-foreground)" }} />
+              <p className="text-[10px] font-semibold uppercase tracking-wider leading-tight"
+                style={{ color: "var(--muted-foreground)" }}>On Road</p>
+              {onRoad > 0 && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
+                  style={{ background: "var(--snm-brand)" }} />
+              )}
+            </div>
+            <p className="text-2xl font-bold leading-none"
+              style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--foreground)" }}>
+              {onRoad}
+            </p>
+            <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+              {onRoad === 1 ? "order" : "orders"}
+            </p>
+          </div>
+
+          {/* Delivered Today */}
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <PackageCheck className="h-3.5 w-3.5 shrink-0"
+                style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--muted-foreground)" }} />
+              <p className="text-[10px] font-semibold uppercase tracking-wider leading-tight"
+                style={{ color: "var(--muted-foreground)" }}>Delivered</p>
+            </div>
+            <p className="text-2xl font-bold leading-none"
+              style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--foreground)" }}>
+              {deliveredToday}
+            </p>
+            <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>today</p>
+          </div>
+
+        </div>
+        <div className="flex items-center justify-end gap-1 px-4 py-2"
+          style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Open dispatch board</p>
+          <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+        </div>
+      </Link>
+
+      {/* ── Zone 3: Money ──
+           Both cards only show when there is actual data — no empty red cards.
+           Taps go to pages that show the specific orders/data behind the number.
+      ── */}
+      {(pendingMvr > 0 || codUndeposited > 0) && (
+        <div className="grid grid-cols-2 gap-3">
+
+          {pendingMvr > 0 && (
+            <Link href="/sales?filter=unpaid"
+              className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}>
+              <div className="flex justify-between items-start mb-3">
+                <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Unpaid</p>
+                <Clock className="h-4 w-4" style={{ color: "var(--snm-error)" }} />
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: "var(--snm-error)" }}>
+                {mvr(pendingMvr)}
+              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                  {pendingCount} delivered order{pendingCount !== 1 ? "s" : ""}
+                </p>
+                <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+              </div>
+            </Link>
+          )}
+
+          {codUndeposited > 0 && (
+            <Link href="/financials?tab=cod"
+              className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
+              <div className="flex justify-between items-start mb-3">
+                <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Cash in Hand</p>
+                <Banknote className="h-4 w-4" style={{ color: "var(--snm-warning)" }} />
+              </div>
+              <p className="text-2xl font-semibold" style={{ color: "var(--snm-warning)" }}>
+                {mvr(codUndeposited)}
+              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                  COD collected, not banked
+                </p>
+                <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+              </div>
+            </Link>
+          )}
+
+        </div>
+      )}
+
+      {/* ── Zone 4: Single action strip — highest priority exception only ──
+           Only renders when there is actually something that needs attention.
+           Every link goes somewhere with real, relevant content.
+      ── */}
+      {exception && (
+        <Link href={exception.href}
           className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 transition active:scale-[0.98]"
           style={{
-            background: "color-mix(in srgb, var(--snm-brand) 8%, var(--glass-1))",
-            border: "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)",
+            background: `color-mix(in srgb, ${exception.color} 8%, var(--glass-1))`,
+            border: `1px solid color-mix(in srgb, ${exception.color} 30%, transparent)`,
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
           }}
         >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)" }}
-            >
-              <Navigation className="h-4 w-4" style={{ color: "var(--snm-brand)" }} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                {onRoad} {onRoad === 1 ? "order" : "orders"} on the road
-                <span className="inline-block w-2 h-2 rounded-full animate-pulse shrink-0" style={{ background: "var(--snm-brand)" }} />
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                Live · updates when delivery marked complete
-              </p>
-            </div>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: exception.color }} />
+            <p className="text-[14px] font-semibold text-foreground truncate">{exception.label}</p>
           </div>
-          <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--snm-brand)", opacity: 0.7 }} />
+          <span className="text-[12px] font-bold shrink-0 px-3 py-1.5 rounded-xl"
+            style={{ background: exception.color, color: "#fff" }}>
+            {exception.cta} →
+          </span>
         </Link>
       )}
 
-      {/* ── 2×2 metric grid ── */}
-      <div className="grid grid-cols-2 gap-3">
-
-        <Link href="/inventory" className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
-          style={{ border: "1px solid var(--glass-border-lo)" }}>
-          <div className="flex justify-between items-start mb-3">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Stock Value</p>
-            <Package className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-          </div>
-          <p className="text-2xl font-semibold text-foreground">{mvr(stockValue)}</p>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>MVR at landed cost</p>
-            <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-          </div>
-        </Link>
-
-        {/*
-          Unpaid — all delivered orders where money not yet received.
-          Includes: COD not collected, bank transfer unpaid, partial payments.
-          Excludes: undelivered orders (money doesn't exist yet).
-          Taps to Sales filtered view so owner can see exactly which orders.
-        */}
-        <Link href="/sales?filter=unpaid" className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
-          style={{ border: pendingMvr > 0 ? "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" : "1px solid var(--glass-border-lo)" }}>
-          <div className="flex justify-between items-start mb-3">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Unpaid</p>
-            <Clock className="h-4 w-4" style={{ color: pendingMvr > 0 ? "var(--snm-error)" : "var(--muted-foreground)" }} />
-          </div>
-          <p className="text-2xl font-semibold" style={{ color: pendingMvr > 0 ? "var(--snm-error)" : "var(--foreground)" }}>
-            {pendingMvr > 0 ? mvr(pendingMvr) : "—"}
-          </p>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-              {pendingMvr > 0 ? `${pendingCount} delivered order${pendingCount !== 1 ? "s" : ""}` : "All collected"}
-            </p>
-            <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-          </div>
-        </Link>
-
-        {/*
-          COD Cash in Hand — subset of Unpaid above.
-          This is money that EXISTS (driver collected it) but hasn't reached the bank.
-          Different urgency and action: go to COD reconciliation, not Sales list.
-        */}
-        <Link href="/financials?tab=cod" className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
-          style={{ border: codUndeposited > 0 ? "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "1px solid var(--glass-border-lo)" }}>
-          <div className="flex justify-between items-start mb-3">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Cash in Hand</p>
-            <Banknote className="h-4 w-4" style={{ color: codUndeposited > 0 ? "var(--snm-warning)" : "var(--muted-foreground)" }} />
-          </div>
-          <p className="text-2xl font-semibold" style={{ color: codUndeposited > 0 ? "var(--snm-warning)" : "var(--foreground)" }}>
-            {codUndeposited > 0 ? mvr(codUndeposited) : "—"}
-          </p>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-              {codUndeposited > 0 ? "COD collected, not banked" : "All cash deposited"}
-            </p>
-            <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-          </div>
-        </Link>
-
-        <Link href="/dispatch" className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
-          style={{ border: "1px solid var(--glass-border-lo)" }}>
-          <div className="flex justify-between items-start mb-3">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Delivered Today</p>
-            <CheckCircle2 className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-          </div>
-          <p className="text-2xl font-semibold text-foreground">{deliveredToday}</p>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-              {dispatchedToday > 0 ? `${dispatchedToday} dispatched` : "orders completed"}
-            </p>
-            <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-          </div>
-        </Link>
-
-      </div>
-
-      {/* ── Next Action strip ──
-           One line, one button — the single most urgent thing right now.
-           Priority: overdue > awaiting dispatch > unpaid > COD not banked > low stock ── */}
-      {(overdueOrders > 0 || awaitingDispatch > 0 || pendingMvr > 0 || codUndeposited > 0 || lowStockCount > 0) && (() => {
-        const action =
-          overdueOrders > 0
-            ? { label: `${overdueOrders} order${overdueOrders !== 1 ? "s" : ""} overdue — not dispatched`, cta: "Dispatch now", href: "/dispatch", color: "var(--snm-error)" }
-            : awaitingDispatch > 0
-            ? { label: `${awaitingDispatch} order${awaitingDispatch !== 1 ? "s" : ""} ready to dispatch`, cta: "Assign delivery", href: "/dispatch", color: "var(--snm-warning)" }
-            : pendingMvr > 0
-            ? { label: `MVR ${mvr(pendingMvr)} unpaid across ${pendingCount} order${pendingCount !== 1 ? "s" : ""}`, cta: "View", href: "/sales?filter=unpaid", color: "var(--snm-error)" }
-            : codUndeposited > 0
-            ? { label: `MVR ${mvr(codUndeposited)} COD cash not yet banked`, cta: "Check COD", href: "/financials?tab=cod", color: "var(--snm-warning)" }
-            : { label: `${lowStockCount} SKU${lowStockCount !== 1 ? "s" : ""} running low`, cta: "Check stock", href: "/inventory", color: "var(--snm-warning)" };
-        return (
-          <Link
-            href={action.href}
-            className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 transition active:scale-[0.98]"
-            style={{
-              background: `color-mix(in srgb, ${action.color} 8%, var(--glass-1))`,
-              border: `1px solid color-mix(in srgb, ${action.color} 30%, transparent)`,
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-            }}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: action.color }} />
-              <p className="text-[14px] font-semibold text-foreground truncate">{action.label}</p>
-            </div>
-            <span
-              className="text-[12px] font-bold shrink-0 px-3 py-1.5 rounded-xl"
-              style={{ background: action.color, color: "#fff" }}
-            >
-              {action.cta} →
-            </span>
-          </Link>
-        );
-      })()}
-
-      {/* ── Alerts — only shown when something needs attention ── */}
+      {/* ── Zone 5: Needs Attention detail ──
+           Only shown when there is something actually wrong.
+           Every row links to a page where the user can take action.
+      ── */}
       {hasAlerts && (
         <div className="space-y-2">
           <p className="label-caps text-[11px] px-1" style={{ color: "var(--muted-foreground)" }}>Needs Attention</p>
@@ -327,8 +310,7 @@ export default async function DashboardPage() {
           {overdueOrders > 0 && (
             <Link href="/dispatch"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
-              style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}
-            >
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
                 <Timer className="h-4 w-4" />
@@ -338,7 +320,7 @@ export default async function DashboardPage() {
                   {overdueOrders} order{overdueOrders !== 1 ? "s" : ""} overdue
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                  Confirmed &gt;24 h — not yet dispatched
+                  Confirmed &gt;24 h — no driver assigned yet
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
@@ -348,8 +330,7 @@ export default async function DashboardPage() {
           {pendingMvr > 0 && (
             <Link href="/sales?filter=unpaid"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
-              style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 20%, transparent)" }}
-            >
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 20%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
                 <Clock className="h-4 w-4" />
@@ -369,8 +350,7 @@ export default async function DashboardPage() {
           {codUndeposited > 0 && (
             <Link href="/financials?tab=cod"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
-              style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}
-            >
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
                 <Banknote className="h-4 w-4" />
@@ -390,8 +370,7 @@ export default async function DashboardPage() {
           {lowStockCount > 0 && (
             <Link href="/inventory"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
-              style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 28%, transparent)" }}
-            >
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 28%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
                 <AlertTriangle className="h-4 w-4" />
