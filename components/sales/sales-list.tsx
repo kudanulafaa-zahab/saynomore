@@ -1172,6 +1172,21 @@ function NewSaleSheet({
                           placeholder={hasNoPrice ? "Enter price" : "0.00"}
                           className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none"
                           style={{ ...CARD, border: hasNoPrice ? "1px solid color-mix(in srgb, var(--snm-warning) 40%, transparent)" : "1px solid var(--glass-border-lo)" }} />
+                        {/* Price list source line — shows WHICH list is driving this price */}
+                        {(() => {
+                          if (!linePrice || priceManuallyEdited || autoPriceSource !== "price_list") return null;
+                          const tp = selectedSku ? tierPrices.get(selectedSku.id) : null;
+                          if (!tp?.price_list_name) return null;
+                          const dateStr = tp.price_list_date
+                            ? new Date(tp.price_list_date).toLocaleDateString("en-MV", { month: "short", year: "numeric" })
+                            : null;
+                          return (
+                            <p className="text-[9px] leading-tight" style={{ color: "var(--muted-foreground)" }}>
+                              From: <span className="font-semibold text-foreground">{tp.price_list_name}</span>
+                              {dateStr && <> · {dateStr}</>}
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
                   );

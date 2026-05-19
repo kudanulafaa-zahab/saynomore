@@ -224,6 +224,8 @@ export interface TierPrice {
   price_per_pack_mvr:   number;
   price_per_carton_mvr: number;
   source:               "price_list" | "sku_default";
+  price_list_name:      string | null;
+  price_list_date:      string | null; // ISO date YYYY-MM-DD
 }
 
 /** Fetch tier-aware prices for a batch of SKU IDs. Returns a map sku_id → TierPrice. */
