@@ -69,6 +69,17 @@ export function PriceListsView() {
 
   useEffect(() => { load(); }, []);
 
+  // Lock body scroll when any full-screen overlay is open — prevents iOS bleed-through
+  const overlayOpen = !!(openList || newListTier);
+  useEffect(() => {
+    if (overlayOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [overlayOpen]);
+
   async function handleDelete(id: string, name: string) {
     setConfirmDelete({ id, name });
   }
@@ -308,10 +319,8 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
   return (
     <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Fixed header */}
-      <div
-        className="shrink-0 px-4 pb-3 space-y-3"
-        style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "var(--background)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
-      >
+      <div className="snm-overlay-header px-4">
+        <div className="pt-3 pb-3 space-y-3">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
@@ -371,10 +380,11 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
         {createdList && (
           <p className="text-[11px] font-medium" style={{ color: "var(--snm-success)" }}>✓ List created — keep adding SKU prices below</p>
         )}
+        </div>
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto overscroll-none px-5 py-4 space-y-4">
         {items.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--muted-foreground)" }}>Added ({items.length})</p>
@@ -518,7 +528,8 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
   return (
     <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
+      <div className="snm-overlay-header px-5">
+      <div className="flex items-center gap-3 pt-4 pb-4">
         <button
           onClick={onClose}
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -540,10 +551,11 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
         >
           <Plus className="h-3.5 w-3.5" /> Add SKU
         </button>
+        </div>
       </div>
 
       {/* Item list */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
+      <div className="flex-1 overflow-y-auto overscroll-none px-5 py-4 space-y-2">
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--muted-foreground)" }} />
@@ -653,7 +665,8 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
       {/* Add SKU — full-screen overlay */}
       {addSheet && (
         <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 210 }}>
-          <div className="flex items-center gap-3 px-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
+          <div className="snm-overlay-header px-5">
+          <div className="flex items-center gap-3 pt-4 pb-4">
             <button
               onClick={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); }}
               className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -668,7 +681,8 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
               </h2>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-none px-5 py-4 space-y-3">
             {!addSkuId ? (
               <>
                 <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>

@@ -571,6 +571,13 @@ function NewSaleSheet({
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | null>(null);
 
+  // Lock body scroll while this overlay is open — prevents iOS rubber-band bleed
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   function autoPrice(sku: typeof selectedSku, uom: SaleUom): { price: string; source: "price_list" | "sku_default" | null } {
     if (!sku) return { price: "", source: null };
     const tp = tierPrices.get(sku.id);
@@ -705,21 +712,20 @@ function NewSaleSheet({
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--background)" }}>
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-end justify-between px-5 pb-4 snm-topbar">
-        <div className="flex items-center gap-3">
-          <button onClick={onClose} className="text-foreground opacity-60 hover:opacity-100 transition text-xl">✕</button>
-          <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
+      {/* Header — safe-area aware, clears Dynamic Island / notch */}
+      <header className="snm-overlay-header px-5">
+        {/* Visible row sits BELOW the safe area inset */}
+        <div className="flex items-center justify-between py-3.5">
+          <div className="flex items-center gap-3">
+            <button onClick={onClose} className="text-foreground opacity-60 hover:opacity-100 transition text-xl">✕</button>
+            <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
+          </div>
+          <span className="text-[12px] font-mono" style={{ color: "var(--muted-foreground)" }}>{orderNumber}</span>
         </div>
-        <span className="text-[12px] font-mono" style={{ color: "var(--muted-foreground)" }}>{orderNumber}</span>
       </header>
 
-      {/* Content — top clears header (64px + notch), bottom clears footer (96px + home bar) */}
-      <div className="flex-1 overflow-y-auto px-5 space-y-5"
-        style={{
-          paddingTop: "calc(64px + env(safe-area-inset-top, 0px) + 16px)",
-          paddingBottom: "calc(96px + env(safe-area-inset-bottom, 0px) + 16px)",
-        }}>
+      {/* Content — flex-1 + overflow scroll; overscroll-none stops iOS bleed-through */}
+      <div className="flex-1 overflow-y-auto overscroll-none px-5 space-y-5 pb-6">
 
         {/* Step indicator */}
         <div className="flex items-center gap-2">
@@ -1322,8 +1328,7 @@ function NewSaleSheet({
       </div>
 
       {/* Fixed bottom actions */}
-      <footer className="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-5 snm-bottom-nav"
-        style={{ paddingTop: "16px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)", minHeight: "96px" }}>
+      <footer className="snm-overlay-footer px-5 gap-3" style={{ paddingTop: "12px" }}>
         {step === 1 && (
           <>
             <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>

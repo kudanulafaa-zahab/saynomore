@@ -401,17 +401,46 @@
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
     border-bottom: 1px solid var(--glass-border-lo);
-    /* Safe area: push content below iPhone notch / Dynamic Island */
-    padding-top: env(safe-area-inset-top, 0px);
-    height: calc(64px + env(safe-area-inset-top, 0px));
   }
   .snm-bottom-nav {
     background:            color-mix(in srgb, var(--background) 75%, transparent);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
     border-top: 1px solid var(--glass-border-lo);
-    /* Safe area: extend above iPhone home bar */
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── Full-screen overlay header — safe-area aware ──────────────────────────
+     Apply to the header of any fixed inset-0 overlay (sales, pricelists, etc).
+     Adds a frosted background + pushes content below the Dynamic Island/notch.
+     The visible content area starts below env(safe-area-inset-top).
+
+     Usage: <header class="snm-overlay-header px-5 gap-3">
+       Content here sits below the notch, never inside it.
+     </header>
+                                                                                */
+  .snm-overlay-header {
+    /* Frosted glass — same recipe as main topbar */
+    background:              color-mix(in srgb, var(--background) 82%, transparent);
+    backdrop-filter:         var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border-bottom:           1px solid var(--glass-border-lo);
+    /* Push ALL content below the notch/Dynamic Island */
+    padding-top:             env(safe-area-inset-top, 0px);
+    /* Shrink-to-fit: natural height, so multi-row headers work too */
+    flex-shrink:             0;
+  }
+
+  /* ── Full-screen overlay footer — safe-area aware ── */
+  .snm-overlay-footer {
+    background:              color-mix(in srgb, var(--background) 82%, transparent);
+    backdrop-filter:         var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border-top:              1px solid var(--glass-border-lo);
+    /* Push content above the home bar indicator */
+    padding-bottom:          env(safe-area-inset-bottom, 0px);
+    flex-shrink:             0;
+    display:                 flex;
+    align-items:             center;
   }
 
   /* ── Typography ── */
