@@ -257,20 +257,20 @@ export function CompetitorsView() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Landed Cost */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
+            <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
             {landedPerPiece > 0 ? (
-              <div className="flex sm:flex-col gap-4 sm:gap-1">
+              <div className="space-y-2.5">
                 <div>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
-                  <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(landedPerPiece)}</p>
+                  <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
+                  <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(landedPerPiece)}</p>
                 </div>
                 <div>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
-                  <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(landedPerPack)}</p>
+                  <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
+                  <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(landedPerPack)}</p>
                 </div>
                 <div>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                  <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(landedPerCarton)}</p>
+                  <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                  <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(landedPerCarton)}</p>
                 </div>
               </div>
             ) : (
@@ -280,22 +280,22 @@ export function CompetitorsView() {
 
           {/* Cheapest Competitor */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>CHEAPEST COMPETITOR</p>
+            <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>CHEAPEST</p>
             {topCompEntry && topCompPerPiece != null ? (
               <div>
-                <p className="text-[13px] font-semibold mb-1 truncate" style={{ color: "var(--foreground)" }}>{topCompEntry.comp?.name}</p>
-                <div className="flex sm:flex-col gap-4 sm:gap-1">
+                <p className="text-[11px] font-semibold mb-2.5 truncate" style={{ color: "var(--snm-warning)" }}>{topCompEntry.comp?.name}</p>
+                <div className="space-y-2.5">
                   <div>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(topCompPerPiece)}</p>
+                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(topCompPerPiece)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(topCompPerPack!)}</p>
+                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(topCompPerPack!)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(topCompPerCarton!)}</p>
+                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(topCompPerCarton!)}</p>
                   </div>
                 </div>
               </div>
@@ -305,26 +305,26 @@ export function CompetitorsView() {
           </div>
 
           {/* Our Current Price */}
-          <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>OUR SELLING PRICE</p>
+          <div className="rounded-xl p-4" style={{ ...CARD, border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)" }}>
+            <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>OUR PRICE</p>
             {simSku.selling_price_per_piece_mvr != null ? (
               <div>
-                <div className="flex sm:flex-col gap-4 sm:gap-1">
+                <div className="space-y-2.5">
                   <div>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(Number(simSku.selling_price_per_piece_mvr))}</p>
+                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(Number(simSku.selling_price_per_piece_mvr))}</p>
                   </div>
                   <div>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(Number(simSku.selling_price_per_pack_mvr))}</p>
+                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(Number(simSku.selling_price_per_pack_mvr))}</p>
                   </div>
                   <div>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(Number(simSku.selling_price_per_carton_mvr))}</p>
+                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(Number(simSku.selling_price_per_carton_mvr))}</p>
                   </div>
                 </div>
                 {simSku.target_margin_pct != null && (
-                  <p className="text-[13px] font-semibold mt-2" style={{ color: "var(--snm-success)" }}>{simSku.target_margin_pct}% margin</p>
+                  <p className="text-[12px] font-bold mt-2.5" style={{ color: "var(--snm-success)" }}>{simSku.target_margin_pct}% margin</p>
                 )}
               </div>
             ) : (
@@ -337,35 +337,21 @@ export function CompetitorsView() {
       {/* ── Margin Simulator ── */}
       {simSku && landedPerPiece > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
-          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+
+          {/* Header — title only, no toggle here */}
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Margin Simulator</h2>
-            {/* Unit toggle */}
-            <div className="flex rounded-lg overflow-hidden" style={{ background: "var(--glass-bg-1)" }}>
-              {(["piece", "pack", "carton"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setSimMode(m)}
-                  className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition"
-                  style={{
-                    background: simMode === m ? "var(--foreground)" : "transparent",
-                    color: simMode === m ? "var(--background)" : "var(--muted-foreground)",
-                  }}
-                >
-                  {m === "piece" ? "Pc" : m === "pack" ? "Pk" : "Ctn"}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="p-5 space-y-5">
 
-            {/* ── Hero competitive gap — stacked layout, nothing truncated on narrow screens ── */}
+            {/* ── Competitive gap status ── */}
             {topCompPerPiece != null && (() => {
               const delta = piecePrice - topCompPerPiece;
               const pctAbove = topCompPerPiece > 0 ? (delta / topCompPerPiece) * 100 : 0;
               const isAlert = delta > 0 && pctAbove > alertThreshold;
               const col = delta <= 0 ? "var(--snm-success)" : isAlert ? "var(--snm-error)" : "var(--snm-warning)";
-              const bg  = delta <= 0
+              const bg = delta <= 0
                 ? "color-mix(in srgb, var(--snm-success) 10%, transparent)"
                 : isAlert
                   ? "color-mix(in srgb, var(--snm-error) 10%, transparent)"
@@ -376,8 +362,7 @@ export function CompetitorsView() {
                   ? "color-mix(in srgb, var(--snm-error) 30%, transparent)"
                   : "color-mix(in srgb, var(--snm-warning) 30%, transparent)";
               return (
-                <div className="rounded-2xl px-5 py-4 space-y-3" style={{ background: bg, border: `1px solid ${border}` }}>
-                  {/* Top row: status label + delta number side by side */}
+                <div className="rounded-2xl px-5 py-4" style={{ background: bg, border: `1px solid ${border}` }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: col }}>
@@ -394,27 +379,49 @@ export function CompetitorsView() {
                       <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR/pc · {Math.abs(pctAbove).toFixed(0)}%</p>
                     </div>
                   </div>
-                  {/* Bottom row: alert threshold chips on their own line, never truncated */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)" }}>Alert at</p>
-                    {[5, 10, 15, 20, 25].map((t) => (
-                      <button key={t} onClick={() => setAlertThreshold(t)}
-                        className="h-7 px-3 rounded-lg text-[11px] font-semibold transition active:scale-95 shrink-0"
-                        style={{ background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 10%, transparent)", color: alertThreshold === t ? "#fff" : "var(--muted-foreground)" }}>
-                        {t}%
-                      </button>
-                    ))}
-                  </div>
                 </div>
               );
             })()}
 
-            {/* ── Price input — tap to edit (no slider per Smashing Mag / Luke W research) ── */}
+            {/* ── Price display + unit toggle directly above it ── */}
             <div>
-              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>
-                SELLING PRICE — {simLabel.toUpperCase()} · tap number to type
-              </p>
-              <div className="rounded-xl px-5 py-4 text-center" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
+              {/* Unit toggle sits directly above the number it controls */}
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                  Selling price
+                </p>
+                <div className="flex rounded-xl overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", padding: "2px" }}>
+                  {(["piece", "pack", "carton"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setSimMode(m)}
+                      className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition"
+                      style={{
+                        background: simMode === m ? "var(--foreground)" : "transparent",
+                        color: simMode === m ? "var(--background)" : "var(--muted-foreground)",
+                      }}
+                    >
+                      {m === "piece" ? "Pc" : m === "pack" ? "Pk" : "Ctn"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tappable price display — pencil icon signals editability, no instruction text */}
+              <div
+                className="rounded-2xl px-5 pt-5 pb-4 text-center relative cursor-pointer transition active:scale-[0.98]"
+                style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border-lo)" }}
+                onClick={() => { if (!simEditing) { setSimTyped(String(Math.ceil(simDisplayPrice))); setSimEditing(true); } }}
+              >
+                {/* Pencil affordance — top right, subtle */}
+                {!simEditing && (
+                  <div className="absolute top-3 right-3 h-6 w-6 rounded-lg flex items-center justify-center"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--muted-foreground)" }}>
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </div>
+                )}
                 {simEditing ? (
                   <input
                     autoFocus
@@ -428,58 +435,45 @@ export function CompetitorsView() {
                       setSimEditing(false);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const v = parseFloat(simTyped);
-                        if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
-                        setSimEditing(false);
-                      }
+                      if (e.key === "Enter") { const v = parseFloat(simTyped); if (!isNaN(v) && v > 0) setSimDisplayPrice(v); setSimEditing(false); }
                       if (e.key === "Escape") setSimEditing(false);
                     }}
-                    className="text-[48px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
+                    className="text-[52px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
                   />
                 ) : (
-                  <button
-                    onClick={() => { setSimTyped(String(Math.ceil(simDisplayPrice))); setSimEditing(true); }}
-                    className="text-[48px] font-light tracking-tight text-foreground hover:opacity-70 transition w-full"
-                  >
+                  <p className="text-[52px] font-light tracking-tight text-foreground leading-none">
                     {fmtInt(simDisplayPrice)}
-                  </button>
+                  </p>
                 )}
-                <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</p>
+                <p className="text-[13px] mt-1 font-medium" style={{ color: "var(--muted-foreground)" }}>MVR {simLabel}</p>
               </div>
 
-              {/* Margin slider — drag to any integer 1–99%, custom styled track */}
+              {/* Margin slider — inside glass container so track has visible context */}
               {(() => {
                 const landed = simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack;
                 const currentMargin = landed > 0 ? Math.round(((simDisplayPrice - landed) / simDisplayPrice) * 100) : 0;
                 const sliderVal = Math.max(1, Math.min(99, currentMargin));
                 const fillPct = ((sliderVal - 1) / 98) * 100;
                 return (
-                  <div className="mt-4">
-                    {/* Label row */}
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="mt-3 rounded-2xl px-5 py-4"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
+                    {/* Margin label + big number */}
+                    <div className="flex items-center justify-between mb-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
                       <div className="flex items-baseline gap-0.5">
-                        <p className="text-[28px] font-bold leading-none" style={{ color: "var(--snm-brand)" }}>{sliderVal}</p>
-                        <p className="text-[16px] font-semibold" style={{ color: "var(--muted-foreground)" }}>%</p>
+                        <p className="text-[32px] font-bold leading-none" style={{ color: "var(--snm-brand)" }}>{sliderVal}</p>
+                        <p className="text-[18px] font-semibold leading-none" style={{ color: "var(--muted-foreground)" }}>%</p>
                       </div>
                     </div>
-                    {/* Track container — glass pill with filled portion */}
+                    {/* Track */}
                     <div className="relative w-full h-10 flex items-center">
-                      {/* Track background */}
                       <div className="absolute inset-x-0 h-3 rounded-full overflow-hidden"
-                        style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>
-                        {/* Filled portion */}
-                        <div className="h-full rounded-full transition-all duration-75"
-                          style={{ width: `${fillPct}%`, background: "var(--snm-brand)" }} />
+                        style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
+                        <div className="h-full rounded-full"
+                          style={{ width: `${fillPct}%`, background: "var(--snm-brand)", transition: "width 60ms linear" }} />
                       </div>
-                      {/* Native range on top — transparent, same size, handles interaction */}
                       <input
-                        type="range"
-                        min={1}
-                        max={99}
-                        step={1}
-                        value={sliderVal}
+                        type="range" min={1} max={99} step={1} value={sliderVal}
                         onChange={(e) => {
                           const pct = parseInt(e.target.value);
                           if (landed > 0) setSimDisplayPrice(Math.ceil(landed / (1 - pct / 100)));
@@ -487,30 +481,28 @@ export function CompetitorsView() {
                         className="absolute inset-x-0 w-full opacity-0 h-10 cursor-pointer"
                         style={{ margin: 0 }}
                       />
-                      {/* Custom thumb — positioned over native thumb */}
-                      <div
-                        className="absolute w-7 h-7 rounded-full shadow-lg pointer-events-none transition-all duration-75 flex items-center justify-center"
+                      {/* Custom thumb */}
+                      <div className="absolute w-8 h-8 rounded-full pointer-events-none flex items-center justify-center"
                         style={{
-                          left: `calc(${fillPct}% - ${fillPct / 100 * 28}px + 2px)`,
+                          left: `calc(${fillPct}% - ${fillPct / 100 * 32}px + 2px)`,
                           background: "var(--snm-brand)",
-                          boxShadow: "0 2px 12px color-mix(in srgb, var(--snm-brand) 50%, transparent)",
-                        }}
-                      >
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.7)" }} />
+                          boxShadow: "0 2px 16px color-mix(in srgb, var(--snm-brand) 55%, transparent)",
+                          transition: "left 60ms linear",
+                        }}>
+                        <div className="w-3 h-3 rounded-full" style={{ background: "rgba(255,255,255,0.75)" }} />
                       </div>
                     </div>
-                    {/* Range labels */}
-                    <div className="flex justify-between mt-1">
-                      <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>1%</p>
-                      <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>99%</p>
+                    <div className="flex justify-between mt-2">
+                      <p className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>1%</p>
+                      <p className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>99%</p>
                     </div>
                   </div>
                 );
               })()}
             </div>
 
-            {/* All three price levels — with both margin % AND markup % */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* ── Three price levels — larger numbers, clear hierarchy ── */}
+            <div className="grid grid-cols-3 gap-2">
               {[
                 { label: "Per piece",  value: piecePrice,  landed: landedPerPiece },
                 { label: "Per pack",   value: packPrice,   landed: landedPerPack  },
@@ -518,26 +510,52 @@ export function CompetitorsView() {
               ].map(({ label, value, landed }) => {
                 const margin = landed > 0 ? ((value - landed) / value) * 100 : 0;
                 const markup = landed > 0 ? ((value - landed) / landed) * 100 : 0;
-                const color = margin >= 20 ? "var(--snm-success)" : margin >= 5 ? "var(--snm-warning)" : "var(--snm-error)";
+                const col = margin >= 20 ? "var(--snm-success)" : margin >= 5 ? "var(--snm-warning)" : "var(--snm-error)";
+                const isActive = (simMode === "piece" && label === "Per piece") || (simMode === "pack" && label === "Per pack") || (simMode === "carton" && label === "Per carton");
                 return (
-                  <div key={label} className="rounded-xl p-3 text-center space-y-1" style={{ background: "var(--glass-bg-1)" }}>
-                    <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmtInt(value)}</p>
-                    <p className="text-[11px] font-bold" style={{ color }}>{margin.toFixed(1)}% margin</p>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : markup.toFixed(0)}% markup</p>
+                  <div key={label} className="rounded-xl p-3 text-center space-y-1.5"
+                    style={{
+                      background: isActive ? "color-mix(in srgb, var(--snm-brand) 10%, transparent)" : "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                      border: isActive ? "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)" : "1px solid var(--glass-border-lo)",
+                    }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="text-[18px] font-bold leading-none text-foreground">MVR {fmtInt(value)}</p>
+                    <p className="text-[11px] font-bold" style={{ color: col }}>{Math.round(margin)}%</p>
+                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : Math.round(markup)}% mkup</p>
                   </div>
                 );
               })}
             </div>
 
-            {/* ── Save actions — margin% primary, fixed price secondary (ProCreator / NNG single-primary rule) ── */}
-            <div className="space-y-3">
-              {/* Primary: save as margin % — auto-adjusts with landed cost */}
+            {/* ── Alert threshold — moved out of competitive gap, its own quiet row ── */}
+            {topCompPerPiece != null && (
+              <div className="flex items-center gap-2 flex-wrap pt-1">
+                <p className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)" }}>Alert when above competitor by</p>
+                {[5, 10, 15, 20, 25].map((t) => (
+                  <button key={t} onClick={() => setAlertThreshold(t)}
+                    className="h-7 px-3 rounded-lg text-[11px] font-semibold transition active:scale-95 shrink-0"
+                    style={{
+                      background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                      color: alertThreshold === t ? "#fff" : "var(--muted-foreground)",
+                    }}>
+                    {t}%
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* ── Save — brand orange when changed, clearly the primary action ── */}
+            <div className="space-y-2 pt-1">
               <button
                 onClick={() => handleSetPrice("margin")}
                 disabled={saving || !landedPerPack || packPrice <= landedPerPack}
                 className="w-full h-14 rounded-2xl text-[15px] font-bold transition active:scale-[0.97] disabled:opacity-40 flex items-center justify-center gap-2"
-                style={{ background: isPriceChanged ? "var(--foreground)" : "var(--glass-bg-2)", color: isPriceChanged ? "var(--background)" : "var(--muted-foreground)", touchAction: "manipulation" }}
+                style={{
+                  background: isPriceChanged ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                  color: isPriceChanged ? "#fff" : "var(--muted-foreground)",
+                  touchAction: "manipulation",
+                  boxShadow: isPriceChanged ? "0 4px 20px color-mix(in srgb, var(--snm-brand) 40%, transparent)" : "none",
+                }}
               >
                 {saving && saveMode === "margin"
                   ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -545,21 +563,26 @@ export function CompetitorsView() {
                     ? <><TrendingUp className="h-4 w-4" /> Save at {impliedMarginPct}% margin</>
                     : <><CheckCircle2 className="h-4 w-4" /> Price Up to Date</>}
               </button>
-              <p className="text-[12px] text-center px-2" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[11px] text-center" style={{ color: "var(--muted-foreground)" }}>
                 Auto-updates when landed cost changes each shipment.
               </p>
 
-              {/* Secondary: save as fixed price */}
+              {/* Fixed price — styled as a real button, not plain grey text */}
               {isPriceChanged && (
                 <button
                   onClick={() => handleSetPrice("fixed")}
                   disabled={saving || !landedPerPack || packPrice <= landedPerPack}
-                  className="w-full h-10 text-[13px] font-medium transition active:scale-[0.97] disabled:opacity-40 flex items-center justify-center gap-1.5"
-                  style={{ color: "var(--muted-foreground)", touchAction: "manipulation" }}
+                  className="w-full h-11 rounded-2xl text-[13px] font-semibold transition active:scale-[0.97] disabled:opacity-40 flex items-center justify-center gap-1.5"
+                  style={{
+                    background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                    color: "var(--foreground)",
+                    border: "1px solid var(--glass-border-lo)",
+                    touchAction: "manipulation",
+                  }}
                 >
                   {saving && saveMode === "fixed"
                     ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <>Or save as fixed price · MVR {fmt2(piecePrice)}/pc</>}
+                    : <>Or lock as fixed price · MVR {fmtInt(piecePrice)}/pc</>}
                 </button>
               )}
             </div>
