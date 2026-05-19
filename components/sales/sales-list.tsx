@@ -571,42 +571,21 @@ function NewSaleSheet({
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | null>(null);
 
-  // ── iOS keyboard fix ────────────────────────────────────────────────────────
-  // On iOS Safari, fixed/inset-0 stays at full-screen size when the keyboard
-  // opens — it does NOT shrink. The visualViewport API tells us exactly how
-  // much the visual area has shrunk, so we translate the overlay up to match.
-  // This eliminates the black void between content and keyboard completely.
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  // ── iOS body scroll lock ────────────────────────────────────────────────────
+  // Lock the body so the background page cannot scroll or bleed through.
+  // We use position:fixed + saved scrollY so the page stays in place.
   useEffect(() => {
-    // Lock body scroll (prevents bleed-through)
-    const prevOverflow = document.body.style.overflow;
-    const prevPosition = document.body.style.position;
-    const prevTop      = document.body.style.top;
-    const scrollY      = window.scrollY;
+    const scrollY = window.scrollY;
+    const prev = { overflow: document.body.style.overflow, position: document.body.style.position, top: document.body.style.top, width: document.body.style.width };
     document.body.style.overflow = "hidden";
     document.body.style.position = "fixed";
     document.body.style.top      = `-${scrollY}px`;
     document.body.style.width    = "100%";
-
-    // Track visual viewport height changes (keyboard open/close)
-    function onViewportResize() {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      // How much of the screen is hidden by the keyboard
-      const hidden = window.innerHeight - vv.height - vv.offsetTop;
-      setKeyboardOffset(Math.max(0, hidden));
-    }
-    window.visualViewport?.addEventListener("resize", onViewportResize);
-    window.visualViewport?.addEventListener("scroll", onViewportResize);
-    onViewportResize(); // initial
-
     return () => {
-      window.visualViewport?.removeEventListener("resize", onViewportResize);
-      window.visualViewport?.removeEventListener("scroll", onViewportResize);
-      document.body.style.overflow = prevOverflow;
-      document.body.style.position = prevPosition;
-      document.body.style.top      = prevTop;
-      document.body.style.width    = "";
+      document.body.style.overflow = prev.overflow;
+      document.body.style.position = prev.position;
+      document.body.style.top      = prev.top;
+      document.body.style.width    = prev.width;
       window.scrollTo(0, scrollY);
     };
   }, []);
@@ -744,14 +723,13 @@ function NewSaleSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col"
+      className="fixed inset-x-0 top-0 z-50 flex flex-col"
       style={{
         background: "var(--background)",
         touchAction: "none",
-        // Slide the entire overlay up by exactly the keyboard height.
-        // This keeps the footer always visible just above the keyboard.
-        transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
-        transition: "transform 0.25s ease-out",
+        // 100dvh = dynamic viewport height — shrinks when keyboard opens on iOS 15.4+
+        // This is the correct, CSS-native solution. No JS measurement needed.
+        height: "100dvh",
       }}
       onTouchMove={(e) => e.stopPropagation()}
     >
