@@ -710,10 +710,14 @@ function NewSaleSheet({
   const stepLabels: Record<Step, string> = { 1: "Customer", 2: "Products", 3: "Confirm" };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--background)" }}>
+    <div
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: "var(--background)", touchAction: "none" }}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
 
       {/* Header — safe-area aware, clears Dynamic Island / notch */}
-      <header className="snm-overlay-header px-5">
+      <header className="snm-overlay-header px-5 shrink-0">
         {/* Visible row sits BELOW the safe area inset */}
         <div className="flex items-center justify-between py-3.5">
           <div className="flex items-center gap-3">
@@ -724,8 +728,11 @@ function NewSaleSheet({
         </div>
       </header>
 
-      {/* Content — flex-1 + overflow scroll; overscroll-none stops iOS bleed-through */}
-      <div className="flex-1 overflow-y-auto overscroll-none px-5 space-y-5 pb-6">
+      {/* Content — takes all remaining space; touch-action auto re-enables scrolling inside */}
+      <div
+        className="flex-1 min-h-0 overflow-y-auto px-5 space-y-5 pb-6"
+        style={{ touchAction: "pan-y", overscrollBehavior: "none" } as React.CSSProperties}
+      >
 
         {/* Step indicator */}
         <div className="flex items-center gap-2">
@@ -1328,7 +1335,7 @@ function NewSaleSheet({
       </div>
 
       {/* Fixed bottom actions */}
-      <footer className="snm-overlay-footer px-5 gap-3" style={{ paddingTop: "12px" }}>
+      <footer className="snm-overlay-footer shrink-0 px-5 gap-3" style={{ paddingTop: "12px" }}>
         {step === 1 && (
           <>
             <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>

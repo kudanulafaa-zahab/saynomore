@@ -438,9 +438,12 @@
     border-top:              1px solid var(--glass-border-lo);
     /* Push content above the home bar indicator */
     padding-bottom:          env(safe-area-inset-bottom, 0px);
+    /* Never collapse — always visible above keyboard */
     flex-shrink:             0;
     display:                 flex;
     align-items:             center;
+    /* Ensure footer doesn't compress when keyboard is open */
+    min-height:              72px;
   }
 
   /* ── Typography ── */

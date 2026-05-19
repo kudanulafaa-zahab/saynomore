@@ -28,6 +28,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  // Shrink the layout viewport when the software keyboard opens.
+  // This makes fixed/inset-0 overlays resize correctly so the footer
+  // stays visible above the keyboard instead of disappearing behind it.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
