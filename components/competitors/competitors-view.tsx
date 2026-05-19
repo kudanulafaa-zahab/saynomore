@@ -20,6 +20,7 @@ import {
   type PriceBasis,
 } from "@/lib/queries/competitors";
 import { listSkusFlat, updateSku, type SkuFullRow } from "@/lib/queries/products";
+import { supabase } from "@/lib/supabase";
 
 const CARD = {
   background: "var(--glass-1)",
@@ -69,6 +70,10 @@ export function CompetitorsView() {
   const [saveMode, setSaveMode]     = useState<"margin" | "fixed">("margin");
   const [alertThreshold, setAlertThreshold] = useState(10);
 
+  // Price list coverage for selected SKU — one entry per tier
+  type TierCoverage = { tier: string; price_per_piece_mvr: number | null; price_per_pack_mvr: number | null; price_per_carton_mvr: number | null; source: string };
+  const [tierCoverage, setTierCoverage] = useState<TierCoverage[]>([]);
+
   async function load() {
     setLoading(true);
     try {
@@ -86,6 +91,26 @@ export function CompetitorsView() {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Fetch active price list entries for all 4 tiers for the selected SKU
+  useEffect(() => {
+    if (!simSku) { setTierCoverage([]); return; }
+    const tiers = ["retail", "wholesale", "vip", "promo"] as const;
+    Promise.all(
+      tiers.map(async (tier) => {
+        const { data } = await supabase.rpc("get_tier_price_for_sku", { p_sku_id: simSku.id, p_tier: tier });
+        const row = data?.[0];
+        return {
+          tier,
+          price_per_piece_mvr:  row?.price_per_piece_mvr  ?? null,
+          price_per_pack_mvr:   row?.price_per_pack_mvr   ?? null,
+          price_per_carton_mvr: row?.price_per_carton_mvr ?? null,
+          source: row?.source ?? "none",
+        } as TierCoverage;
+      })
+    ).then(setTierCoverage).catch(() => setTierCoverage([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simSku?.id]);
 
   // ── Sim calculations ──────────────────────────────────────────────────────
   const landedPerPiece  = simSku?.landed_per_piece_mvr ?? 0;
@@ -594,6 +619,88 @@ export function CompetitorsView() {
                 </button>
               )}
             </div>
+
+            {/* ── Price List Coverage ──
+                 Shows the active price list price for each customer tier.
+                 Source = "price_list" → fixed MVR from a Price List (shown in green).
+                 Source = "sku_default" → falls back to the SKU base price (shown muted).
+                 Source = "none" → no price set at all (shown as warning).
+                 Tapping the row deep-links to /pricelists so Ali can fix gaps instantly.
+            ── */}
+            {tierCoverage.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                    Customer Tier Prices
+                  </p>
+                  <a href="/pricelists" className="text-[11px] font-semibold" style={{ color: "var(--snm-brand)" }}>
+                    Manage →
+                  </a>
+                </div>
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)" }}>
+                  {tierCoverage.map((tc, i) => {
+                    const hasListPrice = tc.source === "price_list";
+                    const hasAnyPrice  = tc.source !== "none" && tc.price_per_piece_mvr != null;
+                    const tierLabel = tc.tier.charAt(0).toUpperCase() + tc.tier.slice(1);
+                    const tierColor = tc.tier === "vip" ? "var(--snm-brand)"
+                      : tc.tier === "wholesale" ? "var(--snm-warning)"
+                      : tc.tier === "promo" ? "#a855f7"
+                      : "var(--muted-foreground)";
+                    return (
+                      <div key={tc.tier}
+                        className="flex items-center justify-between px-4 py-3 gap-3"
+                        style={{
+                          borderBottom: i < tierCoverage.length - 1 ? "1px solid var(--glass-border-lo)" : "none",
+                          background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                        }}>
+                        {/* Tier label + source badge */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="text-[13px] font-semibold" style={{ color: tierColor }}>{tierLabel}</p>
+                          {hasListPrice && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                              style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>
+                              List
+                            </span>
+                          )}
+                          {!hasListPrice && hasAnyPrice && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                              style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}>
+                              SKU default
+                            </span>
+                          )}
+                          {!hasAnyPrice && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                              style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>
+                              Not set
+                            </span>
+                          )}
+                        </div>
+                        {/* Prices — per piece / pack / carton */}
+                        {hasAnyPrice ? (
+                          <div className="flex items-center gap-3 text-right shrink-0">
+                            <div>
+                              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Pc</p>
+                              <p className="text-[12px] font-semibold text-foreground">{fmt2(tc.price_per_piece_mvr!)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Pk</p>
+                              <p className="text-[12px] font-semibold text-foreground">{fmt2(tc.price_per_pack_mvr!)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Ctn</p>
+                              <p className="text-[12px] font-semibold text-foreground">{fmt2(tc.price_per_carton_mvr!)}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)" }}>No price — tap Manage</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
