@@ -10,6 +10,7 @@ import {
   Truck,
   PackageCheck,
   ClipboardList,
+  Ship,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -36,6 +37,7 @@ interface Metrics {
   pending_payments_mvr:        number;
   pending_payments_count:      number;
   cod_undeposited_mvr:         number;
+  shipments_arriving_soon:     number;
 }
 
 export default async function DashboardPage() {
@@ -59,6 +61,7 @@ export default async function DashboardPage() {
     pending_payments_mvr:        0,
     pending_payments_count:      0,
     cod_undeposited_mvr:         0,
+    shipments_arriving_soon:     0,
   }) as Metrics;
 
   const revenueMonth      = Number(m.revenue_this_month_mvr);
@@ -74,6 +77,7 @@ export default async function DashboardPage() {
   const deliveredToday    = Number(m.orders_delivered_today);
   const overdueOrders     = Number(m.overdue_orders_count);
   const lowStockCount     = Number(m.low_stock_sku_count);
+  const arrivingSoon      = Number(m.shipments_arriving_soon);
 
   const revChangePct = revenueLastMonth > 0
     ? ((revenueMonth - revenueLastMonth) / revenueLastMonth) * 100
@@ -89,10 +93,10 @@ export default async function DashboardPage() {
     : grossMargin < 20 ? "var(--snm-warning)"
     : "var(--snm-success)";
 
-  // Highest-priority exception right now
+  // Single highest-priority action strip — only one shown at a time
   const exception =
     overdueOrders > 0
-      ? { label: `${overdueOrders} order${overdueOrders !== 1 ? "s" : ""} overdue — not dispatched`, cta: "Dispatch now", href: "/dispatch", color: "var(--snm-error)" }
+      ? { label: `${overdueOrders} order${overdueOrders !== 1 ? "s" : ""} overdue — no driver assigned`, cta: "Dispatch now", href: "/dispatch", color: "var(--snm-error)" }
       : awaitingDispatch > 0
       ? { label: `${awaitingDispatch} order${awaitingDispatch !== 1 ? "s" : ""} waiting for a driver`, cta: "Assign now", href: "/dispatch", color: "var(--snm-warning)" }
       : pendingMvr > 0
@@ -103,7 +107,9 @@ export default async function DashboardPage() {
       ? { label: `${lowStockCount} SKU${lowStockCount !== 1 ? "s" : ""} running low`, cta: "Check stock", href: "/inventory", color: "var(--snm-warning)" }
       : null;
 
-  const hasAlerts = overdueOrders > 0 || lowStockCount > 0 || pendingMvr > 0 || codUndeposited > 0;
+  // Exceptions section: only items with NO other card representation on screen.
+  // Each one is a genuine exception that needs owner awareness — not a duplicate.
+  const hasExceptions = overdueOrders > 0 || lowStockCount > 0 || arrivingSoon > 0;
 
   return (
     <div className="space-y-4">
@@ -144,17 +150,19 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Today's revenue sub-line */}
-        <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
-          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
+        {/* Today's revenue — labelled clearly so context is never ambiguous */}
+        <div className="flex items-baseline gap-3 mt-4 pt-4"
+          style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider"
+            style={{ color: "var(--muted-foreground)" }}>Today</p>
           <p className="text-sm font-semibold text-foreground">{mvr(revenueToday)} MVR</p>
+          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
         </div>
       </div>
 
       {/* ── Zone 2: Live Order Pipeline ──
-           All three tap to /dispatch which shows confirmed + out_for_delivery + delivered.
-           Each number is always meaningful — dispatch page always has content if any of these > 0.
-           If all are 0, the strip shows neutral zeros — no empty taps because /dispatch still exists.
+           Single card, one tap → /dispatch which always shows real active orders.
+           Three columns = three stages. Colour signals state, not just decoration.
       ── */}
       <Link href="/dispatch" className="block snm-card rounded-2xl overflow-hidden transition active:scale-[0.98]"
         style={{ border: "1px solid var(--glass-border-lo)" }}>
@@ -163,12 +171,11 @@ export default async function DashboardPage() {
         </div>
         <div className="grid grid-cols-3 divide-x" style={{ borderColor: "var(--glass-border-lo)" }}>
 
-          {/* Awaiting Dispatch */}
           <div className="px-4 py-4">
             <div className="flex items-center gap-1.5 mb-2">
               <ClipboardList className="h-3.5 w-3.5 shrink-0"
                 style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--muted-foreground)" }} />
-              <p className="text-[10px] font-semibold uppercase tracking-wider leading-tight"
+              <p className="text-[10px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Awaiting</p>
             </div>
             <p className="text-2xl font-bold leading-none"
@@ -180,12 +187,11 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          {/* On the Road */}
           <div className="px-4 py-4">
             <div className="flex items-center gap-1.5 mb-2">
               <Truck className="h-3.5 w-3.5 shrink-0"
                 style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--muted-foreground)" }} />
-              <p className="text-[10px] font-semibold uppercase tracking-wider leading-tight"
+              <p className="text-[10px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>On Road</p>
               {onRoad > 0 && (
                 <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
@@ -201,12 +207,11 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          {/* Delivered Today */}
           <div className="px-4 py-4">
             <div className="flex items-center gap-1.5 mb-2">
               <PackageCheck className="h-3.5 w-3.5 shrink-0"
                 style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--muted-foreground)" }} />
-              <p className="text-[10px] font-semibold uppercase tracking-wider leading-tight"
+              <p className="text-[10px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Delivered</p>
             </div>
             <p className="text-2xl font-bold leading-none"
@@ -225,11 +230,11 @@ export default async function DashboardPage() {
       </Link>
 
       {/* ── Zone 3: Money ──
-           Both cards only show when there is actual data — no empty red cards.
-           Taps go to pages that show the specific orders/data behind the number.
+           Only rendered when there is actual unpaid money.
+           Cards disappear completely when everything is paid — no empty states.
       ── */}
       {(pendingMvr > 0 || codUndeposited > 0) && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className={pendingMvr > 0 && codUndeposited > 0 ? "grid grid-cols-2 gap-3" : "block"}>
 
           {pendingMvr > 0 && (
             <Link href="/sales?filter=unpaid"
@@ -274,9 +279,8 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ── Zone 4: Single action strip — highest priority exception only ──
-           Only renders when there is actually something that needs attention.
-           Every link goes somewhere with real, relevant content.
+      {/* ── Zone 4: Single action strip ──
+           Highest priority exception only. Disappears on a clean day.
       ── */}
       {exception && (
         <Link href={exception.href}
@@ -299,13 +303,19 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      {/* ── Zone 5: Needs Attention detail ──
-           Only shown when there is something actually wrong.
-           Every row links to a page where the user can take action.
+      {/* ── Zone 5: Exceptions ──
+           RULE: Only items that have NO card representation elsewhere on this page.
+           - Overdue orders: not shown in any card — genuinely needs attention
+           - Low stock: not shown in any card — needs procurement action
+           - Shipments arriving soon: not shown anywhere else — needs godown prep
+           Unpaid and Cash in Hand are NOT here — they already have cards above.
+           Every row taps to the exact screen where the user can act.
       ── */}
-      {hasAlerts && (
+      {hasExceptions && (
         <div className="space-y-2">
-          <p className="label-caps text-[11px] px-1" style={{ color: "var(--muted-foreground)" }}>Needs Attention</p>
+          <p className="label-caps text-[11px] px-1" style={{ color: "var(--muted-foreground)" }}>
+            Needs Attention
+          </p>
 
           {overdueOrders > 0 && (
             <Link href="/dispatch"
@@ -327,46 +337,6 @@ export default async function DashboardPage() {
             </Link>
           )}
 
-          {pendingMvr > 0 && (
-            <Link href="/sales?filter=unpaid"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
-              style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 20%, transparent)" }}>
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
-                <Clock className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  MVR {mvr(pendingMvr)} unpaid — {pendingCount} order{pendingCount !== 1 ? "s" : ""}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                  Delivered but payment not yet received
-                </p>
-              </div>
-              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-            </Link>
-          )}
-
-          {codUndeposited > 0 && (
-            <Link href="/financials?tab=cod"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
-              style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}>
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
-                <Banknote className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  MVR {mvr(codUndeposited)} cash not banked
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                  COD collected by drivers — awaiting bank deposit
-                </p>
-              </div>
-              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-            </Link>
-          )}
-
           {lowStockCount > 0 && (
             <Link href="/inventory"
               className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
@@ -380,12 +350,33 @@ export default async function DashboardPage() {
                   {lowStockCount} SKU{lowStockCount !== 1 ? "s" : ""} low on stock
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                  Less than 10 days remaining
+                  Less than 10 days of stock remaining
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
             </Link>
           )}
+
+          {arrivingSoon > 0 && (
+            <Link href="/shipments"
+              className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)" }}>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
+                <Ship className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {arrivingSoon} shipment{arrivingSoon !== 1 ? "s" : ""} arriving within 3 days
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  Prepare godown space for receiving
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+            </Link>
+          )}
+
         </div>
       )}
 
