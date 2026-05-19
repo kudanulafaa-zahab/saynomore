@@ -407,20 +407,23 @@ export function CompetitorsView() {
                 </div>
               </div>
 
-              {/* Tappable price display — pencil icon signals editability, no instruction text */}
+              {/* Price display card — pencil button triggers edit, rest of card is non-interactive */}
               <div
-                className="rounded-2xl px-5 pt-5 pb-4 text-center relative cursor-pointer transition active:scale-[0.98]"
+                className="rounded-2xl px-5 pt-5 pb-4 text-center relative"
                 style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border-lo)" }}
-                onClick={() => { if (!simEditing) { setSimTyped(String(Math.ceil(simDisplayPrice))); setSimEditing(true); } }}
               >
-                {/* Pencil affordance — top right, subtle */}
+                {/* Pencil button — explicit tap target, does not interfere with slider */}
                 {!simEditing && (
-                  <div className="absolute top-3 right-3 h-6 w-6 rounded-lg flex items-center justify-center"
-                    style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>
+                  <button
+                    onClick={() => { setSimTyped(String(Math.ceil(simDisplayPrice))); setSimEditing(true); }}
+                    className="absolute top-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center transition active:scale-90"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}
+                    aria-label="Edit price"
+                  >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--muted-foreground)" }}>
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
-                  </div>
+                  </button>
                 )}
                 {simEditing ? (
                   <input
@@ -448,7 +451,7 @@ export function CompetitorsView() {
                 <p className="text-[13px] mt-1 font-medium" style={{ color: "var(--muted-foreground)" }}>MVR {simLabel}</p>
               </div>
 
-              {/* Margin slider — inside glass container so track has visible context */}
+              {/* Margin slider */}
               {(() => {
                 const landed = simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack;
                 const currentMargin = landed > 0 ? Math.round(((simDisplayPrice - landed) / simDisplayPrice) * 100) : 0;
@@ -457,7 +460,15 @@ export function CompetitorsView() {
                 return (
                   <div className="mt-3 rounded-2xl px-5 py-4"
                     style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
-                    {/* Margin label + big number */}
+                    <style>{`
+                      .snm-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 9999px; outline: none; cursor: pointer; background: transparent; }
+                      .snm-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 32px; height: 32px; border-radius: 50%; background: #FF4000; box-shadow: 0 2px 16px rgba(255,64,0,0.5); cursor: grab; border: 3px solid rgba(255,255,255,0.75); margin-top: -13px; }
+                      .snm-slider::-moz-range-thumb { width: 32px; height: 32px; border-radius: 50%; background: #FF4000; box-shadow: 0 2px 16px rgba(255,64,0,0.5); cursor: grab; border: 3px solid rgba(255,255,255,0.75); }
+                      .snm-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 9999px; }
+                      .snm-slider::-moz-range-track { height: 6px; border-radius: 9999px; background: rgba(128,128,128,0.2); }
+                      .snm-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+                      .snm-slider:active::-moz-range-thumb { cursor: grabbing; }
+                    `}</style>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
                       <div className="flex items-baseline gap-0.5">
@@ -465,34 +476,26 @@ export function CompetitorsView() {
                         <p className="text-[18px] font-semibold leading-none" style={{ color: "var(--muted-foreground)" }}>%</p>
                       </div>
                     </div>
-                    {/* Track */}
-                    <div className="relative w-full h-10 flex items-center">
-                      <div className="absolute inset-x-0 h-3 rounded-full overflow-hidden"
+                    {/* Track background + native input on top — no fake thumb, no position math */}
+                    <div className="relative">
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden pointer-events-none"
                         style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
                         <div className="h-full rounded-full"
-                          style={{ width: `${fillPct}%`, background: "var(--snm-brand)", transition: "width 60ms linear" }} />
+                          style={{ width: `${fillPct}%`, background: "var(--snm-brand)" }} />
                       </div>
                       <input
-                        type="range" min={1} max={99} step={1} value={sliderVal}
+                        type="range"
+                        min={1} max={99} step={1}
+                        value={sliderVal}
                         onChange={(e) => {
                           const pct = parseInt(e.target.value);
                           if (landed > 0) setSimDisplayPrice(Math.ceil(landed / (1 - pct / 100)));
                         }}
-                        className="absolute inset-x-0 w-full opacity-0 h-10 cursor-pointer"
-                        style={{ margin: 0 }}
+                        className="snm-slider relative"
+                        style={{ touchAction: "none" }}
                       />
-                      {/* Custom thumb */}
-                      <div className="absolute w-8 h-8 rounded-full pointer-events-none flex items-center justify-center"
-                        style={{
-                          left: `calc(${fillPct}% - ${fillPct / 100 * 32}px + 2px)`,
-                          background: "var(--snm-brand)",
-                          boxShadow: "0 2px 16px color-mix(in srgb, var(--snm-brand) 55%, transparent)",
-                          transition: "left 60ms linear",
-                        }}>
-                        <div className="w-3 h-3 rounded-full" style={{ background: "rgba(255,255,255,0.75)" }} />
-                      </div>
                     </div>
-                    <div className="flex justify-between mt-2">
+                    <div className="flex justify-between mt-1">
                       <p className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>1%</p>
                       <p className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>99%</p>
                     </div>
