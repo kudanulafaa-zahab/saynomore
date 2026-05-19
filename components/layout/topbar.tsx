@@ -115,7 +115,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
         {/* Avatar + popover — CSS-driven focus-within */}
         <div className="relative group">
           <button
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold text-foreground transition-opacity hover:opacity-75 focus:outline-none"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-[12px] font-semibold text-foreground active:opacity-70 focus:outline-none"
             style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
           >
             {initials}
@@ -151,10 +151,8 @@ export function Topbar({ name, role }: { name: string; role: string }) {
             <div className="p-1.5">
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm active:opacity-70"
                 style={{ color: "var(--snm-error)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,59,48,0.08)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 <LogOut className="h-4 w-4" />
                 Sign out

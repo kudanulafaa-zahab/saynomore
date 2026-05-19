@@ -46,7 +46,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
 const STATUS_COLOR: Record<OrderStatus, { bg: string; text: string }> = {
   draft:            { bg: "var(--muted)",                   text: "var(--muted-foreground)" },
-  confirmed:        { bg: "color-mix(in srgb, #3B82F6 12%, transparent)",          text: "#3B82F6"          },
+  confirmed:        { bg: "color-mix(in srgb, var(--snm-info) 12%, transparent)",  text: "var(--snm-info)"  },
   picked:           { bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)",  text: "var(--snm-warning)"      },
   out_for_delivery: { bg: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",  text: "var(--snm-warning)"      },
   delivered:        { bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)",  text: "var(--snm-success)"      },
@@ -263,7 +263,7 @@ export function SalesList() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
           {q && (
-            <button onClick={() => setQ("")} className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-opacity hover:opacity-70"
+            <button onClick={() => setQ("")} className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
               style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>
               <X className="h-3 w-3" />
             </button>
@@ -322,7 +322,7 @@ export function SalesList() {
             return (
               <div key={o.id} className="flex items-center gap-2">
                 <Link href={`/sales/${o.id}`}
-                  className="flex-1 flex items-center justify-between gap-3 p-4 rounded-2xl transition-opacity hover:opacity-90"
+                  className="flex-1 flex items-center justify-between gap-3 p-4 rounded-2xl active:opacity-75"
                   style={CARD}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -422,7 +422,7 @@ export function SalesList() {
                         <div key={o.id} className="flex items-center"
                           style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
                           <Link href={`/sales/${o.id}`}
-                            className="flex-1 flex items-center justify-between gap-3 px-4 py-3 transition-opacity hover:opacity-90">
+                            className="flex-1 flex items-center justify-between gap-3 px-4 py-3 active:opacity-75">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
                                 <Icon className="h-3.5 w-3.5" />
@@ -752,7 +752,7 @@ function NewSaleSheet({
         {/* Visible row sits BELOW the safe area inset */}
         <div className="flex items-center justify-between py-3.5">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="text-foreground opacity-60 hover:opacity-100 transition text-xl">✕</button>
+            <button onClick={onClose} className="text-foreground opacity-60 active:opacity-100 text-xl">✕</button>
             <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
           </div>
           <span className="text-[12px] font-mono" style={{ color: "var(--muted-foreground)" }}>{orderNumber}</span>
@@ -794,7 +794,7 @@ function NewSaleSheet({
                       className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                     {customerSearch && (
                       <button onClick={() => setCustomerSearch("")}
-                        className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-opacity hover:opacity-70"
+                        className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
                         style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>
                         <X className="h-3 w-3" />
                       </button>
@@ -919,7 +919,7 @@ function NewSaleSheet({
                                 setShowNewCustomer(false);
                                 setNewCustName("");
                               }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition hover:opacity-80"
+                              className="w-full flex items-center gap-3 px-3 py-2.5 text-left active:opacity-70"
                               style={{ borderTop: "1px solid var(--glass-border-lo)", background: "color-mix(in srgb, var(--snm-brand) 4%, transparent)" }}>
                               <div className="h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
                                 style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>
@@ -1044,7 +1044,7 @@ function NewSaleSheet({
                   <p className="text-[14px] font-semibold text-foreground">Walk-in customer</p>
                   <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>No account</p>
                 </div>
-                <button onClick={() => setCustomerId("")} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
+                <button onClick={() => setCustomerId("")} className="text-[11px] text-foreground opacity-60 active:opacity-100">Change</button>
               </div>
             )}
 
@@ -1378,7 +1378,7 @@ function NewSaleSheet({
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-foreground font-semibold text-[13px]">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      <button onClick={() => setDraftLines((p) => p.filter((x) => x.key !== l.key))} className="opacity-40 hover:opacity-100 transition">
+                      <button onClick={() => setDraftLines((p) => p.filter((x) => x.key !== l.key))} className="opacity-40 active:opacity-100">
                         <Trash2 className="h-3.5 w-3.5 text-foreground" />
                       </button>
                     </div>

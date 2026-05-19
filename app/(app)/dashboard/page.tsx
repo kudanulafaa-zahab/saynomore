@@ -238,7 +238,7 @@ export default async function DashboardPage() {
 
           {pendingMvr > 0 && (
             <Link href="/sales?filter=unpaid"
-              className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
+              className="snm-card rounded-2xl p-5 active:scale-[0.97] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}>
               <div className="flex justify-between items-start mb-3">
                 <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Unpaid</p>
@@ -258,7 +258,7 @@ export default async function DashboardPage() {
 
           {codUndeposited > 0 && (
             <Link href="/financials?tab=cod"
-              className="snm-card rounded-2xl p-5 transition hover:opacity-90 active:scale-[0.97] block"
+              className="snm-card rounded-2xl p-5 active:scale-[0.97] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
               <div className="flex justify-between items-start mb-3">
                 <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Cash in Hand</p>
@@ -319,7 +319,7 @@ export default async function DashboardPage() {
 
           {overdueOrders > 0 && (
             <Link href="/dispatch"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
+              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
@@ -339,7 +339,7 @@ export default async function DashboardPage() {
 
           {lowStockCount > 0 && (
             <Link href="/inventory"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
+              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 28%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
@@ -359,7 +359,7 @@ export default async function DashboardPage() {
 
           {arrivingSoon > 0 && (
             <Link href="/shipments"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 transition hover:opacity-90 active:scale-[0.98] block"
+              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>

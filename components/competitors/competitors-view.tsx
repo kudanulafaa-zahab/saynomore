@@ -644,7 +644,7 @@ export function CompetitorsView() {
                     const tierLabel = tc.tier.charAt(0).toUpperCase() + tc.tier.slice(1);
                     const tierColor = tc.tier === "vip" ? "var(--snm-brand)"
                       : tc.tier === "wholesale" ? "var(--snm-warning)"
-                      : tc.tier === "promo" ? "#a855f7"
+                      : tc.tier === "promo" ? "var(--snm-promo)"
                       : "var(--muted-foreground)";
                     return (
                       <div key={tc.tier}
@@ -895,7 +895,7 @@ export function CompetitorsView() {
                       {compPrices.length === 0 ? (
                         <div className="px-4 py-4 text-center">
                           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
-                          <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-foreground opacity-60 hover:opacity-100 mt-1">Log first price</button>
+                          <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-foreground opacity-60 active:opacity-100 mt-1">Log first price</button>
                         </div>
                       ) : (
                         compPrices.map((p) => {
@@ -905,8 +905,6 @@ export function CompetitorsView() {
                               key={p.id}
                               className="px-4 py-3 flex items-start justify-between gap-3"
                               style={{ borderBottom: "1px solid var(--glass-border-lo)" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--glass-bg-1)")}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             >
                               <div className="min-w-0 flex-1">
                                 <p className="text-[13px] text-foreground truncate">
@@ -1169,7 +1167,7 @@ function PriceModal({
               <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
               <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
                 {filteredVariants.map((s) => (
-                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-foreground" style={{ borderBottom: "1px solid var(--glass-border-lo)" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--glass-bg-1)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-foreground active:opacity-70" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
                     <p className="font-medium">{s.brand_name} · {s.model_name} · {s.variant_display}</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
                   </button>
@@ -1183,7 +1181,7 @@ function PriceModal({
                 <p className="text-[13px] text-foreground">{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
               </div>
-              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
+              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="text-[11px] text-foreground opacity-60 active:opacity-100">Change</button>
             </div>
           ) : null}
         </div>

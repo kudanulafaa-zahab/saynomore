@@ -50,6 +50,8 @@
   --snm-error: #ffb4ab;
   --snm-success: #4ade80;
   --snm-warning: #fb923c;
+  --snm-info: #60a5fa;
+  --snm-promo: #c084fc;
 }
 
 /* ── LIGHT MODE ─────────────────────────────────────────────────────────── */
@@ -59,6 +61,8 @@
   --snm-success: #16a34a;
   --snm-error:   #dc2626;
   --snm-warning: #d97706;
+  --snm-info:    #2563eb;
+  --snm-promo:   #9333ea;
 
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
@@ -127,6 +131,9 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
+
+    --snm-info:  #60a5fa;
+    --snm-promo: #c084fc;
 
     --background: #000000;
     --foreground: #e5e2e1;
@@ -197,6 +204,8 @@
   --snm-success: #16a34a;
   --snm-error:   #dc2626;
   --snm-warning: #d97706;
+  --snm-info:    #2563eb;
+  --snm-promo:   #9333ea;
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
   --card:             rgba(255, 255, 255, 0.72);
@@ -245,6 +254,8 @@
 /* ── Manual .dark override ──────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
+  --snm-info:  #60a5fa;
+  --snm-promo: #c084fc;
   --background: #000000;
   --foreground: #e5e2e1;
   --card:            rgba(255, 255, 255, 0.05);

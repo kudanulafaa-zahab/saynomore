@@ -164,7 +164,7 @@ export function SuppliersManager() {
         {q && (
           <button
             onClick={() => setQ("")}
-            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-opacity hover:opacity-70"
+            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
             style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--muted-foreground)" }}
           >
             <X className="h-3.5 w-3.5" />

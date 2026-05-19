@@ -44,7 +44,7 @@ const STATUS_LABEL: Record<ShipmentStatus, string> = {
 const STATUS_COLOR: Record<ShipmentStatus, { bg: string; text: string }> = {
   draft:         { bg: "var(--glass-2)",                                              text: "var(--muted-foreground)" },
   ordered:       { bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)",    text: "var(--snm-warning)"      },
-  in_transit:    { bg: "color-mix(in srgb, #3B82F6 15%, transparent)",               text: "#3B82F6"                 },
+  in_transit:    { bg: "color-mix(in srgb, var(--snm-info) 15%, transparent)",      text: "var(--snm-info)"         },
   arrived:       { bg: "color-mix(in srgb, var(--snm-warning) 20%, transparent)",    text: "var(--snm-warning)"      },
   grn_confirmed: { bg: "color-mix(in srgb, var(--snm-success) 20%, transparent)",    text: "var(--snm-success)"      },
 };

@@ -162,7 +162,7 @@ export function PriceListsView() {
                 </div>
                 <button
                   onClick={() => { setNewListTier(tier); setCreatedList(null); }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold active:opacity-70 active:scale-95"
                   style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
                 >
                   <Plus className="h-3 w-3" /> New list
@@ -197,10 +197,8 @@ export function PriceListsView() {
                       <button
                         onClick={() => handleDelete(pl.id, pl.name)}
                         disabled={deleting === pl.id}
-                        className="ml-3 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors"
-                        style={{ color: "var(--muted-foreground)" }}
-                        onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
-                        onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
+                        className="ml-3 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
+                        style={{ color: "var(--snm-error)" }}
                         aria-label="Delete price list"
                       >
                         {deleting === pl.id
@@ -646,7 +644,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                           <button
                             onClick={() => handleDelete(item.id)}
                             disabled={deleting === item.id}
-                            className="flex-1 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-1.5 transition-opacity hover:opacity-70"
+                            className="flex-1 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-1.5 active:opacity-60"
                             style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}
                           >
                             {deleting === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Trash2 className="h-3.5 w-3.5" /> Remove</>}
@@ -950,13 +948,13 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         {extraAction}
         <button
           onClick={onBack}
-          className="flex-1 py-3 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+          className="flex-1 py-3 rounded-full text-sm font-medium active:opacity-60"
           style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
         >Cancel</button>
         <button
           onClick={handleSave}
           disabled={saving || creatingHeader || !canSave}
-          className="flex-[2] py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-85 active:scale-95 disabled:opacity-40"
+          className="flex-[2] py-3 rounded-full text-xs font-bold uppercase tracking-widest active:opacity-80 active:scale-95 disabled:opacity-40"
           style={{ background: "var(--foreground)", color: "var(--background)" }}
         >
           {saving || creatingHeader ? "Saving…" : (saveLabel ?? "SAVE PRICE")}

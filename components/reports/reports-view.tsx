@@ -202,7 +202,7 @@ export function ReportsView() {
           label="Avg Margin"
           value={totals.avgMargin !== null ? `${totals.avgMargin.toFixed(1)}%` : "—"}
           icon={BarChart3}
-          tokenColor="#3B82F6"
+          tokenColor="var(--snm-info)"
         />
         <SummaryCard
           label="Low Stock SKUs"
@@ -254,7 +254,7 @@ export function ReportsView() {
         {q && (
           <button
             onClick={() => setQ("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center transition-opacity hover:opacity-70"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center active:opacity-60"
             style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
           >
             <X className="h-3 w-3" />
