@@ -571,11 +571,44 @@ function NewSaleSheet({
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | null>(null);
 
-  // Lock body scroll while this overlay is open — prevents iOS rubber-band bleed
+  // ── iOS keyboard fix ────────────────────────────────────────────────────────
+  // On iOS Safari, fixed/inset-0 stays at full-screen size when the keyboard
+  // opens — it does NOT shrink. The visualViewport API tells us exactly how
+  // much the visual area has shrunk, so we translate the overlay up to match.
+  // This eliminates the black void between content and keyboard completely.
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    // Lock body scroll (prevents bleed-through)
+    const prevOverflow = document.body.style.overflow;
+    const prevPosition = document.body.style.position;
+    const prevTop      = document.body.style.top;
+    const scrollY      = window.scrollY;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    document.body.style.position = "fixed";
+    document.body.style.top      = `-${scrollY}px`;
+    document.body.style.width    = "100%";
+
+    // Track visual viewport height changes (keyboard open/close)
+    function onViewportResize() {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      // How much of the screen is hidden by the keyboard
+      const hidden = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(Math.max(0, hidden));
+    }
+    window.visualViewport?.addEventListener("resize", onViewportResize);
+    window.visualViewport?.addEventListener("scroll", onViewportResize);
+    onViewportResize(); // initial
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", onViewportResize);
+      window.visualViewport?.removeEventListener("scroll", onViewportResize);
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.top      = prevTop;
+      document.body.style.width    = "";
+      window.scrollTo(0, scrollY);
+    };
   }, []);
 
   function autoPrice(sku: typeof selectedSku, uom: SaleUom): { price: string; source: "price_list" | "sku_default" | null } {
@@ -712,7 +745,14 @@ function NewSaleSheet({
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: "var(--background)", touchAction: "none" }}
+      style={{
+        background: "var(--background)",
+        touchAction: "none",
+        // Slide the entire overlay up by exactly the keyboard height.
+        // This keeps the footer always visible just above the keyboard.
+        transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
+        transition: "transform 0.25s ease-out",
+      }}
       onTouchMove={(e) => e.stopPropagation()}
     >
 
