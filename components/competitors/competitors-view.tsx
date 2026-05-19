@@ -412,10 +412,10 @@ export function CompetitorsView() {
                 className="rounded-2xl px-5 pt-5 pb-4 text-center relative"
                 style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border-lo)" }}
               >
-                {/* Pencil button — explicit tap target, does not interfere with slider */}
+                {/* Pencil button — tap to manually enter a price in the current display unit */}
                 {!simEditing && (
                   <button
-                    onClick={() => { setSimTyped(String(Math.ceil(simDisplayPrice))); setSimEditing(true); }}
+                    onClick={() => { setSimTyped(String(Math.round(simDisplayPrice))); setSimEditing(true); }}
                     className="absolute top-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center transition active:scale-90"
                     style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}
                     aria-label="Edit price"
@@ -429,16 +429,21 @@ export function CompetitorsView() {
                   <input
                     autoFocus
                     type="number"
-                    inputMode="decimal"
+                    inputMode="numeric"
                     value={simTyped}
                     onChange={(e) => setSimTyped(e.target.value)}
                     onBlur={() => {
                       const v = parseFloat(simTyped);
+                      // setSimDisplayPrice converts from current display unit back to per-pack
                       if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
                       setSimEditing(false);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") { const v = parseFloat(simTyped); if (!isNaN(v) && v > 0) setSimDisplayPrice(v); setSimEditing(false); }
+                      if (e.key === "Enter") {
+                        const v = parseFloat(simTyped);
+                        if (!isNaN(v) && v > 0) setSimDisplayPrice(v);
+                        setSimEditing(false);
+                      }
                       if (e.key === "Escape") setSimEditing(false);
                     }}
                     className="text-[52px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
@@ -488,8 +493,8 @@ export function CompetitorsView() {
                         value={sliderVal}
                         onChange={(e) => {
                           const pct = parseInt(e.target.value);
-                          // Always set simPrice (per-pack) directly — never go through display-unit conversion
-                          if (landedPerPack > 0) setSimPrice(Math.ceil(landedPerPack / (1 - pct / 100)));
+                          // Math.round (not ceil) so slider moves freely in both directions
+                          if (landedPerPack > 0) setSimPrice(Math.round(landedPerPack / (1 - pct / 100)));
                         }}
                         className="snm-slider relative"
                         style={{ touchAction: "none" }}
