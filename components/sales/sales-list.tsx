@@ -609,15 +609,26 @@ function NewSaleSheet({
   }, [lineUom, tierPrices]);
 
   function handlePriceChange(raw: string) {
-    const ap = autoPrice(selectedSku, lineUom);
+    // Allow empty string while typing — don't restore auto price mid-keystroke
+    setLinePrice(raw);
     if (raw === "") {
+      setPriceManuallyEdited(false);
+      // source stays — restored on blur if still empty
+    } else {
+      const ap = autoPrice(selectedSku, lineUom);
+      setPriceManuallyEdited(raw !== ap.price);
+      if (raw !== ap.price) setAutoPriceSource(null);
+      else setAutoPriceSource(ap.source);
+    }
+  }
+
+  function handlePriceBlur() {
+    // Only restore auto price on blur if field is empty
+    if (linePrice === "") {
+      const ap = autoPrice(selectedSku, lineUom);
       setLinePrice(ap.price);
       setAutoPriceSource(ap.source);
       setPriceManuallyEdited(false);
-    } else {
-      setLinePrice(raw);
-      setPriceManuallyEdited(raw !== ap.price);
-      if (raw !== ap.price) setAutoPriceSource(null);
     }
   }
 
@@ -1157,6 +1168,7 @@ function NewSaleSheet({
                         </p>
                         <input type="number" inputMode="decimal" step="0.01" min="0" value={linePrice}
                           onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
+                          onBlur={handlePriceBlur}
                           placeholder={hasNoPrice ? "Enter price" : "0.00"}
                           className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none"
                           style={{ ...CARD, border: hasNoPrice ? "1px solid color-mix(in srgb, var(--snm-warning) 40%, transparent)" : "1px solid var(--glass-border-lo)" }} />
