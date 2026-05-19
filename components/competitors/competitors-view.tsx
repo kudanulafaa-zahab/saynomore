@@ -451,10 +451,10 @@ export function CompetitorsView() {
                 <p className="text-[13px] mt-1 font-medium" style={{ color: "var(--muted-foreground)" }}>MVR {simLabel}</p>
               </div>
 
-              {/* Margin slider */}
+              {/* Margin slider — always calculated in per-pack terms to avoid tiny-number precision loss */}
               {(() => {
-                const landed = simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack;
-                const currentMargin = landed > 0 ? Math.round(((simDisplayPrice - landed) / simDisplayPrice) * 100) : 0;
+                // Margin is always (packPrice - landedPerPack) / packPrice regardless of display mode
+                const currentMargin = landedPerPack > 0 ? Math.round(((packPrice - landedPerPack) / packPrice) * 100) : 0;
                 const sliderVal = Math.max(1, Math.min(99, currentMargin));
                 const fillPct = ((sliderVal - 1) / 98) * 100;
                 return (
@@ -476,7 +476,6 @@ export function CompetitorsView() {
                         <p className="text-[18px] font-semibold leading-none" style={{ color: "var(--muted-foreground)" }}>%</p>
                       </div>
                     </div>
-                    {/* Track background + native input on top — no fake thumb, no position math */}
                     <div className="relative">
                       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden pointer-events-none"
                         style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
@@ -489,7 +488,8 @@ export function CompetitorsView() {
                         value={sliderVal}
                         onChange={(e) => {
                           const pct = parseInt(e.target.value);
-                          if (landed > 0) setSimDisplayPrice(Math.ceil(landed / (1 - pct / 100)));
+                          // Always set simPrice (per-pack) directly — never go through display-unit conversion
+                          if (landedPerPack > 0) setSimPrice(Math.ceil(landedPerPack / (1 - pct / 100)));
                         }}
                         className="snm-slider relative"
                         style={{ touchAction: "none" }}
