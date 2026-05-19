@@ -42,6 +42,7 @@ const BASIS_LABEL: Record<PriceBasis, string> = {
 };
 
 function fmt2(n: number) { return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtInt(n: number) { return Math.ceil(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 
 export function CompetitorsView() {
   const [competitors, setCompetitors] = useState<CompetitorRow[]>([]);
@@ -438,10 +439,10 @@ export function CompetitorsView() {
                   />
                 ) : (
                   <button
-                    onClick={() => { setSimTyped(String(simDisplayPrice)); setSimEditing(true); }}
+                    onClick={() => { setSimTyped(String(Math.ceil(simDisplayPrice))); setSimEditing(true); }}
                     className="text-[48px] font-light tracking-tight text-foreground hover:opacity-70 transition w-full"
                   >
-                    {fmt2(simDisplayPrice)}
+                    {fmtInt(simDisplayPrice)}
                   </button>
                 )}
                 <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</p>
@@ -468,7 +469,7 @@ export function CompetitorsView() {
                       value={clampedMargin}
                       onChange={(e) => {
                         const pct = parseInt(e.target.value);
-                        if (landed > 0) setSimDisplayPrice(Math.round(landed / (1 - pct / 100)));
+                        if (landed > 0) setSimDisplayPrice(Math.ceil(landed / (1 - pct / 100)));
                       }}
                       className="w-full h-2 rounded-full appearance-none cursor-pointer"
                       style={{ accentColor: "var(--snm-brand)" }}
@@ -495,7 +496,7 @@ export function CompetitorsView() {
                 return (
                   <div key={label} className="rounded-xl p-3 text-center space-y-1" style={{ background: "var(--glass-bg-1)" }}>
                     <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
-                    <p className="text-[15px] font-semibold text-foreground">MVR {fmt2(value)}</p>
+                    <p className="text-[15px] font-semibold text-foreground">MVR {fmtInt(value)}</p>
                     <p className="text-[11px] font-bold" style={{ color }}>{margin.toFixed(1)}% margin</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : markup.toFixed(0)}% markup</p>
                   </div>
