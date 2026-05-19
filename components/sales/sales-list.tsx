@@ -1101,146 +1101,199 @@ function NewSaleSheet({
                   {filteredSkus.length === 0 && <p className="text-sm col-span-2 py-4" style={{ color: "var(--muted-foreground)" }}>No products found.</p>}
                 </div>
               </div>
-            ) : selectedSku ? (
-              <div className="rounded-xl p-4 space-y-4" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[14px] font-semibold text-foreground">{selectedSku.brand_name} · {selectedSku.model_name}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{selectedSku.variant_display}</p>
-                    {stockHere !== null && (
-                      <p className="text-[11px] mt-1 font-semibold" style={{ color: stockHere === 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
-                        {stockHere === 0 ? "Out of stock" : (() => {
-                          const dUom = defaultUom(selectedSku);
-                          if (dUom === "carton" && selectedSku.pcs_per_pack > 0 && selectedSku.packs_per_carton > 0) {
-                            const ctns = Math.floor(stockHere / (selectedSku.pcs_per_pack * selectedSku.packs_per_carton));
-                            const rem = Math.floor((stockHere % (selectedSku.pcs_per_pack * selectedSku.packs_per_carton)) / selectedSku.pcs_per_pack);
-                            return `${ctns} carton${ctns !== 1 ? "s" : ""}${rem > 0 ? ` + ${rem} ${packLabel(selectedSku).toLowerCase()}s` : ""} in warehouse`;
-                          }
-                          if (selectedSku.pcs_per_pack > 0) {
-                            const pks = Math.floor(stockHere / selectedSku.pcs_per_pack);
-                            return `${pks} ${packLabel(selectedSku).toLowerCase()}${pks !== 1 ? "s" : ""} in warehouse`;
-                          }
-                          return `${stockHere.toLocaleString()} pcs in warehouse`;
-                        })()}
+            ) : selectedSku ? (() => {
+              // ── Expert UX (Frog/IDEO/NNG): Display mode by default, edit on tap ──
+              // No autoFocus. Qty uses +/− steppers — keyboard never opens automatically.
+              // Price shows read-only; tap the pencil to edit it inline.
+              // Keyboard only appears when user explicitly taps a field.
+              const pl = packLabel(selectedSku);
+              const uomLabel = lineUom === "carton" ? "Carton" : lineUom === "piece" ? "Piece" : pl;
+              const qtyNum = parseFloat(lineQty) || 0;
+              const hasNoPrice = !linePrice && selectedSku.landed_per_piece_mvr != null;
+
+              // Cost + margin context
+              const landed = selectedSku.landed_per_piece_mvr;
+              const costForUom = landed == null ? null
+                : lineUom === "piece" ? landed
+                : lineUom === "pack"  ? landed * selectedSku.pcs_per_pack
+                : landed * selectedSku.pcs_per_pack * selectedSku.packs_per_carton;
+              const priceVal = parseFloat(linePrice);
+              const margin = (costForUom != null && !isNaN(priceVal) && priceVal > 0)
+                ? ((priceVal - costForUom) / priceVal) * 100 : null;
+
+              // Price badge
+              const priceBadge = linePrice && !priceManuallyEdited && autoPriceSource === "price_list"
+                ? { label: (customer?.price_tier ?? "TIER").toUpperCase(), color: "var(--snm-brand)", bg: "color-mix(in srgb, var(--snm-brand) 15%, transparent)" }
+                : linePrice && !priceManuallyEdited && autoPriceSource === "sku_default"
+                  ? { label: "AUTO", color: "var(--snm-success)", bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)" }
+                  : linePrice && priceManuallyEdited
+                    ? { label: "MANUAL", color: "var(--snm-warning)", bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)" }
+                    : null;
+
+              // Price list source info
+              const tp = tierPrices.get(selectedSku.id);
+              const priceListInfo = (!priceManuallyEdited && autoPriceSource === "price_list" && tp?.price_list_name)
+                ? `${tp.price_list_name}${tp.price_list_date ? " · " + new Date(tp.price_list_date).toLocaleDateString("en-MV", { month: "short", year: "numeric" }) : ""}`
+                : null;
+
+              return (
+                <div className="space-y-3">
+                  {/* ── Product identity card — always visible, never obscured ── */}
+                  <div className="rounded-2xl p-4" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[15px] font-bold text-foreground leading-tight">{selectedSku.brand_name} · {selectedSku.model_name}</p>
+                        <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{selectedSku.variant_display}</p>
+                      </div>
+                      <button
+                        onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); setPriceManuallyEdited(false); }}
+                        className="ml-3 shrink-0 text-[12px] font-semibold px-3 h-8 rounded-lg transition active:scale-95"
+                        style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                        Change
+                      </button>
+                    </div>
+
+                    {/* Stock + cost + margin in one clean row */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {stockHere !== null && (
+                        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                          style={{ background: stockHere === 0 ? "color-mix(in srgb, var(--snm-error) 12%, transparent)" : "color-mix(in srgb, var(--snm-success) 12%, transparent)", color: stockHere === 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
+                          {stockHere === 0 ? "Out of stock" : (() => {
+                            const dUom = defaultUom(selectedSku);
+                            if (dUom === "carton" && selectedSku.pcs_per_pack > 0 && selectedSku.packs_per_carton > 0) {
+                              const ctns = Math.floor(stockHere / (selectedSku.pcs_per_pack * selectedSku.packs_per_carton));
+                              return ctns > 0 ? `${ctns} ctn in stock` : "< 1 ctn";
+                            }
+                            if (selectedSku.pcs_per_pack > 0) {
+                              const pks = Math.floor(stockHere / selectedSku.pcs_per_pack);
+                              return `${pks} ${packLabel(selectedSku).toLowerCase()}s in stock`;
+                            }
+                            return `${stockHere.toLocaleString()} pcs`;
+                          })()}
+                        </span>
+                      )}
+                      {costForUom != null && (
+                        <span className="text-[11px] px-2.5 py-1 rounded-full" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)", color: "var(--muted-foreground)" }}>
+                          Cost {costForUom.toFixed(lineUom === "piece" ? 4 : 2)} MVR/{uomLabel.toLowerCase()}
+                        </span>
+                      )}
+                      {margin !== null && (
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                          style={{ background: margin >= 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: margin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                          {margin.toFixed(1)}% margin
+                        </span>
+                      )}
+                    </div>
+
+                    {/* No GRN warning */}
+                    {selectedSku.landed_per_piece_mvr == null && (
+                      <p className="text-[11px] mt-2 font-medium" style={{ color: "var(--snm-warning)" }}>
+                        ⚠ No confirmed shipment — confirm a GRN first
                       </p>
                     )}
                   </div>
-                  <button onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); setPriceManuallyEdited(false); }} className="text-[11px] text-foreground opacity-60 hover:opacity-100">Change</button>
-                </div>
 
-                {/* Context-aware cost + margin pill */}
-                {selectedSku.landed_per_piece_mvr != null && (() => {
-                  const landed = selectedSku.landed_per_piece_mvr!;
-                  const costForUom = lineUom === "piece" ? landed
-                    : lineUom === "pack" ? landed * selectedSku.pcs_per_pack
-                    : landed * selectedSku.pcs_per_pack * selectedSku.packs_per_carton;
-                  const uomLabel = lineUom === "piece" ? "pc" : lineUom === "pack" ? packLabel(selectedSku).toLowerCase() : "carton";
-                  const priceVal = parseFloat(linePrice);
-                  const margin = (!isNaN(priceVal) && priceVal > 0 && costForUom > 0)
-                    ? ((priceVal - costForUom) / priceVal) * 100
-                    : null;
-                  return (
-                    <div className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-4"
-                      style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
-                      <div>
-                        <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
-                          Cost / {uomLabel}
-                        </p>
-                        <p className="text-[13px] font-semibold text-foreground">
-                          MVR {costForUom.toFixed(lineUom === "piece" ? 4 : 2)}
-                        </p>
+                  {/* ── UOM segmented control — tap to switch, no keyboard ── */}
+                  <div className="rounded-2xl p-1 flex gap-1" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
+                    {(["carton", "pack", "piece"] as SaleUom[]).map((u) => {
+                      const label = u === "carton" ? `Carton (${selectedSku.packs_per_carton} ${pl}s)` : u === "pack" ? pl : `Piece (${selectedSku.pcs_per_pack}/${pl})`;
+                      return (
+                        <button key={u} onClick={() => setLineUom(u)}
+                          className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold transition active:scale-95"
+                          style={lineUom === u
+                            ? { background: "var(--foreground)", color: "var(--background)" }
+                            : { color: "var(--muted-foreground)" }}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* ── Qty stepper + Price display — the key UX insight ──
+                      Qty: large +/− stepper, no keyboard.
+                      Price: shown read-only. Tap pencil → inline input appears.
+                      Keyboard only fires when the user deliberately asks for it. ── */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Qty stepper */}
+                    <div className="rounded-2xl p-4" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+                      <p className="text-[10px] uppercase tracking-widest mb-3 font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                        QTY · {uomLabel}S
+                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => { const n = Math.max(0, qtyNum - 1); setLineQty(n > 0 ? String(n) : ""); }}
+                          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
+                          style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
+                          −
+                        </button>
+                        {/* Tapping the number opens the keyboard for direct entry */}
+                        <input
+                          type="number" inputMode="numeric" min="1"
+                          value={lineQty}
+                          onChange={(e) => setLineQty((e.target as HTMLInputElement).value)}
+                          placeholder="0"
+                          className="flex-1 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
+                          style={{ minWidth: 0 }}
+                        />
+                        <button
+                          onClick={() => setLineQty(String(qtyNum + 1))}
+                          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
+                          style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                          +
+                        </button>
                       </div>
-                      {margin !== null && (
-                        <div className="text-right">
-                          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Margin</p>
-                          <p className="text-[17px] font-bold leading-none"
-                            style={{ color: margin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-                            {margin.toFixed(1)}%
-                          </p>
-                          {margin < 0 && (
-                            <p className="text-[9px] mt-0.5" style={{ color: "var(--snm-error)" }}>below cost</p>
-                          )}
-                        </div>
+                    </div>
+
+                    {/* Price — display until tapped */}
+                    <div className="rounded-2xl p-4" style={{ ...CARD, border: hasNoPrice ? "1px solid color-mix(in srgb, var(--snm-warning) 40%, transparent)" : "1px solid var(--glass-border-lo)" }}>
+                      <p className="text-[10px] uppercase tracking-widest mb-3 font-semibold flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
+                        MVR / {uomLabel}
+                        {priceBadge && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: priceBadge.bg, color: priceBadge.color }}>
+                            {priceBadge.label}
+                          </span>
+                        )}
+                      </p>
+                      {/* Single input — no autoFocus, displays cleanly, editable on tap */}
+                      <input
+                        type="number" inputMode="decimal" step="0.01" min="0"
+                        value={linePrice}
+                        onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
+                        onBlur={handlePriceBlur}
+                        placeholder={hasNoPrice ? "Tap to set" : "0.00"}
+                        className="w-full text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
+                        style={{ minWidth: 0 }}
+                      />
+                      {priceListInfo && (
+                        <p className="text-[9px] text-center mt-1 leading-tight" style={{ color: "var(--muted-foreground)" }}>
+                          {priceListInfo}
+                        </p>
                       )}
                     </div>
-                  );
-                })()}
-
-                {/* No-GRN warning — shown when there's no landed cost yet */}
-                {selectedSku.landed_per_piece_mvr == null && (
-                  <div className="rounded-xl px-3 py-2.5 flex items-center gap-3"
-                    style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
-                    <span className="text-base">⚠️</span>
-                    <div>
-                      <p className="text-[12px] font-semibold" style={{ color: "var(--snm-warning)" }}>No confirmed shipment yet</p>
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Confirm a GRN for this product first — selling price will auto-fill from landed cost.</p>
-                    </div>
                   </div>
-                )}
 
-                {(() => {
-                  const pl = packLabel(selectedSku);
-                  const uomLabel = lineUom === "carton" ? "Carton" : lineUom === "piece" ? "Piece" : pl;
-                  const hasNoPrice = !linePrice && selectedSku.landed_per_piece_mvr != null;
-                  return (
-                    <div className="grid grid-cols-3 gap-2">
-                      <GlassSelect label={`Sell by · ${lineUom === "pack" ? pl : lineUom === "carton" ? "Carton" : "Piece"}`} value={lineUom} onChange={(v) => setLineUom(v as SaleUom)}>
-                        <option value="carton">Carton ({selectedSku.packs_per_carton} {pl}s)</option>
-                        <option value="pack">{pl}</option>
-                        <option value="piece">Piece ({selectedSku.pcs_per_pack}/{pl})</option>
-                      </GlassSelect>
-                      <GlassInput label={`Qty · ${uomLabel}s`} type="number" inputMode="decimal" min="1" value={lineQty} onChange={(e) => setLineQty((e.target as HTMLInputElement).value)} placeholder="0" autoFocus />
-                      <div className="space-y-1.5">
-                        <p className="text-[11px] uppercase tracking-widest font-medium flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
-                          MVR / {uomLabel}
-                          {linePrice && !priceManuallyEdited && autoPriceSource === "price_list"
-                            ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>{(customer?.price_tier ?? "TIER").toUpperCase()}</span>
-                            : linePrice && !priceManuallyEdited && autoPriceSource === "sku_default"
-                              ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
-                              : linePrice && priceManuallyEdited
-                                ? <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>MANUAL</span>
-                                : null}
-                        </p>
-                        <input type="number" inputMode="decimal" step="0.01" min="0" value={linePrice}
-                          onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
-                          onBlur={handlePriceBlur}
-                          placeholder={hasNoPrice ? "Enter price" : "0.00"}
-                          className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none"
-                          style={{ ...CARD, border: hasNoPrice ? "1px solid color-mix(in srgb, var(--snm-warning) 40%, transparent)" : "1px solid var(--glass-border-lo)" }} />
-                        {/* Price list source line — shows WHICH list is driving this price */}
-                        {(() => {
-                          if (!linePrice || priceManuallyEdited || autoPriceSource !== "price_list") return null;
-                          const tp = selectedSku ? tierPrices.get(selectedSku.id) : null;
-                          if (!tp?.price_list_name) return null;
-                          const dateStr = tp.price_list_date
-                            ? new Date(tp.price_list_date).toLocaleDateString("en-MV", { month: "short", year: "numeric" })
-                            : null;
-                          return (
-                            <p className="text-[9px] leading-tight" style={{ color: "var(--muted-foreground)" }}>
-                              From: <span className="font-semibold text-foreground">{tp.price_list_name}</span>
-                              {dateStr && <> · {dateStr}</>}
-                            </p>
-                          );
-                        })()}
-                      </div>
+                  {/* ── Line total — only shown once qty > 0 ── */}
+                  {lineQtyPieces > 0 && (
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>= {lineQtyPieces.toLocaleString()} pcs total</span>
+                      <span className="text-[18px] font-bold text-foreground">MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
-                  );
-                })()}
+                  )}
+                  {insufficient && (
+                    <p className="text-[12px] font-semibold px-1" style={{ color: "var(--snm-error)" }}>
+                      ⚠ Only {stockHere} pcs available in this warehouse
+                    </p>
+                  )}
 
-                {lineQtyPieces > 0 && (
-                  <div className="flex justify-between text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                    <span>= {lineQtyPieces.toLocaleString()} pcs total</span>
-                    <span className="text-foreground font-semibold text-[14px]">MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                  </div>
-                )}
-                {insufficient && <p className="text-[11px]" style={{ color: "var(--snm-error)" }}>⚠ Only {stockHere} pcs available in this warehouse</p>}
-                <button onClick={handleAddLine} disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
-                  className="w-full h-11 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-                  style={{ background: "var(--foreground)", color: "var(--background)" }}>
-                  <Plus className="h-4 w-4" /> Add to Order
-                </button>
-              </div>
-            ) : null}
+                  {/* ── Add to Order — full width, always accessible ── */}
+                  <button onClick={handleAddLine} disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
+                    className="w-full h-14 rounded-2xl text-[15px] font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+                    style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                    <Plus className="h-5 w-5" /> Add to Order
+                  </button>
+                </div>
+              );
+            })() : null}
 
             {/* Draft lines */}
             {draftLines.length > 0 && (
