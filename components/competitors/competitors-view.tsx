@@ -447,29 +447,39 @@ export function CompetitorsView() {
                 <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</p>
               </div>
 
-              {/* Margin preset chips — only actionable shortcuts, no reference table */}
-              <div className="flex gap-2 mt-3">
-                {[10, 15, 20, 25, 30, 40, 50].map((pct) => {
-                  const landed = simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack;
-                  const targetPrice = landed / (1 - pct / 100);
-                  const currentMargin = landed > 0 ? ((simDisplayPrice - landed) / simDisplayPrice) * 100 : 0;
-                  const isActive = Math.abs(currentMargin - pct) < 0.5;
-                  return (
-                    <button
-                      key={pct}
-                      onClick={() => setSimDisplayPrice(Math.round(targetPrice * 100) / 100)}
-                      className="flex-1 h-9 rounded-xl text-[11px] font-semibold transition active:scale-95"
-                      style={{
-                        background: isActive ? "var(--foreground)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                        color: isActive ? "var(--background)" : "var(--muted-foreground)",
-                        border: isActive ? "none" : "1px solid var(--glass-border-lo)",
+              {/* Margin slider — drag to any integer %, no fixed steps */}
+              {(() => {
+                const landed = simMode === "carton" ? landedPerCarton : simMode === "piece" ? landedPerPiece : landedPerPack;
+                const currentMargin = landed > 0 ? Math.round(((simDisplayPrice - landed) / simDisplayPrice) * 100) : 0;
+                const clampedMargin = Math.max(1, Math.min(80, currentMargin));
+                return (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>Margin</p>
+                      <p className="text-[22px] font-bold leading-none" style={{ color: "var(--foreground)" }}>
+                        {clampedMargin}<span className="text-[14px] font-semibold ml-0.5" style={{ color: "var(--muted-foreground)" }}>%</span>
+                      </p>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={80}
+                      step={1}
+                      value={clampedMargin}
+                      onChange={(e) => {
+                        const pct = parseInt(e.target.value);
+                        if (landed > 0) setSimDisplayPrice(Math.round(landed / (1 - pct / 100)));
                       }}
-                    >
-                      {pct}%
-                    </button>
-                  );
-                })}
-              </div>
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                      style={{ accentColor: "var(--snm-brand)" }}
+                    />
+                    <div className="flex justify-between">
+                      <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>1%</p>
+                      <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>80%</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* All three price levels — with both margin % AND markup % */}
