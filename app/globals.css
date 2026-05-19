@@ -401,12 +401,17 @@
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
     border-bottom: 1px solid var(--glass-border-lo);
+    /* Safe area: push content below iPhone notch / Dynamic Island */
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(64px + env(safe-area-inset-top, 0px));
   }
   .snm-bottom-nav {
     background:            color-mix(in srgb, var(--background) 75%, transparent);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
     border-top: 1px solid var(--glass-border-lo);
+    /* Safe area: extend above iPhone home bar */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* ── Typography ── */

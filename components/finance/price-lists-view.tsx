@@ -309,8 +309,8 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
     <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Fixed header */}
       <div
-        className="shrink-0 px-4 pt-4 pb-3 space-y-3"
-        style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "var(--background)" }}
+        className="shrink-0 px-4 pb-3 space-y-3"
+        style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "var(--background)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
       >
         <div className="flex items-center gap-3">
           <button
@@ -518,7 +518,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
   return (
     <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+      <div className="flex items-center gap-3 px-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
         <button
           onClick={onClose}
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -653,7 +653,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
       {/* Add SKU — full-screen overlay */}
       {addSheet && (
         <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 210 }}>
-          <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+          <div className="flex items-center gap-3 px-5 pb-4" style={{ borderBottom: "1px solid var(--glass-border-lo)", paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
             <button
               onClick={() => { setAddSheet(false); setAddSkuId(""); setSearch(""); }}
               className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
