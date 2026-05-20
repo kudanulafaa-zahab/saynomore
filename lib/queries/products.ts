@@ -303,7 +303,7 @@ export async function updateSku(
 }
 
 // ── Current user role (for hiding admin-only UI) ────────────────────────
-export async function getCurrentUserRole(): Promise<"admin" | "manager" | "staff" | null> {
+export async function getCurrentUserRole(): Promise<"admin" | "manager" | "staff" | "viewer" | null> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
   const { data, error } = await supabase
@@ -312,7 +312,7 @@ export async function getCurrentUserRole(): Promise<"admin" | "manager" | "staff
     .eq("id", userData.user.id)
     .maybeSingle();
   if (error) throw error;
-  return (data?.role ?? null) as "admin" | "manager" | "staff" | null;
+  return (data?.role ?? null) as "admin" | "manager" | "staff" | "viewer" | null;
 }
 
 // ── Category management ─────────────────────────────────────────────────

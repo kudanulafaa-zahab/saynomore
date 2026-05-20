@@ -113,6 +113,7 @@ export function SuppliersManager() {
   useEffect(() => { load(); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
+  const canWrite = role !== "viewer" && role !== null;
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -141,14 +142,16 @@ export function SuppliersManager() {
           <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Global Supply</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Vendor Intelligence</h1>
         </div>
-        <button
-          onClick={() => setDialog({ open: true })}
-          className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          <Plus className="h-4 w-4" />
-          Add Vendor
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setDialog({ open: true })}
+            className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-95"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-4 w-4" />
+            Add Vendor
+          </button>
+        )}
       </div>
 
       {/* ── Search ── */}
@@ -325,14 +328,16 @@ export function SuppliersManager() {
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => { setFeatured(s); setDialog({ open: true, editing: s }); }}
-                        aria-label={`Edit ${s.name}`}
-                        className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
-                        style={{ color: "var(--muted-foreground)" }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
+                      {canWrite && (
+                        <button
+                          onClick={() => { setFeatured(s); setDialog({ open: true, editing: s }); }}
+                          aria-label={`Edit ${s.name}`}
+                          className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
                       {isAdmin && (
                         <button
                           onClick={() => setConfirmSupplier({ id: s.id, name: s.name })}

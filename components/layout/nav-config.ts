@@ -55,6 +55,11 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/deliveries", label: "My Deliveries", icon: MapPin, primary: true },
 ];
 
+// Viewer: full read nav — no dispatch (action-only module with no read value)
+export const VIEWER_NAV: NavItem[] = FULL_NAV.filter((i) => i.href !== "/dispatch");
+
 export function navForRole(role: string): NavItem[] {
-  return role === "staff" ? STAFF_NAV : FULL_NAV;
+  if (role === "staff")  return STAFF_NAV;
+  if (role === "viewer") return VIEWER_NAV;
+  return FULL_NAV;
 }

@@ -112,6 +112,7 @@ export function ShipmentsList() {
   useEffect(() => { load(); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
+  const canWrite = role !== "viewer" && role !== null;
 
   /* counts per status */
   const counts = useMemo(() => {
@@ -338,14 +339,16 @@ export function ShipmentsList() {
       )}
 
       {/* ── FAB ── */}
-      <button
-        onClick={() => setNewSheet(true)}
-        className="fixed bottom-24 right-4 h-14 w-14 rounded-full flex items-center justify-center transition active:scale-95 z-40"
-        style={{ background: "var(--foreground)", boxShadow: "0 4px 16px rgba(0,0,0,0.24)" }}
-        aria-label="New purchase order"
-      >
-        <Plus className="h-6 w-6" style={{ color: "var(--background)" }} />
-      </button>
+      {canWrite && (
+        <button
+          onClick={() => setNewSheet(true)}
+          className="fixed bottom-24 right-4 h-14 w-14 rounded-full flex items-center justify-center transition active:scale-95 z-40"
+          style={{ background: "var(--foreground)", boxShadow: "0 4px 16px rgba(0,0,0,0.24)" }}
+          aria-label="New purchase order"
+        >
+          <Plus className="h-6 w-6" style={{ color: "var(--background)" }} />
+        </button>
+      )}
 
       {/* ── New PO sheet ── */}
       {newSheet && (

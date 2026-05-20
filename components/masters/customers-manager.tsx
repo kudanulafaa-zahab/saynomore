@@ -70,6 +70,7 @@ export function CustomersManager() {
   useEffect(() => { load(); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
+  const canWrite = role !== "viewer" && role !== null;
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -108,15 +109,17 @@ export function CustomersManager() {
             Manage and track your logistics partners and clients.
           </p>
         </div>
-        <button
-          onClick={() => setDialog({ open: true })}
-          className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95 shrink-0"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Customer</span>
-          <span className="sm:hidden">Add</span>
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setDialog({ open: true })}
+            className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95 shrink-0"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Customer</span>
+            <span className="sm:hidden">Add</span>
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -193,7 +196,7 @@ export function CustomersManager() {
               ? "Add your first customer to get started."
               : "Try a different search term."}
           </p>
-          {rows.length === 0 && (
+          {rows.length === 0 && canWrite && (
             <button
               onClick={() => setDialog({ open: true })}
               className="px-5 py-2.5 rounded-full text-sm font-semibold"
@@ -264,24 +267,26 @@ export function CustomersManager() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setDialog({ open: true, editing: c })}
-                    aria-label={`Edit ${c.name}`}
-                    className="flex items-center justify-center rounded-xl active:opacity-60"
-                    style={{ width: 44, height: 44, color: "var(--muted-foreground)" }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setConfirmCustomer({ id: c.id, name: c.name })}
-                    aria-label={`Delete ${c.name}`}
-                    className="flex items-center justify-center rounded-xl active:opacity-60"
-                    style={{ width: 44, height: 44, color: "var(--snm-error)" }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                {canWrite && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => setDialog({ open: true, editing: c })}
+                      aria-label={`Edit ${c.name}`}
+                      className="flex items-center justify-center rounded-xl active:opacity-60"
+                      style={{ width: 44, height: 44, color: "var(--muted-foreground)" }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setConfirmCustomer({ id: c.id, name: c.name })}
+                      aria-label={`Delete ${c.name}`}
+                      className="flex items-center justify-center rounded-xl active:opacity-60"
+                      style={{ width: 44, height: 44, color: "var(--snm-error)" }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Extra row */}

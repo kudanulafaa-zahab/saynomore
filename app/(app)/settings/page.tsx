@@ -14,23 +14,25 @@ import { getCurrentUserRole } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  admin: "Admin", manager: "Manager", staff: "Staff",
+  admin: "Admin", manager: "Manager", staff: "Staff", viewer: "Viewer",
 };
 const ROLE_LABEL_FULL: Record<UserRole, string> = {
-  admin: "Administrator", manager: "Manager", staff: "Delivery Staff",
+  admin: "Administrator", manager: "Manager", staff: "Delivery Staff", viewer: "Viewer",
 };
 const ROLE_DESC: Record<UserRole, string> = {
   admin: "Full access. Can delete master data and manage users.",
   manager: "Full operational access. Cannot manage users.",
   staff: "Can only see and update their own deliveries.",
+  viewer: "Read-only access. Can see everything but cannot add, edit, or delete anything.",
 };
 const ROLE_ICON: Record<UserRole, React.ElementType> = {
-  admin: UserCheck, manager: UserCog, staff: Truck,
+  admin: UserCheck, manager: UserCog, staff: Truck, viewer: Eye,
 };
 const ROLE_COLOR: Record<UserRole, string> = {
   admin: "var(--foreground)",
   manager: "var(--snm-brand)",
   staff: "var(--muted-foreground)",
+  viewer: "var(--muted-foreground)",
 };
 
 // Suppress unused-variable warning — ROLE_LABEL_FULL is kept for future use
@@ -396,6 +398,7 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
         <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={inputCls}>
           <option value="manager">Manager — Full operational access</option>
           <option value="staff">Delivery Staff — Deliveries only</option>
+          <option value="viewer">Viewer — Read only, no edits</option>
         </select>
       </SheetInput>
       <SheetInput label="Temporary Password" required>
@@ -455,6 +458,7 @@ function EditUserSheet({ user, onClose, onDone }: { user: UserProfileRow; onClos
           <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={inputCls}>
             <option value="manager">Manager — Full operational access</option>
             <option value="staff">Delivery Staff — Deliveries only</option>
+            <option value="viewer">Viewer — Read only, no edits</option>
           </select>
           <p className="text-xs mt-1.5" style={{ color: "var(--muted-foreground)" }}>{ROLE_DESC[role]}</p>
         </SheetInput>

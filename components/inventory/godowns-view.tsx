@@ -298,14 +298,16 @@ function GodownCard({
               <Star className="h-4 w-4" />
             </button>
           )}
-          <button
-            onClick={() => onEdit(godown)}
-            className="h-9 w-9 rounded-xl flex items-center justify-center transition active:scale-90"
-            style={{ color: "var(--muted-foreground)" }}
-            title="Edit"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => onEdit(godown)}
+              className="h-9 w-9 rounded-xl flex items-center justify-center transition active:scale-90"
+              style={{ color: "var(--muted-foreground)" }}
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
           {isAdmin && (
             <button
               onClick={() => onDelete(godown)}
@@ -467,14 +469,16 @@ export function GodownsView() {
             </p>
           )}
         </div>
-        <button
-          onClick={() => { setShowNew(true); setEditingId(null); }}
-          className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
-          style={{ background: "var(--snm-brand)", color: "#ffffff" }}
-        >
-          <Plus className="h-4 w-4" />
-          New
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => { setShowNew(true); setEditingId(null); }}
+            className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
+            style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+          >
+            <Plus className="h-4 w-4" />
+            New
+          </button>
+        )}
       </div>
 
       {/* Inline new godown form */}

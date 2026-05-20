@@ -143,7 +143,7 @@ export async function deleteGodown(id: string) {
 
 // ── Users ────────────────────────────────────────────────────────────────
 
-export type UserRole = "admin" | "manager" | "staff";
+export type UserRole = "admin" | "manager" | "staff" | "viewer";
 
 export interface UserProfileRow {
   id: string;

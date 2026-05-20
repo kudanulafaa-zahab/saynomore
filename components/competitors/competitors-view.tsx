@@ -19,7 +19,7 @@ import {
   type CompetitorPriceRow,
   type PriceBasis,
 } from "@/lib/queries/competitors";
-import { listSkusFlat, updateSku, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
 
 const CARD = {
@@ -71,6 +71,11 @@ export function CompetitorsView() {
   const [saving, setSaving]         = useState(false);
   const [saveMode, setSaveMode]     = useState<"margin" | "fixed">("margin");
   const [alertThreshold, setAlertThreshold] = useState(10);
+  const [canWrite, setCanWrite]     = useState(true); // optimistic — viewer role hides write actions
+
+  useEffect(() => {
+    getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
+  }, []);
 
   // Price list coverage for selected SKU — one entry per tier
   type TierCoverage = { tier: string; price_per_piece_mvr: number | null; price_per_pack_mvr: number | null; price_per_carton_mvr: number | null; source: string };
@@ -241,14 +246,16 @@ export function CompetitorsView() {
           <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Intelligence</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Pricing</h1>
         </div>
-        <button
-          onClick={() => setCompetitorDialog({ open: true })}
-          className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-[0.97]"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          <Plus className="h-4 w-4" />
-          Add Competitor
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setCompetitorDialog({ open: true })}
+            className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-[0.97]"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-4 w-4" />
+            Add Competitor
+          </button>
+        )}
       </div>
 
       {/* ── SKU Selector ── */}
@@ -819,13 +826,15 @@ export function CompetitorsView() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <p className="text-[13px] font-semibold text-foreground">Competitors ({competitors.length})</p>
-          <button
-            onClick={() => setCompetitorDialog({ open: true })}
-            className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
-            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
-          >
-            + Add
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => setCompetitorDialog({ open: true })}
+              className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
+              style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
+            >
+              + Add
+            </button>
+          )}
         </div>
 
         {/* Search */}
@@ -848,9 +857,11 @@ export function CompetitorsView() {
             <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
               Add competitors to start tracking their prices.
             </p>
-            <button onClick={() => setCompetitorDialog({ open: true })} className="mt-2 h-11 px-6 rounded-full text-sm font-bold" style={{ background: "var(--foreground)", color: "var(--background)" }}>
-              Add first competitor
-            </button>
+            {canWrite && (
+              <button onClick={() => setCompetitorDialog({ open: true })} className="mt-2 h-11 px-6 rounded-full text-sm font-bold" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                Add first competitor
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
@@ -875,21 +886,23 @@ export function CompetitorsView() {
                         ? <ChevronUp className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                         : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />}
                     </button>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() => setPriceDialog({ open: true, competitorId: comp.id })}
-                        className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
-                        style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
-                      >
-                        + Price
-                      </button>
-                      <button onClick={() => setCompetitorDialog({ open: true, editing: comp })} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => setDeleteCompDialog(comp)} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {canWrite && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => setPriceDialog({ open: true, competitorId: comp.id })}
+                          className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
+                          style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
+                        >
+                          + Price
+                        </button>
+                        <button onClick={() => setCompetitorDialog({ open: true, editing: comp })} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => setDeleteCompDialog(comp)} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {isExpanded && (
@@ -897,7 +910,9 @@ export function CompetitorsView() {
                       {compPrices.length === 0 ? (
                         <div className="px-4 py-4 text-center">
                           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
-                          <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-foreground opacity-60 active:opacity-100 mt-1">Log first price</button>
+                          {canWrite && (
+                            <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-foreground opacity-60 active:opacity-100 mt-1">Log first price</button>
+                          )}
                         </div>
                       ) : (
                         compPrices.map((p) => {
@@ -920,14 +935,16 @@ export function CompetitorsView() {
                                 </p>
                                 {p.notes && <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
                               </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <button onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
-                                  <Pencil className="h-3 w-3" />
-                                </button>
-                                <button onClick={() => setDeletePriceDialog(p)} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
+                              {canWrite && (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                  <button onClick={() => setDeletePriceDialog(p)} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           );
                         })
@@ -942,15 +959,17 @@ export function CompetitorsView() {
       </div>
 
       {/* ── Log Price FAB — thumb zone, bottom-right (Luke Wroblewski: 75% thumb use) ── */}
-      <button
-        onClick={() => setPriceDialog({ open: true })}
-        className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-30 flex items-center gap-2 h-14 px-5 rounded-full shadow-lg transition active:scale-[0.95]"
-        style={{ background: "var(--snm-brand)", color: "#ffffff", touchAction: "manipulation", boxShadow: "0 4px 24px color-mix(in srgb, var(--snm-brand) 40%, transparent)" }}
-        aria-label="Log competitor price"
-      >
-        <Tag className="h-4 w-4 shrink-0" />
-        <span className="text-[14px] font-bold">Log Price</span>
-      </button>
+      {canWrite && (
+        <button
+          onClick={() => setPriceDialog({ open: true })}
+          className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-30 flex items-center gap-2 h-14 px-5 rounded-full shadow-lg transition active:scale-[0.95]"
+          style={{ background: "var(--snm-brand)", color: "#ffffff", touchAction: "manipulation", boxShadow: "0 4px 24px color-mix(in srgb, var(--snm-brand) 40%, transparent)" }}
+          aria-label="Log competitor price"
+        >
+          <Tag className="h-4 w-4 shrink-0" />
+          <span className="text-[14px] font-bold">Log Price</span>
+        </button>
+      )}
 
       {/* ── Modals ── */}
       {competitorDialog.open && (

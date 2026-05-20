@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Loader2, Tag, Plus, Trash2, Pencil, ChevronRight, X,
 } from "lucide-react";
-import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import {
   listPriceLists, createPriceList, deletePriceList,
   listPriceListItems, upsertPriceListItem, deletePriceListItem,
@@ -53,6 +53,11 @@ export function PriceListsView() {
   const [deleting, setDeleting]     = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [confirmDeleting, setConfirmDeleting] = useState(false);
+  const [canWrite, setCanWrite] = useState(true); // optimistic — viewer role hides write actions
+
+  useEffect(() => {
+    getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -161,13 +166,15 @@ export function PriceListsView() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => { setNewListTier(tier); setCreatedList(null); }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold active:opacity-70 active:scale-95"
-                  style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
-                >
-                  <Plus className="h-3 w-3" /> New list
-                </button>
+                {canWrite && (
+                  <button
+                    onClick={() => { setNewListTier(tier); setCreatedList(null); }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold active:opacity-70 active:scale-95"
+                    style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
+                  >
+                    <Plus className="h-3 w-3" /> New list
+                  </button>
+                )}
               </div>
 
               {lists.length === 0 ? (
@@ -195,18 +202,20 @@ export function PriceListsView() {
                         </div>
                         <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                       </button>
-                      <button
-                        onClick={() => handleDelete(pl.id, pl.name)}
-                        disabled={deleting === pl.id}
-                        className="ml-3 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
-                        style={{ color: "var(--snm-error)" }}
-                        aria-label="Delete price list"
-                      >
-                        {deleting === pl.id
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <Trash2 className="h-3.5 w-3.5" />
-                        }
-                      </button>
+                      {canWrite && (
+                        <button
+                          onClick={() => handleDelete(pl.id, pl.name)}
+                          disabled={deleting === pl.id}
+                          className="ml-3 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
+                          style={{ color: "var(--snm-error)" }}
+                          aria-label="Delete price list"
+                        >
+                          {deleting === pl.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Trash2 className="h-3.5 w-3.5" />
+                          }
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -233,6 +242,7 @@ export function PriceListsView() {
         <PriceListItemsSheet
           priceList={openList}
           skus={skus}
+          canWrite={canWrite}
           onClose={() => setOpenList(null)}
           onDone={() => { setOpenList(null); load(); }}
         />
@@ -485,9 +495,10 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
 }
 
 /* ── Edit existing price list items ──────────────────────────────────────── */
-function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
+function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
   priceList: PriceListRow;
   skus: SkuFullRow[];
+  canWrite: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -543,13 +554,15 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
             Effective {new Date(priceList.effective_from + "T00:00:00").toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
           </p>
         </div>
-        <button
-          onClick={() => { setAddSheet(true); setAddSkuId(""); setSearch(""); }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold shrink-0 active:scale-95 transition"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          <Plus className="h-3.5 w-3.5" /> Add SKU
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => { setAddSheet(true); setAddSkuId(""); setSearch(""); }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold shrink-0 active:scale-95 transition"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-3.5 w-3.5" /> Add SKU
+          </button>
+        )}
         </div>
       </div>
 
@@ -563,14 +576,18 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
           <div className="text-center py-16">
             <Tag className="h-8 w-8 mx-auto mb-3 opacity-30" style={{ color: "var(--muted-foreground)" }} />
             <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No SKUs yet</p>
-            <p className="text-xs mt-1 mb-5" style={{ color: "var(--muted-foreground)" }}>Tap "Add SKU" to set prices for this tier</p>
-            <button
-              onClick={() => { setAddSheet(true); setAddSkuId(""); setSearch(""); }}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold active:scale-95 transition"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}
-            >
-              <Plus className="h-4 w-4" /> Add first SKU
-            </button>
+            <p className="text-xs mt-1 mb-5" style={{ color: "var(--muted-foreground)" }}>
+              {canWrite ? `Tap "Add SKU" to set prices for this tier` : "No SKUs in this price list yet"}
+            </p>
+            {canWrite && (
+              <button
+                onClick={() => { setAddSheet(true); setAddSkuId(""); setSearch(""); }}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-semibold active:scale-95 transition"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}
+              >
+                <Plus className="h-4 w-4" /> Add first SKU
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -594,7 +611,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                 >
                   <button
                     className="w-full text-left px-4 py-3 flex items-center gap-3 transition active:bg-black/5"
-                    onClick={() => setEditingItemId(isEditing ? null : item.id)}
+                    onClick={() => canWrite && setEditingItemId(isEditing ? null : item.id)}
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)" }}>
@@ -616,12 +633,14 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                         </div>
                       ))}
                     </div>
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: isEditing ? `color-mix(in srgb, ${t.color} 15%, transparent)` : "color-mix(in srgb, var(--foreground) 6%, transparent)" }}
-                    >
-                      <Pencil className="h-3 w-3" style={{ color: isEditing ? t.color : "var(--muted-foreground)" }} />
-                    </div>
+                    {canWrite && (
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ background: isEditing ? `color-mix(in srgb, ${t.color} 15%, transparent)` : "color-mix(in srgb, var(--foreground) 6%, transparent)" }}
+                      >
+                        <Pencil className="h-3 w-3" style={{ color: isEditing ? t.color : "var(--muted-foreground)" }} />
+                      </div>
+                    )}
                   </button>
 
                   {isEditing && sku && (

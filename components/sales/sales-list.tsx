@@ -18,7 +18,7 @@ import {
   listCustomers, createCustomer, listGodowns,
   type CustomerRow, type CustomerChannel, type CustomerInput, type GodownRow, type PriceTier,
 } from "@/lib/queries/masters";
-import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
@@ -165,6 +165,11 @@ export function SalesList() {
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [canWrite, setCanWrite] = useState(true); // optimistic — hidden after role loads
+
+  useEffect(() => {
+    getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -252,13 +257,15 @@ export function SalesList() {
           <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Sales</h1>
         </div>
-        <button
-          onClick={() => setNewDialog(true)}
-          className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          <Plus className="h-4 w-4" /> New Sale
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setNewDialog(true)}
+            className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-4 w-4" /> New Sale
+          </button>
+        )}
       </div>
 
       {/* Unpaid filter banner — shown when arriving from dashboard */}
@@ -395,14 +402,16 @@ export function SalesList() {
                   </div>
                 </Link>
                 {/* Delete button — outside the link so tap doesn't navigate */}
-                <button
-                  onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
-                  aria-label={`Delete order ${o.order_number}`}
-                  className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 active:opacity-60"
-                  style={{ color: "var(--snm-error)" }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {canWrite && (
+                  <button
+                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
+                    aria-label={`Delete order ${o.order_number}`}
+                    className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 active:opacity-60"
+                    style={{ color: "var(--snm-error)" }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -489,14 +498,16 @@ export function SalesList() {
                               <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
                             </div>
                           </Link>
-                          <button
-                            onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
-                            aria-label={`Delete order ${o.order_number}`}
-                            className="h-11 w-11 mr-1 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
-                            style={{ color: "var(--snm-error)" }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {canWrite && (
+                            <button
+                              onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
+                              aria-label={`Delete order ${o.order_number}`}
+                              className="h-11 w-11 mr-1 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
+                              style={{ color: "var(--snm-error)" }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -508,7 +519,7 @@ export function SalesList() {
         </div>
       )}
 
-      {newDialog && (
+      {newDialog && canWrite && (
         <NewSaleSheet
           customers={customers} skus={skus} godowns={godowns}
           stockLevels={stockLevels} existingOrders={rows}

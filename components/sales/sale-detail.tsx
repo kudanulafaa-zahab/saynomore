@@ -119,6 +119,7 @@ export function SaleDetail({ id }: { id: string }) {
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
 
   const isAdmin   = role === "admin";
+  const canWrite  = role !== "viewer" && role !== null;
   const customer  = customers.find((c) => c.id === order?.customer_id);
   const totals    = useMemo(() => ({
     mvr:   lines.reduce((a, l) => a + Number(l.line_total_mvr), 0),
@@ -267,12 +268,14 @@ export function SaleDetail({ id }: { id: string }) {
             <span style={{ color: "var(--muted-foreground)", fontSize: 13, fontWeight: 400, marginLeft: 8 }}>{order.order_number}</span>
           </h1>
         </div>
-        <button
-          onClick={() => setPanel("delete")}
-          style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-        >
-          <Trash2 style={{ width: 16, height: 16 }} />
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setPanel("delete")}
+            style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+          >
+            <Trash2 style={{ width: 16, height: 16 }} />
+          </button>
+        )}
       </div>
 
       {/* ── Progress stepper ─────────────────────────────────────────────── */}
@@ -393,12 +396,14 @@ export function SaleDetail({ id }: { id: string }) {
               </div>
             )}
           </div>
-          <button
-            onClick={() => { setSelectedDriver(order.assigned_driver_id ?? ""); setPanel("dispatch"); }}
-            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
-          >
-            Assign Driver & Dispatch →
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => { setSelectedDriver(order.assigned_driver_id ?? ""); setPanel("dispatch"); }}
+              style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
+            >
+              Assign Driver & Dispatch →
+            </button>
+          )}
           <button
             onClick={() => setPanel("printLabels")}
             style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
@@ -451,12 +456,14 @@ export function SaleDetail({ id }: { id: string }) {
               <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
             </div>
           </div>
-          <button
-            onClick={() => { setCashCollected(isCOD ? String(totals.mvr.toFixed(0)) : ""); setPanel("deliver"); }}
-            style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
-          >
-            Mark as Delivered →
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => { setCashCollected(isCOD ? String(totals.mvr.toFixed(0)) : ""); setPanel("deliver"); }}
+              style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
+            >
+              Mark as Delivered →
+            </button>
+          )}
           <button
             onClick={() => setPanel("printLabels")}
             style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}

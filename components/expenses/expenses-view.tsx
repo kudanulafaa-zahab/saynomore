@@ -14,7 +14,7 @@ import {
   type MarketingSpendRow,
   type SpendChannel,
 } from "@/lib/queries/expenses";
-import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -57,6 +57,11 @@ export function ExpensesView() {
   const [quickAmount, setQuickAmount] = useState("");
   const [quickChannel, setQuickChannel] = useState<SpendChannel>("other");
   const [loggingQuick, setLoggingQuick] = useState(false);
+  const [canWrite, setCanWrite] = useState(true); // optimistic — viewer role hides write actions
+
+  useEffect(() => {
+    getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -123,13 +128,15 @@ export function ExpensesView() {
           <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Expenses</h1>
         </div>
-        <button
-          onClick={() => { setEditingRow(undefined); setShowSheet(true); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          <Plus className="h-4 w-4" /> Log Expense
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => { setEditingRow(undefined); setShowSheet(true); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-4 w-4" /> Log Expense
+          </button>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -265,18 +272,22 @@ export function ExpensesView() {
                       <p className="text-sm font-medium text-foreground tabular-nums">
                         MVR {fmt(Number(r.amount_mvr))}
                       </p>
-                      <button
-                        onClick={() => { setEditingRow(r); setShowSheet(true); }}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(r)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {canWrite && (
+                        <>
+                          <button
+                            onClick={() => { setEditingRow(r); setShowSheet(true); }}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(r)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
