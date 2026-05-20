@@ -59,6 +59,7 @@ const ROLE_TOKEN: Record<UserRole, string> = {
   admin:   "var(--foreground)",
   manager: "var(--snm-brand)",
   staff:   "var(--muted-foreground)",
+  viewer:  "var(--muted-foreground)",
 };
 
 export function UsersManager() {
