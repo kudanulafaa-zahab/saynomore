@@ -3,13 +3,12 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  Loader2, Users, Warehouse, Pencil, Trash2, Star,
+  Loader2, Users, Pencil, Trash2,
   UserCheck, UserCog, Truck, Plus, ShieldCheck,
 } from "lucide-react";
 import {
-  listGodowns, createGodown, updateGodown, deleteGodown,
   listUsers, updateUser, deleteUser, inviteUser,
-  type GodownRow, type GodownInput, type UserProfileRow, type UserRole,
+  type UserProfileRow, type UserRole,
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
@@ -39,7 +38,6 @@ void ROLE_LABEL_FULL;
 
 export default function SettingsPage() {
   const [users, setUsers] = useState<UserProfileRow[]>([]);
-  const [godowns, setGodowns] = useState<GodownRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
@@ -48,16 +46,12 @@ export default function SettingsPage() {
   const [editUserSheet, setEditUserSheet] = useState<UserProfileRow | null>(null);
   const [deleteUserTarget, setDeleteUserTarget] = useState<UserProfileRow | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
-  const [godownSheet, setGodownSheet] = useState<{ open: boolean; editing?: GodownRow }>({ open: false });
-  const [deleteGodownTarget, setDeleteGodownTarget] = useState<GodownRow | null>(null);
-  const [deletingGodown, setDeletingGodown] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
-      const [u, g] = await Promise.all([listUsers(), listGodowns()]);
+      const u = await listUsers();
       setUsers(u);
-      setGodowns(g);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -72,18 +66,6 @@ export default function SettingsPage() {
   }, []);
 
   const isAdmin = myRole === "admin";
-
-  async function setDefaultGodown(id: string) {
-    try {
-      const current = godowns.find((g) => g.is_default);
-      if (current && current.id !== id) await updateGodown(current.id, { is_default: false });
-      await updateGodown(id, { is_default: true });
-      toast.success("Default godown updated");
-      load();
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }
 
   if (loading) {
     return (
@@ -126,7 +108,7 @@ export default function SettingsPage() {
           {isAdmin && (
             <button
               onClick={() => setInviteSheet(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold active:opacity-70 active:scale-95"
               style={{ background: "var(--foreground)", color: "var(--background)", minHeight: "36px" }}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -196,21 +178,19 @@ export default function SettingsPage() {
                         <>
                           <button
                             onClick={() => setEditUserSheet(u)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
+                            className="w-11 h-11 rounded-xl flex items-center justify-center active:opacity-60"
                             style={{ color: "var(--muted-foreground)" }}
-                            aria-label="Edit user"
+                            aria-label={`Edit ${u.full_name ?? u.email}`}
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setDeleteUserTarget(u)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                            style={{ color: "var(--muted-foreground)" }}
-                            onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
-                            onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
-                            aria-label="Remove user"
+                            className="w-11 h-11 rounded-xl flex items-center justify-center active:opacity-60"
+                            style={{ color: "var(--snm-error)" }}
+                            aria-label={`Remove ${u.full_name ?? u.email}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </>
                       )}
@@ -218,111 +198,6 @@ export default function SettingsPage() {
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── Godowns ───────────────────────────────────────────── */}
-      <section
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--glass-1)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid var(--glass-border)",
-        }}
-      >
-        {/* Section header */}
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
-              <Warehouse className="h-4 w-4" style={{ color: "var(--foreground)" }} />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Godowns</h2>
-              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{godowns.length} {godowns.length === 1 ? "warehouse" : "warehouses"}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setGodownSheet({ open: true })}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 active:scale-95"
-            style={{ background: "var(--foreground)", color: "var(--background)", minHeight: "36px" }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New
-          </button>
-        </div>
-
-        {/* Godowns content */}
-        <div className="px-5 pb-5">
-          {godowns.length === 0 ? (
-            <div className="text-center py-8">
-              <Warehouse className="h-8 w-8 mx-auto mb-3" style={{ color: "var(--muted-foreground)", opacity: 0.4 }} />
-              <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No godowns yet</p>
-              <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Add the warehouses where you keep stock</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {godowns.map((g) => (
-                <div
-                  key={g.id}
-                  className="flex items-center justify-between p-4 rounded-xl"
-                  style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: g.is_default ? "color-mix(in srgb, var(--snm-brand) 15%, transparent)" : "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
-                      <Warehouse className="h-3.5 w-3.5" style={{ color: g.is_default ? "var(--snm-brand)" : "var(--muted-foreground)" }} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>{g.name}</p>
-                        {g.is_default && (
-                          <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
-                            style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>
-                            Default
-                          </span>
-                        )}
-                      </div>
-                      {g.location && <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{g.location}</p>}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0 ml-2">
-                    {!g.is_default && (
-                      <button
-                        onClick={() => setDefaultGodown(g.id)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
-                        style={{ color: "var(--muted-foreground)" }}
-                        title="Set as default"
-                        aria-label="Set as default godown"
-                      >
-                        <Star className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setGodownSheet({ open: true, editing: g })}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-accent"
-                      style={{ color: "var(--muted-foreground)" }}
-                      aria-label="Edit godown"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    {isAdmin && (
-                      <button
-                        onClick={() => setDeleteGodownTarget(g)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                        style={{ color: "var(--muted-foreground)" }}
-                        onMouseEnter={e => (e.currentTarget.style.color = "var(--snm-error)")}
-                        onMouseLeave={e => (e.currentTarget.style.color = "var(--muted-foreground)")}
-                        aria-label="Delete godown"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>
@@ -352,26 +227,6 @@ export default function SettingsPage() {
           }}
         />
       )}
-      {godownSheet.open && (
-        <GodownSheet editing={godownSheet.editing} onClose={() => setGodownSheet({ open: false })} onDone={() => { setGodownSheet({ open: false }); load(); }} />
-      )}
-      {deleteGodownTarget && (
-        <ConfirmSheet
-          title="Delete godown?"
-          body={`"${deleteGodownTarget.name}" will be permanently removed.`}
-          danger loading={deletingGodown}
-          onCancel={() => setDeleteGodownTarget(null)}
-          onConfirm={async () => {
-            setDeletingGodown(true);
-            try {
-              await deleteGodown(deleteGodownTarget.id);
-              toast.success("Godown deleted");
-              setDeleteGodownTarget(null); load();
-            } catch (e) { toast.error((e as Error).message); }
-            finally { setDeletingGodown(false); }
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -390,7 +245,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
           <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-lg leading-none transition-opacity hover:opacity-70"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-lg leading-none active:opacity-60"
             style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
           >×</button>
         </div>
@@ -423,13 +278,13 @@ function SheetActions({ onCancel, onConfirm, disabled, label }: {
     <div className="flex gap-3 mt-6">
       <button
         onClick={onCancel}
-        className="flex-1 py-3 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+        className="flex-1 py-3 rounded-full text-sm font-medium active:opacity-60"
         style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
       >Cancel</button>
       <button
         onClick={onConfirm}
         disabled={disabled}
-        className="flex-[2] py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-85 active:scale-95 disabled:opacity-40"
+        className="flex-[2] py-3 rounded-full text-xs font-bold uppercase tracking-widest active:opacity-80 active:scale-95 disabled:opacity-40"
         style={{ background: "var(--foreground)", color: "var(--background)" }}
       >{label}</button>
     </div>
@@ -447,7 +302,7 @@ function ConfirmSheet({ title, body, danger, loading, onCancel, onConfirm }: {
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-3 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+            className="flex-1 py-3 rounded-full text-sm font-medium active:opacity-60"
             style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
           >Cancel</button>
           <button
@@ -554,34 +409,3 @@ function EditUserSheet({ user, onClose, onDone }: { user: UserProfileRow; onClos
   );
 }
 
-/* ── Godown Sheet ──────────────────────────────────────────────────────── */
-function GodownSheet({ editing, onClose, onDone }: { editing?: GodownRow; onClose: () => void; onDone: () => void }) {
-  const [name, setName] = useState(editing?.name ?? "");
-  const [location, setLocation] = useState(editing?.location ?? "");
-  const [saving, setSaving] = useState(false);
-
-  async function save() {
-    if (!name.trim()) return;
-    const payload: GodownInput = { name: name.trim(), location: location.trim() || null };
-    setSaving(true);
-    try {
-      if (editing) await updateGodown(editing.id, payload);
-      else await createGodown(payload);
-      toast.success(editing ? "Godown updated" : "Godown created");
-      onDone();
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setSaving(false); }
-  }
-
-  return (
-    <Sheet title={editing ? "Edit Godown" : "New Godown"} onClose={onClose}>
-      <SheetInput label="Name" required>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Warehouse" className={inputCls} />
-      </SheetInput>
-      <SheetInput label="Location">
-        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Optional address" className={inputCls} />
-      </SheetInput>
-      <SheetActions onCancel={onClose} onConfirm={save} disabled={saving || !name.trim()} label={saving ? "Saving…" : editing ? "SAVE CHANGES" : "CREATE GODOWN"} />
-    </Sheet>
-  );
-}
