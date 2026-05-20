@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Users, Pencil, Trash2,
-  UserCheck, UserCog, Truck, Plus, ShieldCheck,
+  UserCheck, UserCog, Truck, Plus, ShieldCheck, LogOut, Eye, EyeOff,
 } from "lucide-react";
 import {
   listUsers, updateUser, deleteUser, inviteUser,
@@ -46,6 +46,13 @@ export default function SettingsPage() {
   const [editUserSheet, setEditUserSheet] = useState<UserProfileRow | null>(null);
   const [deleteUserTarget, setDeleteUserTarget] = useState<UserProfileRow | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
 
   async function load() {
     setLoading(true);
@@ -204,6 +211,40 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* ── Sign out ──────────────────────────────────────────── */}
+      <section
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--glass-1)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "0.5px solid var(--glass-border-lo)",
+          boxShadow: "var(--glass-shadow), var(--glass-inner)",
+        }}
+      >
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Sign out</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>You&apos;ll be returned to the login screen</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 active:opacity-70 disabled:opacity-40 shrink-0"
+              style={{
+                background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
+                color: "var(--snm-error)",
+                border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)",
+              }}
+            >
+              {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              {signingOut ? "Signing out…" : "Sign out"}
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* ── Sheets ─────────────────────────────────────────────── */}
       {inviteSheet && (
         <InviteSheet onClose={() => setInviteSheet(false)} onDone={() => { setInviteSheet(false); load(); }} />
@@ -327,6 +368,7 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<UserRole>("staff");
   const [tempPassword, setTempPassword] = useState("");
+  const [showTempPw, setShowTempPw] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const canSave = !!email.trim() && !!fullName.trim() && tempPassword.length >= 6;
@@ -357,13 +399,25 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
         </select>
       </SheetInput>
       <SheetInput label="Temporary Password" required>
-        <input
-          type="text"
-          value={tempPassword}
-          onChange={(e) => setTempPassword(e.target.value)}
-          placeholder="Min 6 characters"
-          className={inputCls}
-        />
+        <div className="relative">
+          <input
+            type={showTempPw ? "text" : "password"}
+            value={tempPassword}
+            onChange={(e) => setTempPassword(e.target.value)}
+            placeholder="Min 6 characters"
+            className={inputCls}
+            style={{ paddingRight: "44px" }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowTempPw((v) => !v)}
+            aria-label={showTempPw ? "Hide password" : "Show password"}
+            className="absolute right-0 top-0 h-full w-11 flex items-center justify-center transition-opacity hover:opacity-70 active:opacity-50"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            {showTempPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
         <p className="text-xs mt-1.5" style={{ color: "var(--muted-foreground)" }}>
           Share this with the user. They can change it later via Forgot password.
         </p>

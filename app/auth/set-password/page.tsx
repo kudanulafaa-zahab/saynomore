@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 function SetPasswordForm() {
   const searchParams = useSearchParams();
@@ -13,6 +13,8 @@ function SetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     // Supabase sends the token as a URL hash: #access_token=...&type=invite
@@ -103,15 +105,47 @@ function SetPasswordForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>New password</label>
-              <input type="password" required autoFocus value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters" style={inputStyle} disabled={!!error} />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required autoFocus value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  style={{ ...inputStyle, paddingRight: "44px" }}
+                  disabled={!!error}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-0 top-0 h-full w-11 flex items-center justify-center transition-opacity hover:opacity-70 active:opacity-50"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Confirm password</label>
-              <input type="password" required value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Repeat your password" style={inputStyle} disabled={!!error} />
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  required value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="Repeat your password"
+                  style={{ ...inputStyle, paddingRight: "44px" }}
+                  disabled={!!error}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  aria-label={showConfirm ? "Hide password" : "Show password"}
+                  className="absolute right-0 top-0 h-full w-11 flex items-center justify-center transition-opacity hover:opacity-70 active:opacity-50"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             {error && (

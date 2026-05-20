@@ -3,7 +3,7 @@
 import { LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
 // Calm Technology: peripheral sync awareness — never blocks, never pops up.
@@ -66,12 +66,29 @@ function SyncStamp() {
 
 export function Topbar({ name, role }: { name: string; role: string }) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   }
+
+  // Close on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  // Close on route change
+  useEffect(() => { setMenuOpen(false); }, [router]);
 
   const initials = name
     .split(" ")
@@ -112,55 +129,58 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       <div className="flex items-center gap-1">
         <ThemeToggle />
 
-        {/* Avatar + popover — CSS-driven focus-within */}
-        <div className="relative group">
+        {/* Avatar + popover — React state driven, reliable on mobile */}
+        <div className="relative" ref={menuRef}>
           <button
+            onClick={() => setMenuOpen((o) => !o)}
             aria-label={`Account menu for ${name}`}
             aria-haspopup="true"
+            aria-expanded={menuOpen}
             className="w-11 h-11 rounded-full flex items-center justify-center text-[12px] font-semibold text-foreground active:opacity-70 focus:outline-none"
             style={{ background: "var(--secondary)", border: "0.5px solid var(--glass-border-lo)" }}
           >
             {initials}
           </button>
 
-          <div
-            className="absolute right-0 top-full mt-2 w-52 rounded-2xl overflow-hidden
-              opacity-0 scale-95 pointer-events-none
-              group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:pointer-events-auto
-              transition-all duration-150 origin-top-right"
-            style={{
-              background: "var(--glass-2)",
-              backdropFilter: "blur(32px)",
-              WebkitBackdropFilter: "blur(32px)",
-              border: "0.5px solid var(--glass-border-lo)",
-              boxShadow: "var(--glass-shadow)",
-            }}
-          >
-            {/* User info */}
-            <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
-                style={{ background: "var(--secondary)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
-              >
-                {initials}
+          {menuOpen && (
+            <div
+              className="absolute right-0 top-full mt-2 w-52 rounded-2xl overflow-hidden
+                animate-in fade-in zoom-in-95 duration-150 origin-top-right"
+              style={{
+                background: "var(--glass-2)",
+                backdropFilter: "blur(32px)",
+                WebkitBackdropFilter: "blur(32px)",
+                border: "0.5px solid var(--glass-border-lo)",
+                boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
+                zIndex: 60,
+              }}
+            >
+              {/* User info */}
+              <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
+                  style={{ background: "var(--secondary)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+                >
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground truncate">{name}</p>
+                  <p className="text-[11px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{role}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-foreground truncate">{name}</p>
-                <p className="text-[11px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{role}</p>
+              {/* Actions */}
+              <div className="p-1.5">
+                <button
+                  onClick={() => { setMenuOpen(false); handleSignOut(); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition active:opacity-70 active:scale-[0.98]"
+                  style={{ color: "var(--snm-error)" }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </button>
               </div>
             </div>
-            {/* Actions */}
-            <div className="p-1.5">
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm active:opacity-70"
-                style={{ color: "var(--snm-error)" }}
-              >
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </header>
