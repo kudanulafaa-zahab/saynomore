@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw } from "lucide-react";
+import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw } from "lucide-react";
 import { listBatchStock, listReorderAlerts, type BatchStock, type SkuReorderAlert } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
@@ -65,7 +65,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
       style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
     >
       <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
-      <p className="text-[26px] font-light tracking-tight leading-none" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
+      <p className="text-[26px] font-semibold tracking-tight leading-none tabular-nums" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
       <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>{sub}</p>
     </div>
   );
@@ -215,7 +215,8 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
 
       {/* ── Expand button for FIFO batch detail ── */}
       <button
-        className="w-full flex items-center justify-center gap-1.5 pb-3"
+        className="w-full min-h-[44px] flex items-center justify-center gap-1.5 pb-3"
+        style={{ touchAction: "manipulation" }}
         onClick={() => setExpanded(!expanded)}
       >
         <span className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
@@ -411,8 +412,37 @@ export function InventoryView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center" style={{ minHeight: "60vh" }}>
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
+      <div className="space-y-4 animate-pulse">
+        {/* Header */}
+        <div className="space-y-2 mb-4">
+          <div className="h-2.5 w-24 rounded-full" style={{ background: "var(--muted)" }} />
+          <div className="h-8 w-36 rounded-xl" style={{ background: "var(--muted)" }} />
+        </div>
+        {/* Stat cards */}
+        <div className="grid grid-cols-3 gap-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-2xl p-4 space-y-2" style={{ background: "var(--glass-1)" }}>
+              <div className="h-2 w-12 rounded-full" style={{ background: "var(--muted)" }} />
+              <div className="h-7 w-16 rounded-lg" style={{ background: "var(--muted)" }} />
+            </div>
+          ))}
+        </div>
+        {/* Search bar */}
+        <div className="h-12 rounded-2xl" style={{ background: "var(--muted)" }} />
+        {/* 4 SKU card skeletons */}
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "var(--glass-1)" }}>
+            <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: "var(--muted)" }} />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3.5 w-40 rounded-full" style={{ background: "var(--muted)" }} />
+              <div className="h-2.5 w-24 rounded-full" style={{ background: "var(--muted)" }} />
+            </div>
+            <div className="text-right space-y-1 shrink-0">
+              <div className="h-6 w-14 rounded-lg" style={{ background: "var(--muted)" }} />
+              <div className="h-2.5 w-12 rounded-full" style={{ background: "var(--muted)" }} />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

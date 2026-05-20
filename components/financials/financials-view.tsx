@@ -71,18 +71,58 @@ function CodView() {
   const totalPending     = rows.reduce((a, r) => a + Number(r.pending_deposit_mvr), 0);
   const hasIssue         = rows.some((r) => r.recon_status !== "balanced" && r.recon_status !== "pending_deposit");
 
+  const [customDate, setCustomDate] = useState(false);
+
   return (
     <div style={{ paddingBottom: 40 }}>
-      {/* Date picker */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>Date</p>
-        <input
-          type="date"
-          value={date}
-          max={today}
-          onChange={(e) => setDate(e.target.value)}
-          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer" }}
-        />
+      {/* Date picker — chips first, custom input on demand */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+          {[
+            { label: "Today",     val: today },
+            { label: "Yesterday", val: (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })() },
+          ].map(({ label, val }) => {
+            const active = date === val && !customDate;
+            return (
+              <button
+                key={label}
+                onClick={() => { setDate(val); setCustomDate(false); }}
+                style={{
+                  flexShrink: 0, minHeight: 44, padding: "0 18px", borderRadius: 22,
+                  background: active ? "var(--foreground)" : "var(--glass-1)",
+                  color: active ? "var(--background)" : "var(--muted-foreground)",
+                  border: active ? "none" : "1px solid var(--glass-border-lo)",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer", touchAction: "manipulation",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setCustomDate(true)}
+            style={{
+              flexShrink: 0, minHeight: 44, padding: "0 18px", borderRadius: 22,
+              background: customDate ? "var(--foreground)" : "var(--glass-1)",
+              color: customDate ? "var(--background)" : "var(--muted-foreground)",
+              border: customDate ? "none" : "1px solid var(--glass-border-lo)",
+              fontSize: 13, fontWeight: 600, cursor: "pointer", touchAction: "manipulation",
+            }}
+          >
+            Custom
+          </button>
+        </div>
+        {customDate && (
+          <div style={{ marginTop: 10 }}>
+            <input
+              type="date"
+              value={date}
+              max={today}
+              onChange={(e) => setDate(e.target.value)}
+              style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer", width: "100%" }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Summary strip */}
@@ -286,8 +326,32 @@ export function FinancialsView() {
 
   if (loading) {
     return (
-      <div style={{ background: "var(--background)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
+      <div className="space-y-4 animate-pulse">
+        {/* Tab switcher skeleton */}
+        <div className="h-11 rounded-xl" style={{ background: "var(--glass-1)" }} />
+        {/* Hero card skeleton */}
+        <div className="rounded-2xl p-6 space-y-4" style={{ background: "var(--glass-1)" }}>
+          <div className="h-2.5 w-32 rounded-full" style={{ background: "var(--muted)" }} />
+          <div className="h-12 w-48 rounded-xl" style={{ background: "var(--muted)" }} />
+          <div className="h-3 w-28 rounded-full" style={{ background: "var(--muted)" }} />
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t" style={{ borderColor: "var(--glass-border-lo)" }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="h-2 w-16 rounded-full" style={{ background: "var(--muted)" }} />
+                <div className="h-6 w-20 rounded-lg" style={{ background: "var(--muted)" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Chart card skeleton */}
+        <div className="rounded-2xl p-6" style={{ background: "var(--glass-1)" }}>
+          <div className="h-2.5 w-48 rounded-full mb-6" style={{ background: "var(--muted)" }} />
+          <div className="flex items-end gap-3 h-24">
+            {[60, 80, 45, 90, 70, 55].map((h, i) => (
+              <div key={i} className="flex-1 rounded-t-lg" style={{ height: `${h}%`, background: "var(--muted)" }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

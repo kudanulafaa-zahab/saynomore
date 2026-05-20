@@ -40,10 +40,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  confirmed:        { bg: "color-mix(in srgb, #f59e0b 14%, transparent)", text: "#f59e0b" },
-  picked:           { bg: "color-mix(in srgb, #3b82f6 14%, transparent)", text: "#3b82f6" },
-  out_for_delivery: { bg: "color-mix(in srgb, #8b5cf6 14%, transparent)", text: "#8b5cf6" },
-  delivered:        { bg: "color-mix(in srgb, #22c55e 14%, transparent)", text: "#22c55e" },
+  confirmed:        { bg: "color-mix(in srgb, var(--snm-warning) 14%, transparent)", text: "var(--snm-warning)" },
+  picked:           { bg: "color-mix(in srgb, var(--snm-info) 14%, transparent)",    text: "var(--snm-info)"    },
+  out_for_delivery: { bg: "color-mix(in srgb, var(--snm-brand) 14%, transparent)",   text: "var(--snm-brand)"   },
+  delivered:        { bg: "color-mix(in srgb, var(--snm-success) 14%, transparent)", text: "var(--snm-success)"  },
 };
 
 /* ─── bottom sheet ──────────────────────────────────────────────────────── */
@@ -143,7 +143,7 @@ function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
       <p style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Amount collected (MVR)</p>
       <input
         ref={inputRef}
-        type="number" inputMode="decimal" step="0.01"
+        type="number" inputMode="numeric" pattern="[0-9]*" step="0.01"
         value={amount} onChange={(e) => setAmount(e.target.value)}
         placeholder="0.00"
         style={{
@@ -174,8 +174,12 @@ function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
           background: saving || !amount ? "var(--glass-border-lo)" : "var(--snm-success)",
           color: "#fff", fontSize: 18, fontWeight: 800, cursor: saving || !amount ? "not-allowed" : "pointer",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-          transition: "background 0.15s",
+          transition: "background 0.15s, transform 0.1s",
+          touchAction: "manipulation",
         }}
+        onPointerDown={(e) => { if (!saving && amount) e.currentTarget.style.transform = "scale(0.97)"; }}
+        onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+        onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
       >
         {saving ? <Loader2 size={22} className="animate-spin" /> : <><CheckCircle2 size={22} /> Mark Delivered</>}
       </button>
@@ -369,7 +373,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
               <span style={{
                 fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em",
                 padding: "4px 10px", borderRadius: 20,
-                background: "color-mix(in srgb, #f59e0b 14%, transparent)", color: "#f59e0b",
+                background: "color-mix(in srgb, var(--snm-warning) 14%, transparent)", color: "var(--snm-warning)",
               }}>
                 COD
               </span>
@@ -433,10 +437,14 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
             onClick={() => onAction(order.id, { status: "out_for_delivery" })}
             style={{
               width: "100%", height: 56, borderRadius: 16, border: "none",
-              background: "#3b82f6", color: "#fff",
+              background: "var(--snm-info)", color: "#fff",
               fontSize: 16, fontWeight: 700, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              transition: "transform 0.1s",
             }}
+            onPointerDown={(e) => (e.currentTarget.style.transform = "scale(0.97)")}
+            onPointerUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onPointerLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             <Truck size={20} /> Out for delivery
           </button>
@@ -596,9 +604,28 @@ export function MyDeliveries() {
 
   if (loading) {
     return (
-      <div style={{ padding: 60, display: "flex", flexDirection: "column", alignItems: "center", color: "var(--muted-foreground)" }}>
-        <Loader2 size={28} className="animate-spin" style={{ marginBottom: 12 }} />
-        <p style={{ fontSize: 14 }}>Loading deliveries…</p>
+      <div className="space-y-4 animate-pulse pb-28">
+        {/* Header skeleton */}
+        <div className="space-y-2">
+          <div className="h-3 w-16 rounded-full" style={{ background: "var(--muted)" }} />
+          <div className="h-8 w-44 rounded-xl" style={{ background: "var(--muted)" }} />
+          <div className="h-2 rounded-full mt-3" style={{ background: "var(--muted)" }} />
+        </div>
+        {/* Card skeletons */}
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-[20px] overflow-hidden" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between">
+                <div className="h-5 w-20 rounded-full" style={{ background: "var(--muted)" }} />
+                <div className="h-11 w-11 rounded-full" style={{ background: "var(--muted)" }} />
+              </div>
+              <div className="h-6 w-36 rounded-lg" style={{ background: "var(--muted)" }} />
+              <div className="h-4 w-28 rounded-full" style={{ background: "var(--muted)" }} />
+              <div className="h-14 w-full rounded-2xl" style={{ background: "var(--muted)" }} />
+            </div>
+            <div className="h-11" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", borderTop: "1px solid var(--glass-border-lo)" }} />
+          </div>
+        ))}
       </div>
     );
   }

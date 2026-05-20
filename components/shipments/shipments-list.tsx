@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, Package, CheckCircle2, Clock, Anchor, Truck,
+  Plus, Package, CheckCircle2, Clock, Anchor, Truck,
   Trash2, AlertTriangle, ChevronRight, Factory, ShoppingCart,
 } from "lucide-react";
 import {
@@ -154,9 +154,29 @@ export function ShipmentsList() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
-        <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading…</p>
+      <div className="space-y-4 animate-pulse">
+        {/* Header */}
+        <div className="space-y-2 mb-4">
+          <div className="h-2.5 w-36 rounded-full" style={{ background: "var(--muted)" }} />
+          <div className="h-8 w-44 rounded-xl" style={{ background: "var(--muted)" }} />
+        </div>
+        {/* Filter chips */}
+        <div className="flex gap-2">
+          {[32, 28, 44, 56, 44, 52].map((w, i) => (
+            <div key={i} className="h-11 rounded-full shrink-0" style={{ width: w, background: "var(--muted)" }} />
+          ))}
+        </div>
+        {/* 4 PO card skeletons */}
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="rounded-2xl p-4 flex items-center gap-3" style={{ background: "var(--glass-1)" }}>
+            <div className="h-10 w-10 rounded-xl shrink-0" style={{ background: "var(--muted)" }} />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3.5 w-28 rounded-full" style={{ background: "var(--muted)" }} />
+              <div className="h-2.5 w-20 rounded-full" style={{ background: "var(--muted)" }} />
+            </div>
+            <div className="h-6 w-16 rounded-lg shrink-0" style={{ background: "var(--muted)" }} />
+          </div>
+        ))}
       </div>
     );
   }
@@ -208,16 +228,17 @@ export function ShipmentsList() {
                   onClick={() => setNewSheet(true)}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "6px 12px", borderRadius: 20,
+                    minHeight: 44, padding: "0 14px", borderRadius: 22,
                     background: isCritical
                       ? "color-mix(in srgb, var(--snm-error) 15%, transparent)"
                       : "color-mix(in srgb, var(--snm-warning) 15%, transparent)",
                     border: `1px solid color-mix(in srgb, ${isCritical ? "var(--snm-error)" : "var(--snm-warning)"} 25%, transparent)`,
                     color: isCritical ? "var(--snm-error)" : "var(--snm-warning)",
                     fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    touchAction: "manipulation",
                   }}
                 >
-                  {isCritical ? "🔴" : "🟡"}
+                  <AlertTriangle style={{ width: 12, height: 12, flexShrink: 0 }} />
                   <span>{sku.brand_name} {sku.model_name}{sku.variant_display ? ` ${sku.variant_display}` : ""}</span>
                   <span style={{ opacity: 0.7, fontWeight: 400 }}>{dirText}</span>
                   <Plus style={{ width: 12, height: 12 }} />

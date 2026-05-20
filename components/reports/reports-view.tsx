@@ -75,6 +75,7 @@ export function ReportsView() {
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
   const [tab, setTab] = useState<"bestsellers" | "margins" | "stock">("bestsellers");
+  const [customRange, setCustomRange] = useState(false);
 
   async function load(f = from, t = to) {
     setLoading(true);
@@ -138,84 +139,107 @@ export function ReportsView() {
         <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Reports</h1>
       </div>
 
-      {/* Date range + presets */}
-      <div className="glass p-4 space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p.label}
-              onClick={() => { const f = p.from(); const t = p.to(); setFrom(f); setTo(t); load(f, t); }}
-              className={`text-[12px] font-medium px-3 rounded-lg border transition active:scale-95`}
-              style={{
-                minHeight: 36,
-                background: from === p.from() && to === p.to() ? "var(--foreground)" : "transparent",
-                color: from === p.from() && to === p.to() ? "var(--background)" : "var(--muted-foreground)",
-                borderColor: from === p.from() && to === p.to() ? "var(--foreground)" : "var(--glass-border-lo)",
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="h-11 px-3 text-sm rounded-xl border text-foreground"
-            style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
-          />
-          <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>to</span>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="h-11 px-3 text-sm rounded-xl border text-foreground"
-            style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
-          />
+      {/* Date range — preset chips + custom toggle */}
+      <div className="space-y-3">
+        <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+          {PRESETS.map((p) => {
+            const pf = p.from(); const pt = p.to();
+            const active = from === pf && to === pt && !customRange;
+            return (
+              <button
+                key={p.label}
+                onClick={() => { setCustomRange(false); setFrom(pf); setTo(pt); load(pf, pt); }}
+                className="shrink-0 h-11 px-4 rounded-full text-[13px] font-semibold transition active:scale-95"
+                style={{
+                  background: active ? "var(--foreground)" : "var(--glass-1)",
+                  color:      active ? "var(--background)" : "var(--muted-foreground)",
+                  border:     active ? "none" : "1px solid var(--glass-border-lo)",
+                  touchAction: "manipulation",
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
           <button
-            onClick={() => load()}
-            disabled={loading}
-            className="h-11 px-5 rounded-xl text-[13px] font-semibold transition active:scale-95 disabled:opacity-40"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
+            onClick={() => setCustomRange(true)}
+            className="shrink-0 h-11 px-4 rounded-full text-[13px] font-semibold transition active:scale-95"
+            style={{
+              background: customRange ? "var(--foreground)" : "var(--glass-1)",
+              color:      customRange ? "var(--background)" : "var(--muted-foreground)",
+              border:     customRange ? "none" : "1px solid var(--glass-border-lo)",
+              touchAction: "manipulation",
+            }}
           >
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+            Custom
           </button>
         </div>
+        {customRange && (
+          <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="h-11 px-3 text-sm rounded-xl border text-foreground"
+              style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
+            />
+            <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>to</span>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="h-11 px-3 text-sm rounded-xl border text-foreground"
+              style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
+            />
+            <button
+              onClick={() => load()}
+              disabled={loading}
+              className="h-11 px-5 rounded-xl text-[13px] font-semibold transition active:scale-95 disabled:opacity-40"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Summary cards — horizontal scroll on mobile, auto grid on sm+ */}
-      <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:overflow-visible">
+      {/* Summary cards — Revenue hero full-width, then 2×2 grid */}
+      <div className="space-y-3">
+        {/* Hero: Total Revenue — full width */}
         <SummaryCard
           label="Total Revenue"
           value={`MVR ${totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           icon={TrendingUp}
           tokenColor="var(--snm-success)"
+          hero
         />
-        <SummaryCard
-          label="SKUs Sold"
-          value={String(totals.skusSold)}
-          icon={Package}
-          tokenColor="var(--snm-brand)"
-        />
-        <SummaryCard
-          label="Avg Margin"
-          value={totals.avgMargin !== null ? `${totals.avgMargin.toFixed(1)}%` : "—"}
-          icon={BarChart3}
-          tokenColor="var(--snm-info)"
-        />
-        <SummaryCard
-          label="Low Stock SKUs"
-          value={String(totals.lowStock)}
-          icon={Clock}
-          tokenColor={totals.lowStock > 0 ? "var(--snm-error)" : "var(--muted-foreground)"}
-        />
-        <SummaryCard
-          label="Mktg Spend"
-          value={totals.totalSpend > 0 ? `MVR ${totals.totalSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
-          icon={Megaphone}
-          tokenColor="var(--snm-warning)"
-        />
+        {/* 2×2 grid for remaining 4 metrics */}
+        <div className="grid grid-cols-2 gap-3">
+          <SummaryCard
+            label="SKUs Sold"
+            value={String(totals.skusSold)}
+            icon={Package}
+            tokenColor="var(--snm-brand)"
+          />
+          <SummaryCard
+            label="Avg Margin"
+            value={totals.avgMargin !== null ? `${totals.avgMargin.toFixed(1)}%` : "—"}
+            icon={BarChart3}
+            tokenColor="var(--snm-info)"
+          />
+          <SummaryCard
+            label="Low Stock SKUs"
+            value={String(totals.lowStock)}
+            icon={Clock}
+            tokenColor={totals.lowStock > 0 ? "var(--snm-error)" : "var(--muted-foreground)"}
+          />
+          <SummaryCard
+            label="Mktg Spend"
+            value={totals.totalSpend > 0 ? `MVR ${totals.totalSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+            icon={Megaphone}
+            tokenColor="var(--snm-warning)"
+          />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -294,11 +318,30 @@ export function ReportsView() {
 
 // ── Summary card ─────────────────────────────────────────────────────────
 
-function SummaryCard({ label, value, icon: Icon, tokenColor }: {
-  label: string; value: string; icon: typeof TrendingUp; tokenColor: string;
+function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
+  label: string; value: string; icon: typeof TrendingUp; tokenColor: string; hero?: boolean;
 }) {
+  if (hero) {
+    return (
+      <div className="glass p-5 flex items-center justify-between gap-4 rounded-2xl">
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+          <p className="text-[32px] font-bold tracking-tight leading-none tabular-nums text-foreground">{value}</p>
+        </div>
+        <div
+          className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0"
+          style={{
+            background: `color-mix(in srgb, ${tokenColor} 14%, transparent)`,
+            color: tokenColor,
+          }}
+        >
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="glass p-4 space-y-2 shrink-0 sm:shrink" style={{ minWidth: 140 }}>
+    <div className="glass p-4 space-y-2 rounded-2xl">
       <div
         className="h-8 w-8 rounded-lg flex items-center justify-center"
         style={{
@@ -308,7 +351,7 @@ function SummaryCard({ label, value, icon: Icon, tokenColor }: {
       >
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-lg font-semibold text-foreground">{value}</p>
+      <p className="text-[22px] font-bold tracking-tight leading-none tabular-nums text-foreground">{value}</p>
       <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
     </div>
   );

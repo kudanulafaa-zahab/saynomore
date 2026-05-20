@@ -209,8 +209,37 @@ export function SalesList() {
   }, [filtered, customers]);
 
   if (loading) return (
-    <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
-      <Loader2 className="h-6 w-6 animate-spin mb-3" /><p className="text-sm">Loading…</p>
+    <div className="space-y-4 animate-pulse">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div className="space-y-2">
+          <div className="h-2.5 w-20 rounded-full" style={{ background: "var(--muted)" }} />
+          <div className="h-8 w-24 rounded-xl" style={{ background: "var(--muted)" }} />
+        </div>
+        <div className="h-11 w-28 rounded-2xl" style={{ background: "var(--muted)" }} />
+      </div>
+      {/* Search bar */}
+      <div className="h-12 rounded-2xl" style={{ background: "var(--muted)" }} />
+      {/* Filter chips */}
+      <div className="flex gap-2">
+        {[64, 40, 72, 56, 80, 64].map((w, i) => (
+          <div key={i} className="h-11 rounded-full shrink-0" style={{ width: w, background: "var(--muted)" }} />
+        ))}
+      </div>
+      {/* Order cards */}
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-3 p-4 rounded-2xl" style={{ background: "var(--glass-1)" }}>
+            <div className="h-10 w-10 rounded-xl shrink-0" style={{ background: "var(--muted)" }} />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3.5 w-32 rounded-full" style={{ background: "var(--muted)" }} />
+              <div className="h-2.5 w-20 rounded-full" style={{ background: "var(--muted)" }} />
+            </div>
+            <div className="h-6 w-16 rounded-lg" style={{ background: "var(--muted)" }} />
+          </div>
+          <div className="h-11 w-11 rounded-xl shrink-0" style={{ background: "var(--muted)" }} />
+        </div>
+      ))}
     </div>
   );
 
@@ -256,28 +285,43 @@ export function SalesList() {
         </div>
       )}
 
-      {/* Search + status filter + view toggle */}
-      <div className="flex gap-2">
-        <div className="flex-1 flex items-center gap-3 rounded-2xl px-4 h-12" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
-          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
-            aria-label="Search orders"
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
-          {q && (
-            <button onClick={() => setQ("")} aria-label="Clear search" className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-              style={{ color: "var(--muted-foreground)" }}>
-              <X className="h-4 w-4" />
+      {/* Search */}
+      <div className="flex items-center gap-3 rounded-2xl px-4 h-12" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
+          aria-label="Search orders"
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+        {q && (
+          <button onClick={() => setQ("")} aria-label="Clear search" className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
+            style={{ color: "var(--muted-foreground)" }}>
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Status filter chips */}
+      <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+        {([
+          { key: "all" as const, label: "All" },
+          ...( Object.keys(STATUS_LABEL) as OrderStatus[]).map((s) => ({ key: s as "all" | OrderStatus, label: STATUS_LABEL[s] })),
+        ]).map(({ key, label }) => {
+          const active = statusFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className="shrink-0 h-11 px-4 rounded-full text-[12px] font-semibold transition active:scale-95"
+              style={{
+                background: active ? "var(--foreground)" : "var(--glass-1)",
+                color:      active ? "var(--background)" : "var(--muted-foreground)",
+                border:     active ? "none" : "1px solid var(--glass-border-lo)",
+                touchAction: "manipulation",
+              }}
+            >
+              {label}
             </button>
-          )}
-        </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="h-12 rounded-2xl px-4 text-sm text-foreground outline-none appearance-none"
-          style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
-          <option value="all">All</option>
-          {(Object.keys(STATUS_LABEL) as OrderStatus[]).map((s) => (
-            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-          ))}
-        </select>
+          );
+        })}
       </div>
 
       {/* View toggle — Orders (flat) vs Customers (grouped) */}

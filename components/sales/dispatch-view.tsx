@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, ChevronDown, CheckCircle2, UserCheck } from "lucide-react";
+import {
+  Loader2, ChevronDown, CheckCircle2, UserCheck, MapPin, Package,
+  Truck, ClipboardList,
+} from "lucide-react";
 import {
   listMyDeliveries,
   listAllDispatchOrders,
@@ -18,11 +21,7 @@ import {
 } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
 
-const CARD = {
-  background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-};
+/* ── Types ──────────────────────────────────────────────────────────────── */
 
 interface OrderWithLines {
   order: SalesOrderRow;
@@ -31,17 +30,55 @@ interface OrderWithLines {
   godown?: GodownRow;
 }
 
+/* ── Skeleton ────────────────────────────────────────────────────────────── */
+
+function DispatchSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="h-3 w-24 rounded-full" style={{ background: "var(--muted)" }} />
+        <div className="h-8 w-40 rounded-xl" style={{ background: "var(--muted)" }} />
+      </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {[0,1,2].map((i) => (
+          <div key={i} className="rounded-2xl p-4 space-y-2" style={{ background: "var(--glass-1)" }}>
+            <div className="h-2.5 w-12 rounded-full" style={{ background: "var(--muted)" }} />
+            <div className="h-8 w-8 rounded-lg" style={{ background: "var(--muted)" }} />
+          </div>
+        ))}
+      </div>
+      {/* Order cards */}
+      {[0,1,2].map((i) => (
+        <div key={i} className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-1)" }}>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl shrink-0" style={{ background: "var(--muted)" }} />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3.5 w-32 rounded-full" style={{ background: "var(--muted)" }} />
+              <div className="h-2.5 w-20 rounded-full" style={{ background: "var(--muted)" }} />
+            </div>
+            <div className="h-3 w-16 rounded-full" style={{ background: "var(--muted)" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Main component ───────────────────────────────────────────────────────── */
+
 export function DispatchView() {
-  const [items, setItems]             = useState<OrderWithLines[]>([]);
-  const [skus, setSkus]               = useState<SkuFullRow[]>([]);
-  const [users, setUsers]             = useState<UserProfileRow[]>([]);
+  const [items, setItems]                 = useState<OrderWithLines[]>([]);
+  const [skus, setSkus]                   = useState<SkuFullRow[]>([]);
+  const [users, setUsers]                 = useState<UserProfileRow[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentRole, setCurrentRole] = useState<"admin" | "manager" | "staff" | null>(null);
-  const [loading, setLoading]         = useState(true);
-  const [expanded, setExpanded]       = useState<string | null>(null);
+  const [currentRole, setCurrentRole]     = useState<"admin" | "manager" | "staff" | null>(null);
+  const [loading, setLoading]             = useState(true);
+  const [expanded, setExpanded]           = useState<string | null>(null);
   const [confirmDelivery, setConfirmDelivery] = useState<SalesOrderRow | null>(null);
-  const [saving, setSaving]           = useState(false);
-  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [saving, setSaving]               = useState(false);
+  const [assigningId, setAssigningId]     = useState<string | null>(null);
 
   const isAdmin = currentRole === "admin" || currentRole === "manager";
 
@@ -52,7 +89,6 @@ export function DispatchView() {
       if (!userData.user) throw new Error("Not signed in");
       setCurrentUserId(userData.user.id);
 
-      // Get current user's role from user_profiles
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("role")
@@ -134,156 +170,193 @@ export function DispatchView() {
     return u?.full_name ?? "Unknown";
   }
 
-  if (loading) {
-    return (
-      <div style={{ background: "var(--background)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
-      </div>
-    );
-  }
+  if (loading) return <DispatchSkeleton />;
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div className="space-y-4 pb-28">
 
-      {/* Header */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 12, marginBottom: 12 }}>
-        <div style={{ gridColumn: "span 8", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
-            Logistics Sync
-          </p>
-          <h1 style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em" }}>Dispatch Board</h1>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginTop: 4 }}>
-            {isAdmin ? "Assign drivers · track all deliveries" : "Your assigned deliveries"}
-          </p>
-        </div>
-        <div style={{ gridColumn: "span 4", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+      {/* ── Header ── */}
+      <div>
+        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+          Logistics Sync
+        </p>
+        <h1 className="text-[28px] font-bold tracking-tight text-foreground leading-tight">
+          Dispatch Board
+        </h1>
+        <p className="text-[14px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          {isAdmin ? "Assign drivers · track all deliveries" : "Your assigned deliveries"}
+        </p>
+      </div>
+
+      {/* ── Stat cards ── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Active",     value: active.length,    color: active.length > 0 ? "var(--snm-warning)" : "var(--foreground)" },
+          { label: "Done Today", value: completed.length, color: completed.length > 0 ? "var(--snm-success)" : "var(--foreground)" },
+          {
+            label: "Rate",
+            value: (active.length + completed.length) > 0
+              ? `${Math.round((completed.length / (active.length + completed.length)) * 100)}%`
+              : "—",
+            color: "var(--foreground)",
+          },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            className="rounded-2xl p-4"
+            style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
+          >
+            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+            <p className="text-[26px] font-bold tracking-tight leading-none" style={{ color }}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Active orders ── */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
+      >
+        <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+          <h2 className="text-[17px] font-bold text-foreground">
+            {isAdmin ? "Active Orders" : "My Deliveries"}
+          </h2>
           {active.length > 0 && (
-            <div style={{ background: "var(--glass-bg-2)", backdropFilter: "var(--glass-blur)", borderRadius: 999, padding: "8px 18px", display: "flex", alignItems: "center", gap: 6, border: "1px solid var(--glass-border-lo)" }}>
-              <div style={{ width: 8, height: 8, borderRadius: 999, background: "var(--snm-warning)" }} />
-              <span style={{ color: "var(--foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em" }}>
-                {String(active.length).padStart(2, "0")} ACTIVE
-              </span>
-            </div>
+            <span
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold"
+              style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--snm-warning)" }} />
+              {String(active.length).padStart(2, "0")} active
+            </span>
           )}
         </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-3">
-        <div style={{ ...CARD, borderRadius: 16, padding: "16px 20px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Active</p>
-          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.03em" }}>{active.length}</p>
-        </div>
-        <div style={{ ...CARD, borderRadius: 16, padding: "16px 20px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Done Today</p>
-          <p style={{ color: "var(--snm-success)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.03em" }}>{completed.length}</p>
-        </div>
-        <div style={{ ...CARD, borderRadius: 16, padding: "16px 20px" }}>
-          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Rate</p>
-          <p style={{ color: "var(--foreground)", fontSize: 28, fontWeight: 300, letterSpacing: "-0.03em" }}>
-            {(active.length + completed.length) > 0
-              ? `${Math.round((completed.length / (active.length + completed.length)) * 100)}%`
-              : "—"}
-          </p>
-        </div>
-      </div>
-
-      {/* Active deliveries */}
-      <div style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12 }}>
-        <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 20 }}>
-          {isAdmin ? "Active Orders" : "My Deliveries"}
-        </h2>
 
         {active.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 14 }}>
-              {isAdmin ? "No confirmed or active orders." : "No deliveries assigned to you."}
+          /* ── Empty state ── */
+          <div className="flex flex-col items-center text-center px-6 py-10 space-y-3">
+            <div
+              className="h-14 w-14 rounded-2xl flex items-center justify-center"
+              style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}
+            >
+              <ClipboardList className="h-6 w-6" style={{ color: "var(--muted-foreground)" }} />
+            </div>
+            <p className="text-[15px] font-semibold text-foreground">
+              {isAdmin ? "No active orders" : "No deliveries assigned"}
             </p>
-            {!isAdmin && (
-              <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 6, opacity: 0.7 }}>
-                Ask your admin to assign orders to you.
-              </p>
-            )}
+            <p className="text-[13px] max-w-[240px]" style={{ color: "var(--muted-foreground)" }}>
+              {isAdmin
+                ? "Confirmed orders will appear here. Go to Sales to confirm a draft."
+                : "Ask your admin to assign orders to you."}
+            </p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="divide-y" style={{ borderColor: "var(--glass-border-lo)" }}>
             {active.map((item) => {
-              const isExpanded = expanded === item.order.id;
-              const totalMvr = item.lines.reduce((a, l) => a + Number(l.line_total_mvr), 0);
-              const statusColor = item.order.status === "confirmed" ? "var(--snm-brand)"
-                : item.order.status === "picked" ? "var(--snm-warning)"
-                : "var(--snm-warning)";
-              const statusLabel = item.order.status === "confirmed" ? "Confirmed — awaiting dispatch"
-                : item.order.status === "picked" ? "Picked"
+              const isExpanded  = expanded === item.order.id;
+              const totalMvr    = item.lines.reduce((a, l) => a + Number(l.line_total_mvr), 0);
+              const statusColor =
+                item.order.status === "confirmed"        ? "var(--snm-brand)"
+                : item.order.status === "out_for_delivery" ? "var(--snm-warning)"
+                : "var(--snm-info)";
+              const statusLabel =
+                item.order.status === "confirmed"        ? "Awaiting dispatch"
+                : item.order.status === "picked"          ? "Picked"
                 : "Out for delivery";
 
               return (
-                <div key={item.order.id} style={{ background: "var(--glass-bg-1)", borderRadius: 12, overflow: "hidden" }}>
-                  <div
-                    style={{ padding: "18px 20px", minHeight: 64, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", borderLeft: `3px solid ${statusColor}` }}
+                <div key={item.order.id}>
+                  {/* ── Order row — tap to expand ── */}
+                  <button
+                    className="w-full text-left px-4 py-4 flex items-center gap-3 active:opacity-75 transition-opacity"
+                    style={{ borderLeft: `3px solid ${statusColor}` }}
                     onClick={() => setExpanded(isExpanded ? null : item.order.id)}
+                    aria-expanded={isExpanded}
                   >
-                    <div>
-                      <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 600 }}>{item.customer ? item.customer.name : "Walk-in"}</p>
-                      <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
-                        {item.order.order_number} · {item.godown?.name ?? "—"}
-                      </p>
-                      {isAdmin && (
-                        <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
-                          Driver: <span style={{ color: item.order.assigned_driver_id ? "var(--foreground)" : "var(--snm-warning)", fontWeight: 500 }}>
-                            {driverName(item.order.assigned_driver_id)}
-                          </span>
-                        </p>
-                      )}
+                    {/* Status icon container */}
+                    <div
+                      className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: `color-mix(in srgb, ${statusColor} 15%, transparent)` }}
+                    >
+                      <Truck className="h-4 w-4" style={{ color: statusColor }} />
                     </div>
-                    <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 16 }}>
-                      <div>
-                        <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 700 }}>MVR {totalMvr.toFixed(0)}</p>
-                        <p style={{ color: statusColor, fontSize: 11, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.06em" }}>{statusLabel}</p>
-                      </div>
-                      <ChevronDown style={{ color: "var(--muted-foreground)", width: 18, height: 18, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                    </div>
-                  </div>
 
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-semibold text-foreground">
+                        {item.customer?.name ?? "Walk-in"}
+                      </p>
+                      <p className="text-[12px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+                        {item.order.order_number}
+                        {item.godown?.name && <> · {item.godown.name}</>}
+                        {isAdmin && (
+                          <> · <span style={{ color: item.order.assigned_driver_id ? "var(--foreground)" : "var(--snm-warning)", fontWeight: 500 }}>
+                            {driverName(item.order.assigned_driver_id)}
+                          </span></>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className="text-[14px] font-bold text-foreground">MVR {totalMvr.toFixed(0)}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: statusColor }}>{statusLabel}</p>
+                      </div>
+                      <ChevronDown
+                        className="h-4 w-4 transition-transform duration-200"
+                        style={{ color: "var(--muted-foreground)", transform: isExpanded ? "rotate(180deg)" : "none" }}
+                      />
+                    </div>
+                  </button>
+
+                  {/* ── Expanded detail ── */}
                   {isExpanded && (
-                    <div style={{ padding: "0 20px 16px", borderTop: "1px solid var(--glass-border-lo)" }}>
+                    <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
 
                       {/* Item list */}
-                      {item.lines.map((line) => {
-                        const sku = skus.find((s) => s.id === line.sku_id);
-                        return (
-                          <div key={line.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--glass-border-lo)" }}>
-                            <p style={{ color: "var(--foreground)", fontSize: 14 }}>{sku ? `${sku.brand_name} ${sku.variant_display}` : line.sku_id}</p>
-                            <p style={{ color: "var(--foreground)", fontSize: 14 }}>
-                              {line.qty} {line.uom}
-                            </p>
-                          </div>
-                        );
-                      })}
+                      <div className="pt-3 space-y-0">
+                        {item.lines.map((line, i) => {
+                          const sku = skus.find((s) => s.id === line.sku_id);
+                          return (
+                            <div
+                              key={line.id}
+                              className="flex items-center justify-between py-2.5"
+                              style={{ borderBottom: i < item.lines.length - 1 ? "1px solid var(--glass-border-lo)" : undefined }}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Package className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                                <p className="text-[13px] text-foreground truncate">
+                                  {sku ? `${sku.brand_name} ${sku.model_name}${sku.variant_display ? ` ${sku.variant_display}` : ""}` : line.sku_id}
+                                </p>
+                              </div>
+                              <p className="text-[13px] font-semibold text-foreground shrink-0 ml-3">
+                                {line.qty} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>{line.uom}</span>
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
 
                       {/* Delivery address */}
                       {(item.order.delivery_address || item.order.delivery_island) && (
-                        <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 10 }}>
-                          {[item.order.delivery_island, item.order.delivery_address].filter(Boolean).join(", ")}
-                        </p>
+                        <div className="flex items-start gap-2 pt-1">
+                          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
+                          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                            {[item.order.delivery_island, item.order.delivery_address].filter(Boolean).join(", ")}
+                          </p>
+                        </div>
                       )}
 
-                      {/* Admin: driver assignment dropdown */}
+                      {/* Admin: driver assignment */}
                       {isAdmin && (
-                        <div style={{ marginTop: 14 }}>
-                          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
-                            Assign Driver
-                          </p>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <div className="space-y-1.5 pt-1">
+                          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>Assign Driver</p>
+                          <div className="flex items-center gap-2">
                             <select
                               defaultValue={item.order.assigned_driver_id ?? ""}
                               onChange={(e) => assignDriver(item.order.id, e.target.value)}
                               disabled={assigningId === item.order.id}
-                              style={{
-                                flex: 1, height: 40, borderRadius: 10, padding: "0 12px",
-                                background: "var(--glass-bg-1)", color: "var(--foreground)",
-                                border: "1px solid var(--glass-border-lo)", fontSize: 14, outline: "none",
-                              }}
+                              className="flex-1 h-11 rounded-xl px-3 text-[14px] text-foreground outline-none appearance-none"
+                              style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)" }}
                             >
                               <option value="">— Unassigned —</option>
                               {users.map((u) => (
@@ -293,17 +366,20 @@ export function DispatchView() {
                                 </option>
                               ))}
                             </select>
-                            {assigningId === item.order.id && <Loader2 style={{ width: 16, height: 16, color: "var(--muted-foreground)" }} className="animate-spin" />}
-                            <UserCheck style={{ width: 18, height: 18, color: item.order.assigned_driver_id ? "var(--snm-success)" : "var(--muted-foreground)" }} />
+                            {assigningId === item.order.id
+                              ? <Loader2 className="h-4 w-4 animate-spin shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                              : <UserCheck className="h-4 w-4 shrink-0" style={{ color: item.order.assigned_driver_id ? "var(--snm-success)" : "var(--muted-foreground)" }} />
+                            }
                           </div>
                         </div>
                       )}
 
-                      {/* Mark delivered button */}
+                      {/* Mark delivered CTA */}
                       {(item.order.status === "out_for_delivery" || (!isAdmin && item.order.status === "picked")) && (
                         <button
                           onClick={() => setConfirmDelivery(item.order)}
-                          style={{ marginTop: 14, width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 14, padding: "14px", fontSize: 14, fontWeight: 700, letterSpacing: "0.04em", cursor: "pointer", minHeight: 52 }}
+                          className="w-full h-[52px] rounded-2xl text-[14px] font-bold tracking-wide transition active:scale-[0.97]"
+                          style={{ background: "var(--snm-success)", color: "#ffffff" }}
                         >
                           Mark as Delivered
                         </button>
@@ -317,49 +393,88 @@ export function DispatchView() {
         )}
       </div>
 
-      {/* Completed */}
+      {/* ── Completed ── */}
       {completed.length > 0 && (
-        <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
-          <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 20 }}>Completed</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
+        >
+          <div className="px-4 pt-4 pb-3">
+            <h2 className="text-[17px] font-bold text-foreground">Completed Today</h2>
+          </div>
+          <div className="divide-y" style={{ borderColor: "var(--glass-border-lo)" }}>
             {completed.map((item) => (
-              <div key={item.order.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "var(--glass-bg-1)", borderRadius: 10, opacity: 0.7 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <CheckCircle2 style={{ color: "var(--snm-success)", width: 18, height: 18 }} />
-                  <div>
-                    <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 500 }}>{item.order.order_number}</p>
-                    <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
-                      {item.customer?.name ?? "Walk-in"}
-                      {isAdmin && item.order.assigned_driver_id && ` · ${driverName(item.order.assigned_driver_id)}`}
-                    </p>
-                  </div>
+              <div key={item.order.id} className="flex items-center gap-3 px-4 py-3.5" style={{ opacity: 0.75 }}>
+                <div
+                  className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)" }}
+                >
+                  <CheckCircle2 className="h-4 w-4" style={{ color: "var(--snm-success)" }} />
                 </div>
-                <span style={{ color: "var(--snm-success)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>DELIVERED</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground">{item.order.order_number}</p>
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                    {item.customer?.name ?? "Walk-in"}
+                    {isAdmin && item.order.assigned_driver_id && ` · ${driverName(item.order.assigned_driver_id)}`}
+                  </p>
+                </div>
+                <span className="label-caps text-[10px] font-bold" style={{ color: "var(--snm-success)" }}>Delivered</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Confirm delivery modal */}
+      {/* ── Confirm delivery sheet ── */}
       {confirmDelivery && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 60, display: "flex", alignItems: "flex-end" }}>
-          <div style={{ background: "var(--glass-2)", backdropFilter: "blur(30px)", borderRadius: "20px 20px 0 0", width: "100%", padding: 28, paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))" }}>
-            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.12)", borderRadius: 999, margin: "0 auto 24px" }} />
-            <h2 style={{ color: "var(--foreground)", fontSize: 22, fontWeight: 600, marginBottom: 8 }}>Confirm Delivery</h2>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>{confirmDelivery.order_number}</p>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setConfirmDelivery(null)} style={{ flex: 1, background: "var(--glass-bg-1)", color: "var(--muted-foreground)", border: "1px solid var(--glass-border-lo)", borderRadius: 14, padding: 0, height: 52, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-              <button
-                onClick={markDelivered}
-                disabled={saving}
-                style={{ flex: 2, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 14, padding: 0, height: 52, fontSize: 14, fontWeight: 700, letterSpacing: "0.03em", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}
-              >
-                {saving ? "Saving…" : "Confirm Delivered"}
-              </button>
+        <>
+          <div
+            className="fixed inset-0 z-50"
+            style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+            onClick={() => setConfirmDelivery(null)}
+          />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px]"
+            style={{
+              background: "var(--glass-bg-2)",
+              backdropFilter: "var(--glass-blur-lg)",
+              WebkitBackdropFilter: "var(--glass-blur-lg)",
+              border: "1px solid var(--glass-border-lo)",
+              paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
+            }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-[3px] rounded-full" style={{ background: "var(--muted-foreground)", opacity: 0.3 }} />
+            </div>
+
+            <div className="px-6 pt-2 pb-6 space-y-5">
+              <div>
+                <h2 className="text-[22px] font-bold text-foreground">Confirm Delivery?</h2>
+                <p className="text-[14px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+                  {confirmDelivery.order_number}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelivery(null)}
+                  className="flex-1 h-[52px] rounded-2xl text-[14px] font-semibold active:scale-[0.97] transition"
+                  style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)", border: "1px solid var(--glass-border-lo)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={markDelivered}
+                  disabled={saving}
+                  className="flex-[2] h-[52px] rounded-2xl text-[14px] font-bold active:scale-[0.97] transition"
+                  style={{ background: "var(--snm-success)", color: "#ffffff", opacity: saving ? 0.6 : 1 }}
+                >
+                  {saving ? "Saving…" : "Confirm Delivered"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
