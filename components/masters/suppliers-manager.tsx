@@ -189,13 +189,15 @@ export function SuppliersManager() {
           <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
             Add your Indonesian supplier (MamyPoko, Sosoft, etc.) here. You'll pick from this list when creating shipments.
           </p>
-          <button
-            onClick={() => setDialog({ open: true })}
-            className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
-          >
-            Create first vendor
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => setDialog({ open: true })}
+              className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              Create first vendor
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -240,13 +242,15 @@ export function SuppliersManager() {
                         Email
                       </a>
                     )}
-                    <button
-                      onClick={() => setDialog({ open: true, editing: featured })}
-                      className="flex items-center gap-2 h-11 px-4 rounded-full text-sm transition"
-                      style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                    {canWrite && (
+                      <button
+                        onClick={() => setDialog({ open: true, editing: featured })}
+                        className="flex items-center gap-2 h-11 px-4 rounded-full text-sm transition"
+                        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

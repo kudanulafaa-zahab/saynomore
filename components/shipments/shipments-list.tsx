@@ -228,7 +228,7 @@ export function ShipmentsList() {
               return (
                 <button
                   key={a.sku_id}
-                  onClick={() => setNewSheet(true)}
+                  onClick={() => canWrite && setNewSheet(true)}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     minHeight: 44, padding: "0 14px", borderRadius: 22,
@@ -301,7 +301,7 @@ export function ShipmentsList() {
               ? "Tap + to create your first PO. Add supplier, products and costs before goods arrive."
               : "Try a different filter."}
           </p>
-          {rows.length === 0 && (
+          {rows.length === 0 && canWrite && (
             <button
               onClick={() => setNewSheet(true)}
               className="mt-2 h-11 px-6 rounded-full text-sm font-bold"

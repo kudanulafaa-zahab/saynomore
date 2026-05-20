@@ -27,6 +27,7 @@ import {
   listCategories,
   createCategory,
   deleteCategory,
+  getCurrentUserRole,
   type CategoryRow,
   type AttrKey,
   type UnitUom,
@@ -48,6 +49,9 @@ export function CategoriesManager() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmCat, setConfirmCat] = useState<{ id: string; name: string } | null>(null);
+  const [canWrite, setCanWrite] = useState(false);
+
+  useEffect(() => { getCurrentUserRole().then((r) => setCanWrite(r !== "viewer" && r !== null)).catch(() => {}); }, []);
 
   async function load() {
     setLoading(true);
@@ -79,10 +83,12 @@ export function CategoriesManager() {
             Each category controls which attributes appear on its variants.
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Category
-        </Button>
+        {canWrite && (
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Category
+          </Button>
+        )}
       </div>
 
       <div className="glass divide-y divide-border overflow-hidden">
@@ -108,7 +114,7 @@ export function CategoriesManager() {
                 )}
               </p>
             </div>
-            {!c.is_system && (
+            {!c.is_system && canWrite && (
               <button
                 onClick={() => setConfirmCat({ id: c.id, name: c.name })}
                 className="p-2 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition shrink-0"
