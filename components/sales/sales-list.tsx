@@ -165,7 +165,7 @@ export function SalesList() {
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [canWrite, setCanWrite] = useState(true); // optimistic — hidden after role loads
+  const [canWrite, setCanWrite] = useState(false);
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});

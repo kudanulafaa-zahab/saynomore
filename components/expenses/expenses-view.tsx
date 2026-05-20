@@ -57,7 +57,7 @@ export function ExpensesView() {
   const [quickAmount, setQuickAmount] = useState("");
   const [quickChannel, setQuickChannel] = useState<SpendChannel>("other");
   const [loggingQuick, setLoggingQuick] = useState(false);
-  const [canWrite, setCanWrite] = useState(true); // optimistic — viewer role hides write actions
+  const [canWrite, setCanWrite] = useState(false);
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});

@@ -53,7 +53,7 @@ export function PriceListsView() {
   const [deleting, setDeleting]     = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [confirmDeleting, setConfirmDeleting] = useState(false);
-  const [canWrite, setCanWrite] = useState(true); // optimistic — viewer role hides write actions
+  const [canWrite, setCanWrite] = useState(false);
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});

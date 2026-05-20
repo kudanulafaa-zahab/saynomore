@@ -71,7 +71,7 @@ export function CompetitorsView() {
   const [saving, setSaving]         = useState(false);
   const [saveMode, setSaveMode]     = useState<"margin" | "fixed">("margin");
   const [alertThreshold, setAlertThreshold] = useState(10);
-  const [canWrite, setCanWrite]     = useState(true); // optimistic — viewer role hides write actions
+  const [canWrite, setCanWrite]     = useState(false);
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
