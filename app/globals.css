@@ -344,9 +344,9 @@
     background:            var(--glass-bg-1);
     backdrop-filter:       var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border:      1px solid var(--glass-border);
+    border:        0.5px solid var(--glass-border-lo);
     border-radius: var(--radius-xl);
-    box-shadow:  var(--glass-shadow), var(--glass-inner);
+    box-shadow:    var(--glass-shadow), var(--glass-inner);
   }
 
   /* ── Secondary surface — modals, sheets, popovers ── */
@@ -354,8 +354,8 @@
     background:            var(--glass-bg-2);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border:      1px solid var(--glass-border);
-    box-shadow:  var(--glass-shadow-lg), var(--glass-inner);
+    border:        0.5px solid var(--glass-border-lo);
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
   }
 
   /* ── Tertiary surface — elevated dialogs, context menus ── */
@@ -363,14 +363,14 @@
     background:            var(--glass-bg-3);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border:      1px solid var(--glass-border);
-    box-shadow:  var(--glass-shadow-lg), var(--glass-inner);
+    border:        0.5px solid var(--glass-border-lo);
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
   }
 
   /* ── Flat — subtle grouping dividers with no blur (perf saving) ── */
   .glass-flat {
-    background:  var(--muted);
-    border:      1px solid var(--glass-border-lo);
+    background:    var(--muted);
+    border:        0.5px solid var(--glass-border-lo);
     border-radius: var(--radius-lg);
   }
 
@@ -379,7 +379,7 @@
     background:            var(--sidebar);
     backdrop-filter:       var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border-right: 1px solid var(--glass-border-lo);
+    border-right: 0.5px solid var(--glass-border-lo);
   }
 
   /* ── Bottom nav ── */
@@ -387,7 +387,7 @@
     background:            color-mix(in srgb, var(--background) 75%, transparent);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border-top: 1px solid var(--glass-border-lo);
+    border-top: 0.5px solid var(--glass-border-lo);
   }
 
   /* ── Input fields ── */
@@ -395,9 +395,9 @@
     background:            var(--glass-bg-1);
     backdrop-filter:       var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border:      1px solid var(--glass-border-lo);
+    border:        0.5px solid var(--glass-border-lo);
     border-radius: calc(var(--radius) * 1.25);
-    box-shadow:  var(--glass-inner);
+    box-shadow:    var(--glass-inner);
     color: var(--foreground);
     height: 2.75rem; /* 44pt Apple HIG minimum */
   }
@@ -407,16 +407,18 @@
     background:            var(--glass-bg-1);
     backdrop-filter:       var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
+    border:        0.5px solid var(--glass-border-lo);
     border-radius: 16px;
-    box-shadow:  var(--glass-shadow), var(--glass-inner);
+    box-shadow:    var(--glass-shadow), var(--glass-inner);
   }
 
   .snm-card-l2 {
     background:            var(--glass-bg-2);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
+    border:        0.5px solid var(--glass-border-lo);
     border-radius: 16px;
-    box-shadow:  var(--glass-shadow-lg), var(--glass-inner);
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
   }
 
   /* ── Topbar / nav adaptive ── */
@@ -424,13 +426,13 @@
     background:            color-mix(in srgb, var(--background) 65%, transparent);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border-bottom: 1px solid var(--glass-border-lo);
+    border-bottom: 0.5px solid var(--glass-border-lo);
   }
   .snm-bottom-nav {
     background:            color-mix(in srgb, var(--background) 75%, transparent);
     backdrop-filter:       var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border-top: 1px solid var(--glass-border-lo);
+    border-top: 0.5px solid var(--glass-border-lo);
   }
 
   /* ── Full-screen overlay header — safe-area aware ──────────────────────────
@@ -447,7 +449,7 @@
     background:              color-mix(in srgb, var(--background) 82%, transparent);
     backdrop-filter:         var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border-bottom:           1px solid var(--glass-border-lo);
+    border-bottom:           0.5px solid var(--glass-border-lo);
     /* Push ALL content below the notch/Dynamic Island */
     padding-top:             env(safe-area-inset-top, 0px);
     /* Shrink-to-fit: natural height, so multi-row headers work too */
@@ -459,7 +461,7 @@
     background:              color-mix(in srgb, var(--background) 82%, transparent);
     backdrop-filter:         var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border-top:              1px solid var(--glass-border-lo);
+    border-top:              0.5px solid var(--glass-border-lo);
     /* Push content above the home bar indicator */
     padding-bottom:          env(safe-area-inset-bottom, 0px);
     /* Never collapse — always visible above keyboard */
