@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  Plus, Package, CheckCircle2, Clock, Anchor, Truck,
+  Loader2, Plus, Package, CheckCircle2, Clock, Anchor, Truck,
   Trash2, AlertTriangle, ChevronRight, Factory, ShoppingCart,
 } from "lucide-react";
 import {
