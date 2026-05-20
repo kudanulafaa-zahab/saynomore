@@ -172,17 +172,17 @@
     --sidebar-ring:               rgba(255, 255, 255, 0.20);
 
     /* ── Real glass tokens (dark) ────────────────────────────────────────
-       Dark glass = very low white fill + strong specular top-edge highlight.
-       The "vapour" effect: particles of light suspended in dark space.
-       blur(32px) saturate(160%) — pulls ambient colour into the panel.       */
-    --glass-bg-1:      rgba(255, 255, 255, 0.055);
-    --glass-bg-2:      rgba(255, 255, 255, 0.09);
-    --glass-bg-3:      rgba(255, 255, 255, 0.13);
-    --glass-border:    rgba(255, 255, 255, 0.18);
-    --glass-border-lo: rgba(255, 255, 255, 0.12);
+       Dark glass = visible frosted lift above pure black OLED background.
+       bg-1 at 0.09 gives enough contrast for cards to read as surfaces.
+       border-lo at 0.20 makes hairlines visible at 0.5px on Retina.       */
+    --glass-bg-1:      rgba(255, 255, 255, 0.09);
+    --glass-bg-2:      rgba(255, 255, 255, 0.13);
+    --glass-bg-3:      rgba(255, 255, 255, 0.18);
+    --glass-border:    rgba(255, 255, 255, 0.22);
+    --glass-border-lo: rgba(255, 255, 255, 0.20);
     --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
     --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
-    --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+    --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
     --glass-blur:      blur(32px) saturate(160%);
     --glass-blur-lg:   blur(56px) saturate(180%);
 
@@ -282,14 +282,14 @@
   --sidebar-accent-foreground:  #e5e2e1;
   --sidebar-border:             rgba(255, 255, 255, 0.07);
   --sidebar-ring:               rgba(255, 255, 255, 0.20);
-  --glass-bg-1:      rgba(255, 255, 255, 0.055);
-  --glass-bg-2:      rgba(255, 255, 255, 0.09);
-  --glass-bg-3:      rgba(255, 255, 255, 0.13);
-  --glass-border:    rgba(255, 255, 255, 0.18);
-  --glass-border-lo: rgba(255, 255, 255, 0.12);
+  --glass-bg-1:      rgba(255, 255, 255, 0.09);
+  --glass-bg-2:      rgba(255, 255, 255, 0.13);
+  --glass-bg-3:      rgba(255, 255, 255, 0.18);
+  --glass-border:    rgba(255, 255, 255, 0.22);
+  --glass-border-lo: rgba(255, 255, 255, 0.20);
   --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
   --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
-  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
   --glass-blur:      blur(32px) saturate(160%);
   --glass-blur-lg:   blur(56px) saturate(180%);
   --glass-1: var(--glass-bg-1);
