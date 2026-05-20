@@ -26,12 +26,14 @@ const CARD = {
   background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
+  boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
+  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
 const BASIS_LABEL: Record<PriceBasis, string> = {
@@ -1032,8 +1034,8 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
-  const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)" } as const;
+  const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   async function save() {
     if (!name.trim()) return;
@@ -1082,8 +1084,8 @@ function PriceModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)" } as const;
+  const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
   const [variantId, setVariantId] = useState(editing?.variant_id ?? "");

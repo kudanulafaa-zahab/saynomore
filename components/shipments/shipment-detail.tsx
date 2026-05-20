@@ -25,6 +25,8 @@ const CARD: React.CSSProperties = {
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
   borderRadius: 16,
+  boxShadow: "var(--glass-shadow), var(--glass-inner)",
+  border: "0.5px solid var(--glass-border-lo)",
 };
 
 const SHEET: React.CSSProperties = {
@@ -1311,7 +1313,7 @@ function LineDialog({
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl"
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", padding: "12px 24px", paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", padding: "12px 24px", paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))", maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
       >
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--glass-border)" }} />
         <h2 className="text-[20px] font-semibold text-foreground mb-5">{editing ? "Edit Product" : "Add Product"}</h2>

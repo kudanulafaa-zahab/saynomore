@@ -32,12 +32,14 @@ const CARD = {
   background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
+  boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
+  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
 const CURRENCIES: SupplierCurrency[] = ["IDR", "USD", "MVR", "MYR", "THB", "CNY", "EUR"];

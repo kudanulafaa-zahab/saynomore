@@ -290,6 +290,7 @@ export default async function DashboardPage() {
             border: `1px solid color-mix(in srgb, ${exception.color} 30%, transparent)`,
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
+            boxShadow: "var(--glass-shadow), var(--glass-inner)",
           }}
         >
           <div className="flex items-center gap-2.5 min-w-0">

@@ -12,7 +12,8 @@ const CARD = {
   background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
-};
+  boxShadow: "var(--glass-shadow), var(--glass-inner)",
+} as const;
 
 function fmt(n: number, decimals = 0) {
   return n.toLocaleString("en-MV", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -360,7 +361,7 @@ export function FinancialsView() {
     <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
 
       {/* Tab switcher */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "blur(20px)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "blur(20px)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
         {([
           { key: "profit", label: "P&L" },
           { key: "cod",    label: "COD Cash" },

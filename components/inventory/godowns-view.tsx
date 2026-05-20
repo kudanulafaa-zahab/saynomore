@@ -229,7 +229,8 @@ function GodownCard({
         background: "var(--glass-1)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+        boxShadow: "var(--glass-shadow), var(--glass-inner)",
+        border: "0.5px solid var(--glass-border-lo)",
       }}
     >
       {/* Header */}
@@ -448,7 +449,7 @@ export function GodownsView() {
       {/* Summary + New Godown button */}
       <div
         className="rounded-2xl px-4 py-3.5 flex items-center justify-between"
-        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
+        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}
       >
         <div>
           <p className="text-[15px] font-semibold text-foreground">

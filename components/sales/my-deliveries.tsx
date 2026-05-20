@@ -353,7 +353,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
       borderRadius: 20,
       overflow: "hidden",
       border: "0.5px solid var(--glass-border-lo)",
-      boxShadow: "var(--glass-shadow)",
+      boxShadow: "var(--glass-shadow), var(--glass-inner)",
     }}>
 
       {/* ── Card face (always visible) ──────────────────────────────────── */}
@@ -613,7 +613,7 @@ export function MyDeliveries() {
         </div>
         {/* Card skeletons */}
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-[20px] overflow-hidden" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <div key={i} className="rounded-[20px] overflow-hidden" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
             <div className="p-4 space-y-3">
               <div className="flex justify-between">
                 <div className="h-5 w-20 rounded-full" style={{ background: "var(--muted)" }} />
@@ -681,6 +681,7 @@ export function MyDeliveries() {
           background: "var(--glass-bg-1)", backdropFilter: "blur(28px) saturate(180%)",
           borderRadius: 20, padding: "48px 32px", textAlign: "center",
           border: "0.5px solid var(--glass-border-lo)",
+          boxShadow: "var(--glass-shadow), var(--glass-inner)",
         }}>
           <div style={{
             width: 64, height: 64, borderRadius: 18, background: "var(--glass-bg-2)",

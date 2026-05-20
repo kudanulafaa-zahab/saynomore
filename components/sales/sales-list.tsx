@@ -29,12 +29,14 @@ const CARD = {
   background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
+  boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
+  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -267,6 +269,7 @@ export function SalesList() {
             background: "color-mix(in srgb, var(--snm-error) 8%, var(--glass-1))",
             border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)",
             backdropFilter: "blur(20px)",
+            boxShadow: "var(--glass-shadow), var(--glass-inner)",
           }}
         >
           <div className="flex items-center gap-2.5 min-w-0">

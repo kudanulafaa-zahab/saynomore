@@ -23,13 +23,15 @@ const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
   backdropFilter: "blur(20px)",
   WebkitBackdropFilter: "blur(20px)",
-};
+  boxShadow: "var(--glass-shadow), var(--glass-inner)",
+} as const;
 
 const CARD_L2: React.CSSProperties = {
   background: "var(--glass-2)",
   backdropFilter: "blur(30px)",
   WebkitBackdropFilter: "blur(30px)",
-};
+  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
+} as const;
 
 /* ── Status config ───────────────────────────────────────────────────────── */
 
@@ -443,6 +445,7 @@ function PoCard({
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           border: "0.5px solid var(--glass-border-lo)",
+          boxShadow: "var(--glass-shadow), var(--glass-inner)",
         } : {
           background: "transparent",
           border: "0.5px solid var(--glass-border-lo)",
@@ -551,6 +554,7 @@ function NewPoSheet({
           padding: "12px 24px",
           paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))",
           maxWidth: 480,
+          boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
         }}
       >
         {/* Handle */}

@@ -277,7 +277,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Progress stepper ─────────────────────────────────────────────── */}
       {!isCancelled && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "20px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "20px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           {STEPS.map((step, i) => {
             const done    = currentStep > i;
             const active  = currentStep === i;
@@ -316,7 +316,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Customer card ─────────────────────────────────────────────────── */}
       {customer && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--glass-bg-1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <User style={{ color: "var(--muted-foreground)", width: 20, height: 20 }} />
           </div>
@@ -333,7 +333,7 @@ export function SaleDetail({ id }: { id: string }) {
       {isConfirmed && (
         <>
           {/* Payment method badge */}
-          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
+          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: `1px solid ${isCOD ? "color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "color-mix(in srgb, var(--snm-brand) 25%, transparent)"}` }}>
               {isCOD
                 ? <Banknote style={{ color: "var(--snm-warning)", width: 22, height: 22, flexShrink: 0 }} />
@@ -412,7 +412,7 @@ export function SaleDetail({ id }: { id: string }) {
       {/* ── STAGE: Out for delivery ──────────────────────────────────────── */}
       {isDispatched && (
         <>
-          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
+          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
             {/* Driver badge */}
             {order.assigned_driver_id && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "12px 14px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>
@@ -469,7 +469,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── STAGE: Delivered ─────────────────────────────────────────────── */}
       {isDelivered && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12 }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
             <CheckCircle2 style={{ color: "var(--snm-success)", width: 22, height: 22 }} />
             <p style={{ color: "var(--snm-success)", fontSize: 16, fontWeight: 700 }}>Delivered</p>
@@ -711,7 +711,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "85vh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "85vh", overflowY: "auto" }}
       >
         <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         {children}
@@ -889,7 +889,7 @@ function LineDialog({
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px 40px", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "90vh", overflowY: "auto" }}
       >
         <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{editing ? "Edit item" : "Add item"}</h2>

@@ -62,7 +62,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
   return (
     <div
       className="rounded-2xl p-4"
-      style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
+      style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
     >
       <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       <p className="text-[26px] font-semibold tracking-tight leading-none tabular-nums" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
@@ -141,11 +141,12 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         background: "var(--glass-1)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
+        boxShadow: "var(--glass-shadow), var(--glass-inner)",
         border: isCritical
           ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
           : isLow
           ? "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)"
-          : "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+          : "0.5px solid var(--glass-border-lo)",
       }}
     >
       {/* ── Top: SKU name + total qty ── */}
@@ -491,8 +492,9 @@ export function InventoryView() {
           background: "var(--glass-1)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
+          boxShadow: "var(--glass-shadow), var(--glass-inner)",
           height: 46,
-          border: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+          border: "0.5px solid var(--glass-border-lo)",
         }}
       >
         <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />

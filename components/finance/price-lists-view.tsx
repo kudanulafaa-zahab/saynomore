@@ -137,6 +137,7 @@ export function PriceListsView() {
                 backdropFilter: "blur(20px)",
                 WebkitBackdropFilter: "blur(20px)",
                 border: "0.5px solid var(--glass-border-lo)",
+                boxShadow: "var(--glass-shadow), var(--glass-inner)",
               }}
             >
               {/* Tier header */}
@@ -585,6 +586,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                   className="rounded-2xl overflow-hidden"
                   style={{
                     background: "var(--glass-1)",
+                    boxShadow: "var(--glass-shadow), var(--glass-inner)",
                     border: isEditing
                       ? `1px solid color-mix(in srgb, ${t.color} 40%, transparent)`
                       : "0.5px solid var(--glass-border-lo)",

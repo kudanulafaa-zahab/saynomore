@@ -204,7 +204,7 @@ export function DispatchView() {
           <div
             key={label}
             className="rounded-2xl p-4"
-            style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)" }}
+            style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
           >
             <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
             <p className="text-[26px] font-bold tracking-tight leading-none" style={{ color }}>{value}</p>
@@ -215,7 +215,7 @@ export function DispatchView() {
       {/* ── Active orders ── */}
       <div
         className="rounded-2xl overflow-hidden"
-        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)" }}
+        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
       >
         <div className="px-4 pt-4 pb-3 flex items-center justify-between">
           <h2 className="text-[17px] font-bold text-foreground">
@@ -397,7 +397,7 @@ export function DispatchView() {
       {completed.length > 0 && (
         <div
           className="rounded-2xl overflow-hidden"
-          style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)" }}
+          style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
         >
           <div className="px-4 pt-4 pb-3">
             <h2 className="text-[17px] font-bold text-foreground">Completed Today</h2>

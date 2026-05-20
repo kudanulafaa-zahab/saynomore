@@ -155,7 +155,7 @@ function SkuPanel({
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)" }}
+      style={{ background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
     >
       {/* Header */}
       <div
@@ -684,6 +684,7 @@ export function ProductsExplorer() {
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         border: "0.5px solid var(--glass-border-lo)",
+        boxShadow: "var(--glass-shadow), var(--glass-inner)",
       }}
     >
       {/* Toolbar */}
@@ -825,6 +826,7 @@ export function ProductsExplorer() {
               background: "var(--glass-1)",
               backdropFilter: "blur(20px)",
               border: "0.5px solid var(--glass-border-lo)",
+              boxShadow: "var(--glass-shadow), var(--glass-inner)",
             }}
           >
             <ChevronRight className="h-8 w-8 mb-3 opacity-15" style={{ color: "var(--muted-foreground)" }} />

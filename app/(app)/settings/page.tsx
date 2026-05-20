@@ -92,6 +92,7 @@ export default function SettingsPage() {
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           border: "0.5px solid var(--glass-border-lo)",
+          boxShadow: "var(--glass-shadow), var(--glass-inner)",
         }}
       >
         {/* Section header */}
@@ -237,7 +238,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
     <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
       <div
         className="w-full p-6 max-h-[90vh] overflow-y-auto"
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", border: "0.5px solid var(--glass-border-lo)" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
         onClick={e => e.stopPropagation()}
       >
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--glass-border)" }} />
@@ -296,7 +297,7 @@ function ConfirmSheet({ title, body, danger, loading, onCancel, onConfirm }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ background: "rgba(0,0,0,0.6)" }}>
-      <div className="w-full max-w-sm p-6 rounded-3xl" style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", border: "0.5px solid var(--glass-border-lo)" }}>
+      <div className="w-full max-w-sm p-6 rounded-3xl" style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
         <p className="text-base font-semibold mb-2" style={{ color: "var(--foreground)" }}>{title}</p>
         <p className="text-sm mb-6" style={{ color: "var(--muted-foreground)" }}>{body}</p>
         <div className="flex gap-3">

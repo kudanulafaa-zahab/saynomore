@@ -87,7 +87,7 @@ export function LabelPreview({ data }: { data: LabelData }) {
         </div>
 
         {/* Boat details panel */}
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, marginBottom: 16, overflow: "hidden", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <button
             onClick={() => setEditing(!editing)}
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "transparent", border: "none", color: "var(--foreground)", cursor: "pointer" }}
