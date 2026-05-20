@@ -617,7 +617,7 @@ export function ProductsExplorer() {
   const [editSku, setEditSku]           = useState<SkuFullRow | null>(null);
   const [cascadeTarget, setCascadeTarget] = useState<CascadeTarget | null>(null);
 
-  const [role, setRole] = useState<"admin" | "manager" | "staff" | null>(null);
+  const [role, setRole] = useState<"admin" | "manager" | "staff" | "viewer" | null>(null);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => setRole(null)); }, []);
   const isAdmin = role === "admin";
 

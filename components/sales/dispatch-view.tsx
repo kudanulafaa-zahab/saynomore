@@ -73,7 +73,7 @@ export function DispatchView() {
   const [skus, setSkus]                   = useState<SkuFullRow[]>([]);
   const [users, setUsers]                 = useState<UserProfileRow[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentRole, setCurrentRole]     = useState<"admin" | "manager" | "staff" | null>(null);
+  const [currentRole, setCurrentRole]     = useState<"admin" | "manager" | "staff" | "viewer" | null>(null);
   const [loading, setLoading]             = useState(true);
   const [expanded, setExpanded]           = useState<string | null>(null);
   const [confirmDelivery, setConfirmDelivery] = useState<SalesOrderRow | null>(null);
@@ -95,7 +95,7 @@ export function DispatchView() {
         .eq("id", userData.user.id)
         .maybeSingle();
 
-      const role = (profile?.role ?? "staff") as "admin" | "manager" | "staff";
+      const role = (profile?.role ?? "staff") as "admin" | "manager" | "staff" | "viewer";
       setCurrentRole(role);
       const admin = role === "admin" || role === "manager";
 

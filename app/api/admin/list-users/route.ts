@@ -34,7 +34,7 @@ export async function GET() {
         id: u.id,
         email: u.email ?? null,
         full_name: prof?.full_name ?? (u.user_metadata?.full_name as string | null) ?? null,
-        role: (prof?.role ?? "staff") as "admin" | "manager" | "staff",
+        role: (prof?.role ?? "staff") as "admin" | "manager" | "staff" | "viewer",
         created_at: u.created_at,
       };
     });
