@@ -13,6 +13,7 @@ import {
   MapPin,
   Warehouse,
   UserRound,
+  Ship,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const FULL_NAV: NavItem[] = [
   { href: "/expenses",   label: "Expenses",    icon: Wallet      },
 
   // Procurement
+  { href: "/shipments",  label: "Shipments",  icon: Ship        },
   { href: "/suppliers",  label: "Suppliers",  icon: Building2   },
 
   // Catalogue
@@ -46,7 +48,6 @@ export const FULL_NAV: NavItem[] = [
 
   // Operations
   { href: "/customers",  label: "Customers",  icon: UserRound   },
-  { href: "/dispatch",   label: "Dispatch",   icon: MapPin      },
 ];
 
 // Staff (delivery): dedicated driver screen
