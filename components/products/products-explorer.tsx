@@ -441,7 +441,7 @@ function SkuPanel({
                     onClick={saveInlinePrice}
                     disabled={savingPrice}
                     className="w-full h-10 rounded-lg text-[13px] font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
-                    style={{ background: "var(--snm-brand)", color: "#ffffff", opacity: savingPrice ? 0.6 : 1 }}
+                    style={{ background: "var(--foreground)", color: "var(--background)", opacity: savingPrice ? 0.6 : 1 }}
                   >
                     {savingPrice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save pricing →"}
                   </button>
@@ -525,7 +525,7 @@ function SkuPanel({
           <button
             onClick={onEdit}
             className="flex-1 h-10 rounded-xl text-[13px] font-semibold transition flex items-center justify-center gap-1.5"
-            style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit SKU
@@ -715,7 +715,7 @@ export function ProductsExplorer() {
               <button
                 onClick={() => setNewSkuOpen(true)}
                 className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
-                style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+                style={{ background: "var(--foreground)", color: "var(--background)" }}
               >
                 <Plus className="h-4 w-4" />
                 New SKU
@@ -1151,7 +1151,7 @@ function CategoryPills({
           />
           <button type="button" onClick={create} disabled={saving || !name.trim()}
             style={{ height: 26, padding: "0 8px", borderRadius: 999, fontSize: 11, fontWeight: 600,
-              background: "var(--snm-brand)", color: "#fff", border: "none", cursor: saving ? "wait" : "pointer",
+              background: "var(--foreground)", color: "var(--background)", border: "none", cursor: saving ? "wait" : "pointer",
               opacity: !name.trim() ? 0.5 : 1 }}>
             {saving ? "…" : "Add"}
           </button>
@@ -1720,7 +1720,7 @@ function NewSkuWizard({
             className="h-12 flex-1 font-semibold"
             onClick={save}
             disabled={saving || !canSave}
-            style={{ background: canSave ? "var(--snm-brand)" : undefined, color: canSave ? "#ffffff" : undefined }}
+            style={{ background: canSave ? "var(--foreground)" : undefined, color: canSave ? "var(--background)" : undefined }}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create SKU"}
           </Button>

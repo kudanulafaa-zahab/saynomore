@@ -95,7 +95,7 @@ function GodownEditRow({
         onClick={submit}
         disabled={saving || !name.trim()}
         className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition active:scale-90 disabled:opacity-40"
-        style={{ background: "var(--snm-brand)", color: "#fff" }}
+        style={{ background: "var(--foreground)", color: "var(--background)" }}
       >
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
       </button>
@@ -473,7 +473,7 @@ export function GodownsView() {
           <button
             onClick={() => { setShowNew(true); setEditingId(null); }}
             className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
-            style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Plus className="h-4 w-4" />
             New
@@ -513,7 +513,7 @@ export function GodownsView() {
           <button
             onClick={() => setShowNew(true)}
             className="h-11 px-5 rounded-xl text-[13px] font-semibold transition active:scale-95"
-            style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             Add first godown
           </button>

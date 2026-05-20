@@ -963,7 +963,7 @@ export function CompetitorsView() {
         <button
           onClick={() => setPriceDialog({ open: true })}
           className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-30 flex items-center gap-2 h-14 px-5 rounded-full shadow-lg transition active:scale-[0.95]"
-          style={{ background: "var(--snm-brand)", color: "#ffffff", touchAction: "manipulation", boxShadow: "0 4px 24px color-mix(in srgb, var(--snm-brand) 40%, transparent)" }}
+          style={{ background: "var(--foreground)", color: "var(--background)", touchAction: "manipulation", boxShadow: "0 4px 24px color-mix(in srgb, var(--foreground) 20%, transparent)" }}
           aria-label="Log competitor price"
         >
           <Tag className="h-4 w-4 shrink-0" />

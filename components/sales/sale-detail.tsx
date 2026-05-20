@@ -363,7 +363,7 @@ export function SaleDetail({ id }: { id: string }) {
                         <button
                           onClick={savePaymentRef}
                           disabled={savingRef}
-                          style={{ background: "var(--snm-brand)", color: "var(--background)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+                          style={{ background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
                         >
                           {savingRef ? "…" : "Save"}
                         </button>
