@@ -84,6 +84,7 @@ interface DraftLine {
   qty_pieces: number;
   unit_price_mvr: number;
   line_total_mvr: number;
+  is_mixed_carton_fill: boolean;
 }
 
 // ── UOM intelligence ──────────────────────────────────────────────────────────
@@ -586,6 +587,7 @@ function NewSaleSheet({
   const [lineUom, setLineUom] = useState<SaleUom>("pack");
   const [lineQty, setLineQty] = useState("");
   const [linePrice, setLinePrice] = useState("");
+  const [mixedCarton, setMixedCarton] = useState(false);
   const [godownId, setGodownId] = useState(() => (godowns.find((g) => g.is_default) ?? godowns[0])?.id ?? "");
 
   // Step 3 — payment
@@ -655,9 +657,26 @@ function NewSaleSheet({
     };
   }, []);
 
-  function autoPrice(sku: typeof selectedSku, uom: SaleUom): { price: string; source: "price_list" | "sku_default" | null } {
+  function autoPrice(
+    sku: typeof selectedSku,
+    uom: SaleUom,
+    isMixed: boolean,
+  ): { price: string; source: "price_list" | "sku_default" | null } {
     if (!sku) return { price: "", source: null };
     const tp = tierPrices.get(sku.id);
+    // Mixed carton: charge the per-piece equivalent of the carton price
+    if (isMixed && uom === "piece") {
+      const pcsPerCarton = sku.pcs_per_pack * sku.packs_per_carton;
+      if (pcsPerCarton > 0) {
+        if (tp) {
+          return { price: (tp.price_per_carton_mvr / pcsPerCarton).toFixed(4), source: tp.source };
+        }
+        const cartonPrice = sku.selling_price_per_carton_mvr;
+        if (cartonPrice != null) {
+          return { price: (cartonPrice / pcsPerCarton).toFixed(4), source: "sku_default" };
+        }
+      }
+    }
     if (tp) {
       const p = uom === "piece" ? tp.price_per_piece_mvr
         : uom === "pack" ? tp.price_per_pack_mvr
@@ -674,7 +693,8 @@ function NewSaleSheet({
   useEffect(() => {
     if (!selectedSku) return;
     const smartUom = defaultUom(selectedSku);
-    const ap = autoPrice(selectedSku, smartUom);
+    setMixedCarton(false);
+    const ap = autoPrice(selectedSku, smartUom, false);
     setLineUom(smartUom);
     setLinePrice(ap.price);
     setAutoPriceSource(ap.source);
@@ -682,15 +702,28 @@ function NewSaleSheet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSkuId, tierPrices]);
 
-  // When UOM changes (user picks a different one): re-fill price
+  // When UOM changes (user picks a different one): re-fill price, reset mixed carton
   useEffect(() => {
     if (!selectedSku) return;
-    const ap = autoPrice(selectedSku, lineUom);
+    // Mixed carton only makes sense on piece UOM — auto-clear on UOM switch
+    const nextMixed = lineUom === "piece" ? mixedCarton : false;
+    if (lineUom !== "piece" && mixedCarton) setMixedCarton(false);
+    const ap = autoPrice(selectedSku, lineUom, nextMixed);
     setLinePrice(ap.price);
     setAutoPriceSource(ap.source);
     setPriceManuallyEdited(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lineUom, tierPrices]);
+
+  // When mixed carton toggle changes: re-fill price
+  useEffect(() => {
+    if (!selectedSku || lineUom !== "piece") return;
+    const ap = autoPrice(selectedSku, lineUom, mixedCarton);
+    setLinePrice(ap.price);
+    setAutoPriceSource(ap.source);
+    setPriceManuallyEdited(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mixedCarton]);
 
   function handlePriceChange(raw: string) {
     // Allow empty string while typing — don't restore auto price mid-keystroke
@@ -699,7 +732,7 @@ function NewSaleSheet({
       setPriceManuallyEdited(false);
       // source stays — restored on blur if still empty
     } else {
-      const ap = autoPrice(selectedSku, lineUom);
+      const ap = autoPrice(selectedSku, lineUom, mixedCarton);
       setPriceManuallyEdited(raw !== ap.price);
       if (raw !== ap.price) setAutoPriceSource(null);
       else setAutoPriceSource(ap.source);
@@ -709,7 +742,7 @@ function NewSaleSheet({
   function handlePriceBlur() {
     // Only restore auto price on blur if field is empty
     if (linePrice === "") {
-      const ap = autoPrice(selectedSku, lineUom);
+      const ap = autoPrice(selectedSku, lineUom, mixedCarton);
       setLinePrice(ap.price);
       setAutoPriceSource(ap.source);
       setPriceManuallyEdited(false);
@@ -760,8 +793,10 @@ function NewSaleSheet({
       key: `${selectedSku.id}-${Date.now()}`,
       sku: selectedSku, uom: lineUom, qty: parseFloat(lineQty),
       qty_pieces: lineQtyPieces, unit_price_mvr: parseFloat(linePrice), line_total_mvr: lineTotal,
+      is_mixed_carton_fill: lineUom === "piece" && mixedCarton,
     }]);
-    setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack"); setPriceManuallyEdited(false); setAutoPriceSource(null);
+    setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack");
+    setMixedCarton(false); setPriceManuallyEdited(false); setAutoPriceSource(null);
   }
 
   // Create order + lines + immediately confirm (post_sale) in one shot
@@ -783,6 +818,7 @@ function NewSaleSheet({
       await Promise.all(draftLines.map((l) => createOrderLine({
         order_id: created.id, sku_id: l.sku.id, uom: l.uom, qty: l.qty,
         qty_pieces: l.qty_pieces, unit_price_mvr: l.unit_price_mvr, line_total_mvr: l.line_total_mvr,
+        is_mixed_carton_fill: l.is_mixed_carton_fill,
       })));
       // Confirm stock immediately
       await postSale(created.id);
@@ -1161,6 +1197,7 @@ function NewSaleSheet({
                         qty_pieces: pcs,
                         unit_price_mvr: cardPrice!,
                         line_total_mvr: cardPrice!,
+                        is_mixed_carton_fill: false,
                       }]);
                       toast.success(`${s.brand_name} ${s.variant_display} added`);
                     }
@@ -1337,6 +1374,46 @@ function NewSaleSheet({
                     })}
                   </div>
 
+                  {/* ── Mixed carton toggle — only visible when selling by piece ── */}
+                  {lineUom === "piece" && (
+                    <button
+                      type="button"
+                      onClick={() => setMixedCarton((v) => !v)}
+                      className="w-full flex items-center justify-between px-4 h-12 rounded-xl transition active:scale-[0.99]"
+                      style={{
+                        background: mixedCarton
+                          ? "color-mix(in srgb, var(--snm-brand) 10%, var(--glass-1))"
+                          : "var(--glass-1)",
+                        border: mixedCarton
+                          ? "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)"
+                          : "0.5px solid var(--glass-border-lo)",
+                        backdropFilter: "blur(20px)",
+                        WebkitBackdropFilter: "blur(20px)",
+                      }}
+                    >
+                      <div className="text-left">
+                        <p className="text-[13px] font-semibold" style={{ color: mixedCarton ? "var(--snm-brand)" : "var(--foreground)" }}>
+                          Mixed carton fill
+                        </p>
+                        <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                          {mixedCarton
+                            ? `Charging carton rate ÷ ${selectedSku.pcs_per_pack * selectedSku.packs_per_carton} pcs`
+                            : "Customer assembles their own mixed carton"}
+                        </p>
+                      </div>
+                      <div
+                        className="w-10 h-6 rounded-full flex items-center transition-all shrink-0 ml-3"
+                        style={{
+                          background: mixedCarton ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 15%, transparent)",
+                          padding: "2px",
+                          justifyContent: mixedCarton ? "flex-end" : "flex-start",
+                        }}
+                      >
+                        <div className="w-5 h-5 rounded-full" style={{ background: "var(--background)" }} />
+                      </div>
+                    </button>
+                  )}
+
                   {/* ── Qty stepper + Price display — the key UX insight ──
                       Qty: large +/− stepper, no keyboard.
                       Price: shown read-only. Tap pencil → inline input appears.
@@ -1435,7 +1512,15 @@ function NewSaleSheet({
                   return (
                   <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                     <div className="min-w-0 flex-1">
-                      <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
+                        {l.is_mixed_carton_fill && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
+                            MIXED CTN
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -1480,7 +1565,15 @@ function NewSaleSheet({
                 return (
                   <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 text-sm" style={{ borderBottom: i < draftLines.length - 1 ? "0.5px solid var(--glass-border-lo)" : "none" }}>
                     <div className="min-w-0 flex-1">
-                      <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
+                        {l.is_mixed_carton_fill && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
+                            MIXED CTN
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
                     </div>
                     <span className="text-foreground font-semibold text-[13px] shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>

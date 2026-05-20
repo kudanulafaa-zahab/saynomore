@@ -42,6 +42,7 @@ export interface SalesOrderLineRow {
   qty_pieces: number;
   unit_price_mvr: number;
   line_total_mvr: number;
+  is_mixed_carton_fill: boolean;
   notes: string | null;
 }
 
@@ -72,6 +73,7 @@ export interface SalesOrderLineInput {
   qty_pieces: number;
   unit_price_mvr: number;
   line_total_mvr: number;
+  is_mixed_carton_fill?: boolean;
   notes?: string | null;
 }
 
