@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Lock } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,24 @@ import {
   type UnitUom,
   type CostBasis,
 } from "@/lib/queries/products";
+
+// Human-readable summary of category configuration — no raw field codes shown to user
+function humanMeta(c: CategoryRow): string {
+  const uomLabel =
+    c.unit_uom === "ml" ? "Liquid" :
+    c.unit_uom === "g"  ? "Powder" :
+                          "Pieces";
+  const costLabel =
+    c.cost_basis === "per_100ml" ? "per 100 ml" :
+    c.cost_basis === "per_100g"  ? "per 100 g"  :
+                                   "per piece";
+  const attrLabels: Record<AttrKey, string> = {
+    size: "Size", scent: "Scent", format: "Format", volume_ml: "Volume",
+    weight_g: "Weight", colour: "Colour", other: "Other",
+  };
+  const attrs = c.variant_attributes.map((a) => attrLabels[a] ?? a).join(", ");
+  return [uomLabel, costLabel, attrs].filter(Boolean).join(" · ");
+}
 
 const ATTR_OPTIONS: { key: AttrKey; label: string }[] = [
   { key: "size",      label: "Size" },
@@ -95,24 +113,9 @@ export function CategoriesManager() {
         {rows.map((c) => (
           <div key={c.id} className="p-4 flex items-start justify-between gap-3">
             <div className="space-y-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-base font-medium text-foreground">{c.name}</p>
-                {c.is_system && (
-                  <span
-                    className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary px-1.5 py-0.5 rounded cursor-help"
-                    title="Built-in category — cannot be deleted. SKUs using this category are protected from misconfiguration."
-                  >
-                    <Lock className="h-2.5 w-2.5" /> System
-                  </span>
-                )}
-              </div>
+              <p className="text-base font-medium text-foreground">{c.name}</p>
               {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
-              <p className="text-[11px] text-muted-foreground">
-                Unit: <strong>{c.unit_uom}</strong> · Cost: <strong>{c.cost_basis}</strong>
-                {c.variant_attributes.length > 0 && (
-                  <> · Attributes: {c.variant_attributes.join(", ")}</>
-                )}
-              </p>
+              <p className="text-[11px] text-muted-foreground">{humanMeta(c)}</p>
             </div>
             {!c.is_system && canWrite && (
               <button
