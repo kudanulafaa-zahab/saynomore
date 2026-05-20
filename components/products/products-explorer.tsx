@@ -74,10 +74,11 @@ function packLabel(sku: SkuFullRow): string {
 /* ── SKU detail panel ── */
 
 function SkuPanel({
-  sku, isAdmin, onEdit, onDelete, onToggle, onClose, onPricingUpdated,
+  sku, isAdmin, canWrite, onEdit, onDelete, onToggle, onClose, onPricingUpdated,
 }: {
   sku: SkuFullRow;
   isAdmin: boolean;
+  canWrite: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
@@ -328,7 +329,7 @@ function SkuPanel({
                       type="number" inputMode="decimal" step="0.01" min="0.01"
                       value={inlineFixed}
                       onChange={(e) => { setInlineFixed(e.target.value); if (e.target.value) setInlineMargin(""); }}
-                      disabled={savingPrice}
+                      disabled={savingPrice || !canWrite}
                       placeholder={landedPerPack ? `cost: ${landedPerPack.toFixed(2)}` : "e.g. 12.00"}
                       style={{
                         width: "100%", height: 40, padding: "0 10px", borderRadius: 8,
@@ -347,7 +348,7 @@ function SkuPanel({
                       type="number" inputMode="decimal" step="0.5" min="1" max="99"
                       value={inlineMargin}
                       onChange={(e) => { setInlineMargin(e.target.value); if (e.target.value) setInlineFixed(""); }}
-                      disabled={!!inlineFixed || savingPrice}
+                      disabled={!!inlineFixed || savingPrice || !canWrite}
                       placeholder="e.g. 30"
                       style={{
                         width: "100%", height: 40, padding: "0 10px", borderRadius: 8,
@@ -435,7 +436,7 @@ function SkuPanel({
                 )}
 
                 {/* Save button — only appears once a value is typed */}
-                {(inlineMargin || inlineFixed) && (
+                {(inlineMargin || inlineFixed) && canWrite && (
                   <button
                     onClick={saveInlinePrice}
                     disabled={savingPrice}
@@ -504,40 +505,42 @@ function SkuPanel({
       </div>
 
       {/* Footer actions */}
-      <div
-        className="shrink-0 px-5 py-4 flex gap-2"
-        style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}
-      >
-        <button
-          onClick={onToggle}
-          className="flex-1 h-10 rounded-xl text-[13px] font-medium transition"
-          style={{
-            background: sku.is_active
-              ? "color-mix(in srgb, var(--snm-error) 10%, transparent)"
-              : "color-mix(in srgb, var(--snm-success) 10%, transparent)",
-            color: sku.is_active ? "var(--snm-error)" : "var(--snm-success)",
-          }}
+      {canWrite && (
+        <div
+          className="shrink-0 px-5 py-4 flex gap-2"
+          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}
         >
-          {sku.is_active ? "Deactivate" : "Activate"}
-        </button>
-        <button
-          onClick={onEdit}
-          className="flex-1 h-10 rounded-xl text-[13px] font-semibold transition flex items-center justify-center gap-1.5"
-          style={{ background: "var(--snm-brand)", color: "#ffffff" }}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Edit SKU
-        </button>
-        {isAdmin && (
           <button
-            onClick={onDelete}
-            className="h-10 w-10 rounded-xl flex items-center justify-center transition shrink-0"
-            style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+            onClick={onToggle}
+            className="flex-1 h-10 rounded-xl text-[13px] font-medium transition"
+            style={{
+              background: sku.is_active
+                ? "color-mix(in srgb, var(--snm-error) 10%, transparent)"
+                : "color-mix(in srgb, var(--snm-success) 10%, transparent)",
+              color: sku.is_active ? "var(--snm-error)" : "var(--snm-success)",
+            }}
           >
-            <Trash2 className="h-4 w-4" />
+            {sku.is_active ? "Deactivate" : "Activate"}
           </button>
-        )}
-      </div>
+          <button
+            onClick={onEdit}
+            className="flex-1 h-10 rounded-xl text-[13px] font-semibold transition flex items-center justify-center gap-1.5"
+            style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit SKU
+          </button>
+          {isAdmin && (
+            <button
+              onClick={onDelete}
+              className="h-10 w-10 rounded-xl flex items-center justify-center transition shrink-0"
+              style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -619,7 +622,8 @@ export function ProductsExplorer() {
 
   const [role, setRole] = useState<"admin" | "manager" | "staff" | "viewer" | null>(null);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => setRole(null)); }, []);
-  const isAdmin = role === "admin";
+  const isAdmin  = role === "admin";
+  const canWrite = role !== "viewer" && role !== null;
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -707,14 +711,16 @@ export function ProductsExplorer() {
             >
               <SlidersHorizontal className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => setNewSkuOpen(true)}
-              className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
-              style={{ background: "var(--snm-brand)", color: "#ffffff" }}
-            >
-              <Plus className="h-4 w-4" />
-              New SKU
-            </button>
+            {canWrite && (
+              <button
+                onClick={() => setNewSkuOpen(true)}
+                className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
+                style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+              >
+                <Plus className="h-4 w-4" />
+                New SKU
+              </button>
+            )}
           </div>
         </div>
 
@@ -809,6 +815,7 @@ export function ProductsExplorer() {
             <SkuPanel
               sku={selectedSku}
               isAdmin={isAdmin}
+              canWrite={canWrite}
               onEdit={() => setEditSku(selectedSku)}
               onDelete={() => setCascadeTarget({ kind: "sku", id: selectedSku.id, label: selectedSku.internal_code })}
               onToggle={async () => {
@@ -858,6 +865,7 @@ export function ProductsExplorer() {
               <SkuPanel
                 sku={selectedSku}
                 isAdmin={isAdmin}
+                canWrite={canWrite}
                 onEdit={() => setEditSku(selectedSku)}
                 onDelete={() => setCascadeTarget({ kind: "sku", id: selectedSku.id, label: selectedSku.internal_code })}
                 onToggle={async () => {

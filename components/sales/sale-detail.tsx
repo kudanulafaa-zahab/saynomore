@@ -376,11 +376,11 @@ export function SaleDetail({ id }: { id: string }) {
                       </div>
                     ) : (
                       <button
-                        onClick={() => { setRefInput(order.payment_proof_url ?? ""); setEditingRef(true); }}
-                        style={{ background: "var(--glass-bg-1)", border: "1px dashed var(--glass-border)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: order.payment_proof_url ? "var(--snm-brand)" : "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                        onClick={() => { if (!canWrite) return; setRefInput(order.payment_proof_url ?? ""); setEditingRef(true); }}
+                        style={{ background: "var(--glass-bg-1)", border: "1px dashed var(--glass-border)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: order.payment_proof_url ? "var(--snm-brand)" : "var(--muted-foreground)", cursor: canWrite ? "pointer" : "default", display: "flex", alignItems: "center", gap: 6 }}
                       >
                         <Smartphone style={{ width: 12, height: 12 }} />
-                        {order.payment_proof_url ? order.payment_proof_url : "Tap to add transfer reference"}
+                        {order.payment_proof_url ? order.payment_proof_url : canWrite ? "Tap to add transfer reference" : "—"}
                       </button>
                     )}
                   </div>

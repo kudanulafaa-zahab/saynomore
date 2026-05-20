@@ -261,9 +261,10 @@ export function ShipmentDetail({ id }: { id: string }) {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
 
-  const isAdmin = role === "admin";
-  const locked  = shipment?.status === "grn_confirmed";
-  const arrived = shipment?.status === "arrived";
+  const isAdmin  = role === "admin";
+  const canWrite = role !== "viewer" && role !== null;
+  const locked   = shipment?.status === "grn_confirmed" || !canWrite;
+  const arrived  = shipment?.status === "arrived";
 
   /* ── Live landed-cost preview ──────────────────────────────────────────── */
 
