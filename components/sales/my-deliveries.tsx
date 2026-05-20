@@ -228,7 +228,7 @@ function IssueSheet({ open, order, onClose, onDone }: {
         {QUICK_ISSUES.map((q) => (
           <button key={q} onClick={() => setNote(q)}
             style={{
-              padding: "8px 14px", borderRadius: 20, border: "1px solid var(--glass-border-lo)",
+              padding: "8px 14px", borderRadius: 20, border: "0.5px solid var(--glass-border-lo)",
               background: note === q ? "color-mix(in srgb, var(--snm-error) 12%, transparent)" : "var(--glass-bg-1)",
               color: note === q ? "var(--snm-error)" : "var(--foreground)",
               fontSize: 13, fontWeight: 600, cursor: "pointer",
@@ -245,7 +245,7 @@ function IssueSheet({ open, order, onClose, onDone }: {
         placeholder="Or type a custom note…"
         style={{
           width: "100%", borderRadius: 14, padding: "14px 16px",
-          border: "1px solid var(--glass-border-lo)", background: "var(--glass-bg-1)",
+          border: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)",
           color: "var(--foreground)", fontSize: 15, resize: "none",
           outline: "none", boxSizing: "border-box",
         }}
@@ -274,7 +274,7 @@ function OrderDetail({ lines, skus, order }: {
 }) {
   return (
     <div style={{
-      borderTop: "1px solid var(--glass-border-lo)",
+      borderTop: "0.5px solid var(--glass-border-lo)",
       padding: "16px 16px 20px",
       background: "color-mix(in srgb, var(--background) 50%, transparent)",
     }}>
@@ -297,7 +297,7 @@ function OrderDetail({ lines, skus, order }: {
             <div key={l.id} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
               padding: "10px 0",
-              borderBottom: "1px solid var(--glass-border-lo)",
+              borderBottom: "0.5px solid var(--glass-border-lo)",
             }}>
               <span style={{ fontSize: 14, color: "var(--foreground)", fontWeight: 500 }}>{name}</span>
               <span style={{
@@ -352,7 +352,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
       WebkitBackdropFilter: "blur(28px) saturate(180%)",
       borderRadius: 20,
       overflow: "hidden",
-      border: "1px solid var(--glass-border-lo)",
+      border: "0.5px solid var(--glass-border-lo)",
       boxShadow: "var(--glass-shadow)",
     }}>
 
@@ -517,7 +517,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
         onClick={onToggle}
         style={{
           width: "100%", height: 44, border: "none", cursor: "pointer",
-          borderTop: "1px solid var(--glass-border-lo)",
+          borderTop: "0.5px solid var(--glass-border-lo)",
           background: "color-mix(in srgb, var(--background) 30%, transparent)",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           color: "var(--muted-foreground)", fontSize: 12, fontWeight: 600,
@@ -613,7 +613,7 @@ export function MyDeliveries() {
         </div>
         {/* Card skeletons */}
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-[20px] overflow-hidden" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+          <div key={i} className="rounded-[20px] overflow-hidden" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
             <div className="p-4 space-y-3">
               <div className="flex justify-between">
                 <div className="h-5 w-20 rounded-full" style={{ background: "var(--muted)" }} />
@@ -623,7 +623,7 @@ export function MyDeliveries() {
               <div className="h-4 w-28 rounded-full" style={{ background: "var(--muted)" }} />
               <div className="h-14 w-full rounded-2xl" style={{ background: "var(--muted)" }} />
             </div>
-            <div className="h-11" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", borderTop: "1px solid var(--glass-border-lo)" }} />
+            <div className="h-11" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", borderTop: "0.5px solid var(--glass-border-lo)" }} />
           </div>
         ))}
       </div>
@@ -643,7 +643,7 @@ export function MyDeliveries() {
           <button
             onClick={() => load(true)} disabled={refreshing}
             style={{
-              width: 44, height: 44, borderRadius: 22, border: "1px solid var(--glass-border-lo)",
+              width: 44, height: 44, borderRadius: 22, border: "0.5px solid var(--glass-border-lo)",
               background: "var(--glass-bg-1)", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
@@ -680,7 +680,7 @@ export function MyDeliveries() {
         <div style={{
           background: "var(--glass-bg-1)", backdropFilter: "blur(28px) saturate(180%)",
           borderRadius: 20, padding: "48px 32px", textAlign: "center",
-          border: "1px solid var(--glass-border-lo)",
+          border: "0.5px solid var(--glass-border-lo)",
         }}>
           <div style={{
             width: 64, height: 64, borderRadius: 18, background: "var(--glass-bg-2)",

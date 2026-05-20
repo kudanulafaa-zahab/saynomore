@@ -153,7 +153,7 @@ export function ReportsView() {
                 style={{
                   background: active ? "var(--foreground)" : "var(--glass-1)",
                   color:      active ? "var(--background)" : "var(--muted-foreground)",
-                  border:     active ? "none" : "1px solid var(--glass-border-lo)",
+                  border:     active ? "none" : "0.5px solid var(--glass-border-lo)",
                   touchAction: "manipulation",
                 }}
               >
@@ -167,7 +167,7 @@ export function ReportsView() {
             style={{
               background: customRange ? "var(--foreground)" : "var(--glass-1)",
               color:      customRange ? "var(--background)" : "var(--muted-foreground)",
-              border:     customRange ? "none" : "1px solid var(--glass-border-lo)",
+              border:     customRange ? "none" : "0.5px solid var(--glass-border-lo)",
               touchAction: "manipulation",
             }}
           >
@@ -175,7 +175,7 @@ export function ReportsView() {
           </button>
         </div>
         {customRange && (
-          <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+          <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
             <input
               type="date"
               value={from}
@@ -243,7 +243,7 @@ export function ReportsView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)" }}>
+      <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
         {([
           { key: "bestsellers", label: "Best Sellers" },
           { key: "margins",     label: "Margins" },
@@ -273,7 +273,7 @@ export function ReportsView() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by brand, model, variant…"
           className="w-full h-11 pl-9 pr-10 rounded-xl text-sm text-foreground outline-none"
-          style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}
+          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
         />
         {q && (
           <button

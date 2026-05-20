@@ -65,7 +65,7 @@ function SetPasswordForm() {
   const inputStyle = {
     width: "100%", height: "44px", borderRadius: "12px", padding: "0 12px",
     fontSize: "14px", outline: "none", background: "var(--glass-1)",
-    border: "1px solid var(--glass-border)", color: "var(--foreground)",
+    border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)",
   } as React.CSSProperties;
 
   if (!ready) {
@@ -82,7 +82,7 @@ function SetPasswordForm() {
   return (
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
       <div className="w-full max-w-md p-10 space-y-7 rounded-2xl"
-        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}>
+        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)" }}>
         <div className="space-y-3 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: "var(--snm-brand)" }}>
             <span className="text-xl font-bold text-white">S</span>

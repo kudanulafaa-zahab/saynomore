@@ -48,14 +48,14 @@ export default function LoginPage() {
     fontSize: "14px",
     outline: "none",
     background: "var(--glass-1)",
-    border: "1px solid var(--glass-border)",
+    border: "0.5px solid var(--glass-border-lo)",
     color: "var(--foreground)",
   } as React.CSSProperties;
 
   if (showReset) {
     return (
       <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
-        <div className="w-full max-w-md p-10 space-y-6 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}>
+        <div className="w-full max-w-md p-10 space-y-6 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div className="text-center space-y-1">
             <h1 className="text-xl font-semibold" style={{ color: "var(--foreground)" }}>Set your password</h1>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
@@ -107,7 +107,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
-      <div className="w-full max-w-md p-10 space-y-7 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border)" }}>
+      <div className="w-full max-w-md p-10 space-y-7 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)" }}>
         <div className="space-y-3 text-center">
           <div
             className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"

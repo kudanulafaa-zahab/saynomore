@@ -204,7 +204,7 @@ export function DispatchView() {
           <div
             key={label}
             className="rounded-2xl p-4"
-            style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
+            style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)" }}
           >
             <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
             <p className="text-[26px] font-bold tracking-tight leading-none" style={{ color }}>{value}</p>
@@ -215,7 +215,7 @@ export function DispatchView() {
       {/* ── Active orders ── */}
       <div
         className="rounded-2xl overflow-hidden"
-        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
+        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)" }}
       >
         <div className="px-4 pt-4 pb-3 flex items-center justify-between">
           <h2 className="text-[17px] font-bold text-foreground">
@@ -310,7 +310,7 @@ export function DispatchView() {
 
                   {/* ── Expanded detail ── */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+                    <div className="px-4 pb-4 space-y-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
 
                       {/* Item list */}
                       <div className="pt-3 space-y-0">
@@ -320,7 +320,7 @@ export function DispatchView() {
                             <div
                               key={line.id}
                               className="flex items-center justify-between py-2.5"
-                              style={{ borderBottom: i < item.lines.length - 1 ? "1px solid var(--glass-border-lo)" : undefined }}
+                              style={{ borderBottom: i < item.lines.length - 1 ? "0.5px solid var(--glass-border-lo)" : undefined }}
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <Package className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
@@ -356,7 +356,7 @@ export function DispatchView() {
                               onChange={(e) => assignDriver(item.order.id, e.target.value)}
                               disabled={assigningId === item.order.id}
                               className="flex-1 h-11 rounded-xl px-3 text-[14px] text-foreground outline-none appearance-none"
-                              style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)" }}
+                              style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}
                             >
                               <option value="">— Unassigned —</option>
                               {users.map((u) => (
@@ -397,7 +397,7 @@ export function DispatchView() {
       {completed.length > 0 && (
         <div
           className="rounded-2xl overflow-hidden"
-          style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "1px solid var(--glass-border-lo)" }}
+          style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)" }}
         >
           <div className="px-4 pt-4 pb-3">
             <h2 className="text-[17px] font-bold text-foreground">Completed Today</h2>
@@ -439,7 +439,7 @@ export function DispatchView() {
               background: "var(--glass-bg-2)",
               backdropFilter: "var(--glass-blur-lg)",
               WebkitBackdropFilter: "var(--glass-blur-lg)",
-              border: "1px solid var(--glass-border-lo)",
+              border: "0.5px solid var(--glass-border-lo)",
               paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
             }}
           >
@@ -459,7 +459,7 @@ export function DispatchView() {
                 <button
                   onClick={() => setConfirmDelivery(null)}
                   className="flex-1 h-[52px] rounded-2xl text-[14px] font-semibold active:scale-[0.97] transition"
-                  style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)", border: "1px solid var(--glass-border-lo)" }}
+                  style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)" }}
                 >
                   Cancel
                 </button>

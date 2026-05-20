@@ -83,6 +83,8 @@ export function BottomNav({ role }: { role: string }) {
         {hasOverflow && (
           <button
             onClick={() => setSheetOpen(true)}
+            aria-label="More navigation options"
+            aria-expanded={sheetOpen}
             className="flex-1 flex flex-col items-center justify-center gap-[3px] pt-2 transition-all active:scale-90 duration-150"
           >
             {overflowActive ? (
@@ -137,6 +139,7 @@ export function BottomNav({ role }: { role: string }) {
               <ThemeToggle />
               <button
                 onClick={() => setSheetOpen(false)}
+                aria-label="Close menu"
                 className="h-9 w-9 rounded-full flex items-center justify-center transition active:scale-90"
                 style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
               >
@@ -174,7 +177,7 @@ export function BottomNav({ role }: { role: string }) {
                           style={{
                             background: active ? "var(--snm-brand-muted)" : "var(--glass-bg-1)",
                             color:      active ? "var(--snm-brand)"       : "var(--muted-foreground)",
-                            border:     active ? "1px solid var(--snm-brand-border)" : "1px solid var(--glass-border-lo)",
+                            border:     active ? "1px solid var(--snm-brand-border)" : "0.5px solid var(--glass-border-lo)",
                           }}
                         >
                           <div
@@ -211,7 +214,7 @@ export function BottomNav({ role }: { role: string }) {
                   style={{
                     background: pathname === "/settings" ? "var(--snm-brand-muted)" : "var(--glass-bg-1)",
                     color:      pathname === "/settings" ? "var(--snm-brand)"       : "var(--muted-foreground)",
-                    border:     pathname === "/settings" ? "1px solid var(--snm-brand-border)" : "1px solid var(--glass-border-lo)",
+                    border:     pathname === "/settings" ? "1px solid var(--snm-brand-border)" : "0.5px solid var(--glass-border-lo)",
                   }}
                 >
                   <div

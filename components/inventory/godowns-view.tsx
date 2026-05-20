@@ -74,7 +74,7 @@ function GodownEditRow({
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--glass-border)" }}>
+    <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
       <Warehouse className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
       <Input
         autoFocus
@@ -487,7 +487,7 @@ export function GodownsView() {
       {godowns.length === 0 && !showNew && (
         <div
           className="rounded-2xl p-10 text-center"
-          style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border)" }}
+          style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}
         >
           <div
             className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center mb-4"

@@ -77,7 +77,7 @@ export function ConfirmSheet({
                 onClick={onClose}
                 disabled={loading}
                 className="flex-1 rounded-2xl py-3.5 text-[14px] font-semibold transition-all active:scale-[0.97]"
-                style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)" }}
+                style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
               >
                 Cancel
               </button>

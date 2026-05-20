@@ -40,7 +40,7 @@ const inputCls = [
 
 const inputSty: React.CSSProperties = {
   background: "var(--glass-bg-1)",
-  border: "1px solid var(--glass-border-lo)",
+  border: "0.5px solid var(--glass-border-lo)",
 };
 
 const disabledSty: React.CSSProperties = {
@@ -134,7 +134,7 @@ function QtyStepper({
         onClick={() => { const v = Math.max(min, value - 1); onChange(v); setDraft(String(v)); }}
         disabled={disabled || value <= min}
         className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition active:scale-95 disabled:opacity-30"
-        style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+        style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
       >
         <Minus className="h-4 w-4" />
       </button>
@@ -150,7 +150,7 @@ function QtyStepper({
         className="flex-1 h-11 rounded-xl text-center text-[15px] font-semibold text-foreground outline-none"
         style={{
           background: "var(--glass-bg-1)",
-          border: "1px solid var(--glass-border-lo)",
+          border: "0.5px solid var(--glass-border-lo)",
           minWidth: 56,
           // hide browser spin arrows — keyboard +/- buttons handle stepping
           MozAppearance: "textfield",
@@ -160,7 +160,7 @@ function QtyStepper({
         onClick={() => { const v = value + 1; onChange(v); setDraft(String(v)); }}
         disabled={disabled}
         className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition active:scale-95 disabled:opacity-30"
-        style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+        style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
       >
         <Plus className="h-4 w-4" />
       </button>
@@ -398,7 +398,7 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* ── Sticky header ── */}
       <div
         className="sticky top-0 z-30 flex items-center gap-3 px-0 py-3 mb-4"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--glass-border-lo)" }}
+        style={{ background: "var(--background)", borderBottom: "0.5px solid var(--glass-border-lo)" }}
       >
         <Link
           href="/shipments"
@@ -550,7 +550,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                     <button
                       onClick={() => patchStatus(prevStep.value)}
                       className="flex items-center gap-1.5 h-11 px-4 rounded-xl text-[13px] font-medium transition active:scale-95"
-                      style={{ background: "var(--glass-bg-2)", border: "1px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
+                      style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
                     >
                       ← {prevStep.label}
                     </button>
@@ -674,7 +674,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               const isShort  = l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons;
 
               return (
-                <div key={l.id} className="rounded-xl overflow-hidden" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
+                <div key={l.id} className="rounded-xl overflow-hidden" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
                   {/* Top: SKU name + actions */}
                   <div className="flex items-start justify-between gap-2 p-4 pb-3">
                     <div className="min-w-0 flex-1">
@@ -741,7 +741,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
                   {/* Actual received qty — only when arrived or grn_confirmed */}
                   {(arrived || locked) && (
-                    <div className="px-4 pb-4" style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 4 }}>
+                    <div className="px-4 pb-4" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 4 }}>
                       <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-wider"
                         style={{ color: isShort ? "var(--snm-warning)" : "var(--muted-foreground)" }}>
                         Actually Received {isShort ? "⚠ Short shipment" : ""}
@@ -771,7 +771,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
                   {/* Locked: landed cost breakdown */}
                   {locked && (
-                    <div className="px-4 pb-4 space-y-2" style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 0 }}>
+                    <div className="px-4 pb-4 space-y-2" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 0 }}>
                       {/* Row 1: Total + per-carton (bulk view) */}
                       <div className="grid grid-cols-2 gap-2">
                         {[
@@ -849,7 +849,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         </button>
 
         {costsOpen && (
-          <div className="px-5 pb-5 space-y-5" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+          <div className="px-5 pb-5 space-y-5" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
 
             {/* Forex */}
             <div className="pt-5">
@@ -1000,7 +1000,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           bottom: 0,
           paddingBottom: "calc(64px + env(safe-area-inset-bottom, 8px))",
           background: "color-mix(in srgb, var(--background) 92%, transparent)",
-          borderTop: "1px solid var(--glass-border-lo)",
+          borderTop: "0.5px solid var(--glass-border-lo)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
         }}
@@ -1303,7 +1303,7 @@ function LineDialog({
 
   const inputSty2: React.CSSProperties = {
     background: "var(--glass-bg-1)",
-    border: "1px solid var(--glass-border-lo)",
+    border: "0.5px solid var(--glass-border-lo)",
   };
 
   return (
@@ -1329,13 +1329,13 @@ function LineDialog({
                 className="w-full h-12 rounded-xl px-4 text-sm text-foreground outline-none"
                 style={inputSty2}
               />
-              <div className="mt-2 rounded-xl overflow-hidden" style={{ maxHeight: 220, overflowY: "auto", border: "1px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
+              <div className="mt-2 rounded-xl overflow-hidden" style={{ maxHeight: 220, overflowY: "auto", border: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                 {filteredSkus.length === 0
                   ? <p className="p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>No matches.</p>
                   : filteredSkus.map((s) => (
                     <button key={s.id} onClick={() => setSkuId(s.id)}
                       className="w-full text-left px-4 py-3 transition"
-                      style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}>
+                      style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}>
                       <p className="text-[13px] font-medium text-foreground">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
                       <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                         {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · CBM {Number(s.cbm_per_carton).toFixed(4)}
@@ -1346,7 +1346,7 @@ function LineDialog({
               </div>
             </>
           ) : sku ? (
-            <div className="rounded-xl p-4" style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
+            <div className="rounded-xl p-4" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
               <div className="flex justify-between items-start gap-2">
                 <div>
                   <p className="text-[13px] font-semibold text-foreground">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>

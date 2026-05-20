@@ -115,7 +115,7 @@ export default async function DashboardPage() {
     <div className="space-y-4">
 
       {/* ── Zone 1: Business Health ── */}
-      <div className="snm-card rounded-2xl p-6" style={{ border: "1px solid var(--glass-border-lo)" }}>
+      <div className="snm-card rounded-2xl p-6" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
         <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>
           {monthName} Performance
         </p>
@@ -123,14 +123,14 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-2 gap-6">
           <div>
             <p className="text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Revenue</p>
-            <p className="text-[36px] font-light tracking-tight text-foreground leading-none">
+            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none tabular-nums">
               {mvr(revenueMonth)}
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
           </div>
           <div>
             <p className="text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Gross Profit</p>
-            <p className="text-[36px] font-light tracking-tight text-foreground leading-none">
+            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none tabular-nums">
               {mvr(grossProfit)}
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
@@ -152,7 +152,7 @@ export default async function DashboardPage() {
 
         {/* Today's revenue — labelled clearly so context is never ambiguous */}
         <div className="flex items-baseline gap-3 mt-4 pt-4"
-          style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <p className="text-[11px] font-semibold uppercase tracking-wider"
             style={{ color: "var(--muted-foreground)" }}>Today</p>
           <p className="text-sm font-semibold text-foreground">{mvr(revenueToday)} MVR</p>
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
            Three columns = three stages. Colour signals state, not just decoration.
       ── */}
       <Link href="/dispatch" className="block snm-card rounded-2xl overflow-hidden transition active:scale-[0.98]"
-        style={{ border: "1px solid var(--glass-border-lo)" }}>
+        style={{ border: "0.5px solid var(--glass-border-lo)" }}>
         <div className="px-4 pt-4 pb-1">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Order Pipeline — Today</p>
         </div>
@@ -223,7 +223,7 @@ export default async function DashboardPage() {
 
         </div>
         <div className="flex items-center justify-end gap-1 px-4 py-2"
-          style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Open dispatch board</p>
           <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
         </div>

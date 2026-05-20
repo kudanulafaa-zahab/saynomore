@@ -87,7 +87,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
         background: "color-mix(in srgb, var(--background) 82%, transparent)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
-        borderBottom: "1px solid var(--glass-border)",
+        borderBottom: "0.5px solid var(--glass-border-lo)",
         paddingTop: "env(safe-area-inset-top, 0px)",
         height: "calc(52px + env(safe-area-inset-top, 0px))",
       }}
@@ -115,8 +115,10 @@ export function Topbar({ name, role }: { name: string; role: string }) {
         {/* Avatar + popover — CSS-driven focus-within */}
         <div className="relative group">
           <button
+            aria-label={`Account menu for ${name}`}
+            aria-haspopup="true"
             className="w-11 h-11 rounded-full flex items-center justify-center text-[12px] font-semibold text-foreground active:opacity-70 focus:outline-none"
-            style={{ background: "var(--secondary)", border: "1px solid var(--glass-border)" }}
+            style={{ background: "var(--secondary)", border: "0.5px solid var(--glass-border-lo)" }}
           >
             {initials}
           </button>
@@ -130,15 +132,15 @@ export function Topbar({ name, role }: { name: string; role: string }) {
               background: "var(--glass-2)",
               backdropFilter: "blur(32px)",
               WebkitBackdropFilter: "blur(32px)",
-              border: "1px solid var(--glass-border)",
+              border: "0.5px solid var(--glass-border-lo)",
               boxShadow: "var(--glass-shadow)",
             }}
           >
             {/* User info */}
-            <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: "1px solid var(--glass-border)" }}>
+            <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
-                style={{ background: "var(--secondary)", color: "var(--foreground)", border: "1px solid var(--glass-border)" }}
+                style={{ background: "var(--secondary)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
               >
                 {initials}
               </div>

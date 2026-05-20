@@ -436,7 +436,7 @@ export function EditSkuDialog({
           {/* ── Current live prices (read-only summary) ── */}
           {sku?.landed_per_piece_mvr != null && (
             <div className="rounded-xl p-3 space-y-2"
-              style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
+              style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
               <p className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted-foreground)" }}>
                 Current landed cost
               </p>

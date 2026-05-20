@@ -160,7 +160,7 @@ function SkuPanel({
       {/* Header */}
       <div
         className="flex items-start justify-between px-5 py-4 shrink-0"
-        style={{ borderBottom: "1px solid var(--glass-border)" }}
+        style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}
       >
         <div className="min-w-0 flex-1 pr-3">
           <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>
@@ -506,7 +506,7 @@ function SkuPanel({
       {/* Footer actions */}
       <div
         className="shrink-0 px-5 py-4 flex gap-2"
-        style={{ borderTop: "1px solid var(--glass-border)" }}
+        style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}
       >
         <button
           onClick={onToggle}
@@ -683,11 +683,11 @@ export function ProductsExplorer() {
         background: "var(--glass-1)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid var(--glass-border)",
+        border: "0.5px solid var(--glass-border-lo)",
       }}
     >
       {/* Toolbar */}
-      <div className="px-4 pt-4 pb-3 space-y-3 shrink-0" style={{ borderBottom: "1px solid var(--glass-border)" }}>
+      <div className="px-4 pt-4 pb-3 space-y-3 shrink-0" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[15px] font-semibold text-foreground">
@@ -720,7 +720,7 @@ export function ProductsExplorer() {
         {/* Search */}
         <div
           className="flex items-center gap-2 px-3 rounded-xl h-11"
-          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border)" }}
+          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
         >
           <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input
@@ -776,7 +776,7 @@ export function ProductsExplorer() {
                 style={{
                   background: "color-mix(in srgb, var(--glass-1) 95%, transparent)",
                   backdropFilter: "blur(8px)",
-                  borderBottom: "1px solid var(--glass-border)",
+                  borderBottom: "0.5px solid var(--glass-border-lo)",
                 }}
               >
                 <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>
@@ -804,7 +804,7 @@ export function ProductsExplorer() {
       <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-4" style={{ height: "calc(100vh - 100px)" }}>
         {listPanel}
         {selectedSku ? (
-          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--glass-border)" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
             <SkuPanel
               sku={selectedSku}
               isAdmin={isAdmin}
@@ -824,7 +824,7 @@ export function ProductsExplorer() {
             style={{
               background: "var(--glass-1)",
               backdropFilter: "blur(20px)",
-              border: "1px solid var(--glass-border)",
+              border: "0.5px solid var(--glass-border-lo)",
             }}
           >
             <ChevronRight className="h-8 w-8 mb-3 opacity-15" style={{ color: "var(--muted-foreground)" }} />
@@ -851,7 +851,7 @@ export function ProductsExplorer() {
             />
             <div
               className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
-              style={{ height: "80vh", border: "1px solid var(--glass-border)" }}
+              style={{ height: "80vh", border: "0.5px solid var(--glass-border-lo)" }}
             >
               <SkuPanel
                 sku={selectedSku}
@@ -951,7 +951,7 @@ function Combobox({
           display: "flex", alignItems: "center", justifyContent: "space-between",
           height: 44, padding: "0 12px", borderRadius: 10, cursor: disabled ? "default" : "pointer",
           background: disabled ? "color-mix(in srgb, var(--foreground) 3%, transparent)" : "color-mix(in srgb, var(--foreground) 6%, transparent)",
-          border: "1px solid var(--glass-border-lo)",
+          border: "0.5px solid var(--glass-border-lo)",
           opacity: disabled ? 0.5 : 1,
         }}
       >
@@ -964,7 +964,7 @@ function Combobox({
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 100,
           background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
-          border: "1px solid var(--glass-border)", borderRadius: 12, overflow: "hidden",
+          border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, overflow: "hidden",
           boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
         }}>
           <div style={{ padding: "8px 8px 4px" }}>
@@ -974,7 +974,7 @@ function Combobox({
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search…"
               style={{
-                width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--glass-border-lo)",
+                width: "100%", padding: "8px 10px", borderRadius: 8, border: "0.5px solid var(--glass-border-lo)",
                 background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
                 color: "var(--foreground)", fontSize: 13, outline: "none", boxSizing: "border-box",
               }}
@@ -1005,7 +1005,7 @@ function Combobox({
               onClick={() => { onCreateClick(); setOpen(false); setQ(""); }}
               style={{
                 width: "100%", textAlign: "left", padding: "10px 14px",
-                borderTop: "1px solid var(--glass-border-lo)",
+                borderTop: "0.5px solid var(--glass-border-lo)",
                 background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)",
                 border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
                 color: "var(--snm-brand)",
@@ -1147,7 +1147,7 @@ function CategoryPills({
           </button>
           <button type="button" onClick={() => { setAdding(false); setName(""); }}
             style={{ height: 26, padding: "0 8px", borderRadius: 999, fontSize: 11,
-              background: "transparent", color: "var(--muted-foreground)", border: "1px solid var(--glass-border)", cursor: "pointer" }}>
+              background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", cursor: "pointer" }}>
             Cancel
           </button>
         </span>
@@ -1363,7 +1363,7 @@ function NewSkuWizard({
   const inp: React.CSSProperties = {
     width: "100%", height: 44, padding: "0 12px", borderRadius: 10,
     background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
-    border: "1px solid var(--glass-border-lo)", color: "var(--foreground)",
+    border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)",
     fontSize: 14, outline: "none", boxSizing: "border-box",
   };
 
@@ -1372,7 +1372,7 @@ function NewSkuWizard({
       <DialogContent className="bg-popover border-border max-w-lg p-0 gap-0 overflow-hidden">
 
         {/* Header */}
-        <div className="px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: "1px solid var(--glass-border)" }}>
+        <div className="px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
           <DialogTitle className="text-[17px] font-semibold">New SKU</DialogTitle>
           <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             Type to search or create — everything in one card
@@ -1537,7 +1537,7 @@ function NewSkuWizard({
           )}
 
           {/* ── Divider ── */}
-          <div style={{ borderTop: "1px solid var(--glass-border-lo)" }} />
+          <div style={{ borderTop: "0.5px solid var(--glass-border-lo)" }} />
 
           {/* ── Pack config ── */}
           <div className="space-y-3">
@@ -1595,7 +1595,7 @@ function NewSkuWizard({
             </div>
 
             {/* Pricing — margin OR fixed price */}
-            <div style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 16 }}>
+            <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 16 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Pricing</p>
               <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 12 }}>
                 Optional — can set after first shipment. Use margin % (auto-calculates) or a fixed price per piece.
@@ -1636,7 +1636,7 @@ function NewSkuWizard({
               )}
 
               {/* Volume-break pricing */}
-              <div style={{ borderTop: "1px solid var(--glass-border-lo)", paddingTop: 14, marginTop: 4 }}>
+              <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 14, marginTop: 4 }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Volume-Break Prices</p>
                 <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10 }}>
                   Optional — set a lower price for pack or carton buyers (discount for buying more).
@@ -1702,7 +1702,7 @@ function NewSkuWizard({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 flex gap-3 shrink-0" style={{ borderTop: "1px solid var(--glass-border)" }}>
+        <div className="px-5 py-4 flex gap-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <Button variant="ghost" className="h-12 flex-1" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

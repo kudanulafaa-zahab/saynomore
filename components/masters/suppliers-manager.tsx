@@ -50,7 +50,7 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
       <input
         {...props}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
-        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
+        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
       />
     </div>
   );
@@ -64,7 +64,7 @@ function GlassSelect({ label, value, onChange, children }: { label?: string; val
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
-        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
+        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
       >
         {children}
       </select>
@@ -79,7 +79,7 @@ function GlassTextarea({ label, ...props }: { label?: string } & React.TextareaH
       <textarea
         {...props}
         className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none transition"
-        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
+        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
         rows={3}
       />
     </div>
@@ -152,7 +152,7 @@ export function SuppliersManager() {
       {/* ── Search ── */}
       <div
         className="flex items-center gap-3 rounded-2xl px-4 h-12"
-        style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
+        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
       >
         <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input
@@ -229,7 +229,7 @@ export function SuppliersManager() {
                       <a
                         href={`mailto:${featured.contact_email}`}
                         className="flex items-center gap-2 h-11 px-6 rounded-full text-sm font-bold transition"
-                        style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+                        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
                       >
                         <Mail className="h-4 w-4" />
                         Email
@@ -238,7 +238,7 @@ export function SuppliersManager() {
                     <button
                       onClick={() => setDialog({ open: true, editing: featured })}
                       className="flex items-center gap-2 h-11 px-4 rounded-full text-sm transition"
-                      style={{ ...CARD, border: "1px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
+                      style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -285,7 +285,7 @@ export function SuppliersManager() {
                 <div
                   key={s.id}
                   className="rounded-3xl p-5 transition"
-                  style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}
+                  style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -294,7 +294,7 @@ export function SuppliersManager() {
                         {i === 0 && !q && (
                           <span
                             className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)" }}
+                            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
                           >
                             Primary
                           </span>

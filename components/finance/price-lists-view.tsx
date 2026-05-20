@@ -136,7 +136,7 @@ export function PriceListsView() {
                 background: "var(--glass-1)",
                 backdropFilter: "blur(20px)",
                 WebkitBackdropFilter: "blur(20px)",
-                border: "1px solid var(--glass-border)",
+                border: "0.5px solid var(--glass-border-lo)",
               }}
             >
               {/* Tier header */}
@@ -389,7 +389,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
             {items.map((item) => {
               const sku = skus.find((s) => s.id === item.sku_id);
               return (
-                <div key={item.id} className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+                <div key={item.id} className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)" }}>
@@ -433,7 +433,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
               placeholder="Search brand, SKU, variant…"
               className={inputCls}
             />
-            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 280, overflowY: "auto" }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)", maxHeight: 280, overflowY: "auto" }}>
               {filteredSkus.length === 0 ? (
                 <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
                   {search ? "No matches" : skus.filter(s => s.is_active).length === setSkuIds.size ? "All SKUs added" : "Search for a SKU above"}
@@ -443,7 +443,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                   key={s.id}
                   onClick={() => { setSelectedSkuId(s.id); setShowSkuPrice(true); }}
                   className="w-full text-left px-4 py-3 flex flex-col transition-colors"
-                  style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}
+                  style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}
                 >
                   <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
                     {s.brand_name} › {s.model_name}
@@ -587,7 +587,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                     background: "var(--glass-1)",
                     border: isEditing
                       ? `1px solid color-mix(in srgb, ${t.color} 40%, transparent)`
-                      : "1px solid var(--glass-border-lo)",
+                      : "0.5px solid var(--glass-border-lo)",
                   }}
                 >
                   <button
@@ -623,7 +623,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                   </button>
 
                   {isEditing && sku && (
-                    <div className="px-4 pb-4 pt-1" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+                    <div className="px-4 pb-4 pt-1" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                       <SkuPriceEntry
                         sku={sku}
                         initialPrices={{
@@ -693,7 +693,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                   placeholder="Search brand, SKU, variant…"
                   className={inputCls}
                 />
-                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)", maxHeight: 400, overflowY: "auto" }}>
+                <div className="rounded-xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)", maxHeight: 400, overflowY: "auto" }}>
                   {filteredSkus.length === 0 ? (
                     <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
                       {search ? "No matches" : "All active SKUs already have prices in this list"}
@@ -703,7 +703,7 @@ function PriceListItemsSheet({ priceList, skus, onClose, onDone }: {
                       key={s.id}
                       onClick={() => setAddSkuId(s.id)}
                       className="w-full text-left px-4 py-3.5 flex flex-col transition active:bg-black/5"
-                      style={{ borderBottom: "1px solid var(--glass-border-lo)", background: "transparent" }}
+                      style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}
                     >
                       <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
                         {s.brand_name} › {s.model_name}
@@ -841,7 +841,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
   if (!sku) return null;
 
   return (
-    <div className="rounded-2xl p-4 space-y-4" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+    <div className="rounded-2xl p-4 space-y-4" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>

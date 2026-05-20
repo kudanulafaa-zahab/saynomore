@@ -47,7 +47,7 @@ export function Sidebar({ role }: { role: string }) {
       {/* Logo — 52px matches topbar */}
       <div
         className="flex items-center justify-between px-5 shrink-0"
-        style={{ height: 52, borderBottom: "1px solid var(--glass-border-lo)" }}
+        style={{ height: 52, borderBottom: "0.5px solid var(--glass-border-lo)" }}
       >
         <div className="flex items-center gap-2.5">
           <div
@@ -93,7 +93,7 @@ export function Sidebar({ role }: { role: string }) {
 
       {/* Settings footer */}
       {role !== "staff" && (
-        <div className="px-3 py-3 shrink-0" style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+        <div className="px-3 py-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <Link
             href="/settings"
             className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all active:scale-[0.97]"

@@ -40,6 +40,8 @@ export function ThemeToggle() {
             key={value}
             onClick={() => setTheme(value)}
             title={label}
+            aria-label={`${label} theme`}
+            aria-pressed={active}
             className="w-7 h-7 rounded-md flex items-center justify-center transition-all duration-150"
             style={{
               background: active ? "var(--foreground)" : "transparent",

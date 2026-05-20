@@ -91,7 +91,7 @@ function CodView() {
                   flexShrink: 0, minHeight: 44, padding: "0 18px", borderRadius: 22,
                   background: active ? "var(--foreground)" : "var(--glass-1)",
                   color: active ? "var(--background)" : "var(--muted-foreground)",
-                  border: active ? "none" : "1px solid var(--glass-border-lo)",
+                  border: active ? "none" : "0.5px solid var(--glass-border-lo)",
                   fontSize: 13, fontWeight: 600, cursor: "pointer", touchAction: "manipulation",
                 }}
               >
@@ -105,7 +105,7 @@ function CodView() {
               flexShrink: 0, minHeight: 44, padding: "0 18px", borderRadius: 22,
               background: customDate ? "var(--foreground)" : "var(--glass-1)",
               color: customDate ? "var(--background)" : "var(--muted-foreground)",
-              border: customDate ? "none" : "1px solid var(--glass-border-lo)",
+              border: customDate ? "none" : "0.5px solid var(--glass-border-lo)",
               fontSize: 13, fontWeight: 600, cursor: "pointer", touchAction: "manipulation",
             }}
           >
@@ -119,7 +119,7 @@ function CodView() {
               value={date}
               max={today}
               onChange={(e) => setDate(e.target.value)}
-              style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer", width: "100%" }}
+              style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer", width: "100%" }}
             />
           </div>
         )}
@@ -142,7 +142,7 @@ function CodView() {
             ))}
           </div>
           {hasIssue && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--glass-border-lo)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "0.5px solid var(--glass-border-lo)" }}>
               <AlertTriangle style={{ color: "var(--snm-error)", width: 14, height: 14 }} />
               <p style={{ color: "var(--snm-error)", fontSize: 12 }}>One or more drivers have a cash variance — review below.</p>
             </div>
@@ -203,7 +203,7 @@ function CodView() {
 
                 {/* Drill-down: order list */}
                 {isOpen && (
-                  <div style={{ borderTop: "1px solid var(--glass-border-lo)", padding: "12px 20px 16px" }}>
+                  <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", padding: "12px 20px 16px" }}>
                     {drillLoading ? (
                       <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
                         <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--muted-foreground)" }} />
@@ -214,7 +214,7 @@ function CodView() {
                       return (
                         <div
                           key={o.order_id}
-                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--glass-border-lo)" }}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "0.5px solid var(--glass-border-lo)" }}
                         >
                           <div style={{ minWidth: 0 }}>
                             <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{o.customer_name}</p>
@@ -360,7 +360,7 @@ export function FinancialsView() {
     <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
 
       {/* Tab switcher */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "blur(20px)", padding: 4, borderRadius: 14, border: "1px solid var(--glass-border-lo)" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "blur(20px)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)" }}>
         {([
           { key: "profit", label: "P&L" },
           { key: "cod",    label: "COD Cash" },
@@ -392,7 +392,7 @@ export function FinancialsView() {
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
             Net Profit — {today.toLocaleString("en-MV", { month: "long" })}
           </p>
-          <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 48, fontWeight: 300, letterSpacing: "-0.03em", lineHeight: "56px" }}>
+          <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 48, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: "56px", fontVariantNumeric: "tabular-nums" }}>
             MVR {fmt(netProfit, 2)}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12 }}>
@@ -407,7 +407,7 @@ export function FinancialsView() {
             </span>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 32, paddingTop: 24, borderTop: "1px solid var(--glass-border-lo)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 32, paddingTop: 24, borderTop: "0.5px solid var(--glass-border-lo)" }}>
           {[
             { label: "Sales Revenue", value: fmtShort(totalRevenue) },
             { label: "Landed Costs", value: fmtShort(totalLandedCost) },
@@ -463,7 +463,7 @@ export function FinancialsView() {
 
         {/* Axis labels */}
         {monthly.length > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 8, borderTop: "1px solid var(--glass-border-lo)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 8, borderTop: "0.5px solid var(--glass-border-lo)" }}>
             <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>0</span>
             <span style={{ color: "var(--muted-foreground)", fontSize: 10 }}>Peak: MVR {fmtShort(chartMax)}</span>
           </div>

@@ -274,7 +274,7 @@ export function ShipmentsList() {
               style={{
                 background: active ? "var(--foreground)" : "var(--glass-1)",
                 color:      active ? "var(--background)" : "var(--muted-foreground)",
-                border:     active ? "none" : "1px solid var(--glass-border-lo)",
+                border:     active ? "none" : "0.5px solid var(--glass-border-lo)",
               }}
             >
               {label}
@@ -442,10 +442,10 @@ function PoCard({
           background: "var(--glass-1)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid var(--glass-border-lo)",
+          border: "0.5px solid var(--glass-border-lo)",
         } : {
           background: "transparent",
-          border: "1px solid var(--glass-border-lo)",
+          border: "0.5px solid var(--glass-border-lo)",
           opacity: 0.65,
         }),
       }}
@@ -490,7 +490,7 @@ function PoCard({
       {isAdmin && !locked && (
         <div
           className="flex justify-end px-3 py-1.5"
-          style={{ borderTop: "1px solid var(--glass-border-lo)" }}
+          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}
         >
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(shipment); }}
@@ -576,7 +576,7 @@ function NewPoSheet({
             onChange={(e) => setReference(e.target.value)}
             placeholder="PO-2026-001"
             className="w-full h-12 rounded-xl px-4 text-sm text-foreground outline-none"
-            style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}
+            style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
           />
           <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Auto-generated — edit if you have your own reference.</p>
         </div>
@@ -589,7 +589,7 @@ function NewPoSheet({
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
               className="w-full h-12 rounded-xl px-4 pr-10 text-sm text-foreground outline-none appearance-none"
-              style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}
+              style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
             >
               <option value="">No supplier yet</option>
               {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}{s.country ? ` · ${s.country}` : ""}</option>)}

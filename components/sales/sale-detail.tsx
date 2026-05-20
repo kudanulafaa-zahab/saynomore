@@ -354,7 +354,7 @@ export function SaleDetail({ id }: { id: string }) {
                           value={refInput}
                           onChange={(e) => setRefInput(e.target.value)}
                           placeholder="e.g. TRF-20240511-0042"
-                          style={{ flex: 1, background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--foreground)", outline: "none" }}
+                          style={{ flex: 1, background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--foreground)", outline: "none" }}
                           onKeyDown={(e) => { if (e.key === "Enter") savePaymentRef(); if (e.key === "Escape") setEditingRef(false); }}
                         />
                         <button
@@ -387,7 +387,7 @@ export function SaleDetail({ id }: { id: string }) {
 
             <LineList lines={lines} skus={skus} editable={false} />
             {totals.count > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid var(--glass-border-lo)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "0.5px solid var(--glass-border-lo)" }}>
                 <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
                 <span style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
               </div>
@@ -401,7 +401,7 @@ export function SaleDetail({ id }: { id: string }) {
           </button>
           <button
             onClick={() => setPanel("printLabels")}
-            style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "1px solid var(--glass-border)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
             <Printer style={{ width: 16, height: 16 }} />
             Print Labels
@@ -446,7 +446,7 @@ export function SaleDetail({ id }: { id: string }) {
             )}
 
             <LineList lines={lines} skus={skus} editable={false} />
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "1px solid var(--glass-border-lo)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "0.5px solid var(--glass-border-lo)" }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
               <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
             </div>
@@ -459,7 +459,7 @@ export function SaleDetail({ id }: { id: string }) {
           </button>
           <button
             onClick={() => setPanel("printLabels")}
-            style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "1px solid var(--glass-border)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            style={{ width: "100%", background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
             <Printer style={{ width: 16, height: 16 }} />
             Print Labels
@@ -555,7 +555,7 @@ export function SaleDetail({ id }: { id: string }) {
           <select
             value={selectedDriver}
             onChange={(e) => setSelectedDriver(e.target.value)}
-            style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 14, outline: "none", cursor: "pointer" }}
+            style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 14, outline: "none", cursor: "pointer" }}
           >
             <option value="">Select driver…</option>
             {drivers.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
@@ -584,7 +584,7 @@ export function SaleDetail({ id }: { id: string }) {
               placeholder={String(totals.mvr.toFixed(0))}
               value={cashCollected}
               onChange={(e) => setCashCollected(e.target.value)}
-              style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "1px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
             />
           </div>
         )}
@@ -657,7 +657,7 @@ export function SaleDetail({ id }: { id: string }) {
               <a
                 key={l.id}
                 href={`/sales/${id}/label/${l.id}`}
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "var(--glass-bg-1)", borderRadius: 12, textDecoration: "none", border: "1px solid var(--glass-border-lo)" }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "var(--glass-bg-1)", borderRadius: 12, textDecoration: "none", border: "0.5px solid var(--glass-border-lo)" }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -881,7 +881,7 @@ function LineDialog({
 
   const inputStyle: React.CSSProperties = {
     background: "var(--glass-bg-1)", color: "var(--foreground)",
-    border: "1px solid var(--glass-border-lo)", borderRadius: 10,
+    border: "0.5px solid var(--glass-border-lo)", borderRadius: 10,
     padding: "10px 12px", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box",
   };
 
@@ -906,7 +906,7 @@ function LineDialog({
                 placeholder="Search brand, product, variant…"
                 style={inputStyle}
               />
-              <div style={{ borderRadius: 10, border: "1px solid var(--glass-border-lo)", maxHeight: 220, overflowY: "auto", marginTop: 8, background: "var(--glass-bg-2)" }}>
+              <div style={{ borderRadius: 10, border: "0.5px solid var(--glass-border-lo)", maxHeight: 220, overflowY: "auto", marginTop: 8, background: "var(--glass-bg-2)" }}>
                 {filtered.length === 0 ? (
                   <p style={{ color: "var(--muted-foreground)", fontSize: 13, padding: "12px" }}>No matches</p>
                 ) : filtered.map((s) => {
@@ -914,7 +914,7 @@ function LineDialog({
                     ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === sourceGodownId)?.qty_pieces ?? 0
                     : null;
                   return (
-                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "0.5px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
                         <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{s.brand_name} › {s.model_name} › {s.variant_display}</p>
                         <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
@@ -963,7 +963,7 @@ function LineDialog({
                     style={{
                       background: active ? "var(--foreground)" : "var(--glass-bg-1)",
                       color: active ? "var(--background)" : "var(--muted-foreground)",
-                      border: active ? "none" : "1px solid var(--glass-border-lo)",
+                      border: active ? "none" : "0.5px solid var(--glass-border-lo)",
                       borderRadius: 12, padding: "12px 8px", cursor: "pointer",
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                       transition: "all 0.15s",
@@ -1045,7 +1045,7 @@ function LineDialog({
               const saving = packPrice && effectivePerPack
                 ? packPrice - effectivePerPack : null;
               return effectivePerPack != null ? (
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid var(--glass-border-lo)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                   <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Effective / pack</span>
                   <span style={{ fontSize: 12 }}>
                     <span style={{ color: "var(--foreground)", fontWeight: 600 }}>MVR {effectivePerPack.toFixed(2)}</span>

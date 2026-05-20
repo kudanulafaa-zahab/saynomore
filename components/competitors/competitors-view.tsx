@@ -264,7 +264,7 @@ export function CompetitorsView() {
                 }
               }}
               className="h-12 rounded-xl pl-4 pr-10 text-sm font-medium text-foreground outline-none appearance-none w-full cursor-pointer"
-              style={{ ...CARD, border: "1px solid var(--glass-border)" }}
+              style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
             >
               {skus.filter((s) => s.is_active).map((s) => (
                 <option key={s.id} value={s.id}>
@@ -364,7 +364,7 @@ export function CompetitorsView() {
         <div className="rounded-xl overflow-hidden" style={CARD}>
 
           {/* Header — title only, no toggle here */}
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+          <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Margin Simulator</h2>
           </div>
 
@@ -435,7 +435,7 @@ export function CompetitorsView() {
               {/* Price display card — pencil button triggers edit, rest of card is non-interactive */}
               <div
                 className="rounded-2xl px-5 pt-5 pb-4 text-center relative"
-                style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border-lo)" }}
+                style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
               >
                 {/* Pencil button — tap to manually enter a price in the current display unit */}
                 {!simEditing && (
@@ -489,7 +489,7 @@ export function CompetitorsView() {
                 const fillPct = ((sliderVal - 1) / 98) * 100;
                 return (
                   <div className="mt-3 rounded-2xl px-5 py-4"
-                    style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "1px solid var(--glass-border-lo)" }}>
+                    style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
                     <style>{`
                       .snm-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 9999px; outline: none; cursor: pointer; background: transparent; }
                       .snm-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 32px; height: 32px; border-radius: 50%; background: #FF4000; box-shadow: 0 2px 16px rgba(255,64,0,0.5); cursor: grab; border: 3px solid rgba(255,255,255,0.75); margin-top: -13px; }
@@ -549,7 +549,7 @@ export function CompetitorsView() {
                   <div key={label} className="rounded-xl p-3 text-center space-y-1.5"
                     style={{
                       background: isActive ? "color-mix(in srgb, var(--snm-brand) 10%, transparent)" : "color-mix(in srgb, var(--foreground) 5%, transparent)",
-                      border: isActive ? "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)" : "1px solid var(--glass-border-lo)",
+                      border: isActive ? "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)" : "0.5px solid var(--glass-border-lo)",
                     }}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <p className="text-[18px] font-bold leading-none text-foreground">MVR {fmtInt(value)}</p>
@@ -609,7 +609,7 @@ export function CompetitorsView() {
                   style={{
                     background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
                     color: "var(--foreground)",
-                    border: "1px solid var(--glass-border-lo)",
+                    border: "0.5px solid var(--glass-border-lo)",
                     touchAction: "manipulation",
                   }}
                 >
@@ -637,7 +637,7 @@ export function CompetitorsView() {
                     Manage →
                   </a>
                 </div>
-                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-border-lo)" }}>
+                <div className="rounded-xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
                   {tierCoverage.map((tc, i) => {
                     const hasListPrice = tc.source === "price_list";
                     const hasAnyPrice  = tc.source !== "none" && tc.price_per_piece_mvr != null;
@@ -650,7 +650,7 @@ export function CompetitorsView() {
                       <div key={tc.tier}
                         className="flex items-center justify-between px-4 py-3 gap-3"
                         style={{
-                          borderBottom: i < tierCoverage.length - 1 ? "1px solid var(--glass-border-lo)" : "none",
+                          borderBottom: i < tierCoverage.length - 1 ? "0.5px solid var(--glass-border-lo)" : "none",
                           background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
                         }}>
                         {/* Tier label + source badge */}
@@ -708,7 +708,7 @@ export function CompetitorsView() {
       {/* ── Per-Piece Comparison Table ── */}
       {perPieceComparison.length > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+          <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Price Comparison</h2>
             <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>All prices normalised to per piece · sorted cheapest first</p>
           </div>
@@ -827,7 +827,7 @@ export function CompetitorsView() {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-3 rounded-xl px-4 h-11 mb-3" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+        <div className="flex items-center gap-3 rounded-xl px-4 h-11 mb-3" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
           <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input
             value={q}
@@ -891,7 +891,7 @@ export function CompetitorsView() {
                   </div>
 
                   {isExpanded && (
-                    <div style={{ borderTop: "1px solid var(--glass-border-lo)" }}>
+                    <div style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                       {compPrices.length === 0 ? (
                         <div className="px-4 py-4 text-center">
                           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
@@ -904,7 +904,7 @@ export function CompetitorsView() {
                             <div
                               key={p.id}
                               className="px-4 py-3 flex items-start justify-between gap-3"
-                              style={{ borderBottom: "1px solid var(--glass-border-lo)" }}
+                              style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}
                             >
                               <div className="min-w-0 flex-1">
                                 <p className="text-[13px] text-foreground truncate">
@@ -1053,11 +1053,11 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
         <div className="space-y-1.5">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
@@ -1150,7 +1150,7 @@ function PriceModal({
         <div className="space-y-1.5">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
           {competitors.length > 0 ? (
-            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               <option value="">Pick competitor</option>
               {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -1164,10 +1164,10 @@ function PriceModal({
           <p className="label-caps text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!variantId ? (
             <>
-              <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+              <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
               <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
                 {filteredVariants.map((s) => (
-                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-foreground active:opacity-70" style={{ borderBottom: "1px solid var(--glass-border-lo)" }}>
+                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-foreground active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                     <p className="font-medium">{s.brand_name} · {s.model_name} · {s.variant_display}</p>
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
                   </button>
@@ -1176,7 +1176,7 @@ function PriceModal({
               </div>
             </>
           ) : selectedSku ? (
-            <div className="rounded-xl p-3 flex justify-between items-start" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+            <div className="rounded-xl p-3 flex justify-between items-start" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               <div>
                 <p className="text-[13px] text-foreground">{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
@@ -1189,11 +1189,11 @@ function PriceModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
-            <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+            <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
           <div className="space-y-1.5">
             <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
-            <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }}>
+            <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               {(Object.keys(BASIS_LABEL) as PriceBasis[]).map((b) => <option key={b} value={b}>{BASIS_LABEL[b]}</option>)}
             </select>
           </div>
@@ -1211,18 +1211,18 @@ function PriceModal({
         {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
           <div className="space-y-1.5">
             <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
-            <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+            <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
         )}
 
         <div className="space-y-1.5">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
-          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="space-y-1.5">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "1px solid var(--glass-border-lo)" }} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="flex gap-2 pt-1">

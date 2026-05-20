@@ -515,7 +515,7 @@
   .pill-neutral {
     background: var(--muted);
     color:      var(--muted-foreground);
-    border:     1px solid var(--glass-border-lo);
+    border:     0.5px solid var(--glass-border-lo);
   }
   .pill-brand {
     background: var(--snm-brand-muted);
@@ -556,7 +556,7 @@
     width:      100%;
     outline:    none;
     background: color-mix(in srgb, var(--foreground) 5%, transparent);
-    border:     1px solid var(--glass-border-lo);
+    border:     0.5px solid var(--glass-border-lo);
     color:      var(--foreground);
     transition: border-color 0.15s;
   }

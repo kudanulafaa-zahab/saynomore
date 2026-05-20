@@ -48,7 +48,7 @@ export function LabelPreview({ data }: { data: LabelData }) {
     width: "100%",
     background: "var(--glass-bg-1)",
     color: "var(--foreground)",
-    border: "1px solid var(--glass-border-lo)",
+    border: "0.5px solid var(--glass-border-lo)",
     borderRadius: 10,
     padding: "11px 14px",
     fontSize: 15,
