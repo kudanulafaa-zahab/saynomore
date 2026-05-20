@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, UserCircle, Shield, Truck, Users,
+  Loader2, Plus, UserCircle, Shield, Truck, Users, Eye,
   AlertTriangle, Pencil, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,18 +38,21 @@ const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Administrator",
   manager: "Manager",
   staff: "Delivery Staff",
+  viewer: "Viewer",
 };
 
 const ROLE_DESC: Record<UserRole, string> = {
   admin: "Full access. Can delete master data and manage users.",
   manager: "Full operational access. Cannot manage users.",
   staff: "Can only see and update their own deliveries.",
+  viewer: "Read-only access. Can see everything but cannot add, edit, or delete.",
 };
 
 const ROLE_ICON: Record<UserRole, typeof Shield> = {
   admin: Shield,
   manager: UserCircle,
   staff: Truck,
+  viewer: Eye,
 };
 
 const ROLE_TOKEN: Record<UserRole, string> = {
@@ -322,6 +325,7 @@ function EditUserDialog({
                 <SelectContent>
                   <SelectItem value="manager">{ROLE_LABEL.manager}</SelectItem>
                   <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
+                  <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
@@ -408,6 +412,7 @@ function InviteDialog({
               <SelectContent>
                 <SelectItem value="manager">{ROLE_LABEL.manager}</SelectItem>
                 <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
+                <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
