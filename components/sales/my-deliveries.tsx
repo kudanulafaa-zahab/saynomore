@@ -637,8 +637,8 @@ export function MyDeliveries() {
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
-            <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 2 }}>Today</p>
-            <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--foreground)", margin: 0, letterSpacing: "-0.02em" }}>My Deliveries</h1>
+            <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
+            <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">My Deliveries</h1>
           </div>
           <button
             onClick={() => load(true)} disabled={refreshing}

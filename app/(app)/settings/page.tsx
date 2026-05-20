@@ -80,8 +80,8 @@ export default function SettingsPage() {
 
       {/* Page header */}
       <div>
-        <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>System</p>
-        <h1 className="text-2xl font-semibold" style={{ color: "var(--foreground)" }}>Settings</h1>
+        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>System</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Settings</h1>
       </div>
 
       {/* ── Team Members ──────────────────────────────────────── */}

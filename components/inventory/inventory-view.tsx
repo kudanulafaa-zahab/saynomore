@@ -451,6 +451,12 @@ export function InventoryView() {
   return (
     <div className="space-y-4 pb-28 lg:pb-10">
 
+      {/* ── Page header ── */}
+      <div>
+        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Inventory</h1>
+      </div>
+
       {/* ── Critical alert banner — only shown when urgent ── */}
       {criticalCount > 0 && (
         <div

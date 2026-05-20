@@ -360,6 +360,12 @@ export function FinancialsView() {
   return (
     <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
 
+      {/* ── Page header ── */}
+      <div style={{ marginBottom: 20 }}>
+        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Financials</h1>
+      </div>
+
       {/* Tab switcher */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "blur(20px)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
         {([

@@ -446,6 +446,12 @@ export function GodownsView() {
   return (
     <div className="space-y-3 pb-28 lg:pb-10">
 
+      {/* ── Page header ── */}
+      <div>
+        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Godowns</h1>
+      </div>
+
       {/* Summary + New Godown button */}
       <div
         className="rounded-2xl px-4 py-3.5 flex items-center justify-between"
