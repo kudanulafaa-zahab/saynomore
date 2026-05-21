@@ -337,11 +337,11 @@ export function DispatchView() {
                       </div>
 
                       {/* Delivery address */}
-                      {(item.order.delivery_address || item.order.delivery_island) && (
+                      {(item.order.delivery_address_line1 || item.order.delivery_address_line2 || item.order.delivery_island) && (
                         <div className="flex items-start gap-2 pt-1">
                           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
                           <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                            {[item.order.delivery_island, item.order.delivery_address].filter(Boolean).join(", ")}
+                            {[item.order.delivery_island, item.order.delivery_address_line1, item.order.delivery_address_line2].filter(Boolean).join(", ")}
                           </p>
                         </div>
                       )}

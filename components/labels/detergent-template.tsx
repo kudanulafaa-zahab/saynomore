@@ -1,16 +1,17 @@
 import React from "react";
 import type { LabelData } from "@/lib/queries/labels";
-import { SnmLogo, DetergentIcon, SnmBarcode, SnmQrCode, SocialIcons } from "./snm-assets";
+import { SnmLogo, DetergentIcon, SnmBarcode, SnmQrCode, SocialIcons, DhivehiNumberText, RecycleIcon } from "./snm-assets";
 
 interface Props {
   data: LabelData;
   boatName: string;
   boatJetty: string;
   boatDate: string;
+  boatTime: string;
   boatNumber: string;
 }
 
-export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatNumber }: Props) {
+export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatTime, boatNumber }: Props) {
   const volumeLabel = data.volumeMl
     ? data.volumeMl >= 1000
       ? `${data.volumeMl / 1000}L`
@@ -19,21 +20,21 @@ export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatNum
 
   return (
     <div className="label-root">
-      {/* ── Header ── */}
+
+      {/* ── HEADER: logo centred ── */}
       <div className="label-header">
-        <div className="snm-logo">
-          <SnmLogo width={140} height={36} />
-        </div>
-        <p className="tagline">discover · shop · enjoy</p>
+        <SnmLogo width={130} height={34} />
       </div>
 
-      {/* ── Product block ── */}
+      {/* ── PRODUCT BLOCK ── */}
       <table className="label-table">
         <tbody>
           <tr>
+            {/* Icon column */}
             <td rowSpan={2} className="icon-cell">
-              <DetergentIcon size={36} />
+              <DetergentIcon size={32} />
             </td>
+            {/* Product name + variant */}
             <td className="product-name-cell" colSpan={2}>
               <span className="product-main product-main--large">
                 {data.modelName}
@@ -42,36 +43,47 @@ export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatNum
             </td>
           </tr>
           <tr>
-            <td className="pack-cell" colSpan={2}>
+            {/* Pack info */}
+            <td className="pack-cell">
               <div className="pack-line">
                 <strong>{data.packsPerCarton}</strong> Bottles/case
               </div>
               {volumeLabel && (
                 <div className="pack-line">
-                  <strong>{volumeLabel}</strong>
+                  <strong>{volumeLabel}</strong> per bottle
                 </div>
               )}
+            </td>
+            {/* Recycle icon */}
+            <td className="pack-cell" style={{ width: "12mm", textAlign: "right", verticalAlign: "bottom", paddingBottom: "2mm" }}>
+              <RecycleIcon size={12} />
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* ── Deliver to ── */}
+      {/* ── DELIVER TO — 4-line address block ── */}
       <table className="label-table">
         <tbody>
           <tr>
             <td className="field-label-cell">DELIVER TO</td>
-            <td className="field-value-cell deliver-to-large" colSpan={2}>
-              <strong>{data.customerName}</strong>
-              {data.customerIsland && (
-                <><br /><strong>{data.customerIsland}</strong></>
+            <td className="field-value-cell">
+              <strong style={{ display: "block", fontSize: "11pt", lineHeight: 1.3 }}>{data.deliveryName}</strong>
+              {data.deliveryAddressLine1 && (
+                <span style={{ display: "block", fontSize: "9pt", lineHeight: 1.3 }}>{data.deliveryAddressLine1}</span>
+              )}
+              {data.deliveryAddressLine2 && (
+                <span style={{ display: "block", fontSize: "9pt", lineHeight: 1.3 }}>{data.deliveryAddressLine2}</span>
+              )}
+              {data.deliveryIsland && (
+                <strong style={{ display: "block", fontSize: "10pt", lineHeight: 1.3 }}>{data.deliveryIsland}</strong>
               )}
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* ── Phone ── */}
+      {/* ── PHONE ── */}
       <table className="label-table">
         <tbody>
           <tr>
@@ -80,17 +92,17 @@ export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatNum
               <strong>{data.customerPhone ?? "—"}</strong>
             </td>
             <td className="dhivehi-cell">
-              <span className="dhivehi">ދިވެހިރާއްޖެ</span>
+              <DhivehiNumberText width={56} />
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* ── Boat ── */}
+      {/* ── BOAT ── */}
       <table className="label-table">
         <tbody>
           <tr>
-            <td rowSpan={3} className="field-label-cell boat-label">BOAT</td>
+            <td rowSpan={4} className="field-label-cell boat-label">BOAT</td>
             <td className="boat-key">NAME</td>
             <td className="boat-val">{boatName || "—"}</td>
           </tr>
@@ -99,42 +111,42 @@ export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatNum
             <td className="boat-val">{boatJetty || "—"}</td>
           </tr>
           <tr>
-            <td className="boat-key">DATE &amp; No</td>
-            <td className="boat-val">
-              {boatDate}
-              {boatNumber ? ` - ${boatNumber}` : ""}
-            </td>
+            <td className="boat-key">DATE</td>
+            <td className="boat-val">{boatDate || "—"}{boatTime ? ` · ${boatTime}` : ""}</td>
+          </tr>
+          <tr>
+            <td className="boat-key">No.</td>
+            <td className="boat-val">{boatNumber || "—"}</td>
           </tr>
         </tbody>
       </table>
 
-      {/* ── Thank you ── */}
+      {/* ── THANK YOU ── */}
       <div className="thankyou-block">
         <span className="quote-open">&ldquo;</span>
         <p className="thankyou-text">
           <strong>Thank you</strong> for your order.<br />
-          We look forward to serving you soon<br />
-          with your next re-stock
+          We look forward to serving you soon with your next re-stock
           <span className="quote-close">&rdquo;</span>
         </p>
       </div>
 
       <hr className="divider" />
 
-      {/* ── Social ── */}
+      {/* ── SOCIAL ROW ── */}
       <div className="social-row">
-        <SocialIcons />
+        <SocialIcons width={100} />
         <span className="social-handle">@saynomore.mv</span>
       </div>
 
       <hr className="divider" />
 
-      {/* ── Follow us ── */}
+      {/* ── FOLLOW BAR ── */}
       <div className="follow-bar">
         FOLLOW US FOR MORE PRODUCTS AND OFFERS
       </div>
 
-      {/* ── Footer ── */}
+      {/* ── FOOTER: undeliverable + QR ── */}
       <div className="footer-row">
         <div className="undeliverable-block">
           <p className="undeliverable-text">IF UNDELIVERABLE PLEASE CALL</p>
@@ -142,14 +154,15 @@ export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatNum
           <p className="dhivehi small">ބަލިވެ ހުރެ ނުގެންދެވިއްޖެ ނަމަ ގުޅާ</p>
         </div>
         <div className="qr-placeholder">
-          <SnmQrCode size={64} />
+          <SnmQrCode size={60} />
         </div>
       </div>
 
-      {/* ── Barcode ── */}
+      {/* ── BARCODE ── */}
       <div className="barcode-row">
-        <SnmBarcode width={160} />
+        <SnmBarcode width={150} />
       </div>
+
     </div>
   );
 }

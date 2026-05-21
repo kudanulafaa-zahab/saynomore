@@ -21,9 +21,11 @@ export interface LabelData {
   size: string | null;       // e.g. "XL", "M"
   volumeMl: number | null;   // e.g. 700
 
-  // Customer
-  customerName: string;
-  customerIsland: string | null;
+  // Delivery address — from sales_orders (per-order, not customer profile)
+  deliveryName: string;          // customers.name (order's customer name)
+  deliveryAddressLine1: string | null; // e.g. "H. EKKALAGE"
+  deliveryAddressLine2: string | null; // e.g. "MADUGADHOSHU MAGU"
+  deliveryIsland: string | null;       // e.g. "MALE"
   customerPhone: string | null;
 }
 
@@ -31,7 +33,6 @@ export async function getLabelData(
   orderId: string,
   lineId: string,
 ): Promise<LabelData> {
-  // Fetch the order line + sku + variant + model + category + customer in one shot
   const { data: line, error: lineErr } = await supabase
     .from("sales_order_lines")
     .select(`
@@ -53,9 +54,11 @@ export async function getLabelData(
       ),
       sales_orders (
         order_number,
+        delivery_address_line1,
+        delivery_address_line2,
+        delivery_island,
         customers (
           name,
-          island,
           phone
         )
       )
@@ -84,7 +87,10 @@ export async function getLabelData(
   const category = model?.product_categories ?? null;
   const order = (line.sales_orders as unknown) as {
     order_number: string;
-    customers: { name: string; island: string | null; phone: string | null } | null;
+    delivery_address_line1: string | null;
+    delivery_address_line2: string | null;
+    delivery_island: string | null;
+    customers: { name: string; phone: string | null } | null;
   } | null;
   const customer = order?.customers ?? null;
 
@@ -97,7 +103,7 @@ export async function getLabelData(
     qty: Number(line.qty),
     uom: line.uom,
 
-    brandName: "", // brand name not directly needed on label
+    brandName: "",
     modelName: model?.name ?? "",
     variantDisplay: variant?.display_name ?? "",
     categoryName: category?.name ?? "",
@@ -107,8 +113,10 @@ export async function getLabelData(
     size: typeof attrs.size === "string" ? attrs.size : null,
     volumeMl: typeof attrs.volume_ml === "number" ? attrs.volume_ml : null,
 
-    customerName: customer?.name ?? "",
-    customerIsland: customer?.island ?? null,
+    deliveryName: customer?.name ?? "",
+    deliveryAddressLine1: order?.delivery_address_line1 ?? null,
+    deliveryAddressLine2: order?.delivery_address_line2 ?? null,
+    deliveryIsland: order?.delivery_island ?? null,
     customerPhone: customer?.phone ?? null,
   };
 }

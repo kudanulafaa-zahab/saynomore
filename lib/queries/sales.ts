@@ -19,7 +19,8 @@ export interface SalesOrderRow {
   payment_method: string | null;
   payment_proof_url: string | null;
   source_godown_id: string | null;
-  delivery_address: string | null;
+  delivery_address_line1: string | null;
+  delivery_address_line2: string | null;
   delivery_island: string | null;
   delivery_to_boat: boolean;
   assigned_driver_id: string | null;
@@ -54,7 +55,8 @@ export interface SalesOrderInput {
   payment_status?: PaymentStatus;
   payment_method?: string | null;
   source_godown_id?: string | null;
-  delivery_address?: string | null;
+  delivery_address_line1?: string | null;
+  delivery_address_line2?: string | null;
   delivery_island?: string | null;
   delivery_to_boat?: boolean;
   assigned_driver_id?: string | null;

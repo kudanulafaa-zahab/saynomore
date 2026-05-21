@@ -82,6 +82,13 @@ export function SaleDetail({ id }: { id: string }) {
   const [editingRef, setEditingRef]   = useState(false);
   const [savingRef, setSavingRef]     = useState(false);
 
+  // delivery address inline editing
+  const [editingAddress,   setEditingAddress]   = useState(false);
+  const [addrLine1,        setAddrLine1]        = useState("");
+  const [addrLine2,        setAddrLine2]        = useState("");
+  const [addrIsland,       setAddrIsland]       = useState("");
+  const [savingAddress,    setSavingAddress]    = useState(false);
+
   // inline dialogs (sheet-style bottom panels)
   const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | "printLabels" | null>(null);
   const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
@@ -209,6 +216,30 @@ export function SaleDetail({ id }: { id: string }) {
     } catch (e) { toast.error((e as Error).message); }
   }
 
+  function startEditAddress() {
+    if (!order) return;
+    setAddrLine1(order.delivery_address_line1 ?? "");
+    setAddrLine2(order.delivery_address_line2 ?? "");
+    setAddrIsland(order.delivery_island ?? "");
+    setEditingAddress(true);
+  }
+
+  async function saveAddress() {
+    if (!order) return;
+    setSavingAddress(true);
+    try {
+      await updateOrder(order.id, {
+        delivery_address_line1: addrLine1.trim() || null,
+        delivery_address_line2: addrLine2.trim() || null,
+        delivery_island: addrIsland.trim() || null,
+      } as Record<string, unknown>);
+      toast.success("Address saved");
+      setEditingAddress(false);
+      load();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setSavingAddress(false); }
+  }
+
   async function handleDeleteOrder() {
     if (!order) return;
     setDeleting(true);
@@ -329,6 +360,83 @@ export function SaleDetail({ id }: { id: string }) {
               {[customer.phone, customer.island, order.channel].filter(Boolean).join(" · ")}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* ── DELIVERY ADDRESS card ─────────────────────────────────────────── */}
+      {(isConfirmed || isDispatched) && canWrite && (
+        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: editingAddress ? 14 : 0 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase" }}>Delivery Address</p>
+            {!editingAddress && (
+              <button
+                onClick={startEditAddress}
+                style={{ fontSize: 11, fontWeight: 600, color: "var(--snm-brand)", background: "transparent", border: "none", cursor: "pointer", padding: "2px 0" }}
+              >
+                {(order?.delivery_address_line1 || order?.delivery_island) ? "Edit" : "+ Add Address"}
+              </button>
+            )}
+          </div>
+
+          {!editingAddress && (order?.delivery_address_line1 || order?.delivery_address_line2 || order?.delivery_island) && (
+            <div style={{ marginTop: 6 }}>
+              {order?.delivery_address_line1 && <p style={{ color: "var(--foreground)", fontSize: 13, lineHeight: 1.5 }}>{order.delivery_address_line1}</p>}
+              {order?.delivery_address_line2 && <p style={{ color: "var(--foreground)", fontSize: 13, lineHeight: 1.5 }}>{order.delivery_address_line2}</p>}
+              {order?.delivery_island && <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>{order.delivery_island}</p>}
+            </div>
+          )}
+
+          {!editingAddress && !order?.delivery_address_line1 && !order?.delivery_island && (
+            <p style={{ color: "var(--muted-foreground)", fontSize: 13, marginTop: 4 }}>No address added yet</p>
+          )}
+
+          {editingAddress && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 5 }}>House / Building</p>
+                <input
+                  autoFocus
+                  value={addrLine1}
+                  onChange={(e) => setAddrLine1(e.target.value)}
+                  placeholder="e.g. H. EKKALAGE"
+                  style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "10px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 5 }}>Street / Road</p>
+                <input
+                  value={addrLine2}
+                  onChange={(e) => setAddrLine2(e.target.value)}
+                  placeholder="e.g. MADUGADHOSHU MAGU"
+                  style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "10px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 5 }}>Island</p>
+                <input
+                  value={addrIsland}
+                  onChange={(e) => setAddrIsland(e.target.value)}
+                  placeholder="e.g. MALE"
+                  style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "10px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+                <button
+                  onClick={() => setEditingAddress(false)}
+                  style={{ background: "transparent", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "8px 14px", fontSize: 12, color: "var(--muted-foreground)", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveAddress}
+                  disabled={savingAddress}
+                  style={{ background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 12, fontWeight: 700, cursor: savingAddress ? "not-allowed" : "pointer", opacity: savingAddress ? 0.6 : 1 }}
+                >
+                  {savingAddress ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

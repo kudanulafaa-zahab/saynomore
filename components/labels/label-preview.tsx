@@ -27,6 +27,7 @@ export function LabelPreview({ data }: { data: LabelData }) {
   const [boatName,   setBoatName]   = useState("");
   const [boatJetty,  setBoatJetty]  = useState("");
   const [boatDate,   setBoatDate]   = useState(todayFormatted());
+  const [boatTime,   setBoatTime]   = useState("");
   const [boatNumber, setBoatNumber] = useState("");
   const [editing,    setEditing]    = useState(true);
 
@@ -37,6 +38,7 @@ export function LabelPreview({ data }: { data: LabelData }) {
     boatName,
     boatJetty,
     boatDate,
+    boatTime,
     boatNumber,
   };
 
@@ -128,7 +130,16 @@ export function LabelPreview({ data }: { data: LabelData }) {
                   style={inputStyle}
                 />
               </div>
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Departure Time</p>
+                <input
+                  value={boatTime}
+                  onChange={(e) => setBoatTime(e.target.value)}
+                  placeholder="e.g. 14:00"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Boat Number</p>
                 <input
                   value={boatNumber}

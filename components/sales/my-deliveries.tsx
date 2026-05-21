@@ -279,10 +279,12 @@ function OrderDetail({ lines, skus, order }: {
       background: "color-mix(in srgb, var(--background) 50%, transparent)",
     }}>
       {/* address */}
-      {order.delivery_address && (
+      {(order.delivery_address_line1 || order.delivery_address_line2) && (
         <div style={{ marginBottom: 16 }}>
           <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 6 }}>Address</p>
-          <p style={{ fontSize: 14, color: "var(--foreground)", lineHeight: 1.5 }}>{order.delivery_address}</p>
+          <p style={{ fontSize: 14, color: "var(--foreground)", lineHeight: 1.5 }}>
+            {[order.delivery_address_line1, order.delivery_address_line2].filter(Boolean).join("\n")}
+          </p>
         </div>
       )}
 
