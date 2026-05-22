@@ -1221,6 +1221,8 @@ function NewSkuWizard({
   const [fixedPrice,      setFixedPrice]      = useState("");
   const [fixedPackPrice,  setFixedPackPrice]  = useState("");
   const [fixedCartonPrice,setFixedCartonPrice]= useState("");
+  // "bottle" = enter per bottle/pack  |  "carton" = enter per carton (system derives bottle price)
+  const [fixedEntryUnit,  setFixedEntryUnit]  = useState<"bottle" | "carton">("bottle");
   const [saving,          setSaving]          = useState(false);
   const [showOptional, setShowOptional] = useState(false);
 
@@ -1288,7 +1290,7 @@ function NewSkuWizard({
     setVariantAttrs({});
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
-    setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice("");
+    setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice(""); setFixedEntryUnit("bottle");
     setShowOptional(false);
     setLocalBrands([]); setLocalModels([]); setLocalCategories([]);
   }
@@ -1353,7 +1355,14 @@ function NewSkuWizard({
         carton_height_cm: parseFloat(htCm),
         carton_weight_kg: wgtKg ? parseFloat(wgtKg) : null,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
-        fixed_selling_price_mvr: fixedPrice ? parseFloat(fixedPrice) : null,
+        // fixed_selling_price_mvr is always stored per-piece.
+        // If user entered per bottle/pack: divide by pcs_per_pack.
+        // If user entered per carton: divide by pcs_per_pack × packs_per_carton.
+        fixed_selling_price_mvr: fixedPrice
+          ? fixedEntryUnit === "carton"
+            ? parseFloat(fixedPrice) / (parseInt(pcsPerPack) * parseInt(packsPerCtn))
+            : parseFloat(fixedPrice) / parseInt(pcsPerPack)
+          : null,
         fixed_price_per_pack_mvr: fixedPackPrice ? parseFloat(fixedPackPrice) : null,
         fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
       });
@@ -1604,80 +1613,194 @@ function NewSkuWizard({
                 placeholder="Auto-generated" style={{ ...inp, fontSize: 13 }} />
             </div>
 
-            {/* Pricing — margin OR fixed price */}
-            <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Pricing</p>
-              <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 12 }}>
-                Optional — can set after first shipment. Use margin % (auto-calculates) or a fixed price per piece.
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">
-                    Margin %
-                    {fixedPrice && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--muted-foreground)" }}>(ignored if fixed set)</span>}
-                  </Label>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <input type="number" inputMode="decimal" step="0.5" min="1" max="99"
-                      value={marginPct} onChange={(e) => { setMarginPct(e.target.value); if (e.target.value) setFixedPrice(""); }}
-                      placeholder="e.g. 30" style={{ ...inp, width: "100%" }}
-                      disabled={!!fixedPrice} />
-                    <span style={{ fontSize: 13, color: "var(--muted-foreground)", flexShrink: 0 }}>%</span>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px]">
-                    Fixed price / piece
-                    {marginPct && !fixedPrice && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--muted-foreground)" }}>(overrides margin)</span>}
-                  </Label>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <input type="number" inputMode="decimal" step="0.01" min="0.01"
-                      value={fixedPrice} onChange={(e) => { setFixedPrice(e.target.value); if (e.target.value) setMarginPct(""); }}
-                      placeholder="e.g. 4.50" style={{ ...inp, width: "100%" }} />
-                    <span style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0 }}>MVR</span>
-                  </div>
-                </div>
-              </div>
-              {(marginPct || fixedPrice) && (
-                <p style={{ fontSize: 11, color: "var(--snm-brand)", marginTop: 8 }}>
-                  {fixedPrice
-                    ? `Fixed: MVR ${fixedPrice}/piece — price stays constant`
-                    : `${marginPct}% margin — price updates automatically with each shipment`}
-                </p>
-              )}
+            {/* ── Customer Selling Price ── */}
+            {(() => {
+              // Derive trade unit label from category/variant attrs
+              const fmtAttr = variantAttrs["format"];
+              const tradeUnit = fmtAttr
+                ? fmtAttr
+                : category?.unit_uom === "ml" ? "Bottle"
+                : category?.unit_uom === "g"  ? "Pouch"
+                : "Pack";
 
-              {/* Volume-break pricing */}
-              <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 14, marginTop: 4 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 4 }}>Volume-Break Prices</p>
-                <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10 }}>
-                  Optional — set a lower price for pack or carton buyers (discount for buying more).
-                </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <div className="space-y-1.5">
-                    <Label className="text-[12px]">Pack price (MVR)</Label>
-                    <input type="number" inputMode="decimal" step="0.01" min="0.01"
-                      value={fixedPackPrice}
-                      onChange={(e) => setFixedPackPrice(e.target.value)}
-                      placeholder="e.g. 88.00"
-                      style={{ ...inp, width: "100%" }} />
+              // Parse pack config for live derivation
+              const pcsN  = parseInt(pcsPerPack, 10);
+              const ctnsN = parseInt(packsPerCtn, 10);
+              const pcsPerCarton = pcsN > 0 && ctnsN > 0 ? pcsN * ctnsN : null;
+
+              // Live derived prices when fixed carton price is entered
+              const fixedVal = parseFloat(fixedPrice);
+              const derivedBottlePrice = !isNaN(fixedVal) && fixedVal > 0 && pcsN > 0
+                ? fixedEntryUnit === "carton" && pcsPerCarton
+                  ? fixedVal / ctnsN               // carton ÷ packs_per_carton = per bottle
+                  : fixedVal                        // already per bottle
+                : null;
+              const derivedCartonPrice = !isNaN(fixedVal) && fixedVal > 0
+                ? fixedEntryUnit === "carton"
+                  ? fixedVal                        // already per carton
+                  : ctnsN > 0 ? fixedVal * ctnsN : null  // bottle × packs_per_carton
+                : null;
+
+              return (
+                <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 16 }}>
+                  {/* Header */}
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 2 }}>
+                    Customer Selling Price
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 12 }}>
+                    What you charge shops — not your supplier cost. Supplier cost is calculated automatically when you confirm a shipment. You can set this now or after your first GRN.
+                  </p>
+
+                  {/* Strategy row: Margin % + Fixed price side by side */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+
+                    {/* Margin % */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px]">
+                        Target margin %
+                      </Label>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <input type="number" inputMode="decimal" step="0.5" min="1" max="99"
+                          value={marginPct}
+                          onChange={(e) => { setMarginPct(e.target.value); if (e.target.value) setFixedPrice(""); }}
+                          placeholder="e.g. 30"
+                          style={{ ...inp, width: "100%", opacity: fixedPrice ? 0.4 : 1 }}
+                          disabled={!!fixedPrice} />
+                        <span style={{ fontSize: 13, color: "var(--muted-foreground)", flexShrink: 0 }}>%</span>
+                      </div>
+                      <p style={{ fontSize: 10, color: "var(--muted-foreground)", lineHeight: 1.4 }}>
+                        Auto-calculates after each shipment
+                      </p>
+                    </div>
+
+                    {/* Fixed price — with entry-unit toggle */}
+                    <div className="space-y-1.5">
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Label className="text-[13px]">Fixed selling price</Label>
+                        {/* Toggle: per bottle OR per carton */}
+                        <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", border: "0.5px solid var(--glass-border-lo)" }}>
+                          {(["bottle", "carton"] as const).map((u) => (
+                            <button key={u} type="button"
+                              onClick={() => { setFixedEntryUnit(u); setFixedPrice(""); }}
+                              style={{
+                                fontSize: 10, padding: "2px 7px", cursor: "pointer", border: "none",
+                                background: fixedEntryUnit === u
+                                  ? "var(--foreground)"
+                                  : "transparent",
+                                color: fixedEntryUnit === u
+                                  ? "var(--background)"
+                                  : "var(--muted-foreground)",
+                                fontWeight: fixedEntryUnit === u ? 700 : 400,
+                                transition: "background 0.15s",
+                              }}>
+                              {u === "bottle" ? `/ ${tradeUnit}` : "/ Carton"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                          value={fixedPrice}
+                          onChange={(e) => { setFixedPrice(e.target.value); if (e.target.value) setMarginPct(""); }}
+                          placeholder={fixedEntryUnit === "carton" ? "e.g. 320.00" : "e.g. 45.00"}
+                          style={{ ...inp, width: "100%" }} />
+                        <span style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0 }}>MVR</span>
+                      </div>
+                      <p style={{ fontSize: 10, color: "var(--muted-foreground)", lineHeight: 1.4 }}>
+                        {fixedEntryUnit === "carton"
+                          ? `Enter carton price — ${tradeUnit.toLowerCase()} price derived`
+                          : `Enter ${tradeUnit.toLowerCase()} price — carton derived`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[12px]">Carton price (MVR)</Label>
-                    <input type="number" inputMode="decimal" step="0.01" min="0.01"
-                      value={fixedCartonPrice}
-                      onChange={(e) => setFixedCartonPrice(e.target.value)}
-                      placeholder="e.g. 320.00"
-                      style={{ ...inp, width: "100%" }} />
+
+                  {/* Live derivation preview */}
+                  {fixedPrice && !isNaN(parseFloat(fixedPrice)) && parseFloat(fixedPrice) > 0 && (
+                    <div style={{
+                      marginTop: 10, padding: "8px 12px", borderRadius: 8,
+                      background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)",
+                      border: "0.5px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)",
+                      display: "flex", gap: 16,
+                    }}>
+                      {derivedBottlePrice != null && (
+                        <div>
+                          <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Per {tradeUnit.toLowerCase()}</p>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--snm-brand)" }}>
+                            MVR {derivedBottlePrice.toFixed(2)}
+                          </p>
+                        </div>
+                      )}
+                      {derivedCartonPrice != null && ctnsN > 0 && (
+                        <div>
+                          <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Per carton ({ctnsN} {tradeUnit.toLowerCase()}s)</p>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>
+                            MVR {derivedCartonPrice.toFixed(2)}
+                          </p>
+                        </div>
+                      )}
+                      {pcsN > 0 && derivedBottlePrice != null && (
+                        <div>
+                          <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Per piece</p>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-foreground)" }}>
+                            MVR {(derivedBottlePrice / pcsN).toFixed(4)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {marginPct && !fixedPrice && (
+                    <p style={{ fontSize: 11, color: "var(--snm-success)", marginTop: 8 }}>
+                      {marginPct}% margin — selling price calculated automatically after each GRN
+                    </p>
+                  )}
+
+                  {/* Volume-break pricing — collapsed by default */}
+                  <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 14, marginTop: 14 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--foreground)", marginBottom: 2 }}>Volume-Break Prices</p>
+                    <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10 }}>
+                      Optional — set a lower price for carton buyers. Overrides the base price above for that unit only.
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div className="space-y-1.5">
+                        <Label className="text-[12px]">{tradeUnit} price (MVR)</Label>
+                        <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                          value={fixedPackPrice}
+                          onChange={(e) => setFixedPackPrice(e.target.value)}
+                          placeholder="e.g. 88.00"
+                          style={{ ...inp, width: "100%" }} />
+                        {fixedPackPrice && pcsN > 0 && (
+                          <p style={{ fontSize: 10, color: "var(--snm-success)" }}>
+                            = MVR {(parseFloat(fixedPackPrice) / pcsN).toFixed(4)} / pc
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[12px]">Carton price (MVR)</Label>
+                        <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                          value={fixedCartonPrice}
+                          onChange={(e) => setFixedCartonPrice(e.target.value)}
+                          placeholder="e.g. 320.00"
+                          style={{ ...inp, width: "100%" }} />
+                        {fixedCartonPrice && pcsPerCarton && (
+                          <p style={{ fontSize: 10, color: "var(--snm-success)" }}>
+                            = MVR {(parseFloat(fixedCartonPrice) / pcsPerCarton).toFixed(4)} / pc
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {(fixedPackPrice || fixedCartonPrice) && (
+                      <p style={{ fontSize: 11, color: "var(--snm-success)", marginTop: 6 }}>
+                        Volume-break active —
+                        {fixedPackPrice ? ` ${tradeUnit.toLowerCase()}: MVR ${parseFloat(fixedPackPrice).toFixed(2)}` : ""}
+                        {fixedPackPrice && fixedCartonPrice ? " · " : ""}
+                        {fixedCartonPrice ? ` carton: MVR ${parseFloat(fixedCartonPrice).toFixed(2)}` : ""}
+                      </p>
+                    )}
                   </div>
                 </div>
-                {(fixedPackPrice || fixedCartonPrice) && (
-                  <p style={{ fontSize: 11, color: "var(--snm-success)", marginTop: 8 }}>
-                    Volume-break active —{fixedPackPrice ? ` pack: MVR ${fixedPackPrice}` : ""}
-                    {fixedPackPrice && fixedCartonPrice ? " ·" : ""}
-                    {fixedCartonPrice ? ` carton: MVR ${fixedCartonPrice}` : ""}
-                  </p>
-                )}
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Optional details */}
             <button
