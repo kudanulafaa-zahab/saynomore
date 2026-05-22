@@ -199,7 +199,7 @@ function SkuPanel({
               <div key={c.label} className="rounded-xl p-3 text-center"
                 style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
                 <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                <p className="text-[15px] font-bold text-foreground">{c.value}</p>
+                <p className="text-[15px] font-bold text-foreground snm-num">{c.value}</p>
               </div>
             ))}
           </div>
@@ -216,28 +216,28 @@ function SkuPanel({
               <div>
                 <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost · from last shipment</p>
                 {/* Primary: per trade unit (Pack/Bottle) */}
-                <p className="text-[17px] font-bold text-foreground">
+                <p className="text-[17px] font-bold text-foreground snm-num">
                   MVR {(Number(sku.landed_per_piece_mvr) * (sku.pcs_per_pack ?? 1)).toFixed(2)}
                 </p>
                 <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
                   per {packLabel(sku).toLowerCase()}
                 </p>
                 {/* Secondary: per piece for competitor comparison */}
-                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
+                <p className="text-[11px] mt-0.5 snm-num" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
                   MVR {Number(sku.landed_per_piece_mvr).toFixed(4)} /pc
                 </p>
               </div>
               {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null ? (
                 <div className="text-right">
                   <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Actual margin</p>
-                  <p className="text-[17px] font-bold" style={{ color: sku.actual_margin_pct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                  <p className="text-[17px] font-bold snm-num" style={{ color: sku.actual_margin_pct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                     {sku.actual_margin_pct}%
                   </p>
                 </div>
               ) : sku.target_margin_pct != null ? (
                 <div className="text-right">
                   <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Target margin</p>
-                  <p className="text-[17px] font-bold" style={{ color: "var(--snm-success)" }}>{sku.target_margin_pct}%</p>
+                  <p className="text-[17px] font-bold snm-num" style={{ color: "var(--snm-success)" }}>{sku.target_margin_pct}%</p>
                 </div>
               ) : null}
             </div>
@@ -268,13 +268,13 @@ function SkuPanel({
                     <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
                       Per {packLabel(sku).toLowerCase()} · selling price
                     </p>
-                    <p className="text-[20px] font-bold" style={{ color: sku.fixed_price_per_pack_mvr != null ? "var(--snm-brand)" : "var(--snm-success)" }}>
+                    <p className="text-[20px] font-bold snm-num" style={{ color: sku.fixed_price_per_pack_mvr != null ? "var(--snm-brand)" : "var(--snm-success)" }}>
                       MVR {fmtPrice(sku.selling_price_per_pack_mvr)}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · comparison</p>
-                    <p className="text-[13px] font-semibold text-foreground">
+                    <p className="text-[13px] font-semibold text-foreground snm-num">
                       MVR {fmtPrice(sku.selling_price_per_piece_mvr)}
                     </p>
                   </div>
@@ -290,7 +290,7 @@ function SkuPanel({
                       : "var(--glass-border-lo)"}`,
                   }}>
                   <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                  <p className="text-[13px] font-semibold text-foreground">
+                  <p className="text-[13px] font-semibold text-foreground snm-num">
                     MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
                     {sku.fixed_price_per_carton_mvr != null && (
                       <span className="ml-1.5 text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>VOL.</span>
