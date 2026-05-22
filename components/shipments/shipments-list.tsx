@@ -579,7 +579,6 @@ function NewPoSheet({
         <div className="space-y-1.5 mb-4">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>PO REFERENCE</p>
           <input
-            autoFocus
             value={reference}
             onChange={(e) => setReference(e.target.value)}
             placeholder="PO-2026-001"

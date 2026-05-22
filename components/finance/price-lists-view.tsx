@@ -364,7 +364,6 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>List name *</p>
             <input
-              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={!!createdList}
@@ -708,7 +707,6 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                   Search and select a SKU to set its {t.label.toLowerCase()} tier prices.
                 </p>
                 <input
-                  autoFocus
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search brand, SKU, variant…"
@@ -892,7 +890,6 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         </p>
         <div className="relative">
           <input
-            autoFocus
             type="number" inputMode="decimal" step="0.5" min="0" max="99"
             value={marginStr}
             onChange={(e) => applyMargin(e.target.value)}

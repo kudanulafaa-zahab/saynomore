@@ -311,7 +311,6 @@ function EditUserDialog({
           <div className="space-y-2">
             <Label>Full name *</Label>
             <Input
-              autoFocus
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
@@ -389,7 +388,6 @@ function InviteDialog({
           <div className="space-y-2">
             <Label>Full name *</Label>
             <Input
-              autoFocus
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="e.g. Ahmed Hassan"

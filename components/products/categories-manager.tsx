@@ -203,7 +203,7 @@ function CategoryDialog({
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
           <div className="space-y-2">
             <Label>Name *</Label>
-            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           <div className="space-y-2">

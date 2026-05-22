@@ -77,7 +77,6 @@ function GodownEditRow({
     <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
       <Warehouse className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
       <Input
-        autoFocus
         className="h-10 flex-1"
         value={name}
         onChange={(e) => setName(e.target.value)}

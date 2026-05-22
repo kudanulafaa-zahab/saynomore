@@ -225,7 +225,7 @@ function GodownDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Name *</Label>
-            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Warehouse" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Warehouse" />
           </div>
           <div className="space-y-2">
             <Label>Location / Address</Label>

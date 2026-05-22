@@ -1331,7 +1331,6 @@ function LineDialog({
           {!skuId ? (
             <>
               <input
-                autoFocus
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search brand, model, code…"

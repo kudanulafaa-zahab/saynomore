@@ -443,7 +443,7 @@ function SupplierModal({
           {editing ? "Edit Vendor" : "New Vendor"}
         </p>
 
-        <GlassInput label="COMPANY NAME *" value={name} onChange={(e) => setName((e.target as HTMLInputElement).value)} placeholder="PT Unicharm Indonesia" autoFocus />
+        <GlassInput label="COMPANY NAME *" value={name} onChange={(e) => setName((e.target as HTMLInputElement).value)} placeholder="PT Unicharm Indonesia" />
 
         <div className="grid grid-cols-2 gap-3">
           <GlassSelect label="COUNTRY" value={country} onChange={setCountry}>

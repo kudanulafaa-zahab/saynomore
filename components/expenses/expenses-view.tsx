@@ -441,7 +441,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
               <input
                 type="number" step="0.01" min="0"
                 value={amountMvr} onChange={(e) => setAmountMvr(e.target.value)}
-                placeholder="0.00" className={field} autoFocus={!editing}
+                placeholder="0.00" className={field}
               />
             </div>
           </div>

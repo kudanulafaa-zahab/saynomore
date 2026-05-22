@@ -461,7 +461,6 @@ export function CompetitorsView() {
                 )}
                 {simEditing ? (
                   <input
-                    autoFocus
                     type="number"
                     inputMode="numeric"
                     value={simTyped}
@@ -1074,7 +1073,7 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
         <div className="space-y-1.5">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>

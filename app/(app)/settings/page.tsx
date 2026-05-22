@@ -389,7 +389,7 @@ function InviteSheet({ onClose, onDone }: { onClose: () => void; onDone: () => v
   return (
     <Sheet title="Add Team Member" onClose={onClose}>
       <SheetInput label="Full Name" required>
-        <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Ahmed Hassan" className={inputCls} />
+        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Ahmed Hassan" className={inputCls} />
       </SheetInput>
       <SheetInput label="Email Address" required>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ahmed@example.com" className={inputCls} />
@@ -451,7 +451,7 @@ function EditUserSheet({ user, onClose, onDone }: { user: UserProfileRow; onClos
     <Sheet title="Edit Member" onClose={onClose}>
       <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>{user.email}</p>
       <SheetInput label="Full Name" required>
-        <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} />
+        <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} />
       </SheetInput>
       {user.role !== "admin" && (
         <SheetInput label="Role">

@@ -171,7 +171,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
         {/* Name */}
         <div className="space-y-2">
           <Label className={LABEL_CLS}>Full Name *</Label>
-          <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ahmed" />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ahmed" />
         </div>
 
         {/* Phone */}

@@ -395,7 +395,6 @@ export function SaleDetail({ id }: { id: string }) {
               <div>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 5 }}>House / Building</p>
                 <input
-                  autoFocus
                   value={addrLine1}
                   onChange={(e) => setAddrLine1(e.target.value)}
                   placeholder="e.g. H. EKKALAGE"
@@ -1015,7 +1014,6 @@ function LineDialog({
           {!skuId ? (
             <>
               <input
-                autoFocus
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search brand, product, variant…"

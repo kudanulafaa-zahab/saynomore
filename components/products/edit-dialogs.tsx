@@ -88,7 +88,7 @@ export function EditBrandDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Name *</Label>
-            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Notes</Label>
@@ -165,7 +165,7 @@ export function EditModelDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Name *</Label>
-            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Category *</Label>
@@ -796,7 +796,6 @@ export function CascadeDeleteDialog({
         <div className="space-y-2">
           <Label className="text-xs">Type the name to confirm:</Label>
           <Input
-            autoFocus
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={target.label}
