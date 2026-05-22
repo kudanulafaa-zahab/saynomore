@@ -407,7 +407,13 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
 
   return (
     <div className="fixed inset-0 bg-black/75 z-60 flex items-end backdrop-blur-sm">
-      <div className="glass-modal rounded-t-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div
+        className="glass-modal rounded-t-3xl w-full overflow-y-auto"
+        style={{
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
         {/* Handle */}
         <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-1" />
 

@@ -362,7 +362,7 @@ export function ShipmentsList() {
 
       {/* ── Delete confirm ── */}
       {deleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
@@ -549,7 +549,7 @@ function NewPoSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl"
+        className="w-full rounded-t-3xl overflow-y-auto"
         style={{
           background: "var(--glass-2)",
           backdropFilter: "blur(40px)",
@@ -557,6 +557,7 @@ function NewPoSheet({
           padding: "12px 24px",
           paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))",
           maxWidth: 480,
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
           boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
         }}
       >

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Label Design Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 60px;
+    padding: 60px 40px 80px;
+  }
+  h1 {
+    width: 100%; text-align: center;
+    color: rgba(255,255,255,0.4); font-size: 11px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    font-family: Arial, sans-serif; margin-bottom: -40px;
+  }
+  .label-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .label-wrap {
+    /* A6 = 105mm × 148mm */
+    width: 105mm;
+    height: 148mm;
+    box-shadow: 0 16px 60px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.5);
+    background: white;
+    overflow: hidden;
+  }
+  .label-wrap img, .label-wrap object {
+    width: 100%;
+    height: 100%;
+  }
+  .caption {
+    color: rgba(255,255,255,0.35);
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-family: Arial, sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<h1>SayNoMore — A6 Label Designs (CorelDRAW Export)</h1>
+
+<div class="label-col">
+  <div class="label-wrap">
+    <img src="/diaper-label-design.svg" alt="Diaper Label" />
+  </div>
+  <p class="caption">Diaper Label</p>
+</div>
+
+<div class="label-col">
+  <div class="label-wrap">
+    <img src="/sosoft-label-design.svg" alt="SoSoft Detergent Label" />
+  </div>
+  <p class="caption">SoSoft Detergent Label</p>
+</div>
+
+</body>
+</html>

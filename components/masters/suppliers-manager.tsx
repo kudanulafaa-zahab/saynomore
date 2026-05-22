@@ -437,8 +437,8 @@ function SupplierModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
-      <div className="w-full max-w-md rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={CARD_L2}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
+      <div className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-modal-card" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">
           {editing ? "Edit Vendor" : "New Vendor"}
         </p>

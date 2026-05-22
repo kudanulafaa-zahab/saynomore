@@ -53,11 +53,33 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Mobile: bottom sheet — slides up from bottom, clears home bar
+          // Desktop (sm+): centred modal capped at viewport with safe insets
+          "fixed z-50 w-full bg-popover text-sm text-popover-foreground outline-none",
+          // Mobile layout: bottom sheet
+          "bottom-0 left-0 right-0 rounded-t-[28px]",
+          "max-h-[calc(100dvh-env(safe-area-inset-top,44px)-8px)]",
+          "pb-[env(safe-area-inset-bottom,0px)]",
+          // Desktop layout: centred card
+          "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2",
+          "sm:-translate-x-1/2 sm:-translate-y-1/2",
+          "sm:rounded-xl sm:max-w-sm sm:max-h-[calc(100dvh-env(safe-area-inset-top,44px)-32px)]",
+          "sm:pb-0",
+          "ring-1 ring-foreground/10 duration-150 overflow-hidden",
+          "data-open:animate-in data-open:fade-in-0",
+          "sm:data-open:zoom-in-95",
+          "max-[639px]:data-open:slide-in-from-bottom-4",
+          "data-closed:animate-out data-closed:fade-out-0",
+          "sm:data-closed:zoom-out-95",
+          "max-[639px]:data-closed:slide-out-to-bottom-4",
           className
         )}
         {...props}
       >
+        {/* Drag handle — mobile only */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-9 h-[3px] rounded-full bg-foreground/20" />
+        </div>
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -70,8 +92,7 @@ function DialogContent({
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}

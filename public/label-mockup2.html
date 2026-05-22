@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Label Preview v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 60px;
+    padding: 60px 40px 80px;
+    font-family: Arial, sans-serif;
+  }
+  h1 {
+    width: 100%; text-align: center;
+    color: rgba(255,255,255,0.4); font-size: 11px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: -40px;
+  }
+  .label-col {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  /* A6 = 105mm × 148mm */
+  .label-wrap {
+    width: 105mm; height: 148mm;
+    box-shadow: 0 16px 60px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.5);
+    background: white; overflow: hidden;
+    position: relative;
+  }
+  /* Base SVG design — fills the label exactly */
+  .label-base {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+  /* Overlay SVG — same size, transparent background, sits on top */
+  .label-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .caption {
+    color: rgba(255,255,255,0.35); font-size: 10px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<h1>SayNoMore — Label Preview (CorelDRAW base + live data overlay)</h1>
+
+<!-- ═══════════ DIAPER LABEL ═══════════ -->
+<div class="label-col">
+<div class="label-wrap">
+  <!-- Layer 1: CorelDRAW static design -->
+  <object class="label-base" data="/diaper-label-design.svg" type="image/svg+xml"></object>
+
+  <!-- Layer 2: White erasers + live text overlaid via SVG -->
+  <svg class="label-overlay" xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 3956.64 5542.15">
+
+    <!-- ── Erase CorelDRAW placeholder text ── -->
+    <!-- Product name lines -->
+    <rect x="920" y="750" width="2400" height="210" fill="white"/>
+    <rect x="920" y="940" width="2400" height="210" fill="white"/>
+    <!-- Pack info -->
+    <rect x="920" y="1130" width="1900" height="290" fill="white"/>
+    <!-- SIZE value box -->
+    <rect x="3300" y="940" width="640" height="330" fill="white"/>
+    <!-- Deliver-to address block (4 lines) -->
+    <rect x="130" y="1730" width="1890" height="720" fill="white"/>
+    <!-- Phone number -->
+    <rect x="1520" y="2520" width="1280" height="220" fill="white"/>
+    <!-- Boat values block (NAME / JETTY / TIME / DATE values) -->
+    <rect x="2410" y="1775" width="1500" height="640" fill="white"/>
+
+    <!-- ── Live text ── -->
+    <!-- Product name line 1 -->
+    <text x="940" y="905"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="166" fill="#1F1A17">BabyDry Premium</text>
+    <!-- Product name line 2 / variant -->
+    <text x="940" y="1075"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="166" fill="#1F1A17">XTRA-KERING</text>
+    <!-- Pack info -->
+    <text x="940" y="1245"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">34 PCS/PACK</text>
+    <text x="940" y="1385"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">4 PACKS/CASE</text>
+    <!-- SIZE -->
+    <text x="3610" y="1220"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="700" font-size="194" fill="#1F1A17" text-anchor="middle">XXXL</text>
+
+    <!-- Delivery address -->
+    <text x="140" y="1905"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="700" font-size="166" fill="#1F1A17">MARIYAM MOHAMED</text>
+    <text x="140" y="2065"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">H. EKKALAGE</text>
+    <text x="140" y="2205"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">MADUGADHOSHU MAGU</text>
+    <text x="140" y="2345"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">MALE</text>
+
+    <!-- Phone -->
+    <text x="1616" y="2660"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="194" fill="#1F1A17">778 4767</text>
+
+    <!-- Boat values -->
+    <text x="2420" y="1924"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">SEA QUEEN BOAT</text>
+    <text x="2420" y="2060"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">NORTH HARBOUR</text>
+    <text x="2420" y="2196"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">4:30 PM</text>
+    <text x="2420" y="2332"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">22/06/2026</text>
+  </svg>
+</div>
+<p class="caption">Diaper Label</p>
+</div>
+
+<!-- ═══════════ SOSOFT DETERGENT LABEL ═══════════ -->
+<div class="label-col">
+<div class="label-wrap">
+  <!-- Layer 1: CorelDRAW static design -->
+  <object class="label-base" data="/sosoft-label-design.svg" type="image/svg+xml"></object>
+
+  <!-- Layer 2: Overlays -->
+  <svg class="label-overlay" xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 3956.64 5542.15">
+
+    <!-- ── Erase placeholders ── -->
+    <!-- Product name -->
+    <rect x="920" y="860" width="2700" height="230" fill="white"/>
+    <!-- Pack / volume info -->
+    <rect x="920" y="1060" width="1900" height="310" fill="white"/>
+    <!-- Address block -->
+    <rect x="130" y="1730" width="1890" height="720" fill="white"/>
+    <!-- Phone -->
+    <rect x="1520" y="2520" width="1280" height="220" fill="white"/>
+    <!-- Boat values -->
+    <rect x="2410" y="1775" width="1500" height="640" fill="white"/>
+
+    <!-- ── Live text ── -->
+    <!-- Product name -->
+    <text x="940" y="1021"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="166" fill="#1F1A17">SoSoft Lavender</text>
+    <!-- Pack / volume -->
+    <text x="940" y="1190"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">8 Bottles / Case</text>
+    <text x="940" y="1330"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">700ml / Bottle</text>
+
+    <!-- Delivery address -->
+    <text x="140" y="1905"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="700" font-size="166" fill="#1F1A17">AHMED RASHEED</text>
+    <text x="140" y="2065"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">M. MAAKANAA</text>
+    <text x="140" y="2205"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">ORCHID MAGU</text>
+    <text x="140" y="2345"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">MALE</text>
+
+    <!-- Phone -->
+    <text x="1616" y="2660"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="194" fill="#1F1A17">778 4767</text>
+
+    <!-- Boat -->
+    <text x="2420" y="1924"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">SEA QUEEN BOAT</text>
+    <text x="2420" y="2060"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">NORTH HARBOUR</text>
+    <text x="2420" y="2196"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">4:30 PM</text>
+    <text x="2420" y="2332"
+      font-family="'Roboto Condensed Medium','Roboto Condensed',Arial Narrow,Arial,sans-serif"
+      font-weight="500" font-size="139" fill="#1F1A17">22/06/2026</text>
+  </svg>
+</div>
+<p class="caption">SoSoft Detergent Label</p>
+</div>
+
+</body>
+</html>

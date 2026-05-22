@@ -4,8 +4,14 @@
     {
       "name": "label-preview",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "4321", "-s", "."],
+      "runtimeArgs": ["serve", "-p", "4321", "public"],
       "port": 4321
+    },
+    {
+      "name": "saynomore-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
     }
   ]
 }

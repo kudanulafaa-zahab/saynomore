@@ -860,7 +860,11 @@ export function ProductsExplorer() {
             />
             <div
               className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
-              style={{ height: "80vh", border: "0.5px solid var(--glass-border-lo)" }}
+              style={{
+                maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
+                paddingBottom: "env(safe-area-inset-bottom, 0px)",
+                border: "0.5px solid var(--glass-border-lo)",
+              }}
             >
               <SkuPanel
                 sku={selectedSku}

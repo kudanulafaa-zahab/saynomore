@@ -990,7 +990,7 @@ export function CompetitorsView() {
         />
       )}
       {deleteCompDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}><AlertTriangle className="h-5 w-5" /></div>
@@ -1020,7 +1020,7 @@ export function CompetitorsView() {
         </div>
       )}
       {deletePriceDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <p className="text-[15px] font-bold text-foreground">Remove price entry?</p>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
@@ -1069,7 +1069,7 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
@@ -1163,8 +1163,8 @@ function PriceModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.60)" }}>
-      <div className="w-full max-w-md rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={CARD_L2}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
+      <div className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-modal-card" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Price" : "Log Competitor Price"}</p>
 
         {/* Competitor selector — show all, or allow adding inline */}
