@@ -134,7 +134,7 @@ export default async function DashboardPage() {
               {mvr(grossProfit)}
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
-            <p className="text-[11px] mt-1 font-semibold" style={{ color: marginColor }}>
+            <p className="text-[11px] mt-1 font-semibold snm-num" style={{ color: marginColor }}>
               {grossMargin.toFixed(1)}% margin
             </p>
           </div>
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-1.5 mt-3"
             style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
             {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-            <span className="text-sm">
+            <span className="text-sm snm-num">
               {revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(1)}% vs {lastMonthName}
             </span>
           </div>
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
           style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <p className="text-[11px] font-semibold uppercase tracking-wider"
             style={{ color: "var(--muted-foreground)" }}>Today</p>
-          <p className="text-sm font-semibold text-foreground">{mvr(revenueToday)} MVR</p>
+          <p className="text-sm font-semibold text-foreground snm-num">{mvr(revenueToday)} MVR</p>
           <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
         </div>
       </div>
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
               <p className="text-[10px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Awaiting</p>
             </div>
-            <p className="text-2xl font-bold leading-none"
+            <p className="text-2xl font-bold leading-none snm-num"
               style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--foreground)" }}>
               {awaitingDispatch}
             </p>
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
                   style={{ background: "var(--snm-brand)" }} />
               )}
             </div>
-            <p className="text-2xl font-bold leading-none"
+            <p className="text-2xl font-bold leading-none snm-num"
               style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--foreground)" }}>
               {onRoad}
             </p>
@@ -214,7 +214,7 @@ export default async function DashboardPage() {
               <p className="text-[10px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Delivered</p>
             </div>
-            <p className="text-2xl font-bold leading-none"
+            <p className="text-2xl font-bold leading-none snm-num"
               style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--foreground)" }}>
               {deliveredToday}
             </p>
@@ -244,7 +244,7 @@ export default async function DashboardPage() {
                 <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Unpaid</p>
                 <Clock className="h-4 w-4" style={{ color: "var(--snm-error)" }} />
               </div>
-              <p className="text-2xl font-semibold" style={{ color: "var(--snm-error)" }}>
+              <p className="text-2xl font-semibold snm-num" style={{ color: "var(--snm-error)" }}>
                 {mvr(pendingMvr)}
               </p>
               <div className="flex items-center justify-between mt-1">
@@ -264,7 +264,7 @@ export default async function DashboardPage() {
                 <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Cash in Hand</p>
                 <Banknote className="h-4 w-4" style={{ color: "var(--snm-warning)" }} />
               </div>
-              <p className="text-2xl font-semibold" style={{ color: "var(--snm-warning)" }}>
+              <p className="text-2xl font-semibold snm-num" style={{ color: "var(--snm-warning)" }}>
                 {mvr(codUndeposited)}
               </p>
               <div className="flex items-center justify-between mt-1">
