@@ -388,7 +388,7 @@ export function SalesList() {
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold text-foreground">
                         {cust?.name ?? "Walk-in"}
-                        <span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+                        <span className="text-[11px] ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
                       </p>
                       <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
                         via {o.channel}{cust?.island && <> · {cust.island}</>}
@@ -1524,7 +1524,7 @@ function NewSaleSheet({
                       <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-foreground font-semibold text-[13px]">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                      <span className="text-foreground font-semibold text-[13px] snm-num">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                       <button onClick={() => setDraftLines((p) => p.filter((x) => x.key !== l.key))} className="opacity-40 active:opacity-100">
                         <Trash2 className="h-3.5 w-3.5 text-foreground" />
                       </button>
@@ -1534,7 +1534,7 @@ function NewSaleSheet({
                 })}
                 <div className="flex justify-between px-4 py-3 text-sm font-semibold" style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                   <span style={{ color: "var(--muted-foreground)" }}>Total</span>
-                  <span className="text-foreground">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </div>
               </div>
             )}

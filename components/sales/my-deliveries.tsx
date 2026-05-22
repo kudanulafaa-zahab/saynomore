@@ -134,7 +134,7 @@ function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
       {/* Expected */}
       <div style={{ marginBottom: 20, padding: "16px 20px", borderRadius: 16, background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
         <p style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Expected</p>
-        <p style={{ fontSize: 36, fontWeight: 800, color: "var(--snm-success)", letterSpacing: "-0.02em", lineHeight: 1 }}>
+        <p className="snm-num" style={{ fontSize: 36, fontWeight: 800, color: "var(--snm-success)", letterSpacing: "-0.02em", lineHeight: 1 }}>
           MVR {expectedMvr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
       </div>
@@ -157,7 +157,7 @@ function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
 
       {/* Variance */}
       {collected > 0 && Math.abs(variance) > 0.01 && (
-        <div style={{
+        <div className="snm-num" style={{
           marginTop: 12, padding: "10px 16px", borderRadius: 12,
           background: isShort ? "color-mix(in srgb, var(--snm-error) 10%, transparent)" : "color-mix(in srgb, var(--snm-success) 10%, transparent)",
           color: isShort ? "var(--snm-error)" : "var(--snm-success)",
@@ -464,7 +464,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
                 }}
               >
-                <span style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                <span className="snm-num" style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1 }}>
                   MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9, display: "flex", alignItems: "center", gap: 4 }}>

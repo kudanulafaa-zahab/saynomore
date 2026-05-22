@@ -298,7 +298,7 @@ export function DispatchView() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
-                        <p className="text-[14px] font-bold text-foreground">MVR {totalMvr.toFixed(0)}</p>
+                        <p className="text-[14px] font-bold text-foreground snm-num">MVR {totalMvr.toFixed(0)}</p>
                         <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: statusColor }}>{statusLabel}</p>
                       </div>
                       <ChevronDown

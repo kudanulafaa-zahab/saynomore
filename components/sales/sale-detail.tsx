@@ -500,7 +500,7 @@ export function SaleDetail({ id }: { id: string }) {
             {totals.count > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "0.5px solid var(--glass-border-lo)" }}>
                 <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
-                <span style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
+                <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
               </div>
             )}
           </div>
@@ -594,12 +594,12 @@ export function SaleDetail({ id }: { id: string }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
             <div style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 16 }}>
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Order Total</p>
-              <p style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
+              <p className="snm-num" style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
             </div>
             {order.cash_collected_mvr != null && (
               <div style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", borderRadius: 12, padding: 16 }}>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Cash Collected</p>
-                <p style={{ color: "var(--snm-success)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
+                <p className="snm-num" style={{ color: "var(--snm-success)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(order.cash_collected_mvr)}</p>
               </div>
             )}
           </div>
@@ -862,12 +862,12 @@ function LineList({
               <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {sku ? `${sku.brand_name} › ${sku.variant_display}` : l.sku_id}
               </p>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
+              <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
                 {l.qty} {l.uom} · MVR {Number(l.unit_price_mvr).toLocaleString()}
               </p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-              <span style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
+              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
                 MVR {Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </span>
               {editable && onEdit && onDelete && (
