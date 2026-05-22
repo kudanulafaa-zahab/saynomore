@@ -1434,8 +1434,8 @@ function NewSkuWizard({
           </p>
         </div>
 
-        {/* Scrollable body */}
-        <div className="overflow-y-auto px-5 py-4 space-y-5" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+        {/* Scrollable body — flex-1 fills leftover space; footer stays pinned */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
 
           {/* ── Row 1: Brand + Category ── */}
           <div className="grid grid-cols-2 gap-3">

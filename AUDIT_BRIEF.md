@@ -601,6 +601,8 @@ Ali gave Claude a series of expert personas and panel references to bring into d
 - **Frog Design** — Interaction design influence; informed the spring physics preference for animations, the "every animation must convey cause and effect" rule, and the spatial continuity principle for sheet transitions
 - **UX Studio** — Product design; influenced the progressive disclosure pattern in the New SKU wizard, the decision to collapse volume-break pricing by default, and the inline create patterns throughout
 - **Metalab** — Quality bar for mobile craft; influenced the Liquid Glass visual system, the consistent use of `env(safe-area-inset-*)` throughout, and the commitment to making every pixel feel intentional
+- **Work & Co** — Digital product craft at the intersection of strategy and engineering; influenced the decision to treat the design system as a product in itself, the use of CSS custom properties as a living token system, and the principle that every visual decision must be defensible in code — no magic numbers, no one-off overrides
+- **Ueno** — Brand-forward product design; known for bold, confident visual language and making B2B tools feel premium rather than utilitarian. Key principle: operational software should not look like a spreadsheet — every screen should feel like something the user is proud to open. Influenced the overall visual ambition of the app and the decision to invest in the Liquid Glass aesthetic rather than a default shadcn look
 
 ### Mobile-Specific Expert Panel
 The **Mobile UX Expert** persona (installed as a Claude skill) brought:

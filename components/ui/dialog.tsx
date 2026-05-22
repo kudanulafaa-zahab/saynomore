@@ -56,6 +56,8 @@ function DialogContent({
           // Mobile: bottom sheet — slides up from bottom, clears home bar
           // Desktop (sm+): centred modal capped at viewport with safe insets
           "fixed z-50 w-full bg-popover text-sm text-popover-foreground outline-none",
+          // Flex column so header/footer stay fixed and the body flexes to fill
+          "flex flex-col",
           // Mobile layout: bottom sheet
           "bottom-0 left-0 right-0 rounded-t-[28px]",
           "max-h-[calc(100dvh-env(safe-area-inset-top,44px)-8px)]",
