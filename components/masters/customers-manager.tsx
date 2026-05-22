@@ -106,7 +106,7 @@ export function CustomersManager() {
         <div>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Customer Directory</h1>
           <p className="text-sm mt-1 text-muted-foreground">
-            Manage and track your logistics partners and clients.
+            Your shops and customers, with contact details and price tiers.
           </p>
         </div>
         {canWrite && (
@@ -393,13 +393,13 @@ function CustomerDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader>
+        <DialogHeader className="px-5 pt-2 pb-3 shrink-0">
           <DialogTitle>{editing ? "Edit Customer" : "New Customer"}</DialogTitle>
           <DialogDescription>
             {editing ? "Update customer details." : "Register a new contact."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
+        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto px-5 py-1" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-widest text-muted-foreground">Full Name *</Label>
             <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ahmed" />
@@ -470,17 +470,17 @@ function CustomerDialog({
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[50px]" />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+        <DialogFooter className="mx-0 mb-0 flex-col gap-2 px-5 pt-3 pb-2 shrink-0 bg-transparent">
           <Button
             onClick={save}
             disabled={saving || !name.trim()}
-            className="font-semibold"
+            className="h-12 w-full font-semibold"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Save" : "Create"}
+          </Button>
+          <Button variant="ghost" className="h-12 w-full" onClick={() => onOpenChange(false)}>
+            Cancel
           </Button>
         </DialogFooter>
       </DialogContent>
