@@ -431,7 +431,7 @@ export function FinancialsView() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
             <div>
               <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>Gross Profit</p>
-              <p style={{ color: grossMarginPct >= 20 ? "var(--snm-success)" : grossMarginPct >= 10 ? "var(--snm-warning)" : "var(--snm-error)", fontSize: 11, marginTop: 2 }}>
+              <p style={{ color: grossMarginPct >= 20 ? "var(--snm-success)" : grossMarginPct >= 10 ? "var(--snm-warning)" : "var(--snm-error)", fontSize: 11, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                 {grossMarginPct.toFixed(1)}% gross margin
                 {grossDelta !== null && (
                   <span style={{ marginLeft: 8, color: grossDelta >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>

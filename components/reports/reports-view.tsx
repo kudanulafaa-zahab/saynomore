@@ -405,17 +405,17 @@ function BestSellersTable({ rows, sortKey, onSort }: {
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-3 text-right">
+                <td className="px-3 py-3 text-right snm-num">
                   <span className="text-foreground font-medium">
                     {r.total_revenue_mvr > 0
                       ? r.total_revenue_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })
                       : <span className="text-muted-foreground">—</span>}
                   </span>
                 </td>
-                <td className="px-3 py-3 text-right text-muted-foreground">
+                <td className="px-3 py-3 text-right text-muted-foreground snm-num">
                   {r.total_qty_pieces > 0 ? r.total_qty_pieces.toLocaleString() : "—"}
                 </td>
-                <td className="px-3 py-3 text-right text-muted-foreground">
+                <td className="px-3 py-3 text-right text-muted-foreground snm-num">
                   {r.avg_unit_price_mvr > 0 ? r.avg_unit_price_mvr.toFixed(2) : "—"}
                 </td>
               </tr>
@@ -451,13 +451,13 @@ function MarginsTable({ rows, sortKey, onSort }: {
                   <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
                   <p className="text-[11px] text-muted-foreground">{r.internal_code}</p>
                 </td>
-                <td className="px-3 py-3 text-right text-muted-foreground">
+                <td className="px-3 py-3 text-right text-muted-foreground snm-num">
                   {r.landed_per_piece_mvr > 0 ? r.landed_per_piece_mvr.toFixed(3) : "—"}
                 </td>
-                <td className="px-3 py-3 text-right text-muted-foreground">
+                <td className="px-3 py-3 text-right text-muted-foreground snm-num">
                   {r.avg_unit_price_mvr > 0 ? r.avg_unit_price_mvr.toFixed(3) : "—"}
                 </td>
-                <td className="px-3 py-3 text-right">
+                <td className="px-3 py-3 text-right snm-num">
                   {r.gross_margin_pct !== null ? (
                     <span className="font-semibold" style={marginColor(r.gross_margin_pct)}>
                       {r.gross_margin_pct}%
@@ -515,7 +515,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
             <div key={channel} className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-foreground">{CHANNEL_LABELS[channel] ?? channel}</span>
-                <span className="text-muted-foreground font-medium">
+                <span className="text-muted-foreground font-medium snm-num">
                   MVR {total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   <span className="text-xs ml-1">({pct.toFixed(0)}%)</span>
                 </span>
