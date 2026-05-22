@@ -94,8 +94,9 @@ export async function createCustomer(input: CustomerInput) {
 }
 
 export async function updateCustomer(id: string, patch: Partial<CustomerInput>) {
-  const { error } = await supabase.from("customers").update(patch).eq("id", id);
+  const { data, error } = await supabase.from("customers").update(patch).eq("id", id).select().single();
   if (error) throw error;
+  return data;
 }
 
 export async function deleteCustomer(id: string) {

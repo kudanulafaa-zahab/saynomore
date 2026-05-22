@@ -4,21 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import { Loader2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  listCustomers, createCustomer, updateCustomer, deleteCustomer,
-  type CustomerRow, type CustomerInput, type CustomerChannel, type PriceTier,
+  listCustomers, deleteCustomer,
+  type CustomerRow, type CustomerChannel, type PriceTier,
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
+import { CustomerForm } from "@/components/masters/customer-form";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -338,58 +332,6 @@ function CustomerDialog({
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [company, setCompany] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [island, setIsland] = useState("");
-  const [address, setAddress] = useState("");
-  const [channel, setChannel]   = useState<CustomerChannel | "">("whatsapp");
-  const [priceTier, setPriceTier] = useState<PriceTier>("retail");
-  const [notes, setNotes]       = useState("");
-  const [saving, setSaving]     = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setName(editing?.name ?? "");
-      setCompany(editing?.company ?? "");
-      setPhone(editing?.phone ?? "");
-      setEmail(editing?.email ?? "");
-      setIsland(editing?.island ?? "");
-      setAddress(editing?.address ?? "");
-      setChannel(editing?.channel ?? "whatsapp");
-      setPriceTier(editing?.price_tier ?? "retail");
-      setNotes(editing?.notes ?? "");
-    }
-  }, [open, editing]);
-
-  async function save() {
-    if (!name.trim()) return;
-    const payload: CustomerInput = {
-      name: name.trim(),
-      company: company.trim() || null,
-      phone: phone.trim() || null,
-      email: email.trim() || null,
-      island: island.trim() || null,
-      address: address.trim() || null,
-      channel: (channel || null) as CustomerChannel | null,
-      price_tier: priceTier,
-      notes: notes.trim() || null,
-    };
-    setSaving(true);
-    try {
-      if (editing) await updateCustomer(editing.id, payload);
-      else await createCustomer(payload);
-      toast.success(editing ? "Saved" : "Customer created");
-      onOpenChange(false);
-      onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -399,91 +341,14 @@ function CustomerDialog({
             {editing ? "Update customer details." : "Register a new contact."}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto px-5 py-1" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Full Name *</Label>
-            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ahmed" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Phone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+960…" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Channel</Label>
-              <Select value={channel} onValueChange={(v) => v && setChannel(v as CustomerChannel)}>
-                <SelectTrigger>
-                  <SelectValue>{CHANNEL_LABEL[channel] ?? "Pick"}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {CHANNELS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {/* Price tier selector */}
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Price Tier</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {TIERS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setPriceTier(t.value)}
-                  className="py-2 rounded-xl text-xs font-bold transition"
-                  style={{
-                    background: priceTier === t.value
-                      ? `color-mix(in srgb, ${t.color} 18%, transparent)`
-                      : "var(--glass-bg-1)",
-                    color: priceTier === t.value ? t.color : "var(--muted-foreground)",
-                    border: priceTier === t.value
-                      ? `1px solid color-mix(in srgb, ${t.color} 35%, transparent)`
-                      : "0.5px solid var(--glass-border-lo)",
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Island</Label>
-              <Input value={island} onChange={(e) => setIsland(e.target.value)} placeholder="Malé…" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Company / Shop</Label>
-            <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Optional" />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Address</Label>
-            <Textarea value={address} onChange={(e) => setAddress(e.target.value)} className="min-h-[50px]" />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[50px]" />
-          </div>
-        </div>
-        <DialogFooter className="mx-0 mb-0 flex-col gap-2 px-5 pt-3 pb-2 shrink-0 bg-transparent">
-          <Button
-            onClick={save}
-            disabled={saving || !name.trim()}
-            className="h-12 w-full font-semibold"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Save" : "Create"}
-          </Button>
-          <Button variant="ghost" className="h-12 w-full" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-        </DialogFooter>
+        <CustomerForm
+          key={`${editing?.id ?? "new"}-${open}`}
+          editing={editing}
+          onCancel={() => onOpenChange(false)}
+          onSaved={() => { onOpenChange(false); onSaved(); }}
+        />
       </DialogContent>
     </Dialog>
   );
 }
+

@@ -15,9 +15,10 @@ import {
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
 } from "@/lib/queries/sales";
 import {
-  listCustomers, createCustomer, listGodowns,
-  type CustomerRow, type CustomerChannel, type CustomerInput, type GodownRow, type PriceTier,
+  listCustomers, listGodowns,
+  type CustomerRow, type GodownRow, type PriceTier,
 } from "@/lib/queries/masters";
+import { CustomerForm } from "@/components/masters/customer-form";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
@@ -72,7 +73,6 @@ const CHANNELS: { value: OrderChannel; label: string }[] = [
   { value: "other",     label: "Other"     },
 ];
 
-const CUSTOMER_CHANNELS = CHANNELS as { value: CustomerChannel; label: string }[];
 
 type PaymentMethod = "bank_transfer" | "cod";
 
@@ -114,19 +114,6 @@ function defaultUom(sku: SkuFullRow): SaleUom {
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
-
-function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div className="space-y-1.5">
-      {label && <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
-      <input
-        {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
-        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
-      />
-    </div>
-  );
-}
 
 function GlassSelect({ label, value, onChange, children }: {
   label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode;
@@ -569,13 +556,6 @@ function NewSaleSheet({
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
-  const [newCustName, setNewCustName] = useState("");
-  const [newCustPhone, setNewCustPhone] = useState("");
-  const [newCustIsland, setNewCustIsland] = useState("");
-  const [newCustEmail, setNewCustEmail] = useState("");
-  const [newCustTier, setNewCustTier] = useState<PriceTier>("retail");
-  const [newCustChannel, setNewCustChannel] = useState<CustomerChannel>("whatsapp");
-  const [savingCustomer, setSavingCustomer] = useState(false);
 
   // Order-level tier override — defaults to customer's tier, can be changed per order
   const [orderTier, setOrderTier] = useState<PriceTier>("retail");
@@ -765,27 +745,6 @@ function NewSaleSheet({
   const insufficient = stockHere !== null && lineQtyPieces > stockHere;
   const grandTotal = useMemo(() => draftLines.reduce((s, l) => s + l.line_total_mvr, 0), [draftLines]);
 
-  async function handleCreateCustomer() {
-    if (!newCustName.trim()) return;
-    setSavingCustomer(true);
-    try {
-      const input: CustomerInput = {
-        name: newCustName.trim(),
-        phone: newCustPhone.trim() || null,
-        island: newCustIsland.trim() || null,
-        email: newCustEmail.trim() || null,
-        channel: newCustChannel,
-        price_tier: newCustTier,
-      };
-      const created = await createCustomer(input);
-      onCustomerCreated(created as CustomerRow);
-      setCustomerId(created.id);
-      setOrderTier(newCustTier); // order starts with their tier
-      setChannel(newCustChannel as OrderChannel);
-      setShowNewCustomer(false);
-    } catch (err) { toast.error((err as Error).message); }
-    finally { setSavingCustomer(false); }
-  }
 
   function handleAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
@@ -967,118 +926,26 @@ function NewSaleSheet({
               </>
             )}
 
-            {showNewCustomer && !customerId && (() => {
-              // Live-match existing customers as the user types the name.
-              // If they pick a match → select that customer (no duplicate created).
-              // If no match → show full new-customer form to create.
-              const nameMatches = newCustName.trim().length >= 1
-                ? customers.filter((c) =>
-                    [c.name, c.phone ?? "", c.island ?? ""].join(" ").toLowerCase()
-                      .includes(newCustName.trim().toLowerCase())
-                  ).slice(0, 5)
-                : [];
-
-              return (
-                <div className="rounded-xl p-5 space-y-4" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                  <p className="text-[13px] font-bold text-foreground flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" /> New Customer
-                  </p>
-
-                  {/* Name field — live-searches existing customers */}
-                  <div className="space-y-1.5">
-                    <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Name *</p>
-                    <input
-                      autoFocus
-                      value={newCustName}
-                      onChange={(e) => setNewCustName((e.target as HTMLInputElement).value)}
-                      placeholder="Start typing a name…"
-                      className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
-                      style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
-                    />
-
-                    {/* Live match results — shown while typing */}
-                    {nameMatches.length > 0 && (
-                      <div className="rounded-xl overflow-hidden mt-1" style={{ border: "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)" }}>
-                        <p className="text-[10px] uppercase tracking-widest px-3 pt-2 pb-1 font-semibold"
-                          style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)", color: "var(--snm-brand)" }}>
-                          Existing customers — tap to select instead of creating new
-                        </p>
-                        {nameMatches.map((c) => {
-                          const initials = c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-                          return (
-                            <button key={c.id}
-                              type="button"
-                              onClick={() => {
-                                setCustomerId(c.id);
-                                setOrderTier(c.price_tier ?? "retail");
-                                setChannel((c.channel as OrderChannel) ?? "whatsapp");
-                                touchRecentCustomer(c.id);
-                                setShowNewCustomer(false);
-                                setNewCustName("");
-                              }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 text-left active:opacity-70"
-                              style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "color-mix(in srgb, var(--snm-brand) 4%, transparent)" }}>
-                              <div className="h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                                style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>
-                                {initials}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-[13px] font-semibold text-foreground truncate">{c.name}</p>
-                                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                                  {[c.phone, c.island, c.channel].filter(Boolean).join(" · ")}
-                                </p>
-                              </div>
-                              <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0"
-                                style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
-                                Select
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Contact details */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <GlassInput label="Phone" value={newCustPhone} onChange={(e) => setNewCustPhone((e.target as HTMLInputElement).value)} placeholder="+960…" inputMode="tel" />
-                    <GlassInput label="Island" value={newCustIsland} onChange={(e) => setNewCustIsland((e.target as HTMLInputElement).value)} placeholder="Malé…" />
-                  </div>
-                  <GlassInput label="Email (optional)" value={newCustEmail} onChange={(e) => setNewCustEmail((e.target as HTMLInputElement).value)} placeholder="name@example.com" inputMode="email" />
-
-                  {/* Price tier — critical: determines which price list applies to all their orders */}
-                  <div className="space-y-2">
-                    <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Price Tier *</p>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {(["retail", "wholesale", "vip", "promo"] as PriceTier[]).map((t) => (
-                        <button key={t} type="button" onClick={() => setNewCustTier(t)}
-                          className="py-2 rounded-xl text-[12px] font-semibold capitalize transition active:scale-95"
-                          style={newCustTier === t
-                            ? { background: "var(--foreground)", color: "var(--background)" }
-                            : { background: "color-mix(in srgb, var(--foreground) 7%, transparent)", color: "var(--muted-foreground)" }}>
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-                      Determines which price list applies to this customer's orders by default.
-                    </p>
-                  </div>
-
-                  <GlassSelect label="Usually orders via" value={newCustChannel} onChange={(v) => setNewCustChannel(v as CustomerChannel)}>
-                    {CUSTOMER_CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </GlassSelect>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setShowNewCustomer(false); setNewCustName(""); }} className="flex-1 h-11 rounded-xl text-sm" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>Back</button>
-                    <button onClick={handleCreateCustomer} disabled={savingCustomer || !newCustName.trim()}
-                      className="flex-[2] h-11 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                      style={{ background: "var(--foreground)", color: "var(--background)" }}>
-                      {savingCustomer ? "Saving…" : "Create New & Select"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
+            {showNewCustomer && !customerId && (
+              <div className="rounded-xl py-4 flex flex-col" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", maxHeight: "70dvh" }}>
+                <p className="text-[13px] font-bold text-foreground flex items-center gap-2 px-5 pb-2 shrink-0">
+                  <UserPlus className="h-4 w-4" /> New Customer
+                </p>
+                {/* Same canonical form used on the Customers page — identical fields */}
+                <CustomerForm
+                  saveLabel="Create & Select"
+                  onCancel={() => setShowNewCustomer(false)}
+                  onSaved={(created) => {
+                    onCustomerCreated(created);
+                    setCustomerId(created.id);
+                    setOrderTier(created.price_tier ?? "retail");
+                    setChannel((created.channel as OrderChannel) ?? "whatsapp");
+                    touchRecentCustomer(created.id);
+                    setShowNewCustomer(false);
+                  }}
+                />
+              </div>
+            )}
 
             {customerId && customerId !== "walkin" && customer && (
               <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
