@@ -463,7 +463,7 @@ function PoCard({
             <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg }}>
               <Icon className="h-3.5 w-3.5" style={{ color: colors.text }} />
             </div>
-            <p className="text-[14px] font-bold text-foreground truncate">{shipment.reference}</p>
+            <p className="text-[14px] font-bold text-foreground truncate snm-num">{shipment.reference}</p>
           </div>
           <span
             className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg"

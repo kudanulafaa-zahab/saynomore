@@ -418,7 +418,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         </Link>
         <div className="flex-1 min-w-0">
           <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Purchase Order</p>
-          <h1 className="text-[17px] font-semibold text-foreground leading-tight truncate">{shipment.reference}</h1>
+          <h1 className="text-[17px] font-semibold text-foreground leading-tight truncate snm-num">{shipment.reference}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* Auto-save indicator */}
@@ -714,12 +714,12 @@ export function ShipmentDetail({ id }: { id: string }) {
                   {/* FOB + est. landed cost */}
                   <div className="flex items-center justify-between px-4 pb-3 gap-4">
                     <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                      FOB <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                      FOB <span className="font-semibold snm-num" style={{ color: "var(--foreground)" }}>
                         {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
                       </span>
                     </p>
                     {estPiece != null && estPiece > 0 ? (
-                      <p className="text-[11px] font-semibold" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)" }}>
+                      <p className="text-[11px] font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)" }}>
                         {ratesSet ? "" : "~"}Est MVR {fmt2(estPiece)}/pc
                       </p>
                     ) : (
@@ -789,7 +789,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         ].map((c) => (
                           <div key={c.label} className="rounded-lg p-2 text-center" style={{ background: "var(--glass-bg-2)" }}>
                             <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                            <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
+                            <p className="text-[13px] font-semibold text-foreground snm-num">{c.value}</p>
                           </div>
                         ))}
                       </div>
@@ -798,13 +798,13 @@ export function ShipmentDetail({ id }: { id: string }) {
                         style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                         <div>
                           <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack — trade price</p>
-                          <p className="text-[18px] font-bold" style={{ color: "var(--snm-success)" }}>
+                          <p className="text-[18px] font-bold snm-num" style={{ color: "var(--snm-success)" }}>
                             {l.landed_per_pack_mvr != null ? `MVR ${fmt2(Number(l.landed_per_pack_mvr))}` : "—"}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · for comparison</p>
-                          <p className="text-[13px] font-semibold text-foreground">
+                          <p className="text-[13px] font-semibold text-foreground snm-num">
                             {l.landed_per_piece_mvr != null ? `MVR ${fmt2(Number(l.landed_per_piece_mvr))}` : "—"}
                           </p>
                         </div>
