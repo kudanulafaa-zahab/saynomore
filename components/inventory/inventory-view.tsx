@@ -95,8 +95,8 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
         </span>
       </div>
       <div className="text-right shrink-0 ml-3">
-        <span className="text-[13px] font-semibold text-foreground">{qty}</span>
-        <span className="text-[11px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>
+        <span className="text-[13px] font-semibold text-foreground snm-num">{qty}</span>
+        <span className="text-[11px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
           MVR {batch.landed_per_piece_mvr.toFixed(2)}/pc
         </span>
       </div>
@@ -172,13 +172,13 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         </div>
         <div className="text-right shrink-0 ml-2">
           <p
-            className="text-[22px] font-bold leading-none tracking-tight"
+            className="text-[22px] font-bold leading-none tracking-tight snm-num"
             style={{ color: isLow ? "var(--snm-error)" : "var(--foreground)" }}
           >
             {totalCtns}
             <span className="text-[13px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
           </p>
-          <p className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+          <p className="text-[11px] mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
         </div>
       </div>
 
@@ -203,7 +203,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                   <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                   <p className="text-[13px] font-medium text-foreground truncate">{godown.name}</p>
                 </div>
-                <p className="text-[13px] font-semibold text-foreground ml-4 shrink-0">
+                <p className="text-[13px] font-semibold text-foreground ml-4 shrink-0 snm-num">
                   {ctns > 0 && <>{ctns} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
                   {packs > 0 && <><span className="mx-1 text-[11px]" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
                   {ctns === 0 && packs === 0 && <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}

@@ -151,8 +151,8 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
         </div>
         <div className="flex items-center gap-3 ml-3 shrink-0">
           <div className="text-right">
-            <p className="text-[14px] font-bold text-foreground">{qty}</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(value)}</p>
+            <p className="text-[14px] font-bold text-foreground snm-num">{qty}</p>
+            <p className="text-[11px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(value)}</p>
           </div>
           <ChevronDown
             className="h-4 w-4 transition-transform duration-200 shrink-0"
@@ -189,8 +189,8 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[13px] font-semibold text-foreground">{bQty}</span>
-                    <span className="text-[11px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>
+                    <span className="text-[13px] font-semibold text-foreground snm-num">{bQty}</span>
+                    <span className="text-[11px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
                       MVR {b.landed_per_piece_mvr.toFixed(2)}/pc
                     </span>
                   </div>
@@ -271,8 +271,8 @@ function GodownCard({
           </div>
           {hasStock && (
             <div className="text-right shrink-0 ml-2">
-              <p className="text-[14px] font-bold text-foreground">{totalCartons.toLocaleString()} ctn</p>
-              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+              <p className="text-[14px] font-bold text-foreground snm-num">{totalCartons.toLocaleString()} ctn</p>
+              <p className="text-[11px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
             </div>
           )}
           {!hasStock && (
