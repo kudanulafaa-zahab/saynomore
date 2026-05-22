@@ -71,7 +71,16 @@ BEGIN
 END $$;
 
 -- ── FIX #2 ──────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION get_tier_price_for_sku(
+-- Built on the CURRENT (migration 0025) 6-column shape — keeps price_list_name
+-- and price_list_date (used by the sales UI to show which list drives the
+-- price) and ADDS the margin-formula fallback level. Postgres cannot
+-- CREATE OR REPLACE when the RETURNS TABLE shape is considered changed, so the
+-- functions are dropped first (same pattern migration 0025 used).
+DROP FUNCTION IF EXISTS get_tier_price_for_sku(UUID, TEXT);
+DROP FUNCTION IF EXISTS get_tier_prices_for_skus(UUID[], TEXT);
+
+-- ── Single-SKU RPC ────────────────────────────────────────────────────────
+CREATE FUNCTION get_tier_price_for_sku(
   p_sku_id UUID,
   p_tier   TEXT DEFAULT 'retail'
 )
@@ -79,16 +88,17 @@ RETURNS TABLE (
   price_per_piece_mvr   NUMERIC,
   price_per_pack_mvr    NUMERIC,
   price_per_carton_mvr  NUMERIC,
-  source                TEXT   -- 'price_list' | 'sku_default' | 'margin'
+  source                TEXT,    -- 'price_list' | 'sku_default' | 'margin'
+  price_list_name       TEXT,
+  price_list_date       DATE
 )
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  -- Most-recent price list for this tier on or before today
   WITH active_list AS (
-    SELECT id
+    SELECT id, name, effective_from
     FROM price_lists
     WHERE tier = p_tier
       AND effective_from <= CURRENT_DATE
@@ -100,7 +110,9 @@ AS $$
       pli.price_per_piece_mvr,
       pli.price_per_pack_mvr,
       pli.price_per_carton_mvr,
-      'price_list'::TEXT AS source
+      'price_list'::TEXT  AS source,
+      al.name             AS price_list_name,
+      al.effective_from   AS price_list_date
     FROM price_list_items pli
     JOIN active_list al ON al.id = pli.price_list_id
     WHERE pli.sku_id = p_sku_id
@@ -108,11 +120,13 @@ AS $$
   ),
   sku_default AS (
     SELECT
-      s.fixed_selling_price_mvr                                        AS price_per_piece_mvr,
-      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack,         2)    AS price_per_pack_mvr,
+      s.fixed_selling_price_mvr                                     AS price_per_piece_mvr,
+      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack, 2)         AS price_per_pack_mvr,
       ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack
-            * s.packs_per_carton,                                2)    AS price_per_carton_mvr,
-      'sku_default'::TEXT                                              AS source
+            * s.packs_per_carton, 2)                                AS price_per_carton_mvr,
+      'sku_default'::TEXT                                           AS source,
+      NULL::TEXT                                                    AS price_list_name,
+      NULL::DATE                                                    AS price_list_date
     FROM skus s
     WHERE s.id = p_sku_id
       AND s.fixed_selling_price_mvr IS NOT NULL
@@ -129,16 +143,18 @@ AS $$
   ),
   margin_price AS (
     SELECT
-      ROUND(ll.landed_per_piece_mvr / (1 - s.target_margin_pct / 100.0), 2) AS price_per_piece_mvr,
+      ROUND(ll.landed_per_piece_mvr / (1 - s.target_margin_pct / 100.0), 2)            AS price_per_piece_mvr,
       ROUND((ll.landed_per_piece_mvr * s.pcs_per_pack)
-            / (1 - s.target_margin_pct / 100.0), 2)                          AS price_per_pack_mvr,
+            / (1 - s.target_margin_pct / 100.0), 2)                                     AS price_per_pack_mvr,
       ROUND((ll.landed_per_piece_mvr * s.pcs_per_pack * s.packs_per_carton)
-            / (1 - s.target_margin_pct / 100.0), 2)                          AS price_per_carton_mvr,
-      'margin'::TEXT AS source
+            / (1 - s.target_margin_pct / 100.0), 2)                                     AS price_per_carton_mvr,
+      'margin'::TEXT                                                                     AS source,
+      NULL::TEXT                                                                         AS price_list_name,
+      NULL::DATE                                                                         AS price_list_date
     FROM skus s
     CROSS JOIN latest_landed ll
     WHERE s.id = p_sku_id
-      AND s.fixed_selling_price_mvr IS NULL          -- only when no fixed price
+      AND s.fixed_selling_price_mvr IS NULL
       AND s.target_margin_pct IS NOT NULL
       AND s.target_margin_pct > 0
       AND s.target_margin_pct < 100
@@ -154,3 +170,112 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION get_tier_price_for_sku(UUID, TEXT) TO authenticated;
+
+-- ── Bulk RPC (used by the sales modal for many SKUs) ────────────────────────
+CREATE FUNCTION get_tier_prices_for_skus(
+  p_sku_ids UUID[],
+  p_tier    TEXT DEFAULT 'retail'
+)
+RETURNS TABLE (
+  sku_id               UUID,
+  price_per_piece_mvr  NUMERIC,
+  price_per_pack_mvr   NUMERIC,
+  price_per_carton_mvr NUMERIC,
+  source               TEXT,
+  price_list_name      TEXT,
+  price_list_date      DATE
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH active_list AS (
+    SELECT id, name, effective_from
+    FROM price_lists
+    WHERE tier = p_tier
+      AND effective_from <= CURRENT_DATE
+    ORDER BY effective_from DESC
+    LIMIT 1
+  ),
+  list_prices AS (
+    SELECT
+      pli.sku_id,
+      pli.price_per_piece_mvr,
+      pli.price_per_pack_mvr,
+      pli.price_per_carton_mvr,
+      'price_list'::TEXT  AS source,
+      al.name             AS price_list_name,
+      al.effective_from   AS price_list_date
+    FROM price_list_items pli
+    JOIN active_list al ON al.id = pli.price_list_id
+    WHERE pli.sku_id = ANY(p_sku_ids)
+  ),
+  sku_defaults AS (
+    SELECT
+      s.id                                                          AS sku_id,
+      s.fixed_selling_price_mvr                                     AS price_per_piece_mvr,
+      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack, 2)         AS price_per_pack_mvr,
+      ROUND(s.fixed_selling_price_mvr * s.pcs_per_pack
+            * s.packs_per_carton, 2)                                AS price_per_carton_mvr,
+      'sku_default'::TEXT                                           AS source,
+      NULL::TEXT                                                    AS price_list_name,
+      NULL::DATE                                                    AS price_list_date
+    FROM skus s
+    WHERE s.id = ANY(p_sku_ids)
+      AND s.fixed_selling_price_mvr IS NOT NULL
+  ),
+  -- Margin fallback: latest in-stock landed cost per SKU, only when no fixed price
+  margin_prices AS (
+    SELECT
+      s.id AS sku_id,
+      ROUND(ll.landed_per_piece_mvr / (1 - s.target_margin_pct / 100.0), 2)            AS price_per_piece_mvr,
+      ROUND((ll.landed_per_piece_mvr * s.pcs_per_pack)
+            / (1 - s.target_margin_pct / 100.0), 2)                                     AS price_per_pack_mvr,
+      ROUND((ll.landed_per_piece_mvr * s.pcs_per_pack * s.packs_per_carton)
+            / (1 - s.target_margin_pct / 100.0), 2)                                     AS price_per_carton_mvr,
+      'margin'::TEXT                                                                     AS source,
+      NULL::TEXT                                                                         AS price_list_name,
+      NULL::DATE                                                                         AS price_list_date
+    FROM skus s
+    JOIN LATERAL (
+      SELECT bs.landed_per_piece_mvr
+      FROM v_batch_stock bs
+      WHERE bs.sku_id = s.id
+        AND bs.qty_pieces_remaining > 0
+      ORDER BY bs.received_at DESC
+      LIMIT 1
+    ) ll ON TRUE
+    WHERE s.id = ANY(p_sku_ids)
+      AND s.fixed_selling_price_mvr IS NULL
+      AND s.target_margin_pct IS NOT NULL
+      AND s.target_margin_pct > 0
+      AND s.target_margin_pct < 100
+      AND ll.landed_per_piece_mvr IS NOT NULL
+  )
+  SELECT DISTINCT ON (all_prices.sku_id)
+    all_prices.sku_id,
+    all_prices.price_per_piece_mvr,
+    all_prices.price_per_pack_mvr,
+    all_prices.price_per_carton_mvr,
+    all_prices.source,
+    all_prices.price_list_name,
+    all_prices.price_list_date
+  FROM (
+    SELECT * FROM list_prices
+    UNION ALL
+    SELECT * FROM sku_defaults
+    UNION ALL
+    SELECT * FROM margin_prices
+  ) all_prices
+  -- Priority: price_list first, then sku_default, then margin
+  ORDER BY all_prices.sku_id,
+    CASE all_prices.source
+      WHEN 'price_list'  THEN 1
+      WHEN 'sku_default' THEN 2
+      WHEN 'margin'      THEN 3
+      ELSE 4
+    END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_tier_prices_for_skus(UUID[], TEXT) TO authenticated;

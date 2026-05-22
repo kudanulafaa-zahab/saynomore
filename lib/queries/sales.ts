@@ -227,7 +227,7 @@ export interface TierPrice {
   price_per_piece_mvr:  number;
   price_per_pack_mvr:   number;
   price_per_carton_mvr: number;
-  source:               "price_list" | "sku_default";
+  source:               "price_list" | "sku_default" | "margin";
   price_list_name:      string | null;
   price_list_date:      string | null; // ISO date YYYY-MM-DD
 }

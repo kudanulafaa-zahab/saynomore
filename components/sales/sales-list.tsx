@@ -616,7 +616,7 @@ function NewSaleSheet({
     : null;
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
-  const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | null>(null);
+  const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | "margin" | null>(null);
 
   // ── iOS body scroll lock ────────────────────────────────────────────────────
   // Lock the body so the background page cannot scroll or bleed through.
@@ -641,7 +641,7 @@ function NewSaleSheet({
     sku: typeof selectedSku,
     uom: SaleUom,
     isMixed: boolean,
-  ): { price: string; source: "price_list" | "sku_default" | null } {
+  ): { price: string; source: "price_list" | "sku_default" | "margin" | null } {
     if (!sku) return { price: "", source: null };
     const tp = tierPrices.get(sku.id);
     // Mixed carton: charge the per-piece equivalent of the carton price
