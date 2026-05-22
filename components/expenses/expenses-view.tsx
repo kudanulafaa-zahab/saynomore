@@ -143,12 +143,12 @@ export function ExpensesView() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="glass p-4 rounded-2xl space-y-1">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Total Spend</p>
-          <p className="text-xl font-semibold text-foreground">MVR {fmtShort(totalMvr)}</p>
+          <p className="text-xl font-semibold text-foreground snm-num">MVR {fmtShort(totalMvr)}</p>
           <p className="text-xs text-muted-foreground">all time</p>
         </div>
         <div className="glass p-4 rounded-2xl space-y-1">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Campaigns</p>
-          <p className="text-xl font-semibold text-foreground">{rows.length}</p>
+          <p className="text-xl font-semibold text-foreground snm-num">{rows.length}</p>
           <p className="text-xs text-muted-foreground">logged</p>
         </div>
         <div className="glass p-4 rounded-2xl space-y-1">
@@ -156,13 +156,13 @@ export function ExpensesView() {
           <p className="text-base font-semibold text-foreground truncate">
             {channelTotals[0]?.total > 0 ? CHANNEL_LABEL[channelTotals[0].ch] : "—"}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground snm-num">
             {channelTotals[0]?.total > 0 ? `MVR ${fmtShort(channelTotals[0].total)}` : "no data"}
           </p>
         </div>
         <div className="glass p-4 rounded-2xl space-y-1">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">This Month</p>
-          <p className="text-xl font-semibold text-foreground">
+          <p className="text-xl font-semibold text-foreground snm-num">
             {(() => {
               const m = new Date().toISOString().slice(0, 7);
               const tot = rows.filter((r) => r.start_date.startsWith(m)).reduce((a, r) => a + Number(r.amount_mvr), 0);
@@ -227,7 +227,7 @@ export function ExpensesView() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-base font-semibold text-foreground">
+                    <p className="text-base font-semibold text-foreground snm-num">
                       {total > 0 ? `MVR ${fmtShort(total)}` : "—"}
                     </p>
                     <p className="text-xs text-muted-foreground">{pct > 0 ? `${pct}% of total` : "No data"}</p>

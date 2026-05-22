@@ -296,15 +296,15 @@ export function CompetitorsView() {
               <div className="space-y-2.5">
                 <div>
                   <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
-                  <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(landedPerPiece)}</p>
+                  <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(landedPerPiece)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
-                  <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(landedPerPack)}</p>
+                  <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(landedPerPack)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                  <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(landedPerCarton)}</p>
+                  <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(landedPerCarton)}</p>
                 </div>
               </div>
             ) : (
@@ -321,15 +321,15 @@ export function CompetitorsView() {
                 <div className="space-y-2.5">
                   <div>
                     <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
-                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(topCompPerPiece)}</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(topCompPerPiece)}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
-                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(topCompPerPack!)}</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(topCompPerPack!)}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(topCompPerCarton!)}</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(topCompPerCarton!)}</p>
                   </div>
                 </div>
               </div>
@@ -346,15 +346,15 @@ export function CompetitorsView() {
                 <div className="space-y-2.5">
                   <div>
                     <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
-                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(Number(simSku.selling_price_per_piece_mvr))}</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(Number(simSku.selling_price_per_piece_mvr))}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
-                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(Number(simSku.selling_price_per_pack_mvr))}</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(Number(simSku.selling_price_per_pack_mvr))}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                    <p className="text-[20px] font-bold leading-none text-foreground">{fmt2(Number(simSku.selling_price_per_carton_mvr))}</p>
+                    <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(Number(simSku.selling_price_per_carton_mvr))}</p>
                   </div>
                 </div>
                 {simSku.target_margin_pct != null && (
@@ -689,15 +689,15 @@ export function CompetitorsView() {
                           <div className="flex items-center gap-3 text-right shrink-0">
                             <div>
                               <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Pc</p>
-                              <p className="text-[12px] font-semibold text-foreground">{fmt2(tc.price_per_piece_mvr!)}</p>
+                              <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_piece_mvr!)}</p>
                             </div>
                             <div>
                               <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Pk</p>
-                              <p className="text-[12px] font-semibold text-foreground">{fmt2(tc.price_per_pack_mvr!)}</p>
+                              <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_pack_mvr!)}</p>
                             </div>
                             <div>
                               <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Ctn</p>
-                              <p className="text-[12px] font-semibold text-foreground">{fmt2(tc.price_per_carton_mvr!)}</p>
+                              <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_carton_mvr!)}</p>
                             </div>
                           </div>
                         ) : (
