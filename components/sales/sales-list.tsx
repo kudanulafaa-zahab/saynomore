@@ -934,6 +934,14 @@ function NewSaleSheet({
                 {/* Same canonical form used on the Customers page — identical fields */}
                 <CustomerForm
                   saveLabel="Create & Select"
+                  existing={customers}
+                  onPickExisting={(c) => {
+                    setCustomerId(c.id);
+                    setOrderTier(c.price_tier ?? "retail");
+                    setChannel((c.channel as OrderChannel) ?? "whatsapp");
+                    touchRecentCustomer(c.id);
+                    setShowNewCustomer(false);
+                  }}
                   onCancel={() => setShowNewCustomer(false)}
                   onSaved={(created) => {
                     onCustomerCreated(created);

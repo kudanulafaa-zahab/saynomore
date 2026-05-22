@@ -304,6 +304,7 @@ export function CustomersManager() {
       <CustomerDialog
         open={dialog.open}
         editing={dialog.editing}
+        customers={rows}
         onOpenChange={(o) => setDialog({ open: o })}
         onSaved={load}
       />
@@ -325,10 +326,11 @@ export function CustomersManager() {
 }
 
 function CustomerDialog({
-  open, editing, onOpenChange, onSaved,
+  open, editing, customers, onOpenChange, onSaved,
 }: {
   open: boolean;
   editing?: CustomerRow;
+  customers: CustomerRow[];
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
 }) {
@@ -344,6 +346,8 @@ function CustomerDialog({
         <CustomerForm
           key={`${editing?.id ?? "new"}-${open}`}
           editing={editing}
+          existing={customers}
+          onPickExisting={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
           onSaved={() => { onOpenChange(false); onSaved(); }}
         />
