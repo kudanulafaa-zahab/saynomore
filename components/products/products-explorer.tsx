@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   listCategories, listBrands, listModels, listVariants, listSkusFlat,
-  createBrand, createModel, createVariant, createSku, createCategory, deleteCategory,
+  createBrand, createModel, createVariant, createSku, createCategory, deleteCategory, deleteModel,
   toggleSkuActive, getCurrentUserRole, updateSku,
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
   type SkuFullRow, type AttrKey, type UnitUom, type CostBasis,
@@ -38,7 +38,7 @@ const ATTR_SPECS: Record<AttrKey, AttrSpec> = {
   size:      { key: "size",      label: "Size",    placeholder: "NB, S, M…",   type: "text" },
   scent:     { key: "scent",     label: "Scent",   placeholder: "Mint…",       type: "text" },
   format:    { key: "format",    label: "Format",  type: "text",
-               options: ["Bottle","Pouch","Sachet","Jar","Box","Tube","Pack","Can"] },
+               options: ["Bottle","Pouch","Pack","Box"] },
   volume_ml: { key: "volume_ml", label: "Volume",  placeholder: "1500",        type: "number", suffix: "ml" },
   weight_g:  { key: "weight_g",  label: "Weight",  placeholder: "250",         type: "number", suffix: "g"  },
   colour:    { key: "colour",    label: "Colour",  placeholder: "Pink…",       type: "text" },
@@ -923,7 +923,7 @@ function SectionHead({ children }: { children: React.ReactNode }) {
 
 /* ── Combobox: type to search, shows "Create X" when no match ── */
 function Combobox({
-  value, onChange, options, placeholder, createLabel, onCreateClick, disabled,
+  value, onChange, options, placeholder, createLabel, onCreateClick, disabled, onDeleteOption,
 }: {
   value: string;
   onChange: (id: string) => void;
@@ -932,6 +932,7 @@ function Combobox({
   createLabel?: string;
   onCreateClick?: () => void;
   disabled?: boolean;
+  onDeleteOption?: (id: string, label: string) => void;
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -992,19 +993,39 @@ function Combobox({
           </div>
           <div style={{ maxHeight: 180, overflowY: "auto" }}>
             {filtered.map((o) => (
-              <button
+              <div
                 key={o.id}
-                onClick={() => { onChange(o.id); setOpen(false); setQ(""); }}
                 style={{
-                  width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent",
-                  border: "none", cursor: "pointer", fontSize: 13,
-                  color: o.id === value ? "var(--snm-brand)" : "var(--foreground)",
-                  display: "flex", alignItems: "center", gap: 8,
+                  display: "flex", alignItems: "center",
+                  borderBottom: "0.5px solid color-mix(in srgb, var(--glass-border-lo) 60%, transparent)",
                 }}
               >
-                {o.id === value && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-brand)", flexShrink: 0 }} />}
-                {o.label}
-              </button>
+                <button
+                  onClick={() => { onChange(o.id); setOpen(false); setQ(""); }}
+                  style={{
+                    flex: 1, textAlign: "left", padding: "10px 14px", background: "transparent",
+                    border: "none", cursor: "pointer", fontSize: 13,
+                    color: o.id === value ? "var(--snm-brand)" : "var(--foreground)",
+                    display: "flex", alignItems: "center", gap: 8,
+                  }}
+                >
+                  {o.id === value && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-brand)", flexShrink: 0 }} />}
+                  {o.label}
+                </button>
+                {onDeleteOption && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDeleteOption(o.id, o.label); }}
+                    title={`Delete ${o.label}`}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      padding: "0 12px 0 4px", color: "var(--muted-foreground)",
+                      fontSize: 15, lineHeight: 1, flexShrink: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
             {filtered.length === 0 && !showCreate && (
               <p style={{ padding: "10px 14px", fontSize: 13, color: "var(--muted-foreground)" }}>No results</p>
@@ -1034,7 +1055,7 @@ const ATTR_SPECS_WIZARD: Record<string, { label: string; placeholder?: string; t
   size:      { label: "Size",    placeholder: "NB / S / M / L / XL / XXL", type: "text" },
   scent:     { label: "Scent",   placeholder: "e.g. Mint",                  type: "text" },
   format:    { label: "Format",  type: "text",
-               options: ["Bottle","Pouch","Sachet","Jar","Box","Tube","Pack","Can"] },
+               options: ["Bottle","Pouch","Pack","Box"] },
   volume_ml: { label: "Volume",  placeholder: "e.g. 700",  type: "number", suffix: "ml" },
   weight_g:  { label: "Weight",  placeholder: "e.g. 250",  type: "number", suffix: "g"  },
   colour:    { label: "Colour",  placeholder: "e.g. Pink", type: "text" },
@@ -1052,12 +1073,13 @@ function attrsToDisplayName(attrs: Record<string, string>, schema: AttrKey[]): s
 
 /* ── CategoryPills — select existing + inline create + delete non-system ── */
 function CategoryPills({
-  categories, selectedId, onSelect, onCreated,
+  categories, selectedId, onSelect, onCreated, onDeleted,
 }: {
   categories: CategoryRow[];
   selectedId: string;
   onSelect: (id: string) => void;
   onCreated: (cat: CategoryRow) => void;
+  onDeleted?: (id: string) => void;
 }) {
   const [adding, setAdding]   = useState(false);
   const [name, setName]       = useState("");
@@ -1180,8 +1202,12 @@ function CategoryPills({
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmCat) return;
-          try { await deleteCategory(confirmCat.id); if (selectedId === confirmCat.id) onSelect(""); setConfirmCat(null); }
-          catch (e) { toast.error((e as Error).message); }
+          try {
+            await deleteCategory(confirmCat.id);
+            if (selectedId === confirmCat.id) onSelect("");
+            onDeleted?.(confirmCat.id);
+            setConfirmCat(null);
+          } catch (e) { toast.error((e as Error).message); }
         }}
       />
     </div>
@@ -1225,11 +1251,15 @@ function NewSkuWizard({
   const [fixedEntryUnit,  setFixedEntryUnit]  = useState<"bottle" | "carton">("bottle");
   const [saving,          setSaving]          = useState(false);
   const [showOptional, setShowOptional] = useState(false);
+  const [confirmDeleteModel, setConfirmDeleteModel] = useState<{ id: string; name: string } | null>(null);
 
   // ── Local items created during this session (so combos show them instantly)
-  const [localBrands,     setLocalBrands]     = useState<BrandRow[]>([]);
-  const [localModels,     setLocalModels]     = useState<ModelRow[]>([]);
-  const [localCategories, setLocalCategories] = useState<CategoryRow[]>([]);
+  const [localBrands,        setLocalBrands]        = useState<BrandRow[]>([]);
+  const [localModels,        setLocalModels]        = useState<ModelRow[]>([]);
+  const [localCategories,    setLocalCategories]    = useState<CategoryRow[]>([]);
+  // IDs deleted during this session — filter them out immediately without waiting for a re-fetch
+  const [deletedCategoryIds, setDeletedCategoryIds] = useState<Set<string>>(new Set());
+  const [deletedModelIds,    setDeletedModelIds]    = useState<Set<string>>(new Set());
 
   const allBrands = useMemo(() => {
     const ids = new Set(brands.map((b) => b.id));
@@ -1238,13 +1268,15 @@ function NewSkuWizard({
 
   const allCategories = useMemo(() => {
     const ids = new Set(categories.map((c) => c.id));
-    return [...categories, ...localCategories.filter((c) => !ids.has(c.id))];
-  }, [categories, localCategories]);
+    const merged = [...categories, ...localCategories.filter((c) => !ids.has(c.id))];
+    return merged.filter((c) => !deletedCategoryIds.has(c.id));
+  }, [categories, localCategories, deletedCategoryIds]);
 
   const allModels = useMemo(() => {
     const ids = new Set(models.map((m) => m.id));
-    return [...models, ...localModels.filter((m) => !ids.has(m.id))];
-  }, [models, localModels]);
+    const merged = [...models, ...localModels.filter((m) => !ids.has(m.id))];
+    return merged.filter((m) => !deletedModelIds.has(m.id));
+  }, [models, localModels, deletedModelIds]);
 
   // Derived
   const brandModels  = allModels.filter((m) => m.brand_id === brandId);
@@ -1292,7 +1324,7 @@ function NewSkuWizard({
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
     setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice(""); setFixedEntryUnit("bottle");
     setShowOptional(false);
-    setLocalBrands([]); setLocalModels([]); setLocalCategories([]);
+    setLocalBrands([]); setLocalModels([]); setLocalCategories([]); setDeletedCategoryIds(new Set()); setDeletedModelIds(new Set());
   }
 
   useEffect(() => { if (open) reset(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1462,6 +1494,11 @@ function NewSkuWizard({
                   setCategoryId(newCat.id);
                   setVariantAttrs({});
                 }}
+                onDeleted={(id) => {
+                  setLocalCategories((prev) => prev.filter((c) => c.id !== id));
+                  setDeletedCategoryIds((prev) => new Set([...prev, id]));
+                  if (categoryId === id) { setCategoryId(""); setVariantAttrs({}); }
+                }}
               />
             </div>
           </div>
@@ -1482,6 +1519,7 @@ function NewSkuWizard({
               options={brandModels.map((m) => ({ id: m.id, label: m.name }))}
               placeholder={brandInput ? `Search models under ${brandInput}…` : "Select brand first"}
               disabled={!brandInput.trim()}
+              onDeleteOption={(id, name) => setConfirmDeleteModel({ id, name })}
             />
             <input
               value={modelInput}
@@ -1509,13 +1547,21 @@ function NewSkuWizard({
                 {schema.map((key) => {
                   const spec = ATTR_SPECS_WIZARD[key];
                   if (spec?.options) {
+                    // Check if the current value is a custom entry (not in the preset list)
+                    const currentVal = variantAttrs[key] ?? "";
+                    const isCustom = currentVal !== "" && !spec.options.includes(currentVal);
                     return (
-                      <div key={key} className="flex flex-wrap gap-1">
+                      <div key={key} className="flex flex-wrap gap-1 col-span-2">
                         {spec.options.map((opt) => (
                           <button
                             key={opt}
                             type="button"
-                            onClick={() => setVariantAttrs({ ...variantAttrs, [key]: opt })}
+                            onClick={() => setVariantAttrs((prev) => {
+                              const next = { ...prev };
+                              if (next[key] === opt) delete next[key]; // toggle off
+                              else next[key] = opt;
+                              return next;
+                            })}
                             style={{
                               padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
                               border: "1px solid",
@@ -1528,6 +1574,27 @@ function NewSkuWizard({
                             {opt}
                           </button>
                         ))}
+                        {/* Custom format input */}
+                        <input
+                          type="text"
+                          value={isCustom ? currentVal : ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setVariantAttrs((prev) => {
+                              const next = { ...prev };
+                              if (v.trim()) next[key] = v;
+                              else delete next[key];
+                              return next;
+                            });
+                          }}
+                          placeholder="Other…"
+                          style={{
+                            height: 28, padding: "0 8px", borderRadius: 999, fontSize: 11,
+                            border: `1px solid ${isCustom ? "var(--snm-brand)" : "var(--glass-border)"}`,
+                            background: isCustom ? "color-mix(in srgb, var(--snm-brand) 8%, transparent)" : "transparent",
+                            color: "var(--foreground)", outline: "none", width: 72,
+                          }}
+                        />
                       </div>
                     );
                   }
@@ -1849,6 +1916,25 @@ function NewSkuWizard({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Model delete confirm */}
+      <ConfirmSheet
+        open={confirmDeleteModel !== null}
+        onClose={() => setConfirmDeleteModel(null)}
+        title="Delete model?"
+        message={confirmDeleteModel ? `"${confirmDeleteModel.name}" and all its variants/SKUs will be permanently deleted.` : ""}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!confirmDeleteModel) return;
+          try {
+            await deleteModel(confirmDeleteModel.id);
+            setDeletedModelIds((prev) => new Set([...prev, confirmDeleteModel.id]));
+            if (modelId === confirmDeleteModel.id) { setModelId(""); setModelInput(""); }
+            setConfirmDeleteModel(null);
+            toast.success(`${confirmDeleteModel.name} deleted`);
+          } catch (e) { toast.error((e as Error).message); }
+        }}
+      />
     </Dialog>
   );
 }
