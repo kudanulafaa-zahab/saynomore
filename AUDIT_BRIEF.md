@@ -4,6 +4,40 @@
 
 ---
 
+## 0. SESSION CHECKPOINT — read this first on a cold start
+
+**Last updated: 2026-06-19**
+
+If you are picking this project up fresh, the full session-handoff block lives in memory at `project_saynomore_ali.md` (look for `## SESSION 2026-06-19 — completed work`). Read that block first — it captures persona, what's already shipped, infra knowledge, scoped tokens, and resume points. Then come back here for the deeper reference.
+
+**Quick state summary:**
+- **Visual polish:** done across every numeric screen (Dashboard, Sales, Inventory, Shipments, Products, Reports, Financials, Price Lists, Competitors, Expenses). Tabular numerals app-wide. Native iOS press physics, focus rings, reduced-motion, sunlight-legible currency. Settings + Auth deliberately not touched.
+- **CustomerForm:** one canonical shared component in `components/masters/customer-form.tsx`, used by both the Customers page and the Sales wizard. Maldives-correct field order (Name → Phone → **Island → Address** → Company → Channel → Tier → Email → Notes). Built-in duplicate detection: phone is the strong key (normalised), name is soft, address shown only for human eyes (never auto-matched).
+- **Sheets (`components/ui/dialog.tsx`):** now flex-column with native iOS scroll lock. No `autoFocus` on multi-field form sheets — keyboard never opens just because a sheet appeared.
+- **Financial audit:** confirm_grn, post_sale, v_skus, get_reports_data all reviewed line-by-line. Math is correct.
+- **Audit fixes are LIVE in production** via **migration 0030**, applied 2026-06-19:
+  1. `post_sale` rejects any non-draft order (closes double-deduction landmine).
+  2. `get_tier_price_for_sku` + bulk version now have margin-formula fallback (price_list → fixed_selling_price → landed/(1-margin%) → NULL). 6-column shape from 0025 preserved.
+- **TS:** `TierPrice.source` widened to `"price_list" | "sku_default" | "margin"`.
+- **Open from §10 (still unresolved):** offline, barcode scanner, realtime sync, push notifications, mixed-carton UI, COD "mark deposited" button, godown-transfer UI, label `brandName`, pagination, RLS audit (highest-value remaining work), `user_profiles.email` verification, viewer-role enforcement, validation messages, `lib/queries/products.ts` `"use client"` risk, SKU notes UI input.
+
+**Most valuable next thing to do** (Ali's choice — confirm before starting): **RLS / security audit** (AUDIT_BRIEF §12 Area 1, listed as #1 risk). Easiest of the three big audits to scope; produces concrete findings.
+
+**How I apply SQL to live Supabase** (since Claude Code's MCP loader fails silently on Windows):
+- Drive the Supabase MCP binary directly from Node via stdio bridge.
+- Binary: `C:\Users\futurehomes\AppData\Roaming\npm\mcp-server-supabase.cmd`
+- Bridge: `C:\Users\futurehomes\AppData\Local\Temp\mcp-call-file.mjs`
+- Pattern: write tool args to a JSON file in temp, then `node mcp-call-file.mjs <bin> <tool> <args.json> --access-token sbp_… --project-ref smhdwkrmiytvpsgqezsl`
+- Tools usable: `apply_migration`, `execute_sql`, `list_tables`, `list_extensions`, `get_advisors`, `list_migrations`, `get_logs`.
+
+**Operational rules from Ali (do not break):**
+1. Never use the local dev server. Push to GitHub `main` → Vercel auto-deploys to https://saynomore-beta.vercel.app. Verify there.
+2. Fix as you go for clearly-safe changes; for money/stock changes, write the SQL and flag the change in the response.
+3. `npx tsc --noEmit` zero errors AND `npm run build` must pass before every push.
+4. Plain English. One recommendation. Lead with the answer. Push back with facts when his instinct is wrong, but don't lecture on the same risk twice.
+
+---
+
 ## 1. PROJECT OVERVIEW
 
 **SayNoMore** is a full-stack business operations app built for Ali Riza, an FMCG distributor based in the Maldives. The business imports consumer goods — primarily diapers (Mamypoko brand) and liquid detergent (SoSoft brand) — from Indonesian and other Asian suppliers, ships them by sea to Malé, and distributes them to shops and customers across Maldivian islands.
