@@ -32,6 +32,7 @@ export interface SalesOrderRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  order_total_mvr?: number;
 }
 
 export interface SalesOrderLineRow {
@@ -84,10 +85,13 @@ export interface SalesOrderLineInput {
 export async function listOrders(): Promise<SalesOrderRow[]> {
   const { data, error } = await supabase
     .from("sales_orders")
-    .select("*")
+    .select("*, sales_order_lines(line_total_mvr)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return ((data ?? []) as (SalesOrderRow & { sales_order_lines: { line_total_mvr: number }[] })[]).map((row) => ({
+    ...row,
+    order_total_mvr: row.sales_order_lines.reduce((s, l) => s + Number(l.line_total_mvr), 0),
+  }));
 }
 
 export async function getOrder(id: string): Promise<SalesOrderRow | null> {

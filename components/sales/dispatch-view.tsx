@@ -268,7 +268,7 @@ export function DispatchView() {
                 <div key={item.order.id}>
                   {/* ── Order row — tap to expand ── */}
                   <button
-                    className="w-full text-left px-4 py-4 flex items-center gap-3 active:opacity-75 transition-opacity"
+                    className="w-full text-left px-4 py-4 flex items-center gap-3 snm-pressable"
                     style={{ borderLeft: `3px solid ${statusColor}` }}
                     onClick={() => setExpanded(isExpanded ? null : item.order.id)}
                     aria-expanded={isExpanded}

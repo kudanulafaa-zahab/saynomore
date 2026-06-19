@@ -185,7 +185,7 @@ export function ShipmentsList() {
   }
 
   return (
-    <div className="space-y-0 pb-28">
+    <div className="space-y-0">
 
       {/* ── Header ── */}
       <div className="mb-4">
@@ -456,7 +456,7 @@ function PoCard({
         }),
       }}
     >
-      <Link href={`/shipments/${shipment.id}`} className="block p-4">
+      <Link href={`/shipments/${shipment.id}`} className="block p-4 snm-pressable">
         {/* Row 1: reference + status badge */}
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
@@ -501,8 +501,8 @@ function PoCard({
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(shipment); }}
             aria-label={`Delete shipment ${shipment.reference}`}
-            className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
-            style={{ color: "var(--snm-error)" }}
+            className="h-10 w-10 rounded-xl flex items-center justify-center snm-pressable"
+            style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
           >
             <Trash2 className="h-4 w-4" />
           </button>

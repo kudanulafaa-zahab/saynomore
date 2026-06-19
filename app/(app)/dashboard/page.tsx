@@ -123,14 +123,14 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-2 gap-6">
           <div>
             <p className="text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Revenue</p>
-            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none tabular-nums">
+            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none snm-num">
               {mvr(revenueMonth)}
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
           </div>
           <div>
             <p className="text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Gross Profit</p>
-            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none tabular-nums">
+            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none snm-num">
               {mvr(grossProfit)}
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>

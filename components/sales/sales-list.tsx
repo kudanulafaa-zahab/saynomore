@@ -362,11 +362,12 @@ export function SalesList() {
             const Icon = STATUS_ICON[o.status];
             const cust = customers.find((c) => c.id === o.customer_id);
             const colors = STATUS_COLOR[o.status];
+            const total = o.order_total_mvr ?? 0;
             return (
               <div key={o.id} className="flex items-center gap-2">
                 <Link href={`/sales/${o.id}`}
-                  className="flex-1 flex items-center justify-between gap-3 p-4 rounded-2xl active:opacity-75"
-                  style={CARD}
+                  className="flex-1 flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
+                  style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
@@ -382,11 +383,19 @@ export function SalesList() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2.5 py-1" style={{ background: colors.bg, color: colors.text }}>
-                      {STATUS_LABEL[o.status]}
-                    </span>
-                    <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="text-right">
+                      {total > 0 && (
+                        <p className="text-[14px] font-semibold text-foreground snm-num">
+                          {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          <span className="text-[10px] font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+                        </p>
+                      )}
+                      <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
+                        {STATUS_LABEL[o.status]}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
                   </div>
                 </Link>
                 {/* Delete button — outside the link so tap doesn't navigate */}
@@ -394,8 +403,8 @@ export function SalesList() {
                   <button
                     onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
                     aria-label={`Delete order ${o.order_number}`}
-                    className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 active:opacity-60"
-                    style={{ color: "var(--snm-error)" }}
+                    className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
+                    style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -425,7 +434,7 @@ export function SalesList() {
             return (
               <div key={key} className="rounded-2xl overflow-hidden" style={CARD}>
                 {/* Customer header row — always visible */}
-                <button onClick={toggle} className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-80">
+                <button onClick={toggle} className="w-full flex items-center gap-3 px-4 py-3.5 text-left snm-pressable">
                   <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
                     style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}>
                     {initials}
@@ -467,7 +476,7 @@ export function SalesList() {
                         <div key={o.id} className="flex items-center"
                           style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                           <Link href={`/sales/${o.id}`}
-                            className="flex-1 flex items-center justify-between gap-3 px-4 py-3 active:opacity-75">
+                            className="flex-1 flex items-center justify-between gap-3 px-4 py-3 snm-pressable">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
                                 <Icon className="h-3.5 w-3.5" />
@@ -490,10 +499,10 @@ export function SalesList() {
                             <button
                               onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
                               aria-label={`Delete order ${o.order_number}`}
-                              className="h-11 w-11 mr-1 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
-                              style={{ color: "var(--snm-error)" }}
+                              className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
+                              style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>
