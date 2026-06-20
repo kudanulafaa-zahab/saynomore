@@ -37,7 +37,7 @@ export function ProductsList() {
 
   if (loading) {
     return (
-      <div className="glass p-12 flex flex-col items-center text-muted-foreground">
+      <div className="snm-card p-12 flex flex-col items-center text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
         <p className="text-sm">Loading…</p>
       </div>
@@ -61,13 +61,13 @@ export function ProductsList() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="glass p-10 text-center text-sm text-muted-foreground">
+        <div className="snm-card p-10 text-center text-sm text-muted-foreground">
           {rows.length === 0 ? "No products yet — add some from the Tree tab." : "No matches."}
         </div>
       ) : (
-        <div className="glass overflow-hidden">
+        <div className="snm-card overflow-hidden">
           {/* Desktop header */}
-          <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-[11px] uppercase tracking-widest text-muted-foreground border-b border-border bg-secondary/30">
+          <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-[11px] uppercase tracking-widest text-muted-foreground border-b bg-secondary/30" style={{ borderColor: "var(--glass-border-lo)" }}>
             <div className="col-span-3">Brand · Model</div>
             <div className="col-span-3">Variant</div>
             <div className="col-span-2">Pack × Carton</div>
@@ -78,7 +78,8 @@ export function ProductsList() {
           {filtered.map((r) => (
             <div
               key={r.id}
-              className="border-b border-border last:border-0 hover:bg-accent/30 transition"
+              className="last:border-0 hover:bg-accent/30 transition"
+              style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}
             >
               {/* Mobile card layout */}
               <div className="md:hidden px-4 py-3 flex items-start justify-between gap-3">
@@ -97,9 +98,10 @@ export function ProductsList() {
                     try { await toggleSkuActive(r.id, !r.is_active); load(); }
                     catch (e) { toast.error((e as Error).message); }
                   }}
-                  className={`text-[10px] uppercase tracking-wider rounded px-2 py-1 shrink-0 ${
+                  className={`snm-pressable text-[10px] uppercase tracking-wider rounded-lg px-3 shrink-0 ${
                     r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
                   }`}
+                  style={{ minHeight: 44, display: "flex", alignItems: "center" }}
                 >
                   {r.is_active ? "Active" : "Off"}
                 </button>
@@ -123,7 +125,7 @@ export function ProductsList() {
                       try { await toggleSkuActive(r.id, !r.is_active); load(); }
                       catch (e) { toast.error((e as Error).message); }
                     }}
-                    className={`text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5 ${
+                    className={`snm-pressable text-[10px] uppercase tracking-wider rounded-lg px-2 py-1 ${
                       r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
                     }`}
                   >

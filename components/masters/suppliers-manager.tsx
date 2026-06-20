@@ -336,8 +336,8 @@ export function SuppliersManager() {
                         <button
                           onClick={() => { setFeatured(s); setDialog({ open: true, editing: s }); }}
                           aria-label={`Edit ${s.name}`}
-                          className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
-                          style={{ color: "var(--muted-foreground)" }}
+                          className="snm-pressable h-11 w-11 rounded-xl flex items-center justify-center"
+                          style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -346,8 +346,8 @@ export function SuppliersManager() {
                         <button
                           onClick={() => setConfirmSupplier({ id: s.id, name: s.name })}
                           aria-label={`Delete ${s.name}`}
-                          className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
-                          style={{ color: "var(--snm-error)" }}
+                          className="snm-pressable h-11 w-11 rounded-xl flex items-center justify-center"
+                          style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -355,8 +355,8 @@ export function SuppliersManager() {
                       <button
                         onClick={() => setFeatured(s)}
                         aria-label={`Feature ${s.name}`}
-                        className="h-11 w-11 rounded-xl flex items-center justify-center active:opacity-60"
-                        style={{ color: "var(--muted-foreground)" }}
+                        className="snm-pressable h-11 w-11 rounded-xl flex items-center justify-center"
+                        style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>

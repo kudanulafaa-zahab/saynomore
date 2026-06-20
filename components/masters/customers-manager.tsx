@@ -149,7 +149,7 @@ export function CustomersManager() {
         >
           <p className="label-caps text-[11px] text-muted-foreground">Active Clients</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-semibold text-foreground">{rows.length.toLocaleString()}</span>
+            <span className="snm-num text-4xl font-semibold text-foreground">{rows.length.toLocaleString()}</span>
           </div>
         </div>
         <div
@@ -205,7 +205,7 @@ export function CustomersManager() {
           {filtered.map((c) => (
             <div
               key={c.id}
-              className="rounded-3xl p-5 transition cursor-pointer"
+              className="snm-pressable rounded-3xl p-5 cursor-pointer"
               style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
             >
               <div className="flex items-center justify-between gap-4">
@@ -266,16 +266,16 @@ export function CustomersManager() {
                     <button
                       onClick={() => setDialog({ open: true, editing: c })}
                       aria-label={`Edit ${c.name}`}
-                      className="flex items-center justify-center rounded-xl active:opacity-60"
-                      style={{ width: 44, height: 44, color: "var(--muted-foreground)" }}
+                      className="snm-pressable flex items-center justify-center rounded-xl"
+                      style={{ width: 44, height: 44, background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setConfirmCustomer({ id: c.id, name: c.name })}
                       aria-label={`Delete ${c.name}`}
-                      className="flex items-center justify-center rounded-xl active:opacity-60"
-                      style={{ width: 44, height: 44, color: "var(--snm-error)" }}
+                      className="snm-pressable flex items-center justify-center rounded-xl"
+                      style={{ width: 44, height: 44, background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

@@ -633,7 +633,7 @@ export function MyDeliveries() {
   }
 
   return (
-    <div style={{ paddingBottom: 100 }}>
+    <div className="pb-28">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: 20 }}>
@@ -644,6 +644,7 @@ export function MyDeliveries() {
           </div>
           <button
             onClick={() => load(true)} disabled={refreshing}
+            className="snm-pressable"
             style={{
               width: 44, height: 44, borderRadius: 22, border: "0.5px solid var(--glass-border-lo)",
               background: "var(--glass-bg-1)", cursor: "pointer",

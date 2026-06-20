@@ -253,7 +253,8 @@ export function ExpensesView() {
                 return (
                   <div
                     key={r.id}
-                    className={`flex items-center justify-between px-4 py-3 hover:bg-accent/20 transition ${i > 0 ? "border-t border-border" : ""}`}
+                    className={`flex items-center justify-between px-4 py-3 hover:bg-accent/20 transition`}
+                    style={i > 0 ? { borderTop: "0.5px solid var(--glass-border-lo)" } : undefined}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
@@ -269,20 +270,22 @@ export function ExpensesView() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <p className="text-sm font-medium text-foreground tabular-nums">
+                      <p className="snm-num text-sm font-medium text-foreground">
                         MVR {fmt(Number(r.amount_mvr))}
                       </p>
                       {canWrite && (
                         <>
                           <button
                             onClick={() => { setEditingRow(r); setShowSheet(true); }}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+                            className="snm-pressable flex items-center justify-center rounded-lg"
+                            style={{ width: 36, height: 36, background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteTarget(r)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
+                            className="snm-pressable flex items-center justify-center rounded-lg"
+                            style={{ width: 36, height: 36, background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>

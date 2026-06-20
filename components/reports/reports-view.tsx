@@ -287,12 +287,12 @@ export function ReportsView() {
       </div>
 
       {loading ? (
-        <div className="glass p-12 flex flex-col items-center text-muted-foreground">
+        <div className="snm-card p-12 flex flex-col items-center text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin mb-3" />
           <p className="text-sm">Loading…</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass p-10 text-center">
+        <div className="snm-card p-10 text-center">
           <p className="text-muted-foreground text-sm">No data for this period.</p>
         </div>
       ) : tab === "bestsellers" ? (
@@ -326,7 +326,7 @@ function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
       <div className="glass p-5 flex items-center justify-between gap-4 rounded-2xl">
         <div className="space-y-1">
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
-          <p className="text-[32px] font-bold tracking-tight leading-none tabular-nums text-foreground">{value}</p>
+          <p className="snm-num text-[32px] font-bold tracking-tight leading-none text-foreground">{value}</p>
         </div>
         <div
           className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0"
@@ -351,7 +351,7 @@ function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
       >
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-[22px] font-bold tracking-tight leading-none tabular-nums text-foreground">{value}</p>
+      <p className="snm-num text-[22px] font-bold tracking-tight leading-none text-foreground">{value}</p>
       <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
     </div>
   );

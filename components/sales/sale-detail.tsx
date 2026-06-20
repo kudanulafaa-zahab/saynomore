@@ -289,7 +289,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Top nav ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <Link href="/sales" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 10, background: "var(--glass-bg-1)", color: "var(--muted-foreground)", textDecoration: "none" }}>
+        <Link href="/sales" className="snm-pressable" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 12, background: "var(--glass-bg-1)", color: "var(--muted-foreground)", textDecoration: "none" }}>
           <ArrowLeft style={{ width: 18, height: 18 }} />
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -302,7 +302,8 @@ export function SaleDetail({ id }: { id: string }) {
         {canWrite && (
           <button
             onClick={() => setPanel("delete")}
-            style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            className="snm-pressable"
+            style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
           >
             <Trash2 style={{ width: 16, height: 16 }} />
           </button>
