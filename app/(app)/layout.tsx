@@ -3,6 +3,7 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { OfflineBanner } from "@/components/layout/offline-banner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await getSupabaseServer();
@@ -22,8 +23,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-dvh" style={{ background: "var(--background)" }}>
       <Sidebar role={role} />
       <Topbar name={name} role={role} />
-      {/* pt-[52px] = fixed header height; pb-24 = bottom nav clearance on mobile */}
       <div className="lg:pl-60" style={{ paddingTop: "calc(52px + env(safe-area-inset-top, 0px))" }}>
+        <OfflineBanner />
         <main className="px-4 py-5 pb-28 lg:pb-8 max-w-5xl mx-auto lg:max-w-none">
           {children}
         </main>

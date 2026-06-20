@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { OfflineProvider } from "@/components/layout/offline-provider";
 import "./globals.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
@@ -45,7 +46,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={`h-full antialiased ${plusJakarta.variable}`}>
       <body className="min-h-full" style={{ fontFamily: "var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, system-ui, sans-serif" }}>
         <ThemeProvider>
-          {children}
+          <OfflineProvider>
+            {children}
+          </OfflineProvider>
           <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>
