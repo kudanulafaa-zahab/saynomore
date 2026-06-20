@@ -190,7 +190,7 @@ export function ShipmentsList() {
       {/* ── Header ── */}
       <div className="mb-4">
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Inventory Procurement</p>
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Purchase Orders</h1>
+        <h1 className="ios-page-title">Purchase Orders</h1>
       </div>
 
       {/* ── Reorder suggestions banner ── */}

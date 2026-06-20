@@ -136,7 +136,7 @@ export function ReportsView() {
     <div className="space-y-4">
       <div>
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Analytics</p>
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Reports</h1>
+        <h1 className="ios-page-title">Reports</h1>
       </div>
 
       {/* Date range — preset chips + custom toggle */}

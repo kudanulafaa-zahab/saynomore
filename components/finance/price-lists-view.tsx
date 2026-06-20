@@ -124,7 +124,7 @@ export function PriceListsView() {
       {/* Page header */}
       <div className="mb-5">
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Price Lists</h1>
+        <h1 className="ios-page-title">Price Lists</h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
           Tier-specific selling prices per SKU — auto-applied at order entry
         </p>

@@ -739,6 +739,17 @@
   .ios-footnote    { font-size: var(--ios-footnote);    line-height: var(--ios-footnote-lh);    letter-spacing: var(--ios-footnote-ls);    font-weight: 400; }
   .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--ios-caption1-lh);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
   .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--ios-caption2-lh);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
+
+  /* ── Canonical page title — Apple Title1, bold. One look for every screen. ──
+     Every page heading uses this instead of ad-hoc text-[26/28/32px]. Gives
+     the app a single, consistent large-title style matching iOS navigation.  */
+  .ios-page-title {
+    font-size:      var(--ios-title1);     /* 28px */
+    line-height:    var(--ios-title1-lh);  /* 34px */
+    letter-spacing: var(--ios-title1-ls);  /* 0.364px */
+    font-weight:    700;
+    color:          var(--foreground);
+  }
 }
 
 /* ── Increased Contrast (Apple accessibility) ────────────────────────────────

@@ -450,7 +450,7 @@ export function GodownsView() {
       {/* ── Page header ── */}
       <div>
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Godowns</h1>
+        <h1 className="ios-page-title">Godowns</h1>
       </div>
 
       {/* Summary + New Godown button */}

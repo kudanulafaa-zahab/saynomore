@@ -244,7 +244,7 @@ export function SalesList() {
       <div className="flex items-end justify-between">
         <div>
           <p className="text-[12px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Sales</h1>
+          <h1 className="ios-page-title">Sales</h1>
         </div>
         {canWrite && (
           <button

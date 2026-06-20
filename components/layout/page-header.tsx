@@ -25,10 +25,7 @@ export function PageHeader({ title, subtitle, action, controls }: PageHeaderProp
       {/* Title row */}
       <div className="flex items-start justify-between gap-3 mb-1">
         <div className="min-w-0">
-          <h1
-            className="text-[28px] font-bold tracking-tight leading-none text-foreground"
-            style={{ letterSpacing: "-0.02em" }}
-          >
+          <h1 className="ios-page-title">
             {title}
           </h1>
           {subtitle && (

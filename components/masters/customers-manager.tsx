@@ -98,7 +98,7 @@ export function CustomersManager() {
       {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Customer Directory</h1>
+          <h1 className="ios-page-title">Customer Directory</h1>
           <p className="text-sm mt-1 text-muted-foreground">
             Your shops and customers, with contact details and price tiers.
           </p>

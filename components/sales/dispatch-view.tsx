@@ -180,7 +180,7 @@ export function DispatchView() {
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
           Logistics Sync
         </p>
-        <h1 className="text-[28px] font-bold tracking-tight text-foreground leading-tight">
+        <h1 className="ios-page-title">
           Dispatch Board
         </h1>
         <p className="text-[14px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
