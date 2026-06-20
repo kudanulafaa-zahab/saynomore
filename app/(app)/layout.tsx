@@ -7,17 +7,41 @@ import { OfflineBanner } from "@/components/layout/offline-banner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+
+  // Resolve the user without forcing a network round-trip when offline.
+  // getUser() validates over the network; if that fails (offline) fall back to
+  // the locally stored session so a logged-in user is never bounced to /login.
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error && error.name === "AuthApiError") {
+      user = null; // server reached, session invalid → genuinely logged out
+    } else if (error) {
+      throw error; // network failure → fall through to session fallback
+    } else {
+      user = data.user;
+    }
+  } catch {
+    const { data: { session } } = await supabase.auth.getSession();
+    user = session?.user ?? null;
+  }
+
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const name = profile?.full_name ?? user.email ?? "User";
-  const role = profile?.role ?? "staff";
+  // Profile lookup can fail offline — degrade gracefully instead of crashing.
+  let name = user.email ?? "User";
+  let role = "staff";
+  try {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("full_name, role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile?.full_name) name = profile.full_name;
+    if (profile?.role) role = profile.role;
+  } catch {
+    /* offline — use fallbacks */
+  }
 
   return (
     <div className="min-h-dvh" style={{ background: "var(--background)" }}>

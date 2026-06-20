@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { Loader2, CheckCircle2, Eye, EyeOff, WifiOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +12,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+
+  // Track connectivity so we can show a clear "connect once" message instead
+  // of a confusing "load failed" when a first-time user opens the app offline.
+  useEffect(() => {
+    const update = () => setIsOffline(!navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
 
   // Forgot password state
   const [showReset, setShowReset] = useState(false);
@@ -23,10 +37,24 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // First-ever login genuinely needs the network to verify credentials and
+    // create a session. Tell the user plainly rather than letting it fail.
+    if (!navigator.onLine) {
+      setError("You're offline. Connect to the internet once to sign in — after that the app works offline.");
+      return;
+    }
+
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setError(error.message); setLoading(false); return; }
-    window.location.href = "/dashboard";
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { setError(error.message); setLoading(false); return; }
+      window.location.href = "/dashboard";
+    } catch {
+      // Network dropped mid-request
+      setError("Couldn't reach the server. Check your connection and try again.");
+      setLoading(false);
+    }
   }
 
   async function handleReset(e: React.FormEvent) {
@@ -121,6 +149,21 @@ export default function LoginPage() {
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Sign in to continue</p>
           </div>
         </div>
+
+        {isOffline && (
+          <div
+            className="flex items-start gap-2.5 rounded-xl px-3 py-3"
+            style={{
+              background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)",
+            }}
+          >
+            <WifiOff className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--snm-warning)" }} />
+            <p className="text-[13px] leading-snug" style={{ color: "var(--snm-warning)" }}>
+              You&apos;re offline. Connect to the internet <strong>once</strong> to sign in. After that, the app works offline automatically.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">

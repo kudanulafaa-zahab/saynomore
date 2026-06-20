@@ -35,21 +35,65 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Determine whether the user is logged in WITHOUT forcing a network call.
+  // getUser() validates the token against Supabase over the network — offline
+  // that always fails and would wrongly bounce a logged-in user to /login.
+  // Instead read the session from the cookie locally (getSession, no network).
+  // If a session cookie exists, we trust it and let the user through; the
+  // session auto-refreshes whenever the device is back online.
+  let user = null;
+  let networkFailed = false;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      // Distinguish "no/invalid session" from "couldn't reach Supabase".
+      // AuthApiError = server reachable but rejected; anything else (fetch
+      // failure) = offline/network, in which case fall back to the cookie.
+      if (error.name === "AuthApiError") {
+        user = null;
+      } else {
+        networkFailed = true;
+      }
+    } else {
+      user = data.user;
+    }
+  } catch {
+    networkFailed = true;
+  }
 
-  // Not logged in → send to login
+  // Offline / network failure: trust a locally stored session if present.
+  if (networkFailed) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      user = session.user;
+    }
+  }
+
+  // Genuinely not logged in (and online enough to know it) → send to login
   if (!user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Fetch role — single lightweight query
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Fetch role — single lightweight query. Offline this can fail; in that case
+  // role stays null and we DON'T apply role-based redirects (the user already
+  // passed auth, so let them stay on the page they opened rather than wrongly
+  // bouncing an admin to /deliveries). Role gating resumes once back online.
+  let role: string | null = null;
+  try {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    role = profile?.role ?? "staff";
+  } catch {
+    role = null; // unknown — skip role redirects this request
+  }
 
-  const role = profile?.role ?? "staff";
+  // Role unknown (offline): allow the request through without re-routing.
+  if (role === null) {
+    return response;
+  }
 
   // Staff can only access /deliveries
   if (role === "staff") {
