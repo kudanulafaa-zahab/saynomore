@@ -23,6 +23,7 @@ import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import { withOfflineFallback } from "@/lib/offline-write";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -521,7 +522,7 @@ export function SalesList() {
           customers={customers} skus={skus} godowns={godowns}
           stockLevels={stockLevels} existingOrders={rows}
           onClose={() => setNewDialog(false)}
-          onCreated={(id) => { setNewDialog(false); load(); router.push(`/sales/${id}`); }}
+          onCreated={(id) => { setNewDialog(false); load(); if (id !== "reload") router.push(`/sales/${id}`); }}
           onCustomerCreated={(c) => setCustomers((prev) => [c, ...prev])}
         />
       )}
@@ -773,25 +774,46 @@ function NewSaleSheet({
     setSaving(true);
     try {
       const cust = customers.find((c) => c.id === customerId);
-      const created = await createOrder({
+      const orderPayload = {
         order_number: orderNumber,
         customer_id: customerId && customerId !== "walkin" ? customerId : null,
         channel: cust?.channel ?? channel,
-        status: "draft",
+        status: "draft" as const,
         source_godown_id: godownId || null,
         payment_method: paymentMethod,
-        payment_status: paymentMethod === "cod" ? "pending" : "pending",
+        payment_status: "pending" as const,
         notes: orderNotes.trim() || null,
-      });
-      await Promise.all(draftLines.map((l) => createOrderLine({
-        order_id: created.id, sku_id: l.sku.id, uom: l.uom, qty: l.qty,
-        qty_pieces: l.qty_pieces, unit_price_mvr: l.unit_price_mvr, line_total_mvr: l.line_total_mvr,
-        is_mixed_carton_fill: l.is_mixed_carton_fill,
-      })));
-      // Confirm stock immediately
-      await postSale(created.id);
-      toast.success("Order placed — stock deducted");
-      onCreated(created.id);
+      };
+      const linePayloads = draftLines.map((l) => ({
+        sku_id: l.sku.id, uom: l.uom, qty: l.qty,
+        qty_pieces: l.qty_pieces, unit_price_mvr: l.unit_price_mvr,
+        line_total_mvr: l.line_total_mvr, is_mixed_carton_fill: l.is_mixed_carton_fill,
+      }));
+
+      const { queued } = await withOfflineFallback(
+        async () => {
+          const created = await createOrder(orderPayload);
+          await Promise.all(linePayloads.map((l) => createOrderLine({ order_id: created.id, ...l })));
+          await postSale(created.id);
+          return created;
+        },
+        {
+          table: "sales_orders",
+          action: "insert",
+          payload: { order: orderPayload, lines: linePayloads },
+          tempId: `offline-${orderNumber}`,
+        },
+      );
+
+      if (queued) {
+        toast.success("Saved offline — will sync when connected", { duration: 4000 });
+        onClose();
+      } else {
+        toast.success("Order placed — stock deducted");
+        // result is the created order but onCreated needs the ID;
+        // reload the list to pick up the new order
+        onCreated("reload");
+      }
     } catch (err) { toast.error((err as Error).message); }
     finally { setSaving(false); }
   }

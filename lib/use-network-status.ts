@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { drainQueue, getPendingCount } from "./offline-queue";
 
 export interface NetworkStatus {
@@ -25,8 +25,13 @@ export function useNetworkStatus(): NetworkStatus {
     setPendingCount(count);
   }, []);
 
+  // Use a ref so the online handler always sees the latest isSyncing value
+  // without needing to re-register the event listener on every state change.
+  const isSyncingRef = useRef(false);
+
   const triggerSync = useCallback(async () => {
-    if (isSyncing || !navigator.onLine) return;
+    if (isSyncingRef.current || !navigator.onLine) return;
+    isSyncingRef.current = true;
     setIsSyncing(true);
     try {
       const { synced } = await drainQueue(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -35,9 +40,10 @@ export function useNetworkStatus(): NetworkStatus {
       }
       await refreshCount();
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
-  }, [isSyncing, refreshCount]);
+  }, [refreshCount]);
 
   useEffect(() => {
     // Initialise with actual browser state

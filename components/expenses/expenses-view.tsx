@@ -15,6 +15,7 @@ import {
   type SpendChannel,
 } from "@/lib/queries/expenses";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { withOfflineFallback } from "@/lib/offline-write";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -91,19 +92,23 @@ export function ExpensesView() {
     const amt = parseFloat(quickAmount);
     if (!amt || amt <= 0) { toast.error("Enter an amount"); return; }
     setLoggingQuick(true);
+    const payload = {
+      channel: quickChannel,
+      amount_mvr: amt,
+      campaign_name: null,
+      start_date: new Date().toISOString().slice(0, 10),
+      end_date: null,
+      notes: null,
+      sku_ids: [] as string[],
+    };
     try {
-      await createMarketingSpend({
-        channel: quickChannel,
-        amount_mvr: amt,
-        campaign_name: null,
-        start_date: new Date().toISOString().slice(0, 10),
-        end_date: null,
-        notes: null,
-        sku_ids: [],
-      });
-      toast.success("Expense logged");
+      const { queued } = await withOfflineFallback(
+        () => createMarketingSpend(payload),
+        { table: "marketing_spend", action: "insert", payload },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Expense logged");
       setQuickAmount("");
-      load();
+      if (!queued) load();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
