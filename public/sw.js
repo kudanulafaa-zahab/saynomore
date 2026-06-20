@@ -1,7 +1,7 @@
 // SayNoMore Service Worker — manual, no next-pwa
 // Strategy: NetworkFirst (5s timeout) for Supabase API, CacheFirst for static assets
 
-const CACHE_VERSION = "snm-v2";
+const CACHE_VERSION = "snm-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 

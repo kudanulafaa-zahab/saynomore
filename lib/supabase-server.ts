@@ -15,7 +15,8 @@ export async function getSupabaseServer() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              // 400-day maxAge so sessions survive PWA restarts on iOS
+              cookieStore.set(name, value, { ...options, maxAge: 34560000 })
             );
           } catch {
             // setAll called from a Server Component — ignore.
