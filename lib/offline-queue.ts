@@ -1,3 +1,5 @@
+"use client";
+
 import { openDB, type IDBPDatabase } from "idb";
 
 const DB_NAME = "saynomore-offline";
