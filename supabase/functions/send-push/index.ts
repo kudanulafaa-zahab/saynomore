@@ -171,8 +171,25 @@ async function sendPush(
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function json(payload: object, status: number) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
-  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+  // Browser preflight — must answer with CORS headers or the fetch is blocked
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
+  if (req.method !== "POST") return json({ error: "Method Not Allowed" }, 405);
 
   const { user_id, title, body, url } = await req.json() as {
     user_id: string;
@@ -182,7 +199,7 @@ Deno.serve(async (req) => {
   };
 
   if (!user_id || !title) {
-    return new Response(JSON.stringify({ error: "user_id and title required" }), { status: 400 });
+    return json({ error: "user_id and title required" }, 400);
   }
 
   const supabase = createClient(
@@ -195,8 +212,8 @@ Deno.serve(async (req) => {
     .select("endpoint, p256dh, auth_key")
     .eq("user_id", user_id);
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-  if (!subs?.length) return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
+  if (error) return json({ error: error.message }, 500);
+  if (!subs?.length) return json({ sent: 0 }, 200);
 
   const results = await Promise.allSettled(
     subs.map((s: { endpoint: string; p256dh: string; auth_key: string }) =>
@@ -205,5 +222,9 @@ Deno.serve(async (req) => {
   );
 
   const sent = results.filter((r) => r.status === "fulfilled").length;
-  return new Response(JSON.stringify({ sent }), { status: 200 });
+  const errors = results
+    .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+    .map((r) => String(r.reason));
+
+  return json({ sent, attempted: subs.length, errors }, 200);
 });

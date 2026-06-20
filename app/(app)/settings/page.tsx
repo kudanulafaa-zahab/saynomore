@@ -96,11 +96,14 @@ export default function SettingsPage() {
       } else if (res.ok && json.sent === 0) {
         toast.error("No device registered — try again to enable notifications");
         setPushEnabled(false);
+      } else if (res.ok && json.errors?.length) {
+        // Function ran but the push provider rejected delivery — show the reason
+        toast.error(`Push rejected: ${json.errors[0]}`);
       } else {
-        toast.error(json.error ?? "Failed to send test notification");
+        toast.error(json.error ?? `Failed (HTTP ${res.status})`);
       }
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(`Network error: ${(e as Error).message}`);
     } finally {
       setPushBusy(false);
     }
