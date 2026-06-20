@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, ChevronDown, CheckCircle2, UserCheck, MapPin, Package,
-  Truck, ClipboardList,
+  Truck, ClipboardList, AlertTriangle,
 } from "lucide-react";
 import {
   listMyDeliveries,
@@ -133,6 +133,7 @@ export function DispatchView() {
 
   const active    = items.filter((i) => ["confirmed", "picked", "out_for_delivery"].includes(i.order.status));
   const completed = items.filter((i) => i.order.status === "delivered");
+  const withIssues = active.filter((i) => i.order.notes?.trim());
 
   async function markDelivered() {
     if (!confirmDelivery) return;
@@ -151,6 +152,18 @@ export function DispatchView() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function resolveIssue(orderId: string) {
+    const patch = { notes: null } as Record<string, unknown>;
+    try {
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(orderId, patch),
+        { table: "sales_orders", action: "update", payload: patch, match: { id: orderId } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Issue resolved");
+      load();
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   async function assignDriver(orderId: string, driverId: string) {
@@ -201,14 +214,8 @@ export function DispatchView() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Active",     value: active.length,    color: active.length > 0 ? "var(--snm-warning)" : "var(--foreground)" },
+          { label: "Issues",     value: withIssues.length, color: withIssues.length > 0 ? "var(--snm-error)" : "var(--foreground)" },
           { label: "Done Today", value: completed.length, color: completed.length > 0 ? "var(--snm-success)" : "var(--foreground)" },
-          {
-            label: "Rate",
-            value: (active.length + completed.length) > 0
-              ? `${Math.round((completed.length / (active.length + completed.length)) * 100)}%`
-              : "—",
-            color: "var(--foreground)",
-          },
         ].map(({ label, value, color }) => (
           <div
             key={label}
@@ -273,27 +280,43 @@ export function DispatchView() {
                 : item.order.status === "picked"          ? "Picked"
                 : "Out for delivery";
 
+              const hasIssue = !!item.order.notes?.trim();
+              const rowBorderColor = hasIssue ? "var(--snm-error)" : statusColor;
+
               return (
                 <div key={item.order.id}>
                   {/* ── Order row — tap to expand ── */}
                   <button
                     className="w-full text-left px-4 py-4 flex items-center gap-3 snm-pressable"
-                    style={{ borderLeft: `3px solid ${statusColor}` }}
+                    style={{ borderLeft: `3px solid ${rowBorderColor}` }}
                     onClick={() => setExpanded(isExpanded ? null : item.order.id)}
                     aria-expanded={isExpanded}
                   >
-                    {/* Status icon container */}
+                    {/* Status / issue icon */}
                     <div
                       className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: `color-mix(in srgb, ${statusColor} 15%, transparent)` }}
+                      style={{ background: hasIssue
+                        ? "color-mix(in srgb, var(--snm-error) 15%, transparent)"
+                        : `color-mix(in srgb, ${statusColor} 15%, transparent)` }}
                     >
-                      <Truck className="h-4 w-4" style={{ color: statusColor }} />
+                      {hasIssue
+                        ? <AlertTriangle className="h-4 w-4" style={{ color: "var(--snm-error)" }} />
+                        : <Truck className="h-4 w-4" style={{ color: statusColor }} />
+                      }
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-semibold text-foreground">
-                        {item.customer?.name ?? "Walk-in"}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[14px] font-semibold text-foreground">
+                          {item.customer?.name ?? "Walk-in"}
+                        </p>
+                        {hasIssue && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                            style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
+                            ISSUE
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[12px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
                         {item.order.order_number}
                         {item.godown?.name && <> · {item.godown.name}</>}
@@ -308,7 +331,7 @@ export function DispatchView() {
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
                         <p className="text-[14px] font-bold text-foreground snm-num">MVR {totalMvr.toFixed(0)}</p>
-                        <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: statusColor }}>{statusLabel}</p>
+                        <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: rowBorderColor }}>{statusLabel}</p>
                       </div>
                       <ChevronDown
                         className="h-4 w-4 transition-transform duration-200"
@@ -352,6 +375,30 @@ export function DispatchView() {
                           <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                             {[item.order.delivery_island, item.order.delivery_address_line1, item.order.delivery_address_line2].filter(Boolean).join(", ")}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Issue note — shown to admin when driver has reported a problem */}
+                      {hasIssue && isAdmin && (
+                        <div className="rounded-xl p-3 space-y-2"
+                          style={{
+                            background: "color-mix(in srgb, var(--snm-error) 8%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)",
+                          }}>
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-error)" }} />
+                            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--snm-error)" }}>Driver reported an issue</p>
+                          </div>
+                          <p className="text-[13px] leading-snug" style={{ color: "var(--foreground)" }}>
+                            {item.order.notes}
+                          </p>
+                          <button
+                            onClick={() => resolveIssue(item.order.id)}
+                            className="text-[12px] font-bold h-8 px-3 rounded-lg transition active:scale-95"
+                            style={{ background: "var(--foreground)", color: "var(--background)" }}
+                          >
+                            Mark resolved
+                          </button>
                         </div>
                       )}
 
