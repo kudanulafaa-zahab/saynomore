@@ -46,6 +46,22 @@
   --snm-brand-muted: rgba(255, 64, 0, 0.12);
   --snm-brand-border: rgba(255, 64, 0, 0.25);
 
+  /* ── Apple HIG iOS type scale (SF/Dynamic Type @ Large) ────────────────────
+     Source: Apple HIG → Typography → iOS point sizes, leading, tracking.
+     We map each style to a token so components can match the system exactly.
+     Tracking values are Apple's published tracking at the default size.        */
+  --ios-large-title: 34px;  --ios-large-title-lh: 41px;  --ios-large-title-ls: 0.374px;
+  --ios-title1:      28px;  --ios-title1-lh:      34px;  --ios-title1-ls:      0.364px;
+  --ios-title2:      22px;  --ios-title2-lh:      28px;  --ios-title2-ls:      0.352px;
+  --ios-title3:      20px;  --ios-title3-lh:      25px;  --ios-title3-ls:      0.38px;
+  --ios-headline:    17px;  --ios-headline-lh:    22px;  --ios-headline-ls:   -0.408px;
+  --ios-body:        17px;  --ios-body-lh:        22px;  --ios-body-ls:       -0.408px;
+  --ios-callout:     16px;  --ios-callout-lh:     21px;  --ios-callout-ls:    -0.32px;
+  --ios-subhead:     15px;  --ios-subhead-lh:     20px;  --ios-subhead-ls:    -0.24px;
+  --ios-footnote:    13px;  --ios-footnote-lh:    18px;  --ios-footnote-ls:   -0.078px;
+  --ios-caption1:    12px;  --ios-caption1-lh:    16px;  --ios-caption1-ls:    0px;
+  --ios-caption2:    11px;  --ios-caption2-lh:    13px;  --ios-caption2-ls:    0.066px;
+
   /* Semantic tokens — dark defaults, overridden in :root (light) */
   --snm-error: #ffb4ab;
   --snm-success: #4ade80;
@@ -642,6 +658,99 @@
   [role="button"]:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--foreground) 45%, transparent);
     outline-offset: 2px;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     LIQUID GLASS (Apple iOS 26 HIG) — additive utilities
+     Reference: developer.apple.com/design/human-interface-guidelines/materials
+     + Adopting Liquid Glass. Glass belongs to the navigation layer that floats
+     above content; content itself stays flat. These classes encode Apple's
+     concentric geometry, capsule controls, dimming, and type scale.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* ── Concentric corner radius ──────────────────────────────────────────────
+     Apple: child shapes echo the container corner so everything nests. We can't
+     read the hardware corner from CSS, but we standardise on Apple's nesting
+     ratio: outer container 20px, inner element = outer − padding. Use these
+     three steps for harmonious nesting instead of arbitrary radii.            */
+  .snm-radius-container { border-radius: 20px; }   /* outermost cards/sheets */
+  .snm-radius-inner     { border-radius: 14px; }   /* element inside a card  */
+  .snm-radius-tight     { border-radius: 10px; }   /* element inside inner   */
+
+  /* ── Capsule control — Apple's default button shape in Liquid Glass ────────*/
+  .snm-capsule { border-radius: 9999px; }
+
+  /* ── Glass button (translucent) — .buttonStyle(.glass) equivalent ──────────*/
+  .snm-glass-btn {
+    background:              var(--glass-bg-2);
+    backdrop-filter:         var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: 9999px;
+    box-shadow:    var(--glass-inner);
+    color:         var(--foreground);
+    min-height:    44px;
+    display:       inline-flex;
+    align-items:   center;
+    justify-content: center;
+    padding:       0 20px;
+    font-size:     17px;
+    font-weight:   600;
+    letter-spacing: -0.408px;
+  }
+
+  /* ── Glass prominent button — .buttonStyle(.glassProminent) (opaque) ───────*/
+  .snm-glass-btn-prominent {
+    background:    var(--foreground);
+    color:         var(--background);
+    border-radius: 9999px;
+    min-height:    44px;
+    display:       inline-flex;
+    align-items:   center;
+    justify-content: center;
+    padding:       0 20px;
+    font-size:     17px;
+    font-weight:   600;
+    letter-spacing: -0.408px;
+  }
+
+  /* ── Dimming layer ─────────────────────────────────────────────────────────
+     Apple: when glass sits over bright content, lay a 35% dark scrim beneath
+     the glass so foreground controls stay legible. Put this on a layer behind
+     the glass nav element when the page background can be bright.             */
+  .snm-glass-dim::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* ── Apple HIG type scale — apply to match the system exactly ──────────────*/
+  .ios-large-title { font-size: var(--ios-large-title); line-height: var(--ios-large-title-lh); letter-spacing: var(--ios-large-title-ls); font-weight: 700; }
+  .ios-title1      { font-size: var(--ios-title1);      line-height: var(--ios-title1-lh);      letter-spacing: var(--ios-title1-ls);      font-weight: 700; }
+  .ios-title2      { font-size: var(--ios-title2);      line-height: var(--ios-title2-lh);      letter-spacing: var(--ios-title2-ls);      font-weight: 700; }
+  .ios-title3      { font-size: var(--ios-title3);      line-height: var(--ios-title3-lh);      letter-spacing: var(--ios-title3-ls);      font-weight: 600; }
+  .ios-headline    { font-size: var(--ios-headline);    line-height: var(--ios-headline-lh);    letter-spacing: var(--ios-headline-ls);    font-weight: 600; }
+  .ios-body        { font-size: var(--ios-body);        line-height: var(--ios-body-lh);        letter-spacing: var(--ios-body-ls);        font-weight: 400; }
+  .ios-callout     { font-size: var(--ios-callout);     line-height: var(--ios-callout-lh);     letter-spacing: var(--ios-callout-ls);     font-weight: 400; }
+  .ios-subhead     { font-size: var(--ios-subhead);     line-height: var(--ios-subhead-lh);     letter-spacing: var(--ios-subhead-ls);     font-weight: 400; }
+  .ios-footnote    { font-size: var(--ios-footnote);    line-height: var(--ios-footnote-lh);    letter-spacing: var(--ios-footnote-ls);    font-weight: 400; }
+  .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--ios-caption1-lh);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
+  .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--ios-caption2-lh);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
+}
+
+/* ── Increased Contrast (Apple accessibility) ────────────────────────────────
+   Apple: under Increased Contrast, glass becomes near-opaque with stark borders.
+   Honour prefers-contrast: more so the app matches iOS behaviour.            */
+@media (prefers-contrast: more) {
+  .glass, .snm-card, .snm-card-l2, .snm-glass-btn,
+  .glass-modal, .glass-elevated, .glass-input {
+    background: var(--background) !important;
+    border-color: var(--foreground) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
 
