@@ -1,7 +1,5 @@
 "use client";
 
-import { openDB, type IDBPDatabase } from "idb";
-
 const DB_NAME = "saynomore-offline";
 const DB_VERSION = 1;
 const STORE = "pending_writes";
@@ -11,53 +9,66 @@ export interface QueuedWrite {
   table: string;
   action: "insert" | "update" | "delete" | "rpc";
   payload: Record<string, unknown>;
-  match?: Record<string, unknown>; // for update/delete: the .eq() filter
-  rpcName?: string;               // for rpc calls
+  match?: Record<string, unknown>;
+  rpcName?: string;
   timestamp: number;
-  tempId?: string;                // local UUID for optimistic records
+  tempId?: string;
 }
 
-let _db: IDBPDatabase | null = null;
-
-async function getDb(): Promise<IDBPDatabase> {
-  if (_db) return _db;
-  _db = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
       }
-    },
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
-  return _db;
 }
 
 export async function enqueue(write: Omit<QueuedWrite, "id" | "timestamp">): Promise<void> {
-  const db = await getDb();
-  await db.add(STORE, { ...write, timestamp: Date.now() });
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const req = tx.objectStore(STORE).add({ ...write, timestamp: Date.now() });
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
 }
 
 export async function getPendingCount(): Promise<number> {
-  const db = await getDb();
-  return db.count(STORE);
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
 export async function getPending(): Promise<QueuedWrite[]> {
-  const db = await getDb();
-  return db.getAll(STORE);
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => resolve(req.result as QueuedWrite[]);
+    req.onerror = () => reject(req.error);
+  });
 }
 
 export async function removeFromQueue(id: number): Promise<void> {
-  const db = await getDb();
-  await db.delete(STORE, id);
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const req = tx.objectStore(STORE).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
 }
 
-export async function clearQueue(): Promise<void> {
-  const db = await getDb();
-  await db.clear(STORE);
-}
-
-// Drain: replays every queued write against Supabase in order.
-// Returns number of successfully synced items.
 export async function drainQueue(
   supabaseUrl: string,
   supabaseKey: string,
@@ -80,18 +91,16 @@ export async function drainQueue(
       let url = `${supabaseUrl}/rest/v1/${item.table}`;
       let method = "POST";
 
-      if (item.action === "insert") {
-        method = "POST";
-      } else if (item.action === "update" && item.match) {
+      if (item.action === "update" && item.match) {
         method = "PATCH";
         const params = new URLSearchParams(
-          Object.entries(item.match).map(([k, v]) => [`${k}`, `eq.${v}`])
+          Object.entries(item.match).map(([k, v]) => [k, `eq.${v}`])
         );
         url += `?${params}`;
       } else if (item.action === "delete" && item.match) {
         method = "DELETE";
         const params = new URLSearchParams(
-          Object.entries(item.match).map(([k, v]) => [`${k}`, `eq.${v}`])
+          Object.entries(item.match).map(([k, v]) => [k, `eq.${v}`])
         );
         url += `?${params}`;
       } else if (item.action === "rpc" && item.rpcName) {
@@ -109,16 +118,12 @@ export async function drainQueue(
         await removeFromQueue(item.id!);
         synced++;
       } else {
-        // Non-retriable errors (e.g. 400 bad request): drop to avoid infinite queue
-        const body = await res.text();
-        console.error(`[offline-queue] Failed to sync item ${item.id}:`, res.status, body);
         if (res.status >= 400 && res.status < 500) {
           await removeFromQueue(item.id!);
         }
         failed++;
       }
     } catch {
-      // Network still down — stop draining
       failed++;
       break;
     }
