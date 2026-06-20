@@ -29,6 +29,7 @@ import {
   createCustomer, updateCustomer,
   type CustomerRow, type CustomerInput, type CustomerChannel, type PriceTier,
 } from "@/lib/queries/masters";
+import { withOfflineFallback } from "@/lib/offline-write";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -136,11 +137,14 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
     };
     setSaving(true);
     try {
-      const saved = editing
-        ? await updateCustomer(editing.id, payload)
-        : await createCustomer(payload);
-      toast.success(editing ? "Saved" : "Customer created");
-      onSaved(saved as CustomerRow);
+      const { result, queued } = await withOfflineFallback(
+        () => editing ? updateCustomer(editing.id, payload) : createCustomer(payload),
+        editing
+          ? { table: "customers", action: "update", payload: payload as unknown as Record<string, unknown>, match: { id: editing.id } }
+          : { table: "customers", action: "insert", payload: payload as unknown as Record<string, unknown> },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : editing ? "Saved" : "Customer created");
+      if (!queued) onSaved(result as CustomerRow);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

@@ -19,6 +19,7 @@ import {
   type CompetitorPriceRow,
   type PriceBasis,
 } from "@/lib/queries/competitors";
+import { withOfflineFallback } from "@/lib/offline-write";
 import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
 
@@ -1005,7 +1006,14 @@ export function CompetitorsView() {
                 disabled={deleting}
                 onClick={async () => {
                   setDeleting(true);
-                  try { await deleteCompetitor(deleteCompDialog.id); toast.success("Removed"); setDeleteCompDialog(null); load(); }
+                  try {
+                    const { queued } = await withOfflineFallback(
+                      () => deleteCompetitor(deleteCompDialog.id),
+                      { table: "competitors", action: "delete", payload: {}, match: { id: deleteCompDialog.id } },
+                    );
+                    toast.success(queued ? "Saved offline — will sync when connected" : "Removed");
+                    if (!queued) { setDeleteCompDialog(null); load(); }
+                  }
                   catch (e) { toast.error((e as Error).message); }
                   finally { setDeleting(false); }
                 }}
@@ -1029,7 +1037,14 @@ export function CompetitorsView() {
                 disabled={deleting}
                 onClick={async () => {
                   setDeleting(true);
-                  try { await deleteCompetitorPrice(deletePriceDialog.id); toast.success("Removed"); setDeletePriceDialog(null); load(); }
+                  try {
+                    const { queued } = await withOfflineFallback(
+                      () => deleteCompetitorPrice(deletePriceDialog.id),
+                      { table: "competitor_prices", action: "delete", payload: {}, match: { id: deletePriceDialog.id } },
+                    );
+                    toast.success(queued ? "Saved offline — will sync when connected" : "Removed");
+                    if (!queued) { setDeletePriceDialog(null); load(); }
+                  }
                   catch (e) { toast.error((e as Error).message); }
                   finally { setDeleting(false); }
                 }}
@@ -1058,11 +1073,16 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   async function save() {
     if (!name.trim()) return;
     setSaving(true);
+    const payload = { name: name.trim(), notes: notes.trim() || null };
     try {
-      if (editing) await updateCompetitor(editing.id, { name: name.trim(), notes: notes.trim() || null });
-      else await createCompetitor(name.trim(), notes.trim() || null);
-      toast.success(editing ? "Updated" : "Competitor added");
-      onDone();
+      const { queued } = await withOfflineFallback<void>(
+        async () => { if (editing) await updateCompetitor(editing.id, payload); else await createCompetitor(payload.name, payload.notes); },
+        editing
+          ? { table: "competitors", action: "update", payload, match: { id: editing.id } }
+          : { table: "competitors", action: "insert", payload },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : editing ? "Updated" : "Competitor added");
+      if (!queued) onDone();
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
   }
@@ -1153,10 +1173,14 @@ function PriceModal({
         observed_date: observedDate,
         notes: notes.trim() || null,
       };
-      if (editing) await updateCompetitorPrice(editing.id, payload);
-      else await createCompetitorPrice(payload);
-      toast.success(editing ? "Price updated" : "Price logged");
-      onDone();
+      const { queued } = await withOfflineFallback<void>(
+        async () => { if (editing) await updateCompetitorPrice(editing.id, payload); else await createCompetitorPrice(payload); },
+        editing
+          ? { table: "competitor_prices", action: "update", payload, match: { id: editing.id } }
+          : { table: "competitor_prices", action: "insert", payload },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : editing ? "Price updated" : "Price logged");
+      if (!queued) onDone();
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
   }

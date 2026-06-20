@@ -26,6 +26,7 @@ import {
   type SupplierInput,
   type SupplierCurrency,
 } from "@/lib/queries/masters";
+import { withOfflineFallback } from "@/lib/offline-write";
 import { getCurrentUserRole } from "@/lib/queries/products";
 
 const CARD = {
@@ -425,10 +426,14 @@ function SupplierModal({
     };
     setSaving(true);
     try {
-      if (editing) await updateSupplier(editing.id, payload);
-      else await createSupplier(payload);
-      toast.success(editing ? "Saved" : "Vendor created");
-      onSaved();
+      const { queued } = await withOfflineFallback(
+        () => editing ? updateSupplier(editing.id, payload) : createSupplier(payload),
+        editing
+          ? { table: "suppliers", action: "update", payload: payload as unknown as Record<string, unknown>, match: { id: editing.id } }
+          : { table: "suppliers", action: "insert", payload: payload as unknown as Record<string, unknown> },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : editing ? "Saved" : "Vendor created");
+      if (!queued) onSaved();
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

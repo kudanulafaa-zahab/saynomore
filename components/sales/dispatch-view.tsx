@@ -14,6 +14,7 @@ import {
   type SalesOrderRow,
   type SalesOrderLineRow,
 } from "@/lib/queries/sales";
+import { withOfflineFallback } from "@/lib/offline-write";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import {
   listCustomers, listGodowns, listUsers,
@@ -136,9 +137,13 @@ export function DispatchView() {
   async function markDelivered() {
     if (!confirmDelivery) return;
     setSaving(true);
+    const patch = { status: "delivered" as const, delivered_at: new Date().toISOString() };
     try {
-      await updateOrder(confirmDelivery.id, { status: "delivered", delivered_at: new Date().toISOString() });
-      toast.success("Marked as delivered");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(confirmDelivery.id, patch),
+        { table: "sales_orders", action: "update", payload: patch, match: { id: confirmDelivery.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Marked as delivered");
       setConfirmDelivery(null);
       load();
     } catch (e) {
@@ -150,12 +155,16 @@ export function DispatchView() {
 
   async function assignDriver(orderId: string, driverId: string) {
     setAssigningId(orderId);
+    const status = driverId ? "out_for_delivery" as const : "confirmed" as const;
+    const patch = { assigned_driver_id: driverId || null, status };
     try {
-      await updateOrder(orderId, {
-        assigned_driver_id: driverId || null,
-        status: driverId ? "out_for_delivery" : "confirmed",
-      });
-      toast.success(driverId ? "Driver assigned — order dispatched" : "Driver unassigned");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(orderId, patch),
+        { table: "sales_orders", action: "update", payload: patch, match: { id: orderId } },
+      );
+      toast.success(queued
+        ? "Saved offline — will sync when connected"
+        : driverId ? "Driver assigned — order dispatched" : "Driver unassigned");
       load();
     } catch (e) {
       toast.error((e as Error).message);

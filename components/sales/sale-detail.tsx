@@ -22,6 +22,7 @@ import {
   type SaleUom,
   type TierPrice,
 } from "@/lib/queries/sales";
+import { withOfflineFallback } from "@/lib/offline-write";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
@@ -163,12 +164,13 @@ export function SaleDetail({ id }: { id: string }) {
   async function handleDispatch() {
     if (!order || !selectedDriver) return;
     setDispatching(true);
+    const p = { assigned_driver_id: selectedDriver, status: "out_for_delivery" } as Record<string, unknown>;
     try {
-      await updateOrder(order.id, {
-        assigned_driver_id: selectedDriver,
-        status: "out_for_delivery",
-      } as Record<string, unknown>);
-      toast.success("Order dispatched to driver");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(order.id, p),
+        { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Order dispatched to driver");
       setPanel(null);
       load();
     } catch (e) { toast.error((e as Error).message); }
@@ -178,14 +180,18 @@ export function SaleDetail({ id }: { id: string }) {
   async function handleDeliver() {
     if (!order) return;
     setCompleting(true);
+    const cash = parseFloat(cashCollected);
+    const p = {
+      status: "delivered",
+      delivered_at: new Date().toISOString(),
+      ...(isNaN(cash) ? {} : { cash_collected_mvr: cash }),
+    } as Record<string, unknown>;
     try {
-      const cash = parseFloat(cashCollected);
-      await updateOrder(order.id, {
-        status: "delivered",
-        delivered_at: new Date().toISOString(),
-        ...(isNaN(cash) ? {} : { cash_collected_mvr: cash }),
-      } as Record<string, unknown>);
-      toast.success("Order marked as delivered");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(order.id, p),
+        { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Order marked as delivered");
       setPanel(null);
       load();
     } catch (e) { toast.error((e as Error).message); }
@@ -195,12 +201,13 @@ export function SaleDetail({ id }: { id: string }) {
   async function handleDeposit() {
     if (!order) return;
     setDepositing(true);
+    const p = { payment_status: "deposited", cash_deposited_at: new Date().toISOString() } as Record<string, unknown>;
     try {
-      await updateOrder(order.id, {
-        payment_status: "deposited",
-        cash_deposited_at: new Date().toISOString(),
-      } as Record<string, unknown>);
-      toast.success("Cash marked as deposited");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(order.id, p),
+        { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Cash marked as deposited");
       setPanel(null);
       load();
     } catch (e) { toast.error((e as Error).message); }
@@ -209,9 +216,13 @@ export function SaleDetail({ id }: { id: string }) {
 
   async function handleMarkPaid() {
     if (!order) return;
+    const p = { payment_status: "paid" } as Record<string, unknown>;
     try {
-      await updateOrder(order.id, { payment_status: "paid" } as Record<string, unknown>);
-      toast.success("Payment received");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(order.id, p),
+        { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Payment received");
       load();
     } catch (e) { toast.error((e as Error).message); }
   }
@@ -227,13 +238,17 @@ export function SaleDetail({ id }: { id: string }) {
   async function saveAddress() {
     if (!order) return;
     setSavingAddress(true);
+    const p = {
+      delivery_address_line1: addrLine1.trim() || null,
+      delivery_address_line2: addrLine2.trim() || null,
+      delivery_island: addrIsland.trim() || null,
+    } as Record<string, unknown>;
     try {
-      await updateOrder(order.id, {
-        delivery_address_line1: addrLine1.trim() || null,
-        delivery_address_line2: addrLine2.trim() || null,
-        delivery_island: addrIsland.trim() || null,
-      } as Record<string, unknown>);
-      toast.success("Address saved");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(order.id, p),
+        { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Address saved");
       setEditingAddress(false);
       load();
     } catch (e) { toast.error((e as Error).message); }

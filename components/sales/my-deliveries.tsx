@@ -13,6 +13,7 @@ import {
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
+import { withOfflineFallback } from "@/lib/offline-write";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -117,13 +118,17 @@ function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
     if (!order || !amount) return;
     setSaving(true);
     try {
-      await updateOrder(order.id, {
-        status: "delivered",
-        payment_status: "paid",
+      const patch = {
+        status: "delivered" as const,
+        payment_status: "paid" as const,
         cash_collected_mvr: collected,
         delivered_at: new Date().toISOString(),
-      });
-      toast.success("Delivered — remember to deposit the cash");
+      };
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(order.id, patch),
+        { table: "sales_orders", action: "update", payload: patch, match: { id: order.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Delivered — remember to deposit the cash");
       onDone();
     } catch (err) { toast.error((err as Error).message); }
     finally { setSaving(false); }
@@ -201,9 +206,13 @@ function IssueSheet({ open, order, onClose, onDone }: {
   async function save() {
     if (!order || !note.trim()) return;
     setSaving(true);
+    const patch = { notes: note.trim() };
     try {
-      await updateOrder(order.id, { notes: note.trim() });
-      toast.success("Issue reported — admin will see it on the order");
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(order.id, patch),
+        { table: "sales_orders", action: "update", payload: patch, match: { id: order.id } },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : "Issue reported — admin will see it on the order");
       onDone();
     } catch (err) { toast.error((err as Error).message); }
     finally { setSaving(false); }
@@ -596,7 +605,11 @@ export function MyDeliveries() {
 
   async function handleAction(id: string, patch: Record<string, string | number | null>) {
     try {
-      await updateOrder(id, patch);
+      const { queued } = await withOfflineFallback(
+        () => updateOrder(id, patch),
+        { table: "sales_orders", action: "update", payload: patch, match: { id } },
+      );
+      if (queued) toast.info("Saved offline — will sync when connected");
       load(true);
     } catch (e) { toast.error((e as Error).message); }
   }

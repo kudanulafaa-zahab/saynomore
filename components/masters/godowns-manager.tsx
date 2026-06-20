@@ -23,6 +23,7 @@ import {
   type GodownRow,
   type GodownInput,
 } from "@/lib/queries/masters";
+import { withOfflineFallback } from "@/lib/offline-write";
 import { getCurrentUserRole } from "@/lib/queries/products";
 
 export function GodownsManager() {
@@ -203,11 +204,14 @@ function GodownDialog({
     };
     setSaving(true);
     try {
-      if (editing) await updateGodown(editing.id, payload);
-      else await createGodown(payload);
-      toast.success(editing ? "Saved" : "Godown created");
-      onOpenChange(false);
-      onSaved();
+      const { queued } = await withOfflineFallback(
+        () => editing ? updateGodown(editing.id, payload) : createGodown(payload),
+        editing
+          ? { table: "godowns", action: "update", payload: payload as unknown as Record<string, unknown>, match: { id: editing.id } }
+          : { table: "godowns", action: "insert", payload: payload as unknown as Record<string, unknown> },
+      );
+      toast.success(queued ? "Saved offline — will sync when connected" : editing ? "Saved" : "Godown created");
+      if (!queued) { onOpenChange(false); onSaved(); }
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
