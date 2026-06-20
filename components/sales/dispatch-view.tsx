@@ -138,9 +138,10 @@ export function DispatchView() {
   }, []);
 
   async function enablePush() {
-    const ok = await subscribeToPush();
-    setPushEnabled(ok);
-    toast[ok ? "success" : "error"](ok ? "Notifications enabled" : "Could not enable notifications");
+    const result = await subscribeToPush();
+    setPushEnabled(result.ok);
+    if (result.ok) toast.success("Notifications enabled");
+    else toast.error(result.reason ?? "Could not enable notifications");
   }
 
   const active    = items.filter((i) => ["confirmed", "picked", "out_for_delivery"].includes(i.order.status));

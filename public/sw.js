@@ -1,7 +1,7 @@
 // SayNoMore Service Worker — manual, no next-pwa
 // Strategy: NetworkFirst (5s timeout) for Supabase API, CacheFirst for static assets
 
-const CACHE_VERSION = "snm-v3";
+const CACHE_VERSION = "snm-v4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -179,8 +179,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-72.png",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
       tag: data.tag || "snm-push",
       data: data.url ? { url: data.url } : undefined,
     })

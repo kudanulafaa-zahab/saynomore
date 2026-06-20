@@ -62,10 +62,10 @@ export default function SettingsPage() {
     try {
       // Make sure this device is subscribed first
       if (!pushEnabled) {
-        const ok = await subscribeToPush();
-        setPushEnabled(ok);
-        if (!ok) {
-          toast.error("Could not enable notifications — check browser permission");
+        const result = await subscribeToPush();
+        setPushEnabled(result.ok);
+        if (!result.ok) {
+          toast.error(result.reason ?? "Could not enable notifications");
           return;
         }
       }

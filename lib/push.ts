@@ -12,32 +12,61 @@ function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   return bytes.buffer as ArrayBuffer;
 }
 
-export async function subscribeToPush(): Promise<boolean> {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+export type PushResult = { ok: boolean; reason?: string };
+
+export async function subscribeToPush(): Promise<PushResult> {
+  if (!("Notification" in window)) {
+    return { ok: false, reason: "This browser does not support notifications." };
+  }
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return { ok: false, reason: "Push is not supported. Open the app from your home-screen icon (not Safari)." };
+  }
+
+  // 1) Permission FIRST, synchronously inside the user gesture — iOS denies
+  //    silently if any async work happens before this call.
+  let permission: NotificationPermission;
+  try {
+    permission = await Notification.requestPermission();
+  } catch {
+    return { ok: false, reason: "Could not request permission. Add the app to your home screen first." };
+  }
+  if (permission === "denied") {
+    return { ok: false, reason: "Notifications are blocked. Enable them in iOS Settings → SayNoMore → Notifications." };
+  }
+  if (permission !== "granted") {
+    return { ok: false, reason: "Permission was not granted." };
+  }
 
   try {
     const registration = await navigator.serviceWorker.ready;
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") return false;
 
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToArrayBuffer(VAPID_PUBLIC_KEY),
-    });
+    // Reuse an existing subscription if one exists, otherwise create one.
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToArrayBuffer(VAPID_PUBLIC_KEY),
+      });
+    }
 
     const { endpoint, keys } = subscription.toJSON() as {
       endpoint: string;
       keys: { p256dh: string; auth: string };
     };
 
+    // user_id is required by the table + RLS — Supabase does not auto-fill it.
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return { ok: false, reason: "Not signed in." };
+
     const { error } = await supabase.from("push_subscriptions").upsert(
-      { endpoint, p256dh: keys.p256dh, auth_key: keys.auth },
+      { user_id: userData.user.id, endpoint, p256dh: keys.p256dh, auth_key: keys.auth },
       { onConflict: "user_id,endpoint" }
     );
 
-    return !error;
-  } catch {
-    return false;
+    if (error) return { ok: false, reason: `Could not save subscription: ${error.message}` };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: (e as Error).message || "Subscription failed." };
   }
 }
 
