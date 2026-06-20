@@ -7,8 +7,9 @@ import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, Plus, Trash2, CheckCircle2, Lock,
   AlertTriangle, Truck, ChevronDown, RotateCcw, Calendar,
-  ChevronRight, Minus, MoreHorizontal, Package,
+  ChevronRight, Minus, MoreHorizontal, Package, ScanLine,
 } from "lucide-react";
+import { BarcodeScanner } from "@/components/ui/barcode-scanner";
 import {
   getShipment, listShipmentLines, updateShipment, deleteShipment,
   createShipmentLine, updateShipmentLine, deleteShipmentLine,
@@ -1276,8 +1277,24 @@ function LineDialog({
   );
   const [saving, setSaving]             = useState(false);
   const [search, setSearch]             = useState("");
+  const [showScanner, setShowScanner]   = useState(false);
 
   const sku = skus.find((s) => s.id === skuId);
+
+  function handleScanResult(code: string) {
+    setShowScanner(false);
+    const match = skus.find(
+      (s) => s.internal_code === code || s.supplier_barcode === code,
+    );
+    if (match) {
+      setSkuId(match.id);
+      setSearch("");
+      toast.success(`Found: ${match.brand_name} ${match.variant_display}`);
+    } else {
+      setSearch(code);
+      toast.warning(`No SKU matched "${code}" — showing search results`);
+    }
+  }
 
   const filteredSkus = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -1330,13 +1347,27 @@ function LineDialog({
           <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!skuId ? (
             <>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search brand, model, code…"
-                className="w-full h-12 rounded-xl px-4 text-sm text-foreground outline-none"
-                style={inputSty2}
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search brand, model, code…"
+                  className="flex-1 h-12 rounded-xl px-4 text-sm text-foreground outline-none"
+                  style={inputSty2}
+                />
+                <button
+                  onClick={() => setShowScanner(true)}
+                  style={{
+                    width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                    background: "var(--snm-brand)", border: "none", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 4px 16px color-mix(in srgb, var(--snm-brand) 40%, transparent)",
+                  }}
+                  aria-label="Scan barcode"
+                >
+                  <ScanLine size={20} color="white" />
+                </button>
+              </div>
               <div className="mt-2 rounded-xl overflow-hidden" style={{ maxHeight: 220, overflowY: "auto", border: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                 {filteredSkus.length === 0
                   ? <p className="p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>No matches.</p>
@@ -1451,6 +1482,14 @@ function LineDialog({
           </button>
         </div>
       </div>
+
+      {showScanner && (
+        <BarcodeScanner
+          hint="Scan product barcode"
+          onResult={handleScanResult}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 }

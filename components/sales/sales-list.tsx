@@ -7,8 +7,9 @@ import { toast } from "sonner";
 import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
-  Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown,
+  Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
 } from "lucide-react";
+import { BarcodeScanner } from "@/components/ui/barcode-scanner";
 import {
   listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder,
   getTierPricesForSkus,
@@ -573,6 +574,7 @@ function NewSaleSheet({
   // Step 2 — products
   const [draftLines, setDraftLines] = useState<DraftLine[]>([]);
   const [skuSearch, setSkuSearch] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
   const [selectedSkuId, setSelectedSkuId] = useState("");
   const [lineUom, setLineUom] = useState<SaleUom>("pack");
   const [lineQty, setLineQty] = useState("");
@@ -755,6 +757,21 @@ function NewSaleSheet({
   const insufficient = stockHere !== null && lineQtyPieces > stockHere;
   const grandTotal = useMemo(() => draftLines.reduce((s, l) => s + l.line_total_mvr, 0), [draftLines]);
 
+
+  function handleScanResult(code: string) {
+    setShowScanner(false);
+    const match = skus.find(
+      (s) => s.internal_code === code || s.supplier_barcode === code,
+    );
+    if (match) {
+      setSelectedSkuId(match.id);
+      setSkuSearch("");
+      toast.success(`Found: ${match.brand_name} ${match.variant_display}`);
+    } else {
+      setSkuSearch(code);
+      toast.warning(`No SKU matched "${code}" — showing search results`);
+    }
+  }
 
   function handleAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
@@ -1069,12 +1086,28 @@ function NewSaleSheet({
             {/* Product picker */}
             {!selectedSkuId ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                  <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                  <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)}
-                    placeholder="Search brand, product, variant…"
-                    aria-label="Search products"
-                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                    <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                    <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)}
+                      placeholder="Search brand, product, variant…"
+                      aria-label="Search products"
+                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
+                  </div>
+                  {/* Scan button */}
+                  <button
+                    onClick={() => setShowScanner(true)}
+                    style={{
+                      width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                      background: "var(--snm-brand)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: "none", cursor: "pointer",
+                      boxShadow: "0 4px 16px color-mix(in srgb, var(--snm-brand) 40%, transparent)",
+                    }}
+                    aria-label="Scan barcode"
+                  >
+                    <ScanLine size={20} color="white" />
+                  </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {filteredSkus.map((s) => {
@@ -1575,6 +1608,14 @@ function NewSaleSheet({
           </>
         )}
       </footer>
+
+      {showScanner && (
+        <BarcodeScanner
+          hint="Scan product barcode"
+          onResult={handleScanResult}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 }
