@@ -1199,7 +1199,7 @@ function PriceModal({
               {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Add a competitor first using the "Add Competitor" button.</p>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Add a competitor first using the &ldquo;Add Competitor&rdquo; button.</p>
           )}
         </div>
 

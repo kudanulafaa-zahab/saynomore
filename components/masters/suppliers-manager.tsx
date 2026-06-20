@@ -188,7 +188,7 @@ export function SuppliersManager() {
           </div>
           <h3 className="text-base font-semibold text-foreground">No vendors yet</h3>
           <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
-            Add your Indonesian supplier (MamyPoko, Sosoft, etc.) here. You'll pick from this list when creating shipments.
+            Add your Indonesian supplier (MamyPoko, Sosoft, etc.) here. You&rsquo;ll pick from this list when creating shipments.
           </p>
           {canWrite && (
             <button
