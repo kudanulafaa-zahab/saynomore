@@ -1,175 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as webpush from "jsr:@negrel/webpush@0.3.0";
 
-const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
+// VAPID keys are stored as JWK JSON strings (not base64) to avoid any decoding
+// ambiguity. VAPID_PUBLIC_JWK / VAPID_PRIVATE_JWK are set as edge secrets.
+const VAPID_PUBLIC_JWK = JSON.parse(Deno.env.get("VAPID_PUBLIC_JWK")!);
+const VAPID_PRIVATE_JWK = JSON.parse(Deno.env.get("VAPID_PRIVATE_JWK")!);
 const VAPID_SUBJECT = "mailto:admin@saynomore.mv";
-
-// ── VAPID JWT ────────────────────────────────────────────────────────────────
-
-function base64UrlEncode(data: Uint8Array): string {
-  return btoa(String.fromCharCode(...data))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-}
-
-async function buildVapidHeaders(audience: string): Promise<Record<string, string>> {
-  const header = base64UrlEncode(
-    new TextEncoder().encode(JSON.stringify({ typ: "JWT", alg: "ES256" }))
-  );
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = base64UrlEncode(
-    new TextEncoder().encode(
-      JSON.stringify({ aud: audience, exp: now + 12 * 3600, sub: VAPID_SUBJECT })
-    )
-  );
-
-  const signingInput = `${header}.${payload}`;
-
-  // Import the private key (PKCS8 DER, base64-encoded)
-  const keyBytes = Uint8Array.from(atob(VAPID_PRIVATE_KEY), (c) => c.charCodeAt(0));
-  const privateKey = await crypto.subtle.importKey(
-    "pkcs8",
-    keyBytes,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"]
-  );
-
-  const sig = await crypto.subtle.sign(
-    { name: "ECDSA", hash: "SHA-256" },
-    privateKey,
-    new TextEncoder().encode(signingInput)
-  );
-
-  const jwt = `${signingInput}.${base64UrlEncode(new Uint8Array(sig))}`;
-
-  return {
-    Authorization: `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`,
-    "Content-Type": "application/octet-stream",
-  };
-}
-
-// ── Encrypt payload (RFC 8291 / AES-128-GCM) ─────────────────────────────────
-
-async function encryptPayload(
-  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
-  plaintext: string
-): Promise<{ ciphertext: ArrayBuffer; salt: Uint8Array; serverPublicKey: Uint8Array }> {
-  const b64d = (s: string) =>
-    Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
-
-  const clientPublicKey = b64d(subscription.keys.p256dh);
-  const authSecret = b64d(subscription.keys.auth);
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-
-  // Generate server ECDH key pair
-  const serverKeyPair = await crypto.subtle.generateKey(
-    { name: "ECDH", namedCurve: "P-256" },
-    true,
-    ["deriveKey"]
-  );
-
-  const serverPublicKeyBuffer = await crypto.subtle.exportKey("raw", serverKeyPair.publicKey);
-
-  const clientKey = await crypto.subtle.importKey(
-    "raw",
-    clientPublicKey,
-    { name: "ECDH", namedCurve: "P-256" },
-    false,
-    []
-  );
-
-  const sharedSecret = await crypto.subtle.deriveKey(
-    { name: "ECDH", public: clientKey },
-    serverKeyPair.privateKey,
-    { name: "HKDF", hash: "SHA-256", salt: authSecret, info: new TextEncoder().encode("Content-Encoding: auth\0") },
-    false,
-    ["deriveKey"]
-  );
-
-  const enc = new TextEncoder();
-  const serverPublicKey = new Uint8Array(serverPublicKeyBuffer);
-  const keyInfo = new Uint8Array([
-    ...enc.encode("Content-Encoding: aesgcm\0"),
-    0x00, 0x41, ...clientPublicKey,
-    0x00, 0x41, ...serverPublicKey,
-  ]);
-
-  const nonceInfo = new Uint8Array([
-    ...enc.encode("Content-Encoding: nonce\0"),
-    0x00, 0x41, ...clientPublicKey,
-    0x00, 0x41, ...serverPublicKey,
-  ]);
-
-  const contentEncryptionKey = await crypto.subtle.deriveKey(
-    { name: "HKDF", hash: "SHA-256", salt, info: keyInfo },
-    sharedSecret,
-    { name: "AES-GCM", length: 128 },
-    false,
-    ["encrypt"]
-  );
-
-  const nonceDerived = await crypto.subtle.exportKey(
-    "raw",
-    await crypto.subtle.deriveKey(
-      { name: "HKDF", hash: "SHA-256", salt, info: nonceInfo },
-      sharedSecret,
-      { name: "AES-GCM", length: 128 },
-      true,
-      ["encrypt"]
-    )
-  );
-  const nonce = new Uint8Array(nonceDerived).slice(0, 12);
-
-  const paddedPayload = new Uint8Array([0, 0, ...enc.encode(plaintext)]);
-
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: nonce },
-    contentEncryptionKey,
-    paddedPayload
-  );
-
-  return { ciphertext, salt, serverPublicKey };
-}
-
-// ── Send one push ─────────────────────────────────────────────────────────────
-
-async function sendPush(
-  endpoint: string,
-  p256dh: string,
-  authKey: string,
-  payload: object
-) {
-  const url = new URL(endpoint);
-  const audience = `${url.protocol}//${url.host}`;
-  const vapidHeaders = await buildVapidHeaders(audience);
-
-  const { ciphertext, salt, serverPublicKey } = await encryptPayload(
-    { endpoint, keys: { p256dh, auth: authKey } },
-    JSON.stringify(payload)
-  );
-
-  const body = new Uint8Array([...salt, ...serverPublicKey, ...new Uint8Array(ciphertext)]);
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      ...vapidHeaders,
-      "Content-Encoding": "aesgcm",
-      Encryption: `salt=${btoa(String.fromCharCode(...salt)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")}`,
-      "Crypto-Key": `dh=${btoa(String.fromCharCode(...serverPublicKey)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")}; keyid=p256ecdsa`,
-      "Content-Length": String(body.byteLength),
-      TTL: "86400",
-    },
-    body,
-  });
-
-  return res.status;
-}
-
-// ── Handler ───────────────────────────────────────────────────────────────────
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -181,6 +17,17 @@ function json(payload: object, status: number) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
+async function getAppServer() {
+  const vapidKeys = await webpush.importVapidKeys(
+    { publicKey: VAPID_PUBLIC_JWK, privateKey: VAPID_PRIVATE_JWK },
+    { extractable: false },
+  );
+  return await webpush.ApplicationServer.new({
+    contactInformation: VAPID_SUBJECT,
+    vapidKeys,
   });
 }
 
@@ -204,7 +51,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   const { data: subs, error } = await supabase
@@ -213,18 +60,31 @@ Deno.serve(async (req) => {
     .eq("user_id", user_id);
 
   if (error) return json({ error: error.message }, 500);
-  if (!subs?.length) return json({ sent: 0 }, 200);
+  if (!subs?.length) return json({ sent: 0, attempted: 0 }, 200);
 
-  const results = await Promise.allSettled(
-    subs.map((s: { endpoint: string; p256dh: string; auth_key: string }) =>
-      sendPush(s.endpoint, s.p256dh, s.auth_key, { title, body, url })
-    )
-  );
+  let appServer: Awaited<ReturnType<typeof getAppServer>>;
+  try {
+    appServer = await getAppServer();
+  } catch (e) {
+    return json({ error: `VAPID key error: ${(e as Error).message}` }, 500);
+  }
 
-  const sent = results.filter((r) => r.status === "fulfilled").length;
-  const errors = results
-    .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-    .map((r) => String(r.reason));
+  const payload = JSON.stringify({ title, body, url });
+  const errors: string[] = [];
+  let sent = 0;
+
+  for (const s of subs as { endpoint: string; p256dh: string; auth_key: string }[]) {
+    try {
+      const subscriber = appServer.subscribe({
+        endpoint: s.endpoint,
+        keys: { p256dh: s.p256dh, auth: s.auth_key },
+      });
+      await subscriber.pushTextMessage(payload, {});
+      sent++;
+    } catch (e) {
+      errors.push(String((e as Error).message ?? e));
+    }
+  }
 
   return json({ sent, attempted: subs.length, errors }, 200);
 });
