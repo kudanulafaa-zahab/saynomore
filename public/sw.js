@@ -1,7 +1,7 @@
 // SayNoMore Service Worker — manual, no next-pwa
 // Strategy: NetworkFirst (5s timeout) for Supabase API, CacheFirst for static assets
 
-const CACHE_VERSION = "snm-v1";
+const CACHE_VERSION = "snm-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -9,16 +9,30 @@ const SUPABASE_ORIGIN = self.location.hostname === "localhost"
   ? null
   : "supabase.co";
 
-// Assets to precache on install
+// Assets to precache on install. /offline is the offline shell — it is a
+// public (non-auth) route so it caches cleanly and can always be served when
+// a navigation fails offline.
 const PRECACHE_URLS = [
-  "/",
   "/offline",
 ];
 
 // ─── Install ────────────────────────────────────────────────────────────────
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting())
+    caches.open(STATIC_CACHE).then(async (cache) => {
+      // Cache each URL individually so one failure never aborts the whole
+      // install (addAll is atomic — a single redirect/404 would wipe it out).
+      await Promise.allSettled(
+        PRECACHE_URLS.map(async (url) => {
+          try {
+            const res = await fetch(url, { redirect: "follow" });
+            if (res.ok) await cache.put(url, res.clone());
+          } catch {
+            /* ignore — offline shell will be cached on first successful load */
+          }
+        })
+      );
+    }).then(() => self.skipWaiting())
   );
 });
 
@@ -67,12 +81,48 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App pages → NetworkFirst, fallback to cache
+  // App navigations (HTML pages) → NetworkFirst; if offline and nothing is
+  // cached, always serve the offline shell so the browser never shows its own
+  // "can't open the page" error.
+  if (request.mode === "navigate") {
+    event.respondWith(navigationHandler(request));
+    return;
+  }
+
+  // Other same-origin GETs → NetworkFirst, fallback to cache
   if (url.origin === self.location.origin) {
     event.respondWith(networkFirst(request, STATIC_CACHE, 8000));
     return;
   }
 });
+
+// Navigation requests get special treatment: try network, fall back to a
+// cached copy of the page, then to the offline shell, and only as a last
+// resort a minimal inline HTML page (never a bare 503 string).
+async function navigationHandler(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  try {
+    const res = await fetchWithTimeout(request, 8000);
+    if (res.ok) cache.put(request, res.clone());
+    return res;
+  } catch {
+    const cachedPage = await cache.match(request);
+    if (cachedPage) return cachedPage;
+
+    const offlineShell = await cache.match("/offline");
+    if (offlineShell) return offlineShell;
+
+    // Absolute last resort — inline HTML so Safari always shows *something*.
+    return new Response(
+      "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>" +
+      "<title>Offline</title><body style='font-family:-apple-system,system-ui,sans-serif;display:flex;" +
+      "min-height:100vh;align-items:center;justify-content:center;margin:0;background:#000;color:#fff;text-align:center'>" +
+      "<div style='padding:24px'><div style='font-size:40px'>📶</div><h1 style='font-size:20px'>You're offline</h1>" +
+      "<p style='color:#999;font-size:15px'>Reconnect to load SayNoMore. Your saved changes will sync automatically.</p></div>",
+      { headers: { "Content-Type": "text/html; charset=utf-8" }, status: 200 }
+    );
+  }
+}
 
 // ─── Strategies ─────────────────────────────────────────────────────────────
 

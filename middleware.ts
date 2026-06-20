@@ -6,11 +6,14 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  // Auth routes: always pass through, no session check, no redirect ever
+  // Public routes: always pass through, no session check, no redirect ever.
+  // /offline must be reachable without auth or network so the service worker
+  // can cache it and serve it as the offline fallback shell.
   if (
     path.startsWith("/auth/") ||
     path.startsWith("/login") ||
-    path.startsWith("/signup")
+    path.startsWith("/signup") ||
+    path.startsWith("/offline")
   ) {
     return response;
   }
@@ -65,5 +68,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // Exclude Next internals, images, AND the PWA files (sw.js, manifest,
+  // workbox, icons). The service worker MUST be served as JS, never
+  // redirected to /login — otherwise registration fails and the app cannot
+  // work offline at all.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|icon-.*\\.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
