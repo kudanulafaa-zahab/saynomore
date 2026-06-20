@@ -15,6 +15,9 @@ function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
 export type PushResult = { ok: boolean; reason?: string };
 
 export async function subscribeToPush(): Promise<PushResult> {
+  if (!VAPID_PUBLIC_KEY) {
+    return { ok: false, reason: "Server is missing the push key (NEXT_PUBLIC_VAPID_PUBLIC_KEY). Add it in Vercel env vars and redeploy." };
+  }
   if (!("Notification" in window)) {
     return { ok: false, reason: "This browser does not support notifications." };
   }
