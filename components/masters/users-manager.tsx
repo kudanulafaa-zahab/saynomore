@@ -136,7 +136,7 @@ export function UsersManager() {
                 </span>
                 <p className="text-sm font-medium text-foreground">{ROLE_LABEL[r]}</p>
               </div>
-              <p className="text-[11px] text-muted-foreground">{ROLE_DESC[r]}</p>
+              <p className="text-[12px] text-muted-foreground">{ROLE_DESC[r]}</p>
             </div>
           );
         })}
@@ -177,7 +177,7 @@ export function UsersManager() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-foreground">{u.full_name ?? "—"}</p>
                       {isMe && (
-                        <span className="text-[10px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">You</span>
+                        <span className="text-[12px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">You</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"}</p>
@@ -185,7 +185,7 @@ export function UsersManager() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <span
-                    className="text-[10px] uppercase tracking-wider rounded px-2 py-0.5"
+                    className="text-[12px] uppercase tracking-wider rounded px-2 py-0.5"
                     style={{ background: `color-mix(in srgb, ${ROLE_TOKEN[u.role]} 12%, transparent)`, color: ROLE_TOKEN[u.role] }}
                   >
                     {ROLE_LABEL[u.role]}
@@ -328,7 +328,7 @@ function EditUserDialog({
                   <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
+              <p className="text-[12px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
             </div>
           )}
         </div>
@@ -414,7 +414,7 @@ function InviteDialog({
                 <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
+            <p className="text-[12px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
           </div>
         </div>
         <DialogFooter>

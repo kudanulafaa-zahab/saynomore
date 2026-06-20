@@ -39,7 +39,7 @@ function SyncStamp() {
   if (!online) {
     return (
       <span
-        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+        className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full"
         style={{
           background: "color-mix(in srgb, var(--snm-error) 12%, transparent)",
           color: "var(--snm-error)",
@@ -56,7 +56,7 @@ function SyncStamp() {
 
   return (
     <span
-      className="hidden sm:inline text-[11px] tabular-nums"
+      className="hidden sm:inline text-[12px] tabular-nums"
       style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
     >
       {label}
@@ -112,7 +112,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       {/* Logo */}
       <div className="flex items-center gap-2.5">
         <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-bold"
+          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[12px] font-bold"
           style={{ background: "var(--snm-brand)", color: "#ffffff" }}
         >
           S
@@ -125,7 +125,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       {/* Centre: viewer badge or sync stamp */}
       {role === "viewer" ? (
         <span
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1 rounded-full"
           style={{
             background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
             color: "var(--snm-brand)",
@@ -171,14 +171,14 @@ export function Topbar({ name, role }: { name: string; role: string }) {
               {/* User info */}
               <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold shrink-0"
                   style={{ background: "var(--secondary)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
                 >
                   {initials}
                 </div>
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold text-foreground truncate">{name}</p>
-                  <p className="text-[11px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{role}</p>
+                  <p className="text-[12px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{role}</p>
                 </div>
               </div>
               {/* Actions */}

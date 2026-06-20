@@ -164,7 +164,7 @@ function SkuPanel({
         style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}
       >
         <div className="min-w-0 flex-1 pr-3">
-          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+          <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
             {sku.brand_name} · {sku.category_name}
           </p>
           <p className="text-[17px] font-semibold text-foreground leading-snug">
@@ -173,7 +173,7 @@ function SkuPanel({
               ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
               : null}
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{sku.internal_code}</p>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{sku.internal_code}</p>
         </div>
         <button
           onClick={onClose}
@@ -189,7 +189,7 @@ function SkuPanel({
 
         {/* Pack config */}
         <div>
-          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pack Configuration</p>
+          <p className="label-caps text-[12px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pack Configuration</p>
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Pcs / Pack",   value: String(sku.pcs_per_pack) },
@@ -198,7 +198,7 @@ function SkuPanel({
             ].map((c) => (
               <div key={c.label} className="rounded-xl p-3 text-center"
                 style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
-                <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
                 <p className="text-[15px] font-bold text-foreground snm-num">{c.value}</p>
               </div>
             ))}
@@ -207,36 +207,36 @@ function SkuPanel({
 
         {/* Landed cost + selling prices */}
         <div>
-          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pricing</p>
+          <p className="label-caps text-[12px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Pricing</p>
 
           {/* Landed cost row */}
           {sku.landed_per_piece_mvr != null && (
             <div className="rounded-xl px-4 py-3 mb-2 flex items-center justify-between"
               style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
               <div>
-                <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost · from last shipment</p>
+                <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Landed cost · from last shipment</p>
                 {/* Primary: per trade unit (Pack/Bottle) */}
                 <p className="text-[17px] font-bold text-foreground snm-num">
                   MVR {(Number(sku.landed_per_piece_mvr) * (sku.pcs_per_pack ?? 1)).toFixed(2)}
                 </p>
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                   per {packLabel(sku).toLowerCase()}
                 </p>
                 {/* Secondary: per piece for competitor comparison */}
-                <p className="text-[11px] mt-0.5 snm-num" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
+                <p className="text-[12px] mt-0.5 snm-num" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
                   MVR {Number(sku.landed_per_piece_mvr).toFixed(4)} /pc
                 </p>
               </div>
               {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null ? (
                 <div className="text-right">
-                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Actual margin</p>
+                  <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Actual margin</p>
                   <p className="text-[17px] font-bold snm-num" style={{ color: sku.actual_margin_pct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                     {sku.actual_margin_pct}%
                   </p>
                 </div>
               ) : sku.target_margin_pct != null ? (
                 <div className="text-right">
-                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Target margin</p>
+                  <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Target margin</p>
                   <p className="text-[17px] font-bold snm-num" style={{ color: "var(--snm-success)" }}>{sku.target_margin_pct}%</p>
                 </div>
               ) : null}
@@ -247,10 +247,10 @@ function SkuPanel({
           {sku.selling_price_per_piece_mvr != null ? (
             <>
               <div className="flex items-center gap-1.5 mb-2">
-                <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
+                <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
                 {sku.fixed_selling_price_mvr != null
-                  ? <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
-                  : <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                  ? <span className="text-[12px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
+                  : <span className="text-[12px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                 }
               </div>
               <div className="space-y-2">
@@ -265,7 +265,7 @@ function SkuPanel({
                       : "color-mix(in srgb, var(--snm-success) 20%, transparent)"}`,
                   }}>
                   <div>
-                    <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
                       Per {packLabel(sku).toLowerCase()} · selling price
                     </p>
                     <p className="text-[20px] font-bold snm-num" style={{ color: sku.fixed_price_per_pack_mvr != null ? "var(--snm-brand)" : "var(--snm-success)" }}>
@@ -273,7 +273,7 @@ function SkuPanel({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · comparison</p>
+                    <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · comparison</p>
                     <p className="text-[13px] font-semibold text-foreground snm-num">
                       MVR {fmtPrice(sku.selling_price_per_piece_mvr)}
                     </p>
@@ -289,11 +289,11 @@ function SkuPanel({
                       ? "color-mix(in srgb, var(--snm-brand) 15%, transparent)"
                       : "var(--glass-border-lo)"}`,
                   }}>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
                   <p className="text-[13px] font-semibold text-foreground snm-num">
                     MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
                     {sku.fixed_price_per_carton_mvr != null && (
-                      <span className="ml-1.5 text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>VOL.</span>
+                      <span className="ml-1.5 text-[12px] font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>VOL.</span>
                     )}
                   </p>
                 </div>
@@ -313,7 +313,7 @@ function SkuPanel({
 
               {/* Header */}
               <div className="px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)" }}>
-                <p className="text-[11px] font-semibold" style={{ color: "var(--snm-brand)" }}>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--snm-brand)" }}>
                   Set pricing — see your profit before saving
                 </p>
               </div>
@@ -322,7 +322,7 @@ function SkuPanel({
                 {/* Two inputs side by side */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
-                    <p className="text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
                       Price per {tradeLabel} (MVR)
                     </p>
                     <input
@@ -341,7 +341,7 @@ function SkuPanel({
                     />
                   </div>
                   <div>
-                    <p className="text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
                       Or target margin %
                     </p>
                     <input
@@ -370,16 +370,16 @@ function SkuPanel({
                     <div className="px-4 py-3 flex items-center justify-between"
                       style={{ background: `color-mix(in srgb, ${marginColor} 10%, transparent)` }}>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: marginColor, opacity: 0.8 }}>Gross margin</p>
+                        <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: marginColor, opacity: 0.8 }}>Gross margin</p>
                         <p className="text-[28px] font-black leading-none" style={{ color: marginColor }}>
                           {livePreview.margin.toFixed(1)}%
                         </p>
                         {livePreview.margin < 0 && (
-                          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--snm-error)" }}>⚠ Selling below cost</p>
+                          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--snm-error)" }}>⚠ Selling below cost</p>
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                        <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
                           Selling / {tradeLabel}
                         </p>
                         <p className="text-[17px] font-bold text-foreground">
@@ -396,10 +396,10 @@ function SkuPanel({
                           <div style={{ flex: 1, background: marginColor, transition: "width 0.2s" }} />
                         </div>
                         <div className="flex justify-between mt-1">
-                          <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+                          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                             Cost {(100 - livePreview.margin).toFixed(1)}%
                           </p>
-                          <p className="text-[9px]" style={{ color: marginColor }}>
+                          <p className="text-[12px]" style={{ color: marginColor }}>
                             Profit {livePreview.margin.toFixed(1)}%
                           </p>
                         </div>
@@ -409,7 +409,7 @@ function SkuPanel({
                     {/* Profit in MVR — the numbers a trader thinks in */}
                     <div className="grid grid-cols-2 gap-0" style={{ borderTop: `1px solid color-mix(in srgb, ${marginColor} 15%, transparent)` }}>
                       <div className="px-4 py-2.5" style={{ borderRight: `1px solid color-mix(in srgb, ${marginColor} 15%, transparent)` }}>
-                        <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                        <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
                           Profit / {tradeLabel}
                         </p>
                         <p className="text-[14px] font-bold" style={{ color: marginColor }}>
@@ -417,7 +417,7 @@ function SkuPanel({
                         </p>
                       </div>
                       <div className="px-4 py-2.5">
-                        <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                        <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>
                           Profit / carton
                         </p>
                         <p className="text-[14px] font-bold" style={{ color: marginColor }}>
@@ -430,7 +430,7 @@ function SkuPanel({
 
                 {/* No GRN yet — explain why meter can't show */}
                 {!landedPerPiece && (inlineFixed || inlineMargin) && (
-                  <p className="text-[11px]" style={{ color: "var(--snm-warning)" }}>
+                  <p className="text-[12px]" style={{ color: "var(--snm-warning)" }}>
                     Profit preview available after first shipment is confirmed.
                   </p>
                 )}
@@ -453,7 +453,7 @@ function SkuPanel({
 
         {/* Carton dimensions */}
         <div>
-          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Carton Dimensions</p>
+          <p className="label-caps text-[12px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Carton Dimensions</p>
           <div className="rounded-xl px-4 py-3 space-y-1.5"
             style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
             <div className="flex justify-between text-[12px]">
@@ -477,7 +477,7 @@ function SkuPanel({
 
         {/* Meta */}
         <div>
-          <p className="label-caps text-[11px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Details</p>
+          <p className="label-caps text-[12px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Details</p>
           <div className="rounded-xl px-4 py-3 space-y-1.5"
             style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
             <div className="flex justify-between text-[12px]">
@@ -576,7 +576,7 @@ function SkuRow({
             ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
             : null}
         </p>
-        <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-[12px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
           {sku.pcs_per_pack}/pack × {sku.packs_per_carton}/ctn · {pcsPerCtn}/ctn
         </p>
       </div>
@@ -588,10 +588,10 @@ function SkuRow({
             <p className="text-[13px] font-semibold text-foreground">
               MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
             </p>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>per ctn</p>
+            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>per ctn</p>
           </>
         ) : (
-          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>no price</p>
+          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>no price</p>
         )}
       </div>
 
@@ -750,7 +750,7 @@ export function ProductsExplorer() {
               <button
                 key={b.id}
                 onClick={() => setFilterBrand(b.id)}
-                className="shrink-0 h-7 px-3 rounded-full text-[11px] font-medium transition whitespace-nowrap"
+                className="shrink-0 h-7 px-3 rounded-full text-[12px] font-medium transition whitespace-nowrap"
                 style={{
                   background: filterBrand === b.id ? "var(--snm-brand)" : "var(--secondary)",
                   color: filterBrand === b.id ? "#ffffff" : "var(--muted-foreground)",
@@ -786,7 +786,7 @@ export function ProductsExplorer() {
                   borderBottom: "0.5px solid var(--glass-border-lo)",
                 }}
               >
-                <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                   {brand} · {brandSkus.length} SKU{brandSkus.length !== 1 ? "s" : ""}
                 </p>
               </div>
@@ -919,7 +919,7 @@ export function ProductsExplorer() {
 
 function SectionHead({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-widest pt-1" style={{ color: "var(--muted-foreground)", opacity: 0.55 }}>
+    <p className="text-[12px] font-bold uppercase tracking-widest pt-1" style={{ color: "var(--muted-foreground)", opacity: 0.55 }}>
       {children}
     </p>
   );
@@ -1480,7 +1480,7 @@ function NewSkuWizard({
                 style={{ ...inp, opacity: brandId ? 0.45 : 1 }}
               />
               {!brandId && brandInput.trim() && (
-                <p className="text-[11px]" style={{ color: "var(--snm-brand)" }}>
+                <p className="text-[12px]" style={{ color: "var(--snm-brand)" }}>
                   Will create &ldquo;{brandInput.trim()}&rdquo; as a new brand
                 </p>
               )}
@@ -1532,7 +1532,7 @@ function NewSkuWizard({
               style={{ ...inp, marginTop: 6 }}
             />
             {!modelId && modelInput.trim() && (
-              <p className="text-[11px]" style={{ color: "var(--snm-brand)" }}>
+              <p className="text-[12px]" style={{ color: "var(--snm-brand)" }}>
                 Will create &ldquo;{modelInput.trim()}&rdquo; as a new model
               </p>
             )}
@@ -1604,7 +1604,7 @@ function NewSkuWizard({
                   }
                   return (
                     <div key={key} className="space-y-1">
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                         {spec?.label}{spec?.suffix ? ` (${spec.suffix})` : ""}
                       </p>
                       <input
@@ -1619,7 +1619,7 @@ function NewSkuWizard({
                 })}
               </div>
               {variantFilled && (
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                   Variant: <strong style={{ color: "var(--foreground)" }}>{attrsToDisplayName(variantAttrs, schema) || "—"}</strong>
                 </p>
               )}
@@ -1670,7 +1670,7 @@ function NewSkuWizard({
                   placeholder="H" style={inp} />
               </div>
               {cbm !== null && (
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                   {cbm.toFixed(5)} CBM per carton
                 </p>
               )}

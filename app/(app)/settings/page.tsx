@@ -89,7 +89,7 @@ export default function SettingsPage() {
 
       {/* Page header */}
       <div>
-        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>System</p>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>System</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Settings</h1>
       </div>
 
@@ -165,7 +165,7 @@ export default function SettingsPage() {
                             {u.full_name ?? "—"}
                           </p>
                           {isMe && (
-                            <span className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
+                            <span className="text-[12px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0"
                               style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--muted-foreground)" }}>
                               You
                             </span>
@@ -180,7 +180,7 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
                         style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
                         <Icon className="h-3 w-3 shrink-0" style={{ color: ROLE_COLOR[u.role] }} />
-                        <span className="text-[11px] font-semibold hidden sm:block" style={{ color: "var(--foreground)" }}>
+                        <span className="text-[12px] font-semibold hidden sm:block" style={{ color: "var(--foreground)" }}>
                           {ROLE_LABEL[u.role]}
                         </span>
                       </div>

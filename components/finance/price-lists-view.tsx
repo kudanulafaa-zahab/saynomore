@@ -123,7 +123,7 @@ export function PriceListsView() {
     <>
       {/* Page header */}
       <div className="mb-5">
-        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Price Lists</h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
           Tier-specific selling prices per SKU — auto-applied at order entry
@@ -158,7 +158,7 @@ export function PriceListsView() {
                     <div className="flex items-center gap-2">
                       <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>{label}</h2>
                       <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        className="text-[12px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
                       >
                         {lists.length} list{lists.length !== 1 ? "s" : ""}
@@ -339,7 +339,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
             <X className="h-4 w-4" />
           </button>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
             <p className="text-[15px] font-semibold leading-tight" style={{ color: "var(--foreground)" }}>New Price List</p>
           </div>
           {items.length > 0 ? (
@@ -362,7 +362,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>List name *</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>List name *</p>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -373,7 +373,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
             />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Effective from *</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Effective from *</p>
             <input
               type="date"
               value={effectiveFrom}
@@ -386,7 +386,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
           </div>
         </div>
         {createdList && (
-          <p className="text-[11px] font-medium" style={{ color: "var(--snm-success)" }}>✓ List created — keep adding SKU prices below</p>
+          <p className="text-[12px] font-medium" style={{ color: "var(--snm-success)" }}>✓ List created — keep adding SKU prices below</p>
         )}
         </div>
       </div>
@@ -423,7 +423,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                       { label: "/ carton", value: item.price_per_carton_mvr },
                     ].map((p) => (
                       <div key={p.label} className="rounded-xl px-3 py-2 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
-                        <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
+                        <p className="text-[12px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
                         <p className="text-sm font-semibold snm-num" style={{ color: t.color }}>MVR {Number(p.value).toFixed(2)}</p>
                       </div>
                     ))}
@@ -627,8 +627,8 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                         { label: "ctn", value: item.price_per_carton_mvr },
                       ].map((p) => (
                         <div key={p.label} className="rounded-lg px-2 py-1 text-center" style={{ background: `color-mix(in srgb, ${t.color} 10%, transparent)` }}>
-                          <p className="text-[8px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
-                          <p className="text-[11px] font-bold snm-num" style={{ color: t.color }}>{Number(p.value).toFixed(2)}</p>
+                          <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
+                          <p className="text-[12px] font-bold snm-num" style={{ color: t.color }}>{Number(p.value).toFixed(2)}</p>
                         </div>
                       ))}
                     </div>

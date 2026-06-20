@@ -375,7 +375,7 @@ export function FinancialsView() {
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 20 }}>
-        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Financials</h1>
       </div>
 

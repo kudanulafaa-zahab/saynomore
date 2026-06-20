@@ -199,7 +199,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
 function SectionHeader({ label, action }: { label: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <p className="label-caps text-[11px] font-semibold" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+      <p className="label-caps text-[12px] font-semibold" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       {action}
     </div>
   );
@@ -210,7 +210,7 @@ function SectionHeader({ label, action }: { label: string; action?: React.ReactN
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+      <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       {children}
     </div>
   );
@@ -417,25 +417,25 @@ export function ShipmentDetail({ id }: { id: string }) {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1 min-w-0">
-          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Purchase Order</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Purchase Order</p>
           <h1 className="text-[17px] font-semibold text-foreground leading-tight truncate snm-num">{shipment.reference}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* Auto-save indicator */}
           {!locked && saveState === "saving" && (
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-medium"
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium"
               style={{ color: "var(--muted-foreground)" }}>
               <Loader2 className="h-3 w-3 animate-spin" /> Saving…
             </span>
           )}
           {!locked && saveState === "saved" && (
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold"
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold"
               style={{ color: "var(--snm-success)" }}>
               <CheckCircle2 className="h-3 w-3" /> Saved
             </span>
           )}
           {locked && (
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"
               style={{ background: "color-mix(in srgb, var(--snm-success) 12%, transparent)", color: "var(--snm-success)" }}>
               <Lock className="h-2.5 w-2.5" /> Locked
             </span>
@@ -511,7 +511,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         {/* Status stepper */}
         {!locked && (
           <div className="space-y-3">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>STATUS</p>
+            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>STATUS</p>
 
             {/* Read-only visual track */}
             <div className="flex items-center">
@@ -536,7 +536,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                             : null
                         }
                       </div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap"
+                      <p className="text-[12px] font-semibold uppercase tracking-wider whitespace-nowrap"
                         style={{ color: done || current ? "var(--foreground)" : "var(--muted-foreground)" }}>
                         {step.label}
                       </p>
@@ -648,7 +648,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           action={!locked
             ? <button
                 onClick={() => { setEditingLine(undefined); setPanel("addLine"); }}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-full text-[11px] font-bold transition active:scale-95"
+                className="flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] font-bold transition active:scale-95"
                 style={{ background: "var(--foreground)", color: "var(--background)" }}
               >
                 <Plus className="h-3 w-3" /> Add Product
@@ -690,7 +690,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                       <p className="text-[13px] font-semibold text-foreground leading-tight">
                         {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown SKU"}
                       </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                         {sku ? `${sku.pcs_per_pack}/pk × ${sku.packs_per_carton}/ctn` : ""}
                         {godown ? ` · → ${godown.name}` : ""}
                       </p>
@@ -698,7 +698,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                     {!locked && (
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => { setEditingLine(l); setPanel("addLine"); }}
-                          className="h-8 px-2 rounded-lg text-[11px] font-medium transition"
+                          className="h-8 px-2 rounded-lg text-[12px] font-medium transition"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}>
                           Edit
                         </button>
@@ -713,23 +713,23 @@ export function ShipmentDetail({ id }: { id: string }) {
 
                   {/* FOB + est. landed cost */}
                   <div className="flex items-center justify-between px-4 pb-3 gap-4">
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                       FOB <span className="font-semibold snm-num" style={{ color: "var(--foreground)" }}>
                         {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
                       </span>
                     </p>
                     {estPiece != null && estPiece > 0 ? (
-                      <p className="text-[11px] font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)" }}>
+                      <p className="text-[12px] font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)" }}>
                         {ratesSet ? "" : "~"}Est MVR {fmt2(estPiece)}/pc
                       </p>
                     ) : (
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Est. cost TBD</p>
+                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Est. cost TBD</p>
                     )}
                   </div>
 
                   {/* Ordered qty */}
                   <div className="px-4 pb-3">
-                    <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px] mb-1.5 font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                       Ordered
                     </p>
                     <div className="flex items-center gap-3">
@@ -744,14 +744,14 @@ export function ShipmentDetail({ id }: { id: string }) {
                           }}
                         />
                       </div>
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>cartons</p>
+                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>cartons</p>
                     </div>
                   </div>
 
                   {/* Actual received qty — only when arrived or grn_confirmed */}
                   {(arrived || locked) && (
                     <div className="px-4 pb-4" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 4 }}>
-                      <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-wider"
+                      <p className="text-[12px] mb-1.5 font-semibold uppercase tracking-wider"
                         style={{ color: isShort ? "var(--snm-warning)" : "var(--muted-foreground)" }}>
                         Actually Received {isShort ? "⚠ Short shipment" : ""}
                       </p>
@@ -772,7 +772,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                                 }}
                               />
                             </div>
-                            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>cartons</p>
+                            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>cartons</p>
                           </div>
                       }
                     </div>
@@ -788,7 +788,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                           { label: "Per carton",    value: l.landed_per_carton_mvr != null ? `MVR ${fmt0(Number(l.landed_per_carton_mvr))}` : "—" },
                         ].map((c) => (
                           <div key={c.label} className="rounded-lg p-2 text-center" style={{ background: "var(--glass-bg-2)" }}>
-                            <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                            <p className="text-[12px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
                             <p className="text-[13px] font-semibold text-foreground snm-num">{c.value}</p>
                           </div>
                         ))}
@@ -797,13 +797,13 @@ export function ShipmentDetail({ id }: { id: string }) {
                       <div className="rounded-lg p-3 flex items-center justify-between"
                         style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                         <div>
-                          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack — trade price</p>
+                          <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack — trade price</p>
                           <p className="text-[18px] font-bold snm-num" style={{ color: "var(--snm-success)" }}>
                             {l.landed_per_pack_mvr != null ? `MVR ${fmt2(Number(l.landed_per_pack_mvr))}` : "—"}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · for comparison</p>
+                          <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · for comparison</p>
                           <p className="text-[13px] font-semibold text-foreground snm-num">
                             {l.landed_per_piece_mvr != null ? `MVR ${fmt2(Number(l.landed_per_piece_mvr))}` : "—"}
                           </p>
@@ -841,7 +841,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           className="w-full flex items-center justify-between p-5 transition"
         >
           <div>
-            <p className="label-caps text-[11px] text-left mb-0.5" style={{ color: "var(--muted-foreground)" }}>COSTS & FOREX</p>
+            <p className="label-caps text-[12px] text-left mb-0.5" style={{ color: "var(--muted-foreground)" }}>COSTS & FOREX</p>
             {!costsOpen && preview && (
               <p className="text-[12px] font-semibold text-foreground">
                 Total landed: MVR {fmt0(preview.grandTotal)}
@@ -862,7 +862,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
             {/* Forex */}
             <div className="pt-5">
-              <p className="text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
                 Enter your bank&apos;s rates — locked permanently when you confirm GRN.
               </p>
               <div className="grid grid-cols-2 gap-3 mb-2">
@@ -896,7 +896,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   />
                 </Field>
               </div>
-              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                 IDR → MVR (auto): {shipment.rate_idr_to_mvr != null ? shipment.rate_idr_to_mvr.toFixed(6) : "—"}
               </p>
             </div>
@@ -907,7 +907,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                 <NumInput value={shipment.my_freight_share_usd} disabled={locked} placeholder="0" onChange={(v) => patch("my_freight_share_usd", v ?? 0)} />
               </Field>
               {preview && (
-                <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                   = MVR <span className="font-semibold text-foreground">{fmt0(preview.freightMvr)}</span>
                 </p>
               )}
@@ -915,7 +915,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
             {/* Local costs */}
             <div>
-              <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>LOCAL COSTS (MVR)</p>
+              <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>LOCAL COSTS (MVR)</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: "Customs duty",  field: "customs_duty_mvr" },
@@ -926,7 +926,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   { label: "Other",         field: "other_mvr"        },
                 ].map(({ label, field }) => (
                   <div key={field} className="space-y-1">
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <NumInput
                       value={(shipment as unknown as Record<string, number>)[field]}
                       disabled={locked}
@@ -952,9 +952,9 @@ export function ShipmentDetail({ id }: { id: string }) {
                   { label: "Total",   value: preview.ratesSet ? `MVR ${fmt0(preview.grandTotal)}` : "?", bold: true },
                 ].map((item, i) =>
                   "sep" in item
-                    ? <span key={i} className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{item.sep}</span>
+                    ? <span key={i} className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{item.sep}</span>
                     : <div key={i} className="text-center">
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{item.label}</p>
+                        <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{item.label}</p>
                         <p className={`text-[12px] ${item.bold ? "font-bold" : "font-medium"}`} style={{ color: item.bold ? "var(--foreground)" : "var(--muted-foreground)" }}>
                           {item.value}
                         </p>
@@ -978,21 +978,21 @@ export function ShipmentDetail({ id }: { id: string }) {
                 <p className="text-[12px] flex-1 truncate text-foreground">{c.skuPath}</p>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>MVR {c.before.toFixed(2)}</span>
-                  <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>→</span>
+                  <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>→</span>
                   <span className="text-[13px] font-bold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
                     MVR {c.after.toFixed(2)}
                   </span>
-                  <span className="text-[11px] font-semibold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
+                  <span className="text-[12px] font-semibold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
                     {c.changePct > 0 ? "+" : ""}{c.changePct.toFixed(1)}%
                   </span>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-[11px] mt-3" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-[12px] mt-3" style={{ color: "var(--muted-foreground)" }}>
             Prices are live now. Go to Products → Edit SKU to lock a fixed price.
           </p>
-          <button onClick={() => setPriceChanges([])} className="mt-2 text-[11px] underline" style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer" }}>
+          <button onClick={() => setPriceChanges([])} className="mt-2 text-[12px] underline" style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer" }}>
             Dismiss
           </button>
         </div>
@@ -1022,7 +1022,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             <div>
               <p className="text-[13px] font-semibold" style={{ color: "var(--snm-success)" }}>Stock Live</p>
               {shipment.grn_confirmed_at && (
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                   Confirmed {fmtDate(shipment.grn_confirmed_at)}
                 </p>
               )}
@@ -1049,13 +1049,13 @@ export function ShipmentDetail({ id }: { id: string }) {
           <div className="flex items-center justify-between gap-3 h-14">
             {preview && preview.ratesSet ? (
               <div>
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Est. landed total</p>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Est. landed total</p>
                 <p className="text-[17px] font-semibold text-foreground">MVR {fmt0(preview.grandTotal)}</p>
               </div>
             ) : (
               <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Enter costs to see estimate</p>
             )}
-            <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
               <Package className="h-3.5 w-3.5" />
               {lines.length} line{lines.length !== 1 ? "s" : ""}
             </div>
@@ -1133,7 +1133,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             {lines.filter((l) => l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons).map((l) => {
               const sku = skus.find((s) => s.id === l.sku_id);
               return (
-                <p key={l.id} className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                <p key={l.id} className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                   • {sku?.model_name ?? "SKU"}: {l.qty_cartons} ordered, {l.qty_cartons_actual} received
                 </p>
               );
@@ -1170,7 +1170,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> — all inventory batches, stock movements, and linked sales orders will be permanently deleted.
         </p>
-        <p className="text-[11px] rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-error) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--muted-foreground)" }}>
+        <p className="text-[12px] rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-error) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--muted-foreground)" }}>
           ⚠ If stock from this shipment has already been sold, those sales orders will also be deleted.
         </p>
         <div className="flex gap-3">
@@ -1327,7 +1327,7 @@ function LineDialog({
 
         {/* SKU picker */}
         <div className="mb-4">
-          <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
+          <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!skuId ? (
             <>
               <input
@@ -1345,7 +1345,7 @@ function LineDialog({
                       className="w-full text-left px-4 py-3 transition"
                       style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}>
                       <p className="text-[13px] font-medium text-foreground">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                         {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · CBM {Number(s.cbm_per_carton).toFixed(4)}
                       </p>
                     </button>
@@ -1358,11 +1358,11 @@ function LineDialog({
               <div className="flex justify-between items-start gap-2">
                 <div>
                   <p className="text-[13px] font-semibold text-foreground">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn · CBM {Number(sku.cbm_per_carton).toFixed(4)}
                   </p>
                 </div>
-                <button onClick={() => setSkuId("")} className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}>
+                <button onClick={() => setSkuId("")} className="text-[12px] shrink-0" style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}>
                   Change
                 </button>
               </div>
@@ -1374,10 +1374,10 @@ function LineDialog({
         {skuId && (
           <>
             <div className="mb-4">
-              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>QTY CARTONS *</p>
+              <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>QTY CARTONS *</p>
               <QtyStepper value={qtyCartons} min={1} onChange={setQtyCartons} />
               {sku && (
-                <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                   = {qtyCartons * sku.packs_per_carton} packs · {qtyCartons * sku.packs_per_carton * sku.pcs_per_pack} pcs
                   · {(qtyCartons * Number(sku.cbm_per_carton)).toFixed(4)} CBM
                 </p>
@@ -1386,7 +1386,7 @@ function LineDialog({
 
             {/* FOB price */}
             <div className="mb-4">
-              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>SUPPLIER PRICE / CARTON *</p>
+              <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>SUPPLIER PRICE / CARTON *</p>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -1411,14 +1411,14 @@ function LineDialog({
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
                 </div>
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                 Price on this shipment&apos;s invoice — can differ from previous shipments.
               </p>
             </div>
 
             {/* Destination godown */}
             <div className="mb-6">
-              <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>DESTINATION WAREHOUSE *</p>
+              <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>DESTINATION WAREHOUSE *</p>
               <div className="relative">
                 <select
                   value={godownId}
@@ -1432,7 +1432,7 @@ function LineDialog({
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
               </div>
               {godowns.length === 0 && (
-                <p className="text-[11px] mt-1.5" style={{ color: "var(--snm-warning)" }}>No warehouses yet — add one in Settings.</p>
+                <p className="text-[12px] mt-1.5" style={{ color: "var(--snm-warning)" }}>No warehouses yet — add one in Settings.</p>
               )}
             </div>
           </>

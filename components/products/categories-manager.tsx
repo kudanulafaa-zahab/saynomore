@@ -115,7 +115,7 @@ export function CategoriesManager() {
             <div className="space-y-1 min-w-0">
               <p className="text-base font-medium text-foreground">{c.name}</p>
               {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
-              <p className="text-[11px] text-muted-foreground">{humanMeta(c)}</p>
+              <p className="text-[12px] text-muted-foreground">{humanMeta(c)}</p>
             </div>
             {!c.is_system && canWrite && (
               <button
@@ -238,7 +238,7 @@ function CategoryDialog({
 
           <div className="space-y-2">
             <Label>Variant Attributes</Label>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[12px] text-muted-foreground">
               These fields will appear when adding a variant in this category.
             </p>
             <div className="grid grid-cols-2 gap-1">

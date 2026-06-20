@@ -48,7 +48,7 @@ const COMMON_COUNTRIES = ["Indonesia", "Malaysia", "Thailand", "China", "Singapo
 function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
+      {label && <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
@@ -61,7 +61,7 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
 function GlassSelect({ label, value, onChange, children }: { label?: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
+      {label && <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -77,7 +77,7 @@ function GlassSelect({ label, value, onChange, children }: { label?: string; val
 function GlassTextarea({ label, ...props }: { label?: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
+      {label && <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <textarea
         {...props}
         className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none transition"
@@ -139,7 +139,7 @@ export function SuppliersManager() {
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Global Supply</p>
+          <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Global Supply</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Vendor Intelligence</h1>
         </div>
         {canWrite && (
@@ -259,7 +259,7 @@ export function SuppliersManager() {
                   className="rounded-3xl p-6 flex flex-col justify-center items-center text-center"
                   style={CARD}
                 >
-                  <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>RELIABILITY SCORE</p>
+                  <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>RELIABILITY SCORE</p>
                   <p className="text-[42px] font-light tracking-tight text-foreground leading-none">98<span className="text-[22px]">%</span></p>
                   <div className="w-full rounded-full overflow-hidden mt-4" style={{ background: "var(--glass-bg-2)", height: 4 }}>
                     <div className="h-full rounded-full bg-white" style={{ width: "98%" }} />
@@ -276,7 +276,7 @@ export function SuppliersManager() {
                   { label: "Active Shipments", value: "—" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-2xl p-5" style={CARD}>
-                    <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>{stat.label}</p>
+                    <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>{stat.label}</p>
                     <p className="text-[18px] font-semibold text-foreground">{stat.value}</p>
                   </div>
                 ))}
@@ -286,7 +286,7 @@ export function SuppliersManager() {
 
           {/* ── Supplier List ── */}
           <div>
-            <p className="label-caps text-[11px] mb-3 px-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="label-caps text-[12px] mb-3 px-1" style={{ color: "var(--muted-foreground)" }}>
               {q ? "Search Results" : "All Vendors"}
             </p>
             <div className="space-y-3">
@@ -302,7 +302,7 @@ export function SuppliersManager() {
                         <h4 className="text-[16px] font-semibold text-foreground">{s.name}</h4>
                         {i === 0 && !q && (
                           <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            className="text-[12px] font-bold px-2 py-0.5 rounded-full"
                             style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
                           >
                             Primary

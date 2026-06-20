@@ -183,7 +183,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
         {/* Live duplicate suggestions — only while creating */}
         {matches.length > 0 && onPickExisting && (
           <div className="rounded-xl overflow-hidden" style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 35%, transparent)" }}>
-            <p className="text-[10px] uppercase tracking-widest px-3 pt-2 pb-1.5 font-bold flex items-center gap-1.5"
+            <p className="text-[12px] uppercase tracking-widest px-3 pt-2 pb-1.5 font-bold flex items-center gap-1.5"
               style={{ background: "color-mix(in srgb, var(--snm-warning) 8%, transparent)", color: "var(--snm-warning)" }}>
               <AlertTriangle className="h-3 w-3" /> Possible existing customer — tap to use instead
             </p>
@@ -201,11 +201,11 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-foreground truncate">{c.name}</p>
-                  <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>
                     {[c.phone, c.island, c.address].filter(Boolean).join(" · ") || "No other details"}
                   </p>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0"
+                <span className="text-[12px] font-bold px-2 py-1 rounded-lg shrink-0"
                   style={{ background: "color-mix(in srgb, var(--snm-warning) 14%, transparent)", color: "var(--snm-warning)" }}>
                   Use
                 </span>
@@ -316,7 +316,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
             </div>
             <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
               <p className="text-[13px] font-semibold text-foreground">{phoneConflict.name}</p>
-              <p className="text-[11px] snm-num" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[12px] snm-num" style={{ color: "var(--muted-foreground)" }}>
                 {[phoneConflict.phone, phoneConflict.island, phoneConflict.address].filter(Boolean).join(" · ")}
               </p>
             </div>

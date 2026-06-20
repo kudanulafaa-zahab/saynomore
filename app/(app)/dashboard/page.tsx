@@ -116,25 +116,25 @@ export default async function DashboardPage() {
 
       {/* ── Zone 1: Business Health ── */}
       <div className="snm-card rounded-2xl p-6" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
-        <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+        <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
           {monthName} Performance
         </p>
 
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <p className="text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Revenue</p>
+            <p className="text-[12px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Revenue</p>
             <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none snm-num">
               {mvr(revenueMonth)}
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
           </div>
           <div>
-            <p className="text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Gross Profit</p>
+            <p className="text-[12px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Gross Profit</p>
             <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none snm-num">
               {mvr(grossProfit)}
               <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
-            <p className="text-[11px] mt-1 font-semibold snm-num" style={{ color: marginColor }}>
+            <p className="text-[12px] mt-1 font-semibold snm-num" style={{ color: marginColor }}>
               {grossMargin.toFixed(1)}% margin
             </p>
           </div>
@@ -153,10 +153,10 @@ export default async function DashboardPage() {
         {/* Today's revenue — labelled clearly so context is never ambiguous */}
         <div className="flex items-baseline gap-3 mt-4 pt-4"
           style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider"
+          <p className="text-[12px] font-semibold uppercase tracking-wider"
             style={{ color: "var(--muted-foreground)" }}>Today</p>
           <p className="text-sm font-semibold text-foreground snm-num">{mvr(revenueToday)} MVR</p>
-          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
+          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
         </div>
       </div>
 
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
       <Link href="/dispatch" className="block snm-card rounded-2xl overflow-hidden transition active:scale-[0.98]"
         style={{ border: "0.5px solid var(--glass-border-lo)" }}>
         <div className="px-4 pt-4 pb-1">
-          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Order Pipeline — Today</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Order Pipeline — Today</p>
         </div>
         <div className="grid grid-cols-3 divide-x" style={{ borderColor: "var(--glass-border-lo)" }}>
 
@@ -175,14 +175,14 @@ export default async function DashboardPage() {
             <div className="flex items-center gap-1.5 mb-2">
               <ClipboardList className="h-3.5 w-3.5 shrink-0"
                 style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--muted-foreground)" }} />
-              <p className="text-[10px] font-semibold uppercase tracking-wider"
+              <p className="text-[12px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Awaiting</p>
             </div>
             <p className="text-2xl font-bold leading-none snm-num"
               style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--foreground)" }}>
               {awaitingDispatch}
             </p>
-            <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>
               {awaitingDispatch === 1 ? "order" : "orders"}
             </p>
           </div>
@@ -191,7 +191,7 @@ export default async function DashboardPage() {
             <div className="flex items-center gap-1.5 mb-2">
               <Truck className="h-3.5 w-3.5 shrink-0"
                 style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--muted-foreground)" }} />
-              <p className="text-[10px] font-semibold uppercase tracking-wider"
+              <p className="text-[12px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>On Road</p>
               {onRoad > 0 && (
                 <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
               style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--foreground)" }}>
               {onRoad}
             </p>
-            <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>
               {onRoad === 1 ? "order" : "orders"}
             </p>
           </div>
@@ -211,20 +211,20 @@ export default async function DashboardPage() {
             <div className="flex items-center gap-1.5 mb-2">
               <PackageCheck className="h-3.5 w-3.5 shrink-0"
                 style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--muted-foreground)" }} />
-              <p className="text-[10px] font-semibold uppercase tracking-wider"
+              <p className="text-[12px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Delivered</p>
             </div>
             <p className="text-2xl font-bold leading-none snm-num"
               style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--foreground)" }}>
               {deliveredToday}
             </p>
-            <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>today</p>
+            <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>today</p>
           </div>
 
         </div>
         <div className="flex items-center justify-end gap-1 px-4 py-2"
           style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Open dispatch board</p>
+          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Open dispatch board</p>
           <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
         </div>
       </Link>
@@ -241,7 +241,7 @@ export default async function DashboardPage() {
               className="snm-card rounded-2xl p-5 active:scale-[0.97] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}>
               <div className="flex justify-between items-start mb-3">
-                <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Unpaid</p>
+                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Unpaid</p>
                 <Clock className="h-4 w-4" style={{ color: "var(--snm-error)" }} />
               </div>
               <p className="text-2xl font-semibold snm-num" style={{ color: "var(--snm-error)" }}>
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
               className="snm-card rounded-2xl p-5 active:scale-[0.97] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
               <div className="flex justify-between items-start mb-3">
-                <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>Cash in Hand</p>
+                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Cash in Hand</p>
                 <Banknote className="h-4 w-4" style={{ color: "var(--snm-warning)" }} />
               </div>
               <p className="text-2xl font-semibold snm-num" style={{ color: "var(--snm-warning)" }}>
@@ -314,7 +314,7 @@ export default async function DashboardPage() {
       ── */}
       {hasExceptions && (
         <div className="space-y-2">
-          <p className="label-caps text-[11px] px-1" style={{ color: "var(--muted-foreground)" }}>
+          <p className="label-caps text-[12px] px-1" style={{ color: "var(--muted-foreground)" }}>
             Needs Attention
           </p>
 

@@ -121,7 +121,7 @@ function GlassSelect({ label, value, onChange, children }: {
 }) {
   return (
     <div className="space-y-1.5">
-      {label && <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
+      {label && <p className="text-[12px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
@@ -243,7 +243,7 @@ export function SalesList() {
     <div className="space-y-4">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
+          <p className="text-[12px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Sales</h1>
         </div>
         {canWrite && (
@@ -377,9 +377,9 @@ export function SalesList() {
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold text-foreground">
                         {cust?.name ?? "Walk-in"}
-                        <span className="text-[11px] ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+                        <span className="text-[12px] ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
                       </p>
-                      <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>
                         via {o.channel}{cust?.island && <> · {cust.island}</>}
                       </p>
                     </div>
@@ -389,10 +389,10 @@ export function SalesList() {
                       {total > 0 && (
                         <p className="text-[14px] font-semibold text-foreground snm-num">
                           {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          <span className="text-[10px] font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+                          <span className="text-[12px] font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
                         </p>
                       )}
-                      <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
+                      <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
                         {STATUS_LABEL[o.status]}
                       </span>
                     </div>
@@ -443,23 +443,23 @@ export function SalesList() {
                   <div className="min-w-0 flex-1">
                     <p className="text-[14px] font-semibold text-foreground">{name}</p>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                      <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                         {orders.length} order{orders.length !== 1 ? "s" : ""}
                       </span>
                       {active.length > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                        <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-md"
                           style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>
                           {active.length} active
                         </span>
                       )}
                       {customer?.island && (
-                        <span className="text-[11px]" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>{customer.island}</span>
+                        <span className="text-[12px]" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>{customer.island}</span>
                       )}
                     </div>
                   </div>
                   <div className="text-right shrink-0 mr-1">
                     <p className="text-[13px] font-semibold text-foreground">{delivered} done</p>
-                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>of {orders.length}</p>
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>of {orders.length}</p>
                   </div>
                   <ChevronDown
                     className="h-4 w-4 shrink-0 transition-transform"
@@ -484,13 +484,13 @@ export function SalesList() {
                               </div>
                               <div className="min-w-0">
                                 <p className="text-[13px] font-semibold text-foreground">{o.order_number}</p>
-                                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                                   {new Date(o.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · via {o.channel}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[10px] uppercase tracking-widest font-semibold rounded-lg px-2 py-1" style={{ background: colors.bg, color: colors.text }}>
+                              <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-1" style={{ background: colors.bg, color: colors.text }}>
                                 {STATUS_LABEL[o.status]}
                               </span>
                               <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
@@ -855,13 +855,13 @@ function NewSaleSheet({
         <div className="flex items-center gap-2">
           {([1, 2, 3] as Step[]).map((s) => (
             <div key={s} className="flex items-center gap-2 flex-1">
-              <div className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all"
+              <div className="h-6 w-6 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 transition-all"
                 style={step === s ? { background: "var(--foreground)", color: "var(--background)" }
                   : step > s ? { background: "color-mix(in srgb, var(--snm-success) 20%, transparent)", color: "var(--snm-success)" }
                   : { background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                 {step > s ? "✓" : s}
               </div>
-              <span className="text-[11px]" style={{ color: step === s ? "var(--foreground)" : "var(--muted-foreground)" }}>{stepLabels[s]}</span>
+              <span className="text-[12px]" style={{ color: step === s ? "var(--foreground)" : "var(--muted-foreground)" }}>{stepLabels[s]}</span>
               {s < 3 && <div className="flex-1 h-px bg-border" />}
             </div>
           ))}
@@ -918,7 +918,7 @@ function NewSaleSheet({
                       })}
                     </div>
                   )}
-                  <p className="text-[11px] uppercase tracking-widest mb-3 font-medium" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px] uppercase tracking-widest mb-3 font-medium" style={{ color: "var(--muted-foreground)" }}>
                     {customerSearch.trim() ? "Results" : "All Customers"}
                   </p>
                   <div className="space-y-1.5">
@@ -935,7 +935,7 @@ function NewSaleSheet({
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-[14px] font-semibold text-foreground truncate">{c.name}</p>
-                            <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>{[c.island, c.channel].filter(Boolean).join(" · ")}</p>
+                            <p className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>{[c.island, c.channel].filter(Boolean).join(" · ")}</p>
                           </div>
                           <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                         </button>
@@ -992,7 +992,7 @@ function NewSaleSheet({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[14px] font-semibold text-foreground">{customer.name}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
+                    <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
                   </div>
                   <button onClick={() => { setCustomerId(""); setCustomerSearch(""); setOrderTier("retail"); }}
                     className="text-[12px] font-semibold px-3 h-8 rounded-lg transition active:scale-95"
@@ -1004,12 +1004,12 @@ function NewSaleSheet({
                 {/* Order-level pricing tier — defaults to customer's tier, overrideable per order */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--muted-foreground)" }}>
                       Pricing tier for this order
                     </p>
                     {orderTier !== customer.price_tier && (
                       <button onClick={() => setOrderTier(customer.price_tier)}
-                        className="text-[10px] font-semibold"
+                        className="text-[12px] font-semibold"
                         style={{ color: "var(--snm-brand)" }}>
                         Reset to default ({customer.price_tier})
                       </button>
@@ -1021,7 +1021,7 @@ function NewSaleSheet({
                       const isActive = t === orderTier;
                       return (
                         <button key={t} type="button" onClick={() => setOrderTier(t)}
-                          className="py-2 rounded-xl text-[11px] font-semibold capitalize transition active:scale-95 relative"
+                          className="py-2 rounded-xl text-[12px] font-semibold capitalize transition active:scale-95 relative"
                           style={isActive
                             ? { background: "var(--foreground)", color: "var(--background)" }
                             : { background: "color-mix(in srgb, var(--foreground) 7%, transparent)", color: "var(--muted-foreground)" }}>
@@ -1033,7 +1033,7 @@ function NewSaleSheet({
                       );
                     })}
                   </div>
-                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                     {orderTier !== customer.price_tier
                       ? `⚠ Override active — customer's default is ${customer.price_tier}`
                       : `Default tier for ${customer.name.split(" ")[0]}`}
@@ -1045,9 +1045,9 @@ function NewSaleSheet({
               <div className="rounded-xl p-4 flex items-center justify-between" style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
                 <div>
                   <p className="text-[14px] font-semibold text-foreground">Walk-in customer</p>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>No account</p>
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>No account</p>
                 </div>
-                <button onClick={() => setCustomerId("")} className="text-[11px] text-foreground opacity-60 active:opacity-100">Change</button>
+                <button onClick={() => setCustomerId("")} className="text-[12px] text-foreground opacity-60 active:opacity-100">Change</button>
               </div>
             )}
 
@@ -1116,9 +1116,9 @@ function NewSaleSheet({
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="min-w-0 flex-1 pr-8">
                               <p className="text-[13px] font-semibold text-foreground truncate">{s.brand_name} · {s.model_name}</p>
-                              <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
+                              <p className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
                             </div>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
+                            <span className="text-[12px] font-bold px-2 py-0.5 rounded shrink-0"
                               style={{ background: stock != null && stock > 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: stock != null && stock > 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                               {stock != null ? (() => {
                                 const dUom = defaultUom(s);
@@ -1139,10 +1139,10 @@ function NewSaleSheet({
                               <span className="text-[20px] font-semibold" style={{ color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)" }}>
                                 {hasPrice ? cardPrice!.toFixed(2) : "No GRN"}
                               </span>
-                              {hasPrice && <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
+                              {hasPrice && <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
                             </div>
                             {inCart > 0 && (
-                              <span className="text-[11px] font-bold" style={{ color: "var(--snm-brand)" }}>
+                              <span className="text-[12px] font-bold" style={{ color: "var(--snm-brand)" }}>
                                 ×{inCart} in cart
                               </span>
                             )}
@@ -1227,7 +1227,7 @@ function NewSaleSheet({
                     {/* Stock + cost + margin in one clean row */}
                     <div className="flex items-center gap-2 flex-wrap">
                       {stockHere !== null && (
-                        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                        <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
                           style={{ background: stockHere === 0 ? "color-mix(in srgb, var(--snm-error) 12%, transparent)" : "color-mix(in srgb, var(--snm-success) 12%, transparent)", color: stockHere === 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
                           {stockHere === 0 ? "Out of stock" : (() => {
                             const dUom = defaultUom(selectedSku);
@@ -1244,12 +1244,12 @@ function NewSaleSheet({
                         </span>
                       )}
                       {costForUom != null && (
-                        <span className="text-[11px] px-2.5 py-1 rounded-full" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)", color: "var(--muted-foreground)" }}>
+                        <span className="text-[12px] px-2.5 py-1 rounded-full" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)", color: "var(--muted-foreground)" }}>
                           Cost {costForUom.toFixed(lineUom === "piece" ? 4 : 2)} MVR/{uomLabel.toLowerCase()}
                         </span>
                       )}
                       {margin !== null && (
-                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                        <span className="text-[12px] font-bold px-2.5 py-1 rounded-full"
                           style={{ background: margin >= 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: margin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                           {margin.toFixed(1)}% margin
                         </span>
@@ -1258,7 +1258,7 @@ function NewSaleSheet({
 
                     {/* No GRN warning */}
                     {selectedSku.landed_per_piece_mvr == null && (
-                      <p className="text-[11px] mt-2 font-medium" style={{ color: "var(--snm-warning)" }}>
+                      <p className="text-[12px] mt-2 font-medium" style={{ color: "var(--snm-warning)" }}>
                         ⚠ No confirmed shipment — confirm a GRN first
                       </p>
                     )}
@@ -1301,7 +1301,7 @@ function NewSaleSheet({
                         <p className="text-[13px] font-semibold" style={{ color: mixedCarton ? "var(--snm-brand)" : "var(--foreground)" }}>
                           Mixed carton fill
                         </p>
-                        <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                        <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                           {mixedCarton
                             ? `Charging carton rate ÷ ${selectedSku.pcs_per_pack * selectedSku.packs_per_carton} pcs`
                             : "Customer assembles their own mixed carton"}
@@ -1327,7 +1327,7 @@ function NewSaleSheet({
                   <div className="grid grid-cols-2 gap-3">
                     {/* Qty stepper */}
                     <div className="rounded-2xl p-4" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                      <p className="text-[10px] uppercase tracking-widest mb-3 font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="text-[12px] uppercase tracking-widest mb-3 font-semibold" style={{ color: "var(--muted-foreground)" }}>
                         QTY · {uomLabel}S
                       </p>
                       <div className="flex items-center justify-between gap-2">
@@ -1357,10 +1357,10 @@ function NewSaleSheet({
 
                     {/* Price — display until tapped */}
                     <div className="rounded-2xl p-4" style={{ ...CARD, border: hasNoPrice ? "1px solid color-mix(in srgb, var(--snm-warning) 40%, transparent)" : "0.5px solid var(--glass-border-lo)" }}>
-                      <p className="text-[10px] uppercase tracking-widest mb-3 font-semibold flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="text-[12px] uppercase tracking-widest mb-3 font-semibold flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
                         MVR / {uomLabel}
                         {priceBadge && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: priceBadge.bg, color: priceBadge.color }}>
+                          <span className="text-[12px] px-1.5 py-0.5 rounded font-bold" style={{ background: priceBadge.bg, color: priceBadge.color }}>
                             {priceBadge.label}
                           </span>
                         )}
@@ -1376,7 +1376,7 @@ function NewSaleSheet({
                         style={{ minWidth: 0 }}
                       />
                       {priceListInfo && (
-                        <p className="text-[9px] text-center mt-1 leading-tight" style={{ color: "var(--muted-foreground)" }}>
+                        <p className="text-[12px] text-center mt-1 leading-tight" style={{ color: "var(--muted-foreground)" }}>
                           {priceListInfo}
                         </p>
                       )}
@@ -1409,7 +1409,7 @@ function NewSaleSheet({
             {/* Draft lines */}
             {draftLines.length > 0 && (
               <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                <p className="px-4 pt-3 pb-2 text-[11px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
+                <p className="px-4 pt-3 pb-2 text-[12px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
                   Order items · {draftLines.length}
                 </p>
                 {draftLines.map((l) => {
@@ -1421,13 +1421,13 @@ function NewSaleSheet({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
                         {l.is_mixed_carton_fill && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                          <span className="text-[12px] font-bold px-1.5 py-0.5 rounded shrink-0"
                             style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
                             MIXED CTN
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
+                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-foreground font-semibold text-[13px] snm-num">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
@@ -1453,7 +1453,7 @@ function NewSaleSheet({
 
             {/* Order total hero */}
             <div className="rounded-2xl p-5" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-              <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Order Total</p>
+              <p className="text-[12px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Order Total</p>
               <p className="text-[36px] font-bold tracking-tight text-foreground leading-none mb-1 tabular-nums">
                 {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 <span className="text-[16px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
@@ -1474,13 +1474,13 @@ function NewSaleSheet({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
                         {l.is_mixed_carton_fill && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                          <span className="text-[12px] font-bold px-1.5 py-0.5 rounded shrink-0"
                             style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
                             MIXED CTN
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
+                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
                     </div>
                     <span className="text-foreground font-semibold text-[13px] shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   </div>
@@ -1490,7 +1490,7 @@ function NewSaleSheet({
 
             {/* Payment method */}
             <div className="space-y-2">
-              <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>How will the customer pay?</p>
+              <p className="text-[12px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>How will the customer pay?</p>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setPaymentMethod("bank_transfer")}
@@ -1500,7 +1500,7 @@ function NewSaleSheet({
                     <Smartphone className="h-4 w-4 text-foreground" />
                   </div>
                   <p className="text-[13px] font-semibold text-foreground">Bank Transfer</p>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>They send payment slip via WhatsApp / Viber</p>
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>They send payment slip via WhatsApp / Viber</p>
                 </button>
                 <button
                   onClick={() => setPaymentMethod("cod")}
@@ -1510,14 +1510,14 @@ function NewSaleSheet({
                     <Banknote className="h-4 w-4 text-foreground" />
                   </div>
                   <p className="text-[13px] font-semibold text-foreground">Cash on Delivery</p>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Driver collects cash, hands it to you</p>
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Driver collects cash, hands it to you</p>
                 </button>
               </div>
             </div>
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <p className="text-[11px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Delivery notes (optional)</p>
+              <p className="text-[12px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Delivery notes (optional)</p>
               <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)}
                 placeholder="e.g. Leave at the gate, call before arriving…"
                 rows={2}
@@ -1525,7 +1525,7 @@ function NewSaleSheet({
                 style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
             </div>
 
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
               Placing this order will immediately deduct stock from the warehouse.
             </p>
           </div>

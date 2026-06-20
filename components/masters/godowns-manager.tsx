@@ -113,7 +113,7 @@ export function GodownsManager() {
                   <div className="flex items-baseline gap-2">
                     <p className="text-base font-medium text-foreground">{g.name}</p>
                     {g.is_default && (
-                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-[12px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                         <Star className="h-2.5 w-2.5" /> Default
                       </span>
                     )}

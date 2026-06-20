@@ -177,7 +177,7 @@ export function DispatchView() {
 
       {/* ── Header ── */}
       <div>
-        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
           Logistics Sync
         </p>
         <h1 className="text-[28px] font-bold tracking-tight text-foreground leading-tight">
@@ -206,7 +206,7 @@ export function DispatchView() {
             className="rounded-2xl p-4"
             style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
           >
-            <p className="label-caps text-[10px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+            <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
             <p className="text-[26px] font-bold tracking-tight leading-none" style={{ color }}>{value}</p>
           </div>
         ))}
@@ -223,7 +223,7 @@ export function DispatchView() {
           </h2>
           {active.length > 0 && (
             <span
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold"
               style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}
             >
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--snm-warning)" }} />
@@ -299,7 +299,7 @@ export function DispatchView() {
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
                         <p className="text-[14px] font-bold text-foreground snm-num">MVR {totalMvr.toFixed(0)}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: statusColor }}>{statusLabel}</p>
+                        <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: statusColor }}>{statusLabel}</p>
                       </div>
                       <ChevronDown
                         className="h-4 w-4 transition-transform duration-200"
@@ -329,7 +329,7 @@ export function DispatchView() {
                                 </p>
                               </div>
                               <p className="text-[13px] font-semibold text-foreground shrink-0 ml-3">
-                                {line.qty} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>{line.uom}</span>
+                                {line.qty} <span className="font-normal text-[12px]" style={{ color: "var(--muted-foreground)" }}>{line.uom}</span>
                               </p>
                             </div>
                           );
@@ -349,7 +349,7 @@ export function DispatchView() {
                       {/* Admin: driver assignment */}
                       {isAdmin && (
                         <div className="space-y-1.5 pt-1">
-                          <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>Assign Driver</p>
+                          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Assign Driver</p>
                           <div className="flex items-center gap-2">
                             <select
                               defaultValue={item.order.assigned_driver_id ?? ""}
@@ -413,12 +413,12 @@ export function DispatchView() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-foreground">{item.order.order_number}</p>
-                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                     {item.customer?.name ?? "Walk-in"}
                     {isAdmin && item.order.assigned_driver_id && ` · ${driverName(item.order.assigned_driver_id)}`}
                   </p>
                 </div>
-                <span className="label-caps text-[10px] font-bold" style={{ color: "var(--snm-success)" }}>Delivered</span>
+                <span className="label-caps text-[12px] font-bold" style={{ color: "var(--snm-success)" }}>Delivered</span>
               </div>
             ))}
           </div>

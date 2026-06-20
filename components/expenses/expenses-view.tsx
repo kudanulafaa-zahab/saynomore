@@ -130,7 +130,7 @@ export function ExpensesView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
+          <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Expenses</h1>
         </div>
         {canWrite && (

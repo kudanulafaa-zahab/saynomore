@@ -139,7 +139,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
               ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
               : null}
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code}
             {urgency !== "ok" && (
               <span className="ml-2 font-bold" style={{ color: urgencyColor }}>
@@ -151,7 +151,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
         <div className="flex items-center gap-3 ml-3 shrink-0">
           <div className="text-right">
             <p className="text-[14px] font-bold text-foreground snm-num">{qty}</p>
-            <p className="text-[11px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(value)}</p>
+            <p className="text-[12px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(value)}</p>
           </div>
           <ChevronDown
             className="h-4 w-4 transition-transform duration-200 shrink-0"
@@ -177,7 +177,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
                   <div className="flex items-center gap-2">
                     {i === 0 && (
                       <span
-                        className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
+                        className="text-[12px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
                         style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--foreground)" }}
                       >
                         FIFO
@@ -189,7 +189,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
                   </div>
                   <div className="text-right">
                     <span className="text-[13px] font-semibold text-foreground snm-num">{bQty}</span>
-                    <span className="text-[11px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+                    <span className="text-[12px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
                       MVR {b.landed_per_piece_mvr.toFixed(2)}/pc
                     </span>
                   </div>
@@ -257,7 +257,7 @@ function GodownCard({
               <p className="text-[15px] font-semibold text-foreground">{godown.name}</p>
               {godown.is_default && (
                 <span
-                  className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                  className="text-[12px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                   style={{ background: "var(--snm-brand-muted)", color: "var(--snm-brand)" }}
                 >
                   Default
@@ -265,13 +265,13 @@ function GodownCard({
               )}
             </div>
             {godown.location
-              ? <p className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>{godown.location}</p>
+              ? <p className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>{godown.location}</p>
               : null}
           </div>
           {hasStock && (
             <div className="text-right shrink-0 ml-2">
               <p className="text-[14px] font-bold text-foreground snm-num">{totalCartons.toLocaleString()} ctn</p>
-              <p className="text-[11px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+              <p className="text-[12px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
             </div>
           )}
           {!hasStock && (
@@ -449,7 +449,7 @@ export function GodownsView() {
 
       {/* ── Page header ── */}
       <div>
-        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Godowns</h1>
       </div>
 
@@ -463,7 +463,7 @@ export function GodownsView() {
             {godowns.length} godown{godowns.length !== 1 ? "s" : ""}
           </p>
           {totalValue > 0 && (
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
               {stockedCount} with stock · MVR {fmtMvr(totalValue)} total
             </p>
           )}

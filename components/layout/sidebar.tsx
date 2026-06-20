@@ -51,14 +51,14 @@ export function Sidebar({ role }: { role: string }) {
       >
         <div className="flex items-center gap-2.5">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0"
             style={{ background: "var(--snm-brand)", color: "#ffffff" }}
           >
             S
           </div>
           <div className="leading-tight">
             <p className="text-[13px] font-semibold text-foreground">SayNoMore</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
+            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
           </div>
         </div>
         <ThemeToggle />
@@ -75,7 +75,7 @@ export function Sidebar({ role }: { role: string }) {
           return (
             <div key={section.label}>
               <p
-                className="px-3 mb-1 text-[11px] font-bold uppercase tracking-widest"
+                className="px-3 mb-1 text-[12px] font-bold uppercase tracking-widest"
                 style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
               >
                 {section.label}

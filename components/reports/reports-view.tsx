@@ -135,7 +135,7 @@ export function ReportsView() {
   return (
     <div className="space-y-4">
       <div>
-        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Analytics</p>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Analytics</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Reports</h1>
       </div>
 
@@ -325,7 +325,7 @@ function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
     return (
       <div className="glass p-5 flex items-center justify-between gap-4 rounded-2xl">
         <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+          <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{label}</p>
           <p className="snm-num text-[32px] font-bold tracking-tight leading-none text-foreground">{value}</p>
         </div>
         <div
@@ -352,7 +352,7 @@ function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
         <Icon className="h-4 w-4" />
       </div>
       <p className="snm-num text-[22px] font-bold tracking-tight leading-none text-foreground">{value}</p>
-      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -364,7 +364,7 @@ function SortTh({ label, sortKey, active, onSort }: {
 }) {
   return (
     <th
-      className={`px-3 py-2 text-right text-[11px] uppercase tracking-widest cursor-pointer select-none transition ${
+      className={`px-3 py-2 text-right text-[12px] uppercase tracking-widest cursor-pointer select-none transition ${
         active === sortKey ? "text-primary" : "text-muted-foreground hover:text-foreground"
       }`}
       onClick={() => onSort(sortKey)}
@@ -385,10 +385,10 @@ function BestSellersTable({ rows, sortKey, onSort }: {
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-secondary/50">
             <tr>
-              <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Product</th>
+              <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
               <SortTh label="Revenue (MVR)" sortKey="revenue" active={sortKey} onSort={onSort} />
               <SortTh label="Qty Sold (pcs)" sortKey="qty" active={sortKey} onSort={onSort} />
-              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Avg Price</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Avg Price</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -401,7 +401,7 @@ function BestSellersTable({ rows, sortKey, onSort }: {
                     </span>
                     <div>
                       <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                      <p className="text-[11px] text-muted-foreground">{r.internal_code}</p>
+                      <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
                     </div>
                   </div>
                 </td>
@@ -438,9 +438,9 @@ function MarginsTable({ rows, sortKey, onSort }: {
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-secondary/50">
             <tr>
-              <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Product</th>
-              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Landed/pc</th>
-              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Sell/pc</th>
+              <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Landed/pc</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Sell/pc</th>
               <SortTh label="Margin %" sortKey="margin" active={sortKey} onSort={onSort} />
             </tr>
           </thead>
@@ -449,7 +449,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
               <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                 <td className="px-3 py-3">
                   <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                  <p className="text-[11px] text-muted-foreground">{r.internal_code}</p>
+                  <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
                   {r.landed_per_piece_mvr > 0 ? r.landed_per_piece_mvr.toFixed(3) : "—"}
@@ -477,7 +477,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
         </table>
       </div>
       <div className="px-4 py-2 border-t border-border bg-secondary/30">
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[12px] text-muted-foreground">
           Green ≥ 30% · Amber 15–29% · Red &lt; 15% · Sell price based on actual invoiced sales in period
         </p>
       </div>
@@ -543,10 +543,10 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-secondary/50">
               <tr>
-                <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Campaign</th>
-                <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Channel</th>
-                <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Period</th>
-                <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Amount (MVR)</th>
+                <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Campaign</th>
+                <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Channel</th>
+                <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Period</th>
+                <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Amount (MVR)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -554,7 +554,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
                 <tr key={s.id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
                     <p className="text-foreground">{s.campaign_name ?? "—"}</p>
-                    {s.notes && <p className="text-[11px] text-muted-foreground">{s.notes}</p>}
+                    {s.notes && <p className="text-[12px] text-muted-foreground">{s.notes}</p>}
                   </td>
                   <td className="px-3 py-3 text-muted-foreground">
                     {CHANNEL_LABELS[s.channel] ?? s.channel}
@@ -586,9 +586,9 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-secondary/50">
             <tr>
-              <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-muted-foreground">Product</th>
+              <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
               <SortTh label="Stock" sortKey="stock" active={sortKey} onSort={onSort} />
-              <th className="px-3 py-2 text-right text-[11px] uppercase tracking-widest text-muted-foreground">Daily Avg</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Daily Avg</th>
               <SortTh label="Days Left" sortKey="days" active={sortKey} onSort={onSort} />
             </tr>
           </thead>
@@ -602,13 +602,13 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
                     <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                    <p className="text-[11px] text-muted-foreground">{r.internal_code}</p>
+                    <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
                   </td>
                   <td className="px-3 py-3 text-right">
                     <p className="text-foreground text-sm">
                       {formatStock(r.stock_pieces, r.pcs_per_pack, r.packs_per_carton, "pcs")}
                     </p>
-                    <p className="text-[11px] text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
+                    <p className="text-[12px] text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
                   </td>
                   <td className="px-3 py-3 text-right text-muted-foreground text-sm">
                     {dailyAvg ? `${dailyAvg} pcs/day` : "—"}
@@ -629,7 +629,7 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
         </table>
       </div>
       <div className="px-4 py-2 border-t border-border bg-secondary/30">
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[12px] text-muted-foreground">
           Green &gt; 30 days · Amber 14–30 days · Red &lt; 14 days · Based on sales velocity in selected period
         </p>
       </div>

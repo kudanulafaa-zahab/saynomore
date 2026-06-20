@@ -639,7 +639,7 @@ export function MyDeliveries() {
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
-            <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
+            <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Operations</p>
             <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">My Deliveries</h1>
           </div>
           <button

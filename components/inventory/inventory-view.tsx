@@ -64,9 +64,9 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
       className="rounded-2xl p-4"
       style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
     >
-      <p className="label-caps text-[11px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+      <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       <p className="text-[26px] font-semibold tracking-tight leading-none snm-num" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
-      <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>{sub}</p>
+      <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>{sub}</p>
     </div>
   );
 }
@@ -84,7 +84,7 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
       <div className="flex items-center gap-2 min-w-0">
         {idx === 0 && (
           <span
-            className="text-[11px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
+            className="text-[12px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
             style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--foreground)" }}
           >
             FIFO
@@ -96,7 +96,7 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
       </div>
       <div className="text-right shrink-0 ml-3">
         <span className="text-[13px] font-semibold text-foreground snm-num">{qty}</span>
-        <span className="text-[11px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+        <span className="text-[12px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
           MVR {batch.landed_per_piece_mvr.toFixed(2)}/pc
         </span>
       </div>
@@ -111,7 +111,7 @@ function DirBadge({ alert }: { alert: SkuReorderAlert | null }) {
   const dirText = alert.dir != null ? `${alert.dir}d left` : "No sales data";
   return (
     <span
-      className="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0"
+      className="text-[12px] font-bold px-2 py-0.5 rounded-full shrink-0"
       style={{
         background: `color-mix(in srgb, ${color} 15%, transparent)`,
         color,
@@ -166,7 +166,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             </p>
             <DirBadge alert={alert} />
           </div>
-          <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
           </p>
         </div>
@@ -178,7 +178,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             {totalCtns}
             <span className="text-[13px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
           </p>
-          <p className="text-[11px] mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+          <p className="text-[12px] mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
         </div>
       </div>
 
@@ -204,8 +204,8 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                   <p className="text-[13px] font-medium text-foreground truncate">{godown.name}</p>
                 </div>
                 <p className="text-[13px] font-semibold text-foreground ml-4 shrink-0 snm-num">
-                  {ctns > 0 && <>{ctns} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
-                  {packs > 0 && <><span className="mx-1 text-[11px]" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal text-[11px]" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
+                  {ctns > 0 && <>{ctns} <span className="font-normal text-[12px]" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
+                  {packs > 0 && <><span className="mx-1 text-[12px]" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal text-[12px]" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
                   {ctns === 0 && packs === 0 && <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}
                 </p>
               </div>
@@ -220,7 +220,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         style={{ touchAction: "manipulation" }}
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+        <span className="text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>
           {expanded ? "Hide" : "FIFO batches & landed cost"}
         </span>
         <ChevronDown
@@ -246,7 +246,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                 className="rounded-xl p-3 text-center"
                 style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
               >
-                <p className="label-caps text-[9px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
                 <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
               </div>
             ))}
@@ -288,13 +288,13 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                   {isCritical ? "Critical — reorder now" : "Low stock — reorder soon"}
                 </p>
                 {alert?.dir != null && (
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     ~{alert.dir} days left · avg {alert.daily_avg_pieces.toFixed(1)} pcs/day
                     {alert.reorder_point_pcs > 0 && ` · reorder point ${Math.round(alert.reorder_point_pcs).toLocaleString()} pcs`}
                   </p>
                 )}
                 {alert?.dir == null && (
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     Only {totalCtns} carton{totalCtns !== 1 ? "s" : ""} left — no recent sales to calculate DIR
                   </p>
                 )}
@@ -453,7 +453,7 @@ export function InventoryView() {
 
       {/* ── Page header ── */}
       <div>
-        <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Inventory</h1>
       </div>
 
@@ -557,7 +557,7 @@ export function InventoryView() {
                       style={{ background: brandData.hasCritical ? "var(--snm-error)" : brandData.hasLow ? "var(--snm-warning)" : "var(--snm-success)" }}
                     />
                     <p className="text-[13px] font-bold uppercase tracking-wider text-foreground">{brand}</p>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                       {brandData.skus.length} SKU{brandData.skus.length !== 1 ? "s" : ""}
                     </p>
                   </div>

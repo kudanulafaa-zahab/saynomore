@@ -243,7 +243,7 @@ export function CompetitorsView() {
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-caps text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>Intelligence</p>
+          <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Intelligence</p>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Pricing</h1>
         </div>
         {canWrite && (
@@ -261,7 +261,7 @@ export function CompetitorsView() {
       {/* ── SKU Selector ── */}
       {skus.length > 0 && (
         <div>
-          <p className="label-caps text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>Analysing</p>
+          <p className="label-caps text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>Analysing</p>
           <div className="relative">
             <select
               value={simSku?.id ?? ""}
@@ -291,19 +291,19 @@ export function CompetitorsView() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Landed Cost */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
+            <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>LANDED COST</p>
             {landedPerPiece > 0 ? (
               <div className="space-y-2.5">
                 <div>
-                  <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
+                  <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
                   <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(landedPerPiece)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
+                  <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
                   <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(landedPerPack)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                  <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
                   <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(landedPerCarton)}</p>
                 </div>
               </div>
@@ -314,21 +314,21 @@ export function CompetitorsView() {
 
           {/* Cheapest Competitor */}
           <div className="rounded-xl p-4" style={CARD}>
-            <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>CHEAPEST</p>
+            <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>CHEAPEST</p>
             {topCompEntry && topCompPerPiece != null ? (
               <div>
-                <p className="text-[11px] font-semibold mb-2.5 truncate" style={{ color: "var(--snm-warning)" }}>{topCompEntry.comp?.name}</p>
+                <p className="text-[12px] font-semibold mb-2.5 truncate" style={{ color: "var(--snm-warning)" }}>{topCompEntry.comp?.name}</p>
                 <div className="space-y-2.5">
                   <div>
-                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
+                    <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
                     <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(topCompPerPiece)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
+                    <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
                     <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(topCompPerPack!)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                    <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
                     <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(topCompPerCarton!)}</p>
                   </div>
                 </div>
@@ -340,20 +340,20 @@ export function CompetitorsView() {
 
           {/* Our Current Price */}
           <div className="rounded-xl p-4" style={{ ...CARD, border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)" }}>
-            <p className="label-caps text-[11px] mb-3" style={{ color: "var(--muted-foreground)" }}>OUR PRICE</p>
+            <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>OUR PRICE</p>
             {simSku.selling_price_per_piece_mvr != null ? (
               <div>
                 <div className="space-y-2.5">
                   <div>
-                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
+                    <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per piece</p>
                     <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(Number(simSku.selling_price_per_piece_mvr))}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
+                    <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack</p>
                     <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(Number(simSku.selling_price_per_pack_mvr))}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                    <p className="text-[12px] font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
                     <p className="text-[20px] font-bold leading-none text-foreground snm-num">{fmt2(Number(simSku.selling_price_per_carton_mvr))}</p>
                   </div>
                 </div>
@@ -410,7 +410,7 @@ export function CompetitorsView() {
                       <p className="text-[26px] font-bold leading-none" style={{ color: col }}>
                         {delta <= 0 ? "▼" : "▲"}&thinsp;{Math.abs(delta).toFixed(2)}
                       </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR/pc · {Math.abs(pctAbove).toFixed(0)}%</p>
+                      <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR/pc · {Math.abs(pctAbove).toFixed(0)}%</p>
                     </div>
                   </div>
                 </div>
@@ -421,7 +421,7 @@ export function CompetitorsView() {
             <div>
               {/* Unit toggle sits directly above the number it controls */}
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                   Selling price
                 </p>
                 <div className="flex rounded-xl overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", padding: "2px" }}>
@@ -429,7 +429,7 @@ export function CompetitorsView() {
                     <button
                       key={m}
                       onClick={() => setSimMode(m)}
-                      className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition"
+                      className="px-3 py-1.5 text-[12px] font-bold uppercase tracking-wider rounded-lg transition"
                       style={{
                         background: simMode === m ? "var(--foreground)" : "transparent",
                         color: simMode === m ? "var(--background)" : "var(--muted-foreground)",
@@ -508,7 +508,7 @@ export function CompetitorsView() {
                       .snm-slider:active::-moz-range-thumb { cursor: grabbing; }
                     `}</style>
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
+                      <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
                       <div className="flex items-baseline gap-0.5">
                         <p className="text-[32px] font-bold leading-none" style={{ color: "var(--snm-brand)" }}>{sliderVal}</p>
                         <p className="text-[18px] font-semibold leading-none" style={{ color: "var(--muted-foreground)" }}>%</p>
@@ -534,8 +534,8 @@ export function CompetitorsView() {
                       />
                     </div>
                     <div className="flex justify-between mt-1">
-                      <p className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>1%</p>
-                      <p className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>99%</p>
+                      <p className="text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>1%</p>
+                      <p className="text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>99%</p>
                     </div>
                   </div>
                 );
@@ -559,10 +559,10 @@ export function CompetitorsView() {
                       background: isActive ? "color-mix(in srgb, var(--snm-brand) 10%, transparent)" : "color-mix(in srgb, var(--foreground) 5%, transparent)",
                       border: isActive ? "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)" : "0.5px solid var(--glass-border-lo)",
                     }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <p className="text-[18px] font-bold leading-none text-foreground">MVR {fmtInt(value)}</p>
-                    <p className="text-[11px] font-bold" style={{ color: col }}>{Math.round(margin)}%</p>
-                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : Math.round(markup)}% mkup</p>
+                    <p className="text-[12px] font-bold" style={{ color: col }}>{Math.round(margin)}%</p>
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{markup >= 1000 ? `${(markup/1000).toFixed(1)}k` : Math.round(markup)}% mkup</p>
                   </div>
                 );
               })}
@@ -571,10 +571,10 @@ export function CompetitorsView() {
             {/* ── Alert threshold — moved out of competitive gap, its own quiet row ── */}
             {topCompPerPiece != null && (
               <div className="flex items-center gap-2 flex-wrap pt-1">
-                <p className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)" }}>Alert when above competitor by</p>
+                <p className="text-[12px] shrink-0" style={{ color: "var(--muted-foreground)" }}>Alert when above competitor by</p>
                 {[5, 10, 15, 20, 25].map((t) => (
                   <button key={t} onClick={() => setAlertThreshold(t)}
-                    className="h-7 px-3 rounded-lg text-[11px] font-semibold transition active:scale-95 shrink-0"
+                    className="h-7 px-3 rounded-lg text-[12px] font-semibold transition active:scale-95 shrink-0"
                     style={{
                       background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
                       color: alertThreshold === t ? "#fff" : "var(--muted-foreground)",
@@ -604,7 +604,7 @@ export function CompetitorsView() {
                     ? <><TrendingUp className="h-4 w-4" /> Save at {impliedMarginPct}% margin</>
                     : <><CheckCircle2 className="h-4 w-4" /> Price Up to Date</>}
               </button>
-              <p className="text-[11px] text-center" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[12px] text-center" style={{ color: "var(--muted-foreground)" }}>
                 Auto-updates when landed cost changes each shipment.
               </p>
 
@@ -638,10 +638,10 @@ export function CompetitorsView() {
             {tierCoverage.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     Customer Tier Prices
                   </p>
-                  <a href="/pricelists" className="text-[11px] font-semibold" style={{ color: "var(--snm-brand)" }}>
+                  <a href="/pricelists" className="text-[12px] font-semibold" style={{ color: "var(--snm-brand)" }}>
                     Manage →
                   </a>
                 </div>
@@ -665,19 +665,19 @@ export function CompetitorsView() {
                         <div className="flex items-center gap-2 min-w-0">
                           <p className="text-[13px] font-semibold" style={{ color: tierColor }}>{tierLabel}</p>
                           {hasListPrice && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                            <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
                               style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>
                               List
                             </span>
                           )}
                           {!hasListPrice && hasAnyPrice && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                            <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
                               style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}>
                               SKU default
                             </span>
                           )}
                           {!hasAnyPrice && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                            <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
                               style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>
                               Not set
                             </span>
@@ -687,20 +687,20 @@ export function CompetitorsView() {
                         {hasAnyPrice ? (
                           <div className="flex items-center gap-3 text-right shrink-0">
                             <div>
-                              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Pc</p>
+                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Pc</p>
                               <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_piece_mvr!)}</p>
                             </div>
                             <div>
-                              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Pk</p>
+                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Pk</p>
                               <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_pack_mvr!)}</p>
                             </div>
                             <div>
-                              <p className="text-[9px]" style={{ color: "var(--muted-foreground)" }}>Ctn</p>
+                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Ctn</p>
                               <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_carton_mvr!)}</p>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)" }}>No price — tap Manage</p>
+                          <p className="text-[12px] shrink-0" style={{ color: "var(--muted-foreground)" }}>No price — tap Manage</p>
                         )}
                       </div>
                     );
@@ -718,7 +718,7 @@ export function CompetitorsView() {
         <div className="rounded-xl overflow-hidden" style={CARD}>
           <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Price Comparison</h2>
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>All prices normalised to per piece · sorted cheapest first</p>
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>All prices normalised to per piece · sorted cheapest first</p>
           </div>
           <div className="divide-y divide-border">
             {perPieceComparison.map(({ vid, sku, normalized }) => {
@@ -727,7 +727,7 @@ export function CompetitorsView() {
                 <div key={vid} className="p-5">
                   <div className="mb-3">
                     <p className="text-[14px] font-semibold text-foreground">{sku.brand_name} · {sku.model_name} · {sku.variant_display}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                       {sku.pcs_per_pack} pcs/pk · {sku.packs_per_carton} pk/ctn
                       {ourCost != null && <> · Landed MVR {fmt2(Number(ourCost))}/pc</>}
                     </p>
@@ -744,7 +744,7 @@ export function CompetitorsView() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-[13px] font-medium text-foreground truncate">{competitor?.name ?? "Unknown"}</p>
-                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                                 {BASIS_LABEL[price.price_basis]} · {new Date(price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
                                 {price.their_pcs_per_pack ? <> · {price.their_pcs_per_pack} pcs/pk</> : null}
                               </p>
@@ -753,9 +753,9 @@ export function CompetitorsView() {
                           <div className="text-right shrink-0 ml-4">
                             {pricePiece != null ? (
                               <>
-                                <p className="text-[14px] font-semibold text-foreground">MVR {fmt2(pricePiece)}<span className="text-[10px] text-foreground/40">/pc</span></p>
+                                <p className="text-[14px] font-semibold text-foreground">MVR {fmt2(pricePiece)}<span className="text-[12px] text-foreground/40">/pc</span></p>
                                 {delta != null && (
-                                  <p className="text-[11px] font-medium" style={{ color: deltaColor }}>
+                                  <p className="text-[12px] font-medium" style={{ color: deltaColor }}>
                                     {delta > 0 ? "+" : ""}{fmt2(delta)} vs landed
                                   </p>
                                 )}
@@ -785,12 +785,12 @@ export function CompetitorsView() {
                             </div>
                             <div>
                               <p className="text-[13px] font-semibold" style={{ color: "var(--snm-brand)" }}>Our Selling Price</p>
-                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>
+                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[14px] font-semibold" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(ourPc)}<span className="text-[10px] opacity-60">/pc</span></p>
-                            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
+                            <p className="text-[14px] font-semibold" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(ourPc)}<span className="text-[12px] opacity-60">/pc</span></p>
+                            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
                           </div>
                         </div>
                       );
@@ -804,12 +804,12 @@ export function CompetitorsView() {
                           </div>
                           <div>
                             <p className="text-[13px] font-medium" style={{ color: "var(--snm-warning)" }}>Simulated Price</p>
-                            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{impliedMarginPct}% margin · not saved yet</p>
+                            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{impliedMarginPct}% margin · not saved yet</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-[14px] font-semibold" style={{ color: "var(--snm-warning)" }}>MVR {fmt2(piecePrice)}<span className="text-[10px] opacity-60">/pc</span></p>
-                          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(cartonPrice)}/ctn</p>
+                          <p className="text-[14px] font-semibold" style={{ color: "var(--snm-warning)" }}>MVR {fmt2(piecePrice)}<span className="text-[12px] opacity-60">/pc</span></p>
+                          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(cartonPrice)}/ctn</p>
                         </div>
                       </div>
                     )}
@@ -828,7 +828,7 @@ export function CompetitorsView() {
           {canWrite && (
             <button
               onClick={() => setCompetitorDialog({ open: true })}
-              className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
+              className="h-8 px-3 rounded-lg text-[12px] font-bold transition"
               style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
             >
               + Add
@@ -876,7 +876,7 @@ export function CompetitorsView() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[14px] font-semibold text-foreground">{comp.name}</p>
-                        <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                        <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                           {compPrices.length} price{compPrices.length !== 1 ? "s" : ""} logged
                           {comp.notes ? ` · ${comp.notes}` : ""}
                         </p>
@@ -889,7 +889,7 @@ export function CompetitorsView() {
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => setPriceDialog({ open: true, competitorId: comp.id })}
-                          className="h-8 px-3 rounded-lg text-[11px] font-bold transition"
+                          className="h-8 px-3 rounded-lg text-[12px] font-bold transition"
                           style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
                         >
                           + Price
@@ -910,7 +910,7 @@ export function CompetitorsView() {
                         <div className="px-4 py-4 text-center">
                           <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
                           {canWrite && (
-                            <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[11px] text-foreground opacity-60 active:opacity-100 mt-1">Log first price</button>
+                            <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="text-[12px] text-foreground opacity-60 active:opacity-100 mt-1">Log first price</button>
                           )}
                         </div>
                       ) : (
@@ -926,13 +926,13 @@ export function CompetitorsView() {
                                 <p className="text-[13px] text-foreground truncate">
                                   {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown"}
                                 </p>
-                                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                                <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                                   <span className="text-foreground font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
                                   {" "}{BASIS_LABEL[p.price_basis]}
                                   {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/pk` : ""}
                                   {" · "}{new Date(p.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
                                 </p>
-                                {p.notes && <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
+                                {p.notes && <p className="text-[12px] mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
                               </div>
                               {canWrite && (
                                 <div className="flex items-center gap-1.5 shrink-0">
@@ -995,7 +995,7 @@ export function CompetitorsView() {
               <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}><AlertTriangle className="h-5 w-5" /></div>
               <div>
                 <p className="text-[15px] font-bold text-foreground">Delete competitor?</p>
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{deleteCompDialog.name}</p>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{deleteCompDialog.name}</p>
               </div>
             </div>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>All logged prices will also be removed.</p>
@@ -1072,11 +1072,11 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
-          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
         <div className="space-y-1.5">
-          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
         <div className="flex gap-2 pt-1">
@@ -1168,7 +1168,7 @@ function PriceModal({
 
         {/* Competitor selector — show all, or allow adding inline */}
         <div className="space-y-1.5">
-          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
           {competitors.length > 0 ? (
             <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               <option value="">Pick competitor</option>
@@ -1181,7 +1181,7 @@ function PriceModal({
 
         {/* Product */}
         <div>
-          <p className="label-caps text-[11px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
+          <p className="label-caps text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!variantId ? (
             <>
               <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
@@ -1189,7 +1189,7 @@ function PriceModal({
                 {filteredVariants.map((s) => (
                   <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-foreground active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                     <p className="font-medium">{s.brand_name} · {s.model_name} · {s.variant_display}</p>
-                    <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
                   </button>
                 ))}
                 {filteredVariants.length === 0 && <p className="px-4 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>No matches</p>}
@@ -1199,20 +1199,20 @@ function PriceModal({
             <div className="rounded-xl p-3 flex justify-between items-start" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               <div>
                 <p className="text-[13px] text-foreground">{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
-                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
               </div>
-              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="text-[11px] text-foreground opacity-60 active:opacity-100">Change</button>
+              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="text-[12px] text-foreground opacity-60 active:opacity-100">Change</button>
             </div>
           ) : null}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
+            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
             <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
           <div className="space-y-1.5">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
+            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
             <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               {(Object.keys(BASIS_LABEL) as PriceBasis[]).map((b) => <option key={b} value={b}>{BASIS_LABEL[b]}</option>)}
             </select>
@@ -1222,7 +1222,7 @@ function PriceModal({
         {/* Live per-piece preview */}
         {perPiecePreview != null && (
           <div className="rounded-xl px-4 py-3 text-center" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
               = <span className="font-bold text-[14px]" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
             </p>
           </div>
@@ -1230,18 +1230,18 @@ function PriceModal({
 
         {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
           <div className="space-y-1.5">
-            <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
+            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
             <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
         )}
 
         <div className="space-y-1.5">
-          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
           <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="space-y-1.5">
-          <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
 

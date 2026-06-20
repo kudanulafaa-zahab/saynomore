@@ -147,7 +147,7 @@ export function CustomersManager() {
           className="rounded-3xl p-5 flex flex-col justify-between"
           style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
         >
-          <p className="label-caps text-[11px] text-muted-foreground">Active Clients</p>
+          <p className="label-caps text-[12px] text-muted-foreground">Active Clients</p>
           <div className="flex items-baseline gap-2">
             <span className="snm-num text-4xl font-semibold text-foreground">{rows.length.toLocaleString()}</span>
           </div>
@@ -156,7 +156,7 @@ export function CustomersManager() {
           className="rounded-3xl p-5 flex flex-col justify-between"
           style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
         >
-          <p className="label-caps text-[11px] text-muted-foreground">Avg. Lifetime Value</p>
+          <p className="label-caps text-[12px] text-muted-foreground">Avg. Lifetime Value</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-light tracking-tight text-foreground">—</span>
             <span className="text-sm text-muted-foreground">MVR</span>
@@ -166,7 +166,7 @@ export function CustomersManager() {
           className="rounded-3xl p-5 flex flex-col justify-between"
           style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
         >
-          <p className="label-caps text-[11px] text-muted-foreground">Top Channel</p>
+          <p className="label-caps text-[12px] text-muted-foreground">Top Channel</p>
           <div className="flex items-center gap-3 mt-2">
             <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-bg-2)" }}>
               <MessageCircle className="h-4 w-4 text-foreground" />
@@ -225,7 +225,7 @@ export function CustomersManager() {
                         const t = TIER_MAP[c.price_tier ?? "retail"];
                         return (
                           <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            className="text-[12px] font-bold px-2 py-0.5 rounded-full"
                             style={{ background: `color-mix(in srgb, ${t.color} 15%, transparent)`, color: t.color }}
                           >
                             {t.label}
@@ -234,7 +234,7 @@ export function CustomersManager() {
                       })()}
                       {c.channel && (
                         <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           {channelIcon(c.channel)} {CHANNEL_LABEL[c.channel] ?? c.channel}
@@ -242,7 +242,7 @@ export function CustomersManager() {
                       )}
                       {c.phone && (
                         <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <Phone className="h-2.5 w-2.5" /> {c.phone}
@@ -250,7 +250,7 @@ export function CustomersManager() {
                       )}
                       {c.island && (
                         <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <MapPin className="h-2.5 w-2.5" /> {c.island}
