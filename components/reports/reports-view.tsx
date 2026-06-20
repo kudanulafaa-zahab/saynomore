@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, TrendingUp, TrendingDown, Package,
-  Clock, BarChart3, Search, Megaphone, X,
+  Clock, BarChart3, Search, Megaphone, X, Download,
 } from "lucide-react";
 import { getReportsData, type ReportRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
@@ -132,11 +132,60 @@ export function ReportsView() {
     totalSpend: spend.reduce((s, r) => s + r.amount_mvr, 0),
   }), [rows, spend]);
 
+  function exportCsv() {
+    let csv = "";
+    const dateRange = `${from} to ${to}`;
+
+    if (tab === "bestsellers" || tab === "margins") {
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Margin %"];
+      csv = [headers, ...filtered.map((r) => [
+        r.internal_code,
+        r.brand_name,
+        r.model_name,
+        r.variant_display,
+        r.total_qty_pieces,
+        r.total_revenue_mvr.toFixed(2),
+        r.total_landed_cost_mvr.toFixed(2),
+        r.gross_margin_pct != null ? r.gross_margin_pct.toFixed(1) + "%" : "",
+      ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    } else if (tab === "stock") {
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Stock (pcs)", "Days of Stock"];
+      csv = [headers, ...filtered.map((r) => [
+        r.internal_code,
+        r.brand_name,
+        r.model_name,
+        r.variant_display,
+        r.stock_pieces,
+        r.days_of_stock != null ? r.days_of_stock.toFixed(0) : "—",
+      ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    }
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `saynomore-report-${tab}-${dateRange}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV downloaded");
+  }
+
   return (
     <div className="space-y-4">
-      <div>
-        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Analytics</p>
-        <h1 className="ios-page-title">Reports</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Analytics</p>
+          <h1 className="ios-page-title">Reports</h1>
+        </div>
+        <button
+          onClick={exportCsv}
+          disabled={filtered.length === 0}
+          className="flex items-center gap-2 h-10 px-4 rounded-2xl text-[13px] font-semibold shrink-0 transition active:scale-95 disabled:opacity-40"
+          style={{ background: "var(--foreground)", color: "var(--background)", marginTop: 4 }}
+        >
+          <Download className="h-4 w-4" />
+          CSV
+        </button>
       </div>
 
       {/* Date range — preset chips + custom toggle */}
