@@ -167,6 +167,40 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
+// ─── Push Notifications ─────────────────────────────────────────────────────
+
+self.addEventListener("push", (event) => {
+  let data = { title: "SayNoMore", body: "" };
+  try {
+    data = event.data ? event.data.json() : data;
+  } catch {
+    data.body = event.data ? event.data.text() : "";
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-72.png",
+      tag: data.tag || "snm-push",
+      data: data.url ? { url: data.url } : undefined,
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const match = list.find((c) => c.url.includes(self.location.origin) && "focus" in c);
+      if (match) return match.focus().then((c) => c.navigate(url));
+      return clients.openWindow(url);
+    })
+  );
+});
+
+// ─── Strategies ─────────────────────────────────────────────────────────────
+
 function fetchWithTimeout(request, ms) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("timeout")), ms);

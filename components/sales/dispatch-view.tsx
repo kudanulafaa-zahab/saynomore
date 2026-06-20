@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, ChevronDown, CheckCircle2, UserCheck, MapPin, Package,
-  Truck, ClipboardList, AlertTriangle,
+  Truck, ClipboardList, AlertTriangle, Bell,
 } from "lucide-react";
+import { subscribeToPush, isPushSubscribed } from "@/lib/push";
 import {
   listMyDeliveries,
   listAllDispatchOrders,
@@ -80,6 +81,7 @@ export function DispatchView() {
   const [confirmDelivery, setConfirmDelivery] = useState<SalesOrderRow | null>(null);
   const [saving, setSaving]               = useState(false);
   const [assigningId, setAssigningId]     = useState<string | null>(null);
+  const [pushEnabled, setPushEnabled]     = useState<boolean | null>(null);
 
   const isAdmin = currentRole === "admin" || currentRole === "manager";
 
@@ -131,6 +133,16 @@ export function DispatchView() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    isPushSubscribed().then(setPushEnabled);
+  }, []);
+
+  async function enablePush() {
+    const ok = await subscribeToPush();
+    setPushEnabled(ok);
+    toast[ok ? "success" : "error"](ok ? "Notifications enabled" : "Could not enable notifications");
+  }
+
   const active    = items.filter((i) => ["confirmed", "picked", "out_for_delivery"].includes(i.order.status));
   const completed = items.filter((i) => i.order.status === "delivered");
   const withIssues = active.filter((i) => i.order.notes?.trim());
@@ -178,6 +190,26 @@ export function DispatchView() {
       toast.success(queued
         ? "Saved offline — will sync when connected"
         : driverId ? "Driver assigned — order dispatched" : "Driver unassigned");
+
+      // Push notification to the assigned driver
+      if (driverId && !queued) {
+        const item = items.find((i) => i.order.id === orderId);
+        const customerName = item?.customer?.name ?? "a customer";
+        fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            user_id: driverId,
+            title: "New Delivery Assigned",
+            body: `You have a new delivery for ${customerName}.`,
+            url: "/dispatch",
+          }),
+        }).catch(() => {/* non-critical */});
+      }
+
       load();
     } catch (e) {
       toast.error((e as Error).message);
@@ -198,16 +230,28 @@ export function DispatchView() {
     <div className="space-y-4 pb-28">
 
       {/* ── Header ── */}
-      <div>
-        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
-          Logistics Sync
-        </p>
-        <h1 className="ios-page-title">
-          Dispatch Board
-        </h1>
-        <p className="text-[14px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-          {isAdmin ? "Assign drivers · track all deliveries" : "Your assigned deliveries"}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+            Logistics Sync
+          </p>
+          <h1 className="ios-page-title">
+            Dispatch Board
+          </h1>
+          <p className="text-[14px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            {isAdmin ? "Assign drivers · track all deliveries" : "Your assigned deliveries"}
+          </p>
+        </div>
+        {!isAdmin && pushEnabled === false && (
+          <button
+            onClick={enablePush}
+            className="mt-1 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold shrink-0 transition active:scale-95"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Bell className="h-3.5 w-3.5" />
+            Notifications
+          </button>
+        )}
       </div>
 
       {/* ── Stat cards ── */}
