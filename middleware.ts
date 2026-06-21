@@ -76,20 +76,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Fetch role — single lightweight query. Offline this can fail; in that case
-  // role stays null and we DON'T apply role-based redirects (the user already
-  // passed auth, so let them stay on the page they opened rather than wrongly
-  // bouncing an admin to /deliveries). Role gating resumes once back online.
+  // Fetch role. This used to run a user_profiles query on EVERY navigation —
+  // a second network round-trip stacked on getUser(), the dominant cause of
+  // sluggish page transitions. We now cache it in a cookie keyed by user id:
+  // most requests read the role locally (zero network) and only the first
+  // request per session (or after a user switch) hits the database.
+  const ROLE_COOKIE = "snm_role";
+  const cached = request.cookies.get(ROLE_COOKIE)?.value; // format: "<userId>:<role>"
   let role: string | null = null;
-  try {
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-    role = profile?.role ?? "staff";
-  } catch {
-    role = null; // unknown — skip role redirects this request
+
+  if (cached) {
+    const sep = cached.indexOf(":");
+    if (sep > 0 && cached.slice(0, sep) === user.id) {
+      role = cached.slice(sep + 1); // same user → trust cached role, no query
+    }
+  }
+
+  if (role === null) {
+    try {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      role = profile?.role ?? "staff";
+      // Persist for subsequent navigations. Short-ish maxAge so a role change
+      // propagates within the hour without needing a logout.
+      response.cookies.set(ROLE_COOKIE, `${user.id}:${role}`, {
+        httpOnly: true, sameSite: "lax", maxAge: 3600, path: "/",
+      });
+    } catch {
+      role = null; // offline / unknown — skip role redirects this request
+    }
   }
 
   // Role unknown (offline): allow the request through without re-routing.

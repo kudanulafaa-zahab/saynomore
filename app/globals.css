@@ -797,6 +797,31 @@
 /* ── POLISH 5: Honor reduced-motion ───────────────────────────────────────
    Hard accessibility requirement from the AUDIT_BRIEF. Users who set
    "Reduce Motion" in iOS get near-instant, transform-free transitions.     */
+/* Route-loading skeleton shimmer — used by loading.tsx placeholders so a
+   tapped screen appears instantly with a content-shaped shimmer instead of a
+   blank flash. Subtle, theme-aware, GPU-cheap (background-position only). */
+.snm-skel {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+.snm-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--foreground) 6%, transparent),
+    transparent
+  );
+  animation: snm-shimmer 1.25s ease-in-out infinite;
+}
+@keyframes snm-shimmer {
+  100% { transform: translateX(100%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -806,6 +831,7 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .snm-skel::after { display: none; } /* no shimmer when motion is reduced */
   .snm-pressable:active,
   .snm-btn:active { transform: none !important; }
 }

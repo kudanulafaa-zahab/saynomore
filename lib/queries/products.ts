@@ -336,16 +336,53 @@ export async function updateSku(
 }
 
 // ── Current user role (for hiding admin-only UI) ────────────────────────
-export async function getCurrentUserRole(): Promise<"admin" | "manager" | "staff" | "viewer" | null> {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return null;
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", userData.user.id)
-    .maybeSingle();
-  if (error) throw error;
-  return (data?.role ?? null) as "admin" | "manager" | "staff" | "viewer" | null;
+type UserRoleValue = "admin" | "manager" | "staff" | "viewer" | null;
+
+/* Role rarely changes within a session, yet 16 components each ask for it on
+   every mount and navigation. Cache it per user id so the first call hits the
+   network and the rest resolve instantly — this is one of the biggest "feels
+   slow" wins (kills dozens of redundant round-trips per session).
+   The cache is keyed by user id and cleared on any auth state change, so a
+   logout / different login can never read a stale role. */
+let _roleCache: { userId: string; role: UserRoleValue } | null = null;
+let _rolePromise: Promise<UserRoleValue> | null = null;
+let _authListenerBound = false;
+
+function bindRoleCacheInvalidation() {
+  if (_authListenerBound) return;
+  _authListenerBound = true;
+  // On sign-out / user switch, drop the cache so the next read re-fetches.
+  supabase.auth.onAuthStateChange(() => { _roleCache = null; _rolePromise = null; });
+}
+
+export async function getCurrentUserRole(): Promise<UserRoleValue> {
+  bindRoleCacheInvalidation();
+
+  // Read the user id locally (no network) — the session was already validated
+  // by middleware + the app layout, and RLS protects user_profiles regardless.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId) { _roleCache = null; _rolePromise = null; return null; }
+
+  // Serve from cache when it's for the same user.
+  if (_roleCache && _roleCache.userId === userId) return _roleCache.role;
+  // Coalesce concurrent callers (multiple components mounting at once) onto one
+  // in-flight request instead of each firing its own query.
+  if (_rolePromise) return _rolePromise;
+
+  _rolePromise = (async () => {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) { _rolePromise = null; throw error; }
+    const role = (data?.role ?? null) as UserRoleValue;
+    _roleCache = { userId, role };
+    _rolePromise = null;
+    return role;
+  })();
+  return _rolePromise;
 }
 
 // ── Category management ─────────────────────────────────────────────────
