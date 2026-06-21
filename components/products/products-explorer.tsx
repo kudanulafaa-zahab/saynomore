@@ -680,9 +680,12 @@ export function ProductsExplorer() {
     );
   }
 
-  const listPanel = (
+  // `scroll` = desktop split-pane that owns its own scroll (fixed height, inner
+  // overflow). On mobile we pass false so the list flows in the page and the
+  // document scrolls — one scroll container per screen (no nested scrolling).
+  const listPanel = (scroll: boolean) => (
     <div
-      className="flex flex-col h-full rounded-2xl overflow-hidden"
+      className={`flex flex-col rounded-2xl ${scroll ? "h-full overflow-hidden" : ""}`}
       style={{
         background: "var(--glass-1)",
         backdropFilter: "blur(20px)",
@@ -764,7 +767,7 @@ export function ProductsExplorer() {
       </div>
 
       {/* SKU list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={scroll ? "flex-1 overflow-y-auto" : ""}>
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <Package className="h-8 w-8 mb-3 opacity-20" style={{ color: "var(--muted-foreground)" }} />
@@ -777,9 +780,10 @@ export function ProductsExplorer() {
         ) : (
           grouped.map(({ brand, skus: brandSkus }) => (
             <div key={brand}>
-              {/* Brand divider */}
+              {/* Brand divider — sticks to the pane top on desktop, and below the
+                  fixed topbar on mobile (where the page itself scrolls). */}
               <div
-                className="px-4 py-2 sticky top-0"
+                className="px-4 py-2 sticky z-10 top-[calc(52px+env(safe-area-inset-top,0px))] lg:top-0"
                 style={{
                   background: "color-mix(in srgb, var(--glass-1) 95%, transparent)",
                   backdropFilter: "blur(8px)",
@@ -808,8 +812,8 @@ export function ProductsExplorer() {
   return (
     <div className="pb-28 lg:pb-10">
       {/* Desktop: side-by-side. Mobile: stack (panel slides over) */}
-      <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-4" style={{ height: "calc(100vh - 100px)" }}>
-        {listPanel}
+      <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-4" style={{ height: "calc(100dvh - 100px)" }}>
+        {listPanel(true)}
         {selectedSku ? (
           <div className="rounded-2xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
             <SkuPanel
@@ -844,11 +848,10 @@ export function ProductsExplorer() {
         )}
       </div>
 
-      {/* Mobile: list only, panel as bottom sheet */}
+      {/* Mobile: list flows in the page — the document scrolls, not an inner
+          pane. One scroll container per screen. Panel opens as a bottom sheet. */}
       <div className="lg:hidden">
-        <div style={{ height: "calc(100vh - 140px)" }}>
-          {listPanel}
-        </div>
+        {listPanel(false)}
 
         {/* Mobile slide-up panel */}
         {selectedSku && (

@@ -18,7 +18,7 @@ export function LabelPageClient({ orderId, lineId }: { orderId: string; lineId: 
 
   if (error) {
     return (
-      <div style={{ background: "var(--background)", minHeight: "100vh", padding: 24 }}>
+      <div style={{ background: "var(--background)", minHeight: "100dvh", padding: 24 }}>
         <p style={{ color: "var(--snm-error)", fontSize: 14 }}>Failed to load label: {error}</p>
       </div>
     );
@@ -26,14 +26,14 @@ export function LabelPageClient({ orderId, lineId }: { orderId: string; lineId: 
 
   if (!data) {
     return (
-      <div style={{ background: "var(--background)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "var(--background)", minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "16px 16px 40px" }}>
+    <div style={{ background: "var(--background)", minHeight: "100dvh", padding: "16px 16px 40px" }}>
       <LabelPreview data={data} />
     </div>
   );

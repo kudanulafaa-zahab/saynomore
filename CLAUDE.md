@@ -14,6 +14,12 @@ Next.js 15 App Router · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Su
 - Responsive grids: Tailwind classes (`grid-cols-1 sm:grid-cols-3`) not inline `gridTemplateColumns`
 - No decorative watermark icons behind content
 
+### Scroll ownership (one scroll container per screen)
+- The **page scrolls**, not inner panes. The app shell (`app/(app)/layout.tsx`) already scrolls the document (`min-h-dvh`, normal-flow `<main>`). In-page lists/grids must just flow — **never** wrap in-page content in `height: calc(100vh…)` + `overflow-y-auto`. That creates nested double-scroll (a list that scrolls inside a page that also scrolls).
+- **Only exception:** a full-screen takeover (`fixed inset-0`) — modal, bottom sheet, full-screen editor. Those own their scroll because they're a layer *over* the page. They may use `overflow-y-auto` + `overscroll-contain`.
+- **Never `100vh`** (it ignores the iOS dynamic toolbar). Full-screen layers use `100dvh`; in-page content uses no fixed height at all.
+- Desktop split-panes (side-by-side list+detail) may own inner scroll with a fixed `100dvh`-based height, but that layout must be `lg:` only — mobile flows in the page.
+
 ## Hard Rules (never break)
 1. All financial calculations in **Postgres**, never TypeScript
 2. Stock quantity derived from `stock_movements` sum — never stored directly

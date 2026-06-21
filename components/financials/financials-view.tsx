@@ -371,7 +371,7 @@ export function FinancialsView() {
   const monthName = today.toLocaleString("en-MV", { month: "long" });
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 120px 0" }}>
+    <div style={{ background: "var(--background)", minHeight: "100dvh", padding: "0 0 120px 0" }}>
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 20 }}>

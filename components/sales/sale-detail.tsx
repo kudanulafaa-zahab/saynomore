@@ -283,14 +283,14 @@ export function SaleDetail({ id }: { id: string }) {
 
   if (loading) {
     return (
-      <div style={{ background: "var(--background)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "var(--background)", minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
       </div>
     );
   }
   if (!order) {
     return (
-      <div style={{ background: "var(--background)", minHeight: "100vh", padding: 24 }}>
+      <div style={{ background: "var(--background)", minHeight: "100dvh", padding: 24 }}>
         <p style={{ color: "var(--muted-foreground)" }}>Order not found.</p>
         <Link href="/sales" style={{ color: "var(--foreground)", fontSize: 14, marginTop: 12, display: "block" }}>← Back to sales</Link>
       </div>
@@ -300,7 +300,7 @@ export function SaleDetail({ id }: { id: string }) {
   const currentStep = stepIndex(order.status);
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100vh", padding: "0 0 140px 0" }}>
+    <div style={{ background: "var(--background)", minHeight: "100dvh", padding: "0 0 140px 0" }}>
 
       {/* ── Top nav ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
