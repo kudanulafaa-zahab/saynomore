@@ -62,6 +62,28 @@ function fmtPrice(n: number | null | undefined) {
   return Number(n).toFixed(2);
 }
 
+/* Natural size order a distributor scans by — not alphabetical.
+   Anything not a size (scent/colour/format) ranks after sizes and
+   falls back to alphabetical via the comparator below. */
+const SIZE_RANK: Record<string, number> = {
+  nb: 0, "nb/s": 1, s: 2, m: 3, l: 4, xl: 5, xxl: 6, xxxl: 7, xxxxl: 8,
+};
+function variantRank(display: string | null | undefined): number {
+  const key = (display ?? "").trim().toLowerCase();
+  return key in SIZE_RANK ? SIZE_RANK[key] : 900;
+}
+
+/** Catalogue sort: keep a brand's products grouped by model line, then by
+    variant in natural (size) order, so the list reads top-to-bottom instead
+    of interleaving models. */
+function compareSkus(a: SkuFullRow, b: SkuFullRow): number {
+  const model = a.model_name.localeCompare(b.model_name);
+  if (model !== 0) return model;
+  const rank = variantRank(a.variant_display) - variantRank(b.variant_display);
+  if (rank !== 0) return rank;
+  return (a.variant_display ?? "").localeCompare(b.variant_display ?? "");
+}
+
 /** Returns the trade unit label for a SKU — what the seller actually trades in. */
 function packLabel(sku: SkuFullRow): string {
   const fmt = (sku.attributes as Record<string, string> | undefined)?.format;
@@ -105,7 +127,7 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
         onClick={onClose}
       />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden flex flex-col"
         style={{
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
@@ -214,7 +236,7 @@ function SkuPanel({
 
   return (
     <div
-      className="flex flex-col h-full"
+      className="flex flex-col h-full min-h-0 flex-1"
       style={{ background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
     >
       {/* Header */}
@@ -726,7 +748,11 @@ export function ProductsExplorer() {
       entry.skus.push(s);
       map.set(s.brand_id, entry);
     }
-    return Array.from(map.values()).sort((a, b) => a.brand.localeCompare(b.brand));
+    // Sort brands A→Z, and within each brand keep model lines together in
+    // natural variant order (no more interleaved Xtra Kering / Royal Soft).
+    const groups = Array.from(map.values());
+    for (const g of groups) g.skus.sort(compareSkus);
+    return groups.sort((a, b) => a.brand.localeCompare(b.brand));
   }, [filtered]);
 
   const activeCount = skus.filter((s) => s.is_active).length;
@@ -874,7 +900,7 @@ export function ProductsExplorer() {
       <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-4" style={{ height: "calc(100dvh - 100px)" }}>
         {listPanel(true)}
         {selectedSku ? (
-          <div className="rounded-2xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+          <div className="rounded-2xl overflow-hidden h-full min-h-0 flex flex-col" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
             <SkuPanel
               sku={selectedSku}
               isAdmin={isAdmin}

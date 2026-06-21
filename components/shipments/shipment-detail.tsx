@@ -1338,11 +1338,17 @@ function LineDialog({
     <div className="fixed inset-0 z-60 flex items-end" style={{ background: "rgba(0,0,0,0.65)" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl"
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", padding: "12px 24px", paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", overflowY: "auto", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
+        className="w-full rounded-t-3xl flex flex-col"
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
       >
-        <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--glass-border)" }} />
-        <h2 className="text-[20px] font-semibold text-foreground mb-5">{editing ? "Edit Product" : "Add Product"}</h2>
+        {/* Fixed header — grabber + title stay pinned at the top */}
+        <div className="shrink-0 px-6 pt-3">
+          <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--glass-border)" }} />
+          <h2 className="text-[20px] font-semibold text-foreground mb-5">{editing ? "Edit Product" : "Add Product"}</h2>
+        </div>
+
+        {/* Scrollable body — only this region scrolls, so the footer never leaves the screen */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6">
 
         {/* SKU picker */}
         <div className="mb-4">
@@ -1470,8 +1476,17 @@ function LineDialog({
             </div>
           </>
         )}
+        </div>
+        {/* End scrollable body */}
 
-        <div className="flex gap-3">
+        {/* Pinned footer — always visible in the thumb zone, never scrolls away */}
+        <div
+          className="shrink-0 flex gap-3 px-6 pt-3"
+          style={{
+            paddingBottom: "calc(20px + env(safe-area-inset-bottom, 16px))",
+            borderTop: "0.5px solid var(--glass-border-lo)",
+          }}
+        >
           <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
