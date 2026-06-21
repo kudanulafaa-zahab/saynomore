@@ -14,6 +14,7 @@ import {
 } from "@/lib/queries/pricelists";
 import type { PriceTier } from "@/lib/queries/masters";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 /* ── Tier config ──────────────────────────────────────────────────────────── */
 const TIERS: { value: PriceTier; label: string; color: string }[] = [
@@ -106,11 +107,7 @@ export function PriceListsView() {
   }, [priceLists]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--muted-foreground)" }} />
-      </div>
-    );
+    return <SkeletonRows rows={6} />;
   }
 
   return (

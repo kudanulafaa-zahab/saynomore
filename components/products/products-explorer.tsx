@@ -27,6 +27,7 @@ import {
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
 } from "./edit-dialogs";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 /* ── Attr metadata ── */
 
@@ -755,11 +756,7 @@ export function ProductsExplorer() {
   const activeCount = skus.filter((s) => s.is_active).length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
-      </div>
-    );
+    return <SkeletonRows rows={8} />;
   }
 
   // `scroll` = desktop split-pane that owns its own scroll (fixed height, inner

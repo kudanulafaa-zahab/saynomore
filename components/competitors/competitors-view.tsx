@@ -23,6 +23,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 const CARD = {
   background: "var(--glass-1)",
@@ -231,12 +232,7 @@ export function CompetitorsView() {
     && Math.abs(packPrice - (simSku.selling_price_per_pack_mvr ?? 0)) > 0.01;
 
   if (loading) {
-    return (
-      <div className="rounded-2xl p-12 flex flex-col items-center" style={{ ...CARD, color: "var(--muted-foreground)" }}>
-        <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading…</p>
-      </div>
-    );
+    return <SkeletonRows rows={6} />;
   }
 
   return (

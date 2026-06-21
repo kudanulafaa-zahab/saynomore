@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { listSkusFlat, toggleSkuActive, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 
 export function ProductsList() {
@@ -41,12 +42,7 @@ export function ProductsList() {
   }, [rows, q]);
 
   if (loading) {
-    return (
-      <div className="snm-card p-12 flex flex-col items-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading…</p>
-      </div>
-    );
+    return <SkeletonRows rows={8} />;
   }
 
   return (

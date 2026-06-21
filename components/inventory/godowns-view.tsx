@@ -11,6 +11,7 @@ import {
   type GodownRow, type GodownInput,
 } from "@/lib/queries/masters";
 import { Input } from "@/components/ui/input";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 /* ── Helpers ── */
 
@@ -434,11 +435,7 @@ export function GodownsView() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center" style={{ minHeight: "60vh" }}>
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--muted-foreground)" }} />
-      </div>
-    );
+    return <SkeletonRows rows={6} />;
   }
 
   const stockedCount = groups.filter((g) => g.skus.length > 0).length;

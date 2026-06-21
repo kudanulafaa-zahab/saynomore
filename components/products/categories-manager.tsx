@@ -33,6 +33,7 @@ import {
   type UnitUom,
   type CostBasis,
 } from "@/lib/queries/products";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 // Human-readable summary of category configuration — no raw field codes shown to user
 function humanMeta(c: CategoryRow): string {
@@ -84,12 +85,7 @@ export function CategoriesManager() {
   useEffect(() => { load(); }, []);
 
   if (loading) {
-    return (
-      <div className="glass p-12 flex flex-col items-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading…</p>
-      </div>
-    );
+    return <SkeletonRows rows={6} />;
   }
 
   return (

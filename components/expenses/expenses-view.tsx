@@ -17,6 +17,7 @@ import {
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { withOfflineFallback } from "@/lib/offline-write";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -118,12 +119,7 @@ export function ExpensesView() {
   }
 
   if (loading) {
-    return (
-      <div className="glass p-12 flex flex-col items-center rounded-2xl">
-        <Loader2 className="h-6 w-6 animate-spin mb-3 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      </div>
-    );
+    return <SkeletonRows rows={6} />;
   }
 
   return (

@@ -9,7 +9,14 @@ import {
   AlertTriangle, Truck, ChevronDown, RotateCcw, Calendar,
   ChevronRight, Minus, MoreHorizontal, Package, ScanLine,
 } from "lucide-react";
-import { BarcodeScanner } from "@/components/ui/barcode-scanner";
+import dynamic from "next/dynamic";
+
+// Lazy-load the barcode scanner so the heavy @zxing library stays out of this
+// route's bundle; it only loads when the user taps the scan button.
+const BarcodeScanner = dynamic(
+  () => import("@/components/ui/barcode-scanner").then((m) => m.BarcodeScanner),
+  { ssr: false },
+);
 import {
   getShipment, listShipmentLines, updateShipment, deleteShipment,
   createShipmentLine, updateShipmentLine, deleteShipmentLine,

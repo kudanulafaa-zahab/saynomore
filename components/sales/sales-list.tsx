@@ -9,7 +9,15 @@ import {
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
   Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
 } from "lucide-react";
-import { BarcodeScanner } from "@/components/ui/barcode-scanner";
+import dynamic from "next/dynamic";
+
+// Lazy-load the barcode scanner: it pulls in the heavy @zxing decoding library,
+// which we don't want in this route's bundle. It only renders when the user taps
+// the scan button, so we fetch the chunk on demand instead of on every visit.
+const BarcodeScanner = dynamic(
+  () => import("@/components/ui/barcode-scanner").then((m) => m.BarcodeScanner),
+  { ssr: false },
+);
 import {
   listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder,
   getTierPricesForSkus,

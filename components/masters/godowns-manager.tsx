@@ -25,6 +25,7 @@ import {
 } from "@/lib/queries/masters";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { getCurrentUserRole } from "@/lib/queries/products";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 export function GodownsManager() {
   const [rows, setRows] = useState<GodownRow[]>([]);
@@ -44,12 +45,7 @@ export function GodownsManager() {
   const isAdmin = role === "admin";
 
   if (loading) {
-    return (
-      <div className="glass p-12 flex flex-col items-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading…</p>
-      </div>
-    );
+    return <SkeletonRows rows={5} />;
   }
 
   async function setDefault(id: string) {

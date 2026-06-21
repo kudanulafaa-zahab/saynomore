@@ -13,6 +13,7 @@ import {
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { CustomerForm } from "@/components/masters/customer-form";
+import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -84,12 +85,7 @@ export function CustomersManager() {
   }, [rows]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <p className="text-sm">Loading…</p>
-      </div>
-    );
+    return <SkeletonRows rows={7} />;
   }
 
   return (
