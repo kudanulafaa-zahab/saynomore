@@ -110,10 +110,15 @@ function packLabel(sku: SkuFullRow): string {
 }
 
 // Default UOM for a SKU: liquids/powder sell by carton (master carton),
-// diapers/unit goods sell by pack (single retail pack).
+// diapers/unit goods sell by pack (single retail pack) — but never default to a
+// tier the SKU isn't sold in (a carton-only product must default to carton).
 function defaultUom(sku: SkuFullRow): SaleUom {
-  if (sku.unit_uom === "ml" || sku.unit_uom === "g") return "carton";
-  return "pack";
+  const su = sku.sellable_units ?? ["pack", "carton"];
+  const preferred: SaleUom = sku.unit_uom === "ml" || sku.unit_uom === "g" ? "carton" : "pack";
+  if (su.includes(preferred)) return preferred;
+  if (su.includes("carton")) return "carton";
+  if (su.includes("pack")) return "pack";
+  return "carton";
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
@@ -1282,9 +1287,20 @@ function NewSaleSheet({
                     )}
                   </div>
 
-                  {/* ── UOM segmented control — tap to switch, no keyboard ── */}
+                  {/* ── UOM segmented control — only the tiers this SKU sells in.
+                      sellable_units drives it: carton-only products show just
+                      Carton; pack-sellable products also allow loose pieces. ── */}
                   <div className="rounded-2xl p-1 flex gap-1" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
-                    {(["carton", "pack", "piece"] as SaleUom[]).map((u) => {
+                    {((): SaleUom[] => {
+                      const su = selectedSku.sellable_units ?? ["pack", "carton"];
+                      const opts: SaleUom[] = [];
+                      if (su.includes("carton")) opts.push("carton");
+                      if (su.includes("pack")) opts.push("pack");
+                      // Loose pieces allowed when the SKU sells pieces, or packs
+                      // (breaking a pack open is a real over-the-counter sale).
+                      if (su.includes("piece") || su.includes("pack")) opts.push("piece");
+                      return opts.length ? opts : ["carton"];
+                    })().map((u) => {
                       const label = u === "carton" ? `Carton (${selectedSku.packs_per_carton} ${pl}s)` : u === "pack" ? pl : `Piece (${selectedSku.pcs_per_pack}/${pl})`;
                       return (
                         <button key={u} onClick={() => setLineUom(u)}

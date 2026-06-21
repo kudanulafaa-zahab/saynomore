@@ -38,6 +38,7 @@ import {
   type SkuFullRow,
   type CategoryRow,
   type AttrKey,
+  type SellUnit,
 } from "@/lib/queries/products";
 
 // ── Brand editor ────────────────────────────────────────────────────────
@@ -328,6 +329,7 @@ export function EditSkuDialog({
   const [fixedPrice, setFixedPrice] = useState("");
   const [fixedPackPrice, setFixedPackPrice] = useState("");
   const [fixedCartonPrice, setFixedCartonPrice] = useState("");
+  const [sellUnits, setSellUnits] = useState<SellUnit[]>(["pack", "carton"]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -340,6 +342,7 @@ export function EditSkuDialog({
       setW(String(sku.carton_width_cm));
       setH(String(sku.carton_height_cm));
       setKg(sku.carton_weight_kg?.toString() ?? "");
+      setSellUnits(sku.sellable_units?.length ? sku.sellable_units : ["pack", "carton"]);
       setMarginPct(sku.target_margin_pct?.toString() ?? "");
       // Pre-fill in per-pack terms so UI speaks trade units (not per-piece)
       const storedPerPiece = sku.fixed_selling_price_mvr;
@@ -359,6 +362,7 @@ export function EditSkuDialog({
   const landedPerPiece = sku?.landed_per_piece_mvr ?? null;
   const pcs = parseInt(pcsPerPack, 10);
   const packs = parseInt(packsPerCarton, 10);
+  const sellsPack = sellUnits.includes("pack");
 
   // Preview from margin formula
   const marginPreview = useMemo(() => {
@@ -404,10 +408,12 @@ export function EditSkuDialog({
         carton_width_cm: parseFloat(w),
         carton_height_cm: parseFloat(h),
         carton_weight_kg: kg ? parseFloat(kg) : null,
+        sellable_units: sellUnits,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         // fixedPrice is entered per-pack; store per-piece (the DB's common denominator)
         fixed_selling_price_mvr: fixedPrice && pcs > 0 ? parseFloat(fixedPrice) / pcs : null,
-        fixed_price_per_pack_mvr: fixedPackPrice ? parseFloat(fixedPackPrice) : null,
+        // Don't persist a pack volume-break for a carton-only product.
+        fixed_price_per_pack_mvr: sellsPack && fixedPackPrice ? parseFloat(fixedPackPrice) : null,
         fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
       });
       toast.success("Saved");
@@ -541,6 +547,38 @@ export function EditSkuDialog({
               </p>
             </div>
 
+            {/* Sold in — which tiers this product is offered in */}
+            <div className="space-y-2">
+              <Label>Sold in</Label>
+              <div className="flex gap-2">
+                {([
+                  { key: "pack" as SellUnit, label: unit },
+                  { key: "carton" as SellUnit, label: "Carton" },
+                ]).map((opt) => {
+                  const on = sellUnits.includes(opt.key);
+                  return (
+                    <button key={opt.key} type="button"
+                      onClick={() => setSellUnits((prev) => {
+                        const has = prev.includes(opt.key);
+                        if (has && prev.length === 1) return prev; // never empty
+                        return has ? prev.filter((u) => u !== opt.key) : [...prev, opt.key];
+                      })}
+                      className="flex-1 h-10 rounded-xl text-[13px] font-semibold transition active:scale-95"
+                      style={{
+                        background: on ? "var(--foreground)" : "transparent",
+                        color: on ? "var(--background)" : "var(--muted-foreground)",
+                        border: on ? "none" : "0.5px solid var(--glass-border-lo)",
+                      }}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                The units customers can buy. Carton-only products hide pack pricing.
+              </p>
+            </div>
+
             {/* Option A: Target margin */}
             <div className="space-y-2">
               <Label>
@@ -669,27 +707,29 @@ export function EditSkuDialog({
             <div>
               <p className="text-sm font-semibold text-foreground">Volume-Break Pricing</p>
               <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                Optional — set a lower price for pack or carton buyers. Overrides the base price above for that unit only.
+                Optional — set a lower price for {sellsPack ? "pack or carton" : "carton"} buyers. Overrides the base price above for that unit only.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Fixed pack price */}
-              <div className="space-y-1.5">
-                <Label className="text-[12px]">Pack price (MVR)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number" inputMode="decimal" step="0.01" min="0.01"
-                    value={fixedPackPrice}
-                    onChange={(e) => setFixedPackPrice(e.target.value)}
-                    placeholder={marginPreview ? `Auto: ${marginPreview.pack.toFixed(2)}` : "e.g. 88.00"}
-                  />
+            <div className={`grid gap-3 ${sellsPack ? "grid-cols-2" : "grid-cols-1"}`}>
+              {/* Fixed pack price — only for products sold in packs */}
+              {sellsPack && (
+                <div className="space-y-1.5">
+                  <Label className="text-[12px]">Pack price (MVR)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number" inputMode="decimal" step="0.01" min="0.01"
+                      value={fixedPackPrice}
+                      onChange={(e) => setFixedPackPrice(e.target.value)}
+                      placeholder={marginPreview ? `Auto: ${marginPreview.pack.toFixed(2)}` : "e.g. 88.00"}
+                    />
+                  </div>
+                  {fixedPackPrice && landedPerPiece && pcs > 0 && (
+                    <p className="text-[12px]" style={{ color: "var(--snm-success)" }}>
+                      MVR {(parseFloat(fixedPackPrice) / pcs).toFixed(2)}/pc · {(((parseFloat(fixedPackPrice) - landedPerPiece * pcs) / parseFloat(fixedPackPrice)) * 100).toFixed(1)}% margin
+                    </p>
+                  )}
                 </div>
-                {fixedPackPrice && landedPerPiece && pcs > 0 && (
-                  <p className="text-[12px]" style={{ color: "var(--snm-success)" }}>
-                    MVR {(parseFloat(fixedPackPrice) / pcs).toFixed(2)}/pc · {(((parseFloat(fixedPackPrice) - landedPerPiece * pcs) / parseFloat(fixedPackPrice)) * 100).toFixed(1)}% margin
-                  </p>
-                )}
-              </div>
+              )}
               {/* Fixed carton price */}
               <div className="space-y-1.5">
                 <Label className="text-[12px]">Carton price (MVR)</Label>

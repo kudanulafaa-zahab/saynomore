@@ -7,6 +7,9 @@ import { supabase } from "@/lib/supabase";
 export type UnitUom = "pcs" | "ml" | "g";
 export type CostBasis = "piece" | "per_100ml" | "per_100g";
 
+// Which tiers a product may be SOLD in (costing is always in pieces — separate).
+export type SellUnit = "piece" | "pack" | "carton";
+
 // Variant attribute keys our UI knows how to render
 export type AttrKey =
   | "size"
@@ -24,6 +27,7 @@ export interface CategoryRow {
   unit_uom: UnitUom;
   cost_basis: CostBasis;
   variant_attributes: AttrKey[];
+  default_sellable_units: SellUnit[];
   sort_order: number;
   is_system: boolean;
 }
@@ -65,6 +69,8 @@ export interface SkuRow {
   cbm_per_carton: number;
   is_active: boolean;
   notes: string | null;
+  // Which tiers this SKU may be sold in (pack / carton / piece)
+  sellable_units: SellUnit[];
   // Pricing
   target_margin_pct: number | null;
   fixed_selling_price_mvr: number | null;
@@ -85,6 +91,7 @@ export interface SkuFullRow extends SkuRow {
   category_name: string;
   unit_uom: UnitUom;
   cost_basis: CostBasis;
+  default_sellable_units: SellUnit[];
   full_path: string;
   // Pricing — all computed by v_skus
   landed_per_piece_mvr: number | null;
@@ -207,6 +214,7 @@ export interface CreateSkuInput {
   carton_width_cm: number;
   carton_height_cm: number;
   carton_weight_kg?: number | null;
+  sellable_units?: SellUnit[];
   target_margin_pct?: number | null;
   fixed_selling_price_mvr?: number | null;
   fixed_price_per_pack_mvr?: number | null;
@@ -292,6 +300,7 @@ export async function updateSku(
     carton_width_cm: number;
     carton_height_cm: number;
     carton_weight_kg: number | null;
+    sellable_units: SellUnit[];
     target_margin_pct: number | null;
     fixed_selling_price_mvr: number | null;
     fixed_price_per_pack_mvr: number | null;

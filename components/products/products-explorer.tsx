@@ -22,7 +22,7 @@ import {
   createBrand, createModel, createVariant, createSku, createCategory, deleteCategory, deleteModel,
   toggleSkuActive, getCurrentUserRole, updateSku,
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
-  type SkuFullRow, type AttrKey, type UnitUom, type CostBasis,
+  type SkuFullRow, type AttrKey, type UnitUom, type CostBasis, type SellUnit,
 } from "@/lib/queries/products";
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
@@ -1301,6 +1301,9 @@ function NewSkuWizard({
   const [fixedCartonPrice,setFixedCartonPrice]= useState("");
   // "bottle" = enter per bottle/pack  |  "carton" = enter per carton (system derives bottle price)
   const [fixedEntryUnit,  setFixedEntryUnit]  = useState<"bottle" | "carton">("bottle");
+  // Which tiers this product is sold in. Defaults from the category once picked.
+  const [sellUnits,       setSellUnits]       = useState<SellUnit[]>(["pack", "carton"]);
+  const [sellUnitsTouched, setSellUnitsTouched] = useState(false);
   const [saving,          setSaving]          = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [confirmDeleteModel, setConfirmDeleteModel] = useState<{ id: string; name: string } | null>(null);
@@ -1334,6 +1337,20 @@ function NewSkuWizard({
   const brandModels  = allModels.filter((m) => m.brand_id === brandId);
   const category     = allCategories.find((c) => c.id === categoryId);
   const schema: AttrKey[] = (category?.variant_attributes ?? []) as AttrKey[];
+
+  // Default the sellable units from the category (until the user picks manually).
+  useEffect(() => {
+    if (sellUnitsTouched) return;
+    const def = category?.default_sellable_units;
+    if (def && def.length > 0) setSellUnits(def);
+  }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sellsPack = sellUnits.includes("pack");
+
+  // Carton-only product → the base price must be entered per carton (no pack tier).
+  useEffect(() => {
+    if (!sellsPack && fixedEntryUnit !== "carton") setFixedEntryUnit("carton");
+  }, [sellsPack]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pcsPerCarton = useMemo(() => {
     const p = parseInt(pcsPerPack), c = parseInt(packsPerCtn);
@@ -1375,6 +1392,7 @@ function NewSkuWizard({
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
     setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice(""); setFixedEntryUnit("bottle");
+    setSellUnits(["pack", "carton"]); setSellUnitsTouched(false);
     setShowOptional(false);
     setLocalBrands([]); setLocalModels([]); setLocalCategories([]); setDeletedCategoryIds(new Set()); setDeletedModelIds(new Set());
   }
@@ -1438,6 +1456,7 @@ function NewSkuWizard({
         carton_width_cm: parseFloat(widCm),
         carton_height_cm: parseFloat(htCm),
         carton_weight_kg: wgtKg ? parseFloat(wgtKg) : null,
+        sellable_units: sellUnits,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         // fixed_selling_price_mvr is always stored per-piece.
         // If user entered per bottle/pack: divide by pcs_per_pack.
@@ -1447,7 +1466,8 @@ function NewSkuWizard({
             ? parseFloat(fixedPrice) / (parseInt(pcsPerPack) * parseInt(packsPerCtn))
             : parseFloat(fixedPrice) / parseInt(pcsPerPack)
           : null,
-        fixed_price_per_pack_mvr: fixedPackPrice ? parseFloat(fixedPackPrice) : null,
+        // Don't persist a pack volume-break for a carton-only product.
+        fixed_price_per_pack_mvr: sellUnits.includes("pack") && fixedPackPrice ? parseFloat(fixedPackPrice) : null,
         fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
       });
 
@@ -1770,6 +1790,44 @@ function NewSkuWizard({
                     What you charge shops — not your supplier cost. Supplier cost is calculated automatically when you confirm a shipment. You can set this now or after your first GRN.
                   </p>
 
+                  {/* Sold in — which tiers this product is offered in. Drives which
+                      price fields appear below (carton-only hides pack pricing). */}
+                  <div className="space-y-1.5" style={{ marginBottom: 12 }}>
+                    <Label className="text-[13px]">Sold in</Label>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {([
+                        { key: "pack" as const, label: tradeUnit },
+                        { key: "carton" as const, label: "Carton" },
+                      ]).map((opt) => {
+                        const on = sellUnits.includes(opt.key);
+                        return (
+                          <button key={opt.key} type="button"
+                            onClick={() => {
+                              setSellUnitsTouched(true);
+                              setSellUnits((prev) => {
+                                const has = prev.includes(opt.key);
+                                // Never allow an empty selection — keep at least one tier.
+                                if (has && prev.length === 1) return prev;
+                                return has ? prev.filter((u) => u !== opt.key) : [...prev, opt.key];
+                              });
+                            }}
+                            style={{
+                              flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                              border: on ? "none" : "0.5px solid var(--glass-border-lo)",
+                              background: on ? "var(--foreground)" : "transparent",
+                              color: on ? "var(--background)" : "var(--muted-foreground)",
+                              transition: "all 0.15s",
+                            }}>
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
+                      Tap to choose the units customers can buy. Prices below adapt to your choice.
+                    </p>
+                  </div>
+
                   {/* Strategy row: Margin % + Fixed price side by side */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
@@ -1796,9 +1854,10 @@ function NewSkuWizard({
                     <div className="space-y-1.5">
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <Label className="text-[13px]">Fixed selling price</Label>
-                        {/* Toggle: per bottle OR per carton */}
+                        {/* Toggle: per bottle OR per carton. Carton-only products
+                            (no pack tier) only offer "/ Carton" — no pack option. */}
                         <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", border: "0.5px solid var(--glass-border-lo)" }}>
-                          {(["bottle", "carton"] as const).map((u) => (
+                          {(sellsPack ? (["bottle", "carton"] as const) : (["carton"] as const)).map((u) => (
                             <button key={u} type="button"
                               onClick={() => { setFixedEntryUnit(u); setFixedPrice(""); }}
                               style={{
@@ -1857,7 +1916,9 @@ function NewSkuWizard({
                           </p>
                         </div>
                       )}
-                      {pcsN > 0 && derivedBottlePrice != null && (
+                      {/* Per-piece only matters for multi-piece packs. For a single
+                          unit (1 bottle = the piece) it's meaningless — hide it. */}
+                      {pcsN > 1 && derivedBottlePrice != null && (
                         <div>
                           <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Per piece</p>
                           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-foreground)" }}>
@@ -1880,20 +1941,23 @@ function NewSkuWizard({
                     <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10 }}>
                       Optional — set a lower price for carton buyers. Overrides the base price above for that unit only.
                     </p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <div className="space-y-1.5">
-                        <Label className="text-[12px]">{tradeUnit} price (MVR)</Label>
-                        <input type="number" inputMode="decimal" step="0.01" min="0.01"
-                          value={fixedPackPrice}
-                          onChange={(e) => setFixedPackPrice(e.target.value)}
-                          placeholder="e.g. 88.00"
-                          style={{ ...inp, width: "100%" }} />
-                        {fixedPackPrice && pcsN > 0 && (
-                          <p style={{ fontSize: 10, color: "var(--snm-success)" }}>
-                            = MVR {(parseFloat(fixedPackPrice) / pcsN).toFixed(4)} / pc
-                          </p>
-                        )}
-                      </div>
+                    <div style={{ display: "grid", gridTemplateColumns: sellsPack ? "1fr 1fr" : "1fr", gap: 10 }}>
+                      {/* Pack price only for products actually sold in packs. */}
+                      {sellsPack && (
+                        <div className="space-y-1.5">
+                          <Label className="text-[12px]">{tradeUnit} price (MVR)</Label>
+                          <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                            value={fixedPackPrice}
+                            onChange={(e) => setFixedPackPrice(e.target.value)}
+                            placeholder="e.g. 88.00"
+                            style={{ ...inp, width: "100%" }} />
+                          {fixedPackPrice && pcsN > 1 && (
+                            <p style={{ fontSize: 10, color: "var(--snm-success)" }}>
+                              = MVR {(parseFloat(fixedPackPrice) / pcsN).toFixed(4)} / pc
+                            </p>
+                          )}
+                        </div>
+                      )}
                       <div className="space-y-1.5">
                         <Label className="text-[12px]">Carton price (MVR)</Label>
                         <input type="number" inputMode="decimal" step="0.01" min="0.01"
@@ -1901,7 +1965,7 @@ function NewSkuWizard({
                           onChange={(e) => setFixedCartonPrice(e.target.value)}
                           placeholder="e.g. 320.00"
                           style={{ ...inp, width: "100%" }} />
-                        {fixedCartonPrice && pcsPerCarton && (
+                        {fixedCartonPrice && pcsPerCarton && pcsN > 1 && (
                           <p style={{ fontSize: 10, color: "var(--snm-success)" }}>
                             = MVR {(parseFloat(fixedCartonPrice) / pcsPerCarton).toFixed(4)} / pc
                           </p>
