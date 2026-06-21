@@ -4,12 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { listSkusFlat, toggleSkuActive, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, toggleSkuActive, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 
 export function ProductsList() {
   const [rows, setRows] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [canWrite, setCanWrite] = useState(false);
+
+  useEffect(() => {
+    getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -93,18 +98,29 @@ export function ProductsList() {
                     <span className="text-[12px] font-mono text-muted-foreground">{r.internal_code}</span>
                   </div>
                 </div>
-                <button
-                  onClick={async () => {
-                    try { await toggleSkuActive(r.id, !r.is_active); load(); }
-                    catch (e) { toast.error((e as Error).message); }
-                  }}
-                  className={`snm-pressable text-[12px] uppercase tracking-wider rounded-lg px-3 shrink-0 ${
-                    r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
-                  }`}
-                  style={{ minHeight: 44, display: "flex", alignItems: "center" }}
-                >
-                  {r.is_active ? "Active" : "Off"}
-                </button>
+                {canWrite ? (
+                  <button
+                    onClick={async () => {
+                      try { await toggleSkuActive(r.id, !r.is_active); load(); }
+                      catch (e) { toast.error((e as Error).message); }
+                    }}
+                    className={`snm-pressable text-[12px] uppercase tracking-wider rounded-lg px-3 shrink-0 ${
+                      r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
+                    }`}
+                    style={{ minHeight: 44, display: "flex", alignItems: "center" }}
+                  >
+                    {r.is_active ? "Active" : "Off"}
+                  </button>
+                ) : (
+                  <span
+                    className={`text-[12px] uppercase tracking-wider rounded-lg px-3 shrink-0 ${
+                      r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
+                    }`}
+                    style={{ minHeight: 44, display: "flex", alignItems: "center" }}
+                  >
+                    {r.is_active ? "Active" : "Off"}
+                  </span>
+                )}
               </div>
               {/* Desktop row layout */}
               <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 text-sm">
@@ -120,17 +136,27 @@ export function ProductsList() {
                 <div className="col-span-2 text-muted-foreground">{Number(r.cbm_per_carton).toFixed(4)}</div>
                 <div className="col-span-1 text-xs font-mono text-muted-foreground truncate" title={r.internal_code}>{r.internal_code}</div>
                 <div className="col-span-1 text-right">
-                  <button
-                    onClick={async () => {
-                      try { await toggleSkuActive(r.id, !r.is_active); load(); }
-                      catch (e) { toast.error((e as Error).message); }
-                    }}
-                    className={`snm-pressable text-[12px] uppercase tracking-wider rounded-lg px-2 py-1 ${
-                      r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {r.is_active ? "On" : "Off"}
-                  </button>
+                  {canWrite ? (
+                    <button
+                      onClick={async () => {
+                        try { await toggleSkuActive(r.id, !r.is_active); load(); }
+                        catch (e) { toast.error((e as Error).message); }
+                      }}
+                      className={`snm-pressable text-[12px] uppercase tracking-wider rounded-lg px-2 py-1 ${
+                        r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {r.is_active ? "On" : "Off"}
+                    </button>
+                  ) : (
+                    <span
+                      className={`inline-block text-[12px] uppercase tracking-wider rounded-lg px-2 py-1 ${
+                        r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {r.is_active ? "On" : "Off"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
