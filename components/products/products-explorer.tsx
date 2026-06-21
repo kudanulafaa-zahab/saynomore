@@ -685,6 +685,25 @@ export function ProductsExplorer() {
   const isAdmin  = role === "admin";
   const canWrite = role !== "viewer" && role !== null;
 
+  // Desktop split-pane height: measured from the grid's distance to the top of
+  // the viewport rather than a hardcoded offset, so the detail panel always
+  // fits exactly — its footer (Deactivate/Edit) can never be pushed off-screen
+  // no matter how tall the title/tabs above it render.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [gridHeight, setGridHeight] = useState<number | null>(null);
+  useEffect(() => {
+    function measure() {
+      const el = gridRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const margin = 16; // breathing room at the viewport bottom
+      setGridHeight(Math.max(360, window.innerHeight - top - margin));
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [loading]);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -873,9 +892,17 @@ export function ProductsExplorer() {
   );
 
   return (
-    <div className="pb-28 lg:pb-10">
-      {/* Desktop: side-by-side. Mobile: stack (panel slides over) */}
-      <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-4" style={{ height: "calc(100dvh - 100px)" }}>
+    <div className="pb-28 lg:pb-0">
+      {/* Desktop: side-by-side. Mobile: stack (panel slides over).
+          Height subtracts the fixed chrome above the grid — topbar (52px),
+          main top padding, the page title block and the tabs — so the panel
+          fits the viewport and its footer (Deactivate/Edit) stays on-screen
+          instead of being pushed below the fold. */}
+      <div
+        ref={gridRef}
+        className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-4"
+        style={{ height: gridHeight ? `${gridHeight}px` : "calc(100dvh - 184px)" }}
+      >
         {listPanel(true)}
         {selectedSku ? (
           <div className="rounded-2xl overflow-hidden h-full min-h-0 flex flex-col" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
