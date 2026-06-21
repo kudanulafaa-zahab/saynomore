@@ -2,8 +2,10 @@ import { ProductsExplorer } from "@/components/products/products-explorer";
 import { ProductsList } from "@/components/products/products-list";
 import { CategoriesManager } from "@/components/products/categories-manager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getProductsData } from "./data";
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const initialData = await getProductsData();
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <div>
@@ -18,7 +20,7 @@ export default function ProductsPage() {
           <TabsTrigger value="categories">Categories</TabsTrigger>
         </TabsList>
         <TabsContent value="tree">
-          <ProductsExplorer />
+          <ProductsExplorer initialData={initialData} />
         </TabsContent>
         <TabsContent value="all">
           <ProductsList />
