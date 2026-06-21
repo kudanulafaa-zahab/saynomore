@@ -73,6 +73,37 @@ export async function subscribeToPush(): Promise<PushResult> {
   }
 }
 
+// ── Sending notifications ───────────────────────────────────────────────────
+// One canonical path for every push in the app. Every trigger (driver assigned,
+// order delivered, low-stock digest) goes through notify()/notifyAdmins() so the
+// fetch shape lives in exactly one place and can't drift.
+
+export type NotifyPayload = { title: string; body: string; url?: string };
+
+const PUSH_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-push`;
+
+/** Fire-and-forget push to a single user. Never throws — push is non-critical. */
+export function notify(userId: string, payload: NotifyPayload): void {
+  if (!userId) return;
+  fetch(PUSH_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ user_id: userId, ...payload }),
+  }).catch(() => {/* non-critical */});
+}
+
+/** Push to every admin/manager — used for office-facing events (delivery done). */
+export async function notifyAdmins(payload: NotifyPayload): Promise<void> {
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("id")
+    .in("role", ["admin", "manager"]);
+  for (const u of data ?? []) notify(u.id, payload);
+}
+
 export async function isPushSubscribed(): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   try {

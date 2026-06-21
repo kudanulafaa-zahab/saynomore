@@ -6,7 +6,7 @@ import {
   Loader2, ChevronDown, CheckCircle2, UserCheck, MapPin, Package,
   Truck, ClipboardList, AlertTriangle, Bell,
 } from "lucide-react";
-import { subscribeToPush, isPushSubscribed } from "@/lib/push";
+import { subscribeToPush, isPushSubscribed, notify } from "@/lib/push";
 import {
   listMyDeliveries,
   listAllDispatchOrders,
@@ -192,23 +192,16 @@ export function DispatchView() {
         ? "Saved offline — will sync when connected"
         : driverId ? "Driver assigned — order dispatched" : "Driver unassigned");
 
-      // Push notification to the assigned driver
+      // Push to the assigned driver. Skip when queued offline — the order isn't
+      // really dispatched until the update syncs.
       if (driverId && !queued) {
         const item = items.find((i) => i.order.id === orderId);
         const customerName = item?.customer?.name ?? "a customer";
-        fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-push`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            user_id: driverId,
-            title: "New Delivery Assigned",
-            body: `You have a new delivery for ${customerName}.`,
-            url: "/dispatch",
-          }),
-        }).catch(() => {/* non-critical */});
+        notify(driverId, {
+          title: "New Delivery Assigned",
+          body: `You have a new delivery for ${customerName}.`,
+          url: "/dispatch",
+        });
       }
 
       load();

@@ -14,6 +14,7 @@ import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
 import { withOfflineFallback } from "@/lib/offline-write";
+import { notifyAdmins } from "@/lib/push";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -97,8 +98,8 @@ function BottomSheet({ open, onClose, title, children }: {
 
 /* ─── cash collection sheet ─────────────────────────────────────────────── */
 
-function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
-  open: boolean; order?: SalesOrderRow; expectedMvr: number;
+function CashCollectSheet({ open, order, customerName, expectedMvr, onClose, onDone }: {
+  open: boolean; order?: SalesOrderRow; customerName?: string; expectedMvr: number;
   onClose: () => void; onDone: () => void;
 }) {
   const [amount, setAmount] = useState("");
@@ -129,6 +130,17 @@ function CashCollectSheet({ open, order, expectedMvr, onClose, onDone }: {
         { table: "sales_orders", action: "update", payload: patch, match: { id: order.id } },
       );
       toast.success(queued ? "Saved offline — will sync when connected" : "Delivered — remember to deposit the cash");
+
+      // Tell the office a delivery just closed with cash collected. Skip when
+      // queued offline — it isn't real until the update syncs (notifyAdmins
+      // would also fail with no connection).
+      if (!queued) {
+        notifyAdmins({
+          title: "Delivery completed",
+          body: `${customerName ?? "Walk-in"} · ${order.order_number} · MVR ${collected.toLocaleString()} collected.`,
+          url: "/dispatch",
+        });
+      }
       onDone();
     } catch (err) { toast.error((err as Error).message); }
     finally { setSaving(false); }
@@ -346,7 +358,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
   skus: SkuFullRow[];
   onAction: (id: string, patch: Record<string, string | number | null>) => void;
   onIssue: (order: SalesOrderRow) => void;
-  onCash: (order: SalesOrderRow, expected: number) => void;
+  onCash: (order: SalesOrderRow, expected: number, customerName?: string) => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -466,7 +478,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
             {isCod ? (
               /* COD: big green button showing the amount — hardest to miss */
               <button
-                onClick={() => onCash(order, totalMvr)}
+                onClick={() => onCash(order, totalMvr, customer?.name)}
                 style={{
                   width: "100%", height: 72, borderRadius: 18, border: "none",
                   background: "var(--snm-success)", color: "#fff", cursor: "pointer",
@@ -552,7 +564,7 @@ export function MyDeliveries() {
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const [cashSheet, setCashSheet] = useState<{ open: boolean; order?: SalesOrderRow; expected: number }>({ open: false, expected: 0 });
+  const [cashSheet, setCashSheet] = useState<{ open: boolean; order?: SalesOrderRow; customerName?: string; expected: number }>({ open: false, expected: 0 });
   const [issueSheet, setIssueSheet] = useState<{ open: boolean; order?: SalesOrderRow }>({ open: false });
 
   const CACHE_KEY = "snm_deliveries_cache";
@@ -723,14 +735,14 @@ export function MyDeliveries() {
             onToggle={() => setExpanded(expanded === item.order.id ? null : item.order.id)}
             onAction={handleAction}
             onIssue={(order) => setIssueSheet({ open: true, order })}
-            onCash={(order, expected) => setCashSheet({ open: true, order, expected })}
+            onCash={(order, expected, customerName) => setCashSheet({ open: true, order, expected, customerName })}
           />
         ))}
       </div>
 
       {/* ── Sheets ──────────────────────────────────────────────────────── */}
       <CashCollectSheet
-        open={cashSheet.open} order={cashSheet.order} expectedMvr={cashSheet.expected}
+        open={cashSheet.open} order={cashSheet.order} customerName={cashSheet.customerName} expectedMvr={cashSheet.expected}
         onClose={() => setCashSheet({ open: false, expected: 0 })}
         onDone={() => { setCashSheet({ open: false, expected: 0 }); load(true); }}
       />
