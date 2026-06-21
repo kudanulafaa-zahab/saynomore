@@ -663,21 +663,13 @@ function SkuRow({
 
 /* ── Main explorer ── */
 
-export interface ProductsInitialData {
-  categories: CategoryRow[];
-  brands: BrandRow[];
-  models: ModelRow[];
-  variants: VariantRow[];
-  skus: SkuFullRow[];
-}
-
-export function ProductsExplorer({ initialData }: { initialData?: ProductsInitialData }) {
-  const [categories, setCategories] = useState<CategoryRow[]>(initialData?.categories ?? []);
-  const [brands, setBrands]         = useState<BrandRow[]>(initialData?.brands ?? []);
-  const [models, setModels]         = useState<ModelRow[]>(initialData?.models ?? []);
-  const [variants, setVariants]     = useState<VariantRow[]>(initialData?.variants ?? []);
-  const [skus, setSkus]             = useState<SkuFullRow[]>(initialData?.skus ?? []);
-  const [loading, setLoading]       = useState(!initialData);
+export function ProductsExplorer() {
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [brands, setBrands]         = useState<BrandRow[]>([]);
+  const [models, setModels]         = useState<ModelRow[]>([]);
+  const [variants, setVariants]     = useState<VariantRow[]>([]);
+  const [skus, setSkus]             = useState<SkuFullRow[]>([]);
+  const [loading, setLoading]       = useState(true);
 
   const [q, setQ]                       = useState("");
   const [filterBrand, setFilterBrand]   = useState<string>("all");
@@ -727,13 +719,7 @@ export function ProductsExplorer({ initialData }: { initialData?: ProductsInitia
     }
   }, []);
 
-  // Skip the initial client fetch when the server already hydrated us; loadAll
-  // is still used to refresh after create/edit/delete.
-  const didInitialLoad = useRef(!!initialData);
-  useEffect(() => {
-    if (didInitialLoad.current) { didInitialLoad.current = false; return; }
-    loadAll();
-  }, [loadAll]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   // Keep selectedSku in sync after reload
   useEffect(() => {

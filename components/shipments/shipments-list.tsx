@@ -83,21 +83,13 @@ function etaState(date: string | null | undefined): "overdue" | "today" | "upcom
 
 /* ── Main component ──────────────────────────────────────────────────────── */
 
-export interface ShipmentsInitialData {
-  shipments: ShipmentRow[];
-  suppliers: SupplierRow[];
-  skus: SkuFullRow[];
-  alerts: SkuReorderAlert[];
-}
-
-export function ShipmentsList({ initialData }: { initialData?: ShipmentsInitialData }) {
+export function ShipmentsList() {
   const router = useRouter();
-  const [rows, setRows]         = useState<ShipmentRow[]>(initialData?.shipments ?? []);
-  const [suppliers, setSuppliers] = useState<SupplierRow[]>(initialData?.suppliers ?? []);
-  const [skus, setSkus]         = useState<SkuFullRow[]>(initialData?.skus ?? []);
-  const [alerts, setAlerts]     = useState<SkuReorderAlert[]>(initialData?.alerts ?? []);
-  // When the server already provided data, render it immediately — no spinner.
-  const [loading, setLoading]   = useState(!initialData);
+  const [rows, setRows]         = useState<ShipmentRow[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
+  const [skus, setSkus]         = useState<SkuFullRow[]>([]);
+  const [alerts, setAlerts]     = useState<SkuReorderAlert[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "all">("all");
   const [newSheet, setNewSheet] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<ShipmentRow | null>(null);
@@ -118,9 +110,7 @@ export function ShipmentsList({ initialData }: { initialData?: ShipmentsInitialD
     finally { setLoading(false); }
   }
 
-  // Skip the initial client fetch when the server already hydrated us; only
-  // fetch on mount if we arrived without data (e.g. rendered standalone).
-  useEffect(() => { if (!initialData) load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
   const canWrite = role !== "viewer" && role !== null;

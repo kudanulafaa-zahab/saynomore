@@ -150,26 +150,18 @@ function GlassSelect({ label, value, onChange, children }: {
 
 // ── SalesList ─────────────────────────────────────────────────────────────────
 
-export interface SalesInitialData {
-  orders: SalesOrderRow[];
-  customers: CustomerRow[];
-  skus: SkuFullRow[];
-  godowns: GodownRow[];
-  stockLevels: StockLevel[];
-}
-
-export function SalesList({ initialData }: { initialData?: SalesInitialData }) {
+export function SalesList() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   // ?filter=unpaid → pre-filter to delivered orders with pending payment
   const unpaidMode   = searchParams.get("filter") === "unpaid";
 
-  const [rows, setRows] = useState<SalesOrderRow[]>(initialData?.orders ?? []);
-  const [customers, setCustomers] = useState<CustomerRow[]>(initialData?.customers ?? []);
-  const [skus, setSkus] = useState<SkuFullRow[]>(initialData?.skus ?? []);
-  const [godowns, setGodowns] = useState<GodownRow[]>(initialData?.godowns ?? []);
-  const [stockLevels, setStockLevels] = useState<StockLevel[]>(initialData?.stockLevels ?? []);
-  const [loading, setLoading] = useState(!initialData);
+  const [rows, setRows] = useState<SalesOrderRow[]>([]);
+  const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [skus, setSkus] = useState<SkuFullRow[]>([]);
+  const [godowns, setGodowns] = useState<GodownRow[]>([]);
+  const [stockLevels, setStockLevels] = useState<StockLevel[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">(unpaidMode ? "delivered" : "all");
   const [newDialog, setNewDialog] = useState(false);
@@ -194,8 +186,7 @@ export function SalesList({ initialData }: { initialData?: SalesInitialData }) {
     finally { setLoading(false); }
   }
 
-  // Skip the initial client fetch when the server already hydrated us.
-  useEffect(() => { if (!initialData) load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
     let r = rows;

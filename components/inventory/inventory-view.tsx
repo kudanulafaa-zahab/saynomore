@@ -309,30 +309,21 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
 
 /* ── Main ── */
 
-export interface InventoryInitialData {
-  skus: SkuFullRow[];
-  godowns: GodownRow[];
-  batches: BatchStock[];
-  alerts: SkuReorderAlert[];
-}
-
-export function InventoryView({ initialData }: { initialData?: InventoryInitialData }) {
-  const [skus, setSkus]         = useState<SkuFullRow[]>(initialData?.skus ?? []);
-  const [godowns, setGodowns]   = useState<GodownRow[]>(initialData?.godowns ?? []);
-  const [batches, setBatches]   = useState<BatchStock[]>(initialData?.batches ?? []);
-  const [alerts, setAlerts]     = useState<SkuReorderAlert[]>(initialData?.alerts ?? []);
-  const [loading, setLoading]   = useState(!initialData);
+export function InventoryView() {
+  const [skus, setSkus]         = useState<SkuFullRow[]>([]);
+  const [godowns, setGodowns]   = useState<GodownRow[]>([]);
+  const [batches, setBatches]   = useState<BatchStock[]>([]);
+  const [alerts, setAlerts]     = useState<SkuReorderAlert[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [q, setQ]               = useState("");
   const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
 
-  // Skip the initial client fetch when the server already hydrated us.
   useEffect(() => {
-    if (initialData) return;
     Promise.all([listSkusFlat(), listGodowns(), listBatchStock(), listReorderAlerts()])
       .then(([s, g, b, a]) => { setSkus(s); setGodowns(g); setBatches(b); setAlerts(a); })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const alertMap = useMemo(() => {
     const m = new Map<string, SkuReorderAlert>();
