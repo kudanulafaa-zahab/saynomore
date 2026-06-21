@@ -6,7 +6,7 @@ import {
   Loader2, TrendingUp, TrendingDown, Package,
   Clock, BarChart3, Search, Megaphone, X, Download,
 } from "lucide-react";
-import { getReportsData, type ReportRow } from "@/lib/queries/reports";
+import { getReportsData, getContributionMargin, type ReportRow, type ContributionRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
 import { type UnitUom } from "@/lib/queries/products";
 
@@ -74,17 +74,20 @@ export function ReportsView() {
   const [to, setTo] = useState(today());
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
-  const [tab, setTab] = useState<"bestsellers" | "margins" | "stock">("bestsellers");
+  const [tab, setTab] = useState<"bestsellers" | "margins" | "stock" | "contribution">("bestsellers");
   const [customRange, setCustomRange] = useState(false);
+  const [contrib, setContrib] = useState<ContributionRow[]>([]);
 
   async function load(f = from, t = to) {
     setLoading(true);
     try {
-      const [reportRows, spendRows] = await Promise.all([
+      const [reportRows, spendRows, contribRows] = await Promise.all([
         getReportsData(f, t),
         listMarketingSpend(),
+        getContributionMargin(f, t),
       ]);
       setRows(reportRows);
+      setContrib(contribRows);
       // filter spend rows that overlap with the selected period
       setSpend(spendRows.filter((s) => {
         const start = s.start_date;
@@ -119,6 +122,18 @@ export function ReportsView() {
     });
   }, [rows, q, sortKey]);
 
+  const contribFiltered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    let r = contrib;
+    if (term) {
+      r = r.filter((x) =>
+        [x.brand_name, x.model_name, x.variant_display, x.internal_code]
+          .join(" ").toLowerCase().includes(term),
+      );
+    }
+    return r; // already ordered by contribution_mvr desc from the RPC
+  }, [contrib, q]);
+
   // Summary cards
   const totals = useMemo(() => ({
     revenue: rows.reduce((s, r) => s + r.total_revenue_mvr, 0),
@@ -147,6 +162,20 @@ export function ReportsView() {
         r.total_revenue_mvr.toFixed(2),
         r.total_landed_cost_mvr.toFixed(2),
         r.gross_margin_pct != null ? r.gross_margin_pct.toFixed(1) + "%" : "",
+      ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    } else if (tab === "contribution") {
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Marketing (MVR)", "Contribution (MVR)", "Contribution %"];
+      csv = [headers, ...contribFiltered.map((r) => [
+        r.internal_code,
+        r.brand_name,
+        r.model_name,
+        r.variant_display,
+        r.total_qty_pieces,
+        r.total_revenue_mvr.toFixed(2),
+        r.total_landed_cost_mvr.toFixed(2),
+        r.marketing_spend_mvr.toFixed(2),
+        r.contribution_mvr.toFixed(2),
+        r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "stock") {
       const headers = ["SKU Code", "Brand", "Model", "Variant", "Stock (pcs)", "Days of Stock"];
@@ -179,7 +208,7 @@ export function ReportsView() {
         </div>
         <button
           onClick={exportCsv}
-          disabled={filtered.length === 0}
+          disabled={tab === "contribution" ? contribFiltered.length === 0 : filtered.length === 0}
           className="flex items-center gap-2 h-10 px-4 rounded-2xl text-[13px] font-semibold shrink-0 transition active:scale-95 disabled:opacity-40"
           style={{ background: "var(--foreground)", color: "var(--background)", marginTop: 4 }}
         >
@@ -294,9 +323,10 @@ export function ReportsView() {
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
         {([
-          { key: "bestsellers", label: "Best Sellers" },
-          { key: "margins",     label: "Margins" },
-          { key: "stock",       label: "Days of Stock" },
+          { key: "bestsellers",  label: "Best Sellers" },
+          { key: "margins",      label: "Margins" },
+          { key: "contribution", label: "Contribution" },
+          { key: "stock",        label: "Days of Stock" },
         ] as const).map((t) => (
           <button
             key={t.key}
@@ -340,6 +370,14 @@ export function ReportsView() {
           <Loader2 className="h-6 w-6 animate-spin mb-3" />
           <p className="text-sm">Loading…</p>
         </div>
+      ) : tab === "contribution" ? (
+        contribFiltered.length === 0 ? (
+          <div className="snm-card p-10 text-center">
+            <p className="text-muted-foreground text-sm">No sales in this period.</p>
+          </div>
+        ) : (
+          <ContributionTable rows={contribFiltered} />
+        )
       ) : filtered.length === 0 ? (
         <div className="snm-card p-10 text-center">
           <p className="text-muted-foreground text-sm">No data for this period.</p>
@@ -469,6 +507,54 @@ function BestSellersTable({ rows, sortKey, onSort }: {
                 </td>
               </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Contribution margin table ─────────────────────────────────────────────
+// True profit per SKU: revenue − landed cost − allocated marketing spend.
+
+function ContributionTable({ rows }: { rows: ContributionRow[] }) {
+  return (
+    <div className="glass overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-secondary/50">
+            <tr>
+              <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Revenue</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Landed</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Marketing</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Contribution</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Contr. %</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => {
+              const fmt0 = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+              return (
+                <tr key={r.sku_id} className="hover:bg-accent/20 transition">
+                  <td className="px-3 py-3">
+                    <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                    <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
+                  </td>
+                  <td className="px-3 py-3 text-right text-foreground font-medium snm-num">{fmt0(r.total_revenue_mvr)}</td>
+                  <td className="px-3 py-3 text-right text-muted-foreground snm-num">{fmt0(r.total_landed_cost_mvr)}</td>
+                  <td className="px-3 py-3 text-right snm-num" style={{ color: r.marketing_spend_mvr > 0 ? "var(--snm-warning)" : "var(--muted-foreground)" }}>
+                    {r.marketing_spend_mvr > 0 ? fmt0(r.marketing_spend_mvr) : "—"}
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold snm-num" style={{ color: r.contribution_mvr >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                    {fmt0(r.contribution_mvr)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-bold snm-num" style={marginColor(r.contribution_margin_pct)}>
+                    {r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "—"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

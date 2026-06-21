@@ -29,6 +29,34 @@ export async function getReportsData(from: string, to: string): Promise<ReportRo
   return (data ?? []) as ReportRow[];
 }
 
+export interface ContributionRow {
+  sku_id: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string;
+  internal_code: string;
+  total_qty_pieces: number;
+  total_revenue_mvr: number;
+  avg_unit_price_mvr: number;
+  landed_per_piece_mvr: number;
+  total_landed_cost_mvr: number;
+  gross_margin_pct: number | null;
+  marketing_spend_mvr: number;
+  mktg_per_piece_mvr: number;
+  contribution_mvr: number;
+  contribution_per_piece: number;
+  contribution_margin_pct: number | null;
+}
+
+export async function getContributionMargin(from: string, to: string): Promise<ContributionRow[]> {
+  const { data, error } = await supabase.rpc("get_contribution_margin", {
+    p_from: from,
+    p_to: to,
+  });
+  if (error) throw error;
+  return (data ?? []) as ContributionRow[];
+}
+
 export interface MonthlyRevenueRow {
   month_label: string;
   month_start: string;
