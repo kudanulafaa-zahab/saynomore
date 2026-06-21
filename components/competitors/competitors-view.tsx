@@ -20,6 +20,7 @@ import {
   type PriceBasis,
 } from "@/lib/queries/competitors";
 import { withOfflineFallback } from "@/lib/offline-write";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
 
@@ -1064,6 +1065,7 @@ export function CompetitorsView() {
 // ── Competitor Modal ──────────────────────────────────────────────────────────
 
 function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow; onClose: () => void; onDone: () => void }) {
+  useBodyScrollLock(true);
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -1122,6 +1124,7 @@ function PriceModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  useBodyScrollLock(true);
   const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
   const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 

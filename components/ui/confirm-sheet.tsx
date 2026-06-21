@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 interface ConfirmSheetProps {
   open: boolean;
@@ -18,10 +19,7 @@ export function ConfirmSheet({
 }: ConfirmSheetProps) {
   const startY = useRef<number | null>(null);
 
-  useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  useBodyScrollLock(open);
 
   function onTouchStart(e: React.TouchEvent) { startY.current = e.touches[0].clientY; }
   function onTouchEnd(e: React.TouchEvent) {

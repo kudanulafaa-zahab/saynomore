@@ -24,6 +24,7 @@ import {
 } from "@/lib/queries/sales";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
@@ -836,6 +837,7 @@ const primaryBtn: React.CSSProperties = {
 };
 
 function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  useBodyScrollLock(open);
   if (!open) return null;
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>

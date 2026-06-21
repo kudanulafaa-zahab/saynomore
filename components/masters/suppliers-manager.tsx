@@ -27,6 +27,7 @@ import {
   type SupplierCurrency,
 } from "@/lib/queries/masters";
 import { withOfflineFallback } from "@/lib/offline-write";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { getCurrentUserRole } from "@/lib/queries/products";
 
 const CARD = {
@@ -404,6 +405,7 @@ function SupplierModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useBodyScrollLock(true);
   const [name, setName] = useState(editing?.name ?? "");
   const [country, setCountry] = useState(editing?.country ?? "Indonesia");
   const [currency, setCurrency] = useState<SupplierCurrency>(editing?.invoice_currency ?? "IDR");

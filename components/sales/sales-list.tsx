@@ -25,6 +25,7 @@ import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { withOfflineFallback } from "@/lib/offline-write";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -630,24 +631,8 @@ function NewSaleSheet({
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | "margin" | null>(null);
 
-  // ── iOS body scroll lock ────────────────────────────────────────────────────
-  // Lock the body so the background page cannot scroll or bleed through.
-  // We use position:fixed + saved scrollY so the page stays in place.
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    const prev = { overflow: document.body.style.overflow, position: document.body.style.position, top: document.body.style.top, width: document.body.style.width };
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top      = `-${scrollY}px`;
-    document.body.style.width    = "100%";
-    return () => {
-      document.body.style.overflow = prev.overflow;
-      document.body.style.position = prev.position;
-      document.body.style.top      = prev.top;
-      document.body.style.width    = prev.width;
-      window.scrollTo(0, scrollY);
-    };
-  }, []);
+  // Lock the background page while this full-screen sheet is mounted (shared hook).
+  useBodyScrollLock(true);
 
   function autoPrice(
     sku: typeof selectedSku,

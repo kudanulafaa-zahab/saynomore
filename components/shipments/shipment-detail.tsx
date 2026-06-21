@@ -16,6 +16,7 @@ import {
   confirmGrn, forceVoidGrn,
   type ShipmentRow, type ShipmentLineRow, type FobCurrency, type ShipmentStatus,
 } from "@/lib/queries/shipments";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
 
@@ -174,6 +175,7 @@ function QtyStepper({
 /* ── Bottom sheet wrapper ────────────────────────────────────────────────── */
 
 function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  useBodyScrollLock(open);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-60 flex items-end" style={{ background: "rgba(0,0,0,0.65)" }} onClick={onClose}>

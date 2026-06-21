@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -69,6 +70,64 @@ function packLabel(sku: SkuFullRow): string {
   if (uom === "ml") return "Bottle";
   if (uom === "g")  return "Pouch";
   return "Pack";
+}
+
+/* ── Mobile bottom sheet wrapper ──────────────────────────────────────────────
+   Native-iOS sheet behaviour: locks the page behind it (no scroll-through),
+   shows a grabber, and supports drag-down-to-dismiss + tap-backdrop-to-close. */
+
+function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const [dragY, setDragY] = useState(0);
+  const startY = useRef<number | null>(null);
+
+  // Lock the background page while the sheet is open (iOS-correct).
+  useBodyScrollLock(true);
+
+  function onTouchStart(e: React.TouchEvent) {
+    startY.current = e.touches[0].clientY;
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (startY.current == null) return;
+    const dy = e.touches[0].clientY - startY.current;
+    if (dy > 0) setDragY(dy); // only allow downward drag
+  }
+  function onTouchEnd() {
+    if (dragY > 110) onClose();   // dragged far enough → dismiss
+    else setDragY(0);             // snap back
+    startY.current = null;
+  }
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-40"
+        style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+        onClick={onClose}
+      />
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
+        style={{
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          border: "0.5px solid var(--glass-border-lo)",
+          transform: `translateY(${dragY}px)`,
+          transition: startY.current == null ? "transform 0.25s cubic-bezier(0.32,0.72,0,1)" : "none",
+        }}
+      >
+        {/* Grabber — drag-to-dismiss handle */}
+        <div
+          className="flex justify-center pt-3 pb-1 shrink-0 cursor-grab active:cursor-grabbing"
+          style={{ touchAction: "none" }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <div className="w-9 h-[5px] rounded-full" style={{ background: "var(--glass-border)" }} />
+        </div>
+        {children}
+      </div>
+    </>
+  );
 }
 
 /* ── SKU detail panel ── */
@@ -853,37 +912,23 @@ export function ProductsExplorer() {
       <div className="lg:hidden">
         {listPanel(false)}
 
-        {/* Mobile slide-up panel */}
+        {/* Mobile slide-up panel — scroll-locked, grabber, drag-to-dismiss */}
         {selectedSku && (
-          <>
-            <div
-              className="fixed inset-0 z-40"
-              style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
-              onClick={() => setSelectedSku(null)}
-            />
-            <div
-              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
-              style={{
-                maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
-                paddingBottom: "env(safe-area-inset-bottom, 0px)",
-                border: "0.5px solid var(--glass-border-lo)",
+          <MobileSkuSheet onClose={() => setSelectedSku(null)}>
+            <SkuPanel
+              sku={selectedSku}
+              isAdmin={isAdmin}
+              canWrite={canWrite}
+              onEdit={() => setEditSku(selectedSku)}
+              onDelete={() => setCascadeTarget({ kind: "sku", id: selectedSku.id, label: selectedSku.internal_code })}
+              onToggle={async () => {
+                try { await toggleSkuActive(selectedSku.id, !selectedSku.is_active); await loadAll(); }
+                catch (e) { toast.error((e as Error).message); }
               }}
-            >
-              <SkuPanel
-                sku={selectedSku}
-                isAdmin={isAdmin}
-                canWrite={canWrite}
-                onEdit={() => setEditSku(selectedSku)}
-                onDelete={() => setCascadeTarget({ kind: "sku", id: selectedSku.id, label: selectedSku.internal_code })}
-                onToggle={async () => {
-                  try { await toggleSkuActive(selectedSku.id, !selectedSku.is_active); await loadAll(); }
-                  catch (e) { toast.error((e as Error).message); }
-                }}
-                onClose={() => setSelectedSku(null)}
-                onPricingUpdated={loadAll}
-              />
-            </div>
-          </>
+              onClose={() => setSelectedSku(null)}
+              onPricingUpdated={loadAll}
+            />
+          </MobileSkuSheet>
         )}
       </div>
 

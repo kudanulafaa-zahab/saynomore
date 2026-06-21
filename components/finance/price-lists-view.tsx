@@ -13,6 +13,7 @@ import {
   type PriceListRow, type PriceListItemRow,
 } from "@/lib/queries/pricelists";
 import type { PriceTier } from "@/lib/queries/masters";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 /* ── Tier config ──────────────────────────────────────────────────────────── */
 const TIERS: { value: PriceTier; label: string; color: string }[] = [
@@ -76,14 +77,7 @@ export function PriceListsView() {
 
   // Lock body scroll when any full-screen overlay is open — prevents iOS bleed-through
   const overlayOpen = !!(openList || newListTier);
-  useEffect(() => {
-    if (overlayOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
-  }, [overlayOpen]);
+  useBodyScrollLock(overlayOpen);
 
   async function handleDelete(id: string, name: string) {
     setConfirmDelete({ id, name });

@@ -15,6 +15,7 @@ import {
   type SpendChannel,
 } from "@/lib/queries/expenses";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { withOfflineFallback } from "@/lib/offline-write";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
@@ -366,6 +367,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   onClose: () => void;
   onDone: () => void;
 }) {
+  useBodyScrollLock(true);
   const [channel, setChannel] = useState<SpendChannel>(editing?.channel ?? "meta_boost");
   const [amountMvr, setAmountMvr] = useState(editing ? String(editing.amount_mvr) : "");
   const [campaignName, setCampaignName] = useState(editing?.campaign_name ?? "");

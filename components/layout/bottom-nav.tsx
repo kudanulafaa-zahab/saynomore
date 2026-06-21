@@ -6,6 +6,7 @@ import { Settings, X, MoreHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { navForRole, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 const SHEET_SECTIONS: { label: string; hrefs: string[] }[] = [
   { label: "Finance",     hrefs: ["/financials", "/reports", "/pricelists", "/expenses"] },
@@ -23,10 +24,7 @@ export function BottomNav({ role }: { role: string }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => { setSheetOpen(false); }, [pathname]);
-  useEffect(() => {
-    document.body.style.overflow = sheetOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [sheetOpen]);
+  useBodyScrollLock(sheetOpen);
 
   const startY = useRef<number | null>(null);
   function onTouchStart(e: React.TouchEvent) { startY.current = e.touches[0].clientY; }

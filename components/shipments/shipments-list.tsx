@@ -14,6 +14,7 @@ import {
   type ShipmentRow, type ShipmentStatus,
 } from "@/lib/queries/shipments";
 import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { getCurrentUserRole, listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory";
 
@@ -522,6 +523,7 @@ function NewPoSheet({
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
+  useBodyScrollLock(true);
   const [reference, setReference]   = useState(nextShipmentRef(existing));
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
   const [saving, setSaving]         = useState(false);

@@ -15,6 +15,7 @@ import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/
 import { supabase } from "@/lib/supabase";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { notifyAdmins } from "@/lib/push";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -55,10 +56,7 @@ function BottomSheet({ open, onClose, title, children }: {
 }) {
   const startY = useRef<number | null>(null);
 
-  useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  useBodyScrollLock(open);
 
   if (!open) return null;
 
