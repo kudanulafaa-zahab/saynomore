@@ -780,13 +780,13 @@ export function ProductsExplorer() {
         ) : (
           grouped.map(({ brand, skus: brandSkus }) => (
             <div key={brand}>
-              {/* Brand divider — sticks to the pane top on desktop, and below the
-                  fixed topbar on mobile (where the page itself scrolls). */}
+              {/* Brand divider — plain inline section header that scrolls with
+                  the rows. Not sticky: a per-group sticky freezes mid-screen,
+                  and for a short catalogue inline dividers read more native. */}
               <div
-                className="px-4 py-2 sticky z-10 top-[calc(52px+env(safe-area-inset-top,0px))] lg:top-0"
+                className="px-4 py-2"
                 style={{
                   background: "color-mix(in srgb, var(--glass-1) 95%, transparent)",
-                  backdropFilter: "blur(8px)",
                   borderBottom: "0.5px solid var(--glass-border-lo)",
                 }}
               >

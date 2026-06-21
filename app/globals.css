@@ -356,6 +356,25 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* ── Native-app scroll indicators ──────────────────────────────────────────
+     iOS never paints a persistent scrollbar — the indicator only flashes during
+     an active scroll gesture. Hide the bar everywhere (document + every scroll
+     container) so the app doesn't read as a web page. Scrolling still works;
+     on touch devices iOS draws its own transient indicator on top.            */
+  html, body,
+  [data-scroll], .overflow-y-auto, .overflow-x-auto, .overflow-auto {
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* legacy Edge/IE */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  [data-scroll]::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar {
+    display: none;                  /* WebKit / Blink (Safari, Chrome) */
+  }
+
   /* Snap tapping — removes 300ms delay on iOS */
   a, button, [role="button"] {
     touch-action: manipulation;
