@@ -62,27 +62,6 @@ function fmtPrice(n: number | null | undefined) {
   return Number(n).toFixed(2);
 }
 
-/* Natural size order a distributor scans by — not alphabetical.
-   Anything not a size (scent/colour/format) ranks after sizes and
-   falls back to alphabetical via the comparator below. */
-const SIZE_RANK: Record<string, number> = {
-  nb: 0, "nb/s": 1, s: 2, m: 3, l: 4, xl: 5, xxl: 6, xxxl: 7, xxxxl: 8,
-};
-function variantRank(display: string | null | undefined): number {
-  const key = (display ?? "").trim().toLowerCase();
-  return key in SIZE_RANK ? SIZE_RANK[key] : 900;
-}
-
-/** Catalogue sort: keep a brand's products grouped by model line, then by
-    variant in natural (size) order, so the list reads top-to-bottom instead
-    of interleaving models. */
-function compareSkus(a: SkuFullRow, b: SkuFullRow): number {
-  const model = a.model_name.localeCompare(b.model_name);
-  if (model !== 0) return model;
-  const rank = variantRank(a.variant_display) - variantRank(b.variant_display);
-  if (rank !== 0) return rank;
-  return (a.variant_display ?? "").localeCompare(b.variant_display ?? "");
-}
 
 /** Returns the trade unit label for a SKU — what the seller actually trades in. */
 function packLabel(sku: SkuFullRow): string {
@@ -748,11 +727,10 @@ export function ProductsExplorer() {
       entry.skus.push(s);
       map.set(s.brand_id, entry);
     }
-    // Sort brands A→Z, and within each brand keep model lines together in
-    // natural variant order (no more interleaved Xtra Kering / Royal Soft).
-    const groups = Array.from(map.values());
-    for (const g of groups) g.skus.sort(compareSkus);
-    return groups.sort((a, b) => a.brand.localeCompare(b.brand));
+    // Rows arrive pre-sorted from listSkusFlat (brand → model → natural
+    // variant order), so insertion order is already correct within each
+    // group; just sort the brand groups A→Z for the dividers.
+    return Array.from(map.values()).sort((a, b) => a.brand.localeCompare(b.brand));
   }, [filtered]);
 
   const activeCount = skus.filter((s) => s.is_active).length;

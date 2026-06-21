@@ -1339,7 +1339,7 @@ function LineDialog({
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl flex flex-col"
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", height: "85dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
       >
         {/* Fixed header — grabber + title stay pinned at the top */}
         <div className="shrink-0 px-6 pt-3">
@@ -1376,7 +1376,7 @@ function LineDialog({
                   <ScanLine size={20} color="white" />
                 </button>
               </div>
-              <div className="mt-2 rounded-xl overflow-hidden" style={{ maxHeight: 220, overflowY: "auto", border: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
+              <div className="mt-2 rounded-xl overflow-hidden" style={{ maxHeight: "55dvh", overflowY: "auto", border: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                 {filteredSkus.length === 0
                   ? <p className="p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>No matches.</p>
                   : filteredSkus.map((s) => (

@@ -151,13 +151,37 @@ export async function listSkus(): Promise<SkuRow[]> {
   return data ?? [];
 }
 
+/* Natural size order a distributor scans by — not alphabetical.
+   Non-size variants (scent/colour/format) rank after sizes and fall
+   back to alphabetical in the comparator below. */
+const SKU_SIZE_RANK: Record<string, number> = {
+  nb: 0, "nb/s": 1, s: 2, m: 3, l: 4, xl: 5, xxl: 6, xxxl: 7, xxxxl: 8,
+};
+function skuVariantRank(display: string | null | undefined): number {
+  const key = (display ?? "").trim().toLowerCase();
+  return key in SKU_SIZE_RANK ? SKU_SIZE_RANK[key] : 900;
+}
+
+/** Catalogue display order: brand → model line → natural variant (size) order,
+    so SKUs read top-to-bottom by line instead of interleaving models.
+    Exported so every list (products, shipments picker, …) sorts identically. */
+export function compareSkusForDisplay(a: SkuFullRow, b: SkuFullRow): number {
+  const brand = a.brand_name.localeCompare(b.brand_name);
+  if (brand !== 0) return brand;
+  const model = a.model_name.localeCompare(b.model_name);
+  if (model !== 0) return model;
+  const rank = skuVariantRank(a.variant_display) - skuVariantRank(b.variant_display);
+  if (rank !== 0) return rank;
+  return (a.variant_display ?? "").localeCompare(b.variant_display ?? "");
+}
+
 export async function listSkusFlat(): Promise<SkuFullRow[]> {
   const { data, error } = await supabase
     .from("v_skus")
     .select("*")
     .order("brand_name");
   if (error) throw error;
-  return (data ?? []) as SkuFullRow[];
+  return ((data ?? []) as SkuFullRow[]).sort(compareSkusForDisplay);
 }
 
 // ── Writes ───────────────────────────────────────────────────────────────
