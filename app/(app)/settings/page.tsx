@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   Loader2, Users, Pencil, Trash2,
   UserCheck, UserCog, Truck, Plus, ShieldCheck, LogOut, Eye, EyeOff,
-  Bell, BellRing,
 } from "lucide-react";
 import {
   listUsers, updateUser, deleteUser, inviteUser,
@@ -13,7 +12,6 @@ import {
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
-import { subscribeToPush, isPushSubscribed } from "@/lib/push";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Admin", manager: "Manager", staff: "Staff", viewer: "Viewer",
@@ -51,63 +49,6 @@ export default function SettingsPage() {
   const [deleteUserTarget, setDeleteUserTarget] = useState<UserProfileRow | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-
-  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
-  const [pushBusy, setPushBusy] = useState(false);
-
-  useEffect(() => { isPushSubscribed().then(setPushEnabled); }, []);
-
-  async function handleTestNotification() {
-    setPushBusy(true);
-    try {
-      // Make sure this device is subscribed first
-      if (!pushEnabled) {
-        const result = await subscribeToPush();
-        setPushEnabled(result.ok);
-        if (!result.ok) {
-          toast.error(result.reason ?? "Could not enable notifications");
-          return;
-        }
-      }
-
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) { toast.error("Not signed in"); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-push`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            user_id: userData.user.id,
-            title: "SayNoMore test",
-            body: "Push notifications are working ✅",
-            url: "/settings",
-          }),
-        }
-      );
-
-      const json = await res.json().catch(() => ({}));
-      if (res.ok && json.sent > 0) {
-        toast.success("Test sent — check your phone in a moment");
-      } else if (res.ok && json.sent === 0) {
-        toast.error("No device registered — try again to enable notifications");
-        setPushEnabled(false);
-      } else if (res.ok && json.errors?.length) {
-        // Function ran but the push provider rejected delivery — show the reason
-        toast.error(`Push rejected: ${json.errors[0]}`);
-      } else {
-        toast.error(json.error ?? `Failed (HTTP ${res.status})`);
-      }
-    } catch (e) {
-      toast.error(`Network error: ${(e as Error).message}`);
-    } finally {
-      setPushBusy(false);
-    }
-  }
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -269,51 +210,6 @@ export default function SettingsPage() {
               })}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* ── Notifications ─────────────────────────────────────── */}
-      <section
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--glass-1)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: "0.5px solid var(--glass-border-lo)",
-          boxShadow: "var(--glass-shadow), var(--glass-inner)",
-        }}
-      >
-        <div className="flex items-center gap-2.5 px-5 py-4">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
-            <Bell className="h-4 w-4" style={{ color: "var(--foreground)" }} />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>Notifications</h2>
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-              {pushEnabled === null
-                ? "Checking…"
-                : pushEnabled
-                  ? "This device is registered"
-                  : "Not enabled on this device"}
-            </p>
-          </div>
-        </div>
-        <div className="px-5 pb-5">
-          <div className="flex items-center justify-between gap-4 px-4 py-4 rounded-xl"
-            style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Send a test push to this phone to confirm notifications work.
-            </p>
-            <button
-              onClick={handleTestNotification}
-              disabled={pushBusy}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 active:opacity-70 disabled:opacity-40 shrink-0"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}
-            >
-              {pushBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
-              {pushBusy ? "Sending…" : "Send test"}
-            </button>
-          </div>
         </div>
       </section>
 
