@@ -6,7 +6,7 @@ import {
   Loader2, TrendingUp, TrendingDown, Package,
   Clock, BarChart3, Search, Megaphone, X, Download,
 } from "lucide-react";
-import { getReportsData, getContributionMargin, type ReportRow, type ContributionRow } from "@/lib/queries/reports";
+import { getReportsData, getContributionMargin, getAbcAnalysis, type ReportRow, type ContributionRow, type AbcRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
 import { type UnitUom } from "@/lib/queries/products";
 
@@ -74,20 +74,23 @@ export function ReportsView() {
   const [to, setTo] = useState(today());
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
-  const [tab, setTab] = useState<"bestsellers" | "margins" | "stock" | "contribution">("bestsellers");
+  const [tab, setTab] = useState<"bestsellers" | "margins" | "stock" | "contribution" | "abc">("bestsellers");
   const [customRange, setCustomRange] = useState(false);
   const [contrib, setContrib] = useState<ContributionRow[]>([]);
+  const [abc, setAbc] = useState<AbcRow[]>([]);
 
   async function load(f = from, t = to) {
     setLoading(true);
     try {
-      const [reportRows, spendRows, contribRows] = await Promise.all([
+      const [reportRows, spendRows, contribRows, abcRows] = await Promise.all([
         getReportsData(f, t),
         listMarketingSpend(),
         getContributionMargin(f, t),
+        getAbcAnalysis(f, t),
       ]);
       setRows(reportRows);
       setContrib(contribRows);
+      setAbc(abcRows);
       // filter spend rows that overlap with the selected period
       setSpend(spendRows.filter((s) => {
         const start = s.start_date;
@@ -134,6 +137,18 @@ export function ReportsView() {
     return r; // already ordered by contribution_mvr desc from the RPC
   }, [contrib, q]);
 
+  const abcFiltered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    let r = abc;
+    if (term) {
+      r = r.filter((x) =>
+        [x.brand_name, x.model_name, x.variant_display, x.internal_code]
+          .join(" ").toLowerCase().includes(term),
+      );
+    }
+    return r; // already ranked by revenue desc from the RPC
+  }, [abc, q]);
+
   // Summary cards
   const totals = useMemo(() => ({
     revenue: rows.reduce((s, r) => s + r.total_revenue_mvr, 0),
@@ -177,6 +192,20 @@ export function ReportsView() {
         r.contribution_mvr.toFixed(2),
         r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    } else if (tab === "abc") {
+      const headers = ["Rank", "Class", "SKU Code", "Brand", "Model", "Variant", "Qty Sold (pcs)", "Revenue (MVR)", "Revenue Share %", "Cumulative %"];
+      csv = [headers, ...abcFiltered.map((r) => [
+        r.rank,
+        r.abc_class,
+        r.internal_code,
+        r.brand_name,
+        r.model_name,
+        r.variant_display,
+        r.total_qty_pieces,
+        r.total_revenue_mvr.toFixed(2),
+        r.revenue_share_pct.toFixed(2) + "%",
+        r.cumulative_pct.toFixed(2) + "%",
+      ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "stock") {
       const headers = ["SKU Code", "Brand", "Model", "Variant", "Stock (pcs)", "Days of Stock"];
       csv = [headers, ...filtered.map((r) => [
@@ -208,7 +237,7 @@ export function ReportsView() {
         </div>
         <button
           onClick={exportCsv}
-          disabled={tab === "contribution" ? contribFiltered.length === 0 : filtered.length === 0}
+          disabled={tab === "contribution" ? contribFiltered.length === 0 : tab === "abc" ? abcFiltered.length === 0 : filtered.length === 0}
           className="flex items-center gap-2 h-10 px-4 rounded-2xl text-[13px] font-semibold shrink-0 transition active:scale-95 disabled:opacity-40"
           style={{ background: "var(--foreground)", color: "var(--background)", marginTop: 4 }}
         >
@@ -326,6 +355,7 @@ export function ReportsView() {
           { key: "bestsellers",  label: "Best Sellers" },
           { key: "margins",      label: "Margins" },
           { key: "contribution", label: "Contribution" },
+          { key: "abc",          label: "ABC" },
           { key: "stock",        label: "Days of Stock" },
         ] as const).map((t) => (
           <button
@@ -377,6 +407,14 @@ export function ReportsView() {
           </div>
         ) : (
           <ContributionTable rows={contribFiltered} />
+        )
+      ) : tab === "abc" ? (
+        abcFiltered.length === 0 ? (
+          <div className="snm-card p-10 text-center">
+            <p className="text-muted-foreground text-sm">No sales in this period.</p>
+          </div>
+        ) : (
+          <AbcTable rows={abcFiltered} />
         )
       ) : filtered.length === 0 ? (
         <div className="snm-card p-10 text-center">
@@ -557,6 +595,90 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ── ABC analysis table ────────────────────────────────────────────────────
+// Revenue-based Pareto classification (fmcg-import-expert doctrine):
+//   A = top 80% of cumulative revenue · B = next 15% · C = bottom 5%.
+// Classification + cumulative share are computed in Postgres (get_abc_analysis).
+
+function abcClassStyle(cls: "A" | "B" | "C"): React.CSSProperties {
+  if (cls === "A") return { background: "color-mix(in srgb, var(--snm-success) 16%, transparent)", color: "var(--snm-success)" };
+  if (cls === "B") return { background: "color-mix(in srgb, var(--snm-warning) 16%, transparent)", color: "var(--snm-warning)" };
+  return { background: "color-mix(in srgb, var(--snm-error) 16%, transparent)", color: "var(--snm-error)" };
+}
+
+function AbcTable({ rows }: { rows: AbcRow[] }) {
+  const counts = useMemo(() => ({
+    A: rows.filter((r) => r.abc_class === "A").length,
+    B: rows.filter((r) => r.abc_class === "B").length,
+    C: rows.filter((r) => r.abc_class === "C").length,
+  }), [rows]);
+
+  return (
+    <div className="space-y-3">
+      {/* Class summary chips */}
+      <div className="grid grid-cols-3 gap-3">
+        {(["A", "B", "C"] as const).map((cls) => (
+          <div key={cls} className="glass p-3 rounded-2xl flex items-center gap-3">
+            <span className="h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0" style={abcClassStyle(cls)}>
+              {cls}
+            </span>
+            <div>
+              <p className="snm-num text-[20px] font-bold leading-none text-foreground">{counts[cls]}</p>
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground mt-1">SKUs</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="glass overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-secondary/50">
+              <tr>
+                <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
+                <th className="px-3 py-2 text-center text-[12px] uppercase tracking-widest text-muted-foreground">Class</th>
+                <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Revenue</th>
+                <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Share</th>
+                <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Cumulative</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((r) => (
+                <tr key={r.sku_id} className="hover:bg-accent/20 transition">
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono w-5 text-center text-muted-foreground">{r.rank}</span>
+                      <div>
+                        <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                        <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold" style={abcClassStyle(r.abc_class)}>
+                      {r.abc_class}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right text-foreground font-medium snm-num">
+                    {r.total_revenue_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </td>
+                  <td className="px-3 py-3 text-right text-muted-foreground snm-num">{r.revenue_share_pct.toFixed(1)}%</td>
+                  <td className="px-3 py-3 text-right text-muted-foreground snm-num">{r.cumulative_pct.toFixed(1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-4 py-2 border-t border-border bg-secondary/30">
+          <p className="text-[12px] text-muted-foreground">
+            A = top 80% of revenue (tight control) · B = next 15% · C = bottom 5% (bulk-buy) · ranked by revenue in period
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -57,6 +57,29 @@ export async function getContributionMargin(from: string, to: string): Promise<C
   return (data ?? []) as ContributionRow[];
 }
 
+export interface AbcRow {
+  sku_id: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string;
+  internal_code: string;
+  total_qty_pieces: number;
+  total_revenue_mvr: number;
+  revenue_share_pct: number;
+  cumulative_pct: number;
+  abc_class: "A" | "B" | "C";
+  rank: number;
+}
+
+export async function getAbcAnalysis(from: string, to: string): Promise<AbcRow[]> {
+  const { data, error } = await supabase.rpc("get_abc_analysis", {
+    p_from: from,
+    p_to: to,
+  });
+  if (error) throw error;
+  return (data ?? []) as AbcRow[];
+}
+
 export interface MonthlyRevenueRow {
   month_label: string;
   month_start: string;
