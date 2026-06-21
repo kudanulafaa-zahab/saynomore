@@ -1424,7 +1424,7 @@ function NewSkuWizard({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="bg-popover border-border max-w-lg p-0 gap-0 overflow-hidden">
+      <DialogContent selfManaged className="bg-popover border-border sm:max-w-lg">
 
         {/* Header */}
         <div className="px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
@@ -1906,7 +1906,7 @@ function NewSkuWizard({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 flex gap-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+        <div className="px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <Button variant="ghost" className="h-12 flex-1" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

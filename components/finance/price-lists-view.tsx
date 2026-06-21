@@ -392,7 +392,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto overscroll-none px-5 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto overscroll-none px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-4">
         {items.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--muted-foreground)" }}>Added ({items.length})</p>
@@ -566,7 +566,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
       </div>
 
       {/* Item list */}
-      <div className="flex-1 overflow-y-auto overscroll-none px-5 py-4 space-y-2">
+      <div className="flex-1 overflow-y-auto overscroll-none px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--muted-foreground)" }} />
@@ -700,7 +700,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
             </div>
           </div>
           </div>
-          <div className="flex-1 overflow-y-auto overscroll-none px-5 py-4 space-y-3">
+          <div className="flex-1 overflow-y-auto overscroll-none px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
             {!addSkuId ? (
               <>
                 <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>

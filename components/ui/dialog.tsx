@@ -45,9 +45,16 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  selfManaged = false,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  /**
+   * Opt out of the built-in padded scroll body. Use when the call site renders
+   * its own header / scrolling body / footer layout (e.g. a custom card with
+   * its own px padding). The popup still clamps height + clears the home bar.
+   */
+  selfManaged?: boolean
 }) {
   return (
     <DialogPortal>
@@ -63,12 +70,10 @@ function DialogContent({
           // Mobile layout: bottom sheet
           "bottom-0 left-0 right-0 rounded-t-[28px]",
           "max-h-[calc(100dvh-env(safe-area-inset-top,44px)-8px)]",
-          "pb-[env(safe-area-inset-bottom,0px)]",
           // Desktop layout: centred card
           "sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2",
           "sm:-translate-x-1/2 sm:-translate-y-1/2",
           "sm:rounded-xl sm:max-w-sm sm:max-h-[calc(100dvh-env(safe-area-inset-top,44px)-32px)]",
-          "sm:pb-0",
           "ring-1 ring-foreground/10 duration-150 overflow-hidden",
           "data-open:animate-in data-open:fade-in-0",
           "sm:data-open:zoom-in-95",
@@ -84,7 +89,15 @@ function DialogContent({
         <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-9 h-[3px] rounded-full bg-foreground/20" />
         </div>
-        {children}
+        {selfManaged ? (
+          children
+        ) : (
+          /* Scrollable padded body. Horizontal padding lives here so no child
+             bleeds to the screen edge; bottom padding clears the iOS home bar. */
+          <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4">
+            {children}
+          </div>
+        )}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
@@ -127,7 +140,10 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        // Sticks to the bottom of the scroll body; negative insets bleed the
+        // bar to the padded parent's edges. mt-auto pins it down when content
+        // is short; sticky keeps it visible while the body scrolls.
+        "sticky bottom-0 mt-auto -mx-4 -mb-[max(1rem,env(safe-area-inset-bottom))] sm:-mb-4 flex flex-col-reverse gap-2 border-t bg-muted/50 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

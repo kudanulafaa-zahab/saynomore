@@ -268,7 +268,7 @@ export function EditVariantDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-lg">
+      <DialogContent className="bg-popover border-border sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Variant</DialogTitle>
           {category && <DialogDescription>Category: {category.name}</DialogDescription>}
@@ -427,7 +427,7 @@ export function EditSkuDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-xl overflow-y-auto max-h-[90dvh]">
+      <DialogContent className="bg-popover border-border sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit Pack Configuration</DialogTitle>
         </DialogHeader>
@@ -779,7 +779,7 @@ export function CascadeDeleteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-md">
+      <DialogContent className="bg-popover border-border sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>

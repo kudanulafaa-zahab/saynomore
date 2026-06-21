@@ -195,12 +195,12 @@ function CategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-w-lg">
+      <DialogContent className="bg-popover border-border sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New Category</DialogTitle>
           <DialogDescription>e.g. Shampoo, Toothpaste, Snacks.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label>Name *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />

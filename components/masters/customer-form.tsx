@@ -288,7 +288,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
       </div>
 
       {/* Footer — full-width primary on top, cancel below (native iOS order) */}
-      <div className="flex flex-col gap-2 px-5 pt-3 pb-2 shrink-0">
+      <div className="flex flex-col gap-2 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] shrink-0">
         <Button
           onClick={save}
           disabled={saving || !name.trim()}

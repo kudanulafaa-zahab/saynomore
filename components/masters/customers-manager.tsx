@@ -336,7 +336,7 @@ function CustomerDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent selfManaged className="sm:max-w-lg">
         <DialogHeader className="px-5 pt-2 pb-3 shrink-0">
           <DialogTitle>{editing ? "Edit Customer" : "New Customer"}</DialogTitle>
           <DialogDescription>
