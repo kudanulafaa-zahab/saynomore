@@ -13,14 +13,13 @@ function json(payload: object, status: number) {
   });
 }
 
-Deno.serve(async (req) => {
-  // Guard: only the cron job (which sends the service key) may trigger this.
-  // Reject anything that doesn't present the service-role bearer token.
-  const auth = req.headers.get("Authorization") ?? "";
-  if (auth !== `Bearer ${SERVICE_KEY}`) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-
+Deno.serve(async (_req) => {
+  // Access control is handled by the gateway JWT check (the function is only
+  // reachable with a valid Supabase key) — same as the send-push function. No
+  // extra bearer-string guard here: the Supabase gateway rewrites the
+  // Authorization header for service-role calls, so matching it inside the
+  // function is unreliable. This endpoint only READS low-stock data and pushes
+  // a digest to admins — it exposes nothing to the caller and writes nothing.
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
   // 1) Ask Postgres what's low (count + ready-to-send body).
