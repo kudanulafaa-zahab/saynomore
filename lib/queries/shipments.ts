@@ -42,10 +42,11 @@ export interface ShipmentLineRow {
   sku_id: string;
   qty_cartons: number;
   qty_cartons_actual: number | null;
+  qty_loose_packs: number;
   cbm_per_carton: number;
   fob_per_carton: number;
   fob_currency: FobCurrency;
-  destination_godown_id: string;
+  destination_godown_id: string | null;
   fob_total_mvr: number | null;
   apportioned_freight_mvr: number | null;
   apportioned_local_mvr: number | null;
@@ -87,10 +88,11 @@ export interface ShipmentLineInput {
   sku_id: string;
   qty_cartons: number;
   qty_cartons_actual?: number | null;
+  qty_loose_packs?: number | null;       // extra loose packs received (rare)
   cbm_per_carton: number;
   fob_per_carton: number;
   fob_currency: FobCurrency;
-  destination_godown_id: string;
+  destination_godown_id?: string | null;  // assigned at GRN, not at PO
   estimated_landed_per_piece_mvr?: number | null;
 }
 
@@ -169,8 +171,14 @@ export async function deleteShipmentLine(id: string) {
 
 // ── Confirm GRN (RPC) ────────────────────────────────────────────────────
 
-export async function confirmGrn(shipmentId: string) {
-  const { data, error } = await supabase.rpc("confirm_grn", { p_shipment_id: shipmentId });
+// godownId is the warehouse chosen at receiving time — used by the RPC as the
+// destination for any line that doesn't already have one (warehouse is now
+// assigned at GRN, not at PO). Passing it is optional for backward-compat.
+export async function confirmGrn(shipmentId: string, godownId?: string | null) {
+  const { data, error } = await supabase.rpc("confirm_grn", {
+    p_shipment_id: shipmentId,
+    p_godown_id: godownId ?? undefined,
+  });
   if (error) throw error;
   return data;
 }

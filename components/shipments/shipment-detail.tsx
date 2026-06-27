@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, Plus, Trash2, CheckCircle2, Lock,
   AlertTriangle, Truck, ChevronDown, RotateCcw, Calendar,
-  ChevronRight, Minus, MoreHorizontal, Package, ScanLine,
+  ChevronRight, Minus, MoreHorizontal, Package, ScanLine, Warehouse,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -116,12 +116,13 @@ function NumInput({
 /* ── Qty stepper ─────────────────────────────────────────────────────────── */
 
 function QtyStepper({
-  value, onChange, disabled, min = 0,
+  value, onChange, disabled, min = 0, max,
 }: {
   value: number;
   onChange: (v: number) => void;
   disabled?: boolean;
   min?: number;
+  max?: number;
 }) {
   const [draft, setDraft] = useState(String(value));
 
@@ -130,7 +131,7 @@ function QtyStepper({
 
   function commit(raw: string) {
     const n = parseInt(raw, 10);
-    if (!isNaN(n) && n >= min) {
+    if (!isNaN(n) && n >= min && (max == null || n <= max)) {
       onChange(n);
       setDraft(String(n));
     } else {
@@ -168,8 +169,8 @@ function QtyStepper({
         } as React.CSSProperties}
       />
       <button
-        onClick={() => { const v = value + 1; onChange(v); setDraft(String(v)); }}
-        disabled={disabled}
+        onClick={() => { const v = max != null ? Math.min(max, value + 1) : value + 1; onChange(v); setDraft(String(v)); }}
+        disabled={disabled || (max != null && value >= max)}
         className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition active:scale-95 disabled:opacity-30"
         style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
       >
@@ -250,6 +251,10 @@ export function ShipmentDetail({ id }: { id: string }) {
   type PriceChange = { skuPath: string; before: number; after: number; changePct: number };
   const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);
 
+  // Warehouse is chosen at receiving (GRN), not at PO. Default to the default
+  // godown; the confirm sheet lets the user change it.
+  const [grnGodownId, setGrnGodownId]   = useState<string>("");
+
   type Panel = "confirmGrn" | "voidGrn" | "deleteShipment" | "deleteLine" | "addLine" | null;
   const [panel, setPanel]               = useState<Panel>(null);
   const [editingLine, setEditingLine]   = useState<ShipmentLineRow | undefined>();
@@ -268,6 +273,11 @@ export function ShipmentDetail({ id }: { id: string }) {
       setSkus(sk);
       setSuppliers(sup);
       setGodowns(gd);
+      // Default the receiving warehouse to any line's existing destination, else
+      // the default godown — chosen/changed in the GRN confirm sheet.
+      setGrnGodownId((prev) =>
+        prev || ls.find((l) => l.destination_godown_id)?.destination_godown_id
+              || gd.find((g) => g.is_default)?.id || gd[0]?.id || "");
       // Auto-expand costs when in transit or later
       if (s && ["in_transit", "arrived", "grn_confirmed"].includes(s.status)) setCostsOpen(true);
     } catch (e) { toast.error((e as Error).message); }
@@ -345,13 +355,19 @@ export function ShipmentDetail({ id }: { id: string }) {
 
   async function handleConfirmGrn() {
     if (!shipment) return;
+    // Warehouse is required at receiving (unless every line already has one).
+    const needsGodown = lines.some((l) => !l.destination_godown_id);
+    if (needsGodown && !grnGodownId) {
+      toast.error("Choose the destination warehouse first");
+      return;
+    }
     setConfirming(true);
     try {
       const beforePrices = new Map(
         skus.filter((s) => lines.some((l) => l.sku_id === s.id))
           .map((s) => [s.id, s.selling_price_per_piece_mvr]),
       );
-      await confirmGrn(shipment.id);
+      await confirmGrn(shipment.id, grnGodownId || null);
       setPanel(null);
       await load();
       const { listSkusFlat: freshFetch } = await import("@/lib/queries/products");
@@ -767,22 +783,40 @@ export function ShipmentDetail({ id }: { id: string }) {
                       </p>
                       {locked
                         ? <p className="text-sm font-semibold" style={{ color: isShort ? "var(--snm-warning)" : "var(--foreground)" }}>
-                            {actualQty} cartons {isShort ? `(${l.qty_cartons - actualQty} short)` : ""}
+                            {actualQty} cartons{l.qty_loose_packs > 0 ? ` + ${l.qty_loose_packs} pk` : ""} {isShort ? `(${l.qty_cartons - actualQty} short)` : ""}
                           </p>
-                        : <div className="flex items-center gap-3">
-                            <div className="flex-1">
-                              <QtyStepper
-                                value={actualQty}
-                                min={0}
-                                disabled={locked}
-                                onChange={async (v) => {
-                                  const val = v === l.qty_cartons ? null : v;
-                                  await updateShipmentLine(l.id, { qty_cartons_actual: val } as Parameters<typeof updateShipmentLine>[1]);
-                                  load();
-                                }}
-                              />
+                        : <div className="space-y-2.5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <QtyStepper
+                                  value={actualQty}
+                                  min={0}
+                                  disabled={locked}
+                                  onChange={async (v) => {
+                                    const val = v === l.qty_cartons ? null : v;
+                                    await updateShipmentLine(l.id, { qty_cartons_actual: val } as Parameters<typeof updateShipmentLine>[1]);
+                                    load();
+                                  }}
+                                />
+                              </div>
+                              <p className="text-[12px] w-16 shrink-0" style={{ color: "var(--muted-foreground)" }}>cartons</p>
                             </div>
-                            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>cartons</p>
+                            {/* Loose packs — rare; only the odd partial carton */}
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <QtyStepper
+                                  value={l.qty_loose_packs ?? 0}
+                                  min={0}
+                                  max={sku ? sku.packs_per_carton - 1 : undefined}
+                                  disabled={locked}
+                                  onChange={async (v) => {
+                                    await updateShipmentLine(l.id, { qty_loose_packs: v } as Parameters<typeof updateShipmentLine>[1]);
+                                    load();
+                                  }}
+                                />
+                              </div>
+                              <p className="text-[12px] w-16 shrink-0" style={{ color: "var(--muted-foreground)" }}>+ loose pk</p>
+                            </div>
                           </div>
                       }
                     </div>
@@ -1151,6 +1185,26 @@ export function ShipmentDetail({ id }: { id: string }) {
           </div>
         )}
 
+        {/* Destination warehouse — chosen here, at receiving */}
+        <div className="mb-4">
+          <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>DESTINATION WAREHOUSE *</p>
+          <div className="relative">
+            <select
+              value={grnGodownId}
+              onChange={(e) => setGrnGodownId(e.target.value)}
+              className="w-full h-12 rounded-xl px-4 pr-10 text-sm text-foreground outline-none appearance-none"
+              style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
+            >
+              <option value="">Select…</option>
+              {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>)}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
+          </div>
+          <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+            Where the goods were physically stored. All received stock lands here.
+          </p>
+        </div>
+
         <p className="text-[13px] mb-5" style={{ color: "var(--muted-foreground)" }}>
           Forex rates and costs will be <strong style={{ color: "var(--foreground)" }}>permanently locked</strong>. Stock becomes available for sale immediately.
         </p>
@@ -1256,7 +1310,6 @@ export function ShipmentDetail({ id }: { id: string }) {
           editing={editingLine}
           shipmentId={id}
           skus={skus}
-          godowns={godowns}
           onClose={() => { setEditingLine(undefined); setPanel(null); }}
           onSaved={() => { setEditingLine(undefined); setPanel(null); load(); }}
         />
@@ -1268,12 +1321,11 @@ export function ShipmentDetail({ id }: { id: string }) {
 /* ── Line dialog ─────────────────────────────────────────────────────────── */
 
 function LineDialog({
-  editing, shipmentId, skus, godowns, onClose, onSaved,
+  editing, shipmentId, skus, onClose, onSaved,
 }: {
   editing?: ShipmentLineRow;
   shipmentId: string;
   skus: SkuFullRow[];
-  godowns: GodownRow[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -1281,9 +1333,6 @@ function LineDialog({
   const [qtyCartons, setQtyCartons]     = useState(editing?.qty_cartons ?? 1);
   const [fobPerCarton, setFobPerCarton] = useState(editing ? String(editing.fob_per_carton) : "");
   const [fobCurrency, setFobCurrency]   = useState<FobCurrency>(editing?.fob_currency ?? "IDR");
-  const [godownId, setGodownId]         = useState(
-    editing?.destination_godown_id ?? (godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "")
-  );
   const [saving, setSaving]             = useState(false);
   const [search, setSearch]             = useState("");
   const [showScanner, setShowScanner]   = useState(false);
@@ -1315,16 +1364,16 @@ function LineDialog({
   }, [skus, search]);
 
   async function save() {
-    if (!skuId || !fobPerCarton || !godownId || !sku) return;
+    if (!skuId || !fobPerCarton || !sku) return;
     const parsedFob = parseFloat(fobPerCarton);
     if (isNaN(parsedFob) || parsedFob <= 0) { toast.error("FOB must be > 0"); return; }
+    // Warehouse is no longer chosen here — it's assigned at receiving (GRN).
     const payload = {
       shipment_id: shipmentId, sku_id: skuId,
       qty_cartons: qtyCartons,
       cbm_per_carton: Number(sku.cbm_per_carton),
       fob_per_carton: parsedFob,
       fob_currency: fobCurrency,
-      destination_godown_id: godownId,
     };
     setSaving(true);
     try {
@@ -1462,24 +1511,13 @@ function LineDialog({
               </p>
             </div>
 
-            {/* Destination godown */}
-            <div className="mb-6">
-              <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>DESTINATION WAREHOUSE *</p>
-              <div className="relative">
-                <select
-                  value={godownId}
-                  onChange={(e) => setGodownId(e.target.value)}
-                  className="w-full h-12 rounded-xl px-4 pr-10 text-sm text-foreground outline-none appearance-none"
-                  style={inputSty2}
-                >
-                  <option value="">Select…</option>
-                  {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>)}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
-              </div>
-              {godowns.length === 0 && (
-                <p className="text-[12px] mt-1.5" style={{ color: "var(--snm-warning)" }}>No warehouses yet — add one in Settings.</p>
-              )}
+            {/* Warehouse is chosen at receiving (GRN), not when ordering. */}
+            <div className="mb-6 rounded-xl px-4 py-3 flex items-start gap-2.5"
+              style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+              <Warehouse className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                You&apos;ll choose the destination warehouse when you receive this shipment — no need to decide now.
+              </p>
             </div>
           </>
         )}
@@ -1498,7 +1536,7 @@ function LineDialog({
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={save}
-            disabled={saving || !skuId || !fobPerCarton || !godownId}
+            disabled={saving || !skuId || !fobPerCarton}
             className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
