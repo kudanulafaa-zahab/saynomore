@@ -1306,6 +1306,10 @@ function NewSkuWizard({
   existingSkus: SkuFullRow[];
   onSaved: () => void;
 }) {
+  // Lock the page behind the dialog so it can't scroll through on iOS (the
+  // page text was visibly scrolling behind the keyboard accessory bar).
+  useBodyScrollLock(open);
+
   // ── Identity fields (typed inline, not selected from a list first)
   const [brandInput,  setBrandInput]  = useState("");   // typed name or selected name
   const [brandId,     setBrandId]     = useState("");   // resolved id after match/create
