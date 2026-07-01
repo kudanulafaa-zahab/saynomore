@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import type { UnitUom, SellUnit } from "@/lib/trade-units";
 
 export interface ReportRow {
   sku_id: string;
@@ -10,6 +11,8 @@ export interface ReportRow {
   internal_code: string;
   pcs_per_pack: number;
   packs_per_carton: number;
+  unit_uom: UnitUom;
+  sellable_units: SellUnit[] | null;
   total_qty_pieces: number;
   total_revenue_mvr: number;
   avg_unit_price_mvr: number;
@@ -37,6 +40,10 @@ export interface ContributionRow {
   model_name: string;
   variant_display: string;
   internal_code: string;
+  pcs_per_pack: number;
+  packs_per_carton: number;
+  unit_uom: UnitUom;
+  sellable_units: SellUnit[] | null;
   total_qty_pieces: number;
   total_revenue_mvr: number;
   avg_unit_price_mvr: number;
@@ -67,6 +74,10 @@ export interface AbcRow {
   model_name: string;
   variant_display: string;
   internal_code: string;
+  pcs_per_pack: number;
+  packs_per_carton: number;
+  unit_uom: UnitUom;
+  sellable_units: SellUnit[] | null;
   total_qty_pieces: number;
   total_revenue_mvr: number;
   revenue_share_pct: number;

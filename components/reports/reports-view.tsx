@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { getReportsData, getContributionMargin, getAbcAnalysis, type ReportRow, type ContributionRow, type AbcRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
-import { type UnitUom } from "@/lib/queries/products";
+import { formatQtyInTradeUnits, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
 
 // ── Date helpers ─────────────────────────────────────────────────────────
 
@@ -19,22 +19,9 @@ function daysAgo(n: number) {
   return d.toISOString().slice(0, 10);
 }
 
-function containerLabel(uom: UnitUom) {
-  if (uom === "ml") return "bottle";
-  if (uom === "g") return "pouch";
-  return "pack";
-}
-
-function formatStock(pieces: number, pcsPerPack: number, packsPerCarton: number, uom: UnitUom) {
-  const pcsPerCarton = pcsPerPack * packsPerCarton;
-  const ctns = pcsPerCarton > 0 ? Math.floor(pieces / pcsPerCarton) : 0;
-  const rem = pcsPerCarton > 0 ? pieces % pcsPerCarton : pieces;
-  const loose = pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
-  const label = containerLabel(uom);
-  const parts: string[] = [];
-  if (ctns > 0) parts.push(`${ctns} ctn`);
-  if (loose > 0) parts.push(`${loose} ${label}`);
-  return parts.length > 0 ? parts.join(" + ") : "0";
+/** Builds the trade-unit config for a report row (works for any of the 3 report row shapes, which all share these fields). */
+function tradeCfg(r: { pcs_per_pack: number; packs_per_carton: number; unit_uom: ReportRow["unit_uom"]; sellable_units: ReportRow["sellable_units"] }): TradeUnitConfig {
+  return { pcsPerPack: r.pcs_per_pack, packsPerCarton: r.packs_per_carton, unitUom: r.unit_uom, sellableUnits: r.sellable_units };
 }
 
 function marginColor(pct: number | null): React.CSSProperties {
@@ -167,24 +154,26 @@ export function ReportsView() {
     const dateRange = `${from} to ${to}`;
 
     if (tab === "bestsellers" || tab === "margins") {
-      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Margin %"];
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Margin %"];
       csv = [headers, ...filtered.map((r) => [
         r.internal_code,
         r.brand_name,
         r.model_name,
         r.variant_display,
+        formatQtyInTradeUnits(r.total_qty_pieces, tradeCfg(r)),
         r.total_qty_pieces,
         r.total_revenue_mvr.toFixed(2),
         r.total_landed_cost_mvr.toFixed(2),
         r.gross_margin_pct != null ? r.gross_margin_pct.toFixed(1) + "%" : "",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "contribution") {
-      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Marketing (MVR)", "Contribution (MVR)", "Contribution %"];
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Marketing (MVR)", "Contribution (MVR)", "Contribution %"];
       csv = [headers, ...contribFiltered.map((r) => [
         r.internal_code,
         r.brand_name,
         r.model_name,
         r.variant_display,
+        formatQtyInTradeUnits(r.total_qty_pieces, tradeCfg(r)),
         r.total_qty_pieces,
         r.total_revenue_mvr.toFixed(2),
         r.total_landed_cost_mvr.toFixed(2),
@@ -193,7 +182,7 @@ export function ReportsView() {
         r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "abc") {
-      const headers = ["Rank", "Class", "SKU Code", "Brand", "Model", "Variant", "Qty Sold (pcs)", "Revenue (MVR)", "Revenue Share %", "Cumulative %"];
+      const headers = ["Rank", "Class", "SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Qty Sold (pcs)", "Revenue (MVR)", "Revenue Share %", "Cumulative %"];
       csv = [headers, ...abcFiltered.map((r) => [
         r.rank,
         r.abc_class,
@@ -201,18 +190,20 @@ export function ReportsView() {
         r.brand_name,
         r.model_name,
         r.variant_display,
+        formatQtyInTradeUnits(r.total_qty_pieces, tradeCfg(r)),
         r.total_qty_pieces,
         r.total_revenue_mvr.toFixed(2),
         r.revenue_share_pct.toFixed(2) + "%",
         r.cumulative_pct.toFixed(2) + "%",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "stock") {
-      const headers = ["SKU Code", "Brand", "Model", "Variant", "Stock (pcs)", "Days of Stock"];
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Stock", "Stock (pcs)", "Days of Stock"];
       csv = [headers, ...filtered.map((r) => [
         r.internal_code,
         r.brand_name,
         r.model_name,
         r.variant_display,
+        formatQtyInTradeUnits(r.stock_pieces, tradeCfg(r)),
         r.stock_pieces,
         r.days_of_stock != null ? r.days_of_stock.toFixed(0) : "—",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -512,12 +503,15 @@ function BestSellersTable({ rows, sortKey, onSort }: {
             <tr>
               <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
               <SortTh label="Revenue (MVR)" sortKey="revenue" active={sortKey} onSort={onSort} />
-              <SortTh label="Qty Sold (pcs)" sortKey="qty" active={sortKey} onSort={onSort} />
+              <SortTh label="Qty Sold" sortKey="qty" active={sortKey} onSort={onSort} />
               <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Avg Price</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map((r, i) => (
+            {rows.map((r, i) => {
+              const cfg = tradeCfg(r);
+              const avgPrice = costPerTradeUnit(r.avg_unit_price_mvr, cfg);
+              return (
               <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
@@ -538,13 +532,14 @@ function BestSellersTable({ rows, sortKey, onSort }: {
                   </span>
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
-                  {r.total_qty_pieces > 0 ? r.total_qty_pieces.toLocaleString() : "—"}
+                  {r.total_qty_pieces > 0 ? formatQtyInTradeUnits(r.total_qty_pieces, cfg) : "—"}
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
-                  {r.avg_unit_price_mvr > 0 ? r.avg_unit_price_mvr.toFixed(2) : "—"}
+                  {r.avg_unit_price_mvr > 0 ? `${avgPrice.value.toFixed(2)}/${avgPrice.unitLabel}` : "—"}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -705,23 +700,27 @@ function MarginsTable({ rows, sortKey, onSort }: {
           <thead className="border-b border-border bg-secondary/50">
             <tr>
               <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
-              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Landed/pc</th>
-              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Sell/pc</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Landed</th>
+              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Sell</th>
               <SortTh label="Margin %" sortKey="margin" active={sortKey} onSort={onSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const cfg = tradeCfg(r);
+              const landed = costPerTradeUnit(r.landed_per_piece_mvr, cfg);
+              const sell = costPerTradeUnit(r.avg_unit_price_mvr, cfg);
+              return (
               <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                 <td className="px-3 py-3">
                   <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
                   <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
-                  {r.landed_per_piece_mvr > 0 ? r.landed_per_piece_mvr.toFixed(3) : "—"}
+                  {r.landed_per_piece_mvr > 0 ? `${landed.value.toFixed(2)}/${landed.unitLabel}` : "—"}
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
-                  {r.avg_unit_price_mvr > 0 ? r.avg_unit_price_mvr.toFixed(3) : "—"}
+                  {r.avg_unit_price_mvr > 0 ? `${sell.value.toFixed(2)}/${sell.unitLabel}` : "—"}
                 </td>
                 <td className="px-3 py-3 text-right snm-num">
                   {r.gross_margin_pct !== null ? (
@@ -747,7 +746,8 @@ function MarginsTable({ rows, sortKey, onSort }: {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -870,9 +870,8 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
           <tbody className="divide-y divide-border">
             {rows.map((r) => {
               const days = Math.max(periodDays, 1);
-              const dailyAvg = r.total_qty_pieces > 0
-                ? (r.total_qty_pieces / days).toFixed(1)
-                : null;
+              const cfg = tradeCfg(r);
+              const dailyAvgPieces = r.total_qty_pieces > 0 ? r.total_qty_pieces / days : 0;
               return (
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
@@ -881,12 +880,12 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
                   </td>
                   <td className="px-3 py-3 text-right">
                     <p className="text-foreground text-sm">
-                      {formatStock(r.stock_pieces, r.pcs_per_pack, r.packs_per_carton, "pcs")}
+                      {formatQtyInTradeUnits(r.stock_pieces, cfg)}
                     </p>
                     <p className="text-[12px] text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
                   </td>
                   <td className="px-3 py-3 text-right text-muted-foreground text-sm">
-                    {dailyAvg ? `${dailyAvg} pcs/day` : "—"}
+                    {dailyAvgPieces > 0 ? `${formatQtyInTradeUnits(Math.round(dailyAvgPieces), cfg)}/day` : "—"}
                   </td>
                   <td className="px-3 py-3 text-right">
                     {r.days_of_stock !== null ? (
