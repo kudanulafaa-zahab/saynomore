@@ -142,8 +142,9 @@ export async function createShipment(input: ShipmentInput) {
 }
 
 export async function updateShipment(id: string, patch: Partial<ShipmentInput>) {
-  const { error } = await supabase.from("shipments").update(patch).eq("id", id);
+  const { data, error } = await supabase.from("shipments").update(patch).eq("id", id).select().single();
   if (error) throw error;
+  return data as ShipmentRow;
 }
 
 export async function deleteShipment(id: string) {

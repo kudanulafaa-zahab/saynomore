@@ -335,8 +335,11 @@ export function ShipmentDetail({ id }: { id: string }) {
     if (!shipment || locked) return;
     setSaveState("saving");
     try {
-      await updateShipment(shipment.id, { [field]: value } as Parameters<typeof updateShipment>[1]);
-      setShipment((prev) => prev ? { ...prev, [field]: value } as ShipmentRow : prev);
+      const updated = await updateShipment(shipment.id, { [field]: value } as Parameters<typeof updateShipment>[1]);
+      // Use the row Postgres returns (not the optimistic value) so any
+      // server-derived columns -- e.g. rate_idr_to_mvr, computed by the
+      // derive_idr_to_mvr trigger -- reflect the real stored value.
+      setShipment(updated);
       setSaveState("saved");
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
       savedTimerRef.current = setTimeout(() => setSaveState("idle"), 2500);
@@ -916,12 +919,10 @@ export function ShipmentDetail({ id }: { id: string }) {
                     disabled={locked}
                     placeholder="e.g. 15.42"
                     onChange={async (v) => {
+                      // rate_idr_to_mvr (the rate landed-cost math actually uses) is
+                      // derived in Postgres by the derive_idr_to_mvr trigger from
+                      // rate_usd_to_mvr / rate_usd_to_idr -- never computed here.
                       await patch("rate_usd_to_mvr", v);
-                      // Derive IDR->MVR straight from the exact IDR rate the user typed
-                      // (rate_usd_to_idr), never via a stored reciprocal — that lost
-                      // precision on save/reload (16500 -> 16499).
-                      const usdToIdr = shipment.rate_usd_to_idr;
-                      if (usdToIdr && usdToIdr > 0 && v) await patch("rate_idr_to_mvr", v / usdToIdr);
                     }}
                   />
                 </Field>
@@ -931,10 +932,9 @@ export function ShipmentDetail({ id }: { id: string }) {
                     disabled={locked}
                     placeholder="e.g. 15820"
                     onChange={async (usdToIdr) => {
+                      // rate_idr_to_mvr is derived in Postgres by the
+                      // derive_idr_to_mvr trigger -- never computed here.
                       await patch("rate_usd_to_idr", usdToIdr);
-                      if (!usdToIdr || usdToIdr <= 0) { await patch("rate_idr_to_mvr", null); return; }
-                      const usdMvr = shipment.rate_usd_to_mvr;
-                      if (usdMvr) await patch("rate_idr_to_mvr", usdMvr / usdToIdr);
                     }}
                   />
                 </Field>
