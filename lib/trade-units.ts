@@ -51,7 +51,10 @@ export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): str
     // Carton-only SKU (no pack tier): fold any remainder pieces into a
     // fractional carton note instead of silently dropping them.
     if (!sellsPack && rem > 0) parts.push(`${Math.round((rem / pcsPerCarton) * 100)}% ctn`);
-    return parts.length > 0 ? parts.join(" + ") : "0";
+    if (parts.length > 0) return parts.join(" + ");
+    // A nonzero piece count too small to register as even one pack/carton
+    // (e.g. 9 pcs of a 128-pcs-per-carton SKU) must not silently show "0".
+    return pieces > 0 ? `< 1 ${sellsPack ? label : "ctn"}` : "0";
   }
 
   if (sellsPack && pcsPerPack > 0) {
