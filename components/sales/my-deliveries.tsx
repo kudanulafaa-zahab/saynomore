@@ -312,7 +312,7 @@ function OrderDetail({ lines, skus, order }: {
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {lines.map((l) => {
           const sku = skus.find((s) => s.id === l.sku_id);
-          const name = sku ? `${sku.brand_name} ${sku.variant_display}` : l.sku_id;
+          const name = sku ? `${sku.brand_name} ${sku.model_name} ${sku.variant_display}` : l.sku_id;
           const uomLabel = l.uom === "carton" ? "ctn" : l.uom === "pack" ? "pk" : "pc";
           return (
             <div key={l.id} style={{

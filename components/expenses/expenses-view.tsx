@@ -477,7 +477,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                   const s = skus.find((sk) => sk.id === sid);
                   return s ? (
                     <span key={sid} className="inline-flex items-center gap-1 bg-secondary text-foreground text-xs rounded-lg px-2 py-1">
-                      {s.brand_name} {s.variant_display}
+                      {s.brand_name} {s.model_name} {s.variant_display}
                       <button onClick={() => toggleSku(sid)} className="text-muted-foreground hover:text-foreground ml-0.5">
                         <X className="h-3 w-3" />
                       </button>

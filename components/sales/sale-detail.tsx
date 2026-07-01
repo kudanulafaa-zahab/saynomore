@@ -877,7 +877,7 @@ function LineList({
           <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--glass-bg-1)", borderRadius: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {sku ? `${sku.brand_name} › ${sku.variant_display}` : l.sku_id}
+                {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : l.sku_id}
               </p>
               <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
                 {l.qty} {l.uom} · MVR {Number(l.unit_price_mvr).toLocaleString()}

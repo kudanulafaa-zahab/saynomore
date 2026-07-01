@@ -246,6 +246,10 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [showMore, setShowMore]   = useState(false);
   const [costsOpen, setCostsOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  // Holds exactly what the user typed for "1 USD = ___ IDR" so re-displaying it
+  // never round-trips through the stored reciprocal (rate_idr_to_usd) and drifts
+  // by rounding error (e.g. 16500 redisplaying as 16499).
+  const [usdToIdrDisplay, setUsdToIdrDisplay] = useState<number | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   type PriceChange = { skuPath: string; before: number; after: number; changePct: number };
@@ -273,6 +277,7 @@ export function ShipmentDetail({ id }: { id: string }) {
       setSkus(sk);
       setSuppliers(sup);
       setGodowns(gd);
+      setUsdToIdrDisplay(s?.rate_idr_to_usd ? Math.round(1 / s.rate_idr_to_usd) : null);
       // Default the receiving warehouse to any line's existing destination, else
       // the default godown — chosen/changed in the GRN confirm sheet.
       setGrnGodownId((prev) =>
@@ -841,7 +846,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                       <div className="rounded-lg p-3 flex items-center justify-between"
                         style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                         <div>
-                          <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Per pack — trade price</p>
+                          <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Cost per pack</p>
                           <p className="text-[18px] font-bold snm-num" style={{ color: "var(--snm-success)" }}>
                             {l.landed_per_pack_mvr != null ? `MVR ${fmt2(Number(l.landed_per_pack_mvr))}` : "—"}
                           </p>
@@ -924,13 +929,11 @@ export function ShipmentDetail({ id }: { id: string }) {
                 </Field>
                 <Field label="1 USD = ___ IDR *">
                   <NumInput
-                    value={shipment.rate_idr_to_usd
-                      ? Math.round(1 / shipment.rate_idr_to_usd)
-                      : null
-                    }
+                    value={usdToIdrDisplay}
                     disabled={locked}
                     placeholder="e.g. 15820"
                     onChange={async (usdToIdr) => {
+                      setUsdToIdrDisplay(usdToIdr);
                       if (!usdToIdr || usdToIdr <= 0) { await patch("rate_idr_to_usd", null); await patch("rate_idr_to_mvr", null); return; }
                       const idrToUsd = 1 / usdToIdr;
                       await patch("rate_idr_to_usd", idrToUsd);

@@ -545,13 +545,13 @@ function NewPoSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 snm-modal-wrap"
       style={{ background: "rgba(0,0,0,0.60)" }}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl overflow-y-auto"
+        className="w-full rounded-t-3xl sm:rounded-3xl overflow-y-auto snm-modal-card"
         style={{
           background: "var(--glass-2)",
           backdropFilter: "blur(40px)",
@@ -559,12 +559,11 @@ function NewPoSheet({
           padding: "12px 24px",
           paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))",
           maxWidth: 480,
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
           boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
         }}
       >
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "var(--glass-border)" }} />
+        <div className="w-10 h-1 rounded-full mx-auto mb-6 sm:hidden" style={{ background: "var(--glass-border)" }} />
 
         {/* Icon + title */}
         <div className="flex items-center gap-3 mb-6">
