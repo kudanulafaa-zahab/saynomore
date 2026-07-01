@@ -707,6 +707,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               const godown   = godowns.find((g) => g.id === l.destination_godown_id);
               const livePer  = preview?.lines.find((p) => p.line.id === l.id);
               const estPiece = livePer?.perPiece ?? null;
+              const estPack  = livePer?.perPack ?? null;
               const ratesSet = preview?.ratesSet ?? false;
               const actualQty = l.qty_cartons_actual ?? l.qty_cartons;
               const isShort  = l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons;
@@ -748,9 +749,16 @@ export function ShipmentDetail({ id }: { id: string }) {
                       </span>
                     </p>
                     {estPiece != null && estPiece > 0 ? (
-                      <p className="text-[12px] font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)" }}>
-                        {ratesSet ? "" : "~"}Est MVR {fmt2(estPiece)}/pc
-                      </p>
+                      <div className="text-right">
+                        <p className="text-[12px] font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)" }}>
+                          {ratesSet ? "" : "~"}Est MVR {fmt2(estPiece)}/pc
+                        </p>
+                        {estPack != null && estPack > 0 && sku && sku.pcs_per_pack > 1 && (
+                          <p className="text-[11px] snm-num" style={{ color: "var(--muted-foreground)" }}>
+                            {fmt2(estPack)}/pack
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Est. cost TBD</p>
                     )}
