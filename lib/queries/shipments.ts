@@ -169,6 +169,44 @@ export async function deleteShipmentLine(id: string) {
   if (error) throw error;
 }
 
+// ── Draft PO from reorder suggestions ────────────────────────────────────
+// Creates a DRAFT shipment pre-filled with the chosen SKUs + suggested cartons,
+// so the "What to order next" screen turns advice into a PO in one tap. FOB and
+// warehouse are left for the user to fill in the PO (warehouse is set at GRN).
+
+export interface DraftPoLine {
+  sku_id: string;
+  qty_cartons: number;
+  cbm_per_carton: number;
+}
+
+export async function createDraftPoFromSuggestions(lines: DraftPoLine[]): Promise<ShipmentRow> {
+  // Reference is generated from existing shipments (same scheme as manual POs).
+  const existing = await listShipments();
+  const reference = nextShipmentRef(existing);
+
+  const shipment = await createShipment({ reference, status: "draft" });
+
+  // Insert all lines. fob_per_carton starts at 0 — the user enters real prices
+  // in the PO before ordering; cbm comes from the SKU so CBM/costing is valid.
+  const rows: ShipmentLineInput[] = lines
+    .filter((l) => l.qty_cartons > 0)
+    .map((l) => ({
+      shipment_id: shipment.id,
+      sku_id: l.sku_id,
+      qty_cartons: l.qty_cartons,
+      cbm_per_carton: l.cbm_per_carton,
+      fob_per_carton: 0,
+      fob_currency: "IDR" as FobCurrency,
+    }));
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from("shipment_lines").insert(rows);
+    if (error) throw error;
+  }
+  return shipment;
+}
+
 // ── Confirm GRN (RPC) ────────────────────────────────────────────────────
 
 // godownId is the warehouse chosen at receiving time — used by the RPC as the

@@ -50,6 +50,41 @@ export async function listReorderAlerts(): Promise<SkuReorderAlert[]> {
   return (data ?? []) as SkuReorderAlert[];
 }
 
+// ── Reorder suggestions ("What to order next") ───────────────────────────
+// Suggested order quantities + smart ranking, from get_reorder_suggestions RPC.
+
+export type ReorderStatus = "critical" | "low" | "ok" | "overstock";
+
+export interface ReorderSuggestion {
+  sku_id: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string | null;
+  internal_code: string;
+  stock_pieces: number;
+  stock_cartons: number;
+  daily_avg_pieces: number;
+  dir: number | null;            // days inventory remaining
+  cover_days: number;            // target days of cover
+  suggested_pieces: number;
+  suggested_cartons: number;     // whole cartons to order (0 = no need)
+  pcs_per_carton: number;
+  revenue_per_day: number;       // ranking signal (velocity × price)
+  status: ReorderStatus;
+}
+
+export async function listReorderSuggestions(
+  leadWeeks = 6,
+  safetyWeeks = 4,
+): Promise<ReorderSuggestion[]> {
+  const { data, error } = await supabase.rpc("get_reorder_suggestions", {
+    p_lead_weeks: leadWeeks,
+    p_safety_weeks: safetyWeeks,
+  });
+  if (error) throw error;
+  return (data ?? []) as ReorderSuggestion[];
+}
+
 // ── Manual adjustment (admin/manager) ────────────────────────────────────
 
 export interface AdjustInput {

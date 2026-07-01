@@ -10,7 +10,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 const SHEET_SECTIONS: { label: string; hrefs: string[] }[] = [
   { label: "Finance",     hrefs: ["/financials", "/reports", "/pricelists", "/expenses"] },
-  { label: "Procurement", hrefs: ["/shipments", "/suppliers"] },
+  { label: "Procurement", hrefs: ["/reorder", "/shipments", "/suppliers"] },
   { label: "Catalogue",   hrefs: ["/products", "/godowns", "/competitors"] },
   { label: "Operations",  hrefs: ["/customers"] },
 ];
