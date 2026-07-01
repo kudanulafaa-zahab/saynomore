@@ -962,7 +962,7 @@ function LineDialog({
   useEffect(() => {
     if (editing) return;
     if (autoPrice != null) {
-      setUnitPrice(autoPrice.toFixed(2));
+      setUnitPrice(autoPrice.toFixed(0));
       setPriceOverride(false);
     } else {
       setUnitPrice("");
@@ -1130,7 +1130,7 @@ function LineDialog({
                 style={{ ...inputStyle, display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", cursor: "pointer", gap: 2 }}
                 onClick={() => setPriceOverride(true)}
               >
-                <span style={{ color: "var(--foreground)", fontWeight: 700, fontSize: 18 }}>{autoPrice.toFixed(2)}</span>
+                <span style={{ color: "var(--foreground)", fontWeight: 700, fontSize: 18 }}>{autoPrice.toFixed(0)}</span>
                 <span style={{
                   background: autoSource === "price_list"
                     ? "color-mix(in srgb, var(--snm-brand) 18%, transparent)"
@@ -1153,7 +1153,7 @@ function LineDialog({
                 {autoPrice != null && (
                   <button
                     type="button"
-                    onClick={() => { setUnitPrice(autoPrice.toFixed(2)); setPriceOverride(false); }}
+                    onClick={() => { setUnitPrice(autoPrice.toFixed(0)); setPriceOverride(false); }}
                     style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--snm-success)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}
                   >Reset</button>
                 )}

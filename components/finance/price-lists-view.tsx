@@ -415,7 +415,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                     ].map((p) => (
                       <div key={p.label} className="rounded-xl px-3 py-2 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
                         <p className="text-[12px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
-                        <p className="text-sm font-semibold snm-num" style={{ color: t.color }}>MVR {Number(p.value).toFixed(2)}</p>
+                        <p className="text-sm font-semibold snm-num" style={{ color: t.color }}>MVR {Number(p.value).toFixed(0)}</p>
                       </div>
                     ))}
                   </div>
@@ -619,7 +619,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                       ].map((p) => (
                         <div key={p.label} className="rounded-lg px-2 py-1 text-center" style={{ background: `color-mix(in srgb, ${t.color} 10%, transparent)` }}>
                           <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
-                          <p className="text-[12px] font-bold snm-num" style={{ color: t.color }}>{Number(p.value).toFixed(2)}</p>
+                          <p className="text-[12px] font-bold snm-num" style={{ color: t.color }}>{Number(p.value).toFixed(0)}</p>
                         </div>
                       ))}
                     </div>

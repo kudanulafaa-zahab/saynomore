@@ -671,12 +671,12 @@ function NewSaleSheet({
       const p = uom === "piece" ? tp.price_per_piece_mvr
         : uom === "pack" ? tp.price_per_pack_mvr
         : tp.price_per_carton_mvr;
-      return { price: p.toFixed(2), source: tp.source };
+      return { price: p.toFixed(0), source: tp.source };
     }
     const p = uom === "piece" ? sku.selling_price_per_piece_mvr
       : uom === "pack" ? sku.selling_price_per_pack_mvr
       : sku.selling_price_per_carton_mvr;
-    return { price: p != null ? p.toFixed(2) : "", source: p != null ? "sku_default" : null };
+    return { price: p != null ? p.toFixed(0) : "", source: p != null ? "sku_default" : null };
   }
 
   // When a new SKU is selected: set smart default UOM, then auto-fill price
@@ -1168,7 +1168,7 @@ function NewSaleSheet({
                           <div className="flex items-baseline justify-between gap-1">
                             <div className="flex items-baseline gap-1">
                               <span className="text-[20px] font-semibold" style={{ color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)" }}>
-                                {hasPrice ? cardPrice!.toFixed(2) : "No GRN"}
+                                {hasPrice ? cardPrice!.toFixed(0) : "No GRN"}
                               </span>
                               {hasPrice && <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
                             </div>

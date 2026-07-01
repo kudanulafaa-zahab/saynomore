@@ -60,7 +60,7 @@ function attrsToDisplay(attrs: Record<string, string | number>, schema: AttrKey[
 
 function fmtPrice(n: number | null | undefined) {
   if (n == null) return null;
-  return Number(n).toFixed(2);
+  return Number(n).toFixed(0);
 }
 
 
@@ -444,7 +444,7 @@ function SkuPanel({
                           Selling / {tradeLabel}
                         </p>
                         <p className="text-[17px] font-bold text-foreground">
-                          MVR {livePreview.sellingPerPack.toFixed(2)}
+                          MVR {livePreview.sellingPerPack.toFixed(0)}
                         </p>
                       </div>
                     </div>

@@ -470,7 +470,7 @@ export function EditSkuDialog({
                       style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)" }}>
                       <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                       <div className="text-right">
-                        <p className="font-bold text-foreground text-[15px]">MVR {Number(sku.selling_price_per_pack_mvr).toFixed(2)}</p>
+                        <p className="font-bold text-foreground text-[15px]">MVR {Number(sku.selling_price_per_pack_mvr).toFixed(0)}</p>
                         <p className="text-[12px]" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
                           MVR {Number(sku.selling_price_per_piece_mvr).toFixed(4)} /pc
                         </p>
@@ -478,7 +478,7 @@ export function EditSkuDialog({
                     </div>
                     {/* Carton price */}
                     {[
-                      { label: "Per carton", value: Number(sku.selling_price_per_carton_mvr).toFixed(2) },
+                      { label: "Per carton", value: Number(sku.selling_price_per_carton_mvr).toFixed(0) },
                     ].map((c) => (
                       <div key={c.label} className="text-center">
                         <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
