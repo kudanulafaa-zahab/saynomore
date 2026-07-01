@@ -18,6 +18,8 @@ export interface ReportRow {
   gross_margin_pct: number | null;
   stock_pieces: number;
   days_of_stock: number | null;
+  /** True if any sale in this period predates cost-snapshotting (migration 0045) and falls back to today's landed cost as an estimate. */
+  has_estimated_cost: boolean;
 }
 
 export async function getReportsData(from: string, to: string): Promise<ReportRow[]> {
@@ -46,6 +48,8 @@ export interface ContributionRow {
   contribution_mvr: number;
   contribution_per_piece: number;
   contribution_margin_pct: number | null;
+  /** True if any sale in this period predates cost-snapshotting (migration 0045) and falls back to today's landed cost as an estimate. */
+  has_estimated_cost: boolean;
 }
 
 export async function getContributionMargin(from: string, to: string): Promise<ContributionRow[]> {

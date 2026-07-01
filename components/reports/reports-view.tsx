@@ -589,6 +589,15 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
                   </td>
                   <td className="px-3 py-3 text-right font-bold snm-num" style={marginColor(r.contribution_margin_pct)}>
                     {r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "—"}
+                    {r.has_estimated_cost && (
+                      <span
+                        className="ml-1 text-[10px] font-normal align-middle"
+                        style={{ color: "var(--muted-foreground)" }}
+                        title="Some sales in this period were made before per-sale cost tracking started — their cost is estimated from today's price, not what it actually cost then."
+                      >
+                        ~est
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
@@ -723,6 +732,15 @@ function MarginsTable({ rows, sortKey, onSort }: {
                         : r.gross_margin_pct < 15
                         ? <TrendingDown className="inline h-3 w-3 ml-1" />
                         : null}
+                      {r.has_estimated_cost && (
+                        <span
+                          className="ml-1 text-[10px] font-normal align-middle"
+                          style={{ color: "var(--muted-foreground)" }}
+                          title="Some sales in this period were made before per-sale cost tracking started — their cost is estimated from today's price, not what it actually cost then."
+                        >
+                          ~est
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <span className="text-muted-foreground">No sales</span>

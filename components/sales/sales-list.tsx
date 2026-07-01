@@ -1293,6 +1293,15 @@ function NewSaleSheet({
                         ⚠ No confirmed shipment — confirm a GRN first
                       </p>
                     )}
+
+                    {/* Below-target-margin warning — suggestion only, never blocks the sale.
+                        Distinct from the red "below 0%" badge above: this fires even on a
+                        still-profitable sale if it undercuts the owner's own target margin. */}
+                    {margin !== null && selectedSku.target_margin_pct != null && margin < selectedSku.target_margin_pct && (
+                      <p className="text-[12px] mt-2 font-medium" style={{ color: "var(--snm-warning)" }}>
+                        ⚠ Below target margin ({selectedSku.target_margin_pct}% target)
+                      </p>
+                    )}
                   </div>
 
                   {/* ── UOM segmented control — only the tiers this SKU sells in.

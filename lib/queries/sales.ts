@@ -46,6 +46,10 @@ export interface SalesOrderLineRow {
   line_total_mvr: number;
   is_mixed_carton_fill: boolean;
   notes: string | null;
+  /** Quantity-weighted average landed cost at the moment this line was sold. Set by post_sale; null until confirmed, and null on legacy rows sold before this column existed. */
+  landed_cost_per_piece_mvr: number | null;
+  /** Margin locked in at time of sale, computed from landed_cost_per_piece_mvr vs the per-piece price actually charged. Never recalculated afterward. */
+  actual_margin_pct: number | null;
 }
 
 export interface SalesOrderInput {

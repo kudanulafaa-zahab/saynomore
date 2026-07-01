@@ -959,6 +959,20 @@ function LineDialog({
     return tierPx?.source ?? "sku_default";
   }, [skuId, tierPriceMap]);
 
+  // Suggestion only, never blocks the sale — flags when the typed price
+  // undercuts this SKU's own target margin, even if the sale is still
+  // profitable overall.
+  const belowTargetMargin = useMemo(() => {
+    if (!sku || sku.target_margin_pct == null || sku.landed_per_piece_mvr == null) return null;
+    const price = parseFloat(unitPrice);
+    if (isNaN(price) || price <= 0) return null;
+    const unitsPerUom = uom === "carton" ? sku.pcs_per_pack * sku.packs_per_carton
+      : uom === "pack" ? sku.pcs_per_pack : 1;
+    const pricePerPiece = price / unitsPerUom;
+    const margin = ((pricePerPiece - sku.landed_per_piece_mvr) / pricePerPiece) * 100;
+    return margin < sku.target_margin_pct ? { margin, target: sku.target_margin_pct } : null;
+  }, [sku, unitPrice, uom]);
+
   useEffect(() => {
     if (editing) return;
     if (autoPrice != null) {
@@ -1202,6 +1216,15 @@ function LineDialog({
               <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Line total</span>
               <span style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
+          </div>
+        )}
+
+        {/* Below-target-margin warning — suggestion only, owner still decides */}
+        {belowTargetMargin && (
+          <div style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+            <p style={{ color: "var(--snm-warning)", fontSize: 12, fontWeight: 600 }}>
+              ⚠ Below target margin — {belowTargetMargin.margin.toFixed(1)}% vs {belowTargetMargin.target}% target
+            </p>
           </div>
         )}
 

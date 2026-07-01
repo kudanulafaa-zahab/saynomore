@@ -114,11 +114,18 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-4">
 
-      {/* ── Zone 1: Business Health ── */}
-      <div className="snm-card rounded-2xl p-6" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
-        <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
-          {monthName} Performance
-        </p>
+      {/* ── Zone 1: Business Health ──
+           Whole card links to Reports, where profit breaks down by
+           Brand → Model → SKU — the total here is just the summary. ── */}
+      <Link href="/reports" className="block snm-card rounded-2xl p-6 transition active:scale-[0.98]" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            {monthName} Performance
+          </p>
+          <span className="flex items-center gap-0.5 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            Profit by product <ChevronRight className="h-3.5 w-3.5" />
+          </span>
+        </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div>
@@ -158,7 +165,7 @@ export default async function DashboardPage() {
           <p className="text-sm font-semibold text-foreground snm-num">{mvr(revenueToday)} MVR</p>
           <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
         </div>
-      </div>
+      </Link>
 
       {/* ── Zone 2: Live Order Pipeline ──
            Single card, one tap → /dispatch which always shows real active orders.
