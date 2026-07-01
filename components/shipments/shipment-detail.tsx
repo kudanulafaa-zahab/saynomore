@@ -246,10 +246,6 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [showMore, setShowMore]   = useState(false);
   const [costsOpen, setCostsOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
-  // Holds exactly what the user typed for "1 USD = ___ IDR" so re-displaying it
-  // never round-trips through the stored reciprocal (rate_idr_to_usd) and drifts
-  // by rounding error (e.g. 16500 redisplaying as 16499).
-  const [usdToIdrDisplay, setUsdToIdrDisplay] = useState<number | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   type PriceChange = { skuPath: string; before: number; after: number; changePct: number };
@@ -277,7 +273,6 @@ export function ShipmentDetail({ id }: { id: string }) {
       setSkus(sk);
       setSuppliers(sup);
       setGodowns(gd);
-      setUsdToIdrDisplay(s?.rate_idr_to_usd ? Math.round(1 / s.rate_idr_to_usd) : null);
       // Default the receiving warehouse to any line's existing destination, else
       // the default godown — chosen/changed in the GRN confirm sheet.
       setGrnGodownId((prev) =>
@@ -922,23 +917,24 @@ export function ShipmentDetail({ id }: { id: string }) {
                     placeholder="e.g. 15.42"
                     onChange={async (v) => {
                       await patch("rate_usd_to_mvr", v);
-                      const idrUsd = shipment.rate_idr_to_usd;
-                      if (idrUsd && idrUsd > 0 && v) await patch("rate_idr_to_mvr", v * idrUsd);
+                      // Derive IDR->MVR straight from the exact IDR rate the user typed
+                      // (rate_usd_to_idr), never via a stored reciprocal — that lost
+                      // precision on save/reload (16500 -> 16499).
+                      const usdToIdr = shipment.rate_usd_to_idr;
+                      if (usdToIdr && usdToIdr > 0 && v) await patch("rate_idr_to_mvr", v / usdToIdr);
                     }}
                   />
                 </Field>
                 <Field label="1 USD = ___ IDR *">
                   <NumInput
-                    value={usdToIdrDisplay}
+                    value={shipment.rate_usd_to_idr}
                     disabled={locked}
                     placeholder="e.g. 15820"
                     onChange={async (usdToIdr) => {
-                      setUsdToIdrDisplay(usdToIdr);
-                      if (!usdToIdr || usdToIdr <= 0) { await patch("rate_idr_to_usd", null); await patch("rate_idr_to_mvr", null); return; }
-                      const idrToUsd = 1 / usdToIdr;
-                      await patch("rate_idr_to_usd", idrToUsd);
+                      await patch("rate_usd_to_idr", usdToIdr);
+                      if (!usdToIdr || usdToIdr <= 0) { await patch("rate_idr_to_mvr", null); return; }
                       const usdMvr = shipment.rate_usd_to_mvr;
-                      if (usdMvr) await patch("rate_idr_to_mvr", usdMvr * idrToUsd);
+                      if (usdMvr) await patch("rate_idr_to_mvr", usdMvr / usdToIdr);
                     }}
                   />
                 </Field>

@@ -20,6 +20,9 @@ Next.js 15 App Router · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Su
 - **Never `100vh`** (it ignores the iOS dynamic toolbar). Full-screen layers use `100dvh`; in-page content uses no fixed height at all.
 - Desktop split-panes (side-by-side list+detail) may own inner scroll with a fixed `100dvh`-based height, but that layout must be `lg:` only — mobile flows in the page.
 
+## Migrations
+Claude is authorized to write and apply new migrations directly via the Supabase MCP against production — no manual dashboard step, no waiting for Ali to run SQL (confirmed by Ali 2026-07-01, after migration 0041).
+
 ## Hard Rules (never break)
 1. All financial calculations in **Postgres**, never TypeScript
 2. Stock quantity derived from `stock_movements` sum — never stored directly

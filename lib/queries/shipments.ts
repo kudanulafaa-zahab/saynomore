@@ -17,6 +17,7 @@ export interface ShipmentRow {
   rate_idr_to_mvr: number | null;
   rate_usd_to_mvr: number | null;
   rate_idr_to_usd: number | null;
+  rate_usd_to_idr: number | null;
   shared_container: boolean;
   total_container_freight_usd: number | null;
   my_freight_share_usd: number;
@@ -68,6 +69,7 @@ export interface ShipmentInput {
   rate_idr_to_mvr?: number | null;
   rate_usd_to_mvr?: number | null;
   rate_idr_to_usd?: number | null;
+  rate_usd_to_idr?: number | null;
   shared_container?: boolean;
   total_container_freight_usd?: number | null;
   my_freight_share_usd?: number;
