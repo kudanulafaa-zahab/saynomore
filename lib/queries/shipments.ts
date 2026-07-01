@@ -238,6 +238,15 @@ export async function forceVoidGrn(shipmentId: string) {
   if (error) throw error;
 }
 
+// ── Reopen GRN — admin/manager only. Unlike void, this keeps the shipment
+// and its lines (with computed costs cleared) so it can be edited in place
+// and re-confirmed, rather than deleted and re-entered from scratch.
+// Blocked if any stock from this GRN has already been sold (RPC guard).
+export async function reopenGrn(shipmentId: string) {
+  const { error } = await supabase.rpc("reopen_grn", { p_shipment_id: shipmentId });
+  if (error) throw error;
+}
+
 // ── Helpers (auto-generate reference) ────────────────────────────────────
 
 export function nextShipmentRef(existing: ShipmentRow[]): string {

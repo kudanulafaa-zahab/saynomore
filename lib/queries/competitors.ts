@@ -83,3 +83,25 @@ export async function deleteCompetitorPrice(id: string) {
   const { error } = await supabase.from("competitor_prices").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ── Competitor price gaps — every SKU currently priced above the cheapest
+// logged competitor by more than the threshold. Lets Ali see problem
+// products at a glance instead of checking one SKU at a time. ──
+
+export interface CompetitorPriceGap {
+  sku_id: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string | null;
+  internal_code: string;
+  our_price_mvr: number;
+  cheapest_competitor_mvr: number;
+  cheapest_competitor_name: string;
+  gap_pct: number;
+}
+
+export async function listCompetitorPriceGaps(thresholdPct = 10): Promise<CompetitorPriceGap[]> {
+  const { data, error } = await supabase.rpc("get_competitor_price_gaps", { p_threshold_pct: thresholdPct });
+  if (error) throw error;
+  return (data ?? []) as CompetitorPriceGap[];
+}

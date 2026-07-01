@@ -11,6 +11,8 @@ import {
   PackageCheck,
   ClipboardList,
   Ship,
+  PackageX,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -38,6 +40,8 @@ interface Metrics {
   pending_payments_count:      number;
   cod_undeposited_mvr:         number;
   shipments_arriving_soon:     number;
+  overstock_sku_count:         number;
+  reorder_needed_count:        number;
 }
 
 export default async function DashboardPage() {
@@ -62,6 +66,8 @@ export default async function DashboardPage() {
     pending_payments_count:      0,
     cod_undeposited_mvr:         0,
     shipments_arriving_soon:     0,
+    overstock_sku_count:         0,
+    reorder_needed_count:        0,
   }) as Metrics;
 
   const revenueMonth      = Number(m.revenue_this_month_mvr);
@@ -78,6 +84,8 @@ export default async function DashboardPage() {
   const overdueOrders     = Number(m.overdue_orders_count);
   const lowStockCount     = Number(m.low_stock_sku_count);
   const arrivingSoon      = Number(m.shipments_arriving_soon);
+  const overstockCount    = Number(m.overstock_sku_count);
+  const reorderCount      = Number(m.reorder_needed_count);
 
   const revChangePct = revenueLastMonth > 0
     ? ((revenueMonth - revenueLastMonth) / revenueLastMonth) * 100
@@ -109,7 +117,7 @@ export default async function DashboardPage() {
 
   // Exceptions section: only items with NO other card representation on screen.
   // Each one is a genuine exception that needs owner awareness — not a duplicate.
-  const hasExceptions = overdueOrders > 0 || lowStockCount > 0 || arrivingSoon > 0;
+  const hasExceptions = overdueOrders > 0 || lowStockCount > 0 || arrivingSoon > 0 || overstockCount > 0 || reorderCount > 0;
 
   return (
     <div className="space-y-4">
@@ -379,6 +387,46 @@ export default async function DashboardPage() {
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   Prepare godown space for receiving
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+            </Link>
+          )}
+
+          {reorderCount > 0 && (
+            <Link href="/reorder"
+              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 28%, transparent)" }}>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
+                <RefreshCw className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {reorderCount} SKU{reorderCount !== 1 ? "s" : ""} due for reorder
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  Based on sales velocity and lead time
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+            </Link>
+          )}
+
+          {overstockCount > 0 && (
+            <Link href="/inventory?filter=overstock"
+              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
+              style={{ border: "1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent)" }}>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "color-mix(in srgb, var(--muted-foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>
+                <PackageX className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {overstockCount} SKU{overstockCount !== 1 ? "s" : ""} overstocked
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  More than 90 days of stock on hand
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />

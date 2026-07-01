@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, Plus, Trash2, CheckCircle2, Lock,
   AlertTriangle, Truck, ChevronDown, RotateCcw, Calendar,
-  ChevronRight, Minus, MoreHorizontal, Package, ScanLine, Warehouse,
+  ChevronRight, Minus, MoreHorizontal, Package, ScanLine, Warehouse, Pencil,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -20,7 +20,7 @@ const BarcodeScanner = dynamic(
 import {
   getShipment, listShipmentLines, updateShipment, deleteShipment,
   createShipmentLine, updateShipmentLine, deleteShipmentLine,
-  confirmGrn, forceVoidGrn,
+  confirmGrn, forceVoidGrn, reopenGrn,
   type ShipmentRow, type ShipmentLineRow, type FobCurrency, type ShipmentStatus,
 } from "@/lib/queries/shipments";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
@@ -242,6 +242,7 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [loading, setLoading]     = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [voiding, setVoiding]     = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [role, setRole]           = useState<string | null>(null);
   const [showMore, setShowMore]   = useState(false);
   const [costsOpen, setCostsOpen] = useState(false);
@@ -255,7 +256,7 @@ export function ShipmentDetail({ id }: { id: string }) {
   // godown; the confirm sheet lets the user change it.
   const [grnGodownId, setGrnGodownId]   = useState<string>("");
 
-  type Panel = "confirmGrn" | "voidGrn" | "deleteShipment" | "deleteLine" | "addLine" | null;
+  type Panel = "confirmGrn" | "voidGrn" | "reopenGrn" | "deleteShipment" | "deleteLine" | "addLine" | null;
   const [panel, setPanel]               = useState<Panel>(null);
   const [editingLine, setEditingLine]   = useState<ShipmentLineRow | undefined>();
   const [pendingDeleteLine, setPendingDeleteLine] = useState<ShipmentLineRow | null>(null);
@@ -287,7 +288,7 @@ export function ShipmentDetail({ id }: { id: string }) {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
 
-  const isAdmin  = role === "admin";
+  const isAdmin  = role === "admin" || role === "manager";
   const canWrite = role !== "viewer" && role !== null;
   const locked   = shipment?.status === "grn_confirmed" || !canWrite;
   const arrived  = shipment?.status === "arrived";
@@ -1133,6 +1134,15 @@ export function ShipmentDetail({ id }: { id: string }) {
           )}
           {locked && isAdmin && (
             <button
+              onClick={() => { setShowMore(false); setPanel("reopenGrn"); }}
+              className="w-full flex items-center gap-3 h-12 px-4 rounded-xl text-sm font-medium transition"
+              style={{ background: "color-mix(in srgb, var(--snm-warning) 8%, transparent)", color: "var(--snm-warning)" }}
+            >
+              <Pencil className="h-4 w-4" /> Reopen to Edit
+            </button>
+          )}
+          {locked && isAdmin && (
+            <button
               onClick={() => { setShowMore(false); setPanel("voidGrn"); }}
               className="w-full flex items-center gap-3 h-12 px-4 rounded-xl text-sm font-medium transition"
               style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}
@@ -1230,6 +1240,43 @@ export function ShipmentDetail({ id }: { id: string }) {
       </Sheet>
 
       {/* Void GRN */}
+      <Sheet open={panel === "reopenGrn"} onClose={() => setPanel(null)}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
+            <Pencil className="h-5 w-5" />
+          </div>
+          <h2 className="text-[20px] font-semibold" style={{ color: "var(--snm-warning)" }}>Reopen this GRN?</h2>
+        </div>
+        <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
+          <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> will unlock for editing — you can fix the FOB price, forex rate, freight/customs, or add a missed line, then confirm receipt again.
+        </p>
+        <p className="text-[12px] rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-warning) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--muted-foreground)" }}>
+          Sales history is untouched. If any stock from this shipment has already been sold, reopening is blocked — you&apos;d need a stock adjustment instead.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold"
+            style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+          <button
+            onClick={async () => {
+              setReopening(true);
+              try {
+                await reopenGrn(shipment.id);
+                toast.success("GRN reopened — edit and confirm again");
+                setPanel(null);
+                await load();
+              }
+              catch (e) { toast.error((e as Error).message); }
+              finally { setReopening(false); }
+            }}
+            disabled={reopening}
+            className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center"
+            style={{ background: "var(--snm-warning)", color: "#fff" }}>
+            {reopening ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reopen to Edit"}
+          </button>
+        </div>
+      </Sheet>
+
       <Sheet open={panel === "voidGrn"} onClose={() => setPanel(null)}>
         <div className="flex items-center gap-3 mb-4">
           <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"

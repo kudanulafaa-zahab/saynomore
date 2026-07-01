@@ -15,9 +15,11 @@ import {
   createCompetitorPrice,
   updateCompetitorPrice,
   deleteCompetitorPrice,
+  listCompetitorPriceGaps,
   type CompetitorRow,
   type CompetitorPriceRow,
   type PriceBasis,
+  type CompetitorPriceGap,
 } from "@/lib/queries/competitors";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
@@ -75,6 +77,7 @@ export function CompetitorsView() {
   const [saveMode, setSaveMode]     = useState<"margin" | "fixed">("margin");
   const [alertThreshold, setAlertThreshold] = useState(10);
   const [canWrite, setCanWrite]     = useState(false);
+  const [priceGaps, setPriceGaps]   = useState<CompetitorPriceGap[]>([]);
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
@@ -101,6 +104,14 @@ export function CompetitorsView() {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Products priced above the cheapest logged competitor by more than the
+  // alert threshold — same threshold the per-SKU simulator uses below.
+  useEffect(() => {
+    listCompetitorPriceGaps(alertThreshold)
+      .then(setPriceGaps)
+      .catch(() => setPriceGaps([]));
+  }, [alertThreshold]);
 
   // Fetch active price list entries for all 4 tiers for the selected SKU
   useEffect(() => {
@@ -255,6 +266,43 @@ export function CompetitorsView() {
           </button>
         )}
       </div>
+
+      {/* ── Priced above competitors — all SKUs at a glance, worst gap first ── */}
+      {priceGaps.length > 0 && (
+        <div className="rounded-2xl p-4" style={CARD}>
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4" style={{ color: "var(--snm-warning)" }} />
+            <p className="text-sm font-bold text-foreground">
+              {priceGaps.length} product{priceGaps.length !== 1 ? "s" : ""} priced above competitors
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            {priceGaps.map((g) => (
+              <button
+                key={g.sku_id}
+                onClick={() => {
+                  const s = skus.find((sk) => sk.id === g.sku_id);
+                  if (s) { setSimSku(s); setSimPrice(s.selling_price_per_pack_mvr ?? (s.landed_per_piece_mvr ?? 0) * s.pcs_per_pack * 1.3); }
+                }}
+                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition active:opacity-70"
+                style={{ background: "color-mix(in srgb, var(--snm-warning) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}
+              >
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground truncate">
+                    {g.brand_name} · {g.model_name}{g.variant_display ? ` · ${g.variant_display}` : ""}
+                  </p>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    Ours {fmt2(g.our_price_mvr)} vs {g.cheapest_competitor_name} {fmt2(g.cheapest_competitor_mvr)}
+                  </p>
+                </div>
+                <span className="text-[13px] font-bold shrink-0 snm-num" style={{ color: "var(--snm-warning)" }}>
+                  +{g.gap_pct.toFixed(0)}%
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── SKU Selector ── */}
       {skus.length > 0 && (

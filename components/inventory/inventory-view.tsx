@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw } from "lucide-react";
-import { listBatchStock, listReorderAlerts, type BatchStock, type SkuReorderAlert } from "@/lib/queries/inventory";
+import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw, PackageX, ArrowUpDown } from "lucide-react";
+import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
+
+type SortMode = "urgency" | "overstock" | "value" | "az";
 
 /* ── Helpers ── */
 
@@ -45,7 +48,8 @@ interface SkuStock {
   byGodown: GodownSlot[];
   fifoLandedPerPiece: number;
   isLow: boolean;
-  alert: SkuReorderAlert | null;
+  isOverstock: boolean;
+  alert: ReorderSuggestion | null;
 }
 
 interface BrandGroup {
@@ -104,11 +108,14 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
   );
 }
 
-function DirBadge({ alert }: { alert: SkuReorderAlert | null }) {
-  if (!alert || alert.alert_level === "ok") return null;
-  const isCritical = alert.alert_level === "critical";
-  const color = isCritical ? "var(--snm-error)" : "var(--snm-warning)";
-  const dirText = alert.dir != null ? `${alert.dir}d left` : "No sales data";
+function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
+  if (!alert || alert.status === "ok") return null;
+  const isCritical = alert.status === "critical";
+  const isOverstock = alert.status === "overstock";
+  const color = isCritical ? "var(--snm-error)" : isOverstock ? "var(--muted-foreground)" : "var(--snm-warning)";
+  const dirText = isOverstock
+    ? `${alert.dir}d stock`
+    : alert.dir != null ? `${alert.dir}d left` : "No sales data";
   return (
     <span
       className="text-[12px] font-bold px-2 py-0.5 rounded-full shrink-0"
@@ -125,12 +132,12 @@ function DirBadge({ alert }: { alert: SkuReorderAlert | null }) {
 
 function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, alert } = row;
+  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, isOverstock, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
   const totalCtns       = toCtns(totalPieces, pcsPerCtn);
   const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
   const landedPerCarton = landedPerPack * sku.packs_per_carton;
-  const isCritical      = alert?.alert_level === "critical";
+  const isCritical      = alert?.status === "critical";
 
   const sortedGodowns = [...byGodown].sort((a, b) => b.pieces - a.pieces);
 
@@ -146,6 +153,8 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
           ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
           : isLow
           ? "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)"
+          : isOverstock
+          ? "1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent)"
           : "0.5px solid var(--glass-border-lo)",
       }}
     >
@@ -153,7 +162,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
       <div className="px-4 pt-4 pb-3 flex items-start gap-3">
         <div
           className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-          style={{ background: isCritical ? "var(--snm-error)" : isLow ? "var(--snm-warning)" : "var(--snm-success)" }}
+          style={{ background: isCritical ? "var(--snm-error)" : isLow ? "var(--snm-warning)" : isOverstock ? "var(--muted-foreground)" : "var(--snm-success)" }}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -290,7 +299,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                 {alert?.dir != null && (
                   <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     ~{alert.dir} days left · avg {alert.daily_avg_pieces.toFixed(1)} pcs/day
-                    {alert.reorder_point_pcs > 0 && ` · reorder point ${Math.round(alert.reorder_point_pcs).toLocaleString()} pcs`}
+                    {alert.suggested_cartons > 0 && ` · suggest ordering ${alert.suggested_cartons} ctn`}
                   </p>
                 )}
                 {alert?.dir == null && (
@@ -298,6 +307,26 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                     Only {totalCtns} carton{totalCtns !== 1 ? "s" : ""} left — no recent sales to calculate DIR
                   </p>
                 )}
+              </div>
+            </div>
+          )}
+
+          {isOverstock && !isCritical && !isLow && (
+            <div
+              className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl"
+              style={{
+                background: "color-mix(in srgb, var(--muted-foreground) 8%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--muted-foreground) 18%, transparent)",
+              }}
+            >
+              <PackageX className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
+              <div>
+                <p className="text-[12px] font-semibold text-foreground">
+                  Overstocked — {alert?.dir} days of stock on hand
+                </p>
+                <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  Selling slower than restocked · consider a promotion to move it
+                </p>
               </div>
             </div>
           )}
@@ -310,23 +339,27 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
 /* ── Main ── */
 
 export function InventoryView() {
+  const searchParams = useSearchParams();
   const [skus, setSkus]         = useState<SkuFullRow[]>([]);
   const [godowns, setGodowns]   = useState<GodownRow[]>([]);
   const [batches, setBatches]   = useState<BatchStock[]>([]);
-  const [alerts, setAlerts]     = useState<SkuReorderAlert[]>([]);
+  const [alerts, setAlerts]     = useState<ReorderSuggestion[]>([]);
   const [loading, setLoading]   = useState(true);
   const [q, setQ]               = useState("");
   const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>(
+    searchParams.get("filter") === "overstock" ? "overstock" : "urgency",
+  );
 
   useEffect(() => {
-    Promise.all([listSkusFlat(), listGodowns(), listBatchStock(), listReorderAlerts()])
+    Promise.all([listSkusFlat(), listGodowns(), listBatchStock(), listReorderSuggestions()])
       .then(([s, g, b, a]) => { setSkus(s); setGodowns(g); setBatches(b); setAlerts(a); })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
   }, []);
 
   const alertMap = useMemo(() => {
-    const m = new Map<string, SkuReorderAlert>();
+    const m = new Map<string, ReorderSuggestion>();
     for (const a of alerts) m.set(a.sku_id, a);
     return m;
   }, [alerts]);
@@ -356,22 +389,27 @@ export function InventoryView() {
         const alert              = alertMap.get(sku.id) ?? null;
         // isLow: use DIR if we have sales history, else fall back to < 5 cartons
         const isLow              = alert
-          ? alert.alert_level !== "ok"
+          ? alert.status === "critical" || alert.status === "low"
           : toCtns(totalPieces, pcsPerCtn) < 5;
+        const isOverstock         = alert?.status === "overstock";
 
-        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, alert };
+        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, isOverstock, alert };
       })
       .filter((r) => r.sku.is_active && r.totalPieces > 0);
   }, [skus, batches, godowns, alertMap]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return stockList;
-    return stockList.filter((r) =>
-      [r.sku.brand_name, r.sku.model_name, r.sku.variant_display ?? "", r.sku.internal_code ?? ""]
-        .join(" ").toLowerCase().includes(term),
-    );
-  }, [stockList, q]);
+    let list = stockList;
+    if (term) {
+      list = list.filter((r) =>
+        [r.sku.brand_name, r.sku.model_name, r.sku.variant_display ?? "", r.sku.internal_code ?? ""]
+          .join(" ").toLowerCase().includes(term),
+      );
+    }
+    if (sortMode === "overstock") list = list.filter((r) => r.isOverstock);
+    return list;
+  }, [stockList, q, sortMode]);
 
   const byBrand = useMemo(() => {
     const map = new Map<string, BrandGroup>();
@@ -383,33 +421,41 @@ export function InventoryView() {
       entry.totalCartons += toCtns(row.totalPieces, pcsPerCtn);
       entry.totalValue   += row.totalValue;
       entry.hasLow        = entry.hasLow || row.isLow;
-      entry.hasCritical   = entry.hasCritical || (row.alert?.alert_level === "critical");
+      entry.hasCritical   = entry.hasCritical || (row.alert?.status === "critical");
       map.set(brand, entry);
     }
-    // Sort each brand's SKUs: critical first, then low, then by value descending
+    // Sort each brand's SKUs by the chosen mode
     for (const [, g] of map) {
       g.skus.sort((a, b) => {
-        const aLevel = a.alert?.alert_level ?? (a.isLow ? "low" : "ok");
-        const bLevel = b.alert?.alert_level ?? (b.isLow ? "low" : "ok");
-        const order = { critical: 0, low: 1, ok: 2 };
+        if (sortMode === "az") return a.sku.model_name.localeCompare(b.sku.model_name);
+        if (sortMode === "value") return b.totalValue - a.totalValue;
+        if (sortMode === "overstock") return (b.alert?.dir ?? 0) - (a.alert?.dir ?? 0);
+        // urgency (default): critical first, then low, then overstock, then ok
+        const order = { critical: 0, low: 1, overstock: 2, ok: 3 };
+        const aLevel = a.alert?.status ?? (a.isLow ? "low" : "ok");
+        const bLevel = b.alert?.status ?? (b.isLow ? "low" : "ok");
         if (aLevel !== bLevel) return order[aLevel as keyof typeof order] - order[bLevel as keyof typeof order];
         return b.totalValue - a.totalValue;
       });
     }
-    // Sort brands: critical first, then low, then by value descending
-    return Array.from(map.entries()).sort(([, a], [, b]) => {
+    // Sort brands to match: urgency mode surfaces critical/low brands first,
+    // other modes just sort by total value (az mode keeps brand alpha order).
+    return Array.from(map.entries()).sort(([brandA, a], [brandB, b]) => {
+      if (sortMode === "az") return brandA.localeCompare(brandB);
+      if (sortMode === "value" || sortMode === "overstock") return b.totalValue - a.totalValue;
       if (a.hasCritical !== b.hasCritical) return a.hasCritical ? -1 : 1;
       if (a.hasLow !== b.hasLow) return a.hasLow ? -1 : 1;
       return b.totalValue - a.totalValue;
     });
-  }, [filtered]);
+  }, [filtered, sortMode]);
 
-  const totalValue     = stockList.reduce((s, r) => s + r.totalValue, 0);
-  const totalCartons   = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
-  const lowStockCount  = stockList.filter((r) => r.isLow).length;
-  const criticalCount  = stockList.filter((r) => r.alert?.alert_level === "critical").length;
-  const activeBatches  = batches.filter((b) => b.qty_pieces_remaining > 0).length;
-  const searchActive   = q.trim() !== "";
+  const totalValue      = stockList.reduce((s, r) => s + r.totalValue, 0);
+  const totalCartons    = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
+  const lowStockCount   = stockList.filter((r) => r.isLow).length;
+  const criticalCount   = stockList.filter((r) => r.alert?.status === "critical").length;
+  const overstockCount  = stockList.filter((r) => r.isOverstock).length;
+  const activeBatches   = batches.filter((b) => b.qty_pieces_remaining > 0).length;
+  const searchActive    = q.trim() !== "";
 
   if (loading) {
     return (
@@ -489,28 +535,61 @@ export function InventoryView() {
           sub={criticalCount > 0 ? `${criticalCount} critical · ${lowStockCount - criticalCount} low` : lowStockCount > 0 ? "SKUs below 14 days" : "All OK"}
           accent={criticalCount > 0 ? "var(--snm-error)" : lowStockCount > 0 ? "var(--snm-warning)" : "var(--snm-success)"}
         />
+        <div className="col-span-2">
+          <StatCard
+            label="Overstocked"
+            value={String(overstockCount)}
+            sub={overstockCount > 0 ? "More than 90 days of stock — consider a promotion" : "Nothing overstocked"}
+            accent={overstockCount > 0 ? "var(--muted-foreground)" : "var(--snm-success)"}
+          />
+        </div>
       </div>
 
-      {/* Search */}
-      <div
-        className="flex items-center gap-2.5 px-4 rounded-2xl"
-        style={{
-          background: "var(--glass-1)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          boxShadow: "var(--glass-shadow), var(--glass-inner)",
-          height: 46,
-          border: "0.5px solid var(--glass-border-lo)",
-        }}
-      >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search brand, SKU, code…"
-          aria-label="Search inventory"
-          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
-        />
+      {/* Search + sort */}
+      <div className="space-y-2">
+        <div
+          className="flex items-center gap-2.5 px-4 rounded-2xl"
+          style={{
+            background: "var(--glass-1)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            boxShadow: "var(--glass-shadow), var(--glass-inner)",
+            height: 46,
+            border: "0.5px solid var(--glass-border-lo)",
+          }}
+        >
+          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search brand, SKU, code…"
+            aria-label="Search inventory"
+            className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+          {([
+            { mode: "urgency", label: "Urgency" },
+            { mode: "overstock", label: "Overstock" },
+            { mode: "value", label: "Value" },
+            { mode: "az", label: "A–Z" },
+          ] as { mode: SortMode; label: string }[]).map(({ mode, label }) => (
+            <button
+              key={mode}
+              onClick={() => setSortMode(mode)}
+              className="shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-full transition active:opacity-70"
+              style={{
+                background: sortMode === mode ? "var(--foreground)" : "var(--glass-1)",
+                color: sortMode === mode ? "var(--background)" : "var(--muted-foreground)",
+                border: sortMode === mode ? "none" : "0.5px solid var(--glass-border-lo)",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Stock list */}
