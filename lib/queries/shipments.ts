@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 export type ShipmentStatus = "draft" | "ordered" | "in_transit" | "arrived" | "grn_confirmed";
 export type FobCurrency = "IDR" | "USD" | "MVR";
+export type ContainerSizeHint = "20ft" | "40hq";
 
 export interface ShipmentRow {
   id: string;
@@ -20,6 +21,7 @@ export interface ShipmentRow {
   rate_usd_to_idr: number | null;
   shared_container: boolean;
   total_container_freight_usd: number | null;
+  container_size_hint: ContainerSizeHint | null;
   my_freight_share_usd: number;
   freight_share_notes: string | null;
   customs_duty_mvr: number;
@@ -72,6 +74,7 @@ export interface ShipmentInput {
   rate_usd_to_idr?: number | null;
   shared_container?: boolean;
   total_container_freight_usd?: number | null;
+  container_size_hint?: ContainerSizeHint | null;
   my_freight_share_usd?: number;
   freight_share_notes?: string | null;
   customs_duty_mvr?: number;
@@ -246,6 +249,16 @@ export async function reopenGrn(shipmentId: string) {
   const { error } = await supabase.rpc("reopen_grn", { p_shipment_id: shipmentId });
   if (error) throw error;
 }
+
+// ── Shared-container freight estimate ─────────────────────────────────────
+// Standard nominal capacity per container size, used ONLY as a rough
+// stand-in denominator when the real total loaded CBM isn't known (the
+// common case when a partner/relative pays the freight and doesn't track
+// CBM). Physical constants — not user data, so not stored in the DB.
+export const CONTAINER_CAPACITY_CBM: Record<ContainerSizeHint, number> = {
+  "20ft": 28,
+  "40hq": 68,
+};
 
 // ── Helpers (auto-generate reference) ────────────────────────────────────
 

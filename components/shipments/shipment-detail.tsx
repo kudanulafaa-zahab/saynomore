@@ -8,6 +8,7 @@ import {
   Loader2, ArrowLeft, Plus, Trash2, CheckCircle2, Lock,
   AlertTriangle, Truck, ChevronDown, RotateCcw, Calendar,
   ChevronRight, Minus, MoreHorizontal, Package, ScanLine, Warehouse, Pencil,
+  Container, Sparkles,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -20,8 +21,9 @@ const BarcodeScanner = dynamic(
 import {
   getShipment, listShipmentLines, updateShipment, deleteShipment,
   createShipmentLine, updateShipmentLine, deleteShipmentLine,
-  confirmGrn, forceVoidGrn, reopenGrn,
+  confirmGrn, forceVoidGrn, reopenGrn, CONTAINER_CAPACITY_CBM,
   type ShipmentRow, type ShipmentLineRow, type FobCurrency, type ShipmentStatus,
+  type ContainerSizeHint,
 } from "@/lib/queries/shipments";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
@@ -223,6 +225,123 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-1.5">
       <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       {children}
+    </div>
+  );
+}
+
+/* ── Shared-container freight estimator ──────────────────────────────────── */
+// Ali's brother pays the whole container's freight bill; Ali reimburses a
+// fair share. Neither side reliably knows the container's actual loaded
+// CBM, so this estimates using standard nominal capacity (20ft/40HQ) as the
+// denominator — clearly labeled an estimate, never presented as exact.
+// Result only pre-fills my_freight_share_usd; it stays fully editable.
+function SharedContainerEstimator({
+  shipment, myCbm, disabled, onApply, onPatch,
+}: {
+  shipment: ShipmentRow;
+  myCbm: number;
+  disabled: boolean;
+  onApply: (v: number) => void;
+  onPatch: (field: string, value: number | string | boolean | null) => void;
+}) {
+  const [open, setOpen] = useState(shipment.shared_container);
+  const [totalFreight, setTotalFreight] = useState(
+    shipment.total_container_freight_usd != null ? String(shipment.total_container_freight_usd) : "",
+  );
+  const size = shipment.container_size_hint;
+
+  const capacity = size ? CONTAINER_CAPACITY_CBM[size] : null;
+  const totalFreightNum = totalFreight === "" ? null : Number(totalFreight);
+  const estimate = capacity && totalFreightNum != null && myCbm > 0
+    ? (totalFreightNum * (myCbm / capacity))
+    : null;
+
+  return (
+    <div className="mt-3 rounded-xl overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+      <button
+        type="button"
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          if (next !== shipment.shared_container) onPatch("shared_container", next);
+        }}
+        disabled={disabled}
+        className="w-full flex items-center gap-2.5 px-3.5 h-12 transition active:opacity-70"
+      >
+        <Container className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+        <span className="flex-1 text-left text-[13px] font-medium text-foreground">Sharing a container?</span>
+        <ChevronDown
+          className="h-3.5 w-3.5 shrink-0 transition-transform"
+          style={{ color: "var(--muted-foreground)", transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+
+      {open && (
+        <div className="px-3.5 pb-4 space-y-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+          <div className="pt-3.5 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            Estimate only — based on standard container size, not the real loaded CBM.
+          </div>
+
+          {/* Container size — segmented control, matches app-wide pattern */}
+          <div className="rounded-2xl p-1 flex gap-1" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
+            {(["20ft", "40hq"] as ContainerSizeHint[]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                disabled={disabled}
+                onClick={() => onPatch("container_size_hint", s)}
+                className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold transition active:scale-95"
+                style={size === s
+                  ? { background: "var(--foreground)", color: "var(--background)" }
+                  : { color: "var(--muted-foreground)" }}
+              >
+                {s === "20ft" ? "20ft (~28 CBM)" : "40ft HQ (~68 CBM)"}
+              </button>
+            ))}
+          </div>
+
+          <Field label="TOTAL FREIGHT YOUR PARTNER PAID (USD)">
+            <input
+              type="number"
+              inputMode="decimal"
+              value={totalFreight}
+              placeholder="e.g. 8000"
+              disabled={disabled}
+              onChange={(e) => setTotalFreight(e.target.value)}
+              onBlur={() => {
+                const n = totalFreight === "" ? null : Number(totalFreight);
+                if (n !== (shipment.total_container_freight_usd ?? null)) onPatch("total_container_freight_usd", n);
+              }}
+              className={inputCls}
+              style={disabled ? disabledSty : inputSty}
+            />
+          </Field>
+
+          <div className="flex items-center justify-between px-1 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            <span>Your CBM (this shipment)</span>
+            <span className="font-semibold text-foreground snm-num">{myCbm.toFixed(4)}</span>
+          </div>
+
+          {estimate != null && (
+            <div className="rounded-xl px-3.5 py-3 flex items-center justify-between" style={{ background: "var(--glass-bg-2)" }}>
+              <div>
+                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Estimated share</p>
+                <p className="text-[17px] font-bold text-foreground snm-num">${estimate.toFixed(2)}</p>
+              </div>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onApply(Number(estimate.toFixed(2)))}
+                className="h-11 px-4 rounded-xl text-[13px] font-bold transition active:scale-95"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}
+              >
+                Use this
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -963,6 +1082,13 @@ export function ShipmentDetail({ id }: { id: string }) {
                   = MVR <span className="font-semibold text-foreground">{fmt0(preview.freightMvr)}</span>
                 </p>
               )}
+              <SharedContainerEstimator
+                shipment={shipment}
+                myCbm={preview?.totalCbm ?? lines.reduce((acc, l) => acc + l.qty_cartons * l.cbm_per_carton, 0)}
+                disabled={locked}
+                onApply={(v) => patch("my_freight_share_usd", v)}
+                onPatch={(field, value) => patch(field, value)}
+              />
             </div>
 
             {/* Local costs */}
