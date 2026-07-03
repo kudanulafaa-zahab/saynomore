@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Banknote,
 } from "lucide-react";
 import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueRow } from "@/lib/queries/reports";
-import { listMarketingSpend } from "@/lib/queries/expenses";
+import { getPnl, type PnlRow } from "@/lib/queries/expenses";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
 
 const CARD: React.CSSProperties = {
@@ -265,9 +265,9 @@ export function FinancialsView() {
   const [tab, setTab] = useState<"profit" | "cod">(initialTab);
 
   const [rows, setRows]         = useState<ReportRow[]>([]);
-  const [expenses, setExpenses] = useState<{ amount_mvr: number }[]>([]);
+  const [pnl, setPnl]           = useState<PnlRow | null>(null);
+  const [lastPnl, setLastPnl]   = useState<PnlRow | null>(null);
   const [monthly, setMonthly]   = useState<MonthlyRevenueRow[]>([]);
-  const [lastMonthRows, setLastMonthRows] = useState<ReportRow[]>([]);
   const [loading, setLoading]   = useState(true);
 
   const today          = new Date();
@@ -280,42 +280,39 @@ export function FinancialsView() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
+      // The whole P&L (incl. period-correct marketing proration and the
+      // opex category breakdown) is one Postgres call — no financial math
+      // in the client. rows is kept only for the per-brand table.
+      getPnl(firstOfMonth, tomorrow),
+      getPnl(lastMonthStart, lastMonthEnd),
       getReportsData(firstOfMonth, tomorrow),
-      listMarketingSpend(),
       getMonthlyRevenue(6),
-      getReportsData(lastMonthStart, lastMonthEnd),
     ])
-      .then(([r, e, m, lm]) => {
+      .then(([p, lp, r, m]) => {
+        setPnl(p);
+        setLastPnl(lp);
         setRows(r);
-        // Only spend overlapping THIS month. Revenue/COGS above are
-        // month-to-date, so the opex subtracted from them must be too —
-        // unfiltered, every past campaign ever logged would permanently
-        // drag net profit down. (Same overlap rule as reports-view.)
-        setExpenses(e.filter((s) => {
-          const end = s.end_date ?? tomorrow;
-          return s.start_date <= tomorrow && end >= firstOfMonth;
-        }));
         setMonthly(m);
-        setLastMonthRows(lm);
       })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── This month P&L ──────────────────────────────────────────────────────
-  const totalRevenue    = useMemo(() => rows.reduce((a, r) => a + Number(r.total_revenue_mvr), 0), [rows]);
-  const totalLandedCost = useMemo(() => rows.reduce((a, r) => a + Number(r.total_landed_cost_mvr), 0), [rows]);
-  const totalOpex       = useMemo(() => expenses.reduce((a, e) => a + Number(e.amount_mvr), 0), [expenses]);
-  const grossProfit     = totalRevenue - totalLandedCost;
-  const netProfit       = grossProfit - totalOpex;
-  const grossMarginPct  = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
-  const netMarginPct    = totalRevenue > 0 ? (netProfit  / totalRevenue) * 100 : 0;
+  // ── This month P&L (all figures straight from get_pnl) ──────────────────
+  const totalRevenue    = Number(pnl?.revenue_mvr ?? 0);
+  const totalLandedCost = Number(pnl?.cogs_mvr ?? 0);
+  const grossProfit     = Number(pnl?.gross_profit_mvr ?? 0);
+  const marketingSpend  = Number(pnl?.marketing_mvr ?? 0);
+  const otherOpex       = Number(pnl?.other_opex_mvr ?? 0);
+  const netProfit       = Number(pnl?.net_profit_mvr ?? 0);
+  const grossMarginPct  = Number(pnl?.gross_margin_pct ?? 0);
+  const netMarginPct    = Number(pnl?.net_margin_pct ?? 0);
+  const opexBreakdown   = pnl?.opex_by_category ?? [];
 
   // ── Last month comparison ────────────────────────────────────────────────
-  const lastRevenue    = useMemo(() => lastMonthRows.reduce((a, r) => a + Number(r.total_revenue_mvr), 0), [lastMonthRows]);
-  const lastLanded     = useMemo(() => lastMonthRows.reduce((a, r) => a + Number(r.total_landed_cost_mvr), 0), [lastMonthRows]);
-  const lastGross      = lastRevenue - lastLanded;
+  const lastRevenue    = Number(lastPnl?.revenue_mvr ?? 0);
+  const lastGross      = Number(lastPnl?.gross_profit_mvr ?? 0);
   const revDelta       = lastRevenue > 0 ? ((totalRevenue - lastRevenue) / lastRevenue * 100) : null;
   const grossDelta     = lastGross  > 0 ? ((grossProfit  - lastGross)   / lastGross  * 100) : null;
 
@@ -450,11 +447,28 @@ export function FinancialsView() {
             <p style={{ color: grossProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(grossProfit)}</p>
           </div>
 
-          {/* Marketing spend row */}
+          {/* Marketing spend row — prorated to this month by get_pnl */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Marketing Spend</p>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalOpex)}</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(marketingSpend)}</p>
           </div>
+
+          {/* Operating expenses — rent, salaries, utilities… by category */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: opexBreakdown.length ? 4 : 6 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Operating Expenses</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(otherOpex)}</p>
+          </div>
+          {opexBreakdown.map((c) => (
+            <div key={c.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2, paddingLeft: 14 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{c.name}</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>MVR {fmt(Number(c.amount))}</p>
+            </div>
+          ))}
+          {otherOpex === 0 && (
+            <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginBottom: 6, opacity: 0.8 }}>
+              No expenses logged this month — add rent, salaries etc. in Expenses so this number is real.
+            </p>
+          )}
 
           {/* Net profit divider */}
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />
@@ -469,7 +483,7 @@ export function FinancialsView() {
                   {netMarginPct >= 0 ? "+" : ""}{netMarginPct.toFixed(1)}% net margin
                 </span>
               </div>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>Revenue − COGS − Marketing</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>Revenue − COGS − Marketing − Expenses</p>
             </div>
             <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
               MVR {fmtShort(netProfit)}

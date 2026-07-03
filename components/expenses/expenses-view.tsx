@@ -11,8 +11,14 @@ import {
   createMarketingSpend,
   updateMarketingSpend,
   deleteMarketingSpend,
+  listExpenseCategories,
+  listBusinessExpenses,
+  createBusinessExpense,
+  deleteBusinessExpense,
   type MarketingSpendRow,
   type SpendChannel,
+  type ExpenseCategoryRow,
+  type BusinessExpenseRow,
 } from "@/lib/queries/expenses";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
@@ -58,9 +64,14 @@ export function ExpensesView() {
   const [deleting, setDeleting] = useState(false);
 
   const [quickAmount, setQuickAmount] = useState("");
-  const [quickChannel, setQuickChannel] = useState<SpendChannel>("other");
   const [loggingQuick, setLoggingQuick] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
+
+  // General business expenses (rent, salaries, …) — these feed the P&L's
+  // Operating Expenses line. Marketing campaigns stay their own thing.
+  const [categories, setCategories] = useState<ExpenseCategoryRow[]>([]);
+  const [bizRows, setBizRows]       = useState<BusinessExpenseRow[]>([]);
+  const [quickCategoryId, setQuickCategoryId] = useState<string>("");
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
@@ -69,9 +80,14 @@ export function ExpensesView() {
   async function load() {
     setLoading(true);
     try {
-      const [r, s] = await Promise.all([listMarketingSpend(), listSkusFlat()]);
+      const [r, s, cats, biz] = await Promise.all([
+        listMarketingSpend(), listSkusFlat(), listExpenseCategories(), listBusinessExpenses(),
+      ]);
       setRows(r);
       setSkus(s);
+      setCategories(cats);
+      setBizRows(biz);
+      setQuickCategoryId((prev) => prev || cats[0]?.id || "");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -90,23 +106,28 @@ export function ExpensesView() {
     })).sort((a, b) => b.total - a.total),
   [rows]);
 
+  const bizThisMonth = useMemo(() => {
+    const m = new Date().toISOString().slice(0, 7);
+    return bizRows.filter((r) => r.expense_date.startsWith(m)).reduce((a, r) => a + Number(r.amount_mvr), 0);
+  }, [bizRows]);
+
+  const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "—";
+
   async function handleQuickLog() {
     const amt = parseFloat(quickAmount);
     if (!amt || amt <= 0) { toast.error("Enter an amount"); return; }
+    if (!quickCategoryId) { toast.error("Pick a category"); return; }
     setLoggingQuick(true);
     const payload = {
-      channel: quickChannel,
+      category_id: quickCategoryId,
       amount_mvr: amt,
-      campaign_name: null,
-      start_date: new Date().toISOString().slice(0, 10),
-      end_date: null,
-      notes: null,
-      sku_ids: [] as string[],
+      expense_date: new Date().toISOString().slice(0, 10),
+      description: null,
     };
     try {
       const { queued } = await withOfflineFallback(
-        () => createMarketingSpend(payload),
-        { table: "marketing_spend", action: "insert", payload },
+        () => createBusinessExpense(payload),
+        { table: "business_expenses", action: "insert", payload },
       );
       toast.success(queued ? "Saved offline — will sync when connected" : "Expense logged");
       setQuickAmount("");
@@ -115,6 +136,16 @@ export function ExpensesView() {
       toast.error((e as Error).message);
     } finally {
       setLoggingQuick(false);
+    }
+  }
+
+  async function handleDeleteBiz(row: BusinessExpenseRow) {
+    try {
+      await deleteBusinessExpense(row.id);
+      toast.success("Expense removed");
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
     }
   }
 
@@ -136,7 +167,7 @@ export function ExpensesView() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
-            <Plus className="h-4 w-4" /> Log Expense
+            <Plus className="h-4 w-4" /> Log Campaign
           </button>
         )}
       </div>
@@ -144,7 +175,7 @@ export function ExpensesView() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="glass p-4 rounded-2xl space-y-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Total Spend</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Marketing</p>
           <p className="text-xl font-semibold text-foreground snm-num">MVR {fmtShort(totalMvr)}</p>
           <p className="text-xs text-muted-foreground">all time</p>
         </div>
@@ -163,49 +194,88 @@ export function ExpensesView() {
           </p>
         </div>
         <div className="glass p-4 rounded-2xl space-y-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">This Month</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Expenses</p>
           <p className="text-xl font-semibold text-foreground snm-num">
-            {(() => {
-              const m = new Date().toISOString().slice(0, 7);
-              const tot = rows.filter((r) => r.start_date.startsWith(m)).reduce((a, r) => a + Number(r.amount_mvr), 0);
-              return tot > 0 ? `MVR ${fmtShort(tot)}` : "—";
-            })()}
+            {bizThisMonth > 0 ? `MVR ${fmtShort(bizThisMonth)}` : "—"}
           </p>
-          <p className="text-xs text-muted-foreground">{new Date().toLocaleString("en-MV", { month: "long" })}</p>
+          <p className="text-xs text-muted-foreground">{new Date().toLocaleString("en-MV", { month: "long" })} · rent, salaries…</p>
         </div>
       </div>
 
-      {/* Quick log bar */}
-      <div className="glass p-3 rounded-2xl flex items-center gap-2 flex-wrap sm:flex-nowrap">
-        <div className="relative flex-1 min-w-[120px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">MVR</span>
-          <input
-            type="number"
-            placeholder="0.00"
-            value={quickAmount}
-            onChange={(e) => setQuickAmount(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleQuickLog()}
-            className="w-full h-11 pl-12 pr-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
-          />
+      {/* Quick log bar — general business expenses (feeds the P&L's
+          Operating Expenses line). Marketing campaigns use Log Campaign. */}
+      <div className="glass p-3 rounded-2xl">
+        <p className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 px-1">
+          Quick log — business expense
+        </p>
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 min-w-[120px]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">MVR</span>
+            <input
+              type="number" inputMode="decimal" min="0"
+              placeholder="0.00"
+              value={quickAmount}
+              onChange={(e) => setQuickAmount(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleQuickLog()}
+              className="w-full h-11 pl-12 pr-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
+            />
+          </div>
+          <select
+            value={quickCategoryId}
+            onChange={(e) => setQuickCategoryId(e.target.value)}
+            className="h-11 px-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleQuickLog}
+            disabled={loggingQuick || !quickAmount}
+            className="h-11 px-5 rounded-xl text-sm font-semibold shrink-0 disabled:opacity-50"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            {loggingQuick ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log"}
+          </button>
         </div>
-        <select
-          value={quickChannel}
-          onChange={(e) => setQuickChannel(e.target.value as SpendChannel)}
-          className="h-11 px-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
-        >
-          {(Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((c) => (
-            <option key={c} value={c}>{CHANNEL_LABEL[c]}</option>
-          ))}
-        </select>
-        <button
-          onClick={handleQuickLog}
-          disabled={loggingQuick || !quickAmount}
-          className="h-11 px-5 rounded-xl text-sm font-semibold shrink-0 disabled:opacity-50"
-          style={{ background: "var(--foreground)", color: "var(--background)" }}
-        >
-          {loggingQuick ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log"}
-        </button>
       </div>
+
+      {/* Business expenses — recent */}
+      {bizRows.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Business Expenses</h2>
+          <div className="glass rounded-2xl overflow-hidden">
+            {bizRows.slice(0, 10).map((r, i) => (
+              <div
+                key={r.id}
+                className="flex items-center justify-between px-4 py-3"
+                style={i > 0 ? { borderTop: "0.5px solid var(--glass-border-lo)" } : undefined}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{catName(r.category_id)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(r.expense_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                    {r.description ? ` · ${r.description}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <p className="text-sm font-semibold text-foreground snm-num">MVR {fmt(Number(r.amount_mvr))}</p>
+                  {canWrite && (
+                    <button
+                      onClick={() => handleDeleteBiz(r)}
+                      aria-label="Delete expense"
+                      className="h-8 w-8 rounded-lg flex items-center justify-center"
+                      style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Channel breakdown + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
