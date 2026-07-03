@@ -287,7 +287,14 @@ export function FinancialsView() {
     ])
       .then(([r, e, m, lm]) => {
         setRows(r);
-        setExpenses(e);
+        // Only spend overlapping THIS month. Revenue/COGS above are
+        // month-to-date, so the opex subtracted from them must be too —
+        // unfiltered, every past campaign ever logged would permanently
+        // drag net profit down. (Same overlap rule as reports-view.)
+        setExpenses(e.filter((s) => {
+          const end = s.end_date ?? tomorrow;
+          return s.start_date <= tomorrow && end >= firstOfMonth;
+        }));
         setMonthly(m);
         setLastMonthRows(lm);
       })
