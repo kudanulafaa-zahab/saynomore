@@ -943,7 +943,11 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         )}
       </SheetInput>
 
-      <SheetInput label="Piece price (optional)">
+      {/* Label was "(optional)" but canSave requires it — the save button
+          just sat dead with no explanation when this was cleared. It
+          auto-fills from the pack price, so it only needs typing when the
+          loose-piece price differs. */}
+      <SheetInput label="Piece price (auto from pack — edit if different)">
         <input
           type="number" inputMode="decimal" step="0.01" min="0.01"
           value={pieceStr}
@@ -952,6 +956,11 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           className={inputCls}
         />
       </SheetInput>
+      {!canSave && sku && (
+        <p className="text-[12px] mt-2" style={{ color: "var(--snm-warning)" }}>
+          All three prices (pack, carton, piece) need a value above 0 to save.
+        </p>
+      )}
 
       <div className="flex gap-3 mt-6">
         {extraAction}

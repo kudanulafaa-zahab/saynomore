@@ -1802,8 +1802,11 @@ function NewSkuWizard({
               // Live derived prices when fixed carton price is entered
               const fixedVal = parseFloat(fixedPrice);
               const derivedBottlePrice = !isNaN(fixedVal) && fixedVal > 0 && pcsN > 0
-                ? fixedEntryUnit === "carton" && pcsPerCarton
-                  ? fixedVal / ctnsN               // carton ÷ packs_per_carton = per bottle
+                ? fixedEntryUnit === "carton"
+                  // Can't derive per-bottle until packs/carton is filled in —
+                  // falling through here used to show the CARTON price
+                  // labeled as the per-bottle figure.
+                  ? (pcsPerCarton ? fixedVal / ctnsN : null)
                   : fixedVal                        // already per bottle
                 : null;
               const derivedCartonPrice = !isNaN(fixedVal) && fixedVal > 0

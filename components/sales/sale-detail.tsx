@@ -180,8 +180,15 @@ export function SaleDetail({ id }: { id: string }) {
 
   async function handleDeliver() {
     if (!order) return;
-    setCompleting(true);
     const cash = parseFloat(cashCollected);
+    // COD: the cash figure is the whole point of the confirmation — the
+    // field said "required" but silently dropped empty/invalid input,
+    // producing phantom full-shortfall days in COD reconciliation.
+    if (isCOD) {
+      if (isNaN(cash)) { toast.error("Enter the cash amount the driver collected"); return; }
+      if (cash < 0)    { toast.error("Cash collected can't be negative"); return; }
+    }
+    setCompleting(true);
     const p = {
       status: "delivered",
       delivered_at: new Date().toISOString(),

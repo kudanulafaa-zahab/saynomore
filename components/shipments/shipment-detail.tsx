@@ -21,7 +21,7 @@ const BarcodeScanner = dynamic(
 import {
   getShipment, listShipmentLines, updateShipment, deleteShipment,
   createShipmentLine, updateShipmentLine, deleteShipmentLine,
-  confirmGrn, forceVoidGrn, reopenGrn, CONTAINER_CAPACITY_CBM,
+  confirmGrn, forceVoidGrn, reopenGrn, CONTAINER_CAPACITY_CBM, getLastConfirmedRates,
   type ShipmentRow, type ShipmentLineRow, type FobCurrency, type ShipmentStatus,
   type ContainerSizeHint,
 } from "@/lib/queries/shipments";
@@ -87,13 +87,14 @@ function fmtDate(iso: string | null | undefined) {
 /* ── Number input with local state ──────────────────────────────────────── */
 
 function NumInput({
-  value, onChange, disabled, placeholder, compact,
+  value, onChange, disabled, placeholder, compact, min,
 }: {
   value: number | null | undefined;
   onChange: (v: number | null) => void;
   disabled?: boolean;
   placeholder?: string;
   compact?: boolean;
+  min?: number;
 }) {
   const [local, setLocal] = useState(value != null ? String(value) : "");
   useEffect(() => { setLocal(value != null ? String(value) : ""); }, [value]);
@@ -105,7 +106,11 @@ function NumInput({
       placeholder={placeholder ?? "0"}
       onChange={(e) => setLocal(e.target.value)}
       onBlur={() => {
-        const n = local === "" ? null : Number(local);
+        let n = local === "" ? null : Number(local);
+        // Costs can never be negative — a stray minus sign here would
+        // deflate landed cost permanently at GRN. Clamp and show what
+        // was actually saved (DB CHECKs from 0055 are the backstop).
+        if (n != null && min != null && n < min) { n = min; setLocal(String(min)); }
         if (n !== (value ?? null)) onChange(n);
       }}
       disabled={disabled}
@@ -380,19 +385,24 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [editingLine, setEditingLine]   = useState<ShipmentLineRow | undefined>();
   const [pendingDeleteLine, setPendingDeleteLine] = useState<ShipmentLineRow | null>(null);
 
+  // Rates from the last confirmed GRN — typo tripwire for the forex fields.
+  const [lastRates, setLastRates] = useState<{ rate_usd_to_mvr: number | null; rate_usd_to_idr: number | null } | null>(null);
+
   /* ── Data loading ──────────────────────────────────────────────────────── */
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, ls, sk, sup, gd] = await Promise.all([
+      const [s, ls, sk, sup, gd, lr] = await Promise.all([
         getShipment(id), listShipmentLines(id), listSkusFlat(), listSuppliers(), listGodowns(),
+        getLastConfirmedRates(id).catch(() => null),
       ]);
       setShipment(s);
       setLines(ls);
       setSkus(sk);
       setSuppliers(sup);
       setGodowns(gd);
+      setLastRates(lr);
       // Default the receiving warehouse to any line's existing destination, else
       // the default godown — chosen/changed in the GRN confirm sheet.
       setGrnGodownId((prev) =>
@@ -411,6 +421,28 @@ export function ShipmentDetail({ id }: { id: string }) {
   const canWrite = role !== "viewer" && role !== null;
   const locked   = shipment?.status === "grn_confirmed" || !canWrite;
   const arrived  = shipment?.status === "arrived";
+
+  // Forex typo tripwire — warn (never block) when an entered rate is wildly
+  // off: vs the last confirmed shipment when one exists, else vs broad
+  // plausibility bands. Catches e.g. the IDR figure typed into the MVR box,
+  // which would otherwise lock a 1000x landed-cost error at GRN.
+  const rateWarning = useMemo(() => {
+    if (!shipment || locked) return null;
+    const msgs: string[] = [];
+    const check = (label: string, v: number | null, prev: number | null | undefined, lo: number, hi: number) => {
+      if (v == null || v <= 0) return;
+      if (prev != null && prev > 0) {
+        if (Math.abs(v - prev) / prev > 0.2) {
+          msgs.push(`${label} is ${v} but your last shipment used ${prev} — double-check before confirming.`);
+        }
+      } else if (v < lo || v > hi) {
+        msgs.push(`${label} of ${v} looks unusual — double-check before confirming.`);
+      }
+    };
+    check("1 USD = MVR", shipment.rate_usd_to_mvr, lastRates?.rate_usd_to_mvr, 10, 25);
+    check("1 USD = IDR", shipment.rate_usd_to_idr, lastRates?.rate_usd_to_idr, 8000, 25000);
+    return msgs.length ? msgs.join(" ") : null;
+  }, [shipment, lastRates, locked]);
 
   /* ── Live landed-cost preview ──────────────────────────────────────────── */
 
@@ -1045,6 +1077,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   <NumInput
                     value={shipment.rate_usd_to_mvr}
                     disabled={locked}
+                    min={0}
                     placeholder="e.g. 15.42"
                     onChange={async (v) => {
                       // rate_idr_to_mvr (the rate landed-cost math actually uses) is
@@ -1058,6 +1091,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   <NumInput
                     value={shipment.rate_usd_to_idr}
                     disabled={locked}
+                    min={0}
                     placeholder="e.g. 15820"
                     onChange={async (usdToIdr) => {
                       // rate_idr_to_mvr is derived in Postgres by the
@@ -1070,12 +1104,19 @@ export function ShipmentDetail({ id }: { id: string }) {
               <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                 IDR → MVR (auto): {shipment.rate_idr_to_mvr != null ? shipment.rate_idr_to_mvr.toFixed(6) : "—"}
               </p>
+              {rateWarning && (
+                <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-xl"
+                  style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 22%, transparent)" }}>
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{rateWarning}</p>
+                </div>
+              )}
             </div>
 
             {/* Freight */}
             <div>
               <Field label="MY FREIGHT SHARE (USD)">
-                <NumInput value={shipment.my_freight_share_usd} disabled={locked} placeholder="0" onChange={(v) => patch("my_freight_share_usd", v ?? 0)} />
+                <NumInput value={shipment.my_freight_share_usd} disabled={locked} min={0} placeholder="0" onChange={(v) => patch("my_freight_share_usd", v ?? 0)} />
               </Field>
               {preview && (
                 <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
@@ -1109,6 +1150,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                       value={(shipment as unknown as Record<string, number>)[field]}
                       disabled={locked}
                       compact
+                      min={0}
                       placeholder="0"
                       onChange={(v) => patch(field, v ?? 0)}
                     />

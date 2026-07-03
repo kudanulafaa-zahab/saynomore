@@ -746,6 +746,29 @@ function NewSaleSheet({
     return toPieces(lineUom, n, selectedSku.pcs_per_pack, selectedSku.packs_per_carton);
   }, [selectedSku, lineQty, lineUom]);
 
+  // Guardrail on the manual price override — warns, never blocks (the rep
+  // may genuinely intend a special price). Red: below what the goods cost
+  // you. Amber: wildly different from the usual auto price, the classic
+  // "typed the pack price on a carton line" mistake.
+  const priceWarning = useMemo(() => {
+    if (!selectedSku || linePrice === "") return null;
+    const p = parseFloat(linePrice);
+    if (isNaN(p) || p <= 0) return null;
+    const perUom = lineUom === "carton" ? selectedSku.pcs_per_pack * selectedSku.packs_per_carton
+      : lineUom === "pack" ? selectedSku.pcs_per_pack : 1;
+    const landed = selectedSku.landed_per_piece_mvr;
+    if (landed != null && landed > 0 && p / perUom < landed) {
+      return { color: "var(--snm-error)", text: `Below cost — this ${lineUom} cost you ~MVR ${(landed * perUom).toFixed(0)}` };
+    }
+    const ap = autoPrice(selectedSku, lineUom, mixedCarton);
+    const auto = ap.price ? parseFloat(ap.price) : NaN;
+    if (!isNaN(auto) && auto > 0 && Math.abs(p - auto) / auto > 0.4) {
+      return { color: "var(--snm-warning)", text: `Usual price is MVR ${auto.toFixed(0)} — double-check` };
+    }
+    return null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSku, linePrice, lineUom, mixedCarton]);
+
   const lineTotal = useMemo(() => {
     const q = parseFloat(lineQty); const p = parseFloat(linePrice);
     if (isNaN(q) || isNaN(p)) return 0;
@@ -1429,6 +1452,11 @@ function NewSaleSheet({
                       {priceListInfo && (
                         <p className="text-[12px] text-center mt-1 leading-tight" style={{ color: "var(--muted-foreground)" }}>
                           {priceListInfo}
+                        </p>
+                      )}
+                      {priceWarning && (
+                        <p className="text-[12px] text-center mt-1 font-semibold leading-tight" style={{ color: priceWarning.color }}>
+                          ⚠ {priceWarning.text}
                         </p>
                       )}
                     </div>

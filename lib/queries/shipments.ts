@@ -122,6 +122,26 @@ export async function getShipment(id: string): Promise<ShipmentRow | null> {
   return data;
 }
 
+// Rates from the most recent confirmed GRN (excluding the current shipment).
+// Used only as a typo tripwire on the forex inputs — e.g. typing the IDR
+// figure into the MVR box is a 1000x landed-cost error that used to be
+// accepted silently.
+export async function getLastConfirmedRates(excludeId: string): Promise<{
+  rate_usd_to_mvr: number | null;
+  rate_usd_to_idr: number | null;
+} | null> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("rate_usd_to_mvr, rate_usd_to_idr")
+    .eq("status", "grn_confirmed")
+    .neq("id", excludeId)
+    .order("grn_confirmed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function listShipmentLines(shipmentId: string): Promise<ShipmentLineRow[]> {
   const { data, error } = await supabase
     .from("shipment_lines")

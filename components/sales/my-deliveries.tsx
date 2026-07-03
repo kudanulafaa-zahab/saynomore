@@ -158,7 +158,11 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, onClose, onD
       <p style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Amount collected (MVR)</p>
       <input
         ref={inputRef}
-        type="number" inputMode="numeric" pattern="[0-9]*" step="0.01"
+        // inputMode="decimal" (not numeric/[0-9]*) — the digits-only iOS
+        // keypad has no decimal point, so drivers physically couldn't type
+        // the .50 amounts the Expected figure shows, creating false
+        // variances on every non-whole COD total.
+        type="number" inputMode="decimal" step="0.01" min="0"
         value={amount} onChange={(e) => setAmount(e.target.value)}
         placeholder="0.00"
         style={{

@@ -186,9 +186,15 @@ export function EditModelDialog({
             </div>
             <div className="space-y-2">
               <Label>Duty %</Label>
-              <Input type="number" step="0.01" value={duty} onChange={(e) => setDuty(e.target.value)} />
+              <Input type="number" step="0.01" min="0" value={duty} onChange={(e) => setDuty(e.target.value)} />
             </div>
           </div>
+          {/* Honest label: nothing reads duty_rate_pct yet — customs duty is
+              entered as a lump sum on the shipment. Without this note a user
+              reasonably assumes duty gets auto-calculated after filling it. */}
+          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            For reference only for now — customs duty is still entered as a total on each shipment. Auto-estimation from these rates is planned.
+          </p>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -397,6 +403,17 @@ export function EditSkuDialog({
 
   async function save() {
     if (!sku) return;
+    // Friendly bounds checks — otherwise these surface as raw Postgres
+    // CHECK-constraint errors in a toast.
+    const m = marginPct ? parseFloat(marginPct) : null;
+    if (m != null && (isNaN(m) || m <= 0 || m >= 100)) {
+      toast.error("Target margin must be between 1% and 99%");
+      return;
+    }
+    if (!(parseInt(pcsPerPack, 10) > 0) || !(parseInt(packsPerCarton, 10) > 0)) {
+      toast.error("Pieces per pack and packs per carton must be at least 1");
+      return;
+    }
     setSaving(true);
     try {
       await updateSku(sku.id, {
@@ -684,6 +701,15 @@ export function EditSkuDialog({
                       style={{ borderColor: "color-mix(in srgb, var(--snm-brand) 20%, transparent)", color: fixedPreview.actualMargin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                       Margin on current cost: <strong>{fixedPreview.actualMargin.toFixed(1)}%</strong>
                       {fixedPreview.actualMargin < 0 && " — ⚠ below cost!"}
+                    </p>
+                  )}
+                  {/* Tripwire for the classic mistake: typing the CARTON price
+                      into this per-pack field shows up as an absurdly high
+                      margin a novice won't recognize as wrong. */}
+                  {fixedPreview.actualMargin != null && fixedPreview.actualMargin > 85 && (
+                    <p className="text-[12px] text-center font-semibold"
+                      style={{ color: "var(--snm-warning)" }}>
+                      ⚠ This is unusually high vs your cost — did you type the carton price here by mistake? This field is per {unit.toLowerCase()}.
                     </p>
                   )}
                   {!landedPerPiece && (
