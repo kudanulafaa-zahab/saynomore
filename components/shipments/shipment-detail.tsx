@@ -260,6 +260,10 @@ function SharedContainerEstimator({
   const estimate = capacity && totalFreightNum != null && myCbm > 0
     ? (totalFreightNum * (myCbm / capacity))
     : null;
+  // A shipment bigger than the chosen container can't be right — the share
+  // would exceed 100% of the partner's bill. Warn instead of estimating
+  // nonsense; the wrong container size is the usual cause.
+  const overCapacity = capacity != null && myCbm > capacity;
 
   return (
     <div className="mt-3 rounded-xl overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
@@ -328,7 +332,18 @@ function SharedContainerEstimator({
             <span className="font-semibold text-foreground snm-num">{myCbm.toFixed(4)}</span>
           </div>
 
-          {estimate != null && (
+          {overCapacity && (
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
+              style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 22%, transparent)" }}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                Your shipment is {myCbm.toFixed(1)} CBM but a {size === "20ft" ? "20ft holds ~28" : "40ft HQ holds ~68"} CBM —
+                your share would come out above 100% of the bill. Check the container size.
+              </p>
+            </div>
+          )}
+
+          {estimate != null && !overCapacity && (
             <div className="rounded-xl px-3.5 py-3 flex items-center justify-between" style={{ background: "var(--glass-bg-2)" }}>
               <div>
                 <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Estimated share</p>
