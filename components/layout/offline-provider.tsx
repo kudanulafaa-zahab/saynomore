@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { useKeyboardInset } from "@/lib/use-keyboard-inset";
 
 export function OfflineProvider({ children }: { children: React.ReactNode }) {
+  // Publish the on-screen keyboard height as --kb-inset app-wide so any bottom
+  // sheet can lift its action button above the keyboard. Cheap; 0 when closed.
+  useKeyboardInset(true);
+
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 

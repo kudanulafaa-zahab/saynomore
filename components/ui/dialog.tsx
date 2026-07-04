@@ -94,7 +94,7 @@ function DialogContent({
         ) : (
           /* Scrollable padded body. Horizontal padding lives here so no child
              bleeds to the screen edge; bottom padding clears the iOS home bar. */
-          <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4">
+          <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom),var(--kb-inset))] sm:pb-4">
             {children}
           </div>
         )}
@@ -143,7 +143,7 @@ function DialogFooter({
         // Sticks to the bottom of the scroll body; negative insets bleed the
         // bar to the padded parent's edges. mt-auto pins it down when content
         // is short; sticky keeps it visible while the body scrolls.
-        "sticky bottom-0 mt-auto -mx-4 -mb-[max(1rem,env(safe-area-inset-bottom))] sm:-mb-4 flex flex-col-reverse gap-2 border-t bg-muted/50 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4 sm:flex-row sm:justify-end",
+        "sticky bottom-0 mt-auto -mx-4 -mb-[max(1rem,env(safe-area-inset-bottom))] sm:-mb-4 flex flex-col-reverse gap-2 border-t bg-muted/50 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom),var(--kb-inset))] sm:pb-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

@@ -487,7 +487,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
         className="glass-modal rounded-t-3xl w-full overflow-y-auto"
         style={{
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--kb-inset))",
         }}
       >
         {/* Handle */}

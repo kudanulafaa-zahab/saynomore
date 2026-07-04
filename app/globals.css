@@ -74,6 +74,10 @@
 :root {
   color-scheme: light dark;
 
+  /* Keyboard height published by useKeyboardInset; 0 when no keyboard/unsupported.
+     Bottom sheets lift their footer with max(safe-area, var(--kb-inset)). */
+  --kb-inset: 0px;
+
   --snm-success: #16a34a;
   --snm-error:   #dc2626;
   --snm-warning: #d97706;

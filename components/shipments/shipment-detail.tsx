@@ -1843,7 +1843,7 @@ function LineDialog({
         <div
           className="shrink-0 flex gap-3 px-6 pt-3"
           style={{
-            paddingBottom: "calc(20px + env(safe-area-inset-bottom, 16px))",
+            paddingBottom: "max(calc(20px + env(safe-area-inset-bottom, 16px)), var(--kb-inset))",
             borderTop: "0.5px solid var(--glass-border-lo)",
           }}
         >
