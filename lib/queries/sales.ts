@@ -258,6 +258,88 @@ export async function getTierPricesForSkus(
   return map;
 }
 
+// ── Payment ledger (partial payments) ────────────────────────────────────
+
+export type PaymentMethod = "cash" | "transfer" | "cod" | "card" | "other";
+
+export interface OrderPaymentRow {
+  id: string;
+  order_id: string;
+  amount_mvr: number;
+  method: PaymentMethod;
+  paid_at: string;
+  reference: string | null;
+  note: string | null;
+  is_reversal: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface OrderBalanceRow {
+  order_id: string;
+  order_number: string;
+  customer_id: string | null;
+  payment_status: PaymentStatus;
+  payment_method: string | null;
+  order_total_mvr: number;
+  paid_mvr: number;
+  balance_mvr: number;
+  last_paid_at: string | null;
+  payment_count: number | null;
+}
+
+/** All payment rows for an order, newest first. */
+export async function listOrderPayments(orderId: string): Promise<OrderPaymentRow[]> {
+  const { data, error } = await supabase
+    .from("order_payments")
+    .select("*")
+    .eq("order_id", orderId)
+    .order("paid_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as OrderPaymentRow[];
+}
+
+/** Derived balance for one order (total / paid / outstanding / status). */
+export async function getOrderBalance(orderId: string): Promise<OrderBalanceRow | null> {
+  const { data, error } = await supabase
+    .from("v_order_balances")
+    .select("*")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as OrderBalanceRow | null;
+}
+
+/**
+ * Record a payment (or a negative amount for a refund) against an order.
+ * All money math + status derivation happens in Postgres.
+ */
+export async function recordOrderPayment(input: {
+  orderId: string;
+  amountMvr: number;
+  method?: PaymentMethod;
+  paidAt?: string;
+  reference?: string | null;
+  note?: string | null;
+}): Promise<OrderPaymentRow> {
+  const { data, error } = await supabase.rpc("record_order_payment", {
+    p_order_id: input.orderId,
+    p_amount_mvr: input.amountMvr,
+    p_method: input.method ?? "transfer",
+    p_paid_at: input.paidAt ?? new Date().toISOString(),
+    p_reference: input.reference ?? null,
+    p_note: input.note ?? null,
+  });
+  if (error) throw error;
+  return data as OrderPaymentRow;
+}
+
+/** Delete a payment row (admin/manager). Status re-syncs via trigger. */
+export async function deleteOrderPayment(id: string) {
+  const { error } = await supabase.from("order_payments").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // Convert qty in any UoM to pieces, given the SKU
 export function toPieces(uom: SaleUom, qty: number, pcsPerPack: number, packsPerCarton: number): number {
   if (uom === "piece") return Math.round(qty);

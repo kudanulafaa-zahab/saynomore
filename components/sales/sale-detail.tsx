@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer, AlertTriangle, Plus, RotateCcw } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -15,12 +15,19 @@ import {
   deleteOrderLine,
   toPieces,
   getTierPricesForSkus,
+  listOrderPayments,
+  getOrderBalance,
+  recordOrderPayment,
+  deleteOrderPayment,
   type SalesOrderRow,
   type SalesOrderLineRow,
   type OrderStatus,
   type PaymentStatus,
   type SaleUom,
   type TierPrice,
+  type OrderPaymentRow,
+  type OrderBalanceRow,
+  type PaymentMethod,
 } from "@/lib/queries/sales";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
@@ -91,8 +98,18 @@ export function SaleDetail({ id }: { id: string }) {
   const [addrIsland,       setAddrIsland]       = useState("");
   const [savingAddress,    setSavingAddress]    = useState(false);
 
+  // payment ledger (partial payments)
+  const [payments, setPayments]         = useState<OrderPaymentRow[]>([]);
+  const [balance, setBalance]           = useState<OrderBalanceRow | null>(null);
+  const [payAmount, setPayAmount]       = useState("");
+  const [payMethod, setPayMethod]       = useState<PaymentMethod>("transfer");
+  const [payRef, setPayRef]             = useState("");
+  const [recordingPay, setRecordingPay] = useState(false);
+  const [pendingDeletePayment, setPendingDeletePayment] = useState<OrderPaymentRow | null>(null);
+  const [deletingPayment, setDeletingPayment] = useState(false);
+
   // inline dialogs (sheet-style bottom panels)
-  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | "printLabels" | null>(null);
+  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | "printLabels" | "recordPayment" | "deletePayment" | null>(null);
   const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
   const [editingLine, setEditingLine]             = useState<SalesOrderLineRow | undefined>(undefined);
   const [deletingLine, setDeletingLine]           = useState(false);
@@ -100,7 +117,7 @@ export function SaleDetail({ id }: { id: string }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [o, ls, sk, c, g, lvl, dr] = await Promise.all([
+      const [o, ls, sk, c, g, lvl, dr, pays, bal] = await Promise.all([
         getOrder(id),
         listOrderLines(id),
         listSkusFlat(),
@@ -112,6 +129,8 @@ export function SaleDetail({ id }: { id: string }) {
           .select("id, full_name")
           .in("role", ["staff", "admin", "manager"])
           .order("full_name"),
+        listOrderPayments(id),
+        getOrderBalance(id),
       ]);
       setOrder(o);
       setLines(ls);
@@ -120,6 +139,8 @@ export function SaleDetail({ id }: { id: string }) {
       setGodowns(g);
       setStockLevels(lvl);
       setDrivers((dr.data ?? []) as DriverOption[]);
+      setPayments(pays);
+      setBalance(bal);
     } catch (e) { toast.error((e as Error).message); }
     finally { setLoading(false); }
   }, [id]);
@@ -222,17 +243,46 @@ export function SaleDetail({ id }: { id: string }) {
     finally { setDepositing(false); }
   }
 
-  async function handleMarkPaid() {
+  // Open the record-payment sheet, defaulting the amount to the outstanding
+  // balance (the common case: customer clears what they owe).
+  function openRecordPayment() {
+    const outstanding = balance?.balance_mvr ?? totals.mvr;
+    setPayAmount(outstanding > 0 ? outstanding.toFixed(2).replace(/\.00$/, "") : "");
+    setPayMethod(isCOD ? "cod" : "transfer");
+    setPayRef("");
+    setPanel("recordPayment");
+  }
+
+  async function handleRecordPayment() {
     if (!order) return;
-    const p = { payment_status: "paid" } as Record<string, unknown>;
+    const amt = parseFloat(payAmount);
+    if (isNaN(amt) || amt === 0) { toast.error("Enter a payment amount"); return; }
+    setRecordingPay(true);
     try {
-      const { queued } = await withOfflineFallback(
-        () => updateOrder(order.id, p),
-        { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
-      );
-      toast.success(queued ? "Saved offline — will sync when connected" : "Payment received");
+      await recordOrderPayment({
+        orderId: order.id,
+        amountMvr: amt,
+        method: payMethod,
+        reference: payRef.trim() || null,
+      });
+      toast.success(amt < 0 ? "Refund recorded" : "Payment recorded");
+      setPanel(null);
       load();
     } catch (e) { toast.error((e as Error).message); }
+    finally { setRecordingPay(false); }
+  }
+
+  async function handleDeletePayment() {
+    if (!pendingDeletePayment) return;
+    setDeletingPayment(true);
+    try {
+      await deleteOrderPayment(pendingDeletePayment.id);
+      toast.success("Payment removed");
+      setPendingDeletePayment(null);
+      setPanel(null);
+      load();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setDeletingPayment(false); }
   }
 
   function startEditAddress() {
@@ -649,20 +699,15 @@ export function SaleDetail({ id }: { id: string }) {
               </div>
             )
           ) : (
-            order.payment_status !== "paid" ? (
-              <button
-                onClick={handleMarkPaid}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 16 }}
-              >
-                <Smartphone style={{ width: 18, height: 18 }} />
-                Mark Payment Received
-              </button>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>
-                <CheckCircle2 style={{ color: "var(--snm-success)", width: 18, height: 18 }} />
-                <p style={{ color: "var(--snm-success)", fontSize: 13, fontWeight: 600 }}>Bank transfer received</p>
-              </div>
-            )
+            <PaymentLedger
+              balance={balance}
+              payments={payments}
+              orderTotal={totals.mvr}
+              paymentStatus={order.payment_status}
+              canWrite={canWrite}
+              onRecord={openRecordPayment}
+              onDeletePayment={(p) => { setPendingDeletePayment(p); setPanel("deletePayment"); }}
+            />
           )}
 
           {/* Driver issue note — shown on delivered orders as audit trail */}
@@ -747,6 +792,96 @@ export function SaleDetail({ id }: { id: string }) {
           <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
           <button onClick={handleDeposit} disabled={depositing} style={{ ...primaryBtn, opacity: depositing ? 0.5 : 1 }}>
             {depositing ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Deposited ✓"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Record payment */}
+      <Sheet open={panel === "recordPayment"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Record a Payment</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 20 }}>
+          {balance && balance.balance_mvr > 0.005
+            ? <>Outstanding on {order.order_number}: <strong style={{ color: "var(--foreground)" }}>MVR {fmt(balance.balance_mvr)}</strong></>
+            : <>This order is fully paid. Any amount you add here counts as a credit.</>}
+        </p>
+
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Amount received (MVR) *</p>
+          <input
+            type="number" inputMode="decimal" step="0.01"
+            placeholder="0"
+            value={payAmount}
+            onChange={(e) => setPayAmount(e.target.value)}
+            style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
+          />
+          {balance && balance.balance_mvr > 0.005 && (
+            <button
+              type="button"
+              onClick={() => setPayAmount(balance.balance_mvr.toFixed(2).replace(/\.00$/, ""))}
+              style={{ marginTop: 8, background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "var(--snm-brand)", fontWeight: 600, cursor: "pointer" }}
+            >
+              Pay full balance — MVR {fmt(balance.balance_mvr)}
+            </button>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>How was it paid?</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {([
+              { value: "transfer" as PaymentMethod, label: "Transfer" },
+              { value: "cash" as PaymentMethod, label: "Cash" },
+              { value: "card" as PaymentMethod, label: "Card" },
+            ]).map((opt) => {
+              const active = payMethod === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setPayMethod(opt.value)}
+                  style={{
+                    background: active ? "var(--foreground)" : "var(--glass-bg-1)",
+                    color: active ? "var(--background)" : "var(--muted-foreground)",
+                    border: active ? "none" : "0.5px solid var(--glass-border-lo)",
+                    borderRadius: 10, padding: "12px 8px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>Reference / note (optional)</p>
+          <input
+            value={payRef}
+            onChange={(e) => setPayRef(e.target.value)}
+            placeholder="e.g. transfer slip no., or 'first instalment'"
+            style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <SheetActions>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleRecordPayment} disabled={recordingPay} style={{ ...primaryBtn, opacity: recordingPay ? 0.5 : 1 }}>
+            {recordingPay ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Record Payment"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
+      {/* Delete payment */}
+      <Sheet open={panel === "deletePayment"} onClose={() => { setPendingDeletePayment(null); setPanel(null); }}>
+        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove this payment?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
+          {pendingDeletePayment && (
+            <>A payment of <strong style={{ color: "var(--foreground)" }}>MVR {fmt(Math.abs(pendingDeletePayment.amount_mvr))}</strong> will be removed from this order. The balance and paid status update automatically.</>
+          )}
+        </p>
+        <SheetActions>
+          <button onClick={() => { setPendingDeletePayment(null); setPanel(null); }} style={ghostBtn}>Cancel</button>
+          <button onClick={handleDeletePayment} disabled={deletingPayment} style={{ ...primaryBtn, background: "var(--snm-error)" }}>
+            {deletingPayment ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
           </button>
         </SheetActions>
       </Sheet>
@@ -904,6 +1039,111 @@ function LineList({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Payment ledger (partial payments)                                          */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+const PAY_METHOD_LABEL: Record<string, string> = {
+  cash: "Cash", transfer: "Transfer", cod: "COD", card: "Card", other: "Other",
+};
+
+function PaymentLedger({
+  balance, payments, orderTotal, paymentStatus, canWrite, onRecord, onDeletePayment,
+}: {
+  balance: OrderBalanceRow | null;
+  payments: OrderPaymentRow[];
+  orderTotal: number;
+  paymentStatus: PaymentStatus;
+  canWrite: boolean;
+  onRecord: () => void;
+  onDeletePayment: (p: OrderPaymentRow) => void;
+}) {
+  const paid    = balance?.paid_mvr ?? 0;
+  const bal      = balance?.balance_mvr ?? orderTotal;
+  const isPaid   = paymentStatus === "paid" || bal <= 0.005;
+  const isPartial = !isPaid && paid > 0.005;
+  const credit   = bal < -0.005 ? -bal : 0;
+
+  const accent = isPaid ? "var(--snm-success)" : isPartial ? "var(--snm-warning)" : "var(--muted-foreground)";
+  const statusLabel = isPaid ? "Paid in full" : isPartial ? "Partly paid" : "Awaiting payment";
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {/* Status + progress */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isPaid
+            ? <CheckCircle2 style={{ color: accent, width: 18, height: 18 }} />
+            : <Smartphone style={{ color: accent, width: 18, height: 18 }} />}
+          <p style={{ color: accent, fontSize: 13, fontWeight: 700 }}>{statusLabel}</p>
+        </div>
+        {credit > 0 && (
+          <p style={{ color: "var(--snm-success)", fontSize: 12, fontWeight: 600 }}>MVR {fmt(credit)} credit</p>
+        )}
+      </div>
+
+      {/* Paid / outstanding bar */}
+      <div style={{ height: 8, borderRadius: 999, background: "var(--glass-bg-1)", overflow: "hidden", marginBottom: 10 }}>
+        <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, orderTotal > 0 ? (paid / orderTotal) * 100 : (isPaid ? 100 : 0)))}%`, background: accent, transition: "width 0.3s" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+        <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
+          Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong> of MVR {fmt(orderTotal)}
+        </span>
+        {!isPaid && (
+          <span style={{ color: accent, fontSize: 12, fontWeight: 700 }}>MVR {fmt(bal)} left</span>
+        )}
+      </div>
+
+      {/* Payment rows */}
+      {payments.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+          {payments.map((p) => {
+            const refund = p.amount_mvr < 0;
+            return (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--glass-bg-1)", borderRadius: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p className="snm-num" style={{ color: refund ? "var(--snm-error)" : "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
+                    {refund ? "− " : ""}MVR {fmt(Math.abs(p.amount_mvr))}
+                    <span style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 400, marginLeft: 8 }}>
+                      {refund ? "refund · " : ""}{PAY_METHOD_LABEL[p.method] ?? p.method}
+                    </span>
+                  </p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>
+                    {new Date(p.paid_at).toLocaleDateString()}{p.reference ? ` · ${p.reference}` : ""}
+                  </p>
+                </div>
+                {canWrite && (
+                  <button
+                    onClick={() => onDeletePayment(p)}
+                    aria-label="Remove payment"
+                    style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", padding: "4px 6px", flexShrink: 0 }}
+                  >
+                    <Trash2 style={{ width: 14, height: 14 }} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Actions */}
+      {canWrite && (
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={onRecord}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: isPaid ? "transparent" : "var(--foreground)", color: isPaid ? "var(--muted-foreground)" : "var(--background)", border: isPaid ? "0.5px solid var(--glass-border-lo)" : "none", borderRadius: 999, padding: "14px", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            {isPaid ? <RotateCcw style={{ width: 16, height: 16 }} /> : <Plus style={{ width: 16, height: 16 }} />}
+            {isPaid ? "Adjust / Refund" : isPartial ? "Record Next Payment" : "Record Payment"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
