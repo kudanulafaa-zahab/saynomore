@@ -796,20 +796,45 @@ export function CompetitorsView() {
                               </p>
                             </div>
                           </div>
-                          <div className="text-right shrink-0 ml-4">
-                            {pricePiece != null ? (
-                              <>
-                                <p className="text-[14px] font-semibold text-foreground">MVR {fmt2(pricePiece)}<span className="text-[12px] text-foreground/40">/pc</span></p>
-                                {delta != null && (
-                                  <p className="text-[12px] font-medium" style={{ color: deltaColor }}>
-                                    {delta > 0 ? "+" : ""}{fmt2(delta)} vs landed
-                                  </p>
-                                )}
-                              </>
-                            ) : (
-                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                                {fmt2(Number(price.price_mvr))} ({BASIS_LABEL[price.price_basis]})
-                              </p>
+                          <div className="flex items-center gap-2 shrink-0 ml-4">
+                            <div className="text-right">
+                              {pricePiece != null ? (
+                                <>
+                                  <p className="text-[14px] font-semibold text-foreground">MVR {fmt2(pricePiece)}<span className="text-[12px] text-foreground/40">/pc</span></p>
+                                  {delta != null && (
+                                    <p className="text-[12px] font-medium" style={{ color: deltaColor }}>
+                                      {delta > 0 ? "+" : ""}{fmt2(delta)} vs landed
+                                    </p>
+                                  )}
+                                </>
+                              ) : (
+                                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                                  {fmt2(Number(price.price_mvr))} ({BASIS_LABEL[price.price_basis]})
+                                </p>
+                              )}
+                            </div>
+                            {/* Edit / delete this competitor price — was only reachable
+                                from the Competitors list; add it here where prices
+                                are actually reviewed. */}
+                            {canWrite && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => setPriceDialog({ open: true, editing: price, competitorId: price.competitor_id })}
+                                  aria-label="Edit price"
+                                  className="h-8 w-8 rounded-lg flex items-center justify-center"
+                                  style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setDeletePriceDialog(price)}
+                                  aria-label="Delete price"
+                                  className="h-8 w-8 rounded-lg flex items-center justify-center"
+                                  style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
