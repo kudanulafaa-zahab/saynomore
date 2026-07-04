@@ -604,9 +604,9 @@ export function ShipmentDetail({ id }: { id: string }) {
   const grnBlockReason = useMemo(() => {
     if (!shipment) return "No shipment";
     if (lines.length === 0) return "Add at least one product first";
-    if (!shipment.rate_usd_to_mvr || shipment.rate_usd_to_mvr <= 0) return "Set USD → MVR rate in Costs section";
-    if (!shipment.rate_idr_to_mvr || shipment.rate_idr_to_mvr <= 0) return "Set USD → IDR rate in Costs section";
-    if (lines.some((l) => l.cbm_per_carton <= 0)) return "One or more lines has zero CBM";
+    if (!shipment.rate_usd_to_mvr || shipment.rate_usd_to_mvr <= 0) return "Enter the exchange rate first (Costs section)";
+    if (!shipment.rate_idr_to_mvr || shipment.rate_idr_to_mvr <= 0) return "Enter the exchange rate first (Costs section)";
+    if (lines.some((l) => l.cbm_per_carton <= 0)) return "A product has no carton size — fix it in Products";
     return null;
   }, [shipment, lines]);
 
@@ -1094,20 +1094,20 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* ══════════════════════════════════════════════════════════════════ */}
 
       <div className="rounded-2xl overflow-hidden mb-4" style={CARD}>
-        {/* Collapsible header */}
+        {/* Collapsible header — plain language, no "Forex" jargon */}
         <button
           onClick={() => setCostsOpen(!costsOpen)}
           className="w-full flex items-center justify-between p-5 transition"
         >
           <div>
-            <p className="label-caps text-[12px] text-left mb-0.5" style={{ color: "var(--muted-foreground)" }}>COSTS & FOREX</p>
-            {!costsOpen && preview && (
+            <p className="label-caps text-[12px] text-left mb-0.5" style={{ color: "var(--muted-foreground)" }}>WHAT THIS SHIPMENT COST</p>
+            {!costsOpen && preview && preview.ratesSet && (
               <p className="text-[12px] font-semibold text-foreground">
-                Total landed: MVR {fmt0(preview.grandTotal)}
+                Total landed cost: MVR {fmt0(preview.grandTotal)}
               </p>
             )}
-            {!costsOpen && !preview && (
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Tap to enter rates and costs</p>
+            {!costsOpen && (!preview || !preview.ratesSet) && (
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Tap to enter shipping &amp; port costs</p>
             )}
           </div>
           <ChevronDown
@@ -1119,10 +1119,37 @@ export function ShipmentDetail({ id }: { id: string }) {
         {costsOpen && (
           <div className="px-5 pb-5 space-y-5" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
 
-            {/* Forex */}
-            <div className="pt-5">
+            {/* Locked-state banner — explains WHY nothing responds when confirmed
+                (the exact confusion Ali hit: tapping fields did nothing). */}
+            {locked && shipment.status === "grn_confirmed" && (
+              <div className="mt-5 flex items-start gap-2.5 px-3.5 py-3 rounded-xl"
+                style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+                <Lock className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--snm-success)" }} />
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold text-foreground">These costs are locked in</p>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    This shipment is received, so its costs can&apos;t change — that keeps your profit figures honest.
+                    {isAdmin ? " To fix a mistake, use “Reopen to Edit” in the ⋯ menu." : " Ask an admin to reopen it if something needs fixing."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Intro — plain-English "what you're filling in and why" */}
+            {!locked && (
+              <p className="text-[12px] mt-5" style={{ color: "var(--muted-foreground)" }}>
+                Fill in the exchange rate, your shipping cost, and any port/clearing charges. The app spreads them across your products by size (CBM) to work out what each one truly cost you.
+              </p>
+            )}
+
+            {/* ── Step 1: Exchange rate ── */}
+            <div className={locked ? "" : "pt-1"}>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-[12px] font-bold" style={{ color: "var(--snm-brand)" }}>1</span>
+                <p className="text-[13px] font-semibold text-foreground">Exchange rate</p>
+              </div>
               <p className="text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
-                Enter your bank&apos;s rates — locked permanently when you confirm GRN.
+                What your bank charged to convert money. Locked once you confirm.
               </p>
               <div className="grid grid-cols-2 gap-3 mb-2">
                 <Field label="1 USD = ___ MVR *">
@@ -1154,7 +1181,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                 </Field>
               </div>
               <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                IDR → MVR (auto): {shipment.rate_idr_to_mvr != null ? shipment.rate_idr_to_mvr.toFixed(6) : "—"}
+                1 IDR = MVR {shipment.rate_idr_to_mvr != null ? shipment.rate_idr_to_mvr.toFixed(6) : "—"} <span style={{ opacity: 0.7 }}>(worked out for you)</span>
               </p>
               {rateWarning && (
                 <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-xl"
@@ -1165,14 +1192,21 @@ export function ShipmentDetail({ id }: { id: string }) {
               )}
             </div>
 
-            {/* Freight */}
+            {/* ── Step 2: Shipping (freight) ── */}
             <div>
-              <Field label="MY FREIGHT SHARE (USD)">
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-[12px] font-bold" style={{ color: "var(--snm-brand)" }}>2</span>
+                <p className="text-[13px] font-semibold text-foreground">Shipping cost</p>
+              </div>
+              <p className="text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+                What you paid to ship your goods (in USD). Sharing a container? Use the estimator below.
+              </p>
+              <Field label="MY SHIPPING COST (USD)">
                 <NumInput value={shipment.my_freight_share_usd} disabled={locked} min={0} placeholder="0" onChange={(v) => patch("my_freight_share_usd", v ?? 0)} />
               </Field>
-              {preview && (
+              {preview && (shipment.my_freight_share_usd ?? 0) > 0 && (
                 <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  = MVR <span className="font-semibold text-foreground">{fmt0(preview.freightMvr)}</span>
+                  = MVR <span className="font-semibold text-foreground">{fmt0(preview.freightMvr)}</span> in your money
                 </p>
               )}
               <SharedContainerEstimator
@@ -1184,17 +1218,23 @@ export function ShipmentDetail({ id }: { id: string }) {
               />
             </div>
 
-            {/* Local costs */}
+            {/* ── Step 3: Port & clearing costs ── */}
             <div>
-              <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>LOCAL COSTS (MVR)</p>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-[12px] font-bold" style={{ color: "var(--snm-brand)" }}>3</span>
+                <p className="text-[13px] font-semibold text-foreground">Port &amp; clearing costs <span className="font-normal" style={{ color: "var(--muted-foreground)" }}>(in MVR)</span></p>
+              </div>
+              <p className="text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+                Charges you paid here in the Maldives. Leave any at 0 if they don&apos;t apply.
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: "Customs duty",  field: "customs_duty_mvr" },
-                  { label: "MPL / Port",    field: "mpl_charges_mvr"  },
-                  { label: "Agent fee",     field: "agent_fee_mvr"    },
-                  { label: "Last mile",     field: "last_mile_mvr"    },
+                  { label: "Port (MPL)",    field: "mpl_charges_mvr"  },
+                  { label: "Clearing agent", field: "agent_fee_mvr"   },
+                  { label: "Delivery to godown", field: "last_mile_mvr" },
                   { label: "Insurance",     field: "insurance_mvr"    },
-                  { label: "Other",         field: "other_mvr"        },
+                  { label: "Anything else", field: "other_mvr"        },
                 ].map(({ label, field }) => (
                   <div key={field} className="space-y-1">
                     <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
@@ -1211,26 +1251,27 @@ export function ShipmentDetail({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* Cost summary bar */}
+            {/* Plain-language cost summary — no FOB/Freight/Local jargon */}
             {preview && (
-              <div className="rounded-xl px-4 py-3 flex items-center gap-2 flex-wrap" style={{ background: "var(--glass-bg-2)" }}>
+              <div className="rounded-xl px-4 py-3.5 space-y-1.5" style={{ background: "var(--glass-bg-2)" }}>
                 {[
-                  { label: "FOB",     value: preview.ratesSet ? `MVR ${fmt0(preview.lines.reduce((a, l) => a + l.fobMvr, 0))}` : "?" },
-                  { sep: "+" },
-                  { label: "Freight", value: `MVR ${fmt0(preview.freightMvr)}` },
-                  { sep: "+" },
-                  { label: "Local",   value: `MVR ${fmt0(preview.localMvr)}` },
-                  { sep: "=" },
-                  { label: "Total",   value: preview.ratesSet ? `MVR ${fmt0(preview.grandTotal)}` : "?", bold: true },
-                ].map((item, i) =>
-                  "sep" in item
-                    ? <span key={i} className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{item.sep}</span>
-                    : <div key={i} className="text-center">
-                        <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{item.label}</p>
-                        <p className={`text-[12px] ${item.bold ? "font-bold" : "font-medium"}`} style={{ color: item.bold ? "var(--foreground)" : "var(--muted-foreground)" }}>
-                          {item.value}
-                        </p>
-                      </div>
+                  { label: "Goods (supplier price)", value: preview.ratesSet ? `MVR ${fmt0(preview.lines.reduce((a, l) => a + l.fobMvr, 0))}` : "—" },
+                  { label: "+ Shipping", value: `MVR ${fmt0(preview.freightMvr)}` },
+                  { label: "+ Port & clearing", value: `MVR ${fmt0(preview.localMvr)}` },
+                ].map((r) => (
+                  <div key={r.label} className="flex items-center justify-between">
+                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{r.label}</p>
+                    <p className="text-[12px] font-medium text-foreground snm-num">{r.value}</p>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2 mt-1" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                  <p className="text-[13px] font-bold text-foreground">Total landed cost</p>
+                  <p className="text-[15px] font-bold text-foreground snm-num">{preview.ratesSet ? `MVR ${fmt0(preview.grandTotal)}` : "enter rate first"}</p>
+                </div>
+                {preview.ratesSet && (
+                  <p className="text-[12px] pt-1" style={{ color: "var(--muted-foreground)" }}>
+                    This is what your goods really cost, landed in your godown — split across each product by size. See per-product cost on each line above.
+                  </p>
                 )}
               </div>
             )}
@@ -1314,7 +1355,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           >
             {grnBlockReason
               ? <><AlertTriangle className="h-4 w-4" /> {grnBlockReason}</>
-              : <><CheckCircle2 className="h-4 w-4" /> Confirm GRN — Lock & Create Stock</>}
+              : <><CheckCircle2 className="h-4 w-4" /> Confirm Receipt — Add to Stock</>}
           </button>
         ) : (
           /* State A — in progress */
