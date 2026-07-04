@@ -23,7 +23,10 @@ export const metadata: Metadata = {
     capable: true,
     title: "SayNoMore",
     statusBarStyle: "black-translucent",
-    startupImage: "/icon-512.png",
+    // No startupImage: a 512px icon stretched to a phone-sized splash looks
+    // worse than iOS's clean solid-colour launch. A proper per-device
+    // apple-touch-startup-image set is a separate asset task; until then iOS
+    // falls back to the manifest background_color, which is the better default.
   },
 };
 
