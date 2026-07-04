@@ -30,6 +30,7 @@ import {
   type PaymentMethod,
 } from "@/lib/queries/sales";
 import { withOfflineFallback } from "@/lib/offline-write";
+import { haptic } from "@/lib/haptics";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
@@ -192,6 +193,7 @@ export function SaleDetail({ id }: { id: string }) {
         () => updateOrder(order.id, p),
         { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Order dispatched to driver");
       setPanel(null);
       load();
@@ -220,6 +222,7 @@ export function SaleDetail({ id }: { id: string }) {
         () => updateOrder(order.id, p),
         { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Order marked as delivered");
       setPanel(null);
       load();
@@ -265,6 +268,7 @@ export function SaleDetail({ id }: { id: string }) {
         method: payMethod,
         reference: payRef.trim() || null,
       });
+      haptic("success");
       toast.success(amt < 0 ? "Refund recorded" : "Payment recorded");
       setPanel(null);
       load();
