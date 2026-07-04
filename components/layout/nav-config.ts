@@ -15,6 +15,7 @@ import {
   UserRound,
   Ship,
   ClipboardList,
+  ArrowLeftRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -46,6 +47,7 @@ export const FULL_NAV: NavItem[] = [
   // Catalogue
   { href: "/products",   label: "Products",   icon: Package     },
   { href: "/godowns",    label: "Godowns",    icon: Warehouse   },
+  { href: "/stock-ops",  label: "Stock Ops",  icon: ArrowLeftRight },
   { href: "/competitors",label: "Market",     icon: Tag         },
 
   // Operations
