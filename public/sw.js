@@ -1,7 +1,10 @@
 // SayNoMore Service Worker — manual, no next-pwa
-// Strategy: NetworkFirst (5s timeout) for Supabase API, CacheFirst for static assets
+// Strategy: NetworkFirst (5s timeout) for Supabase API, stale-while-revalidate
+// for static assets. Update model: a new SW skipWaiting()s and claims clients
+// immediately; the page listens for controllerchange and reloads ONCE to the
+// latest version automatically (no manual unregister, no stale JS after deploys).
 
-const CACHE_VERSION = "snm-v4";
+const CACHE_VERSION = "snm-v5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -69,15 +72,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Next.js static chunks → CacheFirst
+  // Next.js static chunks → stale-while-revalidate. Filenames are content-
+  // hashed so a cache hit is safe, but SWR means the cache also refreshes in
+  // the background — a stray stale chunk self-heals on the next load.
   if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
   }
 
-  // Fonts → CacheFirst
+  // Fonts → stale-while-revalidate
   if (url.hostname === "fonts.gstatic.com" || url.hostname === "fonts.googleapis.com") {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
   }
 
@@ -165,6 +170,21 @@ async function cacheFirst(request, cacheName) {
   } catch {
     return new Response("Offline", { status: 503 });
   }
+}
+
+// Serve from cache immediately (fast), while fetching a fresh copy in the
+// background to update the cache for next time. Best of both: instant loads
+// AND self-healing when an asset changes.
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const network = fetch(request)
+    .then((res) => {
+      if (res.ok) cache.put(request, res.clone());
+      return res;
+    })
+    .catch(() => null);
+  return cached || (await network) || new Response("Offline", { status: 503 });
 }
 
 // ─── Push Notifications ─────────────────────────────────────────────────────
