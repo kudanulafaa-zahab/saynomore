@@ -265,6 +265,21 @@ function SharedContainerEstimator({
   // nonsense; the wrong container size is the usual cause.
   const overCapacity = capacity != null && myCbm > capacity;
 
+  // Auto-apply the estimate into My Freight Share (USD) as soon as the
+  // container size + partner total are both set. The whole reason this
+  // exists is so the freight flows into landed cost — making the user hunt
+  // for a "Use this" button meant freight silently stayed at 0 (real
+  // confusion this caused). Only writes when the value actually changed,
+  // and only while sharing is toggled on and the section is editable.
+  const applied = estimate != null && !overCapacity ? Number(estimate.toFixed(2)) : null;
+  useEffect(() => {
+    if (disabled || !open || applied == null) return;
+    if (Math.abs((shipment.my_freight_share_usd ?? 0) - applied) > 0.005) {
+      onApply(applied);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applied, open, disabled]);
+
   return (
     <div className="mt-3 rounded-xl overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
       <button
@@ -343,21 +358,43 @@ function SharedContainerEstimator({
             </div>
           )}
 
+          {/* Silent-failure fixes: say exactly which input the estimate is
+              waiting for instead of showing nothing (real confusion hit:
+              freight typed, no container size picked → blank). */}
+          {!size && (
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
+              style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-brand)" }} />
+              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                Tap <strong>20ft</strong> or <strong>40ft HQ</strong> above — your share can&apos;t be calculated without the container size.
+              </p>
+            </div>
+          )}
+          {size && totalFreightNum == null && (
+            <p className="text-[12px] px-1" style={{ color: "var(--muted-foreground)" }}>
+              Enter the total freight your partner paid to see your estimated share.
+            </p>
+          )}
+          {size && totalFreightNum != null && myCbm <= 0 && (
+            <p className="text-[12px] px-1" style={{ color: "var(--snm-warning)" }}>
+              Add products to this shipment first — your share is based on your goods&apos; CBM.
+            </p>
+          )}
+
           {estimate != null && !overCapacity && (
-            <div className="rounded-xl px-3.5 py-3 flex items-center justify-between" style={{ background: "var(--glass-bg-2)" }}>
-              <div>
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Estimated share</p>
-                <p className="text-[17px] font-bold text-foreground snm-num">${estimate.toFixed(2)}</p>
+            <div className="rounded-xl px-3.5 py-3" style={{ background: "var(--glass-bg-2)" }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Your estimated share</p>
+                  <p className="text-[17px] font-bold text-foreground snm-num">${estimate.toFixed(2)}</p>
+                </div>
+                <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--snm-success)" }}>
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Applied
+                </span>
               </div>
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => onApply(Number(estimate.toFixed(2)))}
-                className="h-11 px-4 rounded-xl text-[13px] font-bold transition active:scale-95"
-                style={{ background: "var(--foreground)", color: "var(--background)" }}
-              >
-                Use this
-              </button>
+              <p className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
+                Added to <strong>My Freight Share</strong> above and split across your products by CBM. You can overtype that box if you agree a different amount.
+              </p>
             </div>
           )}
         </div>
