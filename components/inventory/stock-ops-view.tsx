@@ -15,6 +15,7 @@ import {
   listVerificationHistory, type VerificationSession,
 } from "@/lib/queries/inventory";
 import { haptic } from "@/lib/haptics";
+import { toPieces, type SaleUom } from "@/lib/queries/sales";
 
 /* ── qty helpers (pieces → carton/pack, matches inventory-view) ── */
 function toCtns(pcs: number, pcsPerCtn: number) {
@@ -34,6 +35,46 @@ function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
 }
 function skuLabel(s: SkuFullRow) {
   return [s.brand_name, s.model_name, s.variant_display].filter(Boolean).join(" · ");
+}
+
+// Default to the largest real unit for this product — a diaper carton or
+// detergent case, not loose pieces. Falls back down the chain for products
+// with no carton tier (packs_per_carton <= 1) or sold as single pieces.
+function defaultUnitFor(sku: SkuFullRow): SaleUom {
+  if (sku.packs_per_carton > 1) return "carton";
+  if (sku.pcs_per_pack > 1) return "pack";
+  return "piece";
+}
+
+const UOM_LABEL: Record<SaleUom, string> = { carton: "ctn", pack: "pk", piece: "pcs" };
+
+/** Compact segmented Carton/Pack/Piece switch — hides tiers that don't apply
+ * to this SKU (e.g. no Carton option if packs_per_carton is 1). */
+function UnitToggle({ sku, value, onChange }: { sku: SkuFullRow; value: SaleUom; onChange: (u: SaleUom) => void }) {
+  const options: SaleUom[] = [
+    ...(sku.packs_per_carton > 1 ? (["carton"] as const) : []),
+    ...(sku.pcs_per_pack > 1 ? (["pack"] as const) : []),
+    "piece",
+  ];
+  if (options.length <= 1) return null;
+  return (
+    <div className="flex rounded-lg overflow-hidden shrink-0" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+      {options.map((u) => (
+        <button
+          key={u}
+          type="button"
+          onClick={() => onChange(u)}
+          className="px-2.5 h-8 text-[12px] font-semibold transition"
+          style={{
+            background: value === u ? "var(--foreground)" : "transparent",
+            color: value === u ? "var(--background)" : "var(--muted-foreground)",
+          }}
+        >
+          {UOM_LABEL[u]}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 type Tab = "verify" | "transfer";
@@ -134,8 +175,12 @@ function VerifyTab({
     godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "",
   );
   const [q, setQ] = useState("");
-  // counted[sku_id] = string the user typed (undefined = untouched → assumed correct)
-  const [counted, setCounted] = useState<Record<string, string>>({});
+  // counted[sku_id] = what the physical counter typed, in cartons + loose
+  // packs — matches how stock is actually counted on a shelf (whole cartons,
+  // plus any opened/loose packs), not raw pieces. Undefined = untouched →
+  // assumed correct. A blank string in either field means "0" for that unit,
+  // not "untouched" — only both-blank counts as untouched for that SKU.
+  const [counted, setCounted] = useState<Record<string, { ctn: string; pk: string }>>({});
   const [saving, setSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -162,8 +207,10 @@ function VerifyTab({
     const out: { sku: SkuFullRow; expected: number; countedVal: number; delta: number }[] = [];
     for (const r of rows) {
       const raw = counted[r.sku.id];
-      if (raw === undefined || raw === "") continue;
-      const n = Math.max(0, Math.floor(Number(raw)));
+      if (raw === undefined || (raw.ctn === "" && raw.pk === "")) continue;
+      const ctn = Math.max(0, Math.floor(Number(raw.ctn) || 0));
+      const pk  = Math.max(0, Math.floor(Number(raw.pk)  || 0));
+      const n = ctn * r.sku.pcs_per_pack * r.sku.packs_per_carton + pk * r.sku.pcs_per_pack;
       if (!Number.isFinite(n)) continue;
       const delta = n - r.expected;
       if (delta !== 0) out.push({ sku: r.sku, expected: r.expected, countedVal: n, delta });
@@ -236,10 +283,23 @@ function VerifyTab({
         <div className="space-y-2">
           {rows.map((r) => {
             const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
+            const hasCtnTier = r.sku.packs_per_carton > 1;
+            const hasPkTier  = r.sku.pcs_per_pack > 1;
             const raw = counted[r.sku.id];
-            const touched = raw !== undefined && raw !== "";
-            const n = touched ? Math.max(0, Math.floor(Number(raw))) : r.expected;
+            const touched = raw !== undefined && (raw.ctn !== "" || raw.pk !== "");
+            const ctnVal = raw ? Math.max(0, Math.floor(Number(raw.ctn) || 0)) : 0;
+            const pkVal  = raw ? Math.max(0, Math.floor(Number(raw.pk)  || 0)) : 0;
+            const n = touched ? ctnVal * pcsPerCtn + pkVal * r.sku.pcs_per_pack : r.expected;
             const delta = touched ? n - r.expected : 0;
+            function setField(field: "ctn" | "pk", value: string) {
+              setCounted((c) => ({
+                ...c,
+                [r.sku.id]: { ctn: field === "ctn" ? value : (c[r.sku.id]?.ctn ?? ""), pk: field === "pk" ? value : (c[r.sku.id]?.pk ?? "") },
+              }));
+            }
+            const fieldBg = touched
+              ? `color-mix(in srgb, ${delta < 0 ? "var(--snm-error)" : delta > 0 ? "var(--snm-warning)" : "var(--foreground)"} 10%, transparent)`
+              : "color-mix(in srgb, var(--foreground) 5%, transparent)";
             return (
               <div
                 key={r.sku.id}
@@ -254,34 +314,66 @@ function VerifyTab({
                     : "0.5px solid var(--glass-border-lo)",
                 }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-foreground leading-snug truncate">{skuLabel(r.sku)}</p>
                     <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                      {r.sku.internal_code} · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn)} ({r.expected} pcs)</span>
+                      {r.sku.internal_code} · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn)}</span>
                     </p>
                   </div>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    aria-label={`Counted pieces for ${skuLabel(r.sku)}`}
-                    placeholder={String(r.expected)}
-                    value={raw ?? ""}
-                    onChange={(e) => setCounted((c) => ({ ...c, [r.sku.id]: e.target.value }))}
-                    className="w-24 h-12 rounded-xl text-center text-[16px] font-semibold text-foreground outline-none"
-                    style={{
-                      background: touched
-                        ? `color-mix(in srgb, ${delta < 0 ? "var(--snm-error)" : delta > 0 ? "var(--snm-warning)" : "var(--foreground)"} 10%, transparent)`
-                        : "color-mix(in srgb, var(--foreground) 5%, transparent)",
-                      border: "1px solid var(--glass-border-lo)",
-                    }}
-                  />
+                  {/* Count entry — cartons + loose packs, matching how stock
+                      is physically counted on a shelf. Falls back to a
+                      single field for products with no carton/pack tier. */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {hasCtnTier && (
+                      <div className="flex flex-col items-center">
+                        <input
+                          type="number" inputMode="numeric"
+                          aria-label={`Counted cartons for ${skuLabel(r.sku)}`}
+                          placeholder={String(toCtns(r.expected, pcsPerCtn))}
+                          value={raw?.ctn ?? ""}
+                          onChange={(e) => setField("ctn", e.target.value)}
+                          className="w-14 h-12 rounded-xl text-center text-[16px] font-semibold text-foreground outline-none"
+                          style={{ background: fieldBg, border: "1px solid var(--glass-border-lo)" }}
+                        />
+                        <span className="text-[10px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>ctn</span>
+                      </div>
+                    )}
+                    {hasPkTier && (
+                      <div className="flex flex-col items-center">
+                        <input
+                          type="number" inputMode="numeric"
+                          aria-label={`Counted ${hasCtnTier ? "loose packs" : "packs"} for ${skuLabel(r.sku)}`}
+                          placeholder={String(hasCtnTier ? remPacks(r.expected, r.sku.pcs_per_pack, pcsPerCtn) : Math.floor(r.expected / r.sku.pcs_per_pack))}
+                          value={raw?.pk ?? ""}
+                          onChange={(e) => setField("pk", e.target.value)}
+                          className="w-14 h-12 rounded-xl text-center text-[16px] font-semibold text-foreground outline-none"
+                          style={{ background: fieldBg, border: "1px solid var(--glass-border-lo)" }}
+                        />
+                        <span className="text-[10px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>pk</span>
+                      </div>
+                    )}
+                    {!hasCtnTier && !hasPkTier && (
+                      <div className="flex flex-col items-center">
+                        <input
+                          type="number" inputMode="numeric"
+                          aria-label={`Counted pieces for ${skuLabel(r.sku)}`}
+                          placeholder={String(r.expected)}
+                          value={raw?.pk ?? ""}
+                          onChange={(e) => setField("pk", e.target.value)}
+                          className="w-16 h-12 rounded-xl text-center text-[16px] font-semibold text-foreground outline-none"
+                          style={{ background: fieldBg, border: "1px solid var(--glass-border-lo)" }}
+                        />
+                        <span className="text-[10px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>pcs</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {delta !== 0 && (
                   <div className="flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="h-3 w-3" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }} />
-                    <p className="text-[12px] font-semibold" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
-                      {delta < 0 ? `${-delta} pcs short` : `${delta} pcs extra`} — will adjust to {n} pcs
+                    <p className="snm-num text-[12px] font-semibold" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
+                      {delta < 0 ? `${-delta} pcs short` : `${delta} pcs extra`} — will adjust to {fmtQty(n, r.sku.pcs_per_pack, pcsPerCtn)}
                     </p>
                   </div>
                 )}
@@ -340,6 +432,10 @@ function TransferTab({
   const [skuId, setSkuId] = useState<string>("");
   const [q, setQ] = useState("");
   const [qty, setQty] = useState("");
+  // Unit the qty field is entered in — defaults per-SKU (carton for
+  // multi-pack-per-carton products like diapers, pack for single-carton
+  // products, piece only as a last resort) when a SKU is picked.
+  const [unit, setUnit] = useState<SaleUom>("piece");
   const [saving, setSaving] = useState(false);
 
   // SKUs available in the source godown, with their available qty.
@@ -357,10 +453,20 @@ function TransferTab({
 
   const selected = skuId ? skuMap.get(skuId) : undefined;
   const availForSelected = skuId ? (levels.find((l) => l.godown_id === fromId && l.sku_id === skuId)?.qty_pieces ?? 0) : 0;
-  const qtyNum = Math.max(0, Math.floor(Number(qty) || 0));
+  // qty is entered in `unit` (carton/pack/piece) — converted to pieces here,
+  // the only unit the database and RPC ever see.
+  const qtyEnteredNum = Math.max(0, Math.floor(Number(qty) || 0));
+  const qtyNum = selected ? toPieces(unit, qtyEnteredNum, selected.pcs_per_pack, selected.packs_per_carton) : 0;
   const overAvailable = qtyNum > availForSelected;
   const sameGodown = fromId === toId;
-  const canSubmit = !!skuId && qtyNum > 0 && !overAvailable && !sameGodown && !saving;
+  const canSubmit = !!skuId && qtyEnteredNum > 0 && !overAvailable && !sameGodown && !saving;
+
+  function pickSku(id: string) {
+    setSkuId(id);
+    setQty("");
+    const sku = skuMap.get(id);
+    if (sku) setUnit(defaultUnitFor(sku));
+  }
 
   async function submit() {
     if (!canSubmit) return;
@@ -420,7 +526,7 @@ function TransferTab({
             return (
               <button
                 key={r.sku.id}
-                onClick={() => { setSkuId(r.sku.id); setQty(""); }}
+                onClick={() => pickSku(r.sku.id)}
                 className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
                 style={{
                   background: "var(--glass-1)",
@@ -450,37 +556,50 @@ function TransferTab({
       )}
 
       {/* Qty + submit — shown once an item is picked */}
-      {selected && (
+      {selected && (() => {
+        const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
+        return (
         <div
           className="rounded-2xl p-4 space-y-3"
           style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)" }}
         >
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[13px] font-semibold text-foreground truncate">{skuLabel(selected)}</p>
+            <p className="snm-num text-[12px] shrink-0" style={{ color: "var(--muted-foreground)" }}>
+              {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} avail
+            </p>
+          </div>
           <div className="flex items-center justify-between">
-            <p className="text-[13px] font-semibold text-foreground">{skuLabel(selected)}</p>
-            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{availForSelected} pcs avail</p>
+            <p className="text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>Qty to move</p>
+            <UnitToggle sku={selected} value={unit} onChange={(u) => setUnit(u)} />
           </div>
           <div className="flex items-center gap-2">
             <input
               type="number"
               inputMode="numeric"
-              placeholder="Pieces to move"
-              aria-label="Pieces to transfer"
+              placeholder={`${UOM_LABEL[unit]} to move`}
+              aria-label={`${unit === "carton" ? "Cartons" : unit === "pack" ? "Packs" : "Pieces"} to transfer`}
               value={qty}
               onChange={(e) => setQty(e.target.value)}
               className="flex-1 h-12 rounded-xl px-4 text-[16px] font-semibold text-foreground outline-none"
               style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: `1px solid ${overAvailable ? "color-mix(in srgb, var(--snm-error) 45%, transparent)" : "var(--glass-border-lo)"}` }}
             />
             <button
-              onClick={() => setQty(String(availForSelected))}
+              onClick={() => { setUnit("piece"); setQty(String(availForSelected)); }}
               className="h-12 px-4 rounded-xl text-[13px] font-semibold active:opacity-70"
               style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}
             >
               All
             </button>
           </div>
+          {qtyEnteredNum > 0 && unit !== "piece" && (
+            <p className="snm-num text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              = {qtyNum.toLocaleString()} pcs
+            </p>
+          )}
           {overAvailable && (
             <p className="text-[12px]" style={{ color: "var(--snm-error)" }}>
-              Only {availForSelected} pcs available to move.
+              Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} available to move.
             </p>
           )}
           <button
@@ -493,7 +612,8 @@ function TransferTab({
             Move stock
           </button>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
