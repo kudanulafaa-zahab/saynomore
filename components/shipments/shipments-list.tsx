@@ -464,7 +464,7 @@ function PoCard({
             <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg }}>
               <Icon className="h-3.5 w-3.5" style={{ color: colors.text }} />
             </div>
-            <p className="text-[14px] font-bold text-foreground truncate snm-num">{shipment.reference}</p>
+            <p className="text-[16px] font-bold text-foreground truncate snm-num">{shipment.reference}</p>
           </div>
           <span
             className="shrink-0 text-[12px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg"
@@ -475,20 +475,20 @@ function PoCard({
         </div>
 
         {/* Row 2: supplier */}
-        <p className="text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-[13px] mb-1" style={{ color: "var(--muted-foreground)" }}>
           {supplier ? supplier.name : <span style={{ fontStyle: "italic" }}>No supplier assigned</span>}
           {supplier?.country ? ` · ${supplier.country}` : ""}
         </p>
 
         {/* Row 3: ETA / confirmed date — right side; notes left */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
             {shipment.notes ? shipment.notes : "No notes"}
           </p>
           {locked ? (
-            <p className="text-[12px] shrink-0 font-medium" style={{ color: "var(--snm-success)" }}>{confirmedLabel}</p>
+            <p className="snm-num text-[13px] shrink-0 font-medium" style={{ color: "var(--snm-success)" }}>{confirmedLabel}</p>
           ) : (
-            <p className="text-[12px] shrink-0" style={{ color: etaColor }}>{etaLabel}</p>
+            <p className="snm-num text-[13px] shrink-0" style={{ color: etaColor }}>{etaLabel}</p>
           )}
         </div>
       </Link>
@@ -591,7 +591,7 @@ function NewPoSheet({
 
         {/* Supplier */}
         <div className="space-y-1.5 mb-6">
-          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>SUPPLIER</p>
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>SUPPLIER (OPTIONAL)</p>
           <div className="relative">
             <select
               value={supplierId}

@@ -28,6 +28,7 @@ import {
 } from "@/lib/queries/masters";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { haptic } from "@/lib/haptics";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 
@@ -252,23 +253,23 @@ export function SuppliersManager() {
                   </div>
                 </div>
 
-                {/* Reliability score */}
+                {/* Reliability score — not yet computed from real shipment
+                    history (needs lead-time/on-time data per supplier), so
+                    this shows the same honest "not enough data" placeholder
+                    as the other stats rather than a fabricated number. */}
                 <div
                   className="rounded-3xl p-6 flex flex-col justify-center items-center text-center"
                   style={CARD}
                 >
                   <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>RELIABILITY SCORE</p>
-                  <p className="text-[42px] font-light tracking-tight text-foreground leading-none">98<span className="text-[22px]">%</span></p>
-                  <div className="w-full rounded-full overflow-hidden mt-4" style={{ background: "var(--glass-bg-2)", height: 4 }}>
-                    <div className="h-full rounded-full bg-white" style={{ width: "98%" }} />
-                  </div>
+                  <p className="text-[16px] font-medium text-foreground" style={{ color: "var(--muted-foreground)" }}>Not enough data yet</p>
                 </div>
               </div>
 
               {/* Performance stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: "Avg Lead Time", value: "14 Days" },
+                  { label: "Avg Lead Time", value: "—" },
                   { label: "Total Volume", value: "—" },
                   { label: "Currency", value: featured.invoice_currency },
                   { label: "Active Shipments", value: "—" },
@@ -384,8 +385,8 @@ export function SuppliersManager() {
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmSupplier) return;
-          try { await deleteSupplier(confirmSupplier.id); toast.success("Deleted"); setConfirmSupplier(null); load(); }
-          catch (e) { toast.error((e as Error).message); }
+          try { await deleteSupplier(confirmSupplier.id); haptic("success"); toast.success("Deleted"); setConfirmSupplier(null); load(); }
+          catch (e) { haptic("error"); toast.error((e as Error).message); }
         }}
       />
     </div>
@@ -430,9 +431,11 @@ function SupplierModal({
           ? { table: "suppliers", action: "update", payload: payload as unknown as Record<string, unknown>, match: { id: editing.id } }
           : { table: "suppliers", action: "insert", payload: payload as unknown as Record<string, unknown> },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : editing ? "Saved" : "Vendor created");
       if (!queued) onSaved();
     } catch (err) {
+      haptic("error");
       toast.error((err as Error).message);
     } finally {
       setSaving(false);

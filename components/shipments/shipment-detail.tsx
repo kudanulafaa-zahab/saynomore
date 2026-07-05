@@ -28,6 +28,7 @@ import {
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
+import { haptic } from "@/lib/haptics";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
@@ -591,11 +592,12 @@ export function ShipmentDetail({ id }: { id: string }) {
         }
       }
       setPriceChanges(changes);
+      haptic("success");
       if (changes.length > 0)
         toast.warning(`${changes.length} SKU${changes.length > 1 ? "s" : ""} had a price change — review below`);
       else
         toast.success("GRN confirmed — stock is now live");
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
     finally { setConfirming(false); }
   }
 
@@ -945,20 +947,22 @@ export function ShipmentDetail({ id }: { id: string }) {
                     )}
                   </div>
 
-                  {/* FOB + est. landed cost */}
+                  {/* FOB + est. landed cost — these are figures the user must
+                      verify correctly before GRN locks them permanently, so
+                      the numbers themselves are sized above the label. */}
                   <div className="flex items-center justify-between px-4 pb-3 gap-4">
                     <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                      FOB <span className="font-semibold snm-num" style={{ color: "var(--foreground)" }}>
+                      FOB <span className="font-semibold snm-num" style={{ color: "var(--foreground)", fontSize: 14 }}>
                         {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
                       </span>
                     </p>
                     {estPiece != null && estPiece > 0 ? (
                       <div className="text-right">
-                        <p className="text-[12px] font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)" }}>
+                        <p className="font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)", fontSize: 14 }}>
                           {ratesSet ? "" : "~"}Est MVR {fmt2(estPiece)}/pc
                         </p>
                         {estPack != null && estPack > 0 && sku && sku.pcs_per_pack > 1 && (
-                          <p className="text-[11px] snm-num" style={{ color: "var(--muted-foreground)" }}>
+                          <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
                             {fmt2(estPack)}/pack
                           </p>
                         )}
@@ -992,9 +996,14 @@ export function ShipmentDetail({ id }: { id: string }) {
                   {/* Actual received qty — only when arrived or grn_confirmed */}
                   {(arrived || locked) && (
                     <div className="px-4 pb-4" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingTop: 12, marginTop: 4 }}>
-                      <p className="text-[12px] mb-1.5 font-semibold uppercase tracking-wider"
+                      <p className="text-[12px] mb-1.5 font-semibold uppercase tracking-wider flex items-center gap-1"
                         style={{ color: isShort ? "var(--snm-warning)" : "var(--muted-foreground)" }}>
-                        Actually Received {isShort ? "⚠ Short shipment" : ""}
+                        Actually Received
+                        {isShort && (
+                          <span className="inline-flex items-center gap-1 normal-case tracking-normal">
+                            <AlertTriangle className="h-3 w-3" /> Short shipment
+                          </span>
+                        )}
                       </p>
                       {locked
                         ? <p className="text-sm font-semibold" style={{ color: isShort ? "var(--snm-warning)" : "var(--foreground)" }}>
@@ -1102,7 +1111,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           <div>
             <p className="label-caps text-[12px] text-left mb-0.5" style={{ color: "var(--muted-foreground)" }}>WHAT THIS SHIPMENT COST</p>
             {!costsOpen && preview && preview.ratesSet && (
-              <p className="text-[12px] font-semibold text-foreground">
+              <p className="snm-num" style={{ fontSize: 14, fontWeight: 600, color: "var(--foreground)" }}>
                 Total landed cost: MVR {fmt0(preview.grandTotal)}
               </p>
             )}
@@ -1282,20 +1291,21 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* ── Post-GRN: price change alerts ── */}
       {locked && priceChanges.length > 0 && (
         <div className="rounded-2xl p-5 mb-4" style={{ ...CARD, border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
-          <p className="text-[13px] font-bold mb-3" style={{ color: "var(--snm-warning)" }}>
-            ⚠ {priceChanges.length} SKU{priceChanges.length > 1 ? "s" : ""} had a selling price change
+          <p className="text-[13px] font-bold mb-3 flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {priceChanges.length} SKU{priceChanges.length > 1 ? "s" : ""} had a selling price change
           </p>
           <div className="space-y-2">
             {priceChanges.map((c) => (
               <div key={c.skuPath} className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: "var(--glass-bg-1)" }}>
-                <p className="text-[12px] flex-1 truncate text-foreground">{c.skuPath}</p>
+                <p className="text-[13px] flex-1 truncate text-foreground">{c.skuPath}</p>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>MVR {c.before.toFixed(2)}</span>
+                  <span className="snm-num text-[13px]" style={{ color: "var(--muted-foreground)" }}>MVR {c.before.toFixed(2)}</span>
                   <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>→</span>
-                  <span className="text-[13px] font-bold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
+                  <span className="snm-num text-[14px] font-bold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
                     MVR {c.after.toFixed(2)}
                   </span>
-                  <span className="text-[12px] font-semibold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
+                  <span className="snm-num text-[13px] font-semibold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
                     {c.changePct > 0 ? "+" : ""}{c.changePct.toFixed(1)}%
                   </span>
                 </div>
@@ -1451,11 +1461,13 @@ export function ShipmentDetail({ id }: { id: string }) {
         {/* Short shipment warning */}
         {lines.some((l) => l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons) && (
           <div className="rounded-xl p-4 mb-4" style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
-            <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--snm-warning)" }}>⚠ Short shipment on some lines</p>
+            <p className="text-[13px] font-semibold mb-2 flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
+              <AlertTriangle className="h-3.5 w-3.5" /> Short shipment on some lines
+            </p>
             {lines.filter((l) => l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons).map((l) => {
               const sku = skus.find((s) => s.id === l.sku_id);
               return (
-                <p key={l.id} className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p key={l.id} className="snm-num text-[13px]" style={{ color: "var(--muted-foreground)" }}>
                   • {sku?.model_name ?? "SKU"}: {l.qty_cartons} ordered, {l.qty_cartons_actual} received
                 </p>
               );
@@ -1525,11 +1537,12 @@ export function ShipmentDetail({ id }: { id: string }) {
               setReopening(true);
               try {
                 await reopenGrn(shipment.id);
+                haptic("warning");
                 toast.success("GRN reopened — edit and confirm again");
                 setPanel(null);
                 await load();
               }
-              catch (e) { toast.error((e as Error).message); }
+              catch (e) { haptic("error"); toast.error((e as Error).message); }
               finally { setReopening(false); }
             }}
             disabled={reopening}
@@ -1560,8 +1573,8 @@ export function ShipmentDetail({ id }: { id: string }) {
           <button
             onClick={async () => {
               setVoiding(true);
-              try { await forceVoidGrn(shipment.id); toast.success("Shipment voided"); router.push("/shipments"); }
-              catch (e) { toast.error((e as Error).message); }
+              try { await forceVoidGrn(shipment.id); haptic("warning"); toast.success("Shipment voided"); router.push("/shipments"); }
+              catch (e) { haptic("error"); toast.error((e as Error).message); }
               finally { setVoiding(false); }
             }}
             disabled={voiding}
@@ -1583,8 +1596,8 @@ export function ShipmentDetail({ id }: { id: string }) {
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={async () => {
-              try { await deleteShipment(shipment.id); toast.success("Deleted"); router.push("/shipments"); }
-              catch (e) { toast.error((e as Error).message); }
+              try { await deleteShipment(shipment.id); haptic("warning"); toast.success("Deleted"); router.push("/shipments"); }
+              catch (e) { haptic("error"); toast.error((e as Error).message); }
             }}
             className="flex-[2] h-12 rounded-xl text-sm font-bold"
             style={{ background: "var(--snm-error)", color: "#fff" }}>
