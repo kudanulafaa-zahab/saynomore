@@ -146,8 +146,21 @@ export function ReportsView() {
       if (!withMargin.length) return null;
       return withMargin.reduce((s, r) => s + (r.gross_margin_pct ?? 0), 0) / withMargin.length;
     })(),
+    // Full committed amount for any campaign overlapping the selected period
+    // (matches what you actually paid/committed — e.g. Meta Ads Manager totals).
     totalSpend: spend.reduce((s, r) => s + r.amount_mvr, 0),
-  }), [rows, spend]);
+    // Accrual-matched: same day-overlap proration as get_pnl(), so this figure
+    // always agrees with Financials for the identical date range.
+    periodSpend: spend.reduce((s, r) => {
+      const start = r.start_date;
+      const end = r.end_date ?? today();
+      const overlapStart = start > from ? start : from;
+      const overlapEnd = end < to ? end : to;
+      const overlapDays = Math.max(0, (new Date(overlapEnd).getTime() - new Date(overlapStart).getTime()) / 86400000 + 1);
+      const totalDays = Math.max(1, (new Date(end).getTime() - new Date(start).getTime()) / 86400000 + 1);
+      return s + r.amount_mvr * (overlapDays / totalDays);
+    }, 0),
+  }), [rows, spend, from, to]);
 
   function exportCsv() {
     let csv = "";
@@ -332,8 +345,9 @@ export function ReportsView() {
             tokenColor={totals.lowStock > 0 ? "var(--snm-error)" : "var(--muted-foreground)"}
           />
           <SummaryCard
-            label="Mktg Spend"
+            label="Total Campaign Spend"
             value={totals.totalSpend > 0 ? `MVR ${totals.totalSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+            sublabel={totals.totalSpend > 0 ? `MVR ${totals.periodSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })} this period` : undefined}
             icon={Megaphone}
             tokenColor="var(--snm-warning)"
           />
@@ -434,8 +448,8 @@ export function ReportsView() {
 
 // ── Summary card ─────────────────────────────────────────────────────────
 
-function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
-  label: string; value: string; icon: typeof TrendingUp; tokenColor: string; hero?: boolean;
+function SummaryCard({ label, value, sublabel, icon: Icon, tokenColor, hero }: {
+  label: string; value: string; sublabel?: string; icon: typeof TrendingUp; tokenColor: string; hero?: boolean;
 }) {
   if (hero) {
     return (
@@ -443,6 +457,7 @@ function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
         <div className="space-y-1">
           <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{label}</p>
           <p className="snm-num text-[32px] font-bold tracking-tight leading-none text-foreground">{value}</p>
+          {sublabel && <p className="text-[12px] text-muted-foreground">{sublabel}</p>}
         </div>
         <div
           className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0"
@@ -468,7 +483,8 @@ function SummaryCard({ label, value, icon: Icon, tokenColor, hero }: {
         <Icon className="h-4 w-4" />
       </div>
       <p className="snm-num text-[22px] font-bold tracking-tight leading-none text-foreground">{value}</p>
-      <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-[12px] uppercase tracking-widest text-muted-foreground leading-tight">{label}</p>
+      {sublabel && <p className="text-[11px] text-muted-foreground leading-tight -mt-1">{sublabel}</p>}
     </div>
   );
 }
