@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer, AlertTriangle, Plus, RotateCcw } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer, AlertTriangle, Plus, RotateCcw, Warehouse } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -157,6 +157,7 @@ export function SaleDetail({ id }: { id: string }) {
   const isAdminOrManager = role === "admin" || role === "manager";
   const canWrite  = role !== "viewer" && role !== null;
   const customer  = customers.find((c) => c.id === order?.customer_id);
+  const sourceGodown = godowns.find((g) => g.id === order?.source_godown_id);
   const totals    = useMemo(() => ({
     mvr:   lines.reduce((a, l) => a + Number(l.line_total_mvr), 0),
     count: lines.length,
@@ -555,6 +556,22 @@ export function SaleDetail({ id }: { id: string }) {
       {/* ── STAGE: Confirmed — ready to dispatch ─────────────────────────── */}
       {isConfirmed && (
         <>
+          {/* Pickup godown — shown before payment method since this is the
+              "go get these items" stage, before the order ever leaves. */}
+          {sourceGodown && (
+            <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
+                <Warehouse style={{ color: "var(--snm-brand)", width: 22, height: 22, flexShrink: 0 }} />
+                <div>
+                  <p style={{ color: "var(--snm-brand)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
+                  <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>
+                    {sourceGodown.name}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Payment method badge */}
           <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: `1px solid ${isCOD ? "color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "color-mix(in srgb, var(--snm-brand) 25%, transparent)"}` }}>
@@ -643,6 +660,20 @@ export function SaleDetail({ id }: { id: string }) {
       {isDispatched && (
         <>
           <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+            {/* Pickup godown — big and first, since this is what the dispatch
+                guy needs before he can pick anything up. */}
+            {sourceGodown && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
+                <Warehouse style={{ color: "var(--snm-brand)", width: 22, height: 22, flexShrink: 0 }} />
+                <div>
+                  <p style={{ color: "var(--snm-brand)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
+                  <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>
+                    {sourceGodown.name}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Driver badge */}
             {order.assigned_driver_id && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "12px 14px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>

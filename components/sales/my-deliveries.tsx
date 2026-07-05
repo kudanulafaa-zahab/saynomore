@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Truck, CheckCircle2, Package, MapPin, Phone,
-  ChevronDown, AlertTriangle, RefreshCw,
+  ChevronDown, AlertTriangle, RefreshCw, Warehouse,
 } from "lucide-react";
 import {
   listMyDeliveries, listOrderLines, updateOrder,
@@ -428,18 +428,33 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
           {customer?.name ?? "Walk-in"}
         </p>
 
-        {/* Row 3: island + godown + item count */}
+        {/* Row 3: pickup godown — big and unmissable, this is the first
+            thing the driver needs before he can pick anything up. */}
+        {godown && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
+            padding: "10px 12px", borderRadius: 12,
+            background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)",
+          }}>
+            <Warehouse size={20} style={{ color: "var(--snm-brand)", flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--snm-brand)", margin: 0 }}>
+                Pick up from
+              </p>
+              <p style={{ fontSize: 17, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>
+                {godown.name}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Row 4: island + item count */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 13, color: "var(--muted-foreground)", marginBottom: 14 }}>
           {(order.delivery_island || customer?.island) && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
               <MapPin size={13} />
               {order.delivery_island || customer?.island}
-            </span>
-          )}
-          {godown && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <Package size={13} />
-              Pick: <strong style={{ color: "var(--foreground)" }}>{godown.name}</strong>
             </span>
           )}
           <span>{itemCount} item{itemCount !== 1 ? "s" : ""}</span>

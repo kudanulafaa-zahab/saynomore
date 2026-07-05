@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, ChevronDown, CheckCircle2, UserCheck, MapPin, Package,
-  Truck, ClipboardList, AlertTriangle, Bell,
+  Truck, ClipboardList, AlertTriangle, Bell, Warehouse,
 } from "lucide-react";
 import { subscribeToPush, isPushSubscribed, notify } from "@/lib/push";
 import {
@@ -386,8 +386,20 @@ export function DispatchView() {
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
 
+                      {/* Pickup godown — big and first, before the item list,
+                          since this is where the driver needs to go first. */}
+                      {item.godown?.name && (
+                        <div className="flex items-center gap-2.5 pt-3 px-3 py-2.5 rounded-xl"
+                          style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
+                          <Warehouse className="h-4 w-4 shrink-0" style={{ color: "var(--snm-brand)" }} />
+                          <p className="text-[14px] font-bold" style={{ color: "var(--foreground)" }}>
+                            Pick up from <span style={{ color: "var(--snm-brand)" }}>{item.godown.name}</span>
+                          </p>
+                        </div>
+                      )}
+
                       {/* Item list */}
-                      <div className="pt-3 space-y-0">
+                      <div className="pt-1 space-y-0">
                         {item.lines.map((line, i) => {
                           const sku = skus.find((s) => s.id === line.sku_id);
                           return (
