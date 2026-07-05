@@ -19,7 +19,7 @@ const BarcodeScanner = dynamic(
   { ssr: false },
 );
 import {
-  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder,
+  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder, voidOrder,
   getTierPricesForSkus,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
 } from "@/lib/queries/sales";
@@ -167,12 +167,22 @@ export function SalesList() {
   const [newDialog, setNewDialog] = useState(false);
   const [groupBy, setGroupBy] = useState<"orders" | "customers">("orders");
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
+  // confirmDelete: true drafts only (no stock posted, plain delete is safe).
+  // confirmVoid: anything past draft — reverses FIFO stock via voidOrder(),
+  // requires a reason, matches the same flow as sale-detail.tsx.
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+  const [confirmVoid, setConfirmVoid] = useState<{ id: string; label: string } | null>(null);
+  const [voidReason, setVoidReason] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [voiding, setVoiding] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
+  const [isAdminOrManager, setIsAdminOrManager] = useState(false);
 
   useEffect(() => {
-    getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
+    getCurrentUserRole().then((r) => {
+      setCanWrite(r !== "viewer");
+      setIsAdminOrManager(r === "admin" || r === "manager");
+    }).catch(() => {});
   }, []);
 
   async function load() {
@@ -414,11 +424,25 @@ export function SalesList() {
                     <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
                   </div>
                 </Link>
-                {/* Delete button — outside the link so tap doesn't navigate */}
-                {canWrite && (
+                {/* Delete/void button — outside the link so tap doesn't navigate.
+                    True drafts (no stock posted) can be deleted outright; anything
+                    past draft must go through voidOrder(), which reverses the FIFO
+                    stock movements before cancelling — direct delete is blocked at
+                    the RLS level for those, so this branch matters, not just UX. */}
+                {o.status === "draft" && canWrite && (
                   <button
                     onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
                     aria-label={`Delete order ${o.order_number}`}
+                    className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
+                    style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+                {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
+                  <button
+                    onClick={() => { setVoidReason(""); setConfirmVoid({ id: o.id, label: o.order_number }); }}
+                    aria-label={`Void order ${o.order_number}`}
                     className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
                     style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                   >
@@ -511,10 +535,20 @@ export function SalesList() {
                               <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
                             </div>
                           </Link>
-                          {canWrite && (
+                          {o.status === "draft" && canWrite && (
                             <button
                               onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
                               aria-label={`Delete order ${o.order_number}`}
+                              className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
+                              style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
+                            <button
+                              onClick={() => { setVoidReason(""); setConfirmVoid({ id: o.id, label: o.order_number }); }}
+                              aria-label={`Void order ${o.order_number}`}
                               className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
                               style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                             >
@@ -557,6 +591,63 @@ export function SalesList() {
           finally { setDeleting(false); }
         }}
       />
+
+      {/* Void order — for anything past draft. Needs a reason, so it's a
+          dedicated sheet rather than the plain ConfirmSheet used for delete. */}
+      {confirmVoid && (
+        <>
+          <div
+            className="fixed inset-0 z-[200]"
+            style={{ background: "rgba(0,0,0,0.50)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+            onClick={() => setConfirmVoid(null)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-[201]" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
+            <div className="mx-2 mb-2 rounded-3xl overflow-hidden p-5" style={{ background: "var(--glass-bg-1)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)", boxShadow: "var(--glass-shadow-lg)" }}>
+              <p className="text-[15px] font-semibold mb-1" style={{ color: "var(--snm-error)" }}>Void order?</p>
+              <p className="text-[13px] mb-4" style={{ color: "var(--muted-foreground)" }}>
+                <strong style={{ color: "var(--foreground)" }}>{confirmVoid.label}</strong> will be cancelled and its stock restored to inventory. The order stays on record for audit history.
+              </p>
+              <p className="text-[11px] font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Reason *</p>
+              <textarea
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="e.g. Customer cancelled, wrong order entered…"
+                rows={3}
+                className="w-full rounded-xl p-3 text-[14px] mb-4"
+                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", outline: "none", resize: "none", boxSizing: "border-box" }}
+              />
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => setConfirmVoid(null)}
+                  disabled={voiding}
+                  className="flex-1 rounded-2xl py-3.5 text-[14px] font-semibold"
+                  style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirmVoid || !voidReason.trim()) { toast.error("Enter a reason for voiding this order"); return; }
+                    setVoiding(true);
+                    try {
+                      await voidOrder(confirmVoid.id, voidReason.trim());
+                      toast.success("Order voided — stock restored");
+                      load();
+                      setConfirmVoid(null);
+                    } catch (e) { toast.error((e as Error).message); }
+                    finally { setVoiding(false); }
+                  }}
+                  disabled={voiding || !voidReason.trim()}
+                  className="flex-1 rounded-2xl py-3.5 text-[14px] font-semibold"
+                  style={{ background: "var(--snm-error)", color: "#ffffff", opacity: voiding || !voidReason.trim() ? 0.6 : 1 }}
+                >
+                  {voiding ? "Voiding…" : "Void Order"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
