@@ -297,7 +297,7 @@ export function ShipmentsList() {
           <h3 className="text-base font-semibold text-foreground">
             {rows.length === 0 ? "No purchase orders yet" : "No matches"}
           </h3>
-          <p className="text-sm max-w-[260px]" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead max-w-[260px]" style={{ color: "var(--muted-foreground)" }}>
             {rows.length === 0
               ? "Tap + to create your first PO. Add supplier, products and costs before goods arrive."
               : "Try a different filter."}
@@ -305,7 +305,7 @@ export function ShipmentsList() {
           {rows.length === 0 && canWrite && (
             <button
               onClick={() => setNewSheet(true)}
-              className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
+              className="mt-2 h-11 px-6 rounded-full ios-subhead font-bold"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Create first PO
@@ -375,12 +375,12 @@ export function ShipmentsList() {
                 <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{deleteDialog.reference}</p>
               </div>
             </div>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               All lines will be permanently removed. This cannot be undone.
             </p>
             <div className="flex gap-2">
               <button onClick={() => setDeleteDialog(null)}
-                className="flex-1 h-12 rounded-xl text-sm font-semibold"
+                className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
                 style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>
                 Cancel
               </button>
@@ -583,7 +583,7 @@ function NewPoSheet({
             value={reference}
             onChange={(e) => setReference(e.target.value)}
             placeholder="PO-2026-001"
-            className="w-full h-12 rounded-xl px-4 text-sm text-foreground outline-none"
+            className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
             style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
           />
           <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Auto-generated — edit if you have your own reference.</p>
@@ -596,7 +596,7 @@ function NewPoSheet({
             <select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
-              className="w-full h-12 rounded-xl px-4 pr-10 text-sm text-foreground outline-none appearance-none"
+              className="w-full h-12 rounded-xl px-4 pr-10 ios-subhead text-foreground outline-none appearance-none"
               style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
             >
               <option value="">No supplier yet</option>
@@ -613,7 +613,7 @@ function NewPoSheet({
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 h-12 rounded-xl text-sm font-semibold"
+            className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
           >
             Cancel

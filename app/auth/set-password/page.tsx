@@ -75,7 +75,7 @@ function SetPasswordForm() {
       <div className="flex min-h-dvh items-center justify-center" style={{ background: "var(--background)" }}>
         <div className="flex flex-col items-center gap-3" style={{ color: "var(--muted-foreground)" }}>
           <Loader2 className="h-6 w-6 animate-spin" />
-          <p className="text-sm">Verifying link…</p>
+          <p className="ios-subhead">Verifying link…</p>
         </div>
       </div>
     );
@@ -91,7 +91,7 @@ function SetPasswordForm() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>Set your password</h1>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Choose a password to access the app</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Choose a password to access the app</p>
           </div>
         </div>
 
@@ -104,7 +104,7 @@ function SetPasswordForm() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>New password</label>
+              <label className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>New password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -126,7 +126,7 @@ function SetPasswordForm() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Confirm password</label>
+              <label className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>Confirm password</label>
               <div className="relative">
                 <input
                   type={showConfirm ? "text" : "password"}
@@ -149,7 +149,7 @@ function SetPasswordForm() {
             </div>
 
             {error && (
-              <div className="rounded-xl px-3 py-2.5 text-sm"
+              <div className="rounded-xl px-3 py-2.5 ios-subhead"
                 style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)", color: "var(--snm-error)" }}>
                 {error}
               </div>

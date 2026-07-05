@@ -175,7 +175,7 @@ export function ExpensesView() {
         {canWrite && (
           <button
             onClick={() => { setEditingRow(undefined); setShowSheet(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Plus className="h-4 w-4" /> Log Campaign
@@ -188,19 +188,19 @@ export function ExpensesView() {
         <div className="glass p-4 rounded-2xl space-y-1">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Marketing</p>
           <p className="text-xl font-semibold text-foreground snm-num">MVR {fmtShort(totalMvr)}</p>
-          <p className="text-xs text-muted-foreground">all time</p>
+          <p className="ios-subhead text-muted-foreground">all time</p>
         </div>
         <div className="glass p-4 rounded-2xl space-y-1">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Campaigns</p>
           <p className="text-xl font-semibold text-foreground snm-num">{rows.length}</p>
-          <p className="text-xs text-muted-foreground">logged</p>
+          <p className="ios-subhead text-muted-foreground">logged</p>
         </div>
         <div className="glass p-4 rounded-2xl space-y-1">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Top Channel</p>
           <p className="text-base font-semibold text-foreground truncate">
             {channelTotals[0]?.total > 0 ? CHANNEL_LABEL[channelTotals[0].ch] : "—"}
           </p>
-          <p className="text-xs text-muted-foreground snm-num">
+          <p className="ios-subhead text-muted-foreground snm-num">
             {channelTotals[0]?.total > 0 ? `MVR ${fmtShort(channelTotals[0].total)}` : "no data"}
           </p>
         </div>
@@ -209,7 +209,7 @@ export function ExpensesView() {
           <p className="text-xl font-semibold text-foreground snm-num">
             {bizThisMonth > 0 ? `MVR ${fmtShort(bizThisMonth)}` : "—"}
           </p>
-          <p className="text-xs text-muted-foreground">{new Date().toLocaleString("en-MV", { month: "long" })} · rent, salaries…</p>
+          <p className="ios-subhead text-muted-foreground">{new Date().toLocaleString("en-MV", { month: "long" })} · rent, salaries…</p>
         </div>
       </div>
 
@@ -221,21 +221,21 @@ export function ExpensesView() {
         </p>
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <div className="relative flex-1 min-w-[120px]">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">MVR</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 ios-subhead text-muted-foreground pointer-events-none">MVR</span>
             <input
               type="number" inputMode="decimal" min="0"
               placeholder="0.00"
               value={quickAmount}
               onChange={(e) => { setQuickAmount(e.target.value); if (parseFloat(e.target.value) > 0) setQuickAmountError(false); }}
               onKeyDown={(e) => e.key === "Enter" && handleQuickLog()}
-              className="w-full h-11 pl-12 pr-3 rounded-xl text-sm bg-secondary text-foreground outline-none"
+              className="w-full h-11 pl-12 pr-3 rounded-xl ios-subhead bg-secondary text-foreground outline-none"
               style={{ border: quickAmountError ? "1.5px solid var(--snm-error)" : "1px solid var(--border)" }}
             />
           </div>
           <select
             value={quickCategoryId}
             onChange={(e) => { setQuickCategoryId(e.target.value); if (e.target.value) setQuickCategoryError(false); }}
-            className="h-11 px-3 rounded-xl text-sm bg-secondary text-foreground outline-none"
+            className="h-11 px-3 rounded-xl ios-subhead bg-secondary text-foreground outline-none"
             style={{ border: quickCategoryError ? "1.5px solid var(--snm-error)" : "1px solid var(--border)" }}
           >
             {categories.map((c) => (
@@ -245,7 +245,7 @@ export function ExpensesView() {
           <button
             onClick={handleQuickLog}
             disabled={loggingQuick || !quickAmount}
-            className="h-11 px-5 rounded-xl text-sm font-semibold shrink-0 disabled:opacity-50"
+            className="h-11 px-5 rounded-xl ios-subhead font-semibold shrink-0 disabled:opacity-50"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             {loggingQuick ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log"}
@@ -265,14 +265,14 @@ export function ExpensesView() {
                 style={i > 0 ? { borderTop: "0.5px solid var(--glass-border-lo)" } : undefined}
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{catName(r.category_id)}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="ios-subhead font-medium text-foreground">{catName(r.category_id)}</p>
+                  <p className="ios-subhead text-muted-foreground">
                     {new Date(r.expense_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
                     {r.description ? ` · ${r.description}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <p className="text-sm font-semibold text-foreground snm-num">MVR {fmt(Number(r.amount_mvr))}</p>
+                  <p className="ios-subhead font-semibold text-foreground snm-num">MVR {fmt(Number(r.amount_mvr))}</p>
                   {canWrite && (
                     <button
                       onClick={() => handleDeleteBiz(r)}
@@ -308,15 +308,15 @@ export function ExpensesView() {
                       <Icon className="h-5 w-5 text-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{label}</p>
-                      <p className="text-xs text-muted-foreground">{meta}</p>
+                      <p className="ios-subhead font-medium text-foreground">{label}</p>
+                      <p className="ios-subhead text-muted-foreground">{meta}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-base font-semibold text-foreground snm-num">
                       {total > 0 ? `MVR ${fmtShort(total)}` : "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground">{pct > 0 ? `${pct}% of total` : "No data"}</p>
+                    <p className="ios-subhead text-muted-foreground">{pct > 0 ? `${pct}% of total` : "No data"}</p>
                   </div>
                 </div>
               );
@@ -330,8 +330,8 @@ export function ExpensesView() {
           <div className="glass rounded-2xl overflow-hidden">
             {rows.length === 0 ? (
               <div className="p-10 text-center">
-                <p className="text-sm text-muted-foreground">No expenses logged yet.</p>
-                <p className="text-xs text-muted-foreground mt-1">Use the bar above to log your first expense.</p>
+                <p className="ios-subhead text-muted-foreground">No expenses logged yet.</p>
+                <p className="ios-subhead text-muted-foreground mt-1">Use the bar above to log your first expense.</p>
               </div>
             ) : (
               rows.slice(0, 10).map((r, i) => {
@@ -347,16 +347,16 @@ export function ExpensesView() {
                         <Icon className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm text-foreground truncate">
+                        <p className="ios-subhead text-foreground truncate">
                           {r.campaign_name ?? CHANNEL_LABEL[r.channel]}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="ios-subhead text-muted-foreground">
                           {new Date(r.start_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <p className="snm-num text-sm font-medium text-foreground">
+                      <p className="snm-num ios-subhead font-medium text-foreground">
                         MVR {fmt(Number(r.amount_mvr))}
                       </p>
                       {canWrite && (
@@ -405,7 +405,7 @@ export function ExpensesView() {
         <div className="fixed inset-0 bg-black/60 z-60 flex items-center justify-center px-4">
           <div className="glass-modal rounded-2xl p-6 w-full max-w-sm space-y-4">
             <p className="text-base font-semibold text-foreground">Delete expense?</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="ios-subhead text-muted-foreground">
               <span className="text-foreground font-medium">
                 {deleteTarget.campaign_name ?? CHANNEL_LABEL[deleteTarget.channel]}
               </span>{" "}
@@ -414,7 +414,7 @@ export function ExpensesView() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 h-11 rounded-xl text-sm text-muted-foreground bg-secondary"
+                className="flex-1 h-11 rounded-xl ios-subhead text-muted-foreground bg-secondary"
               >
                 Cancel
               </button>
@@ -566,7 +566,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                 {selectedSkuIds.map((sid) => {
                   const s = skus.find((sk) => sk.id === sid);
                   return s ? (
-                    <span key={sid} className="inline-flex items-center gap-1 bg-secondary text-foreground text-xs rounded-lg px-2 py-1">
+                    <span key={sid} className="inline-flex items-center gap-1 bg-secondary text-foreground ios-subhead rounded-lg px-2 py-1">
                       {s.brand_name} {s.model_name} {s.variant_display}
                       <button onClick={() => toggleSku(sid)} className="text-muted-foreground hover:text-foreground ml-0.5">
                         <X className="h-3 w-3" />
@@ -579,14 +579,14 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
             <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search SKUs to link…" className={field + " mb-1.5"} />
             <div className="bg-secondary/50 rounded-xl max-h-40 overflow-y-auto border border-border">
               {filteredSkus.length === 0 ? (
-                <p className="text-xs text-muted-foreground px-3 py-2">No matches</p>
+                <p className="ios-subhead text-muted-foreground px-3 py-2">No matches</p>
               ) : filteredSkus.map((s, i) => (
                 <button
                   key={s.id} onClick={() => toggleSku(s.id)}
-                  className={`w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent/20 transition ${i > 0 ? "border-t border-border" : ""} ${selectedSkuIds.includes(s.id) ? "bg-accent/10" : ""}`}
+                  className={`w-full text-left px-3 py-2 ios-subhead text-foreground hover:bg-accent/20 transition ${i > 0 ? "border-t border-border" : ""} ${selectedSkuIds.includes(s.id) ? "bg-accent/10" : ""}`}
                 >
                   {s.brand_name} › {s.model_name} › {s.variant_display}
-                  {selectedSkuIds.includes(s.id) && <span className="ml-2 text-xs text-muted-foreground">✓</span>}
+                  {selectedSkuIds.includes(s.id) && <span className="ml-2 ios-subhead text-muted-foreground">✓</span>}
                 </button>
               ))}
             </div>
@@ -595,11 +595,11 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
           <div className="mb-5">
             <label className={label}>Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2}
-              className="w-full px-3 py-2.5 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none resize-none" />
+              className="w-full px-3 py-2.5 rounded-xl ios-subhead bg-secondary text-foreground border border-border outline-none resize-none" />
           </div>
 
           <div className="flex gap-3 pb-[env(safe-area-inset-bottom,16px)] pt-2">
-            <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm text-muted-foreground bg-secondary">
+            <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead text-muted-foreground bg-secondary">
               Cancel
             </button>
             <button

@@ -139,7 +139,7 @@ function GlassSelect({ label, value, onChange, children }: {
       {label && <p className="text-[12px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
+        className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none"
         style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
       >
         {children}
@@ -315,7 +315,7 @@ export function SalesList() {
         <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
           aria-label="Search orders"
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+          className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none" />
         {q && (
           <button onClick={() => setQ("")} aria-label="Clear search" className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
             style={{ color: "var(--muted-foreground)" }}>
@@ -371,11 +371,11 @@ export function SalesList() {
             <ShoppingCart className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-semibold text-foreground">{rows.length === 0 ? "No sales yet" : "No matches"}</h3>
-          <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead max-w-sm" style={{ color: "var(--muted-foreground)" }}>
             {unpaidMode ? "All delivered orders have been paid. Nothing outstanding." : rows.length === 0 ? "Record a sale when a customer messages you on WhatsApp, Viber, or other channels." : "Try a different filter."}
           </p>
           {rows.length === 0 && (
-            <button onClick={() => setNewDialog(true)} className="mt-2 h-11 px-6 rounded-2xl text-sm font-semibold"
+            <button onClick={() => setNewDialog(true)} className="mt-2 h-11 px-6 rounded-2xl ios-subhead font-semibold"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>
               Record first sale
             </button>
@@ -1010,7 +1010,7 @@ function NewSaleSheet({
                     <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                     <input autoFocus value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
                       placeholder="Search name, phone…"
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                      className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none" />
                     {customerSearch && (
                       <button onClick={() => setCustomerSearch("")}
                         aria-label="Clear search"
@@ -1075,7 +1075,7 @@ function NewSaleSheet({
                       );
                     })}
                     {(customerSearch.trim() ? filteredCustomers : recentCustomers).length === 0 && (
-                      <p className="text-sm py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="ios-subhead py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
                         {customerSearch.trim() ? "No matches." : "No customers yet."}
                       </p>
                     )}
@@ -1208,7 +1208,7 @@ function NewSaleSheet({
                     <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)}
                       placeholder="Search brand, product, variant…"
                       aria-label="Search products"
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
+                      className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
                   </div>
                   {/* Scan button */}
                   <button
@@ -1318,7 +1318,7 @@ function NewSaleSheet({
                       </div>
                     );
                   })}
-                  {filteredSkus.length === 0 && <p className="text-sm col-span-2 py-4" style={{ color: "var(--muted-foreground)" }}>No products found.</p>}
+                  {filteredSkus.length === 0 && <p className="ios-subhead col-span-2 py-4" style={{ color: "var(--muted-foreground)" }}>No products found.</p>}
                 </div>
               </div>
             ) : selectedSku ? (() => {
@@ -1590,7 +1590,7 @@ function NewSaleSheet({
                   const pl = packLabel(l.sku);
                   const uomWord = l.uom === "carton" ? "carton" : l.uom === "piece" ? "pc" : pl.toLowerCase();
                   return (
-                  <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                  <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 ios-subhead" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
@@ -1612,7 +1612,7 @@ function NewSaleSheet({
                   </div>
                   );
                 })}
-                <div className="flex justify-between px-4 py-3 text-sm font-semibold" style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
+                <div className="flex justify-between px-4 py-3 ios-subhead font-semibold" style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                   <span style={{ color: "var(--muted-foreground)" }}>Total</span>
                   <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </div>
@@ -1643,7 +1643,7 @@ function NewSaleSheet({
                 const pl = packLabel(l.sku);
                 const uomWord = l.uom === "carton" ? "carton" : l.uom === "piece" ? "pc" : pl.toLowerCase();
                 return (
-                  <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 text-sm" style={{ borderBottom: i < draftLines.length - 1 ? "0.5px solid var(--glass-border-lo)" : "none" }}>
+                  <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 ios-subhead" style={{ borderBottom: i < draftLines.length - 1 ? "0.5px solid var(--glass-border-lo)" : "none" }}>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
@@ -1695,7 +1695,7 @@ function NewSaleSheet({
               <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)}
                 placeholder="e.g. Leave at the gate, call before arriving…"
                 rows={2}
-                className="w-full px-4 py-3 rounded-xl text-sm text-foreground outline-none resize-none"
+                className="w-full px-4 py-3 rounded-xl ios-subhead text-foreground outline-none resize-none"
                 style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
             </div>
 
@@ -1710,7 +1710,7 @@ function NewSaleSheet({
       <footer className="snm-overlay-footer shrink-0 px-5 gap-3" style={{ paddingTop: "12px" }}>
         {step === 1 && (
           <>
-            <button onClick={onClose} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
+            <button onClick={onClose} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
             <button disabled={!customerId} onClick={async () => {
                 try {
                   const skuIds = skus.map((s) => s.id);
@@ -1722,7 +1722,7 @@ function NewSaleSheet({
                 }
                 setStep(2);
               }}
-              className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+              className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>
               Add Products <ArrowRight className="h-4 w-4" />
             </button>
@@ -1730,9 +1730,9 @@ function NewSaleSheet({
         )}
         {step === 2 && (
           <>
-            <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
+            <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
             <button disabled={draftLines.length === 0} onClick={() => setStep(3)}
-              className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+              className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>
               {draftLines.length === 0 ? "Add at least 1 item" : <>Review & Confirm <ArrowRight className="h-4 w-4" /></>}
             </button>
@@ -1740,9 +1740,9 @@ function NewSaleSheet({
         )}
         {step === 3 && (
           <>
-            <button onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl text-sm font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
+            <button onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
             <button disabled={saving} onClick={handleSubmit}
-              className="flex-[2] h-14 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+              className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--foreground)", color: "var(--background)" }}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Place Order <ArrowRight className="h-4 w-4" /></>}
             </button>

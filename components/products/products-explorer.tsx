@@ -852,7 +852,7 @@ export function ProductsExplorer() {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <Package className="h-8 w-8 mb-3 opacity-20" style={{ color: "var(--muted-foreground)" }} />
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               {skus.length === 0
                 ? "No SKUs yet — tap \"New SKU\" to add your first product."
                 : "No results."}

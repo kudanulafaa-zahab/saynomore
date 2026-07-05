@@ -482,7 +482,7 @@ export function EditSkuDialog({
                       : <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                     }
                   </p>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 ios-subhead">
                     {/* Primary: pack/bottle (trade unit) */}
                     <div className="flex items-center justify-between rounded-lg px-3 py-2"
                       style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)" }}>
@@ -559,7 +559,7 @@ export function EditSkuDialog({
           {/* ── Pricing section ── */}
           <div className="border-t border-border pt-4 space-y-4">
             <div>
-              <p className="text-sm font-semibold text-foreground">Pricing</p>
+              <p className="ios-subhead font-semibold text-foreground">Pricing</p>
               <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                 Use margin % for auto pricing, or set a fixed price per {unit.toLowerCase()} (overrides margin). All prices shown per {unit.toLowerCase()} — the unit you trade in.
               </p>
@@ -617,7 +617,7 @@ export function EditSkuDialog({
                   className="max-w-[120px]"
                   disabled={usingFixed}
                 />
-                <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>%</span>
+                <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>%</span>
                 {usingFixed && (
                   <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                     (overridden by fixed price below)
@@ -670,7 +670,7 @@ export function EditSkuDialog({
                   placeholder="e.g. 45.00"
                   className="max-w-[140px]"
                 />
-                <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>MVR / {unit.toLowerCase()}</span>
+                <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR / {unit.toLowerCase()}</span>
                 {fixedPrice && (
                   <button
                     type="button"
@@ -732,7 +732,7 @@ export function EditSkuDialog({
           {/* ── Volume-break pricing ── */}
           <div className="border-t border-border pt-4 space-y-3">
             <div>
-              <p className="text-sm font-semibold text-foreground">Volume-Break Pricing</p>
+              <p className="ios-subhead font-semibold text-foreground">Volume-Break Pricing</p>
               <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                 Optional — set a lower price for {sellsPack ? "pack or carton" : "carton"} buyers. Overrides the base price above for that unit only.
               </p>
@@ -861,7 +861,7 @@ export function CascadeDeleteDialog({
         </DialogHeader>
 
         <div className="space-y-2">
-          <Label className="text-xs">Type the name to confirm:</Label>
+          <Label className="ios-subhead">Type the name to confirm:</Label>
           <Input
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}

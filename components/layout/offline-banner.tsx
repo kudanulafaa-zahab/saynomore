@@ -21,7 +21,7 @@ export function OfflineBanner() {
   if (justSynced && isOnline && pendingCount === 0) {
     return (
       <div
-        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all"
+        className="flex items-center gap-2 px-4 py-2.5 ios-subhead font-medium transition-all"
         style={{
           background: "color-mix(in srgb, var(--snm-success) 12%, transparent)",
           color: "var(--snm-success)",
@@ -38,7 +38,7 @@ export function OfflineBanner() {
   if (!isOnline) {
     return (
       <div
-        className="flex items-center justify-between px-4 py-2.5 text-sm font-medium"
+        className="flex items-center justify-between px-4 py-2.5 ios-subhead font-medium"
         style={{
           background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)",
           color: "var(--snm-warning)",
@@ -62,7 +62,7 @@ export function OfflineBanner() {
   if (isOnline && pendingCount > 0) {
     return (
       <div
-        className="flex items-center justify-between px-4 py-2.5 text-sm font-medium"
+        className="flex items-center justify-between px-4 py-2.5 ios-subhead font-medium"
         style={{
           background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
           color: "var(--snm-brand)",
@@ -80,7 +80,7 @@ export function OfflineBanner() {
         {!isSyncing && (
           <button
             onClick={triggerSync}
-            className="snm-pressable text-xs px-3 py-1 rounded-lg font-semibold"
+            className="snm-pressable ios-subhead px-3 py-1 rounded-lg font-semibold"
             style={{
               background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)",
               color: "var(--snm-brand)",

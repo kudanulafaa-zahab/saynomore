@@ -48,6 +48,15 @@ Each token has a matching `-lh` (line-height) and `-ls` (letter-spacing) var, an
 **Decision test:** *"Would a user squint to read this number/word to do their job?"*
 If yes → it's data → **≥15px**. If it's just a shouted UPPERCASE label or a badge → caption.
 
+**Controls are the one exception to "bigger is better."** Button / pill / segmented-control
+*labels* stay at **14px** (Tailwind `text-sm`, semibold) — that is Apple's correct control
+size, and enlarging it blows out button widths. So:
+- **Button / capsule / tab labels** (`snm-btn`, `snm-glass-btn`, or a rounded+interactive+
+  padded pill) → keep **14px** `text-sm`. Do **not** bump.
+- **Form inputs / textareas / selects** → **15px** `.ios-subhead` (typed data must be
+  legible — an input is data you read back, not a control label).
+- Everything else that is data/body → **≥15px** per the rule above.
+
 ## 3. What "hardcoded" means (and why to stop)
 
 Do **not** write `text-[11px]`, `text-[12px]`, `text-[13px]`, or inline

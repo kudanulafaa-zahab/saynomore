@@ -624,8 +624,8 @@ export function ShipmentDetail({ id }: { id: string }) {
   if (!shipment) {
     return (
       <div className="p-6">
-        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Purchase order not found.</p>
-        <Link href="/shipments" className="text-sm mt-3 block" style={{ color: "var(--foreground)" }}>← Back</Link>
+        <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Purchase order not found.</p>
+        <Link href="/shipments" className="ios-subhead mt-3 block" style={{ color: "var(--foreground)" }}>← Back</Link>
       </div>
     );
   }
@@ -696,7 +696,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           }}
         >
           <AlertTriangle className="h-5 w-5 shrink-0" style={{ color: "var(--snm-warning)" }} />
-          <p className="text-sm font-medium flex-1 text-left" style={{ color: "var(--snm-warning)" }}>
+          <p className="ios-subhead font-medium flex-1 text-left" style={{ color: "var(--snm-warning)" }}>
             Goods arrived — confirm receipt to update stock
           </p>
           <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--snm-warning)" }} />
@@ -713,7 +713,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         {/* Reference */}
         <Field label="PO REFERENCE">
           {locked
-            ? <p className="text-sm font-semibold text-foreground">{shipment.reference}</p>
+            ? <p className="ios-subhead font-semibold text-foreground">{shipment.reference}</p>
             : <input
                 value={shipment.reference}
                 onChange={(e) => setShipment((p) => p ? { ...p, reference: e.target.value } : p)}
@@ -727,7 +727,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         {/* Supplier */}
         <Field label="SUPPLIER">
           {locked
-            ? <p className="text-sm text-foreground">{suppliers.find((s) => s.id === shipment.supplier_id)?.name ?? "—"}</p>
+            ? <p className="ios-subhead text-foreground">{suppliers.find((s) => s.id === shipment.supplier_id)?.name ?? "—"}</p>
             : <div className="relative">
                 <select
                   value={shipment.supplier_id ?? ""}
@@ -818,7 +818,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           <Field label="STATUS">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" style={{ color: "var(--snm-success)" }} />
-              <p className="text-sm font-semibold" style={{ color: "var(--snm-success)" }}>
+              <p className="ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>
                 Received — {fmtDate(shipment.grn_confirmed_at)}
               </p>
             </div>
@@ -829,7 +829,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         <div className="grid grid-cols-2 gap-3">
           <Field label="SUPPLIER PO #">
             {locked
-              ? <p className="text-sm text-foreground">{shipment.supplier_po_number ?? "—"}</p>
+              ? <p className="ios-subhead text-foreground">{shipment.supplier_po_number ?? "—"}</p>
               : <input
                   value={shipment.supplier_po_number ?? ""}
                   onChange={(e) => setShipment((p) => p ? { ...p, supplier_po_number: e.target.value } : p)}
@@ -842,7 +842,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           </Field>
           <Field label="EXPECTED ARRIVAL">
             {locked
-              ? <p className="text-sm text-foreground">{fmtDate(shipment.expected_arrival_date) || "—"}</p>
+              ? <p className="ios-subhead text-foreground">{fmtDate(shipment.expected_arrival_date) || "—"}</p>
               : <div className="relative">
                   <input
                     type="date"
@@ -867,7 +867,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             disabled={locked}
             placeholder="Add notes about this order…"
             rows={3}
-            className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none resize-none placeholder:text-muted-foreground"
+            className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none resize-none placeholder:text-muted-foreground"
             style={locked ? disabledSty : inputSty}
           />
         </Field>
@@ -896,7 +896,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           <button
             onClick={() => { setEditingLine(undefined); setPanel("addLine"); }}
             disabled={locked}
-            className="w-full h-14 rounded-xl flex items-center justify-center gap-2 text-sm transition active:scale-95"
+            className="w-full h-14 rounded-xl flex items-center justify-center gap-2 ios-subhead transition active:scale-95"
             style={{
               border: "1.5px dashed var(--glass-border)",
               background: "transparent",
@@ -1006,7 +1006,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         )}
                       </p>
                       {locked
-                        ? <p className="text-sm font-semibold" style={{ color: isShort ? "var(--snm-warning)" : "var(--foreground)" }}>
+                        ? <p className="ios-subhead font-semibold" style={{ color: isShort ? "var(--snm-warning)" : "var(--foreground)" }}>
                             {actualQty} cartons{l.qty_loose_packs > 0 ? ` + ${l.qty_loose_packs} pk` : ""} {isShort ? `(${l.qty_cartons - actualQty} short)` : ""}
                           </p>
                         : <div className="space-y-2.5">
@@ -1087,7 +1087,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             {!locked && (
               <button
                 onClick={() => { setEditingLine(undefined); setPanel("addLine"); }}
-                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm transition active:scale-95"
+                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 ios-subhead transition active:scale-95"
                 style={{ border: "1.5px dashed var(--glass-border)", background: "transparent", color: "var(--muted-foreground)" }}
               >
                 <Plus className="h-4 w-4" />
@@ -1423,7 +1423,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           )}
           <button
             onClick={() => setShowMore(false)}
-            className="w-full h-12 px-4 rounded-xl text-sm font-medium"
+            className="w-full h-12 px-4 rounded-xl ios-subhead font-medium"
             style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}
           >
             Close
@@ -1485,7 +1485,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             <select
               value={grnGodownId}
               onChange={(e) => setGrnGodownId(e.target.value)}
-              className="w-full h-12 rounded-xl px-4 pr-10 text-sm text-foreground outline-none appearance-none"
+              className="w-full h-12 rounded-xl px-4 pr-10 ios-subhead text-foreground outline-none appearance-none"
               style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
             >
               {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>)}
@@ -1502,7 +1502,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         </p>
 
         <div className="flex gap-3">
-          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold"
+          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>
             Cancel
           </button>
@@ -1523,14 +1523,14 @@ export function ShipmentDetail({ id }: { id: string }) {
           </div>
           <h2 className="text-[20px] font-semibold" style={{ color: "var(--snm-warning)" }}>Reopen this GRN?</h2>
         </div>
-        <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mb-2" style={{ color: "var(--muted-foreground)" }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> will unlock for editing — you can fix the FOB price, forex rate, freight/customs, or add a missed line, then confirm receipt again.
         </p>
         <p className="ios-subhead rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-warning) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--muted-foreground)" }}>
           Sales history is untouched. If any stock from this shipment has already been sold, reopening is blocked — you&apos;d need a stock adjustment instead.
         </p>
         <div className="flex gap-3">
-          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold"
+          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={async () => {
@@ -1561,14 +1561,14 @@ export function ShipmentDetail({ id }: { id: string }) {
           </div>
           <h2 className="text-[20px] font-semibold" style={{ color: "var(--snm-error)" }}>Void GRN?</h2>
         </div>
-        <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mb-2" style={{ color: "var(--muted-foreground)" }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> — all inventory batches, stock movements, and linked sales orders will be permanently deleted.
         </p>
         <p className="ios-subhead rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-error) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--muted-foreground)" }}>
           ⚠ If stock from this shipment has already been sold, those sales orders will also be deleted.
         </p>
         <div className="flex gap-3">
-          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold"
+          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={async () => {
@@ -1588,18 +1588,18 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* Delete shipment */}
       <Sheet open={panel === "deleteShipment"} onClose={() => setPanel(null)}>
         <h2 className="text-[20px] font-semibold mb-2" style={{ color: "var(--snm-error)" }}>Delete Purchase Order?</h2>
-        <p className="text-sm mb-5" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mb-5" style={{ color: "var(--muted-foreground)" }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> and all its lines will be permanently removed.
         </p>
         <div className="flex gap-3">
-          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold"
+          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={async () => {
               try { await deleteShipment(shipment.id); haptic("warning"); toast.success("Deleted"); router.push("/shipments"); }
               catch (e) { haptic("error"); toast.error((e as Error).message); }
             }}
-            className="flex-[2] h-12 rounded-xl text-sm font-bold"
+            className="flex-[2] h-12 rounded-xl ios-subhead font-bold"
             style={{ background: "var(--snm-error)", color: "#fff" }}>
             Delete
           </button>
@@ -1609,14 +1609,14 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* Delete line */}
       <Sheet open={panel === "deleteLine"} onClose={() => { setPendingDeleteLine(null); setPanel(null); }}>
         <h2 className="text-[20px] font-semibold mb-2" style={{ color: "var(--snm-error)" }}>Remove product?</h2>
-        <p className="text-sm mb-5" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mb-5" style={{ color: "var(--muted-foreground)" }}>
           {pendingDeleteLine && (() => {
             const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
             return sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "This line";
           })()} will be removed from the PO.
         </p>
         <div className="flex gap-3">
-          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} className="flex-1 h-12 rounded-xl text-sm font-semibold"
+          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={async () => {
@@ -1627,7 +1627,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                 setPendingDeleteLine(null); setPanel(null); load();
               } catch (e) { toast.error((e as Error).message); }
             }}
-            className="flex-[2] h-12 rounded-xl text-sm font-bold"
+            className="flex-[2] h-12 rounded-xl ios-subhead font-bold"
             style={{ background: "var(--snm-error)", color: "#fff" }}>
             Remove
           </button>
@@ -1754,7 +1754,7 @@ function LineDialog({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search brand, model, code…"
-                  className="flex-1 h-12 rounded-xl px-4 text-sm text-foreground outline-none"
+                  className="flex-1 h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                   style={inputSty2}
                 />
                 <button
@@ -1772,7 +1772,7 @@ function LineDialog({
               </div>
               <div className="mt-2 rounded-xl overflow-hidden" style={{ maxHeight: "55dvh", overflowY: "auto", border: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
                 {filteredSkus.length === 0
-                  ? <p className="p-4 text-sm" style={{ color: "var(--muted-foreground)" }}>No matches.</p>
+                  ? <p className="p-4 ios-subhead" style={{ color: "var(--muted-foreground)" }}>No matches.</p>
                   : filteredSkus.map((s) => (
                     <button key={s.id} onClick={() => setSkuId(s.id)}
                       className="w-full text-left px-4 py-3 transition"
@@ -1855,14 +1855,14 @@ function LineDialog({
                   value={fobPerCarton}
                   onChange={(e) => setFobPerCarton(e.target.value)}
                   placeholder={fobEntryUnit === "pack" ? "e.g. 12800" : "e.g. 51200"}
-                  className="flex-1 h-12 rounded-xl px-4 text-sm text-foreground outline-none"
+                  className="flex-1 h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                   style={inputSty2}
                 />
                 <div className="relative">
                   <select
                     value={fobCurrency}
                     onChange={(e) => setFobCurrency(e.target.value as FobCurrency)}
-                    className="h-12 rounded-xl px-3 pr-8 text-sm text-foreground outline-none appearance-none"
+                    className="h-12 rounded-xl px-3 pr-8 ios-subhead text-foreground outline-none appearance-none"
                     style={{ ...inputSty2, width: 80 }}
                   >
                     <option value="IDR">IDR</option>
@@ -1900,7 +1900,7 @@ function LineDialog({
             borderTop: "0.5px solid var(--glass-border-lo)",
           }}
         >
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold"
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
             style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button
             onClick={save}

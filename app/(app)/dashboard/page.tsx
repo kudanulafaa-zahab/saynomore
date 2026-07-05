@@ -159,7 +159,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-1.5 mt-3"
             style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
             {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-            <span className="text-sm snm-num">
+            <span className="ios-subhead snm-num">
               {revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(1)}% vs {lastMonthName}
             </span>
           </div>
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
           style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <p className="text-[12px] font-semibold uppercase tracking-wider"
             style={{ color: "var(--muted-foreground)" }}>Today</p>
-          <p className="text-sm font-semibold text-foreground snm-num">{mvr(revenueToday)} MVR</p>
+          <p className="ios-subhead font-semibold text-foreground snm-num">{mvr(revenueToday)} MVR</p>
           <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
         </div>
       </Link>
@@ -263,7 +263,7 @@ export default async function DashboardPage() {
                 {mvr(pendingMvr)}
               </p>
               <div className="flex items-center justify-between mt-1">
-                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   {pendingCount} delivered order{pendingCount !== 1 ? "s" : ""}
                 </p>
                 <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
@@ -283,7 +283,7 @@ export default async function DashboardPage() {
                 {mvr(codUndeposited)}
               </p>
               <div className="flex items-center justify-between mt-1">
-                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   COD collected, not banked
                 </p>
                 <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
@@ -342,10 +342,10 @@ export default async function DashboardPage() {
                 <Timer className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
+                <p className="ios-subhead font-semibold text-foreground">
                   {overdueOrders} order{overdueOrders !== 1 ? "s" : ""} overdue
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   Confirmed &gt;24 h — no driver assigned yet
                 </p>
               </div>
@@ -362,10 +362,10 @@ export default async function DashboardPage() {
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
+                <p className="ios-subhead font-semibold text-foreground">
                   {lowStockCount} SKU{lowStockCount !== 1 ? "s" : ""} low on stock
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   Less than 10 days of stock remaining
                 </p>
               </div>
@@ -382,10 +382,10 @@ export default async function DashboardPage() {
                 <Ship className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
+                <p className="ios-subhead font-semibold text-foreground">
                   {arrivingSoon} shipment{arrivingSoon !== 1 ? "s" : ""} arriving within 3 days
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   Prepare godown space for receiving
                 </p>
               </div>
@@ -402,10 +402,10 @@ export default async function DashboardPage() {
                 <RefreshCw className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
+                <p className="ios-subhead font-semibold text-foreground">
                   {reorderCount} SKU{reorderCount !== 1 ? "s" : ""} due for reorder
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   Based on sales velocity and lead time
                 </p>
               </div>
@@ -422,10 +422,10 @@ export default async function DashboardPage() {
                 <PackageX className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
+                <p className="ios-subhead font-semibold text-foreground">
                   {overstockCount} SKU{overstockCount !== 1 ? "s" : ""} overstocked
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   More than 90 days of stock on hand
                 </p>
               </div>

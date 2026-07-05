@@ -13,12 +13,12 @@ export default function OfflinePage() {
         📶
       </div>
       <h1 className="text-xl font-semibold">You&apos;re offline</h1>
-      <p className="text-sm" style={{ color: "var(--muted-foreground)", maxWidth: 280 }}>
+      <p className="ios-subhead" style={{ color: "var(--muted-foreground)", maxWidth: 280 }}>
         This page isn&apos;t cached yet. Any changes you entered are saved locally and will sync when you reconnect.
       </p>
       <button
         onClick={() => window.history.back()}
-        className="snm-pressable mt-2 px-6 py-3 rounded-2xl text-sm font-semibold"
+        className="snm-pressable mt-2 px-6 py-3 rounded-2xl ios-subhead font-semibold"
         style={{ background: "var(--foreground)", color: "var(--background)" }}
       >
         Go back

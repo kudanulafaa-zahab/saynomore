@@ -14,7 +14,7 @@ export function ComingSoon({
           <Construction className="h-6 w-6 text-muted-foreground" />
         </div>
         <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+        <p className="ios-subhead text-muted-foreground max-w-md mx-auto">
           {description ?? "Building this module next. The foundation is ready — your data is safe."}
         </p>
       </div>

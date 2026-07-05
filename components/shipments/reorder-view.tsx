@@ -126,7 +126,7 @@ export function ReorderView() {
       {rows.length === 0 && (
         <div className="rounded-2xl px-8 py-16 flex flex-col items-center text-center" style={CARD}>
           <ClipboardList className="h-8 w-8 mb-3 opacity-20" style={{ color: "var(--muted-foreground)" }} />
-          <p className="text-sm font-medium text-foreground">Nothing to reorder yet</p>
+          <p className="ios-subhead font-medium text-foreground">Nothing to reorder yet</p>
           <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
             Once you have sales history, we&apos;ll suggest what to order and how much.
           </p>

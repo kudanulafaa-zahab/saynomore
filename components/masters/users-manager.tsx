@@ -95,7 +95,7 @@ export function UsersManager() {
     return (
       <div className="glass p-10 text-center space-y-2">
         <Shield className="h-8 w-8 text-muted-foreground mx-auto" />
-        <p className="text-sm text-muted-foreground">Only administrators can manage users.</p>
+        <p className="ios-subhead text-muted-foreground">Only administrators can manage users.</p>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export function UsersManager() {
     return (
       <div className="glass p-12 flex flex-col items-center text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin mb-3" />
-        <p className="text-sm">Loading users…</p>
+        <p className="ios-subhead">Loading users…</p>
       </div>
     );
   }
@@ -114,7 +114,7 @@ export function UsersManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-medium text-foreground">Team Members</h2>
-          <p className="text-sm text-muted-foreground">Manage who has access and what they can do.</p>
+          <p className="ios-subhead text-muted-foreground">Manage who has access and what they can do.</p>
         </div>
         <Button onClick={() => setInviteDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -135,7 +135,7 @@ export function UsersManager() {
                 >
                   <Icon className="h-3.5 w-3.5" />
                 </span>
-                <p className="text-sm font-medium text-foreground">{ROLE_LABEL[r]}</p>
+                <p className="ios-subhead font-medium text-foreground">{ROLE_LABEL[r]}</p>
               </div>
               <p className="ios-subhead text-muted-foreground">{ROLE_DESC[r]}</p>
             </div>
@@ -152,7 +152,7 @@ export function UsersManager() {
             <Users className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-medium text-foreground">No team members yet</h3>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          <p className="ios-subhead text-muted-foreground max-w-sm mx-auto">
             Invite your manager and delivery staff. They will receive an email to set their password.
           </p>
           <Button onClick={() => setInviteDialog(true)}>
@@ -176,12 +176,12 @@ export function UsersManager() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-foreground">{u.full_name ?? "—"}</p>
+                      <p className="ios-subhead font-medium text-foreground">{u.full_name ?? "—"}</p>
                       {isMe && (
                         <span className="text-[12px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">You</span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{u.email ?? "—"}</p>
+                    <p className="ios-subhead text-muted-foreground truncate">{u.email ?? "—"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">

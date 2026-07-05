@@ -39,8 +39,8 @@ export default function SettingsPage() {
         <div className="px-5 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Sign out</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>You&apos;ll be returned to the login screen</p>
+              <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>Sign out</p>
+              <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>You&apos;ll be returned to the login screen</p>
             </div>
             <button
               onClick={handleSignOut}

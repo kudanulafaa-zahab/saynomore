@@ -273,7 +273,7 @@ export function CompetitorsView() {
         <div className="rounded-2xl p-4" style={CARD}>
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="h-4 w-4" style={{ color: "var(--snm-warning)" }} />
-            <p className="text-sm font-bold text-foreground">
+            <p className="ios-subhead font-bold text-foreground">
               {priceGaps.length} product{priceGaps.length !== 1 ? "s" : ""} priced above competitors
             </p>
           </div>
@@ -319,7 +319,7 @@ export function CompetitorsView() {
                   setSimPrice(s.selling_price_per_pack_mvr ?? (s.landed_per_piece_mvr ?? 0) * s.pcs_per_pack * 1.3);
                 }
               }}
-              className="h-12 rounded-xl pl-4 pr-10 text-sm font-medium text-foreground outline-none appearance-none w-full cursor-pointer"
+              className="h-12 rounded-xl pl-4 pr-10 ios-subhead font-medium text-foreground outline-none appearance-none w-full cursor-pointer"
               style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
             >
               {skus.filter((s) => s.is_active).map((s) => (
@@ -915,7 +915,7 @@ export function CompetitorsView() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search competitors…"
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+            className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none"
           />
         </div>
 
@@ -925,11 +925,11 @@ export function CompetitorsView() {
               <Store className="h-6 w-6 text-foreground" />
             </div>
             <h3 className="text-base font-semibold text-foreground">No competitors yet</h3>
-            <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead max-w-sm" style={{ color: "var(--muted-foreground)" }}>
               Add competitors to start tracking their prices.
             </p>
             {canWrite && (
-              <button onClick={() => setCompetitorDialog({ open: true })} className="mt-2 h-11 px-6 rounded-full text-sm font-bold" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+              <button onClick={() => setCompetitorDialog({ open: true })} className="mt-2 h-11 px-6 rounded-full ios-subhead font-bold" style={{ background: "var(--foreground)", color: "var(--background)" }}>
                 Add first competitor
               </button>
             )}
@@ -984,7 +984,7 @@ export function CompetitorsView() {
                     <div style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                       {compPrices.length === 0 ? (
                         <div className="px-4 py-4 text-center">
-                          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
+                          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>No prices logged yet.</p>
                           {canWrite && (
                             <button onClick={() => setPriceDialog({ open: true, competitorId: comp.id })} className="ios-subhead text-foreground opacity-60 active:opacity-100 mt-1">Log first price</button>
                           )}
@@ -1078,9 +1078,9 @@ export function CompetitorsView() {
                 <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{deleteCompDialog.name}</p>
               </div>
             </div>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>All logged prices will also be removed.</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>All logged prices will also be removed.</p>
             <div className="flex gap-2">
-              <button onClick={() => setDeleteCompDialog(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+              <button onClick={() => setDeleteCompDialog(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
               <button
                 disabled={deleting}
                 onClick={async () => {
@@ -1110,9 +1110,9 @@ export function CompetitorsView() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <p className="text-[15px] font-bold text-foreground">Remove price entry?</p>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
             <div className="flex gap-2">
-              <button onClick={() => setDeletePriceDialog(null)} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+              <button onClick={() => setDeletePriceDialog(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
               <button
                 disabled={deleting}
                 onClick={async () => {
@@ -1175,14 +1175,14 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
         <div className="space-y-1.5">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button onClick={save} disabled={saving || !name.trim()} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Add"}
           </button>
@@ -1277,12 +1277,12 @@ function PriceModal({
         <div className="space-y-1.5">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
           {competitors.length > 0 ? (
-            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               <option value="">Pick competitor</option>
               {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : (
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Add a competitor first using the &ldquo;Add Competitor&rdquo; button.</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Add a competitor first using the &ldquo;Add Competitor&rdquo; button.</p>
           )}
         </div>
 
@@ -1291,15 +1291,15 @@ function PriceModal({
           <p className="label-caps text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
           {!variantId ? (
             <>
-              <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+              <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
               <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
                 {filteredVariants.map((s) => (
-                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 text-sm text-foreground active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 ios-subhead text-foreground active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                     <p className="font-medium">{s.brand_name} · {s.model_name} · {s.variant_display}</p>
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
                   </button>
                 ))}
-                {filteredVariants.length === 0 && <p className="px-4 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>No matches</p>}
+                {filteredVariants.length === 0 && <p className="px-4 py-3 ios-subhead" style={{ color: "var(--muted-foreground)" }}>No matches</p>}
               </div>
             </>
           ) : selectedSku ? (
@@ -1316,11 +1316,11 @@ function PriceModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
-            <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+            <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
           <div className="space-y-1.5">
             <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
-            <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+            <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               {(Object.keys(BASIS_LABEL) as PriceBasis[]).map((b) => <option key={b} value={b}>{BASIS_LABEL[b]}</option>)}
             </select>
           </div>
@@ -1338,22 +1338,22 @@ function PriceModal({
         {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
           <div className="space-y-1.5">
             <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
-            <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+            <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
         )}
 
         <div className="space-y-1.5">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
-          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="space-y-1.5">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
         </div>
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button onClick={save} disabled={saving || !selectedCompId || !variantId || !priceMvr} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Log Price"}
           </button>

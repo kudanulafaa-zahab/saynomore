@@ -291,7 +291,7 @@ export function ReportsView() {
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="h-11 px-3 text-sm rounded-xl border text-foreground"
+              className="h-11 px-3 ios-subhead rounded-xl border text-foreground"
               style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
             />
             <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>to</span>
@@ -299,7 +299,7 @@ export function ReportsView() {
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="h-11 px-3 text-sm rounded-xl border text-foreground"
+              className="h-11 px-3 ios-subhead rounded-xl border text-foreground"
               style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
             />
             <button
@@ -386,7 +386,7 @@ export function ReportsView() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by brand, model, variant…"
-          className="w-full h-11 pl-9 pr-10 rounded-xl text-sm text-foreground outline-none"
+          className="w-full h-11 pl-9 pr-10 rounded-xl ios-subhead text-foreground outline-none"
           style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
         />
         {q && (
@@ -404,12 +404,12 @@ export function ReportsView() {
       {loading ? (
         <div className="snm-card p-12 flex flex-col items-center text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin mb-3" />
-          <p className="text-sm">Loading…</p>
+          <p className="ios-subhead">Loading…</p>
         </div>
       ) : tab === "contribution" ? (
         contribFiltered.length === 0 ? (
           <div className="snm-card p-10 text-center">
-            <p className="text-muted-foreground text-sm">No sales in this period.</p>
+            <p className="text-muted-foreground ios-subhead">No sales in this period.</p>
           </div>
         ) : (
           <ContributionTable rows={contribFiltered} />
@@ -417,14 +417,14 @@ export function ReportsView() {
       ) : tab === "abc" ? (
         abcFiltered.length === 0 ? (
           <div className="snm-card p-10 text-center">
-            <p className="text-muted-foreground text-sm">No sales in this period.</p>
+            <p className="text-muted-foreground ios-subhead">No sales in this period.</p>
           </div>
         ) : (
           <AbcTable rows={abcFiltered} />
         )
       ) : filtered.length === 0 ? (
         <div className="snm-card p-10 text-center">
-          <p className="text-muted-foreground text-sm">No data for this period.</p>
+          <p className="text-muted-foreground ios-subhead">No data for this period.</p>
         </div>
       ) : tab === "bestsellers" ? (
         <BestSellersTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
@@ -485,7 +485,7 @@ function SummaryCard({ label, value, sublabel, icon: Icon, tokenColor, hero }: {
       </div>
       <p className="snm-num text-[22px] font-bold tracking-tight leading-none text-foreground">{value}</p>
       <p className="text-[12px] uppercase tracking-widest text-muted-foreground leading-tight">{label}</p>
-      {sublabel && <p className="text-[11px] text-muted-foreground leading-tight -mt-1">{sublabel}</p>}
+      {sublabel && <p className="ios-footnote text-muted-foreground leading-tight -mt-1">{sublabel}</p>}
     </div>
   );
 }
@@ -515,7 +515,7 @@ function BestSellersTable({ rows, sortKey, onSort }: {
   return (
     <div className="glass overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full ios-subhead">
           <thead className="border-b border-border bg-secondary/50">
             <tr>
               <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
@@ -532,11 +532,11 @@ function BestSellersTable({ rows, sortKey, onSort }: {
               <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-mono w-5 text-center ${i < 3 ? "text-primary font-bold" : "text-muted-foreground"}`}>
+                    <span className={`ios-subhead font-mono w-5 text-center ${i < 3 ? "text-primary font-bold" : "text-muted-foreground"}`}>
                       {i + 1}
                     </span>
                     <div>
-                      <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                      <p className="text-foreground ios-subhead">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
                       <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                     </div>
                   </div>
@@ -571,7 +571,7 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
   return (
     <div className="glass overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full ios-subhead">
           <thead className="border-b border-border bg-secondary/50">
             <tr>
               <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
@@ -588,7 +588,7 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
               return (
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
-                    <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                    <p className="text-foreground ios-subhead">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
                     <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                   </td>
                   <td className="px-3 py-3 text-right text-foreground font-medium snm-num">{fmt0(r.total_revenue_mvr)}</td>
@@ -658,7 +658,7 @@ function AbcTable({ rows }: { rows: AbcRow[] }) {
 
       <div className="glass overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full ios-subhead">
             <thead className="border-b border-border bg-secondary/50">
               <tr>
                 <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
@@ -673,15 +673,15 @@ function AbcTable({ rows }: { rows: AbcRow[] }) {
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono w-5 text-center text-muted-foreground">{r.rank}</span>
+                      <span className="ios-subhead font-mono w-5 text-center text-muted-foreground">{r.rank}</span>
                       <div>
-                        <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                        <p className="text-foreground ios-subhead">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
                         <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-3 py-3 text-center">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold" style={abcClassStyle(r.abc_class)}>
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-md ios-subhead font-bold" style={abcClassStyle(r.abc_class)}>
                       {r.abc_class}
                     </span>
                   </td>
@@ -713,7 +713,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
   return (
     <div className="glass overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full ios-subhead">
           <thead className="border-b border-border bg-secondary/50">
             <tr>
               <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
@@ -730,7 +730,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
               return (
               <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                 <td className="px-3 py-3">
-                  <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                  <p className="text-foreground ios-subhead">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
                   <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
@@ -805,11 +805,11 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
           const pct = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
           return (
             <div key={channel} className="space-y-1">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between ios-subhead">
                 <span className="text-foreground">{CHANNEL_LABELS[channel] ?? channel}</span>
                 <span className="text-muted-foreground font-medium snm-num">
                   MVR {total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  <span className="text-xs ml-1">({pct.toFixed(0)}%)</span>
+                  <span className="ios-subhead ml-1">({pct.toFixed(0)}%)</span>
                 </span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--glass-bg-2)" }}>
@@ -821,7 +821,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
             </div>
           );
         })}
-        <div className="pt-2 border-t border-border flex justify-between text-sm">
+        <div className="pt-2 border-t border-border flex justify-between ios-subhead">
           <span className="text-muted-foreground">Total</span>
           <span className="font-semibold text-foreground">
             MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -832,7 +832,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
       {/* Spend log */}
       <div className="glass overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full ios-subhead">
             <thead className="border-b border-border bg-secondary/50">
               <tr>
                 <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Campaign</th>
@@ -851,7 +851,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
                   <td className="px-3 py-3 text-muted-foreground">
                     {CHANNEL_LABELS[s.channel] ?? s.channel}
                   </td>
-                  <td className="px-3 py-3 text-muted-foreground text-xs">
+                  <td className="px-3 py-3 text-muted-foreground ios-subhead">
                     {s.start_date}{s.end_date ? ` → ${s.end_date}` : ""}
                   </td>
                   <td className="px-3 py-3 text-right font-medium text-foreground">
@@ -875,7 +875,7 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
   return (
     <div className="glass overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full ios-subhead">
           <thead className="border-b border-border bg-secondary/50">
             <tr>
               <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
@@ -892,16 +892,16 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
               return (
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
-                    <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
+                    <p className="text-foreground ios-subhead">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
                     <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <p className="text-foreground text-sm">
+                    <p className="text-foreground ios-subhead">
                       {formatQtyInTradeUnits(r.stock_pieces, cfg)}
                     </p>
                     <p className="ios-subhead text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
                   </td>
-                  <td className="px-3 py-3 text-right text-muted-foreground text-sm">
+                  <td className="px-3 py-3 text-right text-muted-foreground ios-subhead">
                     {dailyAvgPieces > 0 ? `${formatQtyInTradeUnits(Math.round(dailyAvgPieces), cfg)}/day` : "—"}
                   </td>
                   <td className="px-3 py-3 text-right">
@@ -910,7 +910,7 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
                         {r.days_of_stock} days
                       </span>
                     ) : (
-                      <span className="text-muted-foreground text-sm">No sales data</span>
+                      <span className="text-muted-foreground ios-subhead">No sales data</span>
                     )}
                   </td>
                 </tr>

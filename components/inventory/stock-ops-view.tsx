@@ -272,7 +272,7 @@ function VerifyTab({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Find an item…"
           aria-label="Search items"
-          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
@@ -531,7 +531,7 @@ function TransferTab({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Find item to move…"
           aria-label="Search items to transfer"
-          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
         />
       </div>
 

@@ -96,7 +96,7 @@ export function CustomersManager() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="ios-page-title">Customer Directory</h1>
-          <p className="text-sm mt-1 text-muted-foreground">
+          <p className="ios-subhead mt-1 text-muted-foreground">
             Your shops and customers, with contact details and price tiers.
           </p>
         </div>
@@ -124,7 +124,7 @@ export function CustomersManager() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by name, phone, island…"
           aria-label="Search customers"
-          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
         />
         {q && (
           <button
@@ -156,7 +156,7 @@ export function CustomersManager() {
           <p className="label-caps text-[12px] text-muted-foreground">Avg. Lifetime Value</p>
           <div className="flex items-baseline gap-2">
             <span className="snm-num text-3xl font-light tracking-tight text-foreground">—</span>
-            <span className="text-sm text-muted-foreground">MVR</span>
+            <span className="ios-subhead text-muted-foreground">MVR</span>
           </div>
         </div>
         <div
@@ -182,7 +182,7 @@ export function CustomersManager() {
           <p className="text-base font-semibold text-foreground">
             {rows.length === 0 ? "No customers yet" : "No matches"}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="ios-subhead text-muted-foreground">
             {rows.length === 0
               ? "Add your first customer to get started."
               : "Try a different search term."}
@@ -190,7 +190,7 @@ export function CustomersManager() {
           {rows.length === 0 && canWrite && (
             <button
               onClick={() => setDialog({ open: true })}
-              className="px-5 py-2.5 rounded-full text-sm font-semibold"
+              className="px-5 py-2.5 rounded-full ios-subhead font-semibold"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Add first customer
@@ -284,10 +284,10 @@ export function CustomersManager() {
               {(c.company || c.email) && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                   {c.company && (
-                    <p className="text-xs text-muted-foreground">{c.company}</p>
+                    <p className="ios-subhead text-muted-foreground">{c.company}</p>
                   )}
                   {c.email && (
-                    <p className="text-xs flex items-center gap-1 text-muted-foreground">
+                    <p className="ios-subhead flex items-center gap-1 text-muted-foreground">
                       <Mail className="h-3 w-3" /> {c.email}
                     </p>
                   )}

@@ -119,7 +119,7 @@ export function PriceListsView() {
       <div className="mb-5">
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
         <h1 className="ios-page-title">Price Lists</h1>
-        <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
           Tier-specific selling prices per SKU — auto-applied at order entry
         </p>
       </div>
@@ -163,7 +163,7 @@ export function PriceListsView() {
                 {canWrite && (
                   <button
                     onClick={() => { setNewListTier(tier); setCreatedList(null); }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold active:opacity-70 active:scale-95"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full ios-subhead font-semibold active:opacity-70 active:scale-95"
                     style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
                   >
                     <Plus className="h-3 w-3" /> New list
@@ -172,7 +172,7 @@ export function PriceListsView() {
               </div>
 
               {lists.length === 0 ? (
-                <p className="text-xs px-1" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead px-1" style={{ color: "var(--muted-foreground)" }}>
                   No price list yet — all {label.toLowerCase()} customers use SKU default prices.
                 </p>
               ) : (
@@ -188,8 +188,8 @@ export function PriceListsView() {
                         onClick={() => setOpenList(pl)}
                       >
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>{pl.name}</p>
-                          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <p className="ios-subhead font-medium truncate" style={{ color: "var(--foreground)" }}>{pl.name}</p>
+                          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                             Effective {new Date(pl.effective_from + "T00:00:00").toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
                             {pl.notes ? ` · ${pl.notes}` : ""}
                           </p>
@@ -339,7 +339,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
           {items.length > 0 ? (
             <button
               onClick={onDone}
-              className="px-4 py-2 rounded-full text-xs font-bold active:scale-95 transition"
+              className="px-4 py-2 rounded-full ios-subhead font-bold active:scale-95 transition"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Done ({items.length})
@@ -347,7 +347,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
           ) : (
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium"
+              className="px-4 py-2 rounded-full ios-subhead font-medium"
               style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}
             >
               Cancel
@@ -396,10 +396,10 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                 <div key={item.id} className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                      <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
                         {sku ? `${sku.brand_name} › ${sku.model_name}` : item.sku_id}
                       </p>
-                      {sku?.variant_display && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
+                      {sku?.variant_display && <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
                     </div>
                     <button
                       onClick={() => handleDelete(item.id)}
@@ -418,7 +418,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                     ].map((p) => (
                       <div key={p.label} className="rounded-xl px-3 py-2 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
                         <p className="text-[12px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
-                        <p className="text-sm font-semibold snm-num" style={{ color: t.color }}>MVR {Number(p.value).toFixed(0)}</p>
+                        <p className="ios-subhead font-semibold snm-num" style={{ color: t.color }}>MVR {Number(p.value).toFixed(0)}</p>
                       </div>
                     ))}
                   </div>
@@ -439,7 +439,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
             />
             <div className="rounded-xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)", maxHeight: 280, overflowY: "auto" }}>
               {filteredSkus.length === 0 ? (
-                <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead text-center py-6" style={{ color: "var(--muted-foreground)" }}>
                   {search ? "No matches" : skus.filter(s => s.is_active).length === setSkuIds.size ? "All SKUs added" : "Search for a SKU above"}
                 </p>
               ) : filteredSkus.map((s) => (
@@ -449,12 +449,12 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                   className="w-full text-left px-4 py-3 flex flex-col transition-colors"
                   style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}
                 >
-                  <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                  <p className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>
                     {s.brand_name} › {s.model_name}
                     {s.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span> : null}
                   </p>
                   {s.landed_per_piece_mvr != null && (
-                    <p className="text-xs mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
                       Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc
                     </p>
                   )}
@@ -543,14 +543,14 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
           <h2 className="text-base font-semibold truncate" style={{ color: "var(--foreground)" }}>{priceList.name}</h2>
-          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
             Effective {new Date(priceList.effective_from + "T00:00:00").toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
           </p>
         </div>
         {canWrite && (
           <button
             onClick={() => { setAddSheet(true); setAddSkuId(""); setSearch(""); }}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold shrink-0 active:scale-95 transition"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full ios-subhead font-semibold shrink-0 active:scale-95 transition"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Plus className="h-3.5 w-3.5" /> Add SKU
@@ -568,8 +568,8 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
         ) : items.length === 0 ? (
           <div className="text-center py-16">
             <Tag className="h-8 w-8 mx-auto mb-3 opacity-30" style={{ color: "var(--muted-foreground)" }} />
-            <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>No SKUs yet</p>
-            <p className="text-xs mt-1 mb-5" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>No SKUs yet</p>
+            <p className="ios-subhead mt-1 mb-5" style={{ color: "var(--muted-foreground)" }}>
               {canWrite ? `Tap "Add SKU" to set prices for this tier` : "No SKUs in this price list yet"}
             </p>
             {canWrite && (
@@ -584,7 +584,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
           </div>
         ) : (
           <>
-            <p className="text-xs px-1 pb-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead px-1 pb-1" style={{ color: "var(--muted-foreground)" }}>
               {items.length} SKU{items.length !== 1 ? "s" : ""} — tap any row to edit prices
             </p>
             {items.map((item) => {
@@ -607,11 +607,11 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                     onClick={() => canWrite && setEditingItemId(isEditing ? null : item.id)}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                      <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
                         {sku ? `${sku.brand_name} › ${sku.model_name}` : item.sku_id}
                       </p>
                       {sku?.variant_display && (
-                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>
+                        <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>
                       )}
                     </div>
                     <div className="flex gap-1.5 shrink-0">
@@ -697,7 +697,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
           <div className="flex-1 overflow-y-auto overscroll-none px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
             {!addSkuId ? (
               <>
-                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   Search and select a SKU to set its {t.label.toLowerCase()} tier prices.
                 </p>
                 <input
@@ -708,7 +708,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                 />
                 <div className="rounded-xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)", maxHeight: 400, overflowY: "auto" }}>
                   {filteredSkus.length === 0 ? (
-                    <p className="text-sm text-center py-6" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead text-center py-6" style={{ color: "var(--muted-foreground)" }}>
                       {search ? "No matches" : "All active SKUs already have prices in this list"}
                     </p>
                   ) : filteredSkus.map((s) => (
@@ -718,12 +718,12 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                       className="w-full text-left px-4 py-3.5 flex flex-col transition active:bg-black/5"
                       style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}
                     >
-                      <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                      <p className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>
                         {s.brand_name} › {s.model_name}
                         {s.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span> : null}
                       </p>
                       {s.landed_per_piece_mvr != null && (
-                        <p className="text-xs mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc</p>
+                        <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc</p>
                       )}
                     </button>
                   ))}
@@ -863,20 +863,20 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
     <div className="rounded-2xl p-4 space-y-4" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>
-          {sku.variant_display && <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
-          <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>
+          {sku.variant_display && <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
+          <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
             {pcsPerPack} pcs/pack · {packsPerCarton} packs/carton · {pcsPerCarton} pcs/carton
           </p>
           {landed != null && (
-            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
               Landed: <span className="font-semibold" style={{ color: "var(--foreground)" }}>MVR {landed.toFixed(3)}/pc</span>
             </p>
           )}
         </div>
         <button
           onClick={onBack}
-          className="text-xs px-2 py-1 rounded-lg shrink-0"
+          className="ios-subhead px-2 py-1 rounded-lg shrink-0"
           style={{ color: "var(--muted-foreground)", background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}
         >
           ← Back
@@ -898,14 +898,14 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
             className={inputCls}
             style={{ paddingRight: 36 }}
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>%</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 ios-subhead font-semibold" style={{ color: "var(--muted-foreground)" }}>%</span>
         </div>
-        {!landed && <p className="text-xs mt-1" style={{ color: "var(--snm-warning)" }}>No landed cost — enter prices manually below.</p>}
+        {!landed && <p className="ios-subhead mt-1" style={{ color: "var(--snm-warning)" }}>No landed cost — enter prices manually below.</p>}
       </div>
 
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
-        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>set each price independently</p>
+        <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>set each price independently</p>
         <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
       </div>
 
@@ -918,7 +918,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           className={inputCls}
         />
         {packMargin !== null && (
-          <p className="text-xs mt-1 font-semibold" style={{ color: marginColor(packMargin) }}>
+          <p className="ios-subhead mt-1 font-semibold" style={{ color: marginColor(packMargin) }}>
             {packMargin.toFixed(1)}% margin on packs
             {packMargin < 15 && " · ⚠ below minimum"}
           </p>
@@ -935,16 +935,16 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         />
         {cartonMargin !== null && packMargin !== null && (
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-xs font-semibold" style={{ color: marginColor(cartonMargin) }}>
+            <p className="ios-subhead font-semibold" style={{ color: marginColor(cartonMargin) }}>
               {cartonMargin.toFixed(1)}% margin on cartons
             </p>
             {parseFloat(cartonStr) < parseFloat(packStr) * packsPerCarton && (
-              <p className="text-xs" style={{ color: "var(--snm-success)" }}>
+              <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>
                 ✓ MVR {(parseFloat(packStr) * packsPerCarton - parseFloat(cartonStr)).toFixed(2)} carton discount
               </p>
             )}
             {parseFloat(cartonStr) >= parseFloat(packStr) * packsPerCarton && (
-              <p className="text-xs" style={{ color: "var(--snm-warning)" }}>
+              <p className="ios-subhead" style={{ color: "var(--snm-warning)" }}>
                 ⚠ No discount vs buying packs
               </p>
             )}
@@ -984,7 +984,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         {extraAction}
         <button
           onClick={onBack}
-          className="flex-1 py-3 rounded-full text-sm font-medium active:opacity-60"
+          className="flex-1 py-3 rounded-full ios-subhead font-medium active:opacity-60"
           style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
         >Cancel</button>
         <button

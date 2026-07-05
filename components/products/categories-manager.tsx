@@ -93,7 +93,7 @@ export function CategoriesManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-medium text-foreground">Categories</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="ios-subhead text-muted-foreground">
             Each category controls which attributes appear on its variants.
           </p>
         </div>
@@ -110,7 +110,7 @@ export function CategoriesManager() {
           <div key={c.id} className="p-4 flex items-start justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <p className="text-base font-medium text-foreground">{c.name}</p>
-              {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
+              {c.description && <p className="ios-subhead text-muted-foreground">{c.description}</p>}
               <p className="ios-subhead text-muted-foreground">{humanMeta(c)}</p>
             </div>
             {!c.is_system && canWrite && (

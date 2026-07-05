@@ -87,7 +87,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md p-10 space-y-6 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
           <div className="text-center space-y-1">
             <h1 className="text-xl font-semibold" style={{ color: "var(--foreground)" }}>Set your password</h1>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               Enter your email — we&apos;ll send a link to set your password
             </p>
           </div>
@@ -95,7 +95,7 @@ export default function LoginPage() {
           {resetSent ? (
             <div className="flex flex-col items-center gap-3 py-6 rounded-xl text-center" style={{ background: "color-mix(in srgb, var(--snm-success) 12%, transparent)" }}>
               <CheckCircle2 className="h-8 w-8" style={{ color: "var(--snm-success)" }} />
-              <p className="text-sm font-medium" style={{ color: "var(--snm-success)" }}>
+              <p className="ios-subhead font-medium" style={{ color: "var(--snm-success)" }}>
                 Email sent! Check your inbox and click the link.
               </p>
             </div>
@@ -111,7 +111,7 @@ export default function LoginPage() {
                 style={inputStyle}
               />
               {resetError && (
-                <div className="rounded-xl px-3 py-2.5 text-sm" style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}>
+                <div className="rounded-xl px-3 py-2.5 ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}>
                   {resetError}
                 </div>
               )}
@@ -126,7 +126,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          <button onClick={() => setShowReset(false)} className="w-full text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
+          <button onClick={() => setShowReset(false)} className="w-full text-center ios-subhead" style={{ color: "var(--muted-foreground)" }}>
             ← Back to sign in
           </button>
         </div>
@@ -146,7 +146,7 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>SayNoMore</h1>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Sign in to continue</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Sign in to continue</p>
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Email</label>
+            <label className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>Email</label>
             <input
               type="email"
               autoComplete="email"
@@ -181,11 +181,11 @@ export default function LoginPage() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium" style={{ color: "var(--foreground)" }}>Password</label>
+              <label className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>Password</label>
               <button
                 type="button"
                 onClick={() => { setShowReset(true); setResetEmail(email); }}
-                className="text-xs hover:opacity-70 transition-opacity"
+                className="ios-subhead hover:opacity-70 transition-opacity"
                 style={{ color: "var(--muted-foreground)" }}
               >
                 Forgot password?
@@ -213,7 +213,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="rounded-xl px-3 py-2.5 text-sm" style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)", color: "var(--snm-error)" }}>
+            <div className="rounded-xl px-3 py-2.5 ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 30%, transparent)", color: "var(--snm-error)" }}>
               {error}
             </div>
           )}
@@ -228,7 +228,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-xs" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-center ios-subhead" style={{ color: "var(--muted-foreground)" }}>
           Access by invitation only
         </p>
       </div>

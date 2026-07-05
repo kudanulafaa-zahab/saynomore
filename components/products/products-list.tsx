@@ -62,7 +62,7 @@ export function ProductsList() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="snm-card p-10 text-center text-sm text-muted-foreground">
+        <div className="snm-card p-10 text-center ios-subhead text-muted-foreground">
           {rows.length === 0 ? "No products yet — add some from the Tree tab." : "No matches."}
         </div>
       ) : (
@@ -85,8 +85,8 @@ export function ProductsList() {
               {/* Mobile card layout */}
               <div className="md:hidden px-4 py-3 flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{r.brand_name}</p>
-                  <p className="text-xs text-muted-foreground">{r.model_name} · {r.variant_display}</p>
+                  <p className="ios-subhead font-medium text-foreground">{r.brand_name}</p>
+                  <p className="ios-subhead text-muted-foreground">{r.model_name} · {r.variant_display}</p>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="snm-num ios-subhead text-muted-foreground">
                       {r.pcs_per_pack}/pk × {r.packs_per_carton}/ctn
@@ -119,10 +119,10 @@ export function ProductsList() {
                 )}
               </div>
               {/* Desktop row layout */}
-              <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 text-sm">
+              <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 ios-subhead">
                 <div className="col-span-3">
                   <p className="text-foreground">{r.brand_name}</p>
-                  <p className="text-xs text-muted-foreground">{r.model_name} · {r.category_name}</p>
+                  <p className="ios-subhead text-muted-foreground">{r.model_name} · {r.category_name}</p>
                 </div>
                 <div className="col-span-3 text-foreground">{r.variant_display}</div>
                 <div className="col-span-2 text-muted-foreground">
@@ -130,7 +130,7 @@ export function ProductsList() {
                   <span className="block ios-subhead">= {r.pcs_per_carton} pcs/ctn</span>
                 </div>
                 <div className="col-span-2 text-muted-foreground">{Number(r.cbm_per_carton).toFixed(4)}</div>
-                <div className="col-span-1 text-xs font-mono text-muted-foreground truncate" title={r.internal_code}>{r.internal_code}</div>
+                <div className="col-span-1 ios-subhead font-mono text-muted-foreground truncate" title={r.internal_code}>{r.internal_code}</div>
                 <div className="col-span-1 text-right">
                   {canWrite ? (
                     <button

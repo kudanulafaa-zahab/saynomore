@@ -55,7 +55,7 @@ function GlassInput({ label, ...props }: { label?: string } & React.InputHTMLAtt
       {label && <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <input
         {...props}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition"
+        className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground transition"
         style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
       />
     </div>
@@ -69,7 +69,7 @@ function GlassSelect({ label, value, onChange, children }: { label?: string; val
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 rounded-xl px-4 text-sm text-foreground outline-none appearance-none"
+        className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none"
         style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
       >
         {children}
@@ -84,7 +84,7 @@ function GlassTextarea({ label, ...props }: { label?: string } & React.TextareaH
       {label && <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>}
       <textarea
         {...props}
-        className="w-full rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground resize-none transition"
+        className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none transition"
         style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
         rows={3}
       />
@@ -164,7 +164,7 @@ export function SuppliersManager() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search suppliers…"
           aria-label="Search suppliers"
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+          className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none"
         />
         {q && (
           <button
@@ -185,13 +185,13 @@ export function SuppliersManager() {
             <Package className="h-6 w-6 text-foreground" />
           </div>
           <h3 className="text-base font-semibold text-foreground">No vendors yet</h3>
-          <p className="text-sm max-w-sm" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead max-w-sm" style={{ color: "var(--muted-foreground)" }}>
             Add your Indonesian supplier (MamyPoko, Sosoft, etc.) here. You&rsquo;ll pick from this list when creating shipments.
           </p>
           {canWrite && (
             <button
               onClick={() => setDialog({ open: true })}
-              className="mt-2 h-11 px-6 rounded-full text-sm font-bold"
+              className="mt-2 h-11 px-6 rounded-full ios-subhead font-bold"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Create first vendor
@@ -244,7 +244,7 @@ export function SuppliersManager() {
                     {canWrite && (
                       <button
                         onClick={() => setDialog({ open: true, editing: featured })}
-                        className="flex items-center gap-2 h-11 px-4 rounded-full text-sm transition"
+                        className="flex items-center gap-2 h-11 px-4 rounded-full ios-subhead transition"
                         style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
                       >
                         <Pencil className="h-4 w-4" />
@@ -470,7 +470,7 @@ function SupplierModal({
         <GlassTextarea label="NOTES" value={notes} onChange={(e) => setNotes((e.target as HTMLTextAreaElement).value)} placeholder="Optional" />
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl text-sm font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>
             Cancel
           </button>
           <button

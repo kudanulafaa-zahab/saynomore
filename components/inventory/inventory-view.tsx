@@ -527,10 +527,10 @@ export function InventoryView() {
         >
           <TrendingDown className="h-5 w-5 shrink-0" style={{ color: "var(--snm-error)" }} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: "var(--snm-error)" }}>
+            <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>
               {criticalCount} SKU{criticalCount !== 1 ? "s" : ""} critically low — less than 7 days remaining
             </p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
               Reorder immediately to avoid stock-out
             </p>
           </div>
@@ -577,7 +577,7 @@ export function InventoryView() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search brand, SKU, code…"
             aria-label="Search inventory"
-            className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
