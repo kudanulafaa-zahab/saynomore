@@ -14,6 +14,7 @@ import {
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { CustomerForm } from "@/components/masters/customer-form";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { haptic } from "@/lib/haptics";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -154,7 +155,7 @@ export function CustomersManager() {
         >
           <p className="label-caps text-[12px] text-muted-foreground">Avg. Lifetime Value</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-light tracking-tight text-foreground">—</span>
+            <span className="snm-num text-3xl font-light tracking-tight text-foreground">—</span>
             <span className="text-sm text-muted-foreground">MVR</span>
           </div>
         </div>
@@ -238,7 +239,7 @@ export function CustomersManager() {
                       )}
                       {c.phone && (
                         <span
-                          className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="snm-num text-[13px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <Phone className="h-2.5 w-2.5" /> {c.phone}
@@ -246,7 +247,7 @@ export function CustomersManager() {
                       )}
                       {c.island && (
                         <span
-                          className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="text-[13px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <MapPin className="h-2.5 w-2.5" /> {c.island}
@@ -313,8 +314,8 @@ export function CustomersManager() {
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmCustomer) return;
-          try { await deleteCustomer(confirmCustomer.id); toast.success("Deleted"); setConfirmCustomer(null); load(); }
-          catch (e) { toast.error((e as Error).message); }
+          try { await deleteCustomer(confirmCustomer.id); haptic("success"); toast.success("Deleted"); setConfirmCustomer(null); load(); }
+          catch (e) { haptic("error"); toast.error((e as Error).message); }
         }}
       />
     </div>

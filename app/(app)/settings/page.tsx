@@ -180,7 +180,7 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
                         style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
                         <Icon className="h-3 w-3 shrink-0" style={{ color: ROLE_COLOR[u.role] }} />
-                        <span className="text-[12px] font-semibold hidden sm:block" style={{ color: "var(--foreground)" }}>
+                        <span className="text-[12px] font-semibold" style={{ color: "var(--foreground)" }}>
                           {ROLE_LABEL[u.role]}
                         </span>
                       </div>

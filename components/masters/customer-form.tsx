@@ -30,6 +30,7 @@ import {
   type CustomerRow, type CustomerInput, type CustomerChannel, type PriceTier,
 } from "@/lib/queries/masters";
 import { withOfflineFallback } from "@/lib/offline-write";
+import { haptic } from "@/lib/haptics";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -143,9 +144,11 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
           ? { table: "customers", action: "update", payload: payload as unknown as Record<string, unknown>, match: { id: editing.id } }
           : { table: "customers", action: "insert", payload: payload as unknown as Record<string, unknown> },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : editing ? "Saved" : "Customer created");
       if (!queued) onSaved(result as CustomerRow);
     } catch (err) {
+      haptic("error");
       toast.error((err as Error).message);
     } finally {
       setSaving(false);
