@@ -78,9 +78,15 @@
      Bottom sheets lift their footer with max(safe-area, var(--kb-inset)). */
   --kb-inset: 0px;
 
-  --snm-success: #16a34a;
+  /* success/warning darkened from #16a34a/#d97706 -- those failed 4.5:1 text
+     contrast in light mode (measured ~2.9:1 / ~2.86:1 against --background),
+     invisible in bright daylight which is this app's real operating
+     condition. New values verified >=4.5:1 against both --background and
+     white card surfaces. Dark-mode values (top of file) already passed and
+     are unchanged. */
+  --snm-success: #166534;
   --snm-error:   #dc2626;
-  --snm-warning: #d97706;
+  --snm-warning: #92400e;
   --snm-info:    #2563eb;
   --snm-promo:   #9333ea;
 
@@ -221,9 +227,10 @@
 /* ── Manual .light override ─────────────────────────────────────────────── */
 .light {
   color-scheme: light;
-  --snm-success: #16a34a;
+  /* Kept in sync with :root's light-mode values above -- see contrast note there. */
+  --snm-success: #166534;
   --snm-error:   #dc2626;
-  --snm-warning: #d97706;
+  --snm-warning: #92400e;
   --snm-info:    #2563eb;
   --snm-promo:   #9333ea;
   --background:   #f2f2f7;
