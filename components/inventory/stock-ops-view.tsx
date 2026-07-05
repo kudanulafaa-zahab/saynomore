@@ -462,6 +462,9 @@ function TransferTab({
   const canSubmit = !!skuId && qtyEnteredNum > 0 && !overAvailable && !sameGodown && !saving;
 
   function pickSku(id: string) {
+    // Tapping the already-selected item deselects it — previously there was
+    // no way to back out of a pick short of switching godowns.
+    if (id === skuId) { setSkuId(""); setQty(""); return; }
     setSkuId(id);
     setQty("");
     const sku = skuMap.get(id);
@@ -516,52 +519,17 @@ function TransferTab({
         />
       </div>
 
-      {available.length === 0 ? (
-        <EmptyState text="No stock in the source warehouse." />
-      ) : (
-        <div className="space-y-2 max-h-[46vh] overflow-y-auto overscroll-contain">
-          {available.map((r) => {
-            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
-            const active = skuId === r.sku.id;
-            return (
-              <button
-                key={r.sku.id}
-                onClick={() => pickSku(r.sku.id)}
-                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
-                style={{
-                  background: "var(--glass-1)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  border: active
-                    ? "1px solid color-mix(in srgb, var(--snm-brand) 45%, transparent)"
-                    : "0.5px solid var(--glass-border-lo)",
-                }}
-              >
-                <div
-                  className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center"
-                  style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--snm-brand)" : "transparent" }}
-                >
-                  {active && <Check className="h-3 w-3" style={{ color: "#fff" }} />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
-                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} available · {r.avail} pcs
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Qty + submit — shown once an item is picked */}
+      {/* Qty + submit — shown immediately once an item is picked, right
+          below the search bar. Previously this rendered AFTER the scrollable
+          SKU list (which can be 30+ items), so picking an item near the top
+          left the qty field scrolled off-screen below the entire list —
+          it looked like there was no way to enter a quantity at all. */}
       {selected && (() => {
         const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
         return (
         <div
           className="rounded-2xl p-4 space-y-3"
-          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)" }}
+          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
         >
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13px] font-semibold text-foreground truncate">{skuLabel(selected)}</p>
@@ -614,6 +582,45 @@ function TransferTab({
         </div>
         );
       })()}
+
+      {available.length === 0 ? (
+        <EmptyState text="No stock in the source warehouse." />
+      ) : (
+        <div className="space-y-2 max-h-[46vh] overflow-y-auto overscroll-contain">
+          {available.map((r) => {
+            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
+            const active = skuId === r.sku.id;
+            return (
+              <button
+                key={r.sku.id}
+                onClick={() => pickSku(r.sku.id)}
+                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
+                style={{
+                  background: "var(--glass-1)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  border: active
+                    ? "1px solid color-mix(in srgb, var(--snm-brand) 45%, transparent)"
+                    : "0.5px solid var(--glass-border-lo)",
+                }}
+              >
+                <div
+                  className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center"
+                  style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--snm-brand)" : "transparent" }}
+                >
+                  {active && <Check className="h-3 w-3" style={{ color: "#fff" }} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} available · {r.avail} pcs
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
