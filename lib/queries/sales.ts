@@ -146,6 +146,9 @@ export async function updateOrder(id: string, patch: Partial<SalesOrderInput>) {
   if (error) throw error;
 }
 
+/** RLS only allows this on true draft orders (no stock posted yet). For anything
+ * confirmed/picked/dispatched/delivered, use voidOrder() — it reverses the
+ * FIFO stock movements before cancelling instead of silently losing them. */
 export async function deleteOrder(id: string) {
   const { error } = await supabase.from("sales_orders").delete().eq("id", id);
   if (error) throw error;
@@ -157,11 +160,17 @@ export async function createOrderLine(input: SalesOrderLineInput) {
   return data as SalesOrderLineRow;
 }
 
+/** RLS only allows this on true draft orders (no stock posted yet). For a
+ * confirmed/picked order, use editOrderLine() — it reverses and re-applies
+ * FIFO stock so the line and stock_movements never drift apart. */
 export async function updateOrderLine(id: string, patch: Partial<SalesOrderLineInput>) {
   const { error } = await supabase.from("sales_order_lines").update(patch).eq("id", id);
   if (error) throw error;
 }
 
+/** RLS only allows this on true draft orders (no stock posted yet). A line on a
+ * confirmed/picked order can only be adjusted via editOrderLine(), never removed
+ * outright — to remove a wrongly-added product entirely, void the whole order. */
 export async function deleteOrderLine(id: string) {
   const { error } = await supabase.from("sales_order_lines").delete().eq("id", id);
   if (error) throw error;
@@ -173,6 +182,39 @@ export async function postSale(orderId: string) {
   const { data, error } = await supabase.rpc("post_sale", { p_order_id: orderId });
   if (error) throw error;
   return data;
+}
+
+// ── void_sales_order / edit_sales_order_line RPCs ────────────────────────
+// Safe corrections for confirmed/picked orders: both reverse the exact FIFO
+// stock_movements they created and (for edits) re-deplete for the new
+// quantity, all inside one Postgres transaction. Never edit qty/price or
+// delete a line/order directly once stock has been posted — use these.
+
+/** Cancels a confirmed/picked order and reverses all of its stock movements
+ * back to the exact batches they were drawn from. Blocked once payment is
+ * settled (paid/deposited) or cash was collected on delivery — those need a
+ * credit note, not a silent void. Requires a reason (shown in the audit log). */
+export async function voidOrder(orderId: string, reason: string) {
+  const { error } = await supabase.rpc("void_sales_order", { p_order_id: orderId, p_reason: reason });
+  if (error) throw error;
+}
+
+/** Edits qty/price on a line of a confirmed/picked order. Reverses the line's
+ * existing FIFO stock movements and re-depletes for the new quantity, then
+ * recomputes line_total_mvr / landed_cost_per_piece_mvr / actual_margin_pct in
+ * Postgres. Only works while the order is confirmed or picked. */
+export async function editOrderLine(
+  lineId: string,
+  newQtyPieces: number,
+  newUnitPriceMvr: number,
+): Promise<SalesOrderLineRow> {
+  const { data, error } = await supabase.rpc("edit_sales_order_line", {
+    p_line_id: lineId,
+    p_new_qty_pieces: newQtyPieces,
+    p_new_unit_price_mvr: newUnitPriceMvr,
+  });
+  if (error) throw error;
+  return data as SalesOrderLineRow;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────

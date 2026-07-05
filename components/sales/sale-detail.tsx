@@ -19,6 +19,8 @@ import {
   getOrderBalance,
   recordOrderPayment,
   deleteOrderPayment,
+  voidOrder,
+  editOrderLine,
   type SalesOrderRow,
   type SalesOrderLineRow,
   type OrderStatus,
@@ -110,10 +112,12 @@ export function SaleDetail({ id }: { id: string }) {
   const [deletingPayment, setDeletingPayment] = useState(false);
 
   // inline dialogs (sheet-style bottom panels)
-  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "deleteLine" | "addLine" | "printLabels" | "recordPayment" | "deletePayment" | null>(null);
+  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "void" | "deleteLine" | "addLine" | "printLabels" | "recordPayment" | "deletePayment" | null>(null);
   const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
   const [editingLine, setEditingLine]             = useState<SalesOrderLineRow | undefined>(undefined);
   const [deletingLine, setDeletingLine]           = useState(false);
+  const [voidReason, setVoidReason]               = useState("");
+  const [voiding, setVoiding]                     = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -150,6 +154,7 @@ export function SaleDetail({ id }: { id: string }) {
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
 
   const isAdmin   = role === "admin";
+  const isAdminOrManager = role === "admin" || role === "manager";
   const canWrite  = role !== "viewer" && role !== null;
   const customer  = customers.find((c) => c.id === order?.customer_id);
   const totals    = useMemo(() => ({
@@ -162,6 +167,14 @@ export function SaleDetail({ id }: { id: string }) {
   const isDelivered  = order?.status === "delivered";
   const isCancelled  = order?.status === "cancelled";
   const isCOD        = order?.payment_method === "cod";
+  // True drafts have no stock posted yet (rare in practice — the create flow
+  // auto-posts immediately), so they're plain-deletable. Anything else must
+  // go through voidOrder(), which reverses the FIFO stock movements first.
+  const isTrueDraft  = order?.status === "draft";
+  // Lines can only be safely edited (via editOrderLine, which re-runs FIFO)
+  // while the order is confirmed/picked — once dispatched, the driver already
+  // has the physical goods, and once delivered, the sale is settled.
+  const linesEditable = (order?.status === "confirmed" || order?.status === "picked") && isAdminOrManager;
 
   /* ── Actions ───────────────────────────────────────────────────────────── */
 
@@ -328,6 +341,19 @@ export function SaleDetail({ id }: { id: string }) {
     finally { setDeleting(false); }
   }
 
+  async function handleVoidOrder() {
+    if (!order) return;
+    if (!voidReason.trim()) { toast.error("Enter a reason for voiding this order"); return; }
+    setVoiding(true);
+    try {
+      await voidOrder(order.id, voidReason.trim());
+      haptic("success");
+      toast.success("Order voided — stock restored");
+      router.push("/sales");
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setVoiding(false); }
+  }
+
   async function handleDeleteLine() {
     if (!pendingDeleteLine) return;
     setDeletingLine(true);
@@ -376,9 +402,18 @@ export function SaleDetail({ id }: { id: string }) {
             <span style={{ color: "var(--muted-foreground)", fontSize: 13, fontWeight: 400, marginLeft: 8 }}>{order.order_number}</span>
           </h1>
         </div>
-        {canWrite && (
+        {canWrite && isTrueDraft && (
           <button
             onClick={() => setPanel("delete")}
+            className="snm-pressable"
+            style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+          >
+            <Trash2 style={{ width: 16, height: 16 }} />
+          </button>
+        )}
+        {isAdminOrManager && !isTrueDraft && !isCancelled && (
+          <button
+            onClick={() => { setVoidReason(""); setPanel("void"); }}
             className="snm-pressable"
             style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
           >
@@ -573,7 +608,12 @@ export function SaleDetail({ id }: { id: string }) {
               </div>
             </div>
 
-            <LineList lines={lines} skus={skus} editable={false} />
+            <LineList
+              lines={lines}
+              skus={skus}
+              editable={linesEditable}
+              onEdit={(l) => { setEditingLine(l); setPanel("addLine"); }}
+            />
             {totals.count > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "0.5px solid var(--glass-border-lo)" }}>
                 <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
@@ -904,6 +944,28 @@ export function SaleDetail({ id }: { id: string }) {
         </SheetActions>
       </Sheet>
 
+      {/* Void order (confirmed/picked/dispatched/delivered — reverses stock) */}
+      <Sheet open={panel === "void"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Void Order?</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 16 }}>
+          <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> will be cancelled and its stock restored to inventory. The order stays on record for audit history — it's marked cancelled, not erased.
+        </p>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Reason *</p>
+        <textarea
+          value={voidReason}
+          onChange={(e) => setVoidReason(e.target.value)}
+          placeholder="e.g. Customer cancelled, wrong order entered…"
+          rows={3}
+          style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "10px 12px", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 20, resize: "none" }}
+        />
+        <SheetActions>
+          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+          <button onClick={handleVoidOrder} disabled={voiding || !voidReason.trim()} style={{ ...primaryBtn, background: "var(--snm-error)", opacity: voiding || !voidReason.trim() ? 0.5 : 1 }}>
+            {voiding ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Void Order"}
+          </button>
+        </SheetActions>
+      </Sheet>
+
       {/* Delete line */}
       <Sheet open={panel === "deleteLine"} onClose={() => { setPendingDeleteLine(null); setPanel(null); }}>
         <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove item?</h2>
@@ -956,6 +1018,7 @@ export function SaleDetail({ id }: { id: string }) {
         <LineDialog
           editing={editingLine}
           orderId={id}
+          orderIsDraft={isTrueDraft}
           skus={skus}
           stockLevels={stockLevels}
           sourceGodownId={order.source_godown_id}
@@ -1033,10 +1096,10 @@ function LineList({
               <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
                 MVR {Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </span>
-              {editable && onEdit && onDelete && (
+              {editable && (onEdit || onDelete) && (
                 <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={() => onEdit(l)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>Edit</button>
-                  <button onClick={() => onDelete(l)} style={{ background: "none", border: "none", color: "var(--snm-error)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>✕</button>
+                  {onEdit && <button onClick={() => onEdit(l)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>Edit</button>}
+                  {onDelete && <button onClick={() => onDelete(l)} style={{ background: "none", border: "none", color: "var(--snm-error)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>✕</button>}
                 </div>
               )}
             </div>
@@ -1157,10 +1220,14 @@ function PaymentLedger({
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 function LineDialog({
-  editing, orderId, skus, stockLevels, sourceGodownId, customerTier, onClose, onSaved,
+  editing, orderId, orderIsDraft, skus, stockLevels, sourceGodownId, customerTier, onClose, onSaved,
 }: {
   editing?: SalesOrderLineRow;
   orderId: string;
+  /** True drafts have no stock posted yet, so a plain update is safe. Anything
+   * past draft must go through editOrderLine(), which reverses and re-applies
+   * FIFO stock so the line and stock_movements never drift apart. */
+  orderIsDraft: boolean;
   skus: SkuFullRow[];
   stockLevels: StockLevel[];
   sourceGodownId: string | null;
@@ -1265,11 +1332,22 @@ function LineDialog({
 
   async function save() {
     if (!skuId || !qty || !unitPrice || qtyPieces <= 0 || !sku) return;
-    const payload = { order_id: orderId, sku_id: skuId, uom, qty: parseFloat(qty), qty_pieces: qtyPieces, unit_price_mvr: parseFloat(unitPrice), line_total_mvr: lineTotal };
     setSaving(true);
     try {
-      if (editing) await updateOrderLine(editing.id, payload);
-      else await createOrderLine(payload);
+      if (editing) {
+        if (orderIsDraft) {
+          // No stock posted yet — a plain update is safe.
+          const payload = { order_id: orderId, sku_id: skuId, uom, qty: parseFloat(qty), qty_pieces: qtyPieces, unit_price_mvr: parseFloat(unitPrice), line_total_mvr: lineTotal };
+          await updateOrderLine(editing.id, payload);
+        } else {
+          // Stock already FIFO-deducted by post_sale() — must reverse and
+          // re-apply via the safe RPC, never a direct table update.
+          await editOrderLine(editing.id, qtyPieces, parseFloat(unitPrice));
+        }
+      } else {
+        const payload = { order_id: orderId, sku_id: skuId, uom, qty: parseFloat(qty), qty_pieces: qtyPieces, unit_price_mvr: parseFloat(unitPrice), line_total_mvr: lineTotal };
+        await createOrderLine(payload);
+      }
       toast.success(editing ? "Item updated" : "Item added");
       onSaved();
     } catch (err) { toast.error((err as Error).message); }
