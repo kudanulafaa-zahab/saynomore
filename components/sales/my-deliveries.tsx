@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { notifyAdmins } from "@/lib/push";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { haptic } from "@/lib/haptics";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -78,7 +79,7 @@ function BottomSheet({ open, onClose, title, children }: {
           borderRadius: "24px 24px 0 0",
           paddingBottom: "env(safe-area-inset-bottom, 24px)",
           boxShadow: "0 -8px 40px rgba(0,0,0,0.20)",
-          maxHeight: "90vh", overflowY: "auto",
+          maxHeight: "90dvh", overflowY: "auto",
         }}
       >
         {/* drag handle */}
@@ -127,6 +128,7 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, onClose, onD
         () => updateOrder(order.id, patch),
         { table: "sales_orders", action: "update", payload: patch, match: { id: order.id } },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Delivered — remember to deposit the cash");
 
       // Tell the office a delivery just closed with cash collected. Skip when
@@ -140,7 +142,7 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, onClose, onD
         });
       }
       onDone();
-    } catch (err) { toast.error((err as Error).message); }
+    } catch (err) { haptic("error"); toast.error((err as Error).message); }
     finally { setSaving(false); }
   }
 
@@ -226,9 +228,10 @@ function IssueSheet({ open, order, onClose, onDone }: {
         () => updateOrder(order.id, patch),
         { table: "sales_orders", action: "update", payload: patch, match: { id: order.id } },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Issue reported — admin will see it on the order");
       onDone();
-    } catch (err) { toast.error((err as Error).message); }
+    } catch (err) { haptic("error"); toast.error((err as Error).message); }
     finally { setSaving(false); }
   }
 
@@ -623,9 +626,10 @@ export function MyDeliveries() {
         () => updateOrder(id, patch),
         { table: "sales_orders", action: "update", payload: patch, match: { id } },
       );
+      haptic("success");
       if (queued) toast.info("Saved offline — will sync when connected");
       load(true);
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
   }
 
   const delivered = items.filter((i) => i.order.status === "delivered").length;

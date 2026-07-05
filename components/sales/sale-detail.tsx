@@ -1052,7 +1052,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "85vh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "85dvh", overflowY: "auto" }}
       >
         <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         {children}
@@ -1088,18 +1088,26 @@ function LineList({
               <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : l.sku_id}
               </p>
-              <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
+              <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
                 {l.qty} {l.uom} · MVR {Number(l.unit_price_mvr).toLocaleString()}
               </p>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600, marginRight: 4 }}>
                 MVR {Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </span>
               {editable && (onEdit || onDelete) && (
-                <div style={{ display: "flex", gap: 4 }}>
-                  {onEdit && <button onClick={() => onEdit(l)} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>Edit</button>}
-                  {onDelete && <button onClick={() => onDelete(l)} style={{ background: "none", border: "none", color: "var(--snm-error)", fontSize: 11, cursor: "pointer", padding: "4px 6px" }}>✕</button>}
+                <div style={{ display: "flex" }}>
+                  {onEdit && (
+                    <button onClick={() => onEdit(l)} style={{ minWidth: 44, minHeight: 44, background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      Edit
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button onClick={() => onDelete(l)} style={{ minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", color: "var(--snm-error)", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>
+                      ✕
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1364,7 +1372,7 @@ function LineDialog({
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "90dvh", overflowY: "auto" }}
       >
         <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{editing ? "Edit item" : "Add item"}</h2>

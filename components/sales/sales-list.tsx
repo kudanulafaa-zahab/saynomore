@@ -173,6 +173,7 @@ export function SalesList() {
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
   const [confirmVoid, setConfirmVoid] = useState<{ id: string; label: string } | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [voidReasonError, setVoidReasonError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [voiding, setVoiding] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
@@ -334,7 +335,7 @@ export function SalesList() {
             <button
               key={key}
               onClick={() => setStatusFilter(key)}
-              className="shrink-0 h-11 px-4 rounded-full text-[12px] font-semibold transition active:scale-95"
+              className="shrink-0 h-11 px-4 rounded-full text-[14px] font-semibold transition active:scale-95"
               style={{
                 background: active ? "var(--foreground)" : "var(--glass-1)",
                 color:      active ? "var(--background)" : "var(--muted-foreground)",
@@ -355,7 +356,7 @@ export function SalesList() {
           { val: "customers", icon: Users, label: "Customers" },
         ] as const).map(({ val, icon: Icon, label }) => (
           <button key={val} onClick={() => setGroupBy(val)}
-            className="flex-1 flex items-center justify-center gap-2 h-10 text-[13px] font-semibold transition"
+            className="flex-1 flex items-center justify-center gap-2 h-10 text-[14px] font-semibold transition"
             style={groupBy === val
               ? { background: "var(--foreground)", color: "var(--background)" }
               : { background: "transparent", color: "var(--muted-foreground)" }}>
@@ -441,7 +442,7 @@ export function SalesList() {
                 )}
                 {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
                   <button
-                    onClick={() => { setVoidReason(""); setConfirmVoid({ id: o.id, label: o.order_number }); }}
+                    onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
                     aria-label={`Void order ${o.order_number}`}
                     className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
                     style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
@@ -547,7 +548,7 @@ export function SalesList() {
                           )}
                           {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
                             <button
-                              onClick={() => { setVoidReason(""); setConfirmVoid({ id: o.id, label: o.order_number }); }}
+                              onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
                               aria-label={`Void order ${o.order_number}`}
                               className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
                               style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
@@ -610,13 +611,16 @@ export function SalesList() {
               <p className="text-[11px] font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Reason *</p>
               <textarea
                 value={voidReason}
-                onChange={(e) => setVoidReason(e.target.value)}
+                onChange={(e) => { setVoidReason(e.target.value); if (e.target.value.trim()) setVoidReasonError(false); }}
                 placeholder="e.g. Customer cancelled, wrong order entered…"
                 rows={3}
-                className="w-full rounded-xl p-3 text-[14px] mb-4"
-                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", outline: "none", resize: "none", boxSizing: "border-box" }}
+                className="w-full rounded-xl p-3 text-[14px] mb-1"
+                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)", border: voidReasonError ? "1.5px solid var(--snm-error)" : "0.5px solid var(--glass-border-lo)", outline: "none", resize: "none", boxSizing: "border-box" }}
               />
-              <div className="flex gap-2.5">
+              {voidReasonError && (
+                <p className="text-[12px] mb-3" style={{ color: "var(--snm-error)" }}>A reason is required to void this order.</p>
+              )}
+              <div className="flex gap-2.5" style={{ marginTop: voidReasonError ? 0 : 12 }}>
                 <button
                   onClick={() => setConfirmVoid(null)}
                   disabled={voiding}
@@ -627,7 +631,7 @@ export function SalesList() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!confirmVoid || !voidReason.trim()) { toast.error("Enter a reason for voiding this order"); return; }
+                    if (!confirmVoid || !voidReason.trim()) { setVoidReasonError(true); toast.error("Enter a reason for voiding this order"); return; }
                     setVoiding(true);
                     try {
                       await voidOrder(confirmVoid.id, voidReason.trim());
@@ -970,7 +974,7 @@ function NewSaleSheet({
             <button onClick={onClose} className="text-foreground opacity-60 active:opacity-100 text-xl">✕</button>
             <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
           </div>
-          <span className="text-[12px] font-mono" style={{ color: "var(--muted-foreground)" }}>{orderNumber}</span>
+          <span className="snm-num text-[12px] font-mono" style={{ color: "var(--muted-foreground)" }}>{orderNumber}</span>
         </div>
       </header>
 

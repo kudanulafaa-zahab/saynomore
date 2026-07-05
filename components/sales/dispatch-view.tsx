@@ -22,6 +22,7 @@ import {
   type CustomerRow, type GodownRow, type UserProfileRow,
 } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
+import { haptic } from "@/lib/haptics";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -157,10 +158,12 @@ export function DispatchView() {
         () => updateOrder(confirmDelivery.id, patch),
         { table: "sales_orders", action: "update", payload: patch, match: { id: confirmDelivery.id } },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Marked as delivered");
       setConfirmDelivery(null);
       load();
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setSaving(false);
@@ -174,9 +177,10 @@ export function DispatchView() {
         () => updateOrder(orderId, patch),
         { table: "sales_orders", action: "update", payload: patch, match: { id: orderId } },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Issue resolved");
       load();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
   }
 
   async function assignDriver(orderId: string, driverId: string) {
