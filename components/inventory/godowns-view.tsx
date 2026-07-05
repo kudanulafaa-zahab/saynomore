@@ -12,6 +12,7 @@ import {
 } from "@/lib/queries/masters";
 import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { haptic } from "@/lib/haptics";
 
 /* ── Helpers ── */
 
@@ -286,12 +287,13 @@ function GodownCard({
           )}
         </button>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-0.5 ml-2 shrink-0">
+        {/* Action buttons — 44x44 tap targets (Apple HIG minimum), 8px+ gap
+            between destructive Delete and its neighbors to reduce mis-taps */}
+        <div className="flex items-center gap-2 ml-2 shrink-0">
           {!godown.is_default && (
             <button
               onClick={() => onSetDefault(godown)}
-              className="h-9 w-9 rounded-xl flex items-center justify-center transition active:scale-90"
+              className="h-11 w-11 rounded-xl flex items-center justify-center transition active:scale-90"
               style={{ color: "var(--muted-foreground)" }}
               title="Set as default"
             >
@@ -301,7 +303,7 @@ function GodownCard({
           {isAdmin && (
             <button
               onClick={() => onEdit(godown)}
-              className="h-9 w-9 rounded-xl flex items-center justify-center transition active:scale-90"
+              className="h-11 w-11 rounded-xl flex items-center justify-center transition active:scale-90"
               style={{ color: "var(--muted-foreground)" }}
               title="Edit"
             >
@@ -311,7 +313,7 @@ function GodownCard({
           {isAdmin && (
             <button
               onClick={() => onDelete(godown)}
-              className="h-9 w-9 rounded-xl flex items-center justify-center transition active:scale-90"
+              className="h-11 w-11 rounded-xl flex items-center justify-center transition active:scale-90"
               style={{ color: "var(--snm-error)" }}
               title="Delete"
             >
@@ -397,6 +399,7 @@ export function GodownsView() {
     // First godown auto-becomes default
     if (godowns.length === 0) payload.is_default = true;
     await createGodown(payload);
+    haptic("success");
     toast.success("Godown created");
     setShowNew(false);
     await load();
@@ -404,6 +407,7 @@ export function GodownsView() {
 
   async function handleUpdate(id: string, name: string, location: string) {
     await updateGodown(id, { name, location: location || null });
+    haptic("success");
     toast.success("Saved");
     setEditingId(null);
     await load();
@@ -416,9 +420,10 @@ export function GodownsView() {
         await updateGodown(current.id, { is_default: false });
       }
       await updateGodown(godown.id, { is_default: true });
+      haptic("success");
       toast.success(`${godown.name} is now the default`);
       await load();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
   }
 
   function handleDelete(godown: GodownRow) {
@@ -556,8 +561,8 @@ export function GodownsView() {
         confirmLabel="Delete"
         onConfirm={async () => {
           if (!confirmGodown) return;
-          try { await deleteGodown(confirmGodown.id); toast.success("Deleted"); setConfirmGodown(null); await load(); }
-          catch (e) { toast.error((e as Error).message); }
+          try { await deleteGodown(confirmGodown.id); haptic("success"); toast.success("Deleted"); setConfirmGodown(null); await load(); }
+          catch (e) { haptic("error"); toast.error((e as Error).message); }
         }}
       />
     </div>

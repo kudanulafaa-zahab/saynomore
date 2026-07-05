@@ -13,6 +13,7 @@ import {
   recordStockTransfer, recordVerification,
   listVerificationHistory, type VerificationSession,
 } from "@/lib/queries/inventory";
+import { haptic } from "@/lib/haptics";
 
 /* ── qty helpers (pieces → carton/pack, matches inventory-view) ── */
 function toCtns(pcs: number, pcsPerCtn: number) {
@@ -177,10 +178,12 @@ function VerifyTab({
       );
       await onDone();
       setCounted({});
+      haptic("success");
       const short = edits.filter((e) => e.delta < 0).length;
       const over = edits.filter((e) => e.delta > 0).length;
       toast.success(`Count saved — ${edits.length} corrected (${short} short, ${over} extra).`);
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setSaving(false);
@@ -249,7 +252,7 @@ function VerifyTab({
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-foreground leading-snug truncate">{skuLabel(r.sku)}</p>
                     <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                      {r.sku.internal_code} · system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn)} ({r.expected} pcs)
+                      {r.sku.internal_code} · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn)} ({r.expected} pcs)</span>
                     </p>
                   </div>
                   <input
@@ -360,8 +363,10 @@ function TransferTab({
       await recordStockTransfer({ sku_id: skuId, from_godown_id: fromId, to_godown_id: toId, qty_pieces: qtyNum });
       await onDone();
       setSkuId(""); setQty(""); setQ("");
+      haptic("success");
       toast.success("Stock transferred.");
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setSaving(false);
