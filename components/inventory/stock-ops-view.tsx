@@ -285,17 +285,33 @@ function VerifyTab({
             const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
             const hasCtnTier = r.sku.packs_per_carton > 1;
             const hasPkTier  = r.sku.pcs_per_pack > 1;
+            // The system count expressed as the ctn/pk split shown in the fields.
+            const expCtn = hasCtnTier ? toCtns(r.expected, pcsPerCtn) : 0;
+            const expPk  = hasCtnTier
+              ? remPacks(r.expected, r.sku.pcs_per_pack, pcsPerCtn)
+              : (hasPkTier ? Math.floor(r.expected / r.sku.pcs_per_pack) : r.expected);
             const raw = counted[r.sku.id];
             const touched = raw !== undefined && (raw.ctn !== "" || raw.pk !== "");
             const ctnVal = raw ? Math.max(0, Math.floor(Number(raw.ctn) || 0)) : 0;
             const pkVal  = raw ? Math.max(0, Math.floor(Number(raw.pk)  || 0)) : 0;
             const n = touched ? ctnVal * pcsPerCtn + pkVal * r.sku.pcs_per_pack : r.expected;
             const delta = touched ? n - r.expected : 0;
+            // On first touch of a row, seed the OTHER field with its expected value
+            // rather than blank — otherwise editing one field silently reads the
+            // untouched field as 0 (e.g. changing cartons alone would drop the
+            // system's loose packs, wrongly reporting a shortfall).
             function setField(field: "ctn" | "pk", value: string) {
-              setCounted((c) => ({
-                ...c,
-                [r.sku.id]: { ctn: field === "ctn" ? value : (c[r.sku.id]?.ctn ?? ""), pk: field === "pk" ? value : (c[r.sku.id]?.pk ?? "") },
-              }));
+              setCounted((c) => {
+                const prev = c[r.sku.id];
+                const base = prev ?? { ctn: hasCtnTier ? String(expCtn) : "", pk: String(expPk) };
+                return {
+                  ...c,
+                  [r.sku.id]: {
+                    ctn: field === "ctn" ? value : base.ctn,
+                    pk:  field === "pk"  ? value : base.pk,
+                  },
+                };
+              });
             }
             const fieldBg = touched
               ? `color-mix(in srgb, ${delta < 0 ? "var(--snm-error)" : delta > 0 ? "var(--snm-warning)" : "var(--foreground)"} 10%, transparent)`
@@ -373,7 +389,7 @@ function VerifyTab({
                   <div className="flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="h-3 w-3" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }} />
                     <p className="snm-num text-[12px] font-semibold" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
-                      {delta < 0 ? `${-delta} pcs short` : `${delta} pcs extra`} — will adjust to {fmtQty(n, r.sku.pcs_per_pack, pcsPerCtn)}
+                      {delta < 0 ? `${fmtQty(-delta, r.sku.pcs_per_pack, pcsPerCtn)} short` : `${fmtQty(delta, r.sku.pcs_per_pack, pcsPerCtn)} extra`} — will adjust to {fmtQty(n, r.sku.pcs_per_pack, pcsPerCtn)}
                     </p>
                   </div>
                 )}
@@ -553,7 +569,20 @@ function TransferTab({
               style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: `1px solid ${overAvailable ? "color-mix(in srgb, var(--snm-error) 45%, transparent)" : "var(--glass-border-lo)"}` }}
             />
             <button
-              onClick={() => { setUnit("piece"); setQty(String(availForSelected)); }}
+              onClick={() => {
+                // Fill "everything available" in the CURRENT unit when it divides
+                // evenly (the normal case — stock arrives in whole cartons/packs),
+                // so the field keeps showing cartons, not a raw piece count. Only
+                // drop to pieces if there's an odd remainder that can't be expressed
+                // in the chosen unit.
+                const per = unit === "carton" ? pcsPerCtn : unit === "pack" ? selected.pcs_per_pack : 1;
+                if (per > 0 && availForSelected % per === 0) {
+                  setQty(String(availForSelected / per));
+                } else {
+                  setUnit("piece");
+                  setQty(String(availForSelected));
+                }
+              }}
               className="h-12 px-4 rounded-xl text-[13px] font-semibold active:opacity-70"
               style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}
             >
@@ -613,7 +642,7 @@ function TransferTab({
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
                   <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} available · {r.avail} pcs
+                    {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} available
                   </p>
                 </div>
               </button>

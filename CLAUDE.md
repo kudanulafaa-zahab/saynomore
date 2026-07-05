@@ -1,3 +1,4 @@
+@skills.md
 # SayNoMore — Project Rules
 
 ## Behaviour
