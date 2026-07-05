@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw, PackageX, ArrowUpDown } from "lucide-react";
+import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
+import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
@@ -498,9 +499,21 @@ export function InventoryView() {
     <div className="space-y-4 pb-28 lg:pb-10">
 
       {/* ── Page header ── */}
-      <div>
-        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
-        <h1 className="ios-page-title">Inventory</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Catalogue</p>
+          <h1 className="ios-page-title">Inventory</h1>
+        </div>
+        {godowns.length > 1 && (
+          <Link
+            href="/stock-ops?tab=transfer"
+            className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95 shrink-0"
+            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+            Transfer
+          </Link>
+        )}
       </div>
 
       {/* ── Critical alert banner — only shown when urgent ── */}

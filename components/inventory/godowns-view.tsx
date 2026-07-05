@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
-import { Loader2, Warehouse, ChevronDown, Plus, Pencil, Trash2, Star, X, Check } from "lucide-react";
+import { Loader2, Warehouse, ChevronDown, Plus, Pencil, Trash2, Star, X, Check, ArrowLeftRight } from "lucide-react";
+import Link from "next/link";
 import { listBatchStock, type BatchStock } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import {
@@ -470,16 +471,28 @@ export function GodownsView() {
             </p>
           )}
         </div>
-        {isAdmin && (
-          <button
-            onClick={() => { setShowNew(true); setEditingId(null); }}
-            className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
-          >
-            <Plus className="h-4 w-4" />
-            New
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {godowns.length > 1 && (
+            <Link
+              href="/stock-ops?tab=transfer"
+              className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
+              style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Transfer
+            </Link>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => { setShowNew(true); setEditingId(null); }}
+              className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              <Plus className="h-4 w-4" />
+              New
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Inline new godown form */}

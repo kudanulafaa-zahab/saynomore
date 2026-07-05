@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Search, MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight,
@@ -40,7 +41,12 @@ type Tab = "verify" | "transfer";
 /* ════════════════════════════════════════════════════════════════════════ */
 
 export function StockOpsView() {
-  const [tab, setTab] = useState<Tab>("verify");
+  const searchParams = useSearchParams();
+  // Deep link support: /stock-ops?tab=transfer lands directly on the
+  // Transfer tab (used by shortcut links from Inventory/Godowns), while
+  // plain /stock-ops still defaults to Verify Count.
+  const initialTab: Tab = searchParams.get("tab") === "transfer" ? "transfer" : "verify";
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [godowns, setGodowns] = useState<GodownRow[]>([]);
   const [levels, setLevels] = useState<StockLevel[]>([]);
