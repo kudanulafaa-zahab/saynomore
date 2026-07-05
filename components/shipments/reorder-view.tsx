@@ -16,6 +16,7 @@ import {
   createDraftPoFromSuggestions, type DraftPoLine,
 } from "@/lib/queries/shipments";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { haptic } from "@/lib/haptics";
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
@@ -92,9 +93,11 @@ export function ReorderView() {
     setCreating(true);
     try {
       const shipment = await createDraftPoFromSuggestions(pickedLines);
+      haptic("success");
       toast.success("Draft PO created — add supplier prices to finish");
       router.push(`/shipments/${shipment.id}`);
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setCreating(false);
@@ -147,50 +150,60 @@ export function ReorderView() {
               return (
                 <div key={r.sku_id} className="px-4 py-3.5" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                   <div className="flex items-start gap-3">
-                    {/* Tick */}
+                    {/* Tick — 44x44 tap target (Apple HIG minimum); visual chip
+                        stays a compact 24x24 checkbox centered inside it. */}
                     <button
                       onClick={() => canWrite && toggle(r.sku_id)}
                       disabled={!canWrite}
-                      className="h-6 w-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition"
-                      style={{
-                        background: on ? "var(--snm-brand)" : "transparent",
-                        border: on ? "none" : "1.5px solid var(--glass-border)",
-                      }}
+                      className="h-11 w-11 -m-2.5 flex items-center justify-center shrink-0 transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {on && <Check className="h-3.5 w-3.5" style={{ color: "#fff" }} />}
+                      <span
+                        className="h-6 w-6 rounded-md flex items-center justify-center"
+                        style={{
+                          background: on ? "var(--snm-brand)" : "transparent",
+                          border: on ? "none" : "1.5px solid var(--glass-border)",
+                        }}
+                      >
+                        {on && <Check className="h-3.5 w-3.5" style={{ color: "#fff" }} />}
+                      </span>
                     </button>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-foreground leading-snug">{nameOf(r)}</p>
+                      <p className="text-[14px] font-semibold text-foreground leading-snug">{nameOf(r)}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-[12px] font-medium" style={{ color: st.color }}>
+                        <span className="snm-num text-[12px] font-medium" style={{ color: st.color }}>
                           {r.dir != null ? `${Math.round(r.dir)}d left` : "no sales data"} · {st.label}
                         </span>
-                        <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                        <span className="snm-num text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                           {r.stock_cartons} ctn in stock · ~{r.daily_avg_pieces.toFixed(0)} pcs/day
                         </span>
                       </div>
                     </div>
 
-                    {/* Suggested qty stepper */}
+                    {/* Suggested qty stepper — 44x44 tap targets on +/-, visual
+                        chip stays a compact 28px swatch centered inside. */}
                     <div className="shrink-0 text-right">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-0.5">
                         <button onClick={() => canWrite && setQ(r.sku_id, (qty[r.sku_id] ?? 0) - 1)}
                           disabled={!canWrite}
-                          className="h-7 w-7 rounded-lg text-[15px] font-bold flex items-center justify-center"
-                          style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>−</button>
+                          className="h-11 w-11 -m-2 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed">
+                          <span className="h-7 w-7 rounded-lg text-[15px] font-bold flex items-center justify-center"
+                            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>−</span>
+                        </button>
                         <input
                           type="number" inputMode="numeric"
                           value={qty[r.sku_id] ?? 0}
                           onChange={(e) => setQ(r.sku_id, parseInt(e.target.value || "0", 10))}
                           disabled={!canWrite}
-                          className="w-12 h-7 text-center text-[13px] font-bold text-foreground rounded-lg outline-none"
+                          className="snm-num w-12 h-11 text-center text-[14px] font-bold text-foreground rounded-lg outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                           style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", MozAppearance: "textfield" } as React.CSSProperties}
                         />
                         <button onClick={() => canWrite && setQ(r.sku_id, (qty[r.sku_id] ?? 0) + 1)}
                           disabled={!canWrite}
-                          className="h-7 w-7 rounded-lg text-[15px] font-bold flex items-center justify-center"
-                          style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>+</button>
+                          className="h-11 w-11 -m-2 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed">
+                          <span className="h-7 w-7 rounded-lg text-[15px] font-bold flex items-center justify-center"
+                            style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>+</span>
+                        </button>
                       </div>
                       <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>cartons</p>
                     </div>
