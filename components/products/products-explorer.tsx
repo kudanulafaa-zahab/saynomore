@@ -1378,6 +1378,7 @@ function NewSkuWizard({
   }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sellsPack = sellUnits.includes("pack");
+  const sellsCarton = sellUnits.includes("carton");
 
   // Carton-only product → the base price must be entered per carton (no pack tier).
   useEffect(() => {
@@ -1848,18 +1849,20 @@ function NewSkuWizard({
                             }}
                             style={{
                               flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                               border: on ? "none" : "0.5px solid var(--glass-border-lo)",
                               background: on ? "var(--foreground)" : "transparent",
                               color: on ? "var(--background)" : "var(--muted-foreground)",
                               transition: "all 0.15s",
                             }}>
+                            {on && <Check className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />}
                             {opt.label}
                           </button>
                         );
                       })}
                     </div>
                     <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
-                      Tap to choose the units customers can buy. Prices below adapt to your choice.
+                      Tap to choose the units customers can buy — selected units show a checkmark. Prices below adapt to your choice.
                     </p>
                   </div>
 
@@ -1976,7 +1979,7 @@ function NewSkuWizard({
                     <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10 }}>
                       Optional — set a lower price for carton buyers. Overrides the base price above for that unit only.
                     </p>
-                    <div style={{ display: "grid", gridTemplateColumns: sellsPack ? "1fr 1fr" : "1fr", gap: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: sellsPack && sellsCarton ? "1fr 1fr" : "1fr", gap: 10 }}>
                       {/* Pack price only for products actually sold in packs. */}
                       {sellsPack && (
                         <div className="space-y-1.5">
@@ -1993,19 +1996,24 @@ function NewSkuWizard({
                           )}
                         </div>
                       )}
-                      <div className="space-y-1.5">
-                        <Label className="text-[12px]">Carton price (MVR)</Label>
-                        <input type="number" inputMode="decimal" step="0.01" min="0.01"
-                          value={fixedCartonPrice}
-                          onChange={(e) => setFixedCartonPrice(e.target.value)}
-                          placeholder="e.g. 320.00"
-                          style={{ ...inp, width: "100%" }} />
-                        {fixedCartonPrice && pcsPerCarton && pcsN > 1 && (
-                          <p style={{ fontSize: 10, color: "var(--snm-success)" }}>
-                            = MVR {(parseFloat(fixedCartonPrice) / pcsPerCarton).toFixed(4)} / pc
-                          </p>
-                        )}
-                      </div>
+                      {/* Carton price only for products actually sold in cartons —
+                          mirrors the sellsPack gate above; this field previously
+                          showed unconditionally even when "Sold in" was Pack-only. */}
+                      {sellsCarton && (
+                        <div className="space-y-1.5">
+                          <Label className="text-[12px]">Carton price (MVR)</Label>
+                          <input type="number" inputMode="decimal" step="0.01" min="0.01"
+                            value={fixedCartonPrice}
+                            onChange={(e) => setFixedCartonPrice(e.target.value)}
+                            placeholder="e.g. 320.00"
+                            style={{ ...inp, width: "100%" }} />
+                          {fixedCartonPrice && pcsPerCarton && pcsN > 1 && (
+                            <p style={{ fontSize: 10, color: "var(--snm-success)" }}>
+                              = MVR {(parseFloat(fixedCartonPrice) / pcsPerCarton).toFixed(4)} / pc
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {(fixedPackPrice || fixedCartonPrice) && (
                       <p style={{ fontSize: 11, color: "var(--snm-success)", marginTop: 6 }}>

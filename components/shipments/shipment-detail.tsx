@@ -8,7 +8,7 @@ import {
   Loader2, ArrowLeft, Plus, Trash2, CheckCircle2, Lock,
   AlertTriangle, Truck, ChevronDown, RotateCcw, Calendar,
   ChevronRight, Minus, MoreHorizontal, Package, ScanLine, Warehouse, Pencil,
-  Container, Sparkles,
+  Container, Sparkles, Check,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -1650,6 +1650,10 @@ function LineDialog({
   const [qtyCartons, setQtyCartons]     = useState(editing?.qty_cartons ?? 1);
   const [fobPerCarton, setFobPerCarton] = useState(editing ? String(editing.fob_per_carton) : "");
   const [fobCurrency, setFobCurrency]   = useState<FobCurrency>(editing?.fob_currency ?? "IDR");
+  // Suppliers usually quote per pack, not per carton — this only controls what
+  // unit the typed number means; fob_per_carton is still what's stored, always
+  // converted from whichever unit the user actually typed in.
+  const [fobEntryUnit, setFobEntryUnit] = useState<"pack" | "carton">("carton");
   const [saving, setSaving]             = useState(false);
   const [search, setSearch]             = useState("");
   const [showScanner, setShowScanner]   = useState(false);
@@ -1684,12 +1688,16 @@ function LineDialog({
     if (!skuId || !fobPerCarton || !sku) return;
     const parsedFob = parseFloat(fobPerCarton);
     if (isNaN(parsedFob) || parsedFob <= 0) { toast.error("FOB must be > 0"); return; }
+    // fob_per_carton is the only value the schema stores — if the supplier
+    // quoted per pack, convert to per-carton here before saving so every
+    // downstream cost calc (which is all per-carton) keeps working unchanged.
+    const fobPerCartonValue = fobEntryUnit === "pack" ? parsedFob * sku.packs_per_carton : parsedFob;
     // Warehouse is no longer chosen here — it's assigned at receiving (GRN).
     const payload = {
       shipment_id: shipmentId, sku_id: skuId,
       qty_cartons: qtyCartons,
       cbm_per_carton: Number(sku.cbm_per_carton),
-      fob_per_carton: parsedFob,
+      fob_per_carton: fobPerCartonValue,
       fob_currency: fobCurrency,
     };
     setSaving(true);
@@ -1796,16 +1804,44 @@ function LineDialog({
               )}
             </div>
 
-            {/* FOB price */}
+            {/* FOB price — supplier can quote per pack or per carton; toggle
+                which one the typed number means. Stored value is always
+                per-carton (converted on save), since costing downstream is
+                carton-based. */}
             <div className="mb-4">
-              <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>SUPPLIER PRICE / CARTON *</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>SUPPLIER PRICE *</p>
+                <div className="flex gap-2">
+                  {([
+                    { key: "pack" as const, label: "Pack" },
+                    { key: "carton" as const, label: "Carton" },
+                  ]).map((opt) => {
+                    const on = fobEntryUnit === opt.key;
+                    return (
+                      <button key={opt.key} type="button"
+                        onClick={() => setFobEntryUnit(opt.key)}
+                        className="flex items-center gap-1.5"
+                        style={{
+                          padding: "6px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          border: on ? "none" : "0.5px solid var(--glass-border-lo)",
+                          background: on ? "var(--foreground)" : "transparent",
+                          color: on ? "var(--background)" : "var(--muted-foreground)",
+                          transition: "all 0.15s",
+                        }}>
+                        {on && <Check className="h-3 w-3" style={{ flexShrink: 0 }} />}
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="flex gap-2">
                 <input
                   type="number"
                   inputMode="decimal"
                   value={fobPerCarton}
                   onChange={(e) => setFobPerCarton(e.target.value)}
-                  placeholder="e.g. 51200"
+                  placeholder={fobEntryUnit === "pack" ? "e.g. 12800" : "e.g. 51200"}
                   className="flex-1 h-12 rounded-xl px-4 text-sm text-foreground outline-none"
                   style={inputSty2}
                 />
@@ -1824,7 +1860,9 @@ function LineDialog({
                 </div>
               </div>
               <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-                Price on this shipment&apos;s invoice — can differ from previous shipments.
+                {fobEntryUnit === "pack" && sku && fobPerCarton && !isNaN(parseFloat(fobPerCarton))
+                  ? `= ${(parseFloat(fobPerCarton) * sku.packs_per_carton).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fobCurrency} / carton`
+                  : "Price on this shipment's invoice — can differ from previous shipments."}
               </p>
             </div>
 
