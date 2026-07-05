@@ -192,7 +192,8 @@ export function EditModelDialog({
           {/* Honest label: nothing reads duty_rate_pct yet — customs duty is
               entered as a lump sum on the shipment. Without this note a user
               reasonably assumes duty gets auto-calculated after filling it. */}
-          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-[13px] font-medium flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             For reference only for now — customs duty is still entered as a total on each shipment. Auto-estimation from these rates is planned.
           </p>
         </div>

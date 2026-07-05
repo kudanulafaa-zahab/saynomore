@@ -88,10 +88,10 @@ export function ProductsList() {
                   <p className="text-sm font-medium text-foreground">{r.brand_name}</p>
                   <p className="text-xs text-muted-foreground">{r.model_name} · {r.variant_display}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[12px] text-muted-foreground">
+                    <span className="snm-num text-[13px] text-muted-foreground">
                       {r.pcs_per_pack}/pk × {r.packs_per_carton}/ctn
                     </span>
-                    <span className="text-[12px] font-mono text-muted-foreground">{r.internal_code}</span>
+                    <span className="snm-num text-[13px] font-mono text-muted-foreground">{r.internal_code}</span>
                   </div>
                 </div>
                 {canWrite ? (
@@ -138,9 +138,10 @@ export function ProductsList() {
                         try { await toggleSkuActive(r.id, !r.is_active); load(); }
                         catch (e) { toast.error((e as Error).message); }
                       }}
-                      className={`snm-pressable text-[12px] uppercase tracking-wider rounded-lg px-2 py-1 ${
+                      className={`snm-pressable text-[12px] uppercase tracking-wider rounded-lg px-2 py-1 inline-flex items-center justify-center ${
                         r.is_active ? "snm-active-pill" : "bg-muted text-muted-foreground"
                       }`}
+                      style={{ minHeight: 44 }}
                     >
                       {r.is_active ? "On" : "Off"}
                     </button>

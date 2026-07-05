@@ -15,6 +15,7 @@ import {
 import type { PriceTier } from "@/lib/queries/masters";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { haptic } from "@/lib/haptics";
 
 /* ── Tier config ──────────────────────────────────────────────────────────── */
 const TIERS: { value: PriceTier; label: string; color: string }[] = [
@@ -37,7 +38,7 @@ function SheetInput({ label, required, children }: {
   return (
     <div className="mb-4">
       <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
-        {label}{required && " *"}
+        {label}{required && <span style={{ color: "var(--snm-error)" }}> *</span>}
       </label>
       {children}
     </div>
@@ -89,10 +90,12 @@ export function PriceListsView() {
     setConfirmDeleting(true);
     try {
       await deletePriceList(confirmDelete.id);
+      haptic("success");
       toast.success("Price list deleted");
       setConfirmDelete(null);
       load();
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setConfirmDeleting(false);
@@ -618,8 +621,8 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                         { label: "ctn", value: item.price_per_carton_mvr },
                       ].map((p) => (
                         <div key={p.label} className="rounded-lg px-2 py-1 text-center" style={{ background: `color-mix(in srgb, ${t.color} 10%, transparent)` }}>
-                          <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
-                          <p className="text-[12px] font-bold snm-num" style={{ color: t.color }}>{Number(p.value).toFixed(0)}</p>
+                          <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{p.label}</p>
+                          <p className="text-[14px] font-bold snm-num" style={{ color: t.color }}>{Number(p.value).toFixed(0)}</p>
                         </div>
                       ))}
                     </div>
@@ -755,10 +758,12 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
           setConfirmRemoving(true);
           try {
             await deletePriceListItem(confirmRemove);
+            haptic("success");
             toast.success("Removed");
             setConfirmRemove(null);
             loadItems();
           } catch (e) {
+            haptic("error");
             toast.error((e as Error).message);
           } finally {
             setConfirmRemoving(false);
@@ -843,6 +848,10 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         price_per_carton_mvr: parseFloat(cartonStr),
         margin_pct:           packMargin !== null ? parseFloat(packMargin.toFixed(1)) : null,
       });
+      haptic("success");
+    } catch (e) {
+      haptic("error");
+      throw e;
     } finally {
       setSaving(false);
     }
@@ -956,11 +965,20 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           className={inputCls}
         />
       </SheetInput>
-      {!canSave && sku && (
-        <p className="text-[12px] mt-2" style={{ color: "var(--snm-warning)" }}>
-          All three prices (pack, carton, piece) need a value above 0 to save.
-        </p>
-      )}
+      {!canSave && sku && (() => {
+        const missing = [
+          parseFloat(packStr)   > 0 ? null : "pack",
+          parseFloat(cartonStr) > 0 ? null : "carton",
+          parseFloat(pieceStr)  > 0 ? null : "piece",
+        ].filter(Boolean);
+        return (
+          <p className="text-[12px] mt-2" style={{ color: "var(--snm-warning)" }}>
+            {missing.length === 3
+              ? "All three prices (pack, carton, piece) need a value above 0 to save."
+              : `${missing.join(" and ")} price${missing.length > 1 ? "s" : ""} need${missing.length > 1 ? "" : "s"} a value above 0 to save.`}
+          </p>
+        );
+      })()}
 
       <div className="flex gap-3 mt-6">
         {extraAction}

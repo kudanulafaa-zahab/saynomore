@@ -116,7 +116,7 @@ export function CategoriesManager() {
             {!c.is_system && canWrite && (
               <button
                 onClick={() => setConfirmCat({ id: c.id, name: c.name })}
-                className="p-2 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition shrink-0"
+                className="h-11 w-11 flex items-center justify-center rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition shrink-0"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

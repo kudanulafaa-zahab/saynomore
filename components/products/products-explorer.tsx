@@ -27,6 +27,7 @@ import {
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
 } from "./edit-dialogs";
+import { haptic } from "@/lib/haptics";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 /* ── Attr metadata ── */
@@ -208,9 +209,10 @@ function SkuPanel({
         target_margin_pct:       fixed != null ? null : margin,
         fixed_selling_price_mvr: fixed,
       });
+      haptic("success");
       toast.success("Pricing saved");
       onPricingUpdated();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
     finally { setSavingPrice(false); }
   }
 
@@ -238,7 +240,7 @@ function SkuPanel({
         </div>
         <button
           onClick={onClose}
-          className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 transition"
+          className="h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition"
           style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}
         >
           <X className="h-4 w-4" />
@@ -1284,10 +1286,11 @@ function CategoryPills({
           if (!confirmCat) return;
           try {
             await deleteCategory(confirmCat.id);
+            haptic("success");
             if (selectedId === confirmCat.id) onSelect("");
             onDeleted?.(confirmCat.id);
             setConfirmCat(null);
-          } catch (e) { toast.error((e as Error).message); }
+          } catch (e) { haptic("error"); toast.error((e as Error).message); }
         }}
       />
     </div>
@@ -1504,10 +1507,11 @@ function NewSkuWizard({
         fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
       });
 
+      haptic("success");
       toast.success("SKU created");
       onOpenChange(false);
       onSaved();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
     finally { setSaving(false); }
   }
 
@@ -2087,11 +2091,12 @@ function NewSkuWizard({
           if (!confirmDeleteModel) return;
           try {
             await deleteModel(confirmDeleteModel.id);
+            haptic("success");
             setDeletedModelIds((prev) => new Set([...prev, confirmDeleteModel.id]));
             if (modelId === confirmDeleteModel.id) { setModelId(""); setModelInput(""); }
             setConfirmDeleteModel(null);
             toast.success(`${confirmDeleteModel.name} deleted`);
-          } catch (e) { toast.error((e as Error).message); }
+          } catch (e) { haptic("error"); toast.error((e as Error).message); }
         }}
       />
     </Dialog>

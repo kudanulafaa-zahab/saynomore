@@ -26,6 +26,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { haptic } from "@/lib/haptics";
 
 const CARD = {
   background: "var(--glass-1)",
@@ -733,16 +734,16 @@ export function CompetitorsView() {
                         {hasAnyPrice ? (
                           <div className="flex items-center gap-3 text-right shrink-0">
                             <div>
-                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Pc</p>
-                              <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_piece_mvr!)}</p>
+                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Pc</p>
+                              <p className="text-[14px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_piece_mvr!)}</p>
                             </div>
                             <div>
-                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Pk</p>
-                              <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_pack_mvr!)}</p>
+                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Pk</p>
+                              <p className="text-[14px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_pack_mvr!)}</p>
                             </div>
                             <div>
-                              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Ctn</p>
-                              <p className="text-[12px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_carton_mvr!)}</p>
+                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Ctn</p>
+                              <p className="text-[14px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_carton_mvr!)}</p>
                             </div>
                           </div>
                         ) : (
@@ -965,11 +966,15 @@ export function CompetitorsView() {
                         >
                           + Price
                         </button>
-                        <button onClick={() => setCompetitorDialog({ open: true, editing: comp })} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
-                          <Pencil className="h-3.5 w-3.5" />
+                        <button onClick={() => setCompetitorDialog({ open: true, editing: comp })} className="h-11 w-11 -m-1.5 flex items-center justify-center">
+                          <span className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </span>
                         </button>
-                        <button onClick={() => setDeleteCompDialog(comp)} className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
-                          <Trash2 className="h-3.5 w-3.5" />
+                        <button onClick={() => setDeleteCompDialog(comp)} className="h-11 w-11 -m-1.5 flex items-center justify-center">
+                          <span className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </span>
                         </button>
                       </div>
                     )}
@@ -1007,11 +1012,15 @@ export function CompetitorsView() {
                               </div>
                               {canWrite && (
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                  <button onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
-                                    <Pencil className="h-3 w-3" />
+                                  <button onClick={() => setPriceDialog({ open: true, editing: p, competitorId: p.competitor_id })} className="h-11 w-11 -m-2 flex items-center justify-center">
+                                    <span className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
+                                      <Pencil className="h-3 w-3" />
+                                    </span>
                                   </button>
-                                  <button onClick={() => setDeletePriceDialog(p)} className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
-                                    <Trash2 className="h-3 w-3" />
+                                  <button onClick={() => setDeletePriceDialog(p)} className="h-11 w-11 -m-2 flex items-center justify-center">
+                                    <span className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}>
+                                      <Trash2 className="h-3 w-3" />
+                                    </span>
                                   </button>
                                 </div>
                               )}
@@ -1081,10 +1090,11 @@ export function CompetitorsView() {
                       () => deleteCompetitor(deleteCompDialog.id),
                       { table: "competitors", action: "delete", payload: {}, match: { id: deleteCompDialog.id } },
                     );
+                    haptic("success");
                     toast.success(queued ? "Saved offline — will sync when connected" : "Removed");
                     if (!queued) { setDeleteCompDialog(null); load(); }
                   }
-                  catch (e) { toast.error((e as Error).message); }
+                  catch (e) { haptic("error"); toast.error((e as Error).message); }
                   finally { setDeleting(false); }
                 }}
                 className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
@@ -1112,10 +1122,11 @@ export function CompetitorsView() {
                       () => deleteCompetitorPrice(deletePriceDialog.id),
                       { table: "competitor_prices", action: "delete", payload: {}, match: { id: deletePriceDialog.id } },
                     );
+                    haptic("success");
                     toast.success(queued ? "Saved offline — will sync when connected" : "Removed");
                     if (!queued) { setDeletePriceDialog(null); load(); }
                   }
-                  catch (e) { toast.error((e as Error).message); }
+                  catch (e) { haptic("error"); toast.error((e as Error).message); }
                   finally { setDeleting(false); }
                 }}
                 className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
