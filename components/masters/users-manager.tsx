@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, UserCircle, Shield, Truck, Users, Eye,
+  Loader2, Plus, UserCircle, Shield, Truck, Users, Eye, EyeOff,
   AlertTriangle, Pencil, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import {
   type UserRole,
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
+import { haptic } from "@/lib/haptics";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Administrator",
@@ -194,15 +195,15 @@ export function UsersManager() {
                     <>
                       <button
                         onClick={() => setEditDialog(u)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition"
-                        title="Edit"
+                        aria-label={`Edit ${u.full_name ?? u.email}`}
+                        className="h-11 w-11 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => setDeleteDialog(u)}
-                        className="p-1.5 rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
-                        title="Delete"
+                        aria-label={`Remove ${u.full_name ?? u.email}`}
+                        className="h-11 w-11 flex items-center justify-center rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -254,10 +255,12 @@ export function UsersManager() {
                 setDeleting(true);
                 try {
                   await deleteUser(deleteDialog.id);
+                  haptic("success");
                   toast.success(`${deleteDialog.full_name ?? "User"} removed`);
                   setDeleteDialog(null);
                   load();
                 } catch (e) {
+                  haptic("error");
                   toast.error((e as Error).message);
                 } finally {
                   setDeleting(false);
@@ -291,9 +294,11 @@ function EditUserDialog({
     setSaving(true);
     try {
       await updateUser(user.id, fullName.trim(), selectedRole);
+      haptic("success");
       toast.success("Updated");
       onDone();
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setSaving(false);
@@ -355,20 +360,28 @@ function InviteDialog({
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("staff");
+  const [tempPassword, setTempPassword] = useState("");
+  const [showTempPw, setShowTempPw] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) { setEmail(""); setFullName(""); setSelectedRole("staff"); }
+    if (open) { setEmail(""); setFullName(""); setSelectedRole("staff"); setTempPassword(""); setShowTempPw(false); }
   }, [open]);
 
+  // The invite API creates the account with this password directly
+  // (email_confirm: true) — it's required server-side, not optional.
+  const canSave = !!email.trim() && !!fullName.trim() && tempPassword.length >= 6;
+
   async function save() {
-    if (!email.trim() || !fullName.trim()) return;
+    if (!canSave) return;
     setSaving(true);
     try {
-      await inviteUser(email.trim().toLowerCase(), fullName.trim(), selectedRole, "");
-      toast.success(`User added: ${email.trim()}`);
+      await inviteUser(email.trim().toLowerCase(), fullName.trim(), selectedRole, tempPassword);
+      haptic("success");
+      toast.success(`${fullName.trim()} added successfully`);
       onDone();
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setSaving(false);
@@ -381,7 +394,7 @@ function InviteDialog({
         <DialogHeader>
           <DialogTitle>Invite team member</DialogTitle>
           <DialogDescription>
-            They will receive an email with a link to set their password and log in.
+            Set a temporary password and share it with them — they can change it later via Forgot password.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -416,11 +429,32 @@ function InviteDialog({
             </Select>
             <p className="text-[12px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
           </div>
+          <div className="space-y-2">
+            <Label>Temporary password *</Label>
+            <div className="relative">
+              <Input
+                type={showTempPw ? "text" : "password"}
+                value={tempPassword}
+                onChange={(e) => setTempPassword(e.target.value)}
+                placeholder="Min 6 characters"
+                className="pr-11"
+              />
+              <button
+                type="button"
+                onClick={() => setShowTempPw((v) => !v)}
+                aria-label={showTempPw ? "Hide password" : "Show password"}
+                className="absolute right-0 top-0 h-full w-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition"
+              >
+                {showTempPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-[12px] text-muted-foreground">Share this with the user. They can change it later via Forgot password.</p>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !email.trim() || !fullName.trim()}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send invite"}
+          <Button onClick={save} disabled={saving || !canSave}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add member"}
           </Button>
         </DialogFooter>
       </DialogContent>
