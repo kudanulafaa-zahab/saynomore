@@ -144,7 +144,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
           <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code}
             {urgency !== "ok" && (
-              <span className="ml-2 font-bold" style={{ color: urgencyColor }}>
+              <span className="ml-2 font-bold" style={{ color: urgencyColor, fontSize: 13 }}>
                 {urgency === "critical" ? "· critically low" : "· low stock"}
               </span>
             )}
