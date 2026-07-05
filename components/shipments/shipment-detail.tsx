@@ -1463,9 +1463,12 @@ export function ShipmentDetail({ id }: { id: string }) {
           </div>
         )}
 
-        {/* Destination warehouse — chosen here, at receiving */}
+        {/* Destination warehouse — pre-filled to the default godown; this is a
+            receiving bay, not a final decision. If stock needs to end up
+            somewhere else, that's a Stock Transfer afterward, not a choice you
+            have to get right here. */}
         <div className="mb-4">
-          <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>DESTINATION WAREHOUSE *</p>
+          <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>RECEIVING WAREHOUSE</p>
           <div className="relative">
             <select
               value={grnGodownId}
@@ -1473,13 +1476,12 @@ export function ShipmentDetail({ id }: { id: string }) {
               className="w-full h-12 rounded-xl px-4 pr-10 text-sm text-foreground outline-none appearance-none"
               style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
             >
-              <option value="">Select…</option>
               {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>)}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
           </div>
           <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-            Where the goods were physically stored. All received stock lands here.
+            Not sure yet? Leave this as-is — you can move stock to another godown anytime from Stock Ops → Transfer.
           </p>
         </div>
 
