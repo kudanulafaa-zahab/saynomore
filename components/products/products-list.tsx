@@ -88,10 +88,10 @@ export function ProductsList() {
                   <p className="text-sm font-medium text-foreground">{r.brand_name}</p>
                   <p className="text-xs text-muted-foreground">{r.model_name} · {r.variant_display}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="snm-num text-[13px] text-muted-foreground">
+                    <span className="snm-num ios-subhead text-muted-foreground">
                       {r.pcs_per_pack}/pk × {r.packs_per_carton}/ctn
                     </span>
-                    <span className="snm-num text-[13px] font-mono text-muted-foreground">{r.internal_code}</span>
+                    <span className="snm-num ios-subhead font-mono text-muted-foreground">{r.internal_code}</span>
                   </div>
                 </div>
                 {canWrite ? (
@@ -127,7 +127,7 @@ export function ProductsList() {
                 <div className="col-span-3 text-foreground">{r.variant_display}</div>
                 <div className="col-span-2 text-muted-foreground">
                   {r.pcs_per_pack}/pk × {r.packs_per_carton}/ctn
-                  <span className="block text-[12px]">= {r.pcs_per_carton} pcs/ctn</span>
+                  <span className="block ios-subhead">= {r.pcs_per_carton} pcs/ctn</span>
                 </div>
                 <div className="col-span-2 text-muted-foreground">{Number(r.cbm_per_carton).toFixed(4)}</div>
                 <div className="col-span-1 text-xs font-mono text-muted-foreground truncate" title={r.internal_code}>{r.internal_code}</div>

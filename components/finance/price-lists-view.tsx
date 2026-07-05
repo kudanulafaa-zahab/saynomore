@@ -152,7 +152,7 @@ export function PriceListsView() {
                     <div className="flex items-center gap-2">
                       <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>{label}</h2>
                       <span
-                        className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+                        className="ios-subhead font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
                       >
                         {lists.length} list{lists.length !== 1 ? "s" : ""}
@@ -380,7 +380,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
           </div>
         </div>
         {createdList && (
-          <p className="text-[12px] font-medium" style={{ color: "var(--snm-success)" }}>✓ List created — keep adding SKU prices below</p>
+          <p className="ios-subhead font-medium" style={{ color: "var(--snm-success)" }}>✓ List created — keep adding SKU prices below</p>
         )}
         </div>
       </div>
@@ -972,7 +972,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           parseFloat(pieceStr)  > 0 ? null : "piece",
         ].filter(Boolean);
         return (
-          <p className="text-[12px] mt-2" style={{ color: "var(--snm-warning)" }}>
+          <p className="ios-subhead mt-2" style={{ color: "var(--snm-warning)" }}>
             {missing.length === 3
               ? "All three prices (pack, carton, piece) need a value above 0 to save."
               : `${missing.join(" and ")} price${missing.length > 1 ? "s" : ""} need${missing.length > 1 ? "" : "s"} a value above 0 to save.`}

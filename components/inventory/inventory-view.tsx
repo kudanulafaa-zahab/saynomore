@@ -71,7 +71,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
     >
       <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       <p className="text-[26px] font-semibold tracking-tight leading-none snm-num" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
-      <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>{sub}</p>
+      <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>{sub}</p>
     </div>
   );
 }
@@ -89,19 +89,19 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
       <div className="flex items-center gap-2 min-w-0">
         {idx === 0 && (
           <span
-            className="text-[12px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
+            className="ios-subhead font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
             style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--foreground)" }}
           >
             FIFO
           </span>
         )}
-        <span className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>
+        <span className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
           {date} · #{batch.batch_id.slice(-6).toUpperCase()}
         </span>
       </div>
       <div className="text-right shrink-0 ml-3">
-        <span className="text-[13px] font-semibold text-foreground snm-num">{qty}</span>
-        <span className="text-[12px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+        <span className="ios-subhead font-semibold text-foreground snm-num">{qty}</span>
+        <span className="ios-subhead ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
           MVR {batch.landed_per_piece_mvr.toFixed(2)}/pc
         </span>
       </div>
@@ -119,7 +119,7 @@ function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
     : alert.dir != null ? `${alert.dir}d left` : "No sales data";
   return (
     <span
-      className="text-[12px] font-bold px-2 py-0.5 rounded-full shrink-0"
+      className="ios-subhead font-bold px-2 py-0.5 rounded-full shrink-0"
       style={{
         background: `color-mix(in srgb, ${color} 15%, transparent)`,
         color,
@@ -176,7 +176,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             </p>
             <DirBadge alert={alert} />
           </div>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
           </p>
         </div>
@@ -186,9 +186,9 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             style={{ color: isLow ? "var(--snm-error)" : "var(--foreground)" }}
           >
             {totalCtns}
-            <span className="text-[13px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
+            <span className="ios-subhead font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
           </p>
-          <p className="text-[12px] mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+          <p className="ios-subhead mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
         </div>
       </div>
 
@@ -211,12 +211,12 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                  <p className="text-[13px] font-medium text-foreground truncate">{godown.name}</p>
+                  <p className="ios-subhead font-medium text-foreground truncate">{godown.name}</p>
                 </div>
-                <p className="text-[13px] font-semibold text-foreground ml-4 shrink-0 snm-num">
-                  {ctns > 0 && <>{ctns} <span className="font-normal text-[12px]" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
-                  {packs > 0 && <><span className="mx-1 text-[12px]" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal text-[12px]" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
-                  {ctns === 0 && packs === 0 && <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}
+                <p className="ios-subhead font-semibold text-foreground ml-4 shrink-0 snm-num">
+                  {ctns > 0 && <>{ctns} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
+                  {packs > 0 && <><span className="mx-1 ios-subhead" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
+                  {ctns === 0 && packs === 0 && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}
                 </p>
               </div>
             );
@@ -230,7 +230,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         style={{ touchAction: "manipulation" }}
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+        <span className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>
           {expanded ? "Hide" : "FIFO batches & landed cost"}
         </span>
         <ChevronDown
@@ -257,7 +257,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                 style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
               >
                 <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                <p className="text-[13px] font-semibold text-foreground">{c.value}</p>
+                <p className="ios-subhead font-semibold text-foreground">{c.value}</p>
               </div>
             ))}
           </div>
@@ -268,9 +268,9 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <Layers className="h-3 w-3" style={{ color: "var(--muted-foreground)" }} />
-                  <p className="text-[12px] font-semibold text-foreground">{godown.name}</p>
+                  <p className="ios-subhead font-semibold text-foreground">{godown.name}</p>
                 </div>
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   {fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn)} · {pieces.toLocaleString()} pcs
                 </p>
               </div>
@@ -294,17 +294,17 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             >
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? "var(--snm-error)" : "var(--snm-warning)" }} />
               <div>
-                <p className="text-[12px] font-semibold" style={{ color: isCritical ? "var(--snm-error)" : "var(--snm-warning)" }}>
+                <p className="ios-subhead font-semibold" style={{ color: isCritical ? "var(--snm-error)" : "var(--snm-warning)" }}>
                   {isCritical ? "Critical — reorder now" : "Low stock — reorder soon"}
                 </p>
                 {alert?.dir != null && (
-                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     ~{alert.dir} days left · avg {alert.daily_avg_pieces.toFixed(1)} pcs/day
                     {alert.suggested_cartons > 0 && ` · suggest ordering ${alert.suggested_cartons} ctn`}
                   </p>
                 )}
                 {alert?.dir == null && (
-                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     Only {totalCtns} carton{totalCtns !== 1 ? "s" : ""} left — no recent sales to calculate DIR
                   </p>
                 )}
@@ -322,10 +322,10 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
             >
               <PackageX className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
               <div>
-                <p className="text-[12px] font-semibold text-foreground">
+                <p className="ios-subhead font-semibold text-foreground">
                   Overstocked — {alert?.dir} days of stock on hand
                 </p>
-                <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   Selling slower than restocked · consider a promotion to move it
                 </p>
               </div>
@@ -507,7 +507,7 @@ export function InventoryView() {
         {godowns.length > 1 && (
           <Link
             href="/stock-ops?tab=transfer"
-            className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95 shrink-0"
+            className="h-10 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95 shrink-0"
             style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
           >
             <ArrowLeftRight className="h-4 w-4" />
@@ -592,7 +592,7 @@ export function InventoryView() {
             <button
               key={mode}
               onClick={() => setSortMode(mode)}
-              className="shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-full transition active:opacity-70"
+              className="shrink-0 ios-subhead font-semibold px-3 py-1.5 rounded-full transition active:opacity-70"
               style={{
                 background: sortMode === mode ? "var(--foreground)" : "var(--glass-1)",
                 color: sortMode === mode ? "var(--background)" : "var(--muted-foreground)",
@@ -615,7 +615,7 @@ export function InventoryView() {
             <p className="text-[15px] font-semibold text-foreground">
               {stockList.length === 0 ? "No stock yet" : "No results"}
             </p>
-            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               {stockList.length === 0
                 ? "Confirm a shipment GRN to populate your inventory."
                 : "Try a different search term."}
@@ -648,16 +648,16 @@ export function InventoryView() {
                       className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ background: brandData.hasCritical ? "var(--snm-error)" : brandData.hasLow ? "var(--snm-warning)" : "var(--snm-success)" }}
                     />
-                    <p className="text-[13px] font-bold uppercase tracking-wider text-foreground">{brand}</p>
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead font-bold uppercase tracking-wider text-foreground">{brand}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                       {brandData.skus.length} SKU{brandData.skus.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                       {brandData.totalCartons.toLocaleString()} ctn
                     </p>
-                    <p className="text-[12px] font-semibold text-foreground">MVR {fmtMvr(brandData.totalValue)}</p>
+                    <p className="ios-subhead font-semibold text-foreground">MVR {fmtMvr(brandData.totalValue)}</p>
                     {!searchActive && (
                       <ChevronDown
                         className="h-3.5 w-3.5 transition-transform duration-200"

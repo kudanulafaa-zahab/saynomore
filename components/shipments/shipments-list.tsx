@@ -215,7 +215,7 @@ export function ShipmentsList() {
                   ? "var(--snm-error)" : "var(--snm-warning)",
               }}
             />
-            <p className="text-[13px] font-bold" style={{
+            <p className="ios-subhead font-bold" style={{
               color: reorderSuggestions.some((r) => r.alert.alert_level === "critical")
                 ? "var(--snm-error)" : "var(--snm-warning)",
             }}>
@@ -251,7 +251,7 @@ export function ShipmentsList() {
             })}
           </div>
           <div className="px-4 pb-3">
-            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               Tap any SKU to create a purchase order. Days shown = estimated stock remaining.
             </p>
           </div>
@@ -274,7 +274,7 @@ export function ShipmentsList() {
             <button
               key={key}
               onClick={() => setStatusFilter(key)}
-              className="shrink-0 h-11 px-3 rounded-full text-[12px] font-semibold transition active:scale-95 flex items-center gap-1.5"
+              className="shrink-0 h-11 px-3 rounded-full ios-subhead font-semibold transition active:scale-95 flex items-center gap-1.5"
               style={{
                 background: active ? "var(--foreground)" : "var(--glass-1)",
                 color:      active ? "var(--background)" : "var(--muted-foreground)",
@@ -282,7 +282,7 @@ export function ShipmentsList() {
               }}
             >
               {label}
-              <span className="text-[12px] opacity-70">{count}</span>
+              <span className="ios-subhead opacity-70">{count}</span>
             </button>
           );
         })}
@@ -372,7 +372,7 @@ export function ShipmentsList() {
               </div>
               <div>
                 <p className="text-[15px] font-bold text-foreground">Delete purchase order?</p>
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{deleteDialog.reference}</p>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{deleteDialog.reference}</p>
               </div>
             </div>
             <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
@@ -475,20 +475,20 @@ function PoCard({
         </div>
 
         {/* Row 2: supplier */}
-        <p className="text-[13px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mb-1" style={{ color: "var(--muted-foreground)" }}>
           {supplier ? supplier.name : <span style={{ fontStyle: "italic" }}>No supplier assigned</span>}
           {supplier?.country ? ` · ${supplier.country}` : ""}
         </p>
 
         {/* Row 3: ETA / confirmed date — right side; notes left */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
             {shipment.notes ? shipment.notes : "No notes"}
           </p>
           {locked ? (
-            <p className="snm-num text-[13px] shrink-0 font-medium" style={{ color: "var(--snm-success)" }}>{confirmedLabel}</p>
+            <p className="snm-num ios-subhead shrink-0 font-medium" style={{ color: "var(--snm-success)" }}>{confirmedLabel}</p>
           ) : (
-            <p className="snm-num text-[13px] shrink-0" style={{ color: etaColor }}>{etaLabel}</p>
+            <p className="snm-num ios-subhead shrink-0" style={{ color: etaColor }}>{etaLabel}</p>
           )}
         </div>
       </Link>
@@ -572,7 +572,7 @@ function NewPoSheet({
           </div>
           <div>
             <p className="text-[17px] font-bold text-foreground">New Purchase Order</p>
-            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Draft → add products → confirm on arrival</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Draft → add products → confirm on arrival</p>
           </div>
         </div>
 
@@ -586,7 +586,7 @@ function NewPoSheet({
             className="w-full h-12 rounded-xl px-4 text-sm text-foreground outline-none"
             style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
           />
-          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Auto-generated — edit if you have your own reference.</p>
+          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Auto-generated — edit if you have your own reference.</p>
         </div>
 
         {/* Supplier */}
@@ -605,7 +605,7 @@ function NewPoSheet({
             <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 rotate-90 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
           </div>
           {suppliers.length === 0 && (
-            <p className="text-[12px]" style={{ color: "var(--snm-warning)" }}>No suppliers yet — add one under Vendors first.</p>
+            <p className="ios-subhead" style={{ color: "var(--snm-warning)" }}>No suppliers yet — add one under Vendors first.</p>
           )}
         </div>
 

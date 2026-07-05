@@ -242,7 +242,7 @@ export function ReportsView() {
         <button
           onClick={exportCsv}
           disabled={tab === "contribution" ? contribFiltered.length === 0 : tab === "abc" ? abcFiltered.length === 0 : filtered.length === 0}
-          className="flex items-center gap-2 h-10 px-4 rounded-2xl text-[13px] font-semibold shrink-0 transition active:scale-95 disabled:opacity-40"
+          className="flex items-center gap-2 h-10 px-4 rounded-2xl ios-subhead font-semibold shrink-0 transition active:scale-95 disabled:opacity-40"
           style={{ background: "var(--foreground)", color: "var(--background)", marginTop: 4 }}
         >
           <Download className="h-4 w-4" />
@@ -260,7 +260,7 @@ export function ReportsView() {
               <button
                 key={p.label}
                 onClick={() => { setCustomRange(false); setFrom(pf); setTo(pt); load(pf, pt); }}
-                className="shrink-0 h-11 px-4 rounded-full text-[13px] font-semibold transition active:scale-95"
+                className="shrink-0 h-11 px-4 rounded-full ios-subhead font-semibold transition active:scale-95"
                 style={{
                   background: active ? "var(--foreground)" : "var(--glass-1)",
                   color:      active ? "var(--background)" : "var(--muted-foreground)",
@@ -274,7 +274,7 @@ export function ReportsView() {
           })}
           <button
             onClick={() => setCustomRange(true)}
-            className="shrink-0 h-11 px-4 rounded-full text-[13px] font-semibold transition active:scale-95"
+            className="shrink-0 h-11 px-4 rounded-full ios-subhead font-semibold transition active:scale-95"
             style={{
               background: customRange ? "var(--foreground)" : "var(--glass-1)",
               color:      customRange ? "var(--background)" : "var(--muted-foreground)",
@@ -294,7 +294,7 @@ export function ReportsView() {
               className="h-11 px-3 text-sm rounded-xl border text-foreground"
               style={{ background: "var(--glass-bg-1)", borderColor: "var(--glass-border-lo)" }}
             />
-            <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>to</span>
+            <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>to</span>
             <input
               type="date"
               value={to}
@@ -305,7 +305,7 @@ export function ReportsView() {
             <button
               onClick={() => load()}
               disabled={loading}
-              className="h-11 px-5 rounded-xl text-[13px] font-semibold transition active:scale-95 disabled:opacity-40"
+              className="h-11 px-5 rounded-xl ios-subhead font-semibold transition active:scale-95 disabled:opacity-40"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
@@ -366,7 +366,7 @@ export function ReportsView() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className="px-4 rounded-lg text-[13px] font-medium transition active:scale-95"
+            className="px-4 rounded-lg ios-subhead font-medium transition active:scale-95"
             style={{
               minHeight: 40,
               background: tab === t.key ? "var(--background)" : "transparent",
@@ -458,7 +458,7 @@ function SummaryCard({ label, value, sublabel, icon: Icon, tokenColor, hero }: {
         <div className="space-y-1">
           <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{label}</p>
           <p className="snm-num text-[32px] font-bold tracking-tight leading-none text-foreground">{value}</p>
-          {sublabel && <p className="text-[12px] text-muted-foreground">{sublabel}</p>}
+          {sublabel && <p className="ios-subhead text-muted-foreground">{sublabel}</p>}
         </div>
         <div
           className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0"
@@ -537,7 +537,7 @@ function BestSellersTable({ rows, sortKey, onSort }: {
                     </span>
                     <div>
                       <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                      <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
+                      <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                     </div>
                   </div>
                 </td>
@@ -589,7 +589,7 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
                     <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                    <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
+                    <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                   </td>
                   <td className="px-3 py-3 text-right text-foreground font-medium snm-num">{fmt0(r.total_revenue_mvr)}</td>
                   <td className="px-3 py-3 text-right text-muted-foreground snm-num">{fmt0(r.total_landed_cost_mvr)}</td>
@@ -603,7 +603,7 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
                     {r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "—"}
                     {r.has_estimated_cost && (
                       <span
-                        className="ml-1 text-[12px] font-medium align-middle"
+                        className="ml-1 ios-subhead font-medium align-middle"
                         style={{ color: "var(--muted-foreground)" }}
                         title="Some sales in this period were made before per-sale cost tracking started — their cost is estimated from today's price, not what it actually cost then."
                       >
@@ -676,7 +676,7 @@ function AbcTable({ rows }: { rows: AbcRow[] }) {
                       <span className="text-xs font-mono w-5 text-center text-muted-foreground">{r.rank}</span>
                       <div>
                         <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                        <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
+                        <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                       </div>
                     </div>
                   </td>
@@ -696,7 +696,7 @@ function AbcTable({ rows }: { rows: AbcRow[] }) {
           </table>
         </div>
         <div className="px-4 py-2 border-t border-border bg-secondary/30">
-          <p className="text-[12px] text-muted-foreground">
+          <p className="ios-subhead text-muted-foreground">
             A = top 80% of revenue (tight control) · B = next 15% · C = bottom 5% (bulk-buy) · ranked by revenue in period
           </p>
         </div>
@@ -731,7 +731,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
               <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                 <td className="px-3 py-3">
                   <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                  <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
+                  <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
                   {r.landed_per_piece_mvr > 0 ? `${landed.value.toFixed(2)}/${landed.unitLabel}` : "—"}
@@ -750,7 +750,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
                         : null}
                       {r.has_estimated_cost && (
                         <span
-                          className="ml-1 text-[12px] font-medium align-middle"
+                          className="ml-1 ios-subhead font-medium align-middle"
                           style={{ color: "var(--muted-foreground)" }}
                           title="Some sales in this period were made before per-sale cost tracking started — their cost is estimated from today's price, not what it actually cost then."
                         >
@@ -769,7 +769,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
         </table>
       </div>
       <div className="px-4 py-2 border-t border-border bg-secondary/30">
-        <p className="text-[12px] text-muted-foreground">
+        <p className="ios-subhead text-muted-foreground">
           Green ≥ 30% · Amber 15–29% · Red &lt; 15% · Sell price based on actual invoiced sales in period
         </p>
       </div>
@@ -846,7 +846,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
                 <tr key={s.id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
                     <p className="text-foreground">{s.campaign_name ?? "—"}</p>
-                    {s.notes && <p className="text-[12px] text-muted-foreground">{s.notes}</p>}
+                    {s.notes && <p className="ios-subhead text-muted-foreground">{s.notes}</p>}
                   </td>
                   <td className="px-3 py-3 text-muted-foreground">
                     {CHANNEL_LABELS[s.channel] ?? s.channel}
@@ -893,13 +893,13 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">
                     <p className="text-foreground text-sm">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                    <p className="text-[12px] text-muted-foreground">{r.internal_code}</p>
+                    <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
                   </td>
                   <td className="px-3 py-3 text-right">
                     <p className="text-foreground text-sm">
                       {formatQtyInTradeUnits(r.stock_pieces, cfg)}
                     </p>
-                    <p className="text-[12px] text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
+                    <p className="ios-subhead text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
                   </td>
                   <td className="px-3 py-3 text-right text-muted-foreground text-sm">
                     {dailyAvgPieces > 0 ? `${formatQtyInTradeUnits(Math.round(dailyAvgPieces), cfg)}/day` : "—"}
@@ -920,7 +920,7 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
         </table>
       </div>
       <div className="px-4 py-2 border-t border-border bg-secondary/30">
-        <p className="text-[12px] text-muted-foreground">
+        <p className="ios-subhead text-muted-foreground">
           Green &gt; 30 days · Amber 14–30 days · Red &lt; 14 days · Based on sales velocity in selected period
         </p>
       </div>

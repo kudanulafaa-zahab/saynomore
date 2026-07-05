@@ -127,7 +127,7 @@ export function ReorderView() {
         <div className="rounded-2xl px-8 py-16 flex flex-col items-center text-center" style={CARD}>
           <ClipboardList className="h-8 w-8 mb-3 opacity-20" style={{ color: "var(--muted-foreground)" }} />
           <p className="text-sm font-medium text-foreground">Nothing to reorder yet</p>
-          <p className="text-[13px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
             Once you have sales history, we&apos;ll suggest what to order and how much.
           </p>
         </div>
@@ -138,8 +138,8 @@ export function ReorderView() {
         <div>
           <div className="flex items-center gap-2 mb-2 px-1">
             <AlertTriangle className="h-4 w-4" style={{ color: "var(--snm-warning)" }} />
-            <p className="text-[13px] font-semibold text-foreground">Suggested orders</p>
-            <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead font-semibold text-foreground">Suggested orders</p>
+            <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               · ranked by urgency &amp; sales value
             </span>
           </div>
@@ -171,10 +171,10 @@ export function ReorderView() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-semibold text-foreground leading-snug">{nameOf(r)}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="snm-num text-[12px] font-medium" style={{ color: st.color }}>
+                        <span className="snm-num ios-subhead font-medium" style={{ color: st.color }}>
                           {r.dir != null ? `${Math.round(r.dir)}d left` : "no sales data"} · {st.label}
                         </span>
-                        <span className="snm-num text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                        <span className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                           {r.stock_cartons} ctn in stock · ~{r.daily_avg_pieces.toFixed(0)} pcs/day
                         </span>
                       </div>
@@ -205,7 +205,7 @@ export function ReorderView() {
                             style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>+</span>
                         </button>
                       </div>
-                      <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>cartons</p>
+                      <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>cartons</p>
                     </div>
                   </div>
                 </div>
@@ -220,15 +220,15 @@ export function ReorderView() {
         <div>
           <div className="flex items-center gap-2 mb-2 px-1">
             <TrendingDown className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-            <p className="text-[13px] font-semibold text-foreground">Overstocked — don&apos;t reorder</p>
+            <p className="ios-subhead font-semibold text-foreground">Overstocked — don&apos;t reorder</p>
           </div>
           <div className="rounded-2xl overflow-hidden" style={CARD}>
             {overstock.map((r) => (
               <div key={r.sku_id} className="px-4 py-3 flex items-center justify-between gap-3"
                 style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-medium text-foreground truncate">{nameOf(r)}</p>
-                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead font-medium text-foreground truncate">{nameOf(r)}</p>
+                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                     {r.dir != null ? `~${Math.round(r.dir)} days of stock` : ""} · {r.stock_cartons} ctn · slow — consider a promo
                   </p>
                 </div>
@@ -242,7 +242,7 @@ export function ReorderView() {
       {healthy.length > 0 && (
         <div className="rounded-2xl px-4 py-3 flex items-center gap-2.5" style={CARD}>
           <PackageCheck className="h-4 w-4 shrink-0" style={{ color: "var(--snm-success)" }} />
-          <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
             <span className="font-semibold text-foreground">{healthy.length}</span> other SKU{healthy.length !== 1 ? "s" : ""} at healthy stock — no action needed.
           </p>
         </div>
@@ -258,7 +258,7 @@ export function ReorderView() {
             borderTop: "0.5px solid var(--glass-border-lo)",
           }}>
           <div className="max-w-4xl mx-auto flex items-center gap-3">
-            <p className="text-[13px] flex-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead flex-1" style={{ color: "var(--muted-foreground)" }}>
               <span className="font-semibold text-foreground">{pickedLines.length}</span> product{pickedLines.length !== 1 ? "s" : ""} ·{" "}
               <span className="font-semibold text-foreground">{pickedLines.reduce((a, l) => a + l.qty_cartons, 0)}</span> cartons
             </p>

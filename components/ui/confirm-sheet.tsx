@@ -65,7 +65,7 @@ export function ConfirmSheet({
               </div>
               <div>
                 <p className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{title}</p>
-                <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>{message}</p>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{message}</p>
               </div>
             </div>
 

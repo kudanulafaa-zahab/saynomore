@@ -132,7 +132,7 @@ export function BottomNav({ role }: { role: string }) {
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2.5">
-            <p className="text-[13px] font-semibold text-foreground">More</p>
+            <p className="ios-subhead font-semibold text-foreground">More</p>
             <div className="flex items-center gap-1">
               <ThemeToggle />
               <button
@@ -187,7 +187,7 @@ export function BottomNav({ role }: { role: string }) {
                               style={{ color: active ? "#ffffff" : "var(--muted-foreground)" }}
                             />
                           </div>
-                          <span className="text-[13px] font-medium">{item.label}</span>
+                          <span className="ios-subhead font-medium">{item.label}</span>
                         </Link>
                       );
                     })}
@@ -224,7 +224,7 @@ export function BottomNav({ role }: { role: string }) {
                       style={{ color: pathname === "/settings" ? "#ffffff" : "var(--muted-foreground)" }}
                     />
                   </div>
-                  <span className="text-[13px] font-medium">Settings</span>
+                  <span className="ios-subhead font-medium">Settings</span>
                 </Link>
               </div>
             )}

@@ -245,7 +245,7 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
         {/* Hint strip */}
         {!error && (
           <p
-            className="text-center text-[13px] pb-4"
+            className="text-center ios-subhead pb-4"
             style={{ color: "rgba(255,255,255,0.45)", paddingTop: 8 }}
           >
             Supports EAN-13, Code 128, QR and most barcodes

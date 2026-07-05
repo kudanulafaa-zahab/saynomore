@@ -192,7 +192,7 @@ export function EditModelDialog({
           {/* Honest label: nothing reads duty_rate_pct yet — customs duty is
               entered as a lump sum on the shipment. Without this note a user
               reasonably assumes duty gets auto-calculated after filling it. */}
-          <p className="text-[13px] font-medium flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
+          <p className="ios-subhead font-medium flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             For reference only for now — customs duty is still entered as a total on each shipment. Auto-estimation from these rates is planned.
           </p>
@@ -468,9 +468,9 @@ export function EditSkuDialog({
                 <span className="text-[18px] font-bold text-foreground">
                   MVR {(Number(sku.landed_per_piece_mvr) * (sku.pcs_per_pack ?? 1)).toFixed(2)}
                 </span>
-                <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>per {unit.toLowerCase()}</span>
+                <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>per {unit.toLowerCase()}</span>
               </div>
-              <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
+              <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
                 MVR {Number(sku.landed_per_piece_mvr).toFixed(4)} /pc
               </p>
               {sku.selling_price_per_piece_mvr != null && (
@@ -478,18 +478,18 @@ export function EditSkuDialog({
                   <p className="text-[12px] uppercase tracking-wider mb-1.5 font-semibold" style={{ color: "var(--muted-foreground)" }}>
                     Active selling prices
                     {sku.fixed_selling_price_mvr != null
-                      ? <span className="ml-2 px-1.5 py-0.5 rounded text-[12px]" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
-                      : <span className="ml-2 px-1.5 py-0.5 rounded text-[12px]" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                      ? <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
+                      : <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                     }
                   </p>
                   <div className="space-y-2 text-sm">
                     {/* Primary: pack/bottle (trade unit) */}
                     <div className="flex items-center justify-between rounded-lg px-3 py-2"
                       style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)" }}>
-                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                       <div className="text-right">
                         <p className="font-bold text-foreground text-[15px]">MVR {Number(sku.selling_price_per_pack_mvr).toFixed(0)}</p>
-                        <p className="text-[12px]" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
+                        <p className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
                           MVR {Number(sku.selling_price_per_piece_mvr).toFixed(4)} /pc
                         </p>
                       </div>
@@ -500,17 +500,17 @@ export function EditSkuDialog({
                     ].map((c) => (
                       <div key={c.label} className="text-center">
                         <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                        <p className="font-semibold text-foreground text-[13px]">MVR {c.value}</p>
+                        <p className="font-semibold text-foreground ios-subhead">MVR {c.value}</p>
                       </div>
                     ))}
                   </div>
                   {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null && (
-                    <p className="text-[12px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
                       Actual margin on current cost: <strong style={{ color: "var(--snm-success)" }}>{sku.actual_margin_pct}%</strong>
                     </p>
                   )}
                   {sku.fixed_selling_price_mvr == null && sku.target_margin_pct != null && (
-                    <p className="text-[12px] mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
                       Target margin: {sku.target_margin_pct}% — price updates automatically with each shipment
                     </p>
                   )}
@@ -538,7 +538,7 @@ export function EditSkuDialog({
               <Input type="number" step="0.1" value={h} onChange={(e) => setH(e.target.value)} placeholder="H" />
             </div>
             {cbm !== null && (
-              <p className="text-[12px]" style={{ color: "var(--snm-success)" }}>→ {cbm.toFixed(5)} CBM per carton</p>
+              <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>→ {cbm.toFixed(5)} CBM per carton</p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -560,7 +560,7 @@ export function EditSkuDialog({
           <div className="border-t border-border pt-4 space-y-4">
             <div>
               <p className="text-sm font-semibold text-foreground">Pricing</p>
-              <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                 Use margin % for auto pricing, or set a fixed price per {unit.toLowerCase()} (overrides margin). All prices shown per {unit.toLowerCase()} — the unit you trade in.
               </p>
             </div>
@@ -581,7 +581,7 @@ export function EditSkuDialog({
                         if (has && prev.length === 1) return prev; // never empty
                         return has ? prev.filter((u) => u !== opt.key) : [...prev, opt.key];
                       })}
-                      className="flex-1 h-10 rounded-xl text-[13px] font-semibold transition active:scale-95"
+                      className="flex-1 h-10 rounded-xl ios-subhead font-semibold transition active:scale-95"
                       style={{
                         background: on ? "var(--foreground)" : "transparent",
                         color: on ? "var(--background)" : "var(--muted-foreground)",
@@ -592,7 +592,7 @@ export function EditSkuDialog({
                   );
                 })}
               </div>
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 The units customers can buy. Carton-only products hide pack pricing.
               </p>
             </div>
@@ -602,7 +602,7 @@ export function EditSkuDialog({
               <Label>
                 Option A — Target Margin %
                 {!usingFixed && marginPct && (
-                  <span className="ml-2 text-[12px] font-bold px-1.5 py-0.5 rounded"
+                  <span className="ml-2 ios-subhead font-bold px-1.5 py-0.5 rounded"
                     style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>
                     ACTIVE
                   </span>
@@ -619,7 +619,7 @@ export function EditSkuDialog({
                 />
                 <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>%</span>
                 {usingFixed && (
-                  <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                     (overridden by fixed price below)
                   </span>
                 )}
@@ -629,20 +629,20 @@ export function EditSkuDialog({
                   style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                   {/* Primary: pack/bottle — what trader sees */}
                   <div className="flex items-center justify-between">
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                     <div className="text-right">
                       <p className="text-[16px] font-bold" style={{ color: "var(--snm-success)" }}>MVR {marginPreview.pack.toFixed(2)}</p>
-                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>MVR {marginPreview.piece.toFixed(4)} /pc</p>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>MVR {marginPreview.piece.toFixed(4)} /pc</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-1.5" style={{ borderTop: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                    <p className="text-[13px] font-semibold text-foreground">MVR {marginPreview.carton.toFixed(2)}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                    <p className="ios-subhead font-semibold text-foreground">MVR {marginPreview.carton.toFixed(2)}</p>
                   </div>
                 </div>
               )}
               {!marginPreview && !usingFixed && landedPerPiece && marginPct && (
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   Enter a valid margin (1–99%) to preview prices.
                 </p>
               )}
@@ -653,13 +653,13 @@ export function EditSkuDialog({
               <Label>
                 Option B — Fixed Price per {unit} (MVR)
                 {usingFixed && (
-                  <span className="ml-2 text-[12px] font-bold px-1.5 py-0.5 rounded"
+                  <span className="ml-2 ios-subhead font-bold px-1.5 py-0.5 rounded"
                     style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>
                     ACTIVE
                   </span>
                 )}
               </Label>
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 Enter the price you sell one {unit.toLowerCase()} for.
               </p>
               <div className="flex items-center gap-2">
@@ -675,7 +675,7 @@ export function EditSkuDialog({
                   <button
                     type="button"
                     onClick={() => setFixedPrice("")}
-                    className="text-[12px] underline"
+                    className="ios-subhead underline"
                     style={{ color: "var(--muted-foreground)" }}
                   >
                     Clear
@@ -687,18 +687,18 @@ export function EditSkuDialog({
                   style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 18%, transparent)" }}>
                   {/* Primary: pack/bottle */}
                   <div className="flex items-center justify-between">
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                     <div className="text-right">
                       <p className="text-[16px] font-bold" style={{ color: "var(--snm-brand)" }}>MVR {fixedPreview.pack.toFixed(2)}</p>
-                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>MVR {fixedPreview.piece.toFixed(4)} /pc</p>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>MVR {fixedPreview.piece.toFixed(4)} /pc</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-1.5" style={{ borderTop: "1px solid color-mix(in srgb, var(--snm-brand) 18%, transparent)" }}>
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                    <p className="text-[13px] font-semibold text-foreground">MVR {fixedPreview.carton.toFixed(2)}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                    <p className="ios-subhead font-semibold text-foreground">MVR {fixedPreview.carton.toFixed(2)}</p>
                   </div>
                   {fixedPreview.actualMargin != null && (
-                    <p className="text-[12px] pt-1.5 border-t text-center"
+                    <p className="ios-subhead pt-1.5 border-t text-center"
                       style={{ borderColor: "color-mix(in srgb, var(--snm-brand) 20%, transparent)", color: fixedPreview.actualMargin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                       Margin on current cost: <strong>{fixedPreview.actualMargin.toFixed(1)}%</strong>
                       {fixedPreview.actualMargin < 0 && " — ⚠ below cost!"}
@@ -708,13 +708,13 @@ export function EditSkuDialog({
                       into this per-pack field shows up as an absurdly high
                       margin a novice won't recognize as wrong. */}
                   {fixedPreview.actualMargin != null && fixedPreview.actualMargin > 85 && (
-                    <p className="text-[12px] text-center font-semibold"
+                    <p className="ios-subhead text-center font-semibold"
                       style={{ color: "var(--snm-warning)" }}>
                       ⚠ This is unusually high vs your cost — did you type the carton price here by mistake? This field is per {unit.toLowerCase()}.
                     </p>
                   )}
                   {!landedPerPiece && (
-                    <p className="text-[12px] pt-1 border-t" style={{ borderColor: "color-mix(in srgb, var(--snm-brand) 20%, transparent)", color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead pt-1 border-t" style={{ borderColor: "color-mix(in srgb, var(--snm-brand) 20%, transparent)", color: "var(--muted-foreground)" }}>
                       Margin % visible after first shipment is confirmed.
                     </p>
                   )}
@@ -723,7 +723,7 @@ export function EditSkuDialog({
             </div>
 
             {!landedPerPiece && !fixedPrice && (
-              <p className="text-[12px]" style={{ color: "var(--snm-warning)" }}>
+              <p className="ios-subhead" style={{ color: "var(--snm-warning)" }}>
                 No stock received yet — margin preview available after first GRN. You can set pricing now.
               </p>
             )}
@@ -733,7 +733,7 @@ export function EditSkuDialog({
           <div className="border-t border-border pt-4 space-y-3">
             <div>
               <p className="text-sm font-semibold text-foreground">Volume-Break Pricing</p>
-              <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                 Optional — set a lower price for {sellsPack ? "pack or carton" : "carton"} buyers. Overrides the base price above for that unit only.
               </p>
             </div>
@@ -741,7 +741,7 @@ export function EditSkuDialog({
               {/* Fixed pack price — only for products sold in packs */}
               {sellsPack && (
                 <div className="space-y-1.5">
-                  <Label className="text-[12px]">Pack price (MVR)</Label>
+                  <Label className="ios-subhead">Pack price (MVR)</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       type="number" inputMode="decimal" step="0.01" min="0.01"
@@ -751,7 +751,7 @@ export function EditSkuDialog({
                     />
                   </div>
                   {fixedPackPrice && landedPerPiece && pcs > 0 && (
-                    <p className="text-[12px]" style={{ color: "var(--snm-success)" }}>
+                    <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>
                       MVR {(parseFloat(fixedPackPrice) / pcs).toFixed(2)}/pc · {(((parseFloat(fixedPackPrice) - landedPerPiece * pcs) / parseFloat(fixedPackPrice)) * 100).toFixed(1)}% margin
                     </p>
                   )}
@@ -759,7 +759,7 @@ export function EditSkuDialog({
               )}
               {/* Fixed carton price */}
               <div className="space-y-1.5">
-                <Label className="text-[12px]">Carton price (MVR)</Label>
+                <Label className="ios-subhead">Carton price (MVR)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number" inputMode="decimal" step="0.01" min="0.01"
@@ -769,7 +769,7 @@ export function EditSkuDialog({
                   />
                 </div>
                 {fixedCartonPrice && landedPerPiece && pcs > 0 && packs > 0 && (
-                  <p className="text-[12px]" style={{ color: "var(--snm-success)" }}>
+                  <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>
                     MVR {(parseFloat(fixedCartonPrice) / (pcs * packs)).toFixed(2)}/pc · {(((parseFloat(fixedCartonPrice) - landedPerPiece * pcs * packs) / parseFloat(fixedCartonPrice)) * 100).toFixed(1)}% margin
                   </p>
                 )}
@@ -777,7 +777,7 @@ export function EditSkuDialog({
             </div>
             {(fixedPackPrice || fixedCartonPrice) && (
               <div className="rounded-lg px-3 py-2" style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
-                <p className="text-[12px]" style={{ color: "var(--snm-success)" }}>
+                <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>
                   Volume-break active — customers buying
                   {fixedPackPrice ? ` packs get MVR ${parseFloat(fixedPackPrice).toFixed(2)}/pack` : ""}
                   {fixedPackPrice && fixedCartonPrice ? " ·" : ""}

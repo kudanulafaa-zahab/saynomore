@@ -137,7 +137,7 @@ export function UsersManager() {
                 </span>
                 <p className="text-sm font-medium text-foreground">{ROLE_LABEL[r]}</p>
               </div>
-              <p className="text-[12px] text-muted-foreground">{ROLE_DESC[r]}</p>
+              <p className="ios-subhead text-muted-foreground">{ROLE_DESC[r]}</p>
             </div>
           );
         })}
@@ -333,7 +333,7 @@ function EditUserDialog({
                   <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[12px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
+              <p className="ios-subhead text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
             </div>
           )}
         </div>
@@ -427,7 +427,7 @@ function InviteDialog({
                 <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[12px] text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
+            <p className="ios-subhead text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
           </div>
           <div className="space-y-2">
             <Label>Temporary password *</Label>
@@ -448,7 +448,7 @@ function InviteDialog({
                 {showTempPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <p className="text-[12px] text-muted-foreground">Share this with the user. They can change it later via Forgot password.</p>
+            <p className="ios-subhead text-muted-foreground">Share this with the user. They can change it later via Forgot password.</p>
           </div>
         </div>
         <DialogFooter>

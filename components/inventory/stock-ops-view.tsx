@@ -64,7 +64,7 @@ function UnitToggle({ sku, value, onChange }: { sku: SkuFullRow; value: SaleUom;
           key={u}
           type="button"
           onClick={() => onChange(u)}
-          className="px-2.5 h-8 text-[12px] font-semibold transition"
+          className="px-2.5 h-8 ios-subhead font-semibold transition"
           style={{
             background: value === u ? "var(--foreground)" : "transparent",
             color: value === u ? "var(--background)" : "var(--muted-foreground)",
@@ -256,7 +256,7 @@ function VerifyTab({
         style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}
       >
         <ClipboardCheck className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--snm-brand)" }} />
-        <p className="text-[13px]" style={{ color: "var(--foreground)" }}>
+        <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
           Each item shows what the system expects. <b>Only change the ones that are wrong</b> — untouched items stay as-is.
         </p>
       </div>
@@ -333,7 +333,7 @@ function VerifyTab({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-foreground leading-snug truncate">{skuLabel(r.sku)}</p>
-                    <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                       {r.sku.internal_code} · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn)}</span>
                     </p>
                   </div>
@@ -388,7 +388,7 @@ function VerifyTab({
                 {delta !== 0 && (
                   <div className="flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="h-3 w-3" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }} />
-                    <p className="snm-num text-[12px] font-semibold" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
+                    <p className="snm-num ios-subhead font-semibold" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
                       {delta < 0 ? `${fmtQty(-delta, r.sku.pcs_per_pack, pcsPerCtn)} short` : `${fmtQty(delta, r.sku.pcs_per_pack, pcsPerCtn)} extra`} — will adjust to {fmtQty(n, r.sku.pcs_per_pack, pcsPerCtn)}
                     </p>
                   </div>
@@ -402,7 +402,7 @@ function VerifyTab({
       {/* History toggle */}
       <button
         onClick={() => setShowHistory((s) => !s)}
-        className="w-full flex items-center justify-center gap-1.5 min-h-[44px] text-[13px] font-medium active:opacity-70"
+        className="w-full flex items-center justify-center gap-1.5 min-h-[44px] ios-subhead font-medium active:opacity-70"
         style={{ color: "var(--muted-foreground)" }}
       >
         <History className="h-3.5 w-3.5" />
@@ -515,7 +515,7 @@ function TransferTab({
         <GodownPicker godowns={godowns} value={toId} onChange={setToId} label="To" />
       </div>
       {sameGodown && (
-        <p className="text-[12px] px-1" style={{ color: "var(--snm-error)" }}>
+        <p className="ios-subhead px-1" style={{ color: "var(--snm-error)" }}>
           Pick two different warehouses.
         </p>
       )}
@@ -548,13 +548,13 @@ function TransferTab({
           style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
         >
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[13px] font-semibold text-foreground truncate">{skuLabel(selected)}</p>
-            <p className="snm-num text-[12px] shrink-0" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
+            <p className="snm-num ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
               {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} avail
             </p>
           </div>
           <div className="flex items-center justify-between">
-            <p className="text-[12px] font-medium" style={{ color: "var(--muted-foreground)" }}>Qty to move</p>
+            <p className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>Qty to move</p>
             <UnitToggle sku={selected} value={unit} onChange={(u) => setUnit(u)} />
           </div>
           <div className="flex items-center gap-2">
@@ -583,19 +583,19 @@ function TransferTab({
                   setQty(String(availForSelected));
                 }
               }}
-              className="h-12 px-4 rounded-xl text-[13px] font-semibold active:opacity-70"
+              className="h-12 px-4 rounded-xl ios-subhead font-semibold active:opacity-70"
               style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}
             >
               All
             </button>
           </div>
           {qtyEnteredNum > 0 && unit !== "piece" && (
-            <p className="snm-num text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               = {qtyNum.toLocaleString()} pcs
             </p>
           )}
           {overAvailable && (
-            <p className="text-[12px]" style={{ color: "var(--snm-error)" }}>
+            <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>
               Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} available to move.
             </p>
           )}
@@ -641,7 +641,7 @@ function TransferTab({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
-                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} available
                   </p>
                 </div>
@@ -688,7 +688,7 @@ function EmptyState({ text }: { text: string }) {
   return (
     <div className="rounded-2xl p-10 flex flex-col items-center text-center gap-2" style={{ background: "var(--glass-1)" }}>
       <MapPin className="h-6 w-6" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-      <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>{text}</p>
+      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{text}</p>
     </div>
   );
 }
@@ -716,20 +716,20 @@ function VerificationHistory() {
             style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}
           >
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-foreground">{s.godown_name}</p>
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead font-semibold text-foreground">{s.godown_name}</p>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 {date} · {s.lines_total} item{s.lines_total !== 1 ? "s" : ""} counted
               </p>
             </div>
             <div className="text-right shrink-0 ml-3">
               {clean ? (
-                <span className="text-[12px] font-semibold" style={{ color: "var(--snm-success)" }}>All matched</span>
+                <span className="ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>All matched</span>
               ) : (
                 <>
-                  <p className="text-[13px] font-semibold" style={{ color: s.net_delta_pieces < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
+                  <p className="ios-subhead font-semibold" style={{ color: s.net_delta_pieces < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
                     {s.net_delta_pieces > 0 ? "+" : ""}{s.net_delta_pieces} pcs
                   </p>
-                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{s.lines_discrepant} corrected</p>
+                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{s.lines_discrepant} corrected</p>
                 </>
               )}
             </div>

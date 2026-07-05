@@ -236,7 +236,7 @@ function SkuPanel({
               ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
               : null}
           </p>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{sku.internal_code}</p>
+          <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>{sku.internal_code}</p>
         </div>
         <button
           onClick={onClose}
@@ -282,11 +282,11 @@ function SkuPanel({
                 <p className="text-[17px] font-bold text-foreground snm-num">
                   MVR {(Number(sku.landed_per_piece_mvr) * (sku.pcs_per_pack ?? 1)).toFixed(2)}
                 </p>
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   per {packLabel(sku).toLowerCase()}
                 </p>
                 {/* Secondary: per piece for competitor comparison */}
-                <p className="text-[12px] mt-0.5 snm-num" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
+                <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
                   MVR {Number(sku.landed_per_piece_mvr).toFixed(4)} /pc
                 </p>
               </div>
@@ -312,8 +312,8 @@ function SkuPanel({
               <div className="flex items-center gap-1.5 mb-2">
                 <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
                 {sku.fixed_selling_price_mvr != null
-                  ? <span className="text-[12px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
-                  : <span className="text-[12px] font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
+                  ? <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
+                  : <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                 }
               </div>
               <div className="space-y-2">
@@ -337,7 +337,7 @@ function SkuPanel({
                   </div>
                   <div className="text-right">
                     <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · comparison</p>
-                    <p className="text-[13px] font-semibold text-foreground snm-num">
+                    <p className="ios-subhead font-semibold text-foreground snm-num">
                       MVR {fmtPrice(sku.selling_price_per_piece_mvr)}
                     </p>
                   </div>
@@ -352,11 +352,11 @@ function SkuPanel({
                       ? "color-mix(in srgb, var(--snm-brand) 15%, transparent)"
                       : "var(--glass-border-lo)"}`,
                   }}>
-                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
-                  <p className="text-[13px] font-semibold text-foreground snm-num">
+                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per carton</p>
+                  <p className="ios-subhead font-semibold text-foreground snm-num">
                     MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
                     {sku.fixed_price_per_carton_mvr != null && (
-                      <span className="ml-1.5 text-[12px] font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>VOL.</span>
+                      <span className="ml-1.5 ios-subhead font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>VOL.</span>
                     )}
                   </p>
                 </div>
@@ -366,7 +366,7 @@ function SkuPanel({
             <div className="rounded-xl px-4 py-3"
               style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",
                        border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}>
-              <p className="text-[12px]" style={{ color: "var(--snm-warning)" }}>
+              <p className="ios-subhead" style={{ color: "var(--snm-warning)" }}>
                 Pricing configured — price available after first GRN
               </p>
             </div>
@@ -376,7 +376,7 @@ function SkuPanel({
 
               {/* Header */}
               <div className="px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)" }}>
-                <p className="text-[12px] font-semibold" style={{ color: "var(--snm-brand)" }}>
+                <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand)" }}>
                   Set pricing — see your profit before saving
                 </p>
               </div>
@@ -385,7 +385,7 @@ function SkuPanel({
                 {/* Two inputs side by side */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
-                    <p className="text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead mb-1.5" style={{ color: "var(--muted-foreground)" }}>
                       Price per {tradeLabel} (MVR)
                     </p>
                     <input
@@ -404,7 +404,7 @@ function SkuPanel({
                     />
                   </div>
                   <div>
-                    <p className="text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead mb-1.5" style={{ color: "var(--muted-foreground)" }}>
                       Or target margin %
                     </p>
                     <input
@@ -438,7 +438,7 @@ function SkuPanel({
                           {livePreview.margin.toFixed(1)}%
                         </p>
                         {livePreview.margin < 0 && (
-                          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--snm-error)" }}>⚠ Selling below cost</p>
+                          <p className="ios-subhead font-semibold mt-0.5" style={{ color: "var(--snm-error)" }}>⚠ Selling below cost</p>
                         )}
                       </div>
                       <div className="text-right">
@@ -459,10 +459,10 @@ function SkuPanel({
                           <div style={{ flex: 1, background: marginColor, transition: "width 0.2s" }} />
                         </div>
                         <div className="flex justify-between mt-1">
-                          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                             Cost {(100 - livePreview.margin).toFixed(1)}%
                           </p>
-                          <p className="text-[12px]" style={{ color: marginColor }}>
+                          <p className="ios-subhead" style={{ color: marginColor }}>
                             Profit {livePreview.margin.toFixed(1)}%
                           </p>
                         </div>
@@ -493,7 +493,7 @@ function SkuPanel({
 
                 {/* No GRN yet — explain why meter can't show */}
                 {!landedPerPiece && (inlineFixed || inlineMargin) && (
-                  <p className="text-[12px]" style={{ color: "var(--snm-warning)" }}>
+                  <p className="ios-subhead" style={{ color: "var(--snm-warning)" }}>
                     Profit preview available after first shipment is confirmed.
                   </p>
                 )}
@@ -503,7 +503,7 @@ function SkuPanel({
                   <button
                     onClick={saveInlinePrice}
                     disabled={savingPrice}
-                    className="w-full h-10 rounded-lg text-[13px] font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+                    className="w-full h-10 rounded-lg ios-subhead font-bold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
                     style={{ background: "var(--foreground)", color: "var(--background)", opacity: savingPrice ? 0.6 : 1 }}
                   >
                     {savingPrice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save pricing →"}
@@ -519,18 +519,18 @@ function SkuPanel({
           <p className="label-caps text-[12px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Carton Dimensions</p>
           <div className="rounded-xl px-4 py-3 space-y-1.5"
             style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-            <div className="flex justify-between text-[12px]">
+            <div className="flex justify-between ios-subhead">
               <span style={{ color: "var(--muted-foreground)" }}>L × W × H</span>
               <span className="text-foreground font-medium">
                 {sku.carton_length_cm} × {sku.carton_width_cm} × {sku.carton_height_cm} cm
               </span>
             </div>
-            <div className="flex justify-between text-[12px]">
+            <div className="flex justify-between ios-subhead">
               <span style={{ color: "var(--muted-foreground)" }}>CBM</span>
               <span className="text-foreground font-medium">{Number(sku.cbm_per_carton).toFixed(5)}</span>
             </div>
             {sku.carton_weight_kg && (
-              <div className="flex justify-between text-[12px]">
+              <div className="flex justify-between ios-subhead">
                 <span style={{ color: "var(--muted-foreground)" }}>Weight</span>
                 <span className="text-foreground font-medium">{sku.carton_weight_kg} kg</span>
               </div>
@@ -543,21 +543,21 @@ function SkuPanel({
           <p className="label-caps text-[12px] mb-2.5" style={{ color: "var(--muted-foreground)" }}>Details</p>
           <div className="rounded-xl px-4 py-3 space-y-1.5"
             style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-            <div className="flex justify-between text-[12px]">
+            <div className="flex justify-between ios-subhead">
               <span style={{ color: "var(--muted-foreground)" }}>Category</span>
               <span className="text-foreground">{sku.category_name}</span>
             </div>
-            <div className="flex justify-between text-[12px]">
+            <div className="flex justify-between ios-subhead">
               <span style={{ color: "var(--muted-foreground)" }}>UoM</span>
               <span className="text-foreground">{sku.unit_uom}</span>
             </div>
             {sku.supplier_barcode && (
-              <div className="flex justify-between text-[12px]">
+              <div className="flex justify-between ios-subhead">
                 <span style={{ color: "var(--muted-foreground)" }}>Barcode</span>
                 <span className="text-foreground font-mono">{sku.supplier_barcode}</span>
               </div>
             )}
-            <div className="flex justify-between text-[12px]">
+            <div className="flex justify-between ios-subhead">
               <span style={{ color: "var(--muted-foreground)" }}>Status</span>
               <span style={{ color: sku.is_active ? "var(--snm-success)" : "var(--muted-foreground)" }}>
                 {sku.is_active ? "Active" : "Inactive"}
@@ -575,7 +575,7 @@ function SkuPanel({
         >
           <button
             onClick={onToggle}
-            className="flex-1 h-10 rounded-xl text-[13px] font-medium transition"
+            className="flex-1 h-10 rounded-xl ios-subhead font-medium transition"
             style={{
               background: sku.is_active
                 ? "color-mix(in srgb, var(--snm-error) 10%, transparent)"
@@ -587,7 +587,7 @@ function SkuPanel({
           </button>
           <button
             onClick={onEdit}
-            className="flex-1 h-10 rounded-xl text-[13px] font-semibold transition flex items-center justify-center gap-1.5"
+            className="flex-1 h-10 rounded-xl ios-subhead font-semibold transition flex items-center justify-center gap-1.5"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -633,13 +633,13 @@ function SkuRow({
 
       {/* Name */}
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-foreground truncate">
+        <p className="ios-subhead font-semibold text-foreground truncate">
           {sku.model_name}
           {sku.variant_display
             ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
             : null}
         </p>
-        <p className="text-[12px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
           {sku.pcs_per_pack}/pack × {sku.packs_per_carton}/ctn · {pcsPerCtn}/ctn
         </p>
       </div>
@@ -648,13 +648,13 @@ function SkuRow({
       <div className="text-right shrink-0">
         {sku.selling_price_per_carton_mvr != null ? (
           <>
-            <p className="text-[13px] font-semibold text-foreground">
+            <p className="ios-subhead font-semibold text-foreground">
               MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
             </p>
-            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>per ctn</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>per ctn</p>
           </>
         ) : (
-          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>no price</p>
+          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>no price</p>
         )}
       </div>
 
@@ -798,7 +798,7 @@ export function ProductsExplorer() {
             {canWrite && (
               <button
                 onClick={() => setNewSkuOpen(true)}
-                className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
+                className="h-10 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
                 style={{ background: "var(--foreground)", color: "var(--background)" }}
               >
                 <Plus className="h-4 w-4" />
@@ -818,7 +818,7 @@ export function ProductsExplorer() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search SKUs…"
-            className="flex-1 bg-transparent border-none outline-none text-[13px] text-foreground placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
           />
           {q && (
             <button onClick={() => setQ("")}>
@@ -834,7 +834,7 @@ export function ProductsExplorer() {
               <button
                 key={b.id}
                 onClick={() => setFilterBrand(b.id)}
-                className="shrink-0 h-7 px-3 rounded-full text-[12px] font-medium transition whitespace-nowrap"
+                className="shrink-0 h-7 px-3 rounded-full ios-subhead font-medium transition whitespace-nowrap"
                 style={{
                   background: filterBrand === b.id ? "var(--snm-brand)" : "var(--secondary)",
                   color: filterBrand === b.id ? "#ffffff" : "var(--muted-foreground)",
@@ -930,7 +930,7 @@ export function ProductsExplorer() {
             }}
           >
             <ChevronRight className="h-8 w-8 mb-3 opacity-15" style={{ color: "var(--muted-foreground)" }} />
-            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               Select a SKU to view details
             </p>
           </div>
@@ -1534,7 +1534,7 @@ function NewSkuWizard({
         {/* Header */}
         <div className="px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
           <DialogTitle className="text-[17px] font-semibold">New SKU</DialogTitle>
-          <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             Type to search or create — everything in one card
           </p>
         </div>
@@ -1547,7 +1547,7 @@ function NewSkuWizard({
 
             {/* Brand — combobox for existing + always-visible text field for new */}
             <div className="space-y-1.5">
-              <Label className="text-[13px]">Brand *</Label>
+              <Label className="ios-subhead">Brand *</Label>
               {/* Existing brand picker — shows selected brand with a clear button */}
               <div style={{ position: "relative" }}>
                 <Combobox
@@ -1585,7 +1585,7 @@ function NewSkuWizard({
                 style={{ ...inp, opacity: brandId ? 0.45 : 1 }}
               />
               {!brandId && brandInput.trim() && (
-                <p className="text-[12px]" style={{ color: "var(--snm-brand)" }}>
+                <p className="ios-subhead" style={{ color: "var(--snm-brand)" }}>
                   Will create &ldquo;{brandInput.trim()}&rdquo; as a new brand
                 </p>
               )}
@@ -1593,7 +1593,7 @@ function NewSkuWizard({
 
             {/* Category — pills + inline "+ New category" */}
             <div className="space-y-1.5">
-              <Label className="text-[13px]">Category *</Label>
+              <Label className="ios-subhead">Category *</Label>
               <CategoryPills
                 categories={allCategories}
                 selectedId={categoryId}
@@ -1614,7 +1614,7 @@ function NewSkuWizard({
 
           {/* ── Row 2: Model ── */}
           <div className="space-y-1.5">
-            <Label className="text-[13px]">Model name *</Label>
+            <Label className="ios-subhead">Model name *</Label>
             <Combobox
               value={modelId}
               onChange={(id) => {
@@ -1637,7 +1637,7 @@ function NewSkuWizard({
               style={{ ...inp, marginTop: 6 }}
             />
             {!modelId && modelInput.trim() && (
-              <p className="text-[12px]" style={{ color: "var(--snm-brand)" }}>
+              <p className="ios-subhead" style={{ color: "var(--snm-brand)" }}>
                 Will create &ldquo;{modelInput.trim()}&rdquo; as a new model
               </p>
             )}
@@ -1646,7 +1646,7 @@ function NewSkuWizard({
           {/* ── Row 3: Variant attributes (category-driven) ── */}
           {categoryId && hasVariantFields && (
             <div className="space-y-2">
-              <Label className="text-[13px]">
+              <Label className="ios-subhead">
                 {category?.name === "Diapers" ? "Size *" : "Variant *"}
                 <span className="font-normal ml-1" style={{ color: "var(--muted-foreground)" }}>
                   — {schema.join(", ")}
@@ -1709,7 +1709,7 @@ function NewSkuWizard({
                   }
                   return (
                     <div key={key} className="space-y-1">
-                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                         {spec?.label}{spec?.suffix ? ` (${spec.suffix})` : ""}
                       </p>
                       <input
@@ -1724,7 +1724,7 @@ function NewSkuWizard({
                 })}
               </div>
               {variantFilled && (
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   Variant: <strong style={{ color: "var(--foreground)" }}>{attrsToDisplayName(variantAttrs, schema) || "—"}</strong>
                 </p>
               )}
@@ -1740,13 +1740,13 @@ function NewSkuWizard({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-[13px]">Pcs per Pack *</Label>
+                <Label className="ios-subhead">Pcs per Pack *</Label>
                 <input type="number" inputMode="numeric" min="1"
                   value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)}
                   placeholder="e.g. 34" style={inp} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[13px]">Packs per Carton *</Label>
+                <Label className="ios-subhead">Packs per Carton *</Label>
                 <input type="number" inputMode="numeric" min="1"
                   value={packsPerCtn} onChange={(e) => setPacksPerCtn(e.target.value)}
                   placeholder="e.g. 4" style={inp} />
@@ -1755,14 +1755,14 @@ function NewSkuWizard({
 
             {pcsPerCarton && (
               <div className="rounded-xl px-3 py-2" style={{ background: "color-mix(in srgb, var(--snm-success) 10%, transparent)" }}>
-                <p className="text-[12px] font-medium" style={{ color: "var(--snm-success)" }}>
+                <p className="ios-subhead font-medium" style={{ color: "var(--snm-success)" }}>
                   {pcsPerCarton} pcs per carton total
                 </p>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-[13px]">Carton dimensions (cm) *</Label>
+              <Label className="ios-subhead">Carton dimensions (cm) *</Label>
               <div className="grid grid-cols-3 gap-2">
                 <input type="number" inputMode="decimal" step="0.1"
                   value={lenCm} onChange={(e) => setLenCm(e.target.value)}
@@ -1775,7 +1775,7 @@ function NewSkuWizard({
                   placeholder="H" style={inp} />
               </div>
               {cbm !== null && (
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   {cbm.toFixed(5)} CBM per carton
                 </p>
               )}
@@ -1783,7 +1783,7 @@ function NewSkuWizard({
 
             {/* Internal code */}
             <div className="space-y-1.5">
-              <Label className="text-[13px]">Internal code *</Label>
+              <Label className="ios-subhead">Internal code *</Label>
               <input className="font-mono"
                 value={code} onChange={(e) => setCode(e.target.value)}
                 placeholder="Auto-generated" style={{ ...inp, fontSize: 13 }} />
@@ -1833,7 +1833,7 @@ function NewSkuWizard({
                   {/* Sold in — which tiers this product is offered in. Drives which
                       price fields appear below (carton-only hides pack pricing). */}
                   <div className="space-y-1.5" style={{ marginBottom: 12 }}>
-                    <Label className="text-[13px]">Sold in</Label>
+                    <Label className="ios-subhead">Sold in</Label>
                     <div style={{ display: "flex", gap: 8 }}>
                       {([
                         { key: "pack" as const, label: tradeUnit },
@@ -1875,7 +1875,7 @@ function NewSkuWizard({
 
                     {/* Margin % */}
                     <div className="space-y-1.5">
-                      <Label className="text-[13px]">
+                      <Label className="ios-subhead">
                         Target margin %
                       </Label>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1895,7 +1895,7 @@ function NewSkuWizard({
                     {/* Fixed price — with entry-unit toggle */}
                     <div className="space-y-1.5">
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <Label className="text-[13px]">Fixed selling price</Label>
+                        <Label className="ios-subhead">Fixed selling price</Label>
                         {/* Toggle: per bottle OR per carton. Carton-only products
                             (no pack tier) only offer "/ Carton" — no pack option. */}
                         <div style={{ display: "flex", borderRadius: 6, overflow: "hidden", border: "0.5px solid var(--glass-border-lo)" }}>
@@ -1987,7 +1987,7 @@ function NewSkuWizard({
                       {/* Pack price only for products actually sold in packs. */}
                       {sellsPack && (
                         <div className="space-y-1.5">
-                          <Label className="text-[12px]">{tradeUnit} price (MVR)</Label>
+                          <Label className="ios-subhead">{tradeUnit} price (MVR)</Label>
                           <input type="number" inputMode="decimal" step="0.01" min="0.01"
                             value={fixedPackPrice}
                             onChange={(e) => setFixedPackPrice(e.target.value)}
@@ -2005,7 +2005,7 @@ function NewSkuWizard({
                           showed unconditionally even when "Sold in" was Pack-only. */}
                       {sellsCarton && (
                         <div className="space-y-1.5">
-                          <Label className="text-[12px]">Carton price (MVR)</Label>
+                          <Label className="ios-subhead">Carton price (MVR)</Label>
                           <input type="number" inputMode="decimal" step="0.01" min="0.01"
                             value={fixedCartonPrice}
                             onChange={(e) => setFixedCartonPrice(e.target.value)}
@@ -2036,7 +2036,7 @@ function NewSkuWizard({
             <button
               type="button"
               onClick={() => setShowOptional(!showOptional)}
-              className="flex items-center gap-1.5 text-[12px] font-medium py-1"
+              className="flex items-center gap-1.5 ios-subhead font-medium py-1"
               style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}
             >
               <ChevronRight
@@ -2049,13 +2049,13 @@ function NewSkuWizard({
             {showOptional && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[13px]">Weight (kg)</Label>
+                  <Label className="ios-subhead">Weight (kg)</Label>
                   <input type="number" inputMode="decimal" step="0.01"
                     value={wgtKg} onChange={(e) => setWgtKg(e.target.value)}
                     placeholder="Optional" style={inp} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[13px]">Supplier barcode</Label>
+                  <Label className="ios-subhead">Supplier barcode</Label>
                   <input value={barcode} onChange={(e) => setBarcode(e.target.value)}
                     placeholder="Optional" style={inp} />
                 </div>

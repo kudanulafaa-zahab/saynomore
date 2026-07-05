@@ -243,7 +243,7 @@ export function DispatchView() {
         {!isAdmin && pushEnabled === false && (
           <button
             onClick={enablePush}
-            className="mt-1 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold shrink-0 transition active:scale-95"
+            className="mt-1 flex items-center gap-1.5 px-3 py-2 rounded-xl ios-subhead font-semibold shrink-0 transition active:scale-95"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Bell className="h-3.5 w-3.5" />
@@ -281,7 +281,7 @@ export function DispatchView() {
           </h2>
           {active.length > 0 && (
             <span
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full ios-subhead font-bold"
               style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}
             >
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--snm-warning)" }} />
@@ -302,7 +302,7 @@ export function DispatchView() {
             <p className="text-[15px] font-semibold text-foreground">
               {isAdmin ? "No active orders" : "No deliveries assigned"}
             </p>
-            <p className="text-[13px] max-w-[240px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead max-w-[240px]" style={{ color: "var(--muted-foreground)" }}>
               {isAdmin
                 ? "Confirmed orders will appear here. Go to Sales to confirm a draft."
                 : "Ask your admin to assign orders to you."}
@@ -359,7 +359,7 @@ export function DispatchView() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[12px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="ios-subhead mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
                         {item.order.order_number}
                         {item.godown?.name && <> · {item.godown.name}</>}
                         {isAdmin && (
@@ -410,12 +410,12 @@ export function DispatchView() {
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <Package className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                                <p className="text-[13px] text-foreground truncate">
+                                <p className="ios-subhead text-foreground truncate">
                                   {sku ? `${sku.brand_name} ${sku.model_name}${sku.variant_display ? ` ${sku.variant_display}` : ""}` : line.sku_id}
                                 </p>
                               </div>
-                              <p className="text-[13px] font-semibold text-foreground shrink-0 ml-3">
-                                {line.qty} <span className="font-normal text-[12px]" style={{ color: "var(--muted-foreground)" }}>{line.uom}</span>
+                              <p className="ios-subhead font-semibold text-foreground shrink-0 ml-3">
+                                {line.qty} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>{line.uom}</span>
                               </p>
                             </div>
                           );
@@ -426,7 +426,7 @@ export function DispatchView() {
                       {(item.order.delivery_address_line1 || item.order.delivery_address_line2 || item.order.delivery_island) && (
                         <div className="flex items-start gap-2 pt-1">
                           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
-                          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                             {[item.order.delivery_island, item.order.delivery_address_line1, item.order.delivery_address_line2].filter(Boolean).join(", ")}
                           </p>
                         </div>
@@ -443,12 +443,12 @@ export function DispatchView() {
                             <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-error)" }} />
                             <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--snm-error)" }}>Driver reported an issue</p>
                           </div>
-                          <p className="text-[13px] leading-snug" style={{ color: "var(--foreground)" }}>
+                          <p className="ios-subhead leading-snug" style={{ color: "var(--foreground)" }}>
                             {item.order.notes}
                           </p>
                           <button
                             onClick={() => resolveIssue(item.order.id)}
-                            className="text-[12px] font-bold h-8 px-3 rounded-lg transition active:scale-95"
+                            className="ios-subhead font-bold h-8 px-3 rounded-lg transition active:scale-95"
                             style={{ background: "var(--foreground)", color: "var(--background)" }}
                           >
                             Mark resolved
@@ -522,8 +522,8 @@ export function DispatchView() {
                   <CheckCircle2 className="h-4 w-4" style={{ color: "var(--snm-success)" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground">{item.order.order_number}</p>
-                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead font-semibold text-foreground">{item.order.order_number}</p>
+                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                     {item.customer?.name ?? "Walk-in"}
                     {isAdmin && item.order.assigned_driver_id && ` · ${driverName(item.order.assigned_driver_id)}`}
                   </p>

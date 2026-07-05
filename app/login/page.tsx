@@ -159,7 +159,7 @@ export default function LoginPage() {
             }}
           >
             <WifiOff className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--snm-warning)" }} />
-            <p className="text-[13px] leading-snug" style={{ color: "var(--snm-warning)" }}>
+            <p className="ios-subhead leading-snug" style={{ color: "var(--snm-warning)" }}>
               You&apos;re offline. Connect to the internet <strong>once</strong> to sign in. After that, the app works offline automatically.
             </p>
           </div>

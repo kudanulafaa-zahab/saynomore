@@ -214,7 +214,7 @@ export function SuppliersManager() {
                   </div>
                   <div>
                     <h3 className="text-[22px] font-semibold text-foreground tracking-tight">{featured.name}</h3>
-                    <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                       {featured.invoice_currency} · {featured.country}
                     </p>
                   </div>
@@ -301,14 +301,14 @@ export function SuppliersManager() {
                         <h4 className="text-[16px] font-semibold text-foreground">{s.name}</h4>
                         {i === 0 && !q && (
                           <span
-                            className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+                            className="ios-subhead font-bold px-2 py-0.5 rounded-full"
                             style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
                           >
                             Primary
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                         <span className="flex items-center gap-1">
                           <Globe className="h-3 w-3" /> {s.country} · {s.invoice_currency}
                         </span>
@@ -324,10 +324,10 @@ export function SuppliersManager() {
                         )}
                       </div>
                       {s.contact_name && (
-                        <p className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>Contact: {s.contact_name}</p>
+                        <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>Contact: {s.contact_name}</p>
                       )}
                       {s.notes && (
-                        <p className="text-[12px] mt-1 italic" style={{ color: "var(--muted-foreground)" }}>{s.notes}</p>
+                        <p className="ios-subhead mt-1 italic" style={{ color: "var(--muted-foreground)" }}>{s.notes}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">

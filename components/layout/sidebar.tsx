@@ -19,7 +19,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}
-      className="flex items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-all active:scale-[0.97]"
+      className="flex items-center gap-3 rounded-xl px-3 ios-subhead font-medium transition-all active:scale-[0.97]"
       style={{
         minHeight: 44,
         background: active ? "var(--snm-brand-muted)" : "transparent",
@@ -51,14 +51,14 @@ export function Sidebar({ role }: { role: string }) {
       >
         <div className="flex items-center gap-2.5">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0"
+            className="w-7 h-7 rounded-lg flex items-center justify-center ios-subhead font-bold shrink-0"
             style={{ background: "var(--snm-brand)", color: "#ffffff" }}
           >
             S
           </div>
           <div className="leading-tight">
-            <p className="text-[13px] font-semibold text-foreground">SayNoMore</p>
-            <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
+            <p className="ios-subhead font-semibold text-foreground">SayNoMore</p>
+            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
           </div>
         </div>
         <ThemeToggle />
@@ -96,7 +96,7 @@ export function Sidebar({ role }: { role: string }) {
         <div className="px-3 py-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <Link
             href="/settings"
-            className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all active:scale-[0.97]"
+            className="flex items-center gap-3 rounded-xl px-3 py-2 ios-subhead font-medium transition-all active:scale-[0.97]"
             style={{
               background: pathname === "/settings" ? "var(--snm-brand-muted)" : "transparent",
               color:      pathname === "/settings" ? "var(--snm-brand)"       : "var(--muted-foreground)",

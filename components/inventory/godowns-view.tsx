@@ -136,13 +136,13 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
         onClick={() => setExpanded(!expanded)}
       >
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-foreground truncate">
+          <p className="ios-subhead font-semibold text-foreground truncate">
             {sku.brand_name} · {sku.model_name}
             {sku.variant_display
               ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
               : null}
           </p>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code}
             {urgency !== "ok" && (
               <span className="ml-2 font-bold" style={{ color: urgencyColor, fontSize: 13 }}>
@@ -154,7 +154,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
         <div className="flex items-center gap-3 ml-3 shrink-0">
           <div className="text-right">
             <p className="text-[14px] font-bold text-foreground snm-num">{qty}</p>
-            <p className="text-[12px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(value)}</p>
+            <p className="ios-subhead snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(value)}</p>
           </div>
           <ChevronDown
             className="h-4 w-4 transition-transform duration-200 shrink-0"
@@ -180,19 +180,19 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
                   <div className="flex items-center gap-2">
                     {i === 0 && (
                       <span
-                        className="text-[12px] font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
+                        className="ios-subhead font-bold tracking-wider px-1.5 py-0.5 rounded shrink-0"
                         style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)", color: "var(--foreground)" }}
                       >
                         FIFO
                       </span>
                     )}
-                    <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                       {bDate} · #{b.batch_id.slice(-6).toUpperCase()}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[13px] font-semibold text-foreground snm-num">{bQty}</span>
-                    <span className="text-[12px] ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+                    <span className="ios-subhead font-semibold text-foreground snm-num">{bQty}</span>
+                    <span className="ios-subhead ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
                       MVR {b.landed_per_piece_mvr.toFixed(2)}/pc
                     </span>
                   </div>
@@ -268,17 +268,17 @@ function GodownCard({
               )}
             </div>
             {godown.location
-              ? <p className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>{godown.location}</p>
+              ? <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>{godown.location}</p>
               : null}
           </div>
           {hasStock && (
             <div className="text-right shrink-0 ml-2">
               <p className="text-[14px] font-bold text-foreground snm-num">{totalCartons.toLocaleString()} ctn</p>
-              <p className="text-[12px] snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+              <p className="ios-subhead snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
             </div>
           )}
           {!hasStock && (
-            <p className="text-[12px] shrink-0 ml-2" style={{ color: "var(--muted-foreground)" }}>Empty</p>
+            <p className="ios-subhead shrink-0 ml-2" style={{ color: "var(--muted-foreground)" }}>Empty</p>
           )}
           {hasStock && (
             <ChevronDown
@@ -466,7 +466,7 @@ export function GodownsView() {
             {godowns.length} godown{godowns.length !== 1 ? "s" : ""}
           </p>
           {totalValue > 0 && (
-            <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
               {stockedCount} with stock · MVR {fmtMvr(totalValue)} total
             </p>
           )}
@@ -475,7 +475,7 @@ export function GodownsView() {
           {godowns.length > 1 && (
             <Link
               href="/stock-ops?tab=transfer"
-              className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
+              className="h-10 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
               style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
             >
               <ArrowLeftRight className="h-4 w-4" />
@@ -485,7 +485,7 @@ export function GodownsView() {
           {isAdmin && (
             <button
               onClick={() => { setShowNew(true); setEditingId(null); }}
-              className="h-10 px-4 rounded-xl text-[13px] font-semibold flex items-center gap-1.5 transition active:scale-95"
+              className="h-10 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               <Plus className="h-4 w-4" />
@@ -521,12 +521,12 @@ export function GodownsView() {
             <Warehouse className="h-6 w-6" style={{ color: "var(--snm-brand)" }} />
           </div>
           <p className="text-[15px] font-semibold text-foreground">No godowns yet</p>
-          <p className="text-[13px] mt-1 mb-4" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-1 mb-4" style={{ color: "var(--muted-foreground)" }}>
             Add your warehouses and storage locations. Stock is tracked per godown.
           </p>
           <button
             onClick={() => setShowNew(true)}
-            className="h-11 px-5 rounded-xl text-[13px] font-semibold transition active:scale-95"
+            className="h-11 px-5 rounded-xl ios-subhead font-semibold transition active:scale-95"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             Add first godown

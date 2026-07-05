@@ -115,7 +115,7 @@ function NumInput({
         if (n !== (value ?? null)) onChange(n);
       }}
       disabled={disabled}
-      className={`${inputCls} ${compact ? "h-10 text-[13px]" : ""}`}
+      className={`${inputCls} ${compact ? "h-10 ios-subhead" : ""}`}
       style={disabled ? disabledSty : inputSty}
     />
   );
@@ -294,7 +294,7 @@ function SharedContainerEstimator({
         className="w-full flex items-center gap-2.5 px-3.5 h-12 transition active:opacity-70"
       >
         <Container className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <span className="flex-1 text-left text-[13px] font-medium text-foreground">Sharing a container?</span>
+        <span className="flex-1 text-left ios-subhead font-medium text-foreground">Sharing a container?</span>
         <ChevronDown
           className="h-3.5 w-3.5 shrink-0 transition-transform"
           style={{ color: "var(--muted-foreground)", transform: open ? "rotate(180deg)" : "none" }}
@@ -303,7 +303,7 @@ function SharedContainerEstimator({
 
       {open && (
         <div className="px-3.5 pb-4 space-y-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-          <div className="pt-3.5 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+          <div className="pt-3.5 flex items-center gap-1.5 ios-subhead" style={{ color: "var(--muted-foreground)" }}>
             <Sparkles className="h-3.5 w-3.5 shrink-0" />
             Estimate only — based on standard container size, not the real loaded CBM.
           </div>
@@ -316,7 +316,7 @@ function SharedContainerEstimator({
                 type="button"
                 disabled={disabled}
                 onClick={() => onPatch("container_size_hint", s)}
-                className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold transition active:scale-95"
+                className="flex-1 py-2.5 rounded-xl ios-subhead font-semibold transition active:scale-95"
                 style={size === s
                   ? { background: "var(--foreground)", color: "var(--background)" }
                   : { color: "var(--muted-foreground)" }}
@@ -343,7 +343,7 @@ function SharedContainerEstimator({
             />
           </Field>
 
-          <div className="flex items-center justify-between px-1 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+          <div className="flex items-center justify-between px-1 ios-subhead" style={{ color: "var(--muted-foreground)" }}>
             <span>Your CBM (this shipment)</span>
             <span className="font-semibold text-foreground snm-num">{myCbm.toFixed(4)}</span>
           </div>
@@ -352,7 +352,7 @@ function SharedContainerEstimator({
             <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
               style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 22%, transparent)" }}>
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 Your shipment is {myCbm.toFixed(1)} CBM but a {size === "20ft" ? "20ft holds ~28" : "40ft HQ holds ~68"} CBM —
                 your share would come out above 100% of the bill. Check the container size.
               </p>
@@ -366,18 +366,18 @@ function SharedContainerEstimator({
             <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
               style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-brand)" }} />
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 Tap <strong>20ft</strong> or <strong>40ft HQ</strong> above — your share can&apos;t be calculated without the container size.
               </p>
             </div>
           )}
           {size && totalFreightNum == null && (
-            <p className="text-[12px] px-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead px-1" style={{ color: "var(--muted-foreground)" }}>
               Enter the total freight your partner paid to see your estimated share.
             </p>
           )}
           {size && totalFreightNum != null && myCbm <= 0 && (
-            <p className="text-[12px] px-1" style={{ color: "var(--snm-warning)" }}>
+            <p className="ios-subhead px-1" style={{ color: "var(--snm-warning)" }}>
               Add products to this shipment first — your share is based on your goods&apos; CBM.
             </p>
           )}
@@ -386,14 +386,14 @@ function SharedContainerEstimator({
             <div className="rounded-xl px-3.5 py-3" style={{ background: "var(--glass-bg-2)" }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Your estimated share</p>
+                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Your estimated share</p>
                   <p className="text-[17px] font-bold text-foreground snm-num">${estimate.toFixed(2)}</p>
                 </div>
-                <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--snm-success)" }}>
+                <span className="flex items-center gap-1 ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>
                   <CheckCircle2 className="h-3.5 w-3.5" /> Applied
                 </span>
               </div>
-              <p className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mt-2" style={{ color: "var(--muted-foreground)" }}>
                 Added to <strong>My Freight Share</strong> above and split across your products by CBM. You can overtype that box if you agree a different amount.
               </p>
             </div>
@@ -658,13 +658,13 @@ export function ShipmentDetail({ id }: { id: string }) {
         <div className="flex items-center gap-2 shrink-0">
           {/* Auto-save indicator */}
           {!locked && saveState === "saving" && (
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium"
+            <span className="inline-flex items-center gap-1.5 ios-subhead font-medium"
               style={{ color: "var(--muted-foreground)" }}>
               <Loader2 className="h-3 w-3 animate-spin" /> Saving…
             </span>
           )}
           {!locked && saveState === "saved" && (
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold"
+            <span className="inline-flex items-center gap-1.5 ios-subhead font-semibold"
               style={{ color: "var(--snm-success)" }}>
               <CheckCircle2 className="h-3 w-3" /> Saved
             </span>
@@ -793,7 +793,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   {prevStep && (
                     <button
                       onClick={() => patchStatus(prevStep.value)}
-                      className="flex items-center gap-1.5 h-11 px-4 rounded-xl text-[13px] font-medium transition active:scale-95"
+                      className="flex items-center gap-1.5 h-11 px-4 rounded-xl ios-subhead font-medium transition active:scale-95"
                       style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
                     >
                       ← {prevStep.label}
@@ -802,7 +802,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   {nextStep && (
                     <button
                       onClick={() => patchStatus(nextStep.value)}
-                      className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-[13px] font-semibold transition active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl ios-subhead font-semibold transition active:scale-95"
                       style={{ background: "var(--foreground)", color: "var(--background)" }}
                     >
                       <Truck className="h-4 w-4" />
@@ -883,7 +883,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           action={!locked
             ? <button
                 onClick={() => { setEditingLine(undefined); setPanel("addLine"); }}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] font-bold transition active:scale-95"
+                className="flex items-center gap-1.5 h-8 px-3 rounded-full ios-subhead font-bold transition active:scale-95"
                 style={{ background: "var(--foreground)", color: "var(--background)" }}
               >
                 <Plus className="h-3 w-3" /> Add Product
@@ -923,10 +923,10 @@ export function ShipmentDetail({ id }: { id: string }) {
                   {/* Top: SKU name + actions */}
                   <div className="flex items-start justify-between gap-2 p-4 pb-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-foreground leading-tight">
+                      <p className="ios-subhead font-semibold text-foreground leading-tight">
                         {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown SKU"}
                       </p>
-                      <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                         {sku ? `${sku.pcs_per_pack}/pk × ${sku.packs_per_carton}/ctn` : ""}
                         {godown ? ` · → ${godown.name}` : ""}
                       </p>
@@ -934,7 +934,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                     {!locked && (
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => { setEditingLine(l); setPanel("addLine"); }}
-                          className="h-8 px-2 rounded-lg text-[12px] font-medium transition"
+                          className="h-8 px-2 rounded-lg ios-subhead font-medium transition"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}>
                           Edit
                         </button>
@@ -951,7 +951,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                       verify correctly before GRN locks them permanently, so
                       the numbers themselves are sized above the label. */}
                   <div className="flex items-center justify-between px-4 pb-3 gap-4">
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                       FOB <span className="font-semibold snm-num" style={{ color: "var(--foreground)", fontSize: 14 }}>
                         {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
                       </span>
@@ -968,7 +968,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         )}
                       </div>
                     ) : (
-                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Est. cost TBD</p>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Est. cost TBD</p>
                     )}
                   </div>
 
@@ -989,7 +989,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                           }}
                         />
                       </div>
-                      <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>cartons</p>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>cartons</p>
                     </div>
                   </div>
 
@@ -1023,7 +1023,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                                   }}
                                 />
                               </div>
-                              <p className="text-[12px] w-16 shrink-0" style={{ color: "var(--muted-foreground)" }}>cartons</p>
+                              <p className="ios-subhead w-16 shrink-0" style={{ color: "var(--muted-foreground)" }}>cartons</p>
                             </div>
                             {/* Loose packs — rare; only the odd partial carton */}
                             <div className="flex items-center gap-3">
@@ -1039,7 +1039,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                                   }}
                                 />
                               </div>
-                              <p className="text-[12px] w-16 shrink-0" style={{ color: "var(--muted-foreground)" }}>+ loose pk</p>
+                              <p className="ios-subhead w-16 shrink-0" style={{ color: "var(--muted-foreground)" }}>+ loose pk</p>
                             </div>
                           </div>
                       }
@@ -1057,7 +1057,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         ].map((c) => (
                           <div key={c.label} className="rounded-lg p-2 text-center" style={{ background: "var(--glass-bg-2)" }}>
                             <p className="text-[12px] uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                            <p className="text-[13px] font-semibold text-foreground snm-num">{c.value}</p>
+                            <p className="ios-subhead font-semibold text-foreground snm-num">{c.value}</p>
                           </div>
                         ))}
                       </div>
@@ -1072,7 +1072,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         </div>
                         <div className="text-right">
                           <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · for comparison</p>
-                          <p className="text-[13px] font-semibold text-foreground snm-num">
+                          <p className="ios-subhead font-semibold text-foreground snm-num">
                             {l.landed_per_piece_mvr != null ? `MVR ${fmt2(Number(l.landed_per_piece_mvr))}` : "—"}
                           </p>
                         </div>
@@ -1116,7 +1116,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               </p>
             )}
             {!costsOpen && (!preview || !preview.ratesSet) && (
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Tap to enter shipping &amp; port costs</p>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Tap to enter shipping &amp; port costs</p>
             )}
           </div>
           <ChevronDown
@@ -1135,8 +1135,8 @@ export function ShipmentDetail({ id }: { id: string }) {
                 style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                 <Lock className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--snm-success)" }} />
                 <div className="flex-1">
-                  <p className="text-[13px] font-semibold text-foreground">These costs are locked in</p>
-                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead font-semibold text-foreground">These costs are locked in</p>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     This shipment is received, so its costs can&apos;t change — that keeps your profit figures honest.
                     {isAdmin ? " To fix a mistake, use “Reopen to Edit” in the ⋯ menu." : " Ask an admin to reopen it if something needs fixing."}
                   </p>
@@ -1146,7 +1146,7 @@ export function ShipmentDetail({ id }: { id: string }) {
 
             {/* Intro — plain-English "what you're filling in and why" */}
             {!locked && (
-              <p className="text-[12px] mt-5" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mt-5" style={{ color: "var(--muted-foreground)" }}>
                 Fill in the exchange rate, your shipping cost, and any port/clearing charges. The app spreads them across your products by size (CBM) to work out what each one truly cost you.
               </p>
             )}
@@ -1154,10 +1154,10 @@ export function ShipmentDetail({ id }: { id: string }) {
             {/* ── Step 1: Exchange rate ── */}
             <div className={locked ? "" : "pt-1"}>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[12px] font-bold" style={{ color: "var(--snm-brand)" }}>1</span>
-                <p className="text-[13px] font-semibold text-foreground">Exchange rate</p>
+                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand)" }}>1</span>
+                <p className="ios-subhead font-semibold text-foreground">Exchange rate</p>
               </div>
-              <p className="text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
                 What your bank charged to convert money. Locked once you confirm.
               </p>
               <div className="grid grid-cols-2 gap-3 mb-2">
@@ -1189,14 +1189,14 @@ export function ShipmentDetail({ id }: { id: string }) {
                   />
                 </Field>
               </div>
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 1 IDR = MVR {shipment.rate_idr_to_mvr != null ? shipment.rate_idr_to_mvr.toFixed(6) : "—"} <span style={{ opacity: 0.7 }}>(worked out for you)</span>
               </p>
               {rateWarning && (
                 <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-xl"
                   style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 22%, transparent)" }}>
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
-                  <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{rateWarning}</p>
+                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{rateWarning}</p>
                 </div>
               )}
             </div>
@@ -1204,17 +1204,17 @@ export function ShipmentDetail({ id }: { id: string }) {
             {/* ── Step 2: Shipping (freight) ── */}
             <div>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[12px] font-bold" style={{ color: "var(--snm-brand)" }}>2</span>
-                <p className="text-[13px] font-semibold text-foreground">Shipping cost</p>
+                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand)" }}>2</span>
+                <p className="ios-subhead font-semibold text-foreground">Shipping cost</p>
               </div>
-              <p className="text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
                 What you paid to ship your goods (in USD). Sharing a container? Use the estimator below.
               </p>
               <Field label="MY SHIPPING COST (USD)">
                 <NumInput value={shipment.my_freight_share_usd} disabled={locked} min={0} placeholder="0" onChange={(v) => patch("my_freight_share_usd", v ?? 0)} />
               </Field>
               {preview && (shipment.my_freight_share_usd ?? 0) > 0 && (
-                <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                   = MVR <span className="font-semibold text-foreground">{fmt0(preview.freightMvr)}</span> in your money
                 </p>
               )}
@@ -1230,10 +1230,10 @@ export function ShipmentDetail({ id }: { id: string }) {
             {/* ── Step 3: Port & clearing costs ── */}
             <div>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[12px] font-bold" style={{ color: "var(--snm-brand)" }}>3</span>
-                <p className="text-[13px] font-semibold text-foreground">Port &amp; clearing costs <span className="font-normal" style={{ color: "var(--muted-foreground)" }}>(in MVR)</span></p>
+                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand)" }}>3</span>
+                <p className="ios-subhead font-semibold text-foreground">Port &amp; clearing costs <span className="font-normal" style={{ color: "var(--muted-foreground)" }}>(in MVR)</span></p>
               </div>
-              <p className="text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
                 Charges you paid here in the Maldives. Leave any at 0 if they don&apos;t apply.
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -1246,7 +1246,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   { label: "Anything else", field: "other_mvr"        },
                 ].map(({ label, field }) => (
                   <div key={field} className="space-y-1">
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{label}</p>
                     <NumInput
                       value={(shipment as unknown as Record<string, number>)[field]}
                       disabled={locked}
@@ -1269,16 +1269,16 @@ export function ShipmentDetail({ id }: { id: string }) {
                   { label: "+ Port & clearing", value: `MVR ${fmt0(preview.localMvr)}` },
                 ].map((r) => (
                   <div key={r.label} className="flex items-center justify-between">
-                    <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>{r.label}</p>
-                    <p className="text-[12px] font-medium text-foreground snm-num">{r.value}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{r.label}</p>
+                    <p className="ios-subhead font-medium text-foreground snm-num">{r.value}</p>
                   </div>
                 ))}
                 <div className="flex items-center justify-between pt-2 mt-1" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-                  <p className="text-[13px] font-bold text-foreground">Total landed cost</p>
+                  <p className="ios-subhead font-bold text-foreground">Total landed cost</p>
                   <p className="text-[15px] font-bold text-foreground snm-num">{preview.ratesSet ? `MVR ${fmt0(preview.grandTotal)}` : "enter rate first"}</p>
                 </div>
                 {preview.ratesSet && (
-                  <p className="text-[12px] pt-1" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead pt-1" style={{ color: "var(--muted-foreground)" }}>
                     This is what your goods really cost, landed in your godown — split across each product by size. See per-product cost on each line above.
                   </p>
                 )}
@@ -1291,31 +1291,31 @@ export function ShipmentDetail({ id }: { id: string }) {
       {/* ── Post-GRN: price change alerts ── */}
       {locked && priceChanges.length > 0 && (
         <div className="rounded-2xl p-5 mb-4" style={{ ...CARD, border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
-          <p className="text-[13px] font-bold mb-3 flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
+          <p className="ios-subhead font-bold mb-3 flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
             <AlertTriangle className="h-3.5 w-3.5" />
             {priceChanges.length} SKU{priceChanges.length > 1 ? "s" : ""} had a selling price change
           </p>
           <div className="space-y-2">
             {priceChanges.map((c) => (
               <div key={c.skuPath} className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: "var(--glass-bg-1)" }}>
-                <p className="text-[13px] flex-1 truncate text-foreground">{c.skuPath}</p>
+                <p className="ios-subhead flex-1 truncate text-foreground">{c.skuPath}</p>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="snm-num text-[13px]" style={{ color: "var(--muted-foreground)" }}>MVR {c.before.toFixed(2)}</span>
-                  <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>→</span>
+                  <span className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR {c.before.toFixed(2)}</span>
+                  <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>→</span>
                   <span className="snm-num text-[14px] font-bold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
                     MVR {c.after.toFixed(2)}
                   </span>
-                  <span className="snm-num text-[13px] font-semibold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
+                  <span className="snm-num ios-subhead font-semibold" style={{ color: c.changePct > 0 ? "var(--snm-warning)" : "var(--snm-success)" }}>
                     {c.changePct > 0 ? "+" : ""}{c.changePct.toFixed(1)}%
                   </span>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-[12px] mt-3" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-3" style={{ color: "var(--muted-foreground)" }}>
             Prices are live now. Go to Products → Edit SKU to lock a fixed price.
           </p>
-          <button onClick={() => setPriceChanges([])} className="mt-2 text-[12px] underline" style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer" }}>
+          <button onClick={() => setPriceChanges([])} className="mt-2 ios-subhead underline" style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer" }}>
             Dismiss
           </button>
         </div>
@@ -1343,9 +1343,9 @@ export function ShipmentDetail({ id }: { id: string }) {
             style={{ background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
             <Truck className="h-5 w-5 shrink-0" style={{ color: "var(--snm-success)" }} />
             <div>
-              <p className="text-[13px] font-semibold" style={{ color: "var(--snm-success)" }}>Stock Live</p>
+              <p className="ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>Stock Live</p>
               {shipment.grn_confirmed_at && (
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   Confirmed {fmtDate(shipment.grn_confirmed_at)}
                 </p>
               )}
@@ -1372,13 +1372,13 @@ export function ShipmentDetail({ id }: { id: string }) {
           <div className="flex items-center justify-between gap-3 h-14">
             {preview && preview.ratesSet ? (
               <div>
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Est. landed total</p>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Est. landed total</p>
                 <p className="text-[17px] font-semibold text-foreground">MVR {fmt0(preview.grandTotal)}</p>
               </div>
             ) : (
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Enter costs to see estimate</p>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Enter costs to see estimate</p>
             )}
-            <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            <div className="flex items-center gap-1.5 ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               <Package className="h-3.5 w-3.5" />
               {lines.length} line{lines.length !== 1 ? "s" : ""}
             </div>
@@ -1451,8 +1451,8 @@ export function ShipmentDetail({ id }: { id: string }) {
               { label: "Total landed",    value: `MVR ${fmt0(preview.grandTotal)}`, bold: true },
             ].map((r) => (
               <div key={r.label} className="flex justify-between">
-                <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>{r.label}</span>
-                <span className="text-[13px]" style={{ color: "var(--foreground)", fontWeight: r.bold ? 700 : 500 }}>{r.value}</span>
+                <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{r.label}</span>
+                <span className="ios-subhead" style={{ color: "var(--foreground)", fontWeight: r.bold ? 700 : 500 }}>{r.value}</span>
               </div>
             ))}
           </div>
@@ -1461,13 +1461,13 @@ export function ShipmentDetail({ id }: { id: string }) {
         {/* Short shipment warning */}
         {lines.some((l) => l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons) && (
           <div className="rounded-xl p-4 mb-4" style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
-            <p className="text-[13px] font-semibold mb-2 flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
+            <p className="ios-subhead font-semibold mb-2 flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
               <AlertTriangle className="h-3.5 w-3.5" /> Short shipment on some lines
             </p>
             {lines.filter((l) => l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons).map((l) => {
               const sku = skus.find((s) => s.id === l.sku_id);
               return (
-                <p key={l.id} className="snm-num text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+                <p key={l.id} className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   • {sku?.model_name ?? "SKU"}: {l.qty_cartons} ordered, {l.qty_cartons_actual} received
                 </p>
               );
@@ -1492,12 +1492,12 @@ export function ShipmentDetail({ id }: { id: string }) {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
           </div>
-          <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>
             Not sure yet? Leave this as-is — you can move stock to another godown anytime from Stock Ops → Transfer.
           </p>
         </div>
 
-        <p className="text-[13px] mb-5" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mb-5" style={{ color: "var(--muted-foreground)" }}>
           Forex rates and costs will be <strong style={{ color: "var(--foreground)" }}>permanently locked</strong>. Stock becomes available for sale immediately.
         </p>
 
@@ -1526,7 +1526,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> will unlock for editing — you can fix the FOB price, forex rate, freight/customs, or add a missed line, then confirm receipt again.
         </p>
-        <p className="text-[12px] rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-warning) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-warning) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--muted-foreground)" }}>
           Sales history is untouched. If any stock from this shipment has already been sold, reopening is blocked — you&apos;d need a stock adjustment instead.
         </p>
         <div className="flex gap-3">
@@ -1564,7 +1564,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         <p className="text-sm mb-2" style={{ color: "var(--muted-foreground)" }}>
           <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> — all inventory batches, stock movements, and linked sales orders will be permanently deleted.
         </p>
-        <p className="text-[12px] rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-error) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-error) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--muted-foreground)" }}>
           ⚠ If stock from this shipment has already been sold, those sales orders will also be deleted.
         </p>
         <div className="flex gap-3">
@@ -1777,8 +1777,8 @@ function LineDialog({
                     <button key={s.id} onClick={() => setSkuId(s.id)}
                       className="w-full text-left px-4 py-3 transition"
                       style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}>
-                      <p className="text-[13px] font-medium text-foreground">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
-                      <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="ios-subhead font-medium text-foreground">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
+                      <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                         {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · CBM {Number(s.cbm_per_carton).toFixed(4)}
                       </p>
                     </button>
@@ -1790,12 +1790,12 @@ function LineDialog({
             <div className="rounded-xl p-4" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
               <div className="flex justify-between items-start gap-2">
                 <div>
-                  <p className="text-[13px] font-semibold text-foreground">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
-                  <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead font-semibold text-foreground">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn · CBM {Number(sku.cbm_per_carton).toFixed(4)}
                   </p>
                 </div>
-                <button onClick={() => setSkuId("")} className="text-[12px] shrink-0" style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}>
+                <button onClick={() => setSkuId("")} className="ios-subhead shrink-0" style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}>
                   Change
                 </button>
               </div>
@@ -1810,7 +1810,7 @@ function LineDialog({
               <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>QTY CARTONS *</p>
               <QtyStepper value={qtyCartons} min={1} onChange={setQtyCartons} />
               {sku && (
-                <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                   = {qtyCartons * sku.packs_per_carton} packs · {qtyCartons * sku.packs_per_carton * sku.pcs_per_pack} pcs
                   · {(qtyCartons * Number(sku.cbm_per_carton)).toFixed(4)} CBM
                 </p>
@@ -1872,7 +1872,7 @@ function LineDialog({
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
                 </div>
               </div>
-              <p className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                 {fobEntryUnit === "pack" && sku && fobPerCarton && !isNaN(parseFloat(fobPerCarton))
                   ? `= ${(parseFloat(fobPerCarton) * sku.packs_per_carton).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fobCurrency} / carton`
                   : "Price on this shipment's invoice — can differ from previous shipments."}
@@ -1883,7 +1883,7 @@ function LineDialog({
             <div className="mb-6 rounded-xl px-4 py-3 flex items-start gap-2.5"
               style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
               <Warehouse className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 You&apos;ll choose the destination warehouse when you receive this shipment — no need to decide now.
               </p>
             </div>

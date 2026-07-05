@@ -8,7 +8,7 @@ export default function ReorderPage() {
       <div>
         <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Procurement</p>
         <h1 className="ios-page-title">What to Order Next</h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+        <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
           Based on your real sales speed. Tick what to order, adjust quantities, create a draft PO.
         </p>
       </div>

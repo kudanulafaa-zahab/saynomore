@@ -222,7 +222,7 @@ export function CustomersManager() {
                         const t = TIER_MAP[c.price_tier ?? "retail"];
                         return (
                           <span
-                            className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+                            className="ios-subhead font-bold px-2 py-0.5 rounded-full"
                             style={{ background: `color-mix(in srgb, ${t.color} 15%, transparent)`, color: t.color }}
                           >
                             {t.label}
@@ -231,7 +231,7 @@ export function CustomersManager() {
                       })()}
                       {c.channel && (
                         <span
-                          className="text-[12px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="ios-subhead font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           {channelIcon(c.channel)} {CHANNEL_LABEL[c.channel] ?? c.channel}
@@ -239,7 +239,7 @@ export function CustomersManager() {
                       )}
                       {c.phone && (
                         <span
-                          className="snm-num text-[13px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="snm-num ios-subhead font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <Phone className="h-2.5 w-2.5" /> {c.phone}
@@ -247,7 +247,7 @@ export function CustomersManager() {
                       )}
                       {c.island && (
                         <span
-                          className="text-[13px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          className="ios-subhead font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                           style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
                         >
                           <MapPin className="h-2.5 w-2.5" /> {c.island}

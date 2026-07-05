@@ -29,7 +29,7 @@ export function PageHeader({ title, subtitle, action, controls }: PageHeaderProp
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[13px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
               {subtitle}
             </p>
           )}

@@ -185,7 +185,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
         <div className="space-y-2">
           <Label className={LABEL_CLS}>Phone</Label>
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+960…" inputMode="tel" />
-          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Format: +960 771 2345</p>
+          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Format: +960 771 2345</p>
         </div>
 
         {/* Live duplicate suggestions — only while creating */}
@@ -208,12 +208,12 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
                   {(c.name ?? "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-foreground truncate">{c.name}</p>
-                  <p className="text-[12px] truncate" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="ios-subhead font-semibold text-foreground truncate">{c.name}</p>
+                  <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
                     {[c.phone, c.island, c.address].filter(Boolean).join(" · ") || "No other details"}
                   </p>
                 </div>
-                <span className="text-[12px] font-bold px-2 py-1 rounded-lg shrink-0"
+                <span className="ios-subhead font-bold px-2 py-1 rounded-lg shrink-0"
                   style={{ background: "color-mix(in srgb, var(--snm-warning) 14%, transparent)", color: "var(--snm-warning)" }}>
                   Use
                 </span>
@@ -261,7 +261,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
                 key={t.value}
                 type="button"
                 onClick={() => setPriceTier(t.value)}
-                className="py-3 min-h-11 rounded-xl text-[13px] font-bold transition active:scale-95"
+                className="py-3 min-h-11 rounded-xl ios-subhead font-bold transition active:scale-95"
                 style={{
                   background: priceTier === t.value
                     ? `color-mix(in srgb, ${t.color} 18%, transparent)`
@@ -317,14 +317,14 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
               <div className="min-w-0">
                 <p className="text-[15px] font-bold text-foreground">This phone already exists</p>
-                <p className="text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   A customer with this number is already saved:
                 </p>
               </div>
             </div>
             <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
-              <p className="text-[13px] font-semibold text-foreground">{phoneConflict.name}</p>
-              <p className="text-[12px] snm-num" style={{ color: "var(--muted-foreground)" }}>
+              <p className="ios-subhead font-semibold text-foreground">{phoneConflict.name}</p>
+              <p className="ios-subhead snm-num" style={{ color: "var(--muted-foreground)" }}>
                 {[phoneConflict.phone, phoneConflict.island, phoneConflict.address].filter(Boolean).join(" · ")}
               </p>
             </div>
