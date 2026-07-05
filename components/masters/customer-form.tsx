@@ -182,6 +182,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
         <div className="space-y-2">
           <Label className={LABEL_CLS}>Phone</Label>
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+960…" inputMode="tel" />
+          <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Format: +960 771 2345</p>
         </div>
 
         {/* Live duplicate suggestions — only while creating */}
@@ -257,7 +258,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
                 key={t.value}
                 type="button"
                 onClick={() => setPriceTier(t.value)}
-                className="py-2 rounded-xl text-xs font-bold transition active:scale-95"
+                className="py-3 min-h-11 rounded-xl text-[13px] font-bold transition active:scale-95"
                 style={{
                   background: priceTier === t.value
                     ? `color-mix(in srgb, ${t.color} 18%, transparent)`
