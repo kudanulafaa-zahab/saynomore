@@ -193,7 +193,7 @@ function CodView() {
                     <div>
                       <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>MVR {fmt(Number(r.collected_mvr))}</p>
                       {Math.abs(Number(r.variance_mvr)) >= 0.01 && (
-                        <p style={{ color, fontSize: 11, fontWeight: 600 }}>{Number(r.variance_mvr) >= 0 ? "+" : ""}MVR {fmt(Number(r.variance_mvr))} variance</p>
+                        <p style={{ color, fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{Number(r.variance_mvr) >= 0 ? "+" : ""}MVR {fmt(Number(r.variance_mvr))} variance</p>
                       )}
                     </div>
                     {isOpen
@@ -215,7 +215,7 @@ function CodView() {
                         <div key={o.order_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                           <div style={{ minWidth: 0 }}>
                             <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{o.customer_name}</p>
-                            <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>
+                            <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
                               {o.order_number} · {new Date(o.delivered_at).toLocaleTimeString("en-MV", { hour: "2-digit", minute: "2-digit" })}
                             </p>
                           </div>
@@ -224,10 +224,10 @@ function CodView() {
                               <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmt(Number(o.collected_mvr))}</p>
                               {isDeposited
                                 ? <CheckCircle2 style={{ width: 14, height: 14, color: "var(--snm-success)" }} />
-                                : <span style={{ fontSize: 11, fontWeight: 700, color: "var(--snm-warning)", background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", padding: "2px 6px", borderRadius: 5 }}>NOT DEPOSITED</span>}
+                                : <span style={{ fontSize: 12, fontWeight: 700, color: "var(--snm-warning)", background: "color-mix(in srgb, var(--snm-warning) 20%, transparent)", padding: "3px 7px", borderRadius: 5 }}>NOT DEPOSITED</span>}
                             </div>
                             {Math.abs(variance) >= 0.01 && (
-                              <p style={{ color: variance < 0 ? "var(--snm-error)" : "var(--snm-warning)", fontSize: 11 }}>
+                              <p className="snm-num" style={{ color: variance < 0 ? "var(--snm-error)" : "var(--snm-warning)", fontSize: 13 }}>
                                 {variance >= 0 ? "+" : ""}MVR {fmt(variance)} vs MVR {fmt(Number(o.order_total_mvr))} expected
                               </p>
                             )}
@@ -460,12 +460,12 @@ export function FinancialsView() {
           </div>
           {opexBreakdown.map((c) => (
             <div key={c.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2, paddingLeft: 14 }}>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{c.name}</p>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>MVR {fmt(Number(c.amount))}</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>{c.name}</p>
+              <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>MVR {fmt(Number(c.amount))}</p>
             </div>
           ))}
           {otherOpex === 0 && (
-            <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginBottom: 6, opacity: 0.8 }}>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginBottom: 6 }}>
               No expenses logged this month — add rent, salaries etc. in Expenses so this number is real.
             </p>
           )}

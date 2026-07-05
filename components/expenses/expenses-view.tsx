@@ -24,6 +24,7 @@ import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { haptic } from "@/lib/haptics";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -66,6 +67,8 @@ export function ExpensesView() {
   const [quickAmount, setQuickAmount] = useState("");
   const [loggingQuick, setLoggingQuick] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
+  const [quickAmountError, setQuickAmountError] = useState(false);
+  const [quickCategoryError, setQuickCategoryError] = useState(false);
 
   // General business expenses (rent, salaries, …) — these feed the P&L's
   // Operating Expenses line. Marketing campaigns stay their own thing.
@@ -115,8 +118,12 @@ export function ExpensesView() {
 
   async function handleQuickLog() {
     const amt = parseFloat(quickAmount);
-    if (!amt || amt <= 0) { toast.error("Enter an amount"); return; }
-    if (!quickCategoryId) { toast.error("Pick a category"); return; }
+    const amountBad = !amt || amt <= 0;
+    const categoryBad = !quickCategoryId;
+    setQuickAmountError(amountBad);
+    setQuickCategoryError(categoryBad);
+    if (amountBad) { toast.error("Enter an amount"); return; }
+    if (categoryBad) { toast.error("Pick a category"); return; }
     setLoggingQuick(true);
     const payload = {
       category_id: quickCategoryId,
@@ -129,10 +136,12 @@ export function ExpensesView() {
         () => createBusinessExpense(payload),
         { table: "business_expenses", action: "insert", payload },
       );
+      haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Expense logged");
       setQuickAmount("");
       if (!queued) load();
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     } finally {
       setLoggingQuick(false);
@@ -142,9 +151,11 @@ export function ExpensesView() {
   async function handleDeleteBiz(row: BusinessExpenseRow) {
     try {
       await deleteBusinessExpense(row.id);
+      haptic("success");
       toast.success("Expense removed");
       load();
     } catch (e) {
+      haptic("error");
       toast.error((e as Error).message);
     }
   }
@@ -215,15 +226,17 @@ export function ExpensesView() {
               type="number" inputMode="decimal" min="0"
               placeholder="0.00"
               value={quickAmount}
-              onChange={(e) => setQuickAmount(e.target.value)}
+              onChange={(e) => { setQuickAmount(e.target.value); if (parseFloat(e.target.value) > 0) setQuickAmountError(false); }}
               onKeyDown={(e) => e.key === "Enter" && handleQuickLog()}
-              className="w-full h-11 pl-12 pr-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
+              className="w-full h-11 pl-12 pr-3 rounded-xl text-sm bg-secondary text-foreground outline-none"
+              style={{ border: quickAmountError ? "1.5px solid var(--snm-error)" : "1px solid var(--border)" }}
             />
           </div>
           <select
             value={quickCategoryId}
-            onChange={(e) => setQuickCategoryId(e.target.value)}
-            className="h-11 px-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none"
+            onChange={(e) => { setQuickCategoryId(e.target.value); if (e.target.value) setQuickCategoryError(false); }}
+            className="h-11 px-3 rounded-xl text-sm bg-secondary text-foreground outline-none"
+            style={{ border: quickCategoryError ? "1.5px solid var(--snm-error)" : "1px solid var(--border)" }}
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -264,10 +277,11 @@ export function ExpensesView() {
                     <button
                       onClick={() => handleDeleteBiz(r)}
                       aria-label="Delete expense"
-                      className="h-8 w-8 rounded-lg flex items-center justify-center"
-                      style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                      className="h-11 w-11 -m-1.5 flex items-center justify-center"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <span className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </span>
                     </button>
                   )}
                 </div>
@@ -349,17 +363,21 @@ export function ExpensesView() {
                         <>
                           <button
                             onClick={() => { setEditingRow(r); setShowSheet(true); }}
-                            className="snm-pressable flex items-center justify-center rounded-lg"
-                            style={{ width: 36, height: 36, background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
+                            className="snm-pressable flex items-center justify-center"
+                            style={{ width: 44, height: 44, margin: -4 }}
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <span className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </span>
                           </button>
                           <button
                             onClick={() => setDeleteTarget(r)}
-                            className="snm-pressable flex items-center justify-center rounded-lg"
-                            style={{ width: 36, height: 36, background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                            className="snm-pressable flex items-center justify-center"
+                            style={{ width: 44, height: 44, margin: -4 }}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <span className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </span>
                           </button>
                         </>
                       )}
@@ -406,10 +424,11 @@ export function ExpensesView() {
                   setDeleting(true);
                   try {
                     await deleteMarketingSpend(deleteTarget.id);
+                    haptic("success");
                     toast.success("Deleted");
                     setDeleteTarget(null);
                     load();
-                  } catch (e) { toast.error((e as Error).message); }
+                  } catch (e) { haptic("error"); toast.error((e as Error).message); }
                   finally { setDeleting(false); }
                 }}
                 className="flex-1 h-11 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
@@ -472,9 +491,10 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
       };
       if (editing) await updateMarketingSpend(editing.id, payload);
       else await createMarketingSpend(payload);
+      haptic("success");
       toast.success(editing ? "Updated" : "Expense logged");
       onDone();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
     finally { setSaving(false); }
   }
 
@@ -498,7 +518,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
             <h2 className="text-lg font-semibold text-foreground">
               {editing ? "Edit Expense" : "Log Expense"}
             </h2>
-            <button onClick={onClose} className="h-8 w-8 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition">
+            <button onClick={onClose} className="h-11 w-11 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition">
               <X className="h-4 w-4" />
             </button>
           </div>

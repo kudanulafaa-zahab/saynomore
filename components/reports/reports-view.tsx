@@ -392,10 +392,11 @@ export function ReportsView() {
         {q && (
           <button
             onClick={() => setQ("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center active:opacity-60"
-            style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center active:opacity-60"
           >
-            <X className="h-3 w-3" />
+            <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}>
+              <X className="h-3 w-3" />
+            </span>
           </button>
         )}
       </div>
@@ -602,7 +603,7 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
                     {r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "—"}
                     {r.has_estimated_cost && (
                       <span
-                        className="ml-1 text-[10px] font-normal align-middle"
+                        className="ml-1 text-[12px] font-medium align-middle"
                         style={{ color: "var(--muted-foreground)" }}
                         title="Some sales in this period were made before per-sale cost tracking started — their cost is estimated from today's price, not what it actually cost then."
                       >
@@ -749,7 +750,7 @@ function MarginsTable({ rows, sortKey, onSort }: {
                         : null}
                       {r.has_estimated_cost && (
                         <span
-                          className="ml-1 text-[10px] font-normal align-middle"
+                          className="ml-1 text-[12px] font-medium align-middle"
                           style={{ color: "var(--muted-foreground)" }}
                           title="Some sales in this period were made before per-sale cost tracking started — their cost is estimated from today's price, not what it actually cost then."
                         >
