@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Loader2, Search, X, ChevronRight,
+  Plus, Trash2, Loader2, Search, X, ChevronRight, ChevronDown,
   Package, Check, SlidersHorizontal, Pencil, ScanLine,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -685,6 +685,10 @@ export function ProductsExplorer() {
   const [filterBrand, setFilterBrand]   = useState<string>("all");
   const [selectedSku, setSelectedSku]   = useState<SkuFullRow | null>(null);
   const [showFilters, setShowFilters]   = useState(false);
+  // Collapsible brand groups. Holds the brand_ids that are COLLAPSED — default
+  // empty means every brand is expanded (nothing hidden), matching the old view;
+  // tapping a brand header collapses just that brand.
+  const [collapsedBrands, setCollapsedBrands] = useState<Set<string>>(new Set());
 
   // Dialogs
   const [newSkuOpen, setNewSkuOpen]     = useState(false);
@@ -751,9 +755,9 @@ export function ProductsExplorer() {
 
   // Group flat list by brand for display
   const grouped = useMemo(() => {
-    const map = new Map<string, { brand: string; skus: SkuFullRow[] }>();
+    const map = new Map<string, { brandId: string; brand: string; skus: SkuFullRow[] }>();
     for (const s of filtered) {
-      const entry = map.get(s.brand_id) ?? { brand: s.brand_name, skus: [] };
+      const entry = map.get(s.brand_id) ?? { brandId: s.brand_id, brand: s.brand_name, skus: [] };
       entry.skus.push(s);
       map.set(s.brand_id, entry);
     }
@@ -762,6 +766,12 @@ export function ProductsExplorer() {
     // group; just sort the brand groups A→Z for the dividers.
     return Array.from(map.values()).sort((a, b) => a.brand.localeCompare(b.brand));
   }, [filtered]);
+
+  const toggleBrand = (brandId: string) => setCollapsedBrands((prev) => {
+    const next = new Set(prev);
+    next.has(brandId) ? next.delete(brandId) : next.add(brandId);
+    return next;
+  });
 
   const activeCount = skus.filter((s) => s.is_active).length;
 
@@ -867,23 +877,33 @@ export function ProductsExplorer() {
             </p>
           </div>
         ) : (
-          grouped.map(({ brand, skus: brandSkus }) => (
-            <div key={brand}>
-              {/* Brand divider — plain inline section header that scrolls with
-                  the rows. Not sticky: a per-group sticky freezes mid-screen,
-                  and for a short catalogue inline dividers read more native. */}
-              <div
-                className="px-4 py-2"
+          grouped.map(({ brandId, brand, skus: brandSkus }) => {
+            // While searching, force every group open so no match is hidden.
+            const collapsed = q.trim() === "" && collapsedBrands.has(brandId);
+            return (
+            <div key={brandId}>
+              {/* Brand divider — tap to collapse/expand this brand's SKUs.
+                  Expanded by default (nothing hidden); collapse the brands you
+                  aren't working in. Inline (not sticky) reads more native for a
+                  short catalogue. */}
+              <button
+                onClick={() => toggleBrand(brandId)}
+                aria-expanded={!collapsed}
+                className="w-full flex items-center gap-1.5 px-4 py-2.5 snm-pressable text-left"
                 style={{
                   background: "color-mix(in srgb, var(--glass-1) 95%, transparent)",
                   borderBottom: "0.5px solid var(--glass-border-lo)",
                 }}
               >
+                <ChevronDown
+                  className="h-3.5 w-3.5 shrink-0 transition-transform"
+                  style={{ color: "var(--muted-foreground)", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
+                />
                 <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                   {brand} · {brandSkus.length} SKU{brandSkus.length !== 1 ? "s" : ""}
                 </p>
-              </div>
-              {brandSkus.map((sku) => (
+              </button>
+              {!collapsed && brandSkus.map((sku) => (
                 <SkuRow
                   key={sku.id}
                   sku={sku}
@@ -892,7 +912,8 @@ export function ProductsExplorer() {
                 />
               ))}
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

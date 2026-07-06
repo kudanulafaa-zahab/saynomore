@@ -356,29 +356,33 @@ export function ReportsView() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
-        {([
-          { key: "bestsellers",  label: "Best Sellers" },
-          { key: "margins",      label: "Margins" },
-          { key: "contribution", label: "Contribution" },
-          { key: "abc",          label: "ABC" },
-          { key: "stock",        label: "Days of Stock" },
-        ] as const).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="px-4 rounded-lg ios-subhead font-medium transition active:scale-95"
-            style={{
-              minHeight: 40,
-              background: tab === t.key ? "var(--background)" : "transparent",
-              color: tab === t.key ? "var(--foreground)" : "var(--muted-foreground)",
-              boxShadow: tab === t.key ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Tabs — horizontally scrollable segmented control (native iOS). The
+          outer wrapper is width-constrained + scrolls internally so the row of
+          5 tabs never stretches the page sideways on a phone. */}
+      <div className="overflow-x-auto no-scrollbar -mx-1 px-1" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+        <div className="flex gap-1 rounded-xl p-1 w-max" style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
+          {([
+            { key: "bestsellers",  label: "Best Sellers" },
+            { key: "margins",      label: "Margins" },
+            { key: "contribution", label: "Contribution" },
+            { key: "abc",          label: "ABC" },
+            { key: "stock",        label: "Days of Stock" },
+          ] as const).map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className="shrink-0 px-4 rounded-lg ios-subhead font-medium transition active:scale-95"
+              style={{
+                minHeight: 40,
+                background: tab === t.key ? "var(--background)" : "transparent",
+                color: tab === t.key ? "var(--foreground)" : "var(--muted-foreground)",
+                boxShadow: tab === t.key ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search */}
