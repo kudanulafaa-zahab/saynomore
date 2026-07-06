@@ -8,6 +8,7 @@ import {
   ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Banknote,
 } from "lucide-react";
 import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueRow } from "@/lib/queries/reports";
+import { groupByBrand } from "@/lib/group-by-brand";
 import { getPnl, type PnlRow } from "@/lib/queries/expenses";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
 
@@ -316,27 +317,16 @@ export function FinancialsView() {
   const revDelta       = lastRevenue > 0 ? ((totalRevenue - lastRevenue) / lastRevenue * 100) : null;
   const grossDelta     = lastGross  > 0 ? ((grossProfit  - lastGross)   / lastGross  * 100) : null;
 
-  // ── Top 5 brands by gross profit ─────────────────────────────────────────
-  const brandMap = useMemo(() => {
-    const m = new Map<string, { revenue: number; cost: number; skuCount: number }>();
-    for (const r of rows) {
-      const rev  = Number(r.total_revenue_mvr);
-      const cost = Number(r.total_landed_cost_mvr);
-      const entry = m.get(r.brand_name);
-      if (entry) {
-        entry.revenue  += rev;
-        entry.cost     += cost;
-        entry.skuCount += rev > 0 ? 1 : 0;
-      } else {
-        m.set(r.brand_name, { revenue: rev, cost, skuCount: rev > 0 ? 1 : 0 });
-      }
-    }
-    return Array.from(m.entries())
-      .map(([label, v]) => ({ label, ...v, grossProfit: v.revenue - v.cost }))
-      .filter((b) => b.revenue > 0)
-      .sort((a, b) => b.grossProfit - a.grossProfit)
-      .slice(0, 5);
-  }, [rows]);
+  // ── Top 5 brands by gross profit (with SKU drill-down) ───────────────────
+  // Shared brand aggregation (lib/group-by-brand) — same trusted sums used by
+  // Reports, so the two pages always agree. Display-only; no cost recomputed.
+  const brandMap = useMemo(
+    () => groupByBrand(rows).filter((b) => b.revenue > 0).slice(0, 5),
+    [rows],
+  );
+
+  // Which brand's SKUs are expanded in the "Gross Profit by Brand" card.
+  const [openBrand, setOpenBrand] = useState<string | null>(null);
 
   // ── Chart — Revenue bars only (what the RPC gives us) ────────────────────
   const chartMax = useMemo(() => Math.max(...monthly.map((m) => Number(m.revenue_mvr)), 1), [monthly]);
@@ -569,29 +559,65 @@ export function FinancialsView() {
               </div>
 
               {brandMap.map((b) => {
-                const margin     = b.revenue > 0 ? (b.grossProfit / b.revenue * 100) : 0;
-                const barWidth   = brandMap[0].grossProfit > 0 ? (b.grossProfit / brandMap[0].grossProfit * 100) : 0;
-                const marginColor = margin >= 20 ? "var(--snm-success)" : margin >= 10 ? "var(--snm-warning)" : "var(--snm-error)";
+                const margin     = b.marginPct ?? 0;
+                const barWidth   = brandMap[0].grossProfit > 0 ? Math.max(0, b.grossProfit / brandMap[0].grossProfit * 100) : 0;
+                const marginCol  = margin >= 20 ? "var(--snm-success)" : margin >= 10 ? "var(--snm-warning)" : "var(--snm-error)";
+                const isOpen     = openBrand === b.brand;
                 return (
-                  <div key={b.label} style={{ padding: "14px 0", borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                      <div>
-                        <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 600 }}>{b.label}</p>
-                        <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>
-                          {b.skuCount} SKU{b.skuCount !== 1 ? "s" : ""} · <span style={{ color: marginColor, fontWeight: 600 }}>{margin.toFixed(1)}% margin</span>
-                        </p>
+                  <div key={b.brand} style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                    {/* Brand summary — tap to reveal its SKUs */}
+                    <button
+                      onClick={() => setOpenBrand(isOpen ? null : b.brand)}
+                      className="snm-pressable"
+                      aria-expanded={isOpen}
+                      style={{ width: "100%", textAlign: "left", padding: "14px 0", background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                          <ChevronDown style={{ width: 16, height: 16, flexShrink: 0, color: "var(--muted-foreground)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }} />
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 600 }}>{b.brand}</p>
+                            <p style={{ color: "var(--muted-foreground)", fontSize: 13, marginTop: 1 }}>
+                              {b.soldSkuCount} SKU{b.soldSkuCount !== 1 ? "s" : ""} · <span style={{ color: marginCol, fontWeight: 600 }}>{margin.toFixed(1)}% margin</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <p style={{ color: "var(--muted-foreground)", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>MVR {fmt(b.revenue)}</p>
+                          <p style={{ color: b.grossProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                            MVR {fmt(b.grossProfit)}
+                          </p>
+                        </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ color: "var(--muted-foreground)", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>MVR {fmt(b.revenue)}</p>
-                        <p style={{ color: b.grossProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                          MVR {fmt(b.grossProfit)}
-                        </p>
+                      {/* Profit bar */}
+                      <div style={{ height: 4, borderRadius: 2, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", overflow: "hidden", marginLeft: 22 }}>
+                        <div style={{ height: "100%", width: `${barWidth}%`, background: marginCol, borderRadius: 2, transition: "width 0.3s ease" }} />
                       </div>
-                    </div>
-                    {/* Profit bar */}
-                    <div style={{ height: 4, borderRadius: 2, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${barWidth}%`, background: marginColor, borderRadius: 2, transition: "width 0.3s ease" }} />
-                    </div>
+                    </button>
+
+                    {/* SKU drill-down */}
+                    {isOpen && (
+                      <div style={{ paddingBottom: 8 }}>
+                        {b.skus.map((s) => (
+                          <div key={s.sku_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, padding: "8px 0 8px 22px" }}>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {s.model_name} · {s.variant_display}
+                              </p>
+                              <p style={{ color: "var(--muted-foreground)", fontSize: 13, marginTop: 1 }}>Rev MVR {fmt(s.revenue)}</p>
+                            </div>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <p style={{ color: (s.marginPct ?? 0) >= 20 ? "var(--snm-success)" : (s.marginPct ?? 0) >= 10 ? "var(--snm-warning)" : "var(--snm-error)", fontSize: 15, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                                MVR {fmt(s.grossProfit)}
+                              </p>
+                              <p style={{ color: "var(--muted-foreground)", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                                {s.marginPct != null ? `${s.marginPct.toFixed(0)}%` : "—"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

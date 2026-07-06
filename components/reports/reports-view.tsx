@@ -5,10 +5,12 @@ import { toast } from "sonner";
 import {
   Loader2, TrendingUp, TrendingDown, Package,
   Clock, BarChart3, Search, Megaphone, X, Download,
+  ChevronDown,
 } from "lucide-react";
 import { getReportsData, getContributionMargin, getAbcAnalysis, type ReportRow, type ContributionRow, type AbcRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
 import { formatQtyInTradeUnits, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
+import { groupByBrand, type BrandGroup } from "@/lib/group-by-brand";
 
 // ── Date helpers ─────────────────────────────────────────────────────────
 
@@ -427,7 +429,7 @@ export function ReportsView() {
           <p className="text-muted-foreground ios-subhead">No data for this period.</p>
         </div>
       ) : tab === "bestsellers" ? (
-        <BestSellersTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+        <BestSellersTable rows={filtered} />
       ) : tab === "margins" ? (
         <MarginsTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
       ) : (
@@ -507,59 +509,119 @@ function SortTh({ label, sortKey, active, onSort }: {
   );
 }
 
-// ── Best Sellers table ───────────────────────────────────────────────────
+// ── Best Sellers — grouped Brand → SKU, profit-first ──────────────────────
+// Apple-simple, mobile-first: brands collapse to a league-table row (one big
+// profit number + a thin relative-profit bar), tap to reveal their SKUs. On
+// wide screens (sm+) the same data reads as a dense sortable table. All figures
+// are sums of already-audited per-SKU numbers (see lib/group-by-brand) — no
+// financial math happens here.
 
-function BestSellersTable({ rows, sortKey, onSort }: {
-  rows: ReportRow[]; sortKey: SortKey; onSort: (k: SortKey) => void;
-}) {
+const fmt0 = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+function BestSellersTable({ rows }: { rows: ReportRow[] }) {
+  const groups = useMemo(() => groupByBrand(rows), [rows]);
+  // Collapsed by default (executive summary). Tap a brand to drill in.
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const toggle = (brand: string) => setOpen((prev) => {
+    const next = new Set(prev);
+    next.has(brand) ? next.delete(brand) : next.add(brand);
+    return next;
+  });
+
+  // Largest brand profit → scales the relative-profit bars.
+  const maxProfit = Math.max(...groups.map((g) => g.grossProfit), 1);
+  // Keyed by sku_id so the expanded rows can render qty in trade units.
+  const cfgBySku = useMemo(() => {
+    const m = new Map<string, TradeUnitConfig>();
+    for (const r of rows) m.set(r.sku_id, tradeCfg(r));
+    return m;
+  }, [rows]);
+
   return (
-    <div className="glass overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full ios-subhead">
-          <thead className="border-b border-border bg-secondary/50">
-            <tr>
-              <th className="px-3 py-2 text-left text-[12px] uppercase tracking-widest text-muted-foreground">Product</th>
-              <SortTh label="Revenue (MVR)" sortKey="revenue" active={sortKey} onSort={onSort} />
-              <SortTh label="Qty Sold" sortKey="qty" active={sortKey} onSort={onSort} />
-              <th className="px-3 py-2 text-right text-[12px] uppercase tracking-widest text-muted-foreground">Avg Price</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((r, i) => {
-              const cfg = tradeCfg(r);
-              const avgPrice = costPerTradeUnit(r.avg_unit_price_mvr, cfg);
-              return (
-              <tr key={r.sku_id} className="hover:bg-accent/20 transition">
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`ios-subhead font-mono w-5 text-center ${i < 3 ? "text-primary font-bold" : "text-muted-foreground"}`}>
-                      {i + 1}
-                    </span>
-                    <div>
-                      <p className="text-foreground ios-subhead">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                      <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
-                    </div>
+    <div className="space-y-2">
+      {groups.map((g) => {
+        const isOpen = open.has(g.brand);
+        const barPct = g.grossProfit > 0 ? (g.grossProfit / maxProfit) * 100 : 0;
+        return (
+          <div key={g.brand} className="glass rounded-2xl overflow-hidden">
+            {/* Brand summary row */}
+            <button
+              onClick={() => toggle(g.brand)}
+              className="w-full text-left px-4 py-3.5 snm-pressable"
+              aria-expanded={isOpen}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform"
+                    style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
+                  />
+                  <div className="min-w-0">
+                    <p className="ios-headline font-semibold text-foreground truncate">{g.brand}</p>
+                    <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                      {g.soldSkuCount} of {g.skuCount} SKU{g.skuCount !== 1 ? "s" : ""} sold
+                    </p>
                   </div>
-                </td>
-                <td className="px-3 py-3 text-right snm-num">
-                  <span className="text-foreground font-medium">
-                    {r.total_revenue_mvr > 0
-                      ? r.total_revenue_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })
-                      : <span className="text-muted-foreground">—</span>}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-right text-muted-foreground snm-num">
-                  {r.total_qty_pieces > 0 ? formatQtyInTradeUnits(r.total_qty_pieces, cfg) : "—"}
-                </td>
-                <td className="px-3 py-3 text-right text-muted-foreground snm-num">
-                  {r.avg_unit_price_mvr > 0 ? `${avgPrice.value.toFixed(2)}/${avgPrice.unitLabel}` : "—"}
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="ios-headline font-bold snm-num" style={marginColor(g.marginPct)}>
+                    {fmt0(g.grossProfit)}
+                  </p>
+                  <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                    profit · {g.marginPct != null ? `${g.marginPct.toFixed(0)}%` : "—"}
+                  </p>
+                </div>
+              </div>
+              {/* Secondary line: revenue + relative-profit bar */}
+              <div className="flex items-center gap-3 mt-2 pl-6">
+                <p className="ios-footnote snm-num shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                  Rev {fmt0(g.revenue)}
+                </p>
+                <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                  <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: marginColor(g.marginPct).color, transition: "width 0.3s ease" }} />
+                </div>
+              </div>
+            </button>
+
+            {/* Expanded SKU rows */}
+            {isOpen && (
+              <div style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                {g.skus.map((s) => {
+                  const cfg = cfgBySku.get(s.sku_id);
+                  return (
+                    <div
+                      key={s.sku_id}
+                      className="px-4 py-3 flex items-start justify-between gap-3"
+                      style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}
+                    >
+                      <div className="min-w-0">
+                        <p className="ios-subhead font-medium text-foreground truncate">
+                          {s.model_name} · {s.variant_display}
+                        </p>
+                        <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                          Rev {s.revenue > 0 ? fmt0(s.revenue) : "—"}
+                          {s.qtyPieces > 0 && cfg ? ` · ${formatQtyInTradeUnits(s.qtyPieces, cfg)}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="ios-subhead font-semibold snm-num" style={marginColor(s.marginPct)}>
+                          {s.revenue > 0 ? fmt0(s.grossProfit) : "—"}
+                        </p>
+                        <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                          {s.marginPct != null ? `${s.marginPct.toFixed(0)}%` : "—"}
+                          {s.hasEstimatedCost && (
+                            <span className="ml-1" style={{ color: "var(--muted-foreground)" }} title="Some sales predate cost tracking — cost estimated from today's price.">~est</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

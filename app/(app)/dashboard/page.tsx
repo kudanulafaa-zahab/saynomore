@@ -46,7 +46,21 @@ interface Metrics {
 
 export default async function DashboardPage() {
   const supabase = await getSupabaseServer();
-  const { data } = await supabase.rpc("get_dashboard_metrics");
+
+  // Month range for the P&L (net profit). get_pnl is the same audited RPC the
+  // Financials page uses, so the dashboard net figure always matches it exactly.
+  const nowMv          = new Date();
+  const firstOfMonth   = new Date(nowMv.getFullYear(), nowMv.getMonth(), 1).toISOString().slice(0, 10);
+  const tomorrow       = new Date(nowMv.getFullYear(), nowMv.getMonth(), nowMv.getDate() + 1).toISOString().slice(0, 10);
+
+  const [{ data }, { data: pnlData }] = await Promise.all([
+    supabase.rpc("get_dashboard_metrics"),
+    supabase.rpc("get_pnl", { p_from: firstOfMonth, p_to: tomorrow }),
+  ]);
+
+  const pnl        = pnlData?.[0] ?? null;
+  const netProfit  = Number(pnl?.net_profit_mvr ?? 0);
+  const netMargin  = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
 
   const m: Metrics = (data?.[0] ?? {
     revenue_today_mvr:           0,
@@ -101,6 +115,9 @@ export default async function DashboardPage() {
     : grossMargin < 20 ? "var(--snm-warning)"
     : "var(--snm-success)";
 
+  // Net profit is the owner's bottom line — colour by sign, not by a margin band.
+  const netColor = netProfit >= 0 ? "var(--snm-success)" : "var(--snm-error)";
+
   // Single highest-priority action strip — only one shown at a time
   const exception =
     overdueOrders > 0
@@ -152,6 +169,23 @@ export default async function DashboardPage() {
             <p className="ios-subhead mt-1 font-semibold snm-num" style={{ color: marginColor }}>
               {grossMargin.toFixed(1)}% margin
             </p>
+          </div>
+        </div>
+
+        {/* Net Profit — the owner's bottom line, after all costs & expenses.
+            Matches Financials exactly (same get_pnl RPC). */}
+        <div className="flex items-baseline justify-between gap-3 mt-4 pt-4"
+          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+          <p className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>Net Profit</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-[22px] font-bold tracking-tight snm-num leading-none" style={{ color: netColor }}>
+              {mvr(netProfit)} <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+            </p>
+            {netMargin !== null && (
+              <span className="ios-subhead font-semibold snm-num" style={{ color: netColor }}>
+                {netMargin.toFixed(1)}%
+              </span>
+            )}
           </div>
         </div>
 
