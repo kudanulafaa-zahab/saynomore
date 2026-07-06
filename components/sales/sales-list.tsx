@@ -8,6 +8,7 @@ import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
   Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
+  Warehouse,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -143,6 +144,52 @@ function GlassSelect({ label, value, onChange, children }: {
         style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
       >
         {children}
+      </select>
+    </div>
+  );
+}
+
+// ── Prominent warehouse picker ────────────────────────────────────────────────
+// The godown a sale ships from decides which stock gets deducted, so a wrong
+// pick is a real operational error. This makes it impossible to skip past: a
+// brand-accented card with an icon and the chosen warehouse shown large, with
+// the native <select> laid transparently over the whole card for tapping.
+function WarehouseSelect({ value, onChange, godowns }: {
+  value: string; onChange: (v: string) => void; godowns: GodownRow[];
+}) {
+  const selected = godowns.find((g) => g.id === value);
+  return (
+    <div
+      className="relative rounded-2xl px-4 py-3.5 flex items-center gap-3.5"
+      style={{
+        background: "var(--snm-brand-muted)",
+        border: "1.5px solid var(--snm-brand-border)",
+      }}
+    >
+      <div
+        className="shrink-0 flex items-center justify-center rounded-xl"
+        style={{ width: 44, height: 44, background: "var(--snm-brand)" }}
+      >
+        <Warehouse className="h-6 w-6" style={{ color: "#fff" }} strokeWidth={2} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--snm-brand)" }}>
+          Ship from warehouse
+        </p>
+        <p className="ios-body font-bold text-foreground truncate">
+          {selected ? `${selected.name}${selected.is_default ? " (default)" : ""}` : "Tap to choose warehouse"}
+        </p>
+      </div>
+      <ChevronDown className="h-5 w-5 shrink-0" style={{ color: "var(--snm-brand)" }} />
+      {/* Transparent native select covers the card so the whole thing is tappable */}
+      <select
+        value={value} onChange={(e) => onChange(e.target.value)}
+        aria-label="Ship from warehouse"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      >
+        {godowns.map((g) => (
+          <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>
+        ))}
       </select>
     </div>
   );
@@ -1195,9 +1242,7 @@ function NewSaleSheet({
         {/* ── Step 2: Products ── */}
         {step === 2 && (
           <div className="space-y-4">
-            <GlassSelect label="Ship from warehouse" value={godownId} onChange={setGodownId}>
-              {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>)}
-            </GlassSelect>
+            <WarehouseSelect value={godownId} onChange={setGodownId} godowns={godowns} />
 
             {/* Product picker */}
             {!selectedSkuId ? (
