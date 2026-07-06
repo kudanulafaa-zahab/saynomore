@@ -30,6 +30,7 @@ import {
 } from "@/lib/queries/masters";
 import { CustomerForm } from "@/components/masters/customer-form";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { PackConfigChip } from "@/components/ui/sku-identity";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
@@ -1364,8 +1365,10 @@ function NewSaleSheet({
                           style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="min-w-0 flex-1 pr-8">
-                              <p className="ios-subhead font-semibold text-foreground truncate">{s.brand_name} · {s.model_name}</p>
-                              <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
+                              <p className="ios-subhead font-semibold text-foreground" style={{ lineHeight: 1.25, overflowWrap: "anywhere" }}>{s.brand_name} · {s.model_name} · {s.variant_display}</p>
+                              <div className="mt-1.5">
+                                <PackConfigChip pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton} />
+                              </div>
                             </div>
                             <span className="ios-subhead font-bold px-2 py-0.5 rounded shrink-0"
                               style={{ background: stock != null && stock > 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: stock != null && stock > 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
@@ -1460,14 +1463,16 @@ function NewSaleSheet({
                 <div className="space-y-3">
                   {/* ── Product identity card — always visible, never obscured ── */}
                   <div className="rounded-2xl p-4" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-3 gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[15px] font-bold text-foreground leading-tight">{selectedSku.brand_name} · {selectedSku.model_name}</p>
-                        <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>{selectedSku.variant_display}</p>
+                        <p className="font-semibold text-foreground" style={{ fontSize: 17, lineHeight: 1.25, overflowWrap: "anywhere" }}>{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
+                        <div className="mt-1.5">
+                          <PackConfigChip pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton} />
+                        </div>
                       </div>
                       <button
                         onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); setPriceManuallyEdited(false); }}
-                        className="ml-3 shrink-0 ios-subhead font-semibold px-3 h-8 rounded-lg transition active:scale-95"
+                        className="shrink-0 ios-subhead font-semibold px-3 h-8 rounded-lg transition active:scale-95"
                         style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                         Change
                       </button>

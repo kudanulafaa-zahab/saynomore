@@ -39,6 +39,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
+import { SkuIdentity } from "@/components/ui/sku-identity";
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /*  Constants                                                                  */
@@ -1454,13 +1455,13 @@ function LineDialog({
                     ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === sourceGodownId)?.qty_pieces ?? 0
                     : null;
                   return (
-                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "0.5px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{s.brand_name} › {s.model_name} › {s.variant_display}</p>
-                        <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
-                      </div>
+                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "0.5px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                      <SkuIdentity
+                        brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
+                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                      />
                       {stock !== null && (
-                        <span style={{ color: stock > 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 11, flexShrink: 0, marginLeft: 12 }}>{stock} pcs</span>
+                        <span style={{ color: stock > 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 13, flexShrink: 0 }}>{stock} pcs</span>
                       )}
                     </button>
                   );
@@ -1469,12 +1470,13 @@ function LineDialog({
             </>
           ) : sku ? (
             <div style={{ background: "var(--glass-bg-1)", borderRadius: 10, padding: "12px 14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                <div>
-                  <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600 }}>{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
-                  <p style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn</p>
-                </div>
-                <button onClick={() => setSkuId("")} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>Change</button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                <SkuIdentity
+                  brandName={sku.brand_name} modelName={sku.model_name} variantDisplay={sku.variant_display}
+                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton}
+                  size="card"
+                />
+                <button onClick={() => setSkuId("")} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 13, cursor: "pointer", flexShrink: 0 }}>Change</button>
               </div>
               {stockHere !== null && (
                 <p style={{ color: stockHere === 0 ? "var(--snm-error)" : "var(--muted-foreground)", fontSize: 11, marginTop: 6 }}>

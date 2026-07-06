@@ -26,6 +26,7 @@ import {
   type ContainerSizeHint,
 } from "@/lib/queries/shipments";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
 import { haptic } from "@/lib/haptics";
@@ -1661,12 +1662,22 @@ function LineDialog({
 }) {
   const [skuId, setSkuId]               = useState(editing?.sku_id ?? "");
   const [qtyCartons, setQtyCartons]     = useState(editing?.qty_cartons ?? 1);
-  const [fobPerCarton, setFobPerCarton] = useState(editing ? String(editing.fob_per_carton) : "");
   const [fobCurrency, setFobCurrency]   = useState<FobCurrency>(editing?.fob_currency ?? "IDR");
-  // Suppliers usually quote per pack, not per carton — this only controls what
-  // unit the typed number means; fob_per_carton is still what's stored, always
-  // converted from whichever unit the user actually typed in.
-  const [fobEntryUnit, setFobEntryUnit] = useState<"pack" | "carton">("carton");
+  // Supplier price entry ALWAYS defaults to Pack — Ali quotes per pack, so the
+  // sheet opens in pack mode every time (new lines and edits alike). The schema
+  // only stores fob_per_carton; the field shows the per-pack price and save
+  // converts back (× packs_per_carton). When editing, seed the field by dividing
+  // the stored carton value by packs_per_carton so the displayed pack price is
+  // correct on open.
+  const [fobEntryUnit, setFobEntryUnit] = useState<"pack" | "carton">("pack");
+  const [fobPerCarton, setFobPerCarton] = useState<string>(() => {
+    if (!editing) return "";
+    const editSku = skus.find((s) => s.id === editing.sku_id);
+    const ppc = editSku?.packs_per_carton ?? 0;
+    return ppc > 0
+      ? String(+(editing.fob_per_carton / ppc).toFixed(4))
+      : String(editing.fob_per_carton);
+  });
   const [saving, setSaving]             = useState(false);
   const [search, setSearch]             = useState("");
   const [showScanner, setShowScanner]   = useState(false);
@@ -1777,10 +1788,11 @@ function LineDialog({
                     <button key={s.id} onClick={() => setSkuId(s.id)}
                       className="w-full text-left px-4 py-3 transition"
                       style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}>
-                      <p className="ios-subhead font-medium text-foreground">{s.brand_name} › {s.model_name} › {s.variant_display}</p>
-                      <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                        {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · CBM {Number(s.cbm_per_carton).toFixed(4)}
-                      </p>
+                      <SkuIdentity
+                        brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
+                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                        trailing={`CBM ${Number(s.cbm_per_carton).toFixed(4)}`}
+                      />
                     </button>
                   ))
                 }
@@ -1788,13 +1800,13 @@ function LineDialog({
             </>
           ) : sku ? (
             <div className="rounded-xl p-4" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
-              <div className="flex justify-between items-start gap-2">
-                <div>
-                  <p className="ios-subhead font-semibold text-foreground">{sku.brand_name} › {sku.model_name} › {sku.variant_display}</p>
-                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn · CBM {Number(sku.cbm_per_carton).toFixed(4)}
-                  </p>
-                </div>
+              <div className="flex justify-between items-start gap-3">
+                <SkuIdentity
+                  brandName={sku.brand_name} modelName={sku.model_name} variantDisplay={sku.variant_display}
+                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton}
+                  size="card"
+                  trailing={`CBM ${Number(sku.cbm_per_carton).toFixed(4)}`}
+                />
                 <button onClick={() => setSkuId("")} className="ios-subhead shrink-0" style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}>
                   Change
                 </button>

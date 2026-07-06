@@ -24,6 +24,7 @@ import {
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
@@ -1294,21 +1295,24 @@ function PriceModal({
               <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
               <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
                 {filteredVariants.map((s) => (
-                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 ios-subhead text-foreground active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-                    <p className="font-medium">{s.brand_name} · {s.model_name} · {s.variant_display}</p>
-                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn</p>
+                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                    <SkuIdentity
+                      brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
+                      pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                    />
                   </button>
                 ))}
                 {filteredVariants.length === 0 && <p className="px-4 py-3 ios-subhead" style={{ color: "var(--muted-foreground)" }}>No matches</p>}
               </div>
             </>
           ) : selectedSku ? (
-            <div className="rounded-xl p-3 flex justify-between items-start" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-              <div>
-                <p className="ios-subhead text-foreground">{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
-                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{selectedSku.pcs_per_pack}/pk × {selectedSku.packs_per_carton}/ctn</p>
-              </div>
-              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="ios-subhead text-foreground opacity-60 active:opacity-100">Change</button>
+            <div className="rounded-xl p-3 flex justify-between items-start gap-3" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+              <SkuIdentity
+                brandName={selectedSku.brand_name} modelName={selectedSku.model_name} variantDisplay={selectedSku.variant_display}
+                pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton}
+                size="card"
+              />
+              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="ios-subhead text-foreground opacity-60 active:opacity-100 shrink-0">Change</button>
             </div>
           ) : null}
         </div>
