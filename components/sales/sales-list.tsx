@@ -20,7 +20,7 @@ const BarcodeScanner = dynamic(
   { ssr: false },
 );
 import {
-  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder, voidOrder,
+  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder, deleteSalesOrder, voidOrder,
   getTierPricesForSkus,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
 } from "@/lib/queries/sales";
@@ -214,10 +214,15 @@ export function SalesList() {
   const [newDialog, setNewDialog] = useState(false);
   const [groupBy, setGroupBy] = useState<"orders" | "customers">("orders");
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
-  // confirmDelete: true drafts only (no stock posted, plain delete is safe).
-  // confirmVoid: anything past draft — reverses FIFO stock via voidOrder(),
-  // requires a reason, matches the same flow as sale-detail.tsx.
-  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
+  // confirmDelete: permanent delete. `restoresStock` is true for active orders
+  // (their FIFO 'out' movements get reversed back to inventory by the
+  // delete_sales_order RPC); false for drafts (no stock posted) and cancelled
+  // orders (stock already restored when they were voided/cancelled). `viaRpc`
+  // decides deleteSalesOrder() (returns stock, any status) vs the plain draft
+  // deleteOrder() RLS path.
+  // confirmVoid: cancel an active order but KEEP it on record (audit trail),
+  // reversing FIFO stock via voidOrder(); requires a reason.
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string; restoresStock: boolean; viaRpc: boolean } | null>(null);
   const [confirmVoid, setConfirmVoid] = useState<{ id: string; label: string } | null>(null);
   const [voidReason, setVoidReason] = useState("");
   const [voidReasonError, setVoidReasonError] = useState(false);
@@ -448,7 +453,7 @@ export function SalesList() {
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[14px] font-semibold text-foreground">
+                      <p className="text-[14px] font-semibold text-foreground truncate">
                         {cust?.name ?? "Walk-in"}
                         <span className="ios-subhead ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
                       </p>
@@ -472,14 +477,16 @@ export function SalesList() {
                     <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
                   </div>
                 </Link>
-                {/* Delete/void button — outside the link so tap doesn't navigate.
-                    True drafts (no stock posted) can be deleted outright; anything
-                    past draft must go through voidOrder(), which reverses the FIFO
-                    stock movements before cancelling — direct delete is blocked at
-                    the RLS level for those, so this branch matters, not just UX. */}
+                {/* Row actions — outside the link so a tap doesn't navigate.
+                    • draft: plain delete (no stock posted), fast RLS path.
+                    • active (confirmed…delivered): Void keeps it on record and
+                      returns stock; Delete erases it and returns stock (RPC).
+                    • cancelled: Delete removes the stale record (stock already
+                      restored when it was cancelled). This is the affordance
+                      that was missing — cancelled orders had no way off the list. */}
                 {o.status === "draft" && canWrite && (
                   <button
-                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
+                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: false })}
                     aria-label={`Delete order ${o.order_number}`}
                     className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
                     style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
@@ -488,9 +495,29 @@ export function SalesList() {
                   </button>
                 )}
                 {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
+                  <>
+                    <button
+                      onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
+                      aria-label={`Void order ${o.order_number}`}
+                      className="h-11 px-3 rounded-2xl flex items-center justify-center shrink-0 snm-pressable ios-subhead font-semibold"
+                      style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}
+                    >
+                      Void
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: true, viaRpc: true })}
+                      aria-label={`Delete order ${o.order_number}`}
+                      className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
+                      style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+                {o.status === "cancelled" && isAdminOrManager && (
                   <button
-                    onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
-                    aria-label={`Void order ${o.order_number}`}
+                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: true })}
+                    aria-label={`Delete order ${o.order_number}`}
                     className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
                     style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                   >
@@ -585,7 +612,7 @@ export function SalesList() {
                           </Link>
                           {o.status === "draft" && canWrite && (
                             <button
-                              onClick={() => setConfirmDelete({ id: o.id, label: o.order_number })}
+                              onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: false })}
                               aria-label={`Delete order ${o.order_number}`}
                               className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
                               style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
@@ -594,9 +621,29 @@ export function SalesList() {
                             </button>
                           )}
                           {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
+                            <>
+                              <button
+                                onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
+                                aria-label={`Void order ${o.order_number}`}
+                                className="h-10 px-2.5 mr-1 rounded-xl flex items-center justify-center shrink-0 snm-pressable ios-subhead font-semibold"
+                                style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}
+                              >
+                                Void
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: true, viaRpc: true })}
+                                aria-label={`Delete order ${o.order_number}`}
+                                className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
+                                style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {o.status === "cancelled" && isAdminOrManager && (
                             <button
-                              onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
-                              aria-label={`Void order ${o.order_number}`}
+                              onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: true })}
+                              aria-label={`Delete order ${o.order_number}`}
                               className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
                               style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
                             >
@@ -628,13 +675,21 @@ export function SalesList() {
         open={confirmDelete !== null}
         onClose={() => setConfirmDelete(null)}
         title="Delete order?"
-        message={confirmDelete ? `${confirmDelete.label} will be permanently deleted.` : ""}
+        message={confirmDelete
+          ? `${confirmDelete.label} will be permanently deleted.${confirmDelete.restoresStock ? " Its stock will be returned to inventory." : ""}`
+          : ""}
         confirmLabel="Delete"
         loading={deleting}
         onConfirm={async () => {
           if (!confirmDelete) return;
           setDeleting(true);
-          try { await deleteOrder(confirmDelete.id); toast.success("Order deleted"); load(); setConfirmDelete(null); }
+          try {
+            if (confirmDelete.viaRpc) await deleteSalesOrder(confirmDelete.id);
+            else await deleteOrder(confirmDelete.id);
+            toast.success(confirmDelete.restoresStock ? "Order deleted — stock restored" : "Order deleted");
+            load();
+            setConfirmDelete(null);
+          }
           catch (e) { toast.error((e as Error).message); }
           finally { setDeleting(false); }
         }}

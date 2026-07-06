@@ -10,6 +10,7 @@ import {
   listOrderLines,
   updateOrder,
   deleteOrder,
+  deleteSalesOrder,
   createOrderLine,
   updateOrderLine,
   deleteOrderLine,
@@ -335,8 +336,13 @@ export function SaleDetail({ id }: { id: string }) {
     if (!order) return;
     setDeleting(true);
     try {
-      await deleteOrder(order.id);
-      toast.success("Order deleted");
+      // True drafts have no posted stock → fast RLS delete. Anything else
+      // (active or already-cancelled) goes through the RPC, which reverses any
+      // FIFO 'out' movements back to inventory before erasing the order.
+      const restoresStock = !isTrueDraft && !isCancelled;
+      if (isTrueDraft) await deleteOrder(order.id);
+      else await deleteSalesOrder(order.id);
+      toast.success(restoresStock ? "Order deleted — stock restored" : "Order deleted");
       router.push("/sales");
     } catch (e) { toast.error((e as Error).message); }
     finally { setDeleting(false); }
@@ -413,8 +419,28 @@ export function SaleDetail({ id }: { id: string }) {
           </button>
         )}
         {isAdminOrManager && !isTrueDraft && !isCancelled && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => { setVoidReason(""); setPanel("void"); }}
+              className="snm-pressable ios-subhead"
+              style={{ height: 44, padding: "0 14px", borderRadius: 12, background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", border: "none", color: "var(--snm-warning)", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              Void
+            </button>
+            <button
+              onClick={() => setPanel("delete")}
+              aria-label="Delete order"
+              className="snm-pressable"
+              style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              <Trash2 style={{ width: 16, height: 16 }} />
+            </button>
+          </div>
+        )}
+        {isAdminOrManager && isCancelled && (
           <button
-            onClick={() => { setVoidReason(""); setPanel("void"); }}
+            onClick={() => setPanel("delete")}
+            aria-label="Delete order"
             className="snm-pressable"
             style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
           >
@@ -965,7 +991,8 @@ export function SaleDetail({ id }: { id: string }) {
       <Sheet open={panel === "delete"} onClose={() => setPanel(null)}>
         <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Order?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
-          <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> and all its items will be permanently deleted. This cannot be undone.
+          <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> and all its items will be permanently deleted.
+          {!isTrueDraft && !isCancelled ? " Its stock will be returned to inventory." : ""} This cannot be undone.
         </p>
         <SheetActions>
           <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>

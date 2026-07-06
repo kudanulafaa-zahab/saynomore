@@ -199,6 +199,18 @@ export async function voidOrder(orderId: string, reason: string) {
   if (error) throw error;
 }
 
+/** Hard-deletes an order and returns any posted stock to inventory, in one
+ * transaction (delete_sales_order RPC, admin/manager only). Reverses the exact
+ * FIFO 'out' movements the sale created, then removes the order (lines +
+ * payments cascade). Works for draft, active, and already-cancelled orders.
+ * Blocked when payment is settled or cash was collected — those need a void +
+ * credit note, not a silent erase. Use this (not deleteOrder) whenever stock
+ * may have been posted or the order isn't a plain draft. */
+export async function deleteSalesOrder(orderId: string, reason?: string) {
+  const { error } = await supabase.rpc("delete_sales_order", { p_order_id: orderId, p_reason: reason ?? null });
+  if (error) throw error;
+}
+
 /** Edits qty/price on a line of a confirmed/picked order. Reverses the line's
  * existing FIFO stock movements and re-depletes for the new quantity, then
  * recomputes line_total_mvr / landed_cost_per_piece_mvr / actual_margin_pct in
