@@ -4,13 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Truck, CheckCircle2, Package, MapPin, Phone,
-  ChevronDown, AlertTriangle, RefreshCw, Warehouse,
+  AlertTriangle, RefreshCw, Warehouse, Navigation,
 } from "lucide-react";
 import {
   listMyDeliveries, listOrderLines, updateOrder,
   type SalesOrderRow, type SalesOrderLineRow,
 } from "@/lib/queries/sales";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
 import { withOfflineFallback } from "@/lib/offline-write";
@@ -49,6 +50,29 @@ const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
   out_for_delivery: { bg: "color-mix(in srgb, var(--snm-brand) 14%, transparent)",   text: "var(--snm-brand)"   },
   delivered:        { bg: "color-mix(in srgb, var(--snm-success) 14%, transparent)", text: "var(--snm-success)"  },
 };
+
+/* ─── delivery helpers ──────────────────────────────────────────────────── */
+
+// Full unit word so the driver never mistakes a carton for a pack at the door.
+const UOM_WORD: Record<string, string> = { carton: "carton", pack: "pack", piece: "piece" };
+function uomWord(uom: string, qty: number): string {
+  const w = UOM_WORD[uom] ?? uom;
+  return qty === 1 ? w : `${w}s`;
+}
+
+// Compose the delivery address from the order (falling back to the customer
+// profile), plus a maps deep-link so the driver gets one-tap navigation.
+function deliveryAddress(order: SalesOrderRow, customer?: CustomerRow) {
+  const line1  = order.delivery_address_line1 || customer?.address || null;
+  const line2  = order.delivery_address_line2 || null;
+  const island = order.delivery_island || customer?.island || null;
+  const parts  = [line1, line2, island].filter(Boolean) as string[];
+  const text   = parts.join(", ");
+  const mapsUrl = text
+    ? `https://maps.google.com/?q=${encodeURIComponent(text + ", Maldives")}`
+    : null;
+  return { line1, line2, island, hasAny: parts.length > 0, text, mapsUrl };
+}
 
 /* ─── bottom sheet ──────────────────────────────────────────────────────── */
 
@@ -293,84 +317,132 @@ function IssueSheet({ open, order, onClose, onDone }: {
   );
 }
 
-/* ─── detail expand (items + address) ───────────────────────────────────── */
+/* ─── items block (always on the card face) ─────────────────────────────── */
+/* This is what the driver must carry — it must never be hidden or small. Each
+   line reuses the app-wide SkuIdentity block (prominent name + pack-config
+   chip) so NB/S vs S vs a different pack-count can't be confused, with a large
+   quantity badge that spells out carton/pack/piece in full. */
 
-function OrderDetail({ lines, skus, order }: {
-  lines: SalesOrderLineRow[]; skus: SkuFullRow[]; order: SalesOrderRow;
-}) {
+function ItemsBlock({ lines, skus }: { lines: SalesOrderLineRow[]; skus: SkuFullRow[] }) {
   return (
-    <div style={{
-      borderTop: "0.5px solid var(--glass-border-lo)",
-      padding: "16px 16px 20px",
-      background: "color-mix(in srgb, var(--background) 50%, transparent)",
-    }}>
-      {/* address */}
-      {(order.delivery_address_line1 || order.delivery_address_line2) && (
-        <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 6 }}>Address</p>
-          <p style={{ fontSize: 14, color: "var(--foreground)", lineHeight: 1.5 }}>
-            {[order.delivery_address_line1, order.delivery_address_line2].filter(Boolean).join("\n")}
-          </p>
-        </div>
-      )}
-
-      {/* items */}
-      <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 8 }}>Items</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div style={{ marginBottom: 12 }}>
+      <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 8 }}>
+        {lines.length === 1 ? "Item to deliver" : `${lines.length} items to deliver`}
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {lines.map((l) => {
           const sku = skus.find((s) => s.id === l.sku_id);
-          const name = sku ? `${sku.brand_name} ${sku.model_name} ${sku.variant_display}` : l.sku_id;
-          const uomLabel = l.uom === "carton" ? "ctn" : l.uom === "pack" ? "pk" : "pc";
           return (
             <div key={l.id} style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "10px 0",
-              borderBottom: "0.5px solid var(--glass-border-lo)",
+              display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+              padding: "12px 14px", borderRadius: 14,
+              background: "var(--glass-bg-2)",
+              border: "0.5px solid var(--glass-border-lo)",
             }}>
-              <span style={{ fontSize: 14, color: "var(--foreground)", fontWeight: 500 }}>{name}</span>
-              <span style={{
-                fontSize: 14, fontWeight: 700, color: "var(--foreground)",
-                flexShrink: 0, marginLeft: 12,
-                padding: "3px 10px", borderRadius: 8,
-                background: "var(--glass-bg-2)",
+              {sku ? (
+                <SkuIdentity
+                  brandName={sku.brand_name} modelName={sku.model_name} variantDisplay={sku.variant_display}
+                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton}
+                  separator="·"
+                />
+              ) : (
+                <span style={{ fontSize: 16, color: "var(--foreground)", fontWeight: 600 }}>{l.sku_id}</span>
+              )}
+              {/* Big, unmissable quantity — the number of units to load/hand over */}
+              <div style={{
+                flexShrink: 0, textAlign: "center", minWidth: 62,
+                padding: "6px 12px", borderRadius: 12,
+                background: "var(--snm-brand-muted)",
+                border: "1px solid var(--snm-brand-border)",
               }}>
-                {l.qty} {uomLabel}
-              </span>
+                <span style={{ display: "block", fontSize: 22, fontWeight: 800, lineHeight: 1, color: "var(--snm-brand)", fontVariantNumeric: "tabular-nums" }}>
+                  {l.qty}
+                </span>
+                <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--snm-brand)", textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 2 }}>
+                  {uomWord(l.uom, l.qty)}
+                </span>
+              </div>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
 
-      {/* existing issue note — show if admin/driver has previously saved one */}
-      {order.notes && (
-        <div style={{
-          marginTop: 16, padding: "12px 14px", borderRadius: 12,
-          background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)",
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--snm-warning)", marginBottom: 4 }}>Issue note</p>
-          <p style={{ fontSize: 14, color: "var(--foreground)" }}>{order.notes}</p>
+/* ─── address block (always on the card face + one-tap navigate) ─────────── */
+
+function AddressBlock({ order, customer }: { order: SalesOrderRow; customer?: CustomerRow }) {
+  const addr = deliveryAddress(order, customer);
+  if (!addr.hasAny) return null;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 8 }}>
+        Deliver to
+      </p>
+      <div style={{
+        display: "flex", alignItems: "stretch", gap: 10,
+        padding: "12px 14px", borderRadius: 14,
+        background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)",
+      }}>
+        <MapPin size={20} style={{ color: "var(--muted-foreground)", flexShrink: 0, marginTop: 2 }} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          {(addr.line1 || addr.line2) && (
+            <p style={{ fontSize: 16, fontWeight: 600, color: "var(--foreground)", lineHeight: 1.35, margin: 0, overflowWrap: "anywhere" }}>
+              {[addr.line1, addr.line2].filter(Boolean).join(", ")}
+            </p>
+          )}
+          {addr.island && (
+            <p style={{ fontSize: 14, color: "var(--muted-foreground)", margin: "2px 0 0" }}>{addr.island}</p>
+          )}
         </div>
-      )}
+        {/* Navigate — one tap opens maps for turn-by-turn to the door (44pt) */}
+        {addr.mapsUrl && (
+          <a
+            href={addr.mapsUrl} target="_blank" rel="noopener noreferrer"
+            style={{
+              alignSelf: "center", flexShrink: 0,
+              width: 44, height: 44, borderRadius: 14, textDecoration: "none",
+              background: "color-mix(in srgb, var(--snm-info) 12%, transparent)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+            aria-label="Navigate to address"
+          >
+            <Navigation size={18} style={{ color: "var(--snm-info)" }} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── issue note (shown when present) ───────────────────────────────────── */
+
+function IssueNote({ note }: { note: string }) {
+  return (
+    <div style={{
+      marginBottom: 12, padding: "12px 14px", borderRadius: 12,
+      background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",
+      border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)",
+    }}>
+      <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--snm-warning)", marginBottom: 4 }}>Issue note</p>
+      <p style={{ fontSize: 14, color: "var(--foreground)" }}>{note}</p>
     </div>
   );
 }
 
 /* ─── delivery card ─────────────────────────────────────────────────────── */
 
-function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggle }: {
+function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
   item: OrderWithLines;
   skus: SkuFullRow[];
   onAction: (id: string, patch: Record<string, string | number | null>) => void;
   onIssue: (order: SalesOrderRow) => void;
   onCash: (order: SalesOrderRow, expected: number, customerName?: string) => void;
-  expanded: boolean;
-  onToggle: () => void;
 }) {
   const { order, lines, customer, godown } = item;
   const isCod = order.payment_status === "cod";
   const totalMvr = lines.reduce((acc, l) => acc + Number(l.line_total_mvr), 0);
-  const itemCount = lines.length;
   const sc = STATUS_COLOR[order.status] ?? { bg: "var(--glass-bg-2)", text: "var(--muted-foreground)" };
 
   return (
@@ -449,16 +521,33 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
           </div>
         )}
 
-        {/* Row 4: island + item count */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 13, color: "var(--muted-foreground)", marginBottom: 14 }}>
-          {(order.delivery_island || customer?.island) && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <MapPin size={13} />
-              {order.delivery_island || customer?.island}
+        {/* ── Items — always visible, prominent (Ali's #1: no squinting, no
+             dropdown, so the driver can't grab the wrong product) ───────── */}
+        <ItemsBlock lines={lines} skus={skus} />
+
+        {/* ── Address — always visible + one-tap navigate ──────────────── */}
+        <AddressBlock order={order} customer={customer} />
+
+        {/* ── Cash to collect (COD) — shown BEFORE pressing, so the driver
+             knows how much to bring/expect while walking up ─────────────── */}
+        {isCod && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+            marginBottom: 12, padding: "12px 14px", borderRadius: 14,
+            background: "color-mix(in srgb, var(--snm-success) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--snm-success) 22%, transparent)",
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--snm-success)" }}>
+              Cash to collect
             </span>
-          )}
-          <span>{itemCount} item{itemCount !== 1 ? "s" : ""}</span>
-        </div>
+            <span className="snm-num" style={{ fontSize: 22, fontWeight: 800, color: "var(--snm-success)", letterSpacing: "-0.02em" }}>
+              MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          </div>
+        )}
+
+        {/* ── Issue note (if previously reported) ──────────────────────── */}
+        {order.notes && <IssueNote note={order.notes} />}
 
         {/* ── Primary action button — always on face, never hidden ─────── */}
         {order.status === "confirmed" && (
@@ -554,23 +643,6 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash, expanded, onToggl
           </div>
         )}
       </div>
-
-      {/* ── Expand toggle (items + address detail) ──────────────────────── */}
-      <button
-        onClick={onToggle}
-        style={{
-          width: "100%", height: 44, border: "none", cursor: "pointer",
-          borderTop: "0.5px solid var(--glass-border-lo)",
-          background: "color-mix(in srgb, var(--background) 30%, transparent)",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          color: "var(--muted-foreground)", fontSize: 12, fontWeight: 600,
-        }}
-      >
-        {expanded ? "Hide details" : "Show items & address"}
-        <ChevronDown size={14} style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-      </button>
-
-      {expanded && <OrderDetail lines={lines} skus={skus} order={order} />}
     </div>
   );
 }
@@ -582,7 +654,6 @@ export function MyDeliveries() {
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
 
   const [cashSheet, setCashSheet] = useState<{ open: boolean; order?: SalesOrderRow; customerName?: string; expected: number }>({ open: false, expected: 0 });
   const [issueSheet, setIssueSheet] = useState<{ open: boolean; order?: SalesOrderRow }>({ open: false });
@@ -752,8 +823,6 @@ export function MyDeliveries() {
             key={item.order.id}
             item={item}
             skus={skus}
-            expanded={expanded === item.order.id}
-            onToggle={() => setExpanded(expanded === item.order.id ? null : item.order.id)}
             onAction={handleAction}
             onIssue={(order) => setIssueSheet({ open: true, order })}
             onCash={(order, expected, customerName) => setCashSheet({ open: true, order, expected, customerName })}
