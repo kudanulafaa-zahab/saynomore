@@ -1317,9 +1317,12 @@ function NewSkuWizard({
   existingSkus: SkuFullRow[];
   onSaved: () => void;
 }) {
-  // Lock the page behind the dialog so it can't scroll through on iOS (the
-  // page text was visibly scrolling behind the keyboard accessory bar).
-  useBodyScrollLock(open);
+  // NOTE: do NOT call useBodyScrollLock here. This dialog uses the Base-UI
+  // <Dialog>, which already locks page scroll on open and restores it on close.
+  // Adding our own manual lock stacked a second lock whose cleanup restored the
+  // body to Base-UI's *already-locked* styles (position:fixed/overflow:hidden),
+  // leaving the whole app frozen after Cancel. The edit dialogs (same <Dialog>)
+  // never added the manual hook and work correctly — match that.
 
   // ── Identity fields (typed inline, not selected from a list first)
   const [brandInput,  setBrandInput]  = useState("");   // typed name or selected name
