@@ -294,6 +294,87 @@ export interface TierPrice {
   price_list_date:      string | null; // ISO date YYYY-MM-DD
 }
 
+/**
+ * Price provenance — plain-English answer to "where did this price come from?"
+ * for the salesperson at point of sale. The price itself is always computed in
+ * Postgres (get_tier_prices_for_skus / v_skus); this only CLASSIFIES an already-
+ * derived number, it never recomputes the selling price. It does derive a display
+ * margin % and a floor warning (below cost / below target margin) from the same
+ * PG-computed cost — a read-only sanity check, not a pricing calculation.
+ *
+ * The three sources mirror the RPC's enum exactly (no invented categories):
+ *   price_list  → a set price from your price list (also where volume breaks live)
+ *   sku_default → the product's fixed selling price
+ *   margin      → auto-calculated from landed cost to hit a target margin
+ */
+export type PriceSource = "price_list" | "sku_default" | "margin";
+
+export interface PriceProvenance {
+  source:      PriceSource | null;
+  label:       string;              // short tag, e.g. "List", "Fixed", "Margin 32%"
+  detail:      string | null;       // secondary line for the editor, e.g. "Retail · Jul 2026"
+  marginPct:   number | null;       // live margin of the shown price vs landed cost
+  belowCost:   boolean;             // price ≤ landed cost (selling at a loss)
+  belowTarget: boolean;             // margin below the SKU's target_margin_pct
+}
+
+function fmtListDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-MV", { month: "short", year: "numeric" });
+}
+
+/**
+ * Classify a per-piece selling price against its source + the SKU's cost/target.
+ * `pricePerPiece` is the shown price normalised to one piece (so margin math is
+ * unit-agnostic). Pass the tier-price source when one applied, else null → falls
+ * back to the SKU's own fixed/margin basis.
+ */
+export function describePriceSource(opts: {
+  source:            PriceSource | null;
+  priceListName?:    string | null;
+  priceListDate?:    string | null;
+  pricePerPiece:     number | null;
+  landedPerPiece:    number | null;
+  targetMarginPct:   number | null;
+}): PriceProvenance {
+  const { source, priceListName, priceListDate, pricePerPiece, landedPerPiece, targetMarginPct } = opts;
+
+  // Live margin of the shown price (display only — price already set in PG).
+  const marginPct =
+    pricePerPiece != null && pricePerPiece > 0 && landedPerPiece != null
+      ? ((pricePerPiece - landedPerPiece) / pricePerPiece) * 100
+      : null;
+
+  const belowCost = pricePerPiece != null && landedPerPiece != null && pricePerPiece <= landedPerPiece;
+  const belowTarget =
+    marginPct != null && targetMarginPct != null && targetMarginPct > 0
+      ? marginPct < targetMarginPct - 0.5 // small tolerance for rounding
+      : false;
+
+  if (source === "price_list") {
+    const dt = fmtListDate(priceListDate ?? null);
+    return {
+      source, label: "List",
+      detail: [priceListName, dt].filter(Boolean).join(" · ") || "Price list",
+      marginPct, belowCost, belowTarget,
+    };
+  }
+  if (source === "sku_default") {
+    return { source, label: "Fixed", detail: "Fixed selling price", marginPct, belowCost, belowTarget };
+  }
+  if (source === "margin") {
+    const m = marginPct != null ? ` ${Math.round(marginPct)}%` : "";
+    return {
+      source, label: `Margin${m}`,
+      detail: landedPerPiece != null ? `From cost + ${targetMarginPct ?? Math.round(marginPct ?? 0)}% margin` : "From cost + margin",
+      marginPct, belowCost, belowTarget,
+    };
+  }
+  return { source: null, label: "", detail: null, marginPct, belowCost, belowTarget };
+}
+
 /** Fetch tier-aware prices for a batch of SKU IDs. Returns a map sku_id → TierPrice. */
 export async function getTierPricesForSkus(
   skuIds: string[],

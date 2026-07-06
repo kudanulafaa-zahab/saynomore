@@ -30,9 +30,9 @@ import {
 } from "@/lib/queries/masters";
 import { CustomerForm } from "@/components/masters/customer-form";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
-import { SkuIdentity } from "@/components/ui/sku-identity";
+import { SkuIdentity, PriceSourceTag } from "@/components/ui/sku-identity";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
-import { toPieces } from "@/lib/queries/sales";
+import { toPieces, describePriceSource } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
@@ -1350,6 +1350,22 @@ function NewSaleSheet({
                       : (cardUom === "carton" ? s.selling_price_per_carton_mvr : s.selling_price_per_pack_mvr);
                     const cardUomLabel = cardUom === "carton" ? "carton" : pl.toLowerCase();
                     const hasPrice = cardPrice != null;
+
+                    // Where did this price come from? Classify against the same
+                    // source the RPC resolved + the SKU's cost/target so the
+                    // salesperson never sells on a mystery number. Normalise the
+                    // shown price to per-piece so margin math is unit-agnostic.
+                    const cardPricePerPiece = cardPrice == null ? null
+                      : cardUom === "carton" ? cardPrice / (s.pcs_per_pack * s.packs_per_carton)
+                      : cardPrice / s.pcs_per_pack;
+                    const cardProvenance = describePriceSource({
+                      source: tp ? tp.source : (s.fixed_selling_price_mvr != null ? "sku_default" : (s.target_margin_pct ? "margin" : null)),
+                      priceListName: tp?.price_list_name,
+                      priceListDate: tp?.price_list_date,
+                      pricePerPiece: cardPricePerPiece,
+                      landedPerPiece: s.landed_per_piece_mvr,
+                      targetMarginPct: s.target_margin_pct,
+                    });
                     const inCart = draftLines.filter((l) => l.sku.id === s.id).reduce((a, l) => a + l.qty, 0);
 
                     // Work & Co: quick-add adds 1 unit of the default UOM directly to cart.
@@ -1409,11 +1425,16 @@ function NewSaleSheet({
                           {/* Price + availability — one neutral row, one accent only */}
                           <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1 }}>
                             <div className="min-w-0">
-                              <div className="flex items-baseline gap-1.5">
+                              <div className="flex items-baseline gap-1.5 flex-wrap">
                                 <span className="font-semibold" style={{ fontSize: 22, letterSpacing: "-0.02em", color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
                                   {hasPrice ? cardPrice!.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "No GRN"}
                                 </span>
                                 {hasPrice && <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
+                                {hasPrice && cardProvenance.source && (
+                                  <span className="ml-0.5" style={{ position: "relative", top: 1 }}>
+                                    <PriceSourceTag provenance={cardProvenance} />
+                                  </span>
+                                )}
                               </div>
                               <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                                 {outOfStock ? "Out of stock" : (stockLabel ?? " ")}
@@ -1471,20 +1492,22 @@ function NewSaleSheet({
               const margin = (costForUom != null && !isNaN(priceVal) && priceVal > 0)
                 ? ((priceVal - costForUom) / priceVal) * 100 : null;
 
-              // Price badge
-              const priceBadge = linePrice && !priceManuallyEdited && autoPriceSource === "price_list"
-                ? { label: orderTier.toUpperCase(), color: "var(--snm-brand)", bg: "color-mix(in srgb, var(--snm-brand) 15%, transparent)" }
-                : linePrice && !priceManuallyEdited && autoPriceSource === "sku_default"
-                  ? { label: "AUTO", color: "var(--snm-success)", bg: "color-mix(in srgb, var(--snm-success) 15%, transparent)" }
-                  : linePrice && priceManuallyEdited
-                    ? { label: "MANUAL", color: "var(--snm-warning)", bg: "color-mix(in srgb, var(--snm-warning) 15%, transparent)" }
-                    : null;
-
-              // Price list source info
+              // Price provenance — SAME classifier as the grid, so the tag the
+              // salesperson saw while scanning matches what they see in the editor.
+              // When the user has manually overridden the price, that's its own
+              // state ("Edited") — provenance no longer describes an auto source.
               const tp = tierPrices.get(selectedSku.id);
-              const priceListInfo = (!priceManuallyEdited && autoPriceSource === "price_list" && tp?.price_list_name)
-                ? `${tp.price_list_name}${tp.price_list_date ? " · " + new Date(tp.price_list_date).toLocaleDateString("en-MV", { month: "short", year: "numeric" }) : ""}`
+              const editorPricePerPiece = !isNaN(priceVal) && priceVal > 0
+                ? priceVal / (lineUom === "carton" ? selectedSku.pcs_per_pack * selectedSku.packs_per_carton : lineUom === "pack" ? selectedSku.pcs_per_pack : 1)
                 : null;
+              const editorProvenance = describePriceSource({
+                source: priceManuallyEdited ? null : autoPriceSource,
+                priceListName: tp?.price_list_name,
+                priceListDate: tp?.price_list_date,
+                pricePerPiece: editorPricePerPiece,
+                landedPerPiece: selectedSku.landed_per_piece_mvr,
+                targetMarginPct: selectedSku.target_margin_pct,
+              });
 
               return (
                 <div className="space-y-3">
@@ -1660,11 +1683,13 @@ function NewSaleSheet({
                     <div className="rounded-2xl p-4" style={{ ...CARD, border: hasNoPrice ? "1px solid color-mix(in srgb, var(--snm-warning) 40%, transparent)" : "0.5px solid var(--glass-border-lo)" }}>
                       <p className="text-[12px] uppercase tracking-widest mb-3 font-semibold flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
                         MVR / {uomLabel}
-                        {priceBadge && (
-                          <span className="ios-subhead px-1.5 py-0.5 rounded font-bold" style={{ background: priceBadge.bg, color: priceBadge.color }}>
-                            {priceBadge.label}
+                        {priceManuallyEdited && linePrice ? (
+                          <span className="ios-subhead px-1.5 py-0.5 rounded font-semibold" style={{ background: "var(--snm-brand-muted)", color: "var(--snm-brand)" }}>
+                            Edited
                           </span>
-                        )}
+                        ) : editorProvenance.source ? (
+                          <PriceSourceTag provenance={editorProvenance} size="md" />
+                        ) : null}
                       </p>
                       {/* Single input — no autoFocus, displays cleanly, editable on tap */}
                       <input
@@ -1676,9 +1701,14 @@ function NewSaleSheet({
                         className="w-full text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
                         style={{ minWidth: 0 }}
                       />
-                      {priceListInfo && (
+                      {!priceManuallyEdited && editorProvenance.source && editorProvenance.detail && (
                         <p className="ios-subhead text-center mt-1 leading-tight" style={{ color: "var(--muted-foreground)" }}>
-                          {priceListInfo}
+                          {editorProvenance.detail}
+                          {/* Append the live margin only for List/Fixed — the Margin
+                              source already states its % in the detail line. */}
+                          {editorProvenance.source !== "margin" && editorProvenance.marginPct != null && !editorProvenance.belowCost && (
+                            <> · {Math.round(editorProvenance.marginPct)}% margin</>
+                          )}
                         </p>
                       )}
                       {priceWarning && (

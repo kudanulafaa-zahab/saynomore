@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { AlertTriangle } from "lucide-react";
+import type { PriceProvenance } from "@/lib/queries/sales";
 
 /*
  * Sku identity block — the anti-wrong-pick display used in EVERY product picker
@@ -109,5 +111,48 @@ export function SkuIdentity({
         )}
       </div>
     </div>
+  );
+}
+
+/*
+ * Price provenance tag — tells the salesperson WHERE the shown price came from,
+ * so nobody sells on a mystery number. Neutral by default (stays inside the
+ * grid's 3-colour budget); turns warning-red ONLY when the price is below cost
+ * or below the SKU's target margin — the one case where colour must interrupt.
+ *
+ * `size` = "sm" for the grid card, "md" for the detail editor (which also shows
+ * the `.detail` line separately).
+ */
+export function PriceSourceTag({
+  provenance,
+  size = "sm",
+}: {
+  provenance: PriceProvenance;
+  size?: "sm" | "md";
+}) {
+  if (!provenance.source) return null;
+  const warn = provenance.belowCost || provenance.belowTarget;
+  const fs = size === "md" ? 13 : 12;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: size === "md" ? "3px 9px" : "2px 8px",
+        borderRadius: 7,
+        fontSize: fs,
+        fontWeight: 600,
+        lineHeight: 1.2,
+        whiteSpace: "nowrap",
+        color: warn ? "var(--snm-error)" : "var(--muted-foreground)",
+        background: warn
+          ? "color-mix(in srgb, var(--snm-error) 12%, transparent)"
+          : "var(--secondary)",
+      }}
+    >
+      {warn && <AlertTriangle size={fs - 1} strokeWidth={2.5} style={{ flexShrink: 0 }} />}
+      {provenance.belowCost ? "Below cost" : provenance.label}
+    </span>
   );
 }
