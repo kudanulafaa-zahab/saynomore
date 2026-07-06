@@ -5,8 +5,9 @@ import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Loader2, Search, X, ChevronRight,
-  Package, Check, SlidersHorizontal, Pencil,
+  Package, Check, SlidersHorizontal, Pencil, ScanLine,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,13 @@ import {
 } from "./edit-dialogs";
 import { haptic } from "@/lib/haptics";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+
+// Camera barcode scanner — same component used in Sales & Shipments. Lazy-loaded
+// because it pulls in the heavy @zxing decoding library only when opened.
+const BarcodeScanner = dynamic(
+  () => import("@/components/ui/barcode-scanner").then((m) => m.BarcodeScanner),
+  { ssr: false }
+);
 
 /* ── Attr metadata ── */
 
@@ -1327,9 +1335,9 @@ function NewSkuWizard({
   const [lenCm, setLenCm] = useState("");
   const [widCm, setWidCm] = useState("");
   const [htCm,  setHtCm]  = useState("");
-  const [wgtKg, setWgtKg] = useState("");
   const [code,       setCode]       = useState("");
   const [barcode,    setBarcode]    = useState("");
+  const [showScanner, setShowScanner] = useState(false);
   const [marginPct,       setMarginPct]       = useState("");
   const [fixedPrice,      setFixedPrice]      = useState("");
   const [fixedPackPrice,  setFixedPackPrice]  = useState("");
@@ -1408,7 +1416,6 @@ function NewSkuWizard({
       setLenCm(String(sib.carton_length_cm));
       setWidCm(String(sib.carton_width_cm));
       setHtCm(String(sib.carton_height_cm));
-      if (sib.carton_weight_kg) setWgtKg(String(sib.carton_weight_kg));
     }
   }, [modelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1426,10 +1433,10 @@ function NewSkuWizard({
     setModelInput(""); setModelId(""); setCategoryId("");
     setVariantAttrs({});
     setPcsPerPack(""); setPacksPerCtn("");
-    setLenCm(""); setWidCm(""); setHtCm(""); setWgtKg("");
+    setLenCm(""); setWidCm(""); setHtCm("");
     setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice(""); setFixedEntryUnit("bottle");
     setSellUnits(["pack", "carton"]); setSellUnitsTouched(false);
-    setShowOptional(false);
+    setShowOptional(false); setShowScanner(false);
     setLocalBrands([]); setLocalModels([]); setLocalCategories([]); setDeletedCategoryIds(new Set()); setDeletedModelIds(new Set());
   }
 
@@ -1491,7 +1498,6 @@ function NewSkuWizard({
         carton_length_cm: parseFloat(lenCm),
         carton_width_cm: parseFloat(widCm),
         carton_height_cm: parseFloat(htCm),
-        carton_weight_kg: wgtKg ? parseFloat(wgtKg) : null,
         sellable_units: sellUnits,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         // fixed_selling_price_mvr is always stored per-piece.
@@ -2047,17 +2053,22 @@ function NewSkuWizard({
             </button>
 
             {showOptional && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="ios-subhead">Weight (kg)</Label>
-                  <input type="number" inputMode="decimal" step="0.01"
-                    value={wgtKg} onChange={(e) => setWgtKg(e.target.value)}
-                    placeholder="Optional" style={inp} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="ios-subhead">Supplier barcode</Label>
+              <div className="space-y-1.5">
+                <Label className="ios-subhead">Supplier barcode</Label>
+                <div className="flex items-center gap-2">
                   <input value={barcode} onChange={(e) => setBarcode(e.target.value)}
-                    placeholder="Optional" style={inp} />
+                    placeholder="Type or scan" inputMode="numeric"
+                    style={{ ...inp, flex: 1 }} />
+                  <button
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    aria-label="Scan supplier barcode"
+                    className="snm-pressable shrink-0"
+                    style={{ width: 48, height: 48, borderRadius: 14, background: "var(--snm-brand)",
+                      display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}
+                  >
+                    <ScanLine className="h-5 w-5" style={{ color: "#fff" }} />
+                  </button>
                 </div>
               </div>
             )}
@@ -2079,6 +2090,15 @@ function NewSkuWizard({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Camera barcode scanner — fills the Supplier barcode field on a hit. */}
+      {showScanner && (
+        <BarcodeScanner
+          hint="Scan supplier barcode"
+          onResult={(code) => { setBarcode(code); setShowScanner(false); haptic("success"); }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
 
       {/* Model delete confirm */}
       <ConfirmSheet
