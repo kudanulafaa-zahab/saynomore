@@ -30,7 +30,7 @@ import {
 } from "@/lib/queries/masters";
 import { CustomerForm } from "@/components/masters/customer-form";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
-import { PackConfigChip } from "@/components/ui/sku-identity";
+import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
@@ -831,9 +831,21 @@ function NewSaleSheet({
   const filteredSkus = useMemo(() => {
     const term = skuSearch.trim().toLowerCase();
     const active = skus.filter((s) => s.is_active);
-    if (!term) return active.slice(0, 40);
-    return active.filter((s) => [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""].join(" ").toLowerCase().includes(term)).slice(0, 40);
-  }, [skus, skuSearch]);
+    const matched = term
+      ? active.filter((s) => [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""].join(" ").toLowerCase().includes(term))
+      : active;
+    // Sell what you have: order by real availability in the chosen warehouse.
+    // In-stock first, then out-of-stock demoted to the bottom (dimmed in the UI,
+    // not hidden — Ali still needs to see a product exists even at zero stock).
+    const stockFor = (s: SkuFullRow) =>
+      godownId ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0 : 1;
+    const ranked = [...matched].sort((a, b) => {
+      const sa = stockFor(a) > 0 ? 1 : 0;
+      const sb = stockFor(b) > 0 ? 1 : 0;
+      return sb - sa; // in-stock (1) before out-of-stock (0); stable otherwise
+    });
+    return ranked.slice(0, 40);
+  }, [skus, skuSearch, godownId, stockLevels]);
 
   const stockHere = selectedSku && godownId
     ? stockLevels.find((l) => l.sku_id === selectedSku.id && l.godown_id === godownId)?.qty_pieces ?? 0
@@ -1358,60 +1370,75 @@ function NewSaleSheet({
                       toast.success(`${s.brand_name} ${s.variant_display} added`);
                     }
 
+                    const outOfStock = stock != null && stock <= 0;
+                    // Human-readable available quantity in the card's default unit.
+                    const stockLabel = stock == null ? null : (() => {
+                      const dUom = defaultUom(s);
+                      if (dUom === "carton" && s.pcs_per_pack > 0 && s.packs_per_carton > 0) {
+                        const cartons = Math.floor(stock / (s.pcs_per_pack * s.packs_per_carton));
+                        return cartons > 0 ? `${cartons} ctn in stock` : "< 1 ctn in stock";
+                      }
+                      if (s.pcs_per_pack > 0) {
+                        const packs = Math.floor(stock / s.pcs_per_pack);
+                        const pll = packLabel(s).toLowerCase();
+                        return packs > 0 ? `${packs} ${pll}s in stock` : `< 1 ${pll} in stock`;
+                      }
+                      return `${stock} pcs in stock`;
+                    })();
+
                     return (
                       <div key={s.id} className="relative">
                         <button onClick={() => setSelectedSkuId(s.id)}
-                          className="w-full rounded-xl p-4 text-left transition active:scale-[0.98]"
-                          style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="min-w-0 flex-1 pr-8">
-                              <p className="ios-subhead font-semibold text-foreground" style={{ lineHeight: 1.25, overflowWrap: "anywhere" }}>{s.brand_name} · {s.model_name} · {s.variant_display}</p>
-                              <div className="mt-1.5">
-                                <PackConfigChip pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton} />
-                              </div>
-                            </div>
-                            <span className="ios-subhead font-bold px-2 py-0.5 rounded shrink-0"
-                              style={{ background: stock != null && stock > 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: stock != null && stock > 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-                              {stock != null ? (() => {
-                                const dUom = defaultUom(s);
-                                if (dUom === "carton" && s.pcs_per_pack > 0 && s.packs_per_carton > 0) {
-                                  const cartons = Math.floor(stock / (s.pcs_per_pack * s.packs_per_carton));
-                                  return cartons > 0 ? `${cartons} ctn` : "< 1 ctn";
-                                }
-                                if (s.pcs_per_pack > 0) {
-                                  const packs = Math.floor(stock / s.pcs_per_pack);
-                                  return packs > 0 ? `${packs} ${packLabel(s).toLowerCase()}s` : `< 1 ${packLabel(s).toLowerCase()}`;
-                                }
-                                return `${stock} pcs`;
-                              })() : "—"}
-                            </span>
+                          disabled={outOfStock}
+                          className="w-full rounded-2xl p-4 text-left transition active:scale-[0.98]"
+                          style={{
+                            ...CARD,
+                            border: "0.5px solid var(--glass-border-lo)",
+                            cursor: outOfStock ? "default" : "pointer",
+                          }}>
+                          {/* Identity — same block as every other picker in the app */}
+                          <div className="pr-9">
+                            <SkuIdentity
+                              brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
+                              pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                              separator="·"
+                              dimmed={outOfStock}
+                            />
                           </div>
-                          <div className="flex items-baseline justify-between gap-1">
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-[20px] font-semibold" style={{ color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)" }}>
-                                {hasPrice ? cardPrice!.toFixed(0) : "No GRN"}
-                              </span>
-                              {hasPrice && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
+
+                          {/* Price + availability — one neutral row, one accent only */}
+                          <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1 }}>
+                            <div className="min-w-0">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="font-semibold" style={{ fontSize: 22, letterSpacing: "-0.02em", color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
+                                  {hasPrice ? cardPrice!.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "No GRN"}
+                                </span>
+                                {hasPrice && <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
+                              </div>
+                              <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                                {outOfStock ? "Out of stock" : (stockLabel ?? " ")}
+                              </p>
                             </div>
                             {inCart > 0 && (
-                              <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand)" }}>
-                                ×{inCart} in cart
+                              <span className="ios-footnote font-semibold shrink-0 px-2 py-0.5 rounded-full"
+                                style={{ color: "var(--snm-brand)", background: "var(--snm-brand-muted)" }}>
+                                {inCart} in cart
                               </span>
                             )}
                           </div>
                         </button>
-                        {/* Quick-add button — Work & Co progressive disclosure:
-                            tap + to add 1 unit instantly; tap card to customise */}
-                        {hasPrice && stock !== 0 && (
+                        {/* Quick-add — the single brand accent, present only when sellable */}
+                        {hasPrice && !outOfStock && (
                           <button
                             onClick={handleQuickAdd}
-                            className="absolute bottom-3 right-3 h-8 w-8 rounded-full flex items-center justify-center transition active:scale-90"
+                            className="absolute bottom-4 right-4 h-9 w-9 rounded-full flex items-center justify-center transition active:scale-90"
                             style={{
-                              background: "var(--foreground)",
-                              color: "var(--background)",
-                              fontSize: 18,
-                              fontWeight: 700,
+                              background: "var(--snm-brand)",
+                              color: "#fff",
+                              fontSize: 20,
+                              fontWeight: 500,
                               lineHeight: 1,
+                              boxShadow: "0 2px 10px color-mix(in srgb, var(--snm-brand) 35%, transparent)",
                             }}
                             aria-label={`Quick add ${s.brand_name} ${s.variant_display}`}
                           >
@@ -1464,12 +1491,12 @@ function NewSaleSheet({
                   {/* ── Product identity card — always visible, never obscured ── */}
                   <div className="rounded-2xl p-4" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
                     <div className="flex items-start justify-between mb-3 gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-foreground" style={{ fontSize: 17, lineHeight: 1.25, overflowWrap: "anywhere" }}>{selectedSku.brand_name} · {selectedSku.model_name} · {selectedSku.variant_display}</p>
-                        <div className="mt-1.5">
-                          <PackConfigChip pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton} />
-                        </div>
-                      </div>
+                      <SkuIdentity
+                        brandName={selectedSku.brand_name} modelName={selectedSku.model_name} variantDisplay={selectedSku.variant_display}
+                        pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton}
+                        separator="·"
+                        size="card"
+                      />
                       <button
                         onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); setPriceManuallyEdited(false); }}
                         className="shrink-0 ios-subhead font-semibold px-3 h-8 rounded-lg transition active:scale-95"

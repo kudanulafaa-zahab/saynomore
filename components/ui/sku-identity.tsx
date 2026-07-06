@@ -3,17 +3,22 @@
 import React from "react";
 
 /*
- * Sku identity block — the anti-wrong-pick display used in every product picker.
+ * Sku identity block — the anti-wrong-pick display used in EVERY product picker
+ * across the app (shipments, sales list, sale detail, competitors). One block,
+ * one visual language everywhere.
  *
  * Ali's rule: when two SKUs are the same product but differ only by pack count
  * (e.g. 38/pk vs 42/pk), it's dangerously easy to tap the wrong one. So the
- * pack config is NOT a muted subtitle here — it's a solid high-contrast chip
- * right under the name, the second thing the eye lands on. The product name is
- * still the largest element and is allowed to wrap (never truncate a name, since
- * a cut-off name is exactly how you pick wrong).
+ * pack config is NOT a muted subtitle — it's a solid chip right under the name,
+ * the second thing the eye lands on. The product name is still the largest
+ * element and always wraps (never truncate a name — a cut-off name is exactly
+ * how you pick wrong).
  *
- * Deliberately overrides the generic "secondary data stays small/muted" rule:
- * for this operator, pack config is a primary safety signal, not a caption.
+ * Colour discipline (Apple HIG minimalist, max 3 colours, mode-matched):
+ *   • --foreground       neutral text (name)            — adapts light/dark
+ *   • --muted-foreground neutral secondary (chip text)  — adapts light/dark
+ *   • the parent card owns the single accent (brand) for the active state only.
+ * The chip itself uses only neutral tokens so it reads as structure, not alarm.
  */
 
 export function PackConfigChip({
@@ -33,15 +38,15 @@ export function PackConfigChip({
         alignItems: "center",
         alignSelf: "flex-start",
         padding: "3px 9px",
-        borderRadius: 8,
+        borderRadius: 7,
         fontSize: 13,
-        fontWeight: 700,
+        fontWeight: 600,
         lineHeight: 1.2,
         letterSpacing: "0.01em",
         color: "var(--foreground)",
-        background: "var(--glass-2)",
-        border: "0.5px solid var(--glass-border)",
+        background: "var(--secondary)",
         whiteSpace: "nowrap",
+        fontVariantNumeric: "tabular-nums",
       }}
     >
       {pcsPerPack}/pk × {packsPerCarton}/ctn
@@ -51,9 +56,13 @@ export function PackConfigChip({
 
 /*
  * Full identity block: prominent wrapping name + pack chip beneath.
- * `size` = "row" for list rows (name 15px), "card" for the selected-SKU
- * confirmation card (name 17px, the biggest it ever needs to be).
- * `trailing` renders inline after the chip on the same row (e.g. CBM, stock).
+ * `size`      — "row" (name 16px) for list rows, "card" (name 17px) for the
+ *               selected-SKU confirmation card.
+ * `separator` — "›" (default, hierarchy pickers) or "·" (flat product cards).
+ * `trailing`  — inline node after the chip (e.g. CBM, stock count).
+ * `dimmed`    — de-emphasise the whole block (used for out-of-stock items that
+ *               are demoted but still shown). Keeps us to 3 colours: unavailable
+ *               is signalled by lowered opacity, not by adding a 4th hue.
  */
 export function SkuIdentity({
   brandName,
@@ -62,7 +71,9 @@ export function SkuIdentity({
   pcsPerPack,
   packsPerCarton,
   size = "row",
+  separator = "›",
   trailing,
+  dimmed = false,
 }: {
   brandName: string;
   modelName: string;
@@ -70,11 +81,13 @@ export function SkuIdentity({
   pcsPerPack: number;
   packsPerCarton: number;
   size?: "row" | "card";
+  separator?: "›" | "·";
   trailing?: React.ReactNode;
+  dimmed?: boolean;
 }) {
-  const nameSize = size === "card" ? 17 : 15;
+  const nameSize = size === "card" ? 17 : 16;
   return (
-    <div style={{ minWidth: 0 }}>
+    <div style={{ minWidth: 0, opacity: dimmed ? 0.45 : 1 }}>
       <p
         style={{
           color: "var(--foreground)",
@@ -82,9 +95,10 @@ export function SkuIdentity({
           fontWeight: 600,
           lineHeight: 1.25,
           overflowWrap: "anywhere",
+          letterSpacing: "-0.01em",
         }}
       >
-        {brandName} › {modelName} › {variantDisplay}
+        {brandName} {separator} {modelName} {separator} {variantDisplay}
       </p>
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
         <PackConfigChip pcsPerPack={pcsPerPack} packsPerCarton={packsPerCarton} />
