@@ -573,9 +573,13 @@
 
   /* ── Typography ── */
   .label-caps {
-    font-size:      11px;
+    /* Uppercase tracked captions read visually smaller than their point size,
+       and this class labels real content (section headers, "PICK UP FROM",
+       nav). Bumped 11→12px for comfortable Retina reading; tracking slightly
+       reduced so the wider glyphs don't overflow tight rows. */
+    font-size:      12px;
     font-weight:    700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
   .label-md {

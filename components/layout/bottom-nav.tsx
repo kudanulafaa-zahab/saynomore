@@ -66,12 +66,12 @@ export function BottomNav({ role }: { role: string }) {
                   >
                     <Icon className="h-[17px] w-[17px]" style={{ color: "var(--snm-brand-on)", strokeWidth: 2.2 }} />
                   </div>
-                  <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 11 }}>{item.label}</span>
+                  <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 12 }}>{item.label}</span>
                 </>
               ) : (
                 <>
                   <Icon className="h-[22px] w-[22px]" style={{ color: "var(--muted-foreground)", strokeWidth: 1.6 }} />
-                  <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>{item.label}</span>
+                  <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{item.label}</span>
                 </>
               )}
             </Link>
@@ -93,12 +93,12 @@ export function BottomNav({ role }: { role: string }) {
                 >
                   <MoreHorizontal className="h-[17px] w-[17px]" style={{ color: "var(--snm-brand-on)", strokeWidth: 2.2 }} />
                 </div>
-                <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 11 }}>More</span>
+                <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 12 }}>More</span>
               </>
             ) : (
               <>
                 <MoreHorizontal className="h-[22px] w-[22px]" style={{ color: "var(--muted-foreground)", strokeWidth: 1.6 }} />
-                <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 11 }}>More</span>
+                <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 12 }}>More</span>
               </>
             )}
           </button>
