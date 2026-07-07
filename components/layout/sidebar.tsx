@@ -50,14 +50,16 @@ export function Sidebar({ role }: { role: string }) {
         style={{ height: 52, borderBottom: "0.5px solid var(--glass-border-lo)" }}
       >
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center ios-subhead font-bold shrink-0"
-            style={{ background: "var(--snm-brand)", color: "var(--snm-brand-on)" }}
-          >
-            S
-          </div>
+          <img
+            src="/icon.svg"
+            alt="SayNoMore"
+            width={28}
+            height={28}
+            className="w-7 h-7 rounded-lg shrink-0"
+            style={{ objectFit: "cover" }}
+          />
           <div className="leading-tight">
-            <p className="ios-subhead font-semibold text-foreground">SayNoMore</p>
+            <p className="snm-wordmark text-[15px] text-foreground">saynomore</p>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>FMCG Ops</p>
           </div>
         </div>

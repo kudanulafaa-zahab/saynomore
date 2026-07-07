@@ -138,14 +138,16 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
       <div className="w-full max-w-md p-10 space-y-7 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
         <div className="space-y-3 text-center">
-          <div
-            className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
-            style={{ background: "var(--snm-brand)", boxShadow: "0 8px 32px color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
-          >
-            <span className="text-xl font-bold" style={{ color: "var(--snm-brand-on)" }}>S</span>
-          </div>
+          <img
+            src="/icon.svg"
+            alt="SayNoMore"
+            width={56}
+            height={56}
+            className="mx-auto h-14 w-14 rounded-2xl"
+            style={{ objectFit: "cover", boxShadow: "0 8px 32px color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
+          />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>SayNoMore</h1>
+            <h1 className="snm-wordmark text-2xl" style={{ color: "var(--foreground)" }}>saynomore</h1>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Sign in to continue</p>
           </div>
         </div>

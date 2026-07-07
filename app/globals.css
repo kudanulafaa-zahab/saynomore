@@ -593,6 +593,15 @@
     line-height:    40px;
     letter-spacing: -0.03em;
   }
+  /* Wordmark — matches the brand SVG (snmname.svg): lowercase "saynomore" set in
+     a geometric double-story face (the app already ships Plus Jakarta Sans,
+     whose "a" matches the Gellix reference), SemiBold with slight negative
+     tracking so it reads as one solid logotype, not body text. */
+  .snm-wordmark {
+    font-weight:    600;
+    letter-spacing: -0.02em;
+    text-transform: lowercase;
+  }
 
   /* ── Status pills ── */
   .pill-critical {
