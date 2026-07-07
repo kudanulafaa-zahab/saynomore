@@ -444,9 +444,9 @@ export function SalesList() {
             const colors = STATUS_COLOR[o.status];
             const total = o.order_total_mvr ?? 0;
             return (
-              <div key={o.id} className="flex items-center gap-2">
+              <div key={o.id} className="flex items-center gap-2 min-w-0">
                 <Link href={`/sales/${o.id}`}
-                  className="flex-1 flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
+                  className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
                   style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -496,24 +496,17 @@ export function SalesList() {
                   </button>
                 )}
                 {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
-                  <>
-                    <button
-                      onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
-                      aria-label={`Void order ${o.order_number}`}
-                      className="h-11 px-3 rounded-2xl flex items-center justify-center shrink-0 snm-pressable ios-subhead font-semibold"
-                      style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}
-                    >
-                      Void
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: true, viaRpc: true })}
-                      aria-label={`Delete order ${o.order_number}`}
-                      className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
-                      style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </>
+                  /* Active order: a single compact Delete keeps the row full-width
+                     (native iOS — no crammed inline buttons). Void lives on the
+                     order detail screen, one tap away via the row link. */
+                  <button
+                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: true, viaRpc: true })}
+                    aria-label={`Delete order ${o.order_number}`}
+                    className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
+                    style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 )}
                 {o.status === "cancelled" && isAdminOrManager && (
                   <button
@@ -834,16 +827,16 @@ function NewSaleSheet({
     const matched = term
       ? active.filter((s) => [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""].join(" ").toLowerCase().includes(term))
       : active;
-    // Sell what you have: order by real availability in the chosen warehouse.
-    // In-stock first, then out-of-stock demoted to the bottom (dimmed in the UI,
-    // not hidden — Ali still needs to see a product exists even at zero stock).
     const stockFor = (s: SkuFullRow) =>
       godownId ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0 : 1;
-    const ranked = [...matched].sort((a, b) => {
-      const sa = stockFor(a) > 0 ? 1 : 0;
-      const sb = stockFor(b) > 0 ? 1 : 0;
-      return sb - sa; // in-stock (1) before out-of-stock (0); stable otherwise
-    });
+    // Only sell what's IN THE CHOSEN WAREHOUSE. Once a godown is picked we hide
+    // SKUs with zero stock there, so the salesperson can't accidentally add a
+    // product that isn't in this warehouse (a wrong-warehouse pick). When the
+    // user is searching by name we keep zero-stock matches visible (so a typed
+    // product never "disappears") but still rank in-stock first.
+    const inStock = godownId ? matched.filter((s) => stockFor(s) > 0) : matched;
+    const pool = (godownId && !term) ? inStock : matched;
+    const ranked = [...pool].sort((a, b) => (stockFor(b) > 0 ? 1 : 0) - (stockFor(a) > 0 ? 1 : 0));
     return ranked.slice(0, 40);
   }, [skus, skuSearch, godownId, stockLevels]);
 
@@ -1469,7 +1462,15 @@ function NewSaleSheet({
                       </div>
                     );
                   })}
-                  {filteredSkus.length === 0 && <p className="ios-subhead col-span-2 py-4" style={{ color: "var(--muted-foreground)" }}>No products found.</p>}
+                  {filteredSkus.length === 0 && (
+                    <p className="ios-subhead col-span-2 py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
+                      {skuSearch.trim()
+                        ? "No products match your search."
+                        : godownId
+                          ? `No stock in ${godowns.find((g) => g.id === godownId)?.name ?? "this warehouse"}. Choose another warehouse or receive stock first.`
+                          : "No products found."}
+                    </p>
+                  )}
                 </div>
               </div>
             ) : selectedSku ? (() => {
