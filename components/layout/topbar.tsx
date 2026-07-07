@@ -113,7 +113,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       <div className="flex items-center gap-2.5">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ios-subhead font-bold"
-          style={{ background: "var(--snm-brand)", color: "#ffffff" }}
+          style={{ background: "var(--snm-brand)", color: "var(--snm-brand-on)" }}
         >
           S
         </div>

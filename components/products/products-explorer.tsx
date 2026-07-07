@@ -2091,7 +2091,7 @@ function NewSkuWizard({
                     style={{ width: 48, height: 48, borderRadius: 14, background: "var(--snm-brand)",
                       display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}
                   >
-                    <ScanLine className="h-5 w-5" style={{ color: "#fff" }} />
+                    <ScanLine className="h-5 w-5" style={{ color: "var(--snm-brand-on)" }} />
                   </button>
                 </div>
               </div>

@@ -171,7 +171,7 @@ function WarehouseSelect({ value, onChange, godowns }: {
         className="shrink-0 flex items-center justify-center rounded-xl"
         style={{ width: 44, height: 44, background: "var(--snm-brand)" }}
       >
-        <Warehouse className="h-6 w-6" style={{ color: "#fff" }} strokeWidth={2} />
+        <Warehouse className="h-6 w-6" style={{ color: "var(--snm-brand-on)" }} strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--snm-brand)" }}>
@@ -1335,7 +1335,7 @@ function NewSaleSheet({
                     }}
                     aria-label="Scan barcode"
                   >
-                    <ScanLine size={20} color="white" />
+                    <ScanLine size={20} color="var(--snm-brand-on)" />
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1455,9 +1455,9 @@ function NewSaleSheet({
                             className="absolute bottom-4 right-4 h-9 w-9 rounded-full flex items-center justify-center transition active:scale-90"
                             style={{
                               background: "var(--snm-brand)",
-                              color: "#fff",
+                              color: "var(--snm-brand-on)",
                               fontSize: 20,
-                              fontWeight: 500,
+                              fontWeight: 600,
                               lineHeight: 1,
                               boxShadow: "0 2px 10px color-mix(in srgb, var(--snm-brand) 35%, transparent)",
                             }}

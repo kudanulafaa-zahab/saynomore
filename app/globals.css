@@ -41,10 +41,20 @@
   --radius-2xl: calc(var(--radius) * 2);
   --radius-3xl: calc(var(--radius) * 2.5);
 
-  /* Brand */
-  --snm-brand: #FF4000;
-  --snm-brand-muted: rgba(255, 64, 0, 0.12);
-  --snm-brand-border: rgba(255, 64, 0, 0.25);
+  /* Brand — SayNoMore green (from the app icon gradient + the design-system
+     reference). ONE accent, applied system-wide through these three tokens.
+     These are the DARK default (vivid green that pops on black, like the icon);
+     light mode overrides below with a deepened green that passes 4.5:1 as text/
+     buttons on the light background. Semantic red/amber stay separate so
+     errors/warnings never read as "brand". */
+  --snm-brand: #34E27A;
+  --snm-brand-muted: rgba(52, 226, 122, 0.14);
+  --snm-brand-border: rgba(52, 226, 122, 0.30);
+  /* Correct foreground to sit ON the brand fill. The dark-mode green is bright,
+     so text/icons on it must be near-black (white would be ~1.6:1). Light mode
+     overrides this to white (its green is deep). Use for any element that fills
+     with var(--snm-brand) and needs a legible glyph/label on top. */
+  --snm-brand-on: #06231A;
 
   /* ── Apple HIG iOS type scale (SF/Dynamic Type @ Large) ────────────────────
      Source: Apple HIG → Typography → iOS point sizes, leading, tracking.
@@ -89,6 +99,16 @@
   --snm-warning: #92400e;
   --snm-info:    #2563eb;
   --snm-promo:   #9333ea;
+
+  /* Brand green, deepened for LIGHT mode. The vivid dark-mode green (#34E27A)
+     measures ~1.7:1 on the light background — unreadable as text/buttons in
+     daylight. #0E8F48 verified >=4.5:1 against both --background (#f2f2f7) and
+     white card surfaces, so it's safe as button fill (white text on it) and as
+     coloured text/icons. Muted/border tints re-derived from the same hue. */
+  --snm-brand:        #0E8F48;
+  --snm-brand-muted:  rgba(14, 143, 72, 0.12);
+  --snm-brand-border: rgba(14, 143, 72, 0.26);
+  --snm-brand-on:     #ffffff;
 
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;

@@ -158,7 +158,7 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
               <button
                 onClick={onClose}
                 className="h-12 px-6 rounded-2xl text-[14px] font-bold"
-                style={{ background: "var(--snm-brand)", color: "#fff" }}
+                style={{ background: "var(--snm-brand)", color: "var(--snm-brand-on)" }}
               >
                 Go back
               </button>

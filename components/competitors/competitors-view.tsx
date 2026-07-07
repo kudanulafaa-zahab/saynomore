@@ -854,7 +854,7 @@ export function CompetitorsView() {
                         <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)" }}>
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--snm-brand)" }}>
-                              <Tag className="h-3.5 w-3.5" style={{ color: "#ffffff" }} />
+                              <Tag className="h-3.5 w-3.5" style={{ color: "var(--snm-brand-on)" }} />
                             </div>
                             <div>
                               <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand)" }}>Our Selling Price</p>

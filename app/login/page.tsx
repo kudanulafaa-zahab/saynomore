@@ -142,7 +142,7 @@ export default function LoginPage() {
             className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
             style={{ background: "var(--snm-brand)", boxShadow: "0 8px 32px color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
           >
-            <span className="text-xl font-bold text-white">S</span>
+            <span className="text-xl font-bold" style={{ color: "var(--snm-brand-on)" }}>S</span>
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>SayNoMore</h1>

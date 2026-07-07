@@ -1778,7 +1778,7 @@ function LineDialog({
                   }}
                   aria-label="Scan barcode"
                 >
-                  <ScanLine size={20} color="white" />
+                  <ScanLine size={20} color="var(--snm-brand-on)" />
                 </button>
               </div>
               <div className="mt-2 rounded-xl overflow-hidden" style={{ maxHeight: "55dvh", overflowY: "auto", border: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
