@@ -41,20 +41,17 @@
   --radius-2xl: calc(var(--radius) * 2);
   --radius-3xl: calc(var(--radius) * 2.5);
 
-  /* Brand — SayNoMore green (from the app icon gradient + the design-system
-     reference). ONE accent, applied system-wide through these three tokens.
-     These are the DARK default (vivid green that pops on black, like the icon);
-     light mode overrides below with a deepened green that passes 4.5:1 as text/
-     buttons on the light background. Semantic red/amber stay separate so
-     errors/warnings never read as "brand". */
-  --snm-brand: #34E27A;
-  --snm-brand-muted: rgba(52, 226, 122, 0.14);
-  --snm-brand-border: rgba(52, 226, 122, 0.30);
-  /* Correct foreground to sit ON the brand fill. The dark-mode green is bright,
-     so text/icons on it must be near-black (white would be ~1.6:1). Light mode
-     overrides this to white (its green is deep). Use for any element that fills
-     with var(--snm-brand) and needs a legible glyph/label on top. */
-  --snm-brand-on: #06231A;
+  /* Brand accent — Apple HIG 2026: ONE system accent = systemBlue, applied
+     app-wide through these tokens. Colour is semantic/native, never decorative;
+     the warm brand identity lives only in the app icon. These are the DARK
+     default (systemBlue dark #0A84FF); light mode overrides below with
+     systemBlue light #007AFF. White text/icons sit legibly on both fills. */
+  --snm-brand: #0A84FF;
+  --snm-brand-muted: rgba(10, 132, 255, 0.20);
+  --snm-brand-border: rgba(10, 132, 255, 0.34);
+  /* Foreground that sits ON the brand fill — white on systemBlue in both
+     modes (systemBlue is dark enough for white to pass AA). */
+  --snm-brand-on: #ffffff;
 
   /* ── Apple HIG iOS type scale (SF/Dynamic Type @ Large) ────────────────────
      Source: Apple HIG → Typography → iOS point sizes, leading, tracking.
@@ -72,12 +69,13 @@
   --ios-caption1:    12px;  --ios-caption1-lh:    16px;  --ios-caption1-ls:    0px;
   --ios-caption2:    11px;  --ios-caption2-lh:    13px;  --ios-caption2-ls:    0.066px;
 
-  /* Semantic tokens — dark defaults, overridden in :root (light) */
-  --snm-error: #ffb4ab;
-  --snm-success: #4ade80;
-  --snm-warning: #fb923c;
-  --snm-info: #60a5fa;
-  --snm-promo: #c084fc;
+  /* Semantic tokens — Apple system colours (dark defaults, light in :root).
+     Red/green carry meaning only (destructive/loss · success/good money). */
+  --snm-error: #FF453A;   /* systemRed (dark) */
+  --snm-success: #30D158; /* systemGreen (dark) */
+  --snm-warning: #FF9F0A; /* systemOrange (dark) */
+  --snm-info: #0A84FF;    /* systemBlue (dark) */
+  --snm-promo: #BF5AF2;   /* systemPurple (dark) */
 }
 
 /* ── LIGHT MODE ─────────────────────────────────────────────────────────── */
@@ -88,26 +86,24 @@
      Bottom sheets lift their footer with max(safe-area, var(--kb-inset)). */
   --kb-inset: 0px;
 
-  /* success/warning darkened from #16a34a/#d97706 -- those failed 4.5:1 text
-     contrast in light mode (measured ~2.9:1 / ~2.86:1 against --background),
-     invisible in bright daylight which is this app's real operating
-     condition. New values verified >=4.5:1 against both --background and
-     white card surfaces. Dark-mode values (top of file) already passed and
-     are unchanged. */
-  --snm-success: #166534;
-  --snm-error:   #dc2626;
-  --snm-warning: #92400e;
-  --snm-info:    #2563eb;
-  --snm-promo:   #9333ea;
+  /* Apple system colours, LIGHT. systemRed #FF3B30 passes as text/fill. Green/
+     orange are deepened from Apple's bright systemGreen(#34C759)/systemOrange
+     (#FF9500) because those fail 4.5:1 as small text on the light background
+     (~2.9:1) in daylight — this app's real operating condition. Deepened values
+     verified >=4.5:1 vs --background and white cards; used for coloured text +
+     icons. Bright Apple hues still fine as large fills. */
+  --snm-success: #248A3D;   /* deepened systemGreen for light-mode text */
+  --snm-error:   #FF3B30;   /* systemRed (light) */
+  --snm-warning: #9A5B00;   /* deepened systemOrange for light-mode text */
+  --snm-info:    #007AFF;   /* systemBlue (light) */
+  --snm-promo:   #8944D6;   /* deepened systemPurple */
 
-  /* Brand green, deepened for LIGHT mode. The vivid dark-mode green (#34E27A)
-     measures ~1.7:1 on the light background — unreadable as text/buttons in
-     daylight. #0E8F48 verified >=4.5:1 against both --background (#f2f2f7) and
-     white card surfaces, so it's safe as button fill (white text on it) and as
-     coloured text/icons. Muted/border tints re-derived from the same hue. */
-  --snm-brand:        #0E8F48;
-  --snm-brand-muted:  rgba(14, 143, 72, 0.12);
-  --snm-brand-border: rgba(14, 143, 72, 0.26);
+  /* Brand accent, LIGHT — systemBlue #007AFF (Apple's measured light value).
+     Passes AA as text on --background and white cards, and as a button fill
+     with white text. Muted/border tints re-derived from the same hue. */
+  --snm-brand:        #007AFF;
+  --snm-brand-muted:  rgba(0, 122, 255, 0.12);
+  --snm-brand-border: rgba(0, 122, 255, 0.26);
   --snm-brand-on:     #ffffff;
 
   --background:   #f2f2f7;
@@ -178,8 +174,15 @@
   :root {
     color-scheme: dark;
 
-    --snm-info:  #60a5fa;
-    --snm-promo: #c084fc;
+    --snm-brand:        #0A84FF;
+    --snm-brand-muted:  rgba(10, 132, 255, 0.20);
+    --snm-brand-border: rgba(10, 132, 255, 0.34);
+    --snm-brand-on:     #ffffff;
+    --snm-success: #30D158;
+    --snm-error:   #FF453A;
+    --snm-warning: #FF9F0A;
+    --snm-info:  #0A84FF;
+    --snm-promo: #BF5AF2;
 
     --background: #000000;
     --foreground: #e5e2e1;
@@ -248,11 +251,15 @@
 .light {
   color-scheme: light;
   /* Kept in sync with :root's light-mode values above -- see contrast note there. */
-  --snm-success: #166534;
-  --snm-error:   #dc2626;
-  --snm-warning: #92400e;
-  --snm-info:    #2563eb;
-  --snm-promo:   #9333ea;
+  --snm-brand:        #007AFF;
+  --snm-brand-muted:  rgba(0, 122, 255, 0.12);
+  --snm-brand-border: rgba(0, 122, 255, 0.26);
+  --snm-brand-on:     #ffffff;
+  --snm-success: #248A3D;
+  --snm-error:   #FF3B30;
+  --snm-warning: #9A5B00;
+  --snm-info:    #007AFF;
+  --snm-promo:   #8944D6;
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
   --card:             rgba(255, 255, 255, 0.72);
@@ -301,8 +308,15 @@
 /* ── Manual .dark override ──────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
-  --snm-info:  #60a5fa;
-  --snm-promo: #c084fc;
+  --snm-brand:        #0A84FF;
+  --snm-brand-muted:  rgba(10, 132, 255, 0.20);
+  --snm-brand-border: rgba(10, 132, 255, 0.34);
+  --snm-brand-on:     #ffffff;
+  --snm-success: #30D158;
+  --snm-error:   #FF453A;
+  --snm-warning: #FF9F0A;
+  --snm-info:  #0A84FF;
+  --snm-promo: #BF5AF2;
   --background: #000000;
   --foreground: #e5e2e1;
   --card:            rgba(255, 255, 255, 0.05);
