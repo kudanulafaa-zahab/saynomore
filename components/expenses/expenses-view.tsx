@@ -25,6 +25,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -62,6 +63,7 @@ export function ExpensesView() {
   const [showSheet, setShowSheet] = useState(false);
   const [editingRow, setEditingRow] = useState<MarketingSpendRow | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<MarketingSpendRow | null>(null);
+  const [deleteBizTarget, setDeleteBizTarget] = useState<BusinessExpenseRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const [quickAmount, setQuickAmount] = useState("");
@@ -148,15 +150,20 @@ export function ExpensesView() {
     }
   }
 
-  async function handleDeleteBiz(row: BusinessExpenseRow) {
+  async function handleDeleteBiz() {
+    if (!deleteBizTarget) return;
+    setDeleting(true);
     try {
-      await deleteBusinessExpense(row.id);
+      await deleteBusinessExpense(deleteBizTarget.id);
       haptic("success");
       toast.success("Expense removed");
+      setDeleteBizTarget(null);
       load();
     } catch (e) {
       haptic("error");
       toast.error((e as Error).message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -275,7 +282,7 @@ export function ExpensesView() {
                   <p className="ios-subhead font-semibold text-foreground snm-num">MVR {fmt(Number(r.amount_mvr))}</p>
                   {canWrite && (
                     <button
-                      onClick={() => handleDeleteBiz(r)}
+                      onClick={() => setDeleteBizTarget(r)}
                       aria-label="Delete expense"
                       className="h-11 w-11 -m-1.5 flex items-center justify-center"
                     >
@@ -440,6 +447,21 @@ export function ExpensesView() {
           </div>
         </div>
       )}
+
+      {/* Business-expense delete confirm — never delete without asking */}
+      <ConfirmSheet
+        open={deleteBizTarget !== null}
+        onClose={() => setDeleteBizTarget(null)}
+        onConfirm={handleDeleteBiz}
+        loading={deleting}
+        title="Delete expense?"
+        message={
+          deleteBizTarget
+            ? `${catName(deleteBizTarget.category_id)} · MVR ${fmt(Number(deleteBizTarget.amount_mvr))} will be permanently removed.`
+            : ""
+        }
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

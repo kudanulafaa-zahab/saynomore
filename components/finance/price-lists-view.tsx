@@ -274,6 +274,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
   const [showSkuPrice, setShowSkuPrice]     = useState(false);
   const [creatingHeader, setCreatingHeader] = useState(false);
   const [deleting, setDeleting]             = useState<string | null>(null);
+  const [confirmItem, setConfirmItem]       = useState<PriceListItemRow | null>(null);
 
   const setSkuIds = useMemo(() => new Set(items.map((i) => i.sku_id)), [items]);
   const filteredSkus = useMemo(() => {
@@ -306,12 +307,15 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
     setSearch("");
   }
 
-  async function handleDelete(itemId: string) {
+  async function handleDelete() {
+    if (!confirmItem) return;
+    const itemId = confirmItem.id;
     setDeleting(itemId);
     try {
       await deletePriceListItem(itemId);
       setItems((p) => p.filter((i) => i.id !== itemId));
       toast.success("Removed");
+      setConfirmItem(null);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -402,7 +406,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                       {sku?.variant_display && <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
                     </div>
                     <button
-                      onClick={() => handleDelete(item.id)}
+                      onClick={() => setConfirmItem(item)}
                       disabled={deleting === item.id}
                       className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                       style={{ color: "var(--muted-foreground)" }}
@@ -483,6 +487,22 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
           />
         )}
       </div>
+
+      {/* Remove-item confirm — never delete without asking */}
+      <ConfirmSheet
+        open={confirmItem !== null}
+        onClose={() => setConfirmItem(null)}
+        onConfirm={handleDelete}
+        loading={deleting === confirmItem?.id}
+        title="Remove from price list?"
+        message={(() => {
+          if (!confirmItem) return "";
+          const s = skus.find((k) => k.id === confirmItem.sku_id);
+          const label = s ? `${s.brand_name} ${s.model_name}${s.variant_display ? " " + s.variant_display : ""}` : "This SKU";
+          return `${label} will be removed from this price list.`;
+        })()}
+        confirmLabel="Remove"
+      />
     </div>
   );
 }
@@ -656,7 +676,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                         saveLabel="UPDATE PRICE"
                         extraAction={
                           <button
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => setConfirmRemove(item.id)}
                             disabled={deleting === item.id}
                             className="flex-1 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-1.5 active:opacity-60"
                             style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}
