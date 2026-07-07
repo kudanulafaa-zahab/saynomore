@@ -148,7 +148,7 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
             <div className="px-8 text-center space-y-3">
               <div style={{
                 width: 64, height: 64, borderRadius: 20,
-                background: "rgba(255,64,0,0.15)",
+                background: "var(--snm-brand-muted)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 margin: "0 auto",
               }}>

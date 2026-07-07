@@ -53,6 +53,11 @@
      modes (systemBlue is dark enough for white to pass AA). */
   --snm-brand-on: #ffffff;
 
+  /* Fonts (Apple HIG 2026). --font-sys = SF Pro system stack for ALL UI text
+     (real SF Pro on iOS/macOS, Inter/system-ui fallback elsewhere).
+     --font-wordmark = Plus Jakarta, used ONLY by the "saynomore" wordmark. */
+  --font-sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Inter", "Segoe UI", system-ui, Roboto, sans-serif;
+
   /* ── Apple HIG iOS type scale (SF/Dynamic Type @ Large) ────────────────────
      Source: Apple HIG → Typography → iOS point sizes, leading, tracking.
      We map each style to a token so components can match the system exactly.
@@ -377,7 +382,7 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-plus-jakarta, 'Plus Jakarta Sans'), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: var(--font-sys);
     min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -612,6 +617,7 @@
      whose "a" matches the Gellix reference), SemiBold with slight negative
      tracking so it reads as one solid logotype, not body text. */
   .snm-wordmark {
+    font-family:    var(--font-wordmark), -apple-system, system-ui, sans-serif;
     font-weight:    600;
     letter-spacing: -0.02em;
     text-transform: lowercase;

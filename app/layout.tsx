@@ -5,10 +5,19 @@ import { OfflineProvider } from "@/components/layout/offline-provider";
 import "./globals.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
+// SF Pro is the system UI font (Apple HIG 2026). On iOS/macOS the -apple-system
+// stack resolves to the REAL SF Pro — the most authentic, zero-download result.
+// Inter/Segoe/system-ui are the cross-platform fallbacks. We keep the historical
+// --font-plus-jakarta variable name so every existing reference now points at
+// this SF-first stack without touching any component (surgical swap).
+const SF_STACK =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Inter", "Segoe UI", system-ui, Roboto, sans-serif';
+
+// Plus Jakarta stays loaded for the "saynomore" wordmark ONLY.
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-plus-jakarta",
+  weight: ["600", "700"],
+  variable: "--font-wordmark",
   display: "swap",
 });
 
@@ -47,7 +56,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`h-full antialiased ${plusJakarta.variable}`}>
-      <body className="min-h-full" style={{ fontFamily: "var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, system-ui, sans-serif" }}>
+      <body className="min-h-full" style={{ fontFamily: SF_STACK }}>
         <ThemeProvider>
           <OfflineProvider>
             {children}

@@ -548,8 +548,8 @@ export function CompetitorsView() {
                     style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
                     <style>{`
                       .snm-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 9999px; outline: none; cursor: pointer; background: transparent; }
-                      .snm-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 32px; height: 32px; border-radius: 50%; background: #FF4000; box-shadow: 0 2px 16px rgba(255,64,0,0.5); cursor: grab; border: 3px solid rgba(255,255,255,0.75); margin-top: -13px; }
-                      .snm-slider::-moz-range-thumb { width: 32px; height: 32px; border-radius: 50%; background: #FF4000; box-shadow: 0 2px 16px rgba(255,64,0,0.5); cursor: grab; border: 3px solid rgba(255,255,255,0.75); }
+                      .snm-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 32px; height: 32px; border-radius: 50%; background: var(--snm-brand); box-shadow: 0 2px 16px var(--snm-brand-muted); cursor: grab; border: 3px solid rgba(255,255,255,0.75); margin-top: -13px; }
+                      .snm-slider::-moz-range-thumb { width: 32px; height: 32px; border-radius: 50%; background: var(--snm-brand); box-shadow: 0 2px 16px var(--snm-brand-muted); cursor: grab; border: 3px solid rgba(255,255,255,0.75); }
                       .snm-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 9999px; }
                       .snm-slider::-moz-range-track { height: 6px; border-radius: 9999px; background: rgba(128,128,128,0.2); }
                       .snm-slider:active::-webkit-slider-thumb { cursor: grabbing; }

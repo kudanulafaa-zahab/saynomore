@@ -184,7 +184,7 @@ export function BottomNav({ role }: { role: string }) {
                           >
                             <Icon
                               className="h-[15px] w-[15px]"
-                              style={{ color: active ? "#ffffff" : "var(--muted-foreground)" }}
+                              style={{ color: active ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
                             />
                           </div>
                           <span className="ios-subhead font-medium">{item.label}</span>
@@ -221,7 +221,7 @@ export function BottomNav({ role }: { role: string }) {
                   >
                     <Settings
                       className="h-[15px] w-[15px]"
-                      style={{ color: pathname === "/settings" ? "#ffffff" : "var(--muted-foreground)" }}
+                      style={{ color: pathname === "/settings" ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
                     />
                   </div>
                   <span className="ios-subhead font-medium">Settings</span>
