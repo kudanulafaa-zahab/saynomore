@@ -827,16 +827,21 @@ function NewSaleSheet({
     const matched = term
       ? active.filter((s) => [s.brand_name, s.model_name, s.variant_display, s.internal_code ?? ""].join(" ").toLowerCase().includes(term))
       : active;
+    // Stock in the CHOSEN godown vs across ALL godowns. Two different questions:
+    // "where does it ship from" (chosen) vs "do we own it at all" (total).
     const stockFor = (s: SkuFullRow) =>
       godownId ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0 : 1;
-    // Only sell what's IN THE CHOSEN WAREHOUSE. Once a godown is picked we hide
-    // SKUs with zero stock there, so the salesperson can't accidentally add a
-    // product that isn't in this warehouse (a wrong-warehouse pick). When the
-    // user is searching by name we keep zero-stock matches visible (so a typed
-    // product never "disappears") but still rank in-stock first.
-    const inStock = godownId ? matched.filter((s) => stockFor(s) > 0) : matched;
-    const pool = (godownId && !term) ? inStock : matched;
-    const ranked = [...pool].sort((a, b) => (stockFor(b) > 0 ? 1 : 0) - (stockFor(a) > 0 ? 1 : 0));
+    const totalStockFor = (s: SkuFullRow) =>
+      stockLevels.filter((l) => l.sku_id === s.id).reduce((sum, l) => sum + l.qty_pieces, 0);
+    // NEVER hide a product we own. Show every SKU with stock in ANY godown, so a
+    // product sitting in another warehouse can't be mistaken for out-of-stock and
+    // lose a sale (the card will say "None here · N in <other>"). Only SKUs with
+    // zero stock EVERYWHERE drop to the bottom (dimmed). When searching by name we
+    // show all matches so a typed product never vanishes.
+    const pool = term ? matched : matched.filter((s) => totalStockFor(s) > 0);
+    // Rank: in the chosen godown first, then owned-elsewhere, then zero-everywhere.
+    const rank = (s: SkuFullRow) => (stockFor(s) > 0 ? 2 : totalStockFor(s) > 0 ? 1 : 0);
+    const ranked = [...pool].sort((a, b) => rank(b) - rank(a));
     return ranked.slice(0, 40);
   }, [skus, skuSearch, godownId, stockLevels]);
 
@@ -1334,6 +1339,13 @@ function NewSaleSheet({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {filteredSkus.map((s) => {
                     const stock = godownId ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0 : null;
+                    // Stock in OTHER godowns — so a product held in another warehouse
+                    // is never mistaken for out-of-stock (would lose a real sale).
+                    const otherGodownStock = stockLevels
+                      .filter((l) => l.sku_id === s.id && l.godown_id !== godownId && l.qty_pieces > 0)
+                      .map((l) => ({ name: godowns.find((g) => g.id === l.godown_id)?.name ?? "another godown", qty: l.qty_pieces }))
+                      .sort((a, b) => b.qty - a.qty);
+                    const elsewhereTotal = otherGodownStock.reduce((sum, g) => sum + g.qty, 0);
                     const pl = packLabel(s);
                     // Show price per default UOM on the card — tier price takes priority
                     const cardUom = defaultUom(s);
@@ -1365,7 +1377,9 @@ function NewSaleSheet({
                     // Tapping the card body still opens the detail editor for custom qty/price.
                     function handleQuickAdd(e: React.MouseEvent) {
                       e.stopPropagation();
-                      if (!hasPrice || (stock != null && stock <= 0)) return;
+                      // Allow adding when stock exists in ANY godown; block only when
+                      // out everywhere. Products in another warehouse are sellable.
+                      if (!hasPrice || outOfStock) return;
                       const qty = 1;
                       const pcs = toPieces(cardUom, qty, s.pcs_per_pack, s.packs_per_carton);
                       setDraftLines((prev) => [...prev, {
@@ -1379,21 +1393,31 @@ function NewSaleSheet({
                       toast.success(`${s.brand_name} ${s.variant_display} added`);
                     }
 
-                    const outOfStock = stock != null && stock <= 0;
-                    // Human-readable available quantity in the card's default unit.
-                    const stockLabel = stock == null ? null : (() => {
+                    const hereQty = stock ?? 0;
+                    const noneHere = godownId != null && godownId !== "" && hereQty <= 0;
+                    // Genuinely unavailable ONLY when zero in every godown. A product
+                    // in another warehouse stays sellable (ships from there).
+                    const outOfStock = noneHere && elsewhereTotal <= 0;
+                    // Convert a piece count into the card's default unit label.
+                    const qtyLabel = (pcs: number) => {
                       const dUom = defaultUom(s);
                       if (dUom === "carton" && s.pcs_per_pack > 0 && s.packs_per_carton > 0) {
-                        const cartons = Math.floor(stock / (s.pcs_per_pack * s.packs_per_carton));
-                        return cartons > 0 ? `${cartons} ctn in stock` : "< 1 ctn in stock";
+                        const c = Math.floor(pcs / (s.pcs_per_pack * s.packs_per_carton));
+                        return c > 0 ? `${c} ctn` : "< 1 ctn";
                       }
                       if (s.pcs_per_pack > 0) {
-                        const packs = Math.floor(stock / s.pcs_per_pack);
+                        const p = Math.floor(pcs / s.pcs_per_pack);
                         const pll = packLabel(s).toLowerCase();
-                        return packs > 0 ? `${packs} ${pll}s in stock` : `< 1 ${pll} in stock`;
+                        return p > 0 ? `${p} ${pll}s` : `< 1 ${pll}`;
                       }
-                      return `${stock} pcs in stock`;
-                    })();
+                      return `${pcs} pcs`;
+                    };
+                    // Availability line: in-stock here / none here but elsewhere / out everywhere.
+                    const stockLabel = stock == null ? null
+                      : hereQty > 0 ? `${qtyLabel(hereQty)} in stock`
+                      : elsewhereTotal > 0 ? `None here · ${qtyLabel(elsewhereTotal)} in ${otherGodownStock[0].name}`
+                      : "Out of stock";
+                    const inOtherGodown = noneHere && elsewhereTotal > 0;
 
                     return (
                       <div key={s.id} className="relative">
@@ -1429,8 +1453,8 @@ function NewSaleSheet({
                                   </span>
                                 )}
                               </div>
-                              <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                                {outOfStock ? "Out of stock" : (stockLabel ?? " ")}
+                              <p className="ios-footnote mt-0.5" style={{ color: inOtherGodown ? "var(--snm-info)" : "var(--muted-foreground)", fontWeight: inOtherGodown ? 600 : 400 }}>
+                                {stockLabel ?? " "}
                               </p>
                             </div>
                             {inCart > 0 && (
