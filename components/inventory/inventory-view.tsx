@@ -210,7 +210,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                 }}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                  <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--snm-brand)" }} />
                   <p className="ios-subhead font-medium text-foreground truncate">{godown.name}</p>
                 </div>
                 <p className="ios-subhead font-semibold text-foreground ml-4 shrink-0 snm-num">
@@ -230,12 +230,12 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         style={{ touchAction: "manipulation" }}
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>
+        <span className="ios-subhead font-medium" style={{ color: "var(--snm-brand)" }}>
           {expanded ? "Hide" : "FIFO batches & landed cost"}
         </span>
         <ChevronDown
           className="h-3.5 w-3.5 transition-transform duration-200"
-          style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(180deg)" : "none" }}
+          style={{ color: "var(--snm-brand)", transform: expanded ? "rotate(180deg)" : "none" }}
         />
       </button>
 
@@ -645,7 +645,7 @@ export function InventoryView() {
                 >
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      className="w-2 h-2 rounded-full shrink-0"
                       style={{ background: brandData.hasCritical ? "var(--snm-error)" : brandData.hasLow ? "var(--snm-warning)" : "var(--snm-success)" }}
                     />
                     <p className="ios-subhead font-bold uppercase tracking-wider text-foreground">{brand}</p>
