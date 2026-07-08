@@ -30,6 +30,10 @@ export interface CategoryRow {
   default_sellable_units: SellUnit[];
   sort_order: number;
   is_system: boolean;
+  /** Customs duty rate for this category, e.g. Tobacco = 200. Apportions
+   *  shipments.customs_duty_mvr across lines by rate-weighted FOB value —
+   *  see confirm_grn(). 0 means "no duty" (the default for every category). */
+  duty_rate_pct: number;
 }
 
 export interface BrandRow {
@@ -91,6 +95,7 @@ export interface SkuFullRow extends SkuRow {
   category_name: string;
   unit_uom: UnitUom;
   cost_basis: CostBasis;
+  duty_rate_pct: number;
   default_sellable_units: SellUnit[];
   full_path: string;
   // Pricing — all computed by v_skus
@@ -394,6 +399,7 @@ export interface CreateCategoryInput {
   cost_basis: CostBasis;
   variant_attributes: AttrKey[];
   sort_order?: number;
+  duty_rate_pct?: number;
 }
 export async function createCategory(input: CreateCategoryInput) {
   const { data, error } = await supabase

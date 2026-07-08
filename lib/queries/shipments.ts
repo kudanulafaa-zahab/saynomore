@@ -53,6 +53,8 @@ export interface ShipmentLineRow {
   fob_total_mvr: number | null;
   apportioned_freight_mvr: number | null;
   apportioned_local_mvr: number | null;
+  apportioned_duty_mvr: number | null;
+  duty_rate_pct_snapshot: number | null;
   landed_total_mvr: number | null;
   landed_per_carton_mvr: number | null;
   landed_per_pack_mvr: number | null;

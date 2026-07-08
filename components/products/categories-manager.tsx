@@ -26,6 +26,7 @@ import {
 import {
   listCategories,
   createCategory,
+  updateCategory,
   deleteCategory,
   getCurrentUserRole,
   type CategoryRow,
@@ -50,7 +51,8 @@ function humanMeta(c: CategoryRow): string {
     weight_g: "Weight", colour: "Colour", other: "Other",
   };
   const attrs = c.variant_attributes.map((a) => attrLabels[a] ?? a).join(", ");
-  return [uomLabel, costLabel, attrs].filter(Boolean).join(" · ");
+  const duty = c.duty_rate_pct > 0 ? `${c.duty_rate_pct}% duty` : null;
+  return [uomLabel, costLabel, attrs, duty].filter(Boolean).join(" · ");
 }
 
 const ATTR_OPTIONS: { key: AttrKey; label: string }[] = [
@@ -67,6 +69,7 @@ export function CategoriesManager() {
   const [rows, setRows] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCat, setEditingCat] = useState<CategoryRow | null>(null);
   const [confirmCat, setConfirmCat] = useState<{ id: string; name: string } | null>(null);
   const [canWrite, setCanWrite] = useState(false);
 
@@ -107,25 +110,32 @@ export function CategoriesManager() {
 
       <div className="glass divide-y divide-border overflow-hidden">
         {rows.map((c) => (
-          <div key={c.id} className="p-4 flex items-start justify-between gap-3">
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => canWrite && setEditingCat(c)}
+            className="w-full p-4 flex items-start justify-between gap-3 text-left active:opacity-70"
+            disabled={!canWrite}
+          >
             <div className="space-y-1 min-w-0">
               <p className="text-base font-medium text-foreground">{c.name}</p>
               {c.description && <p className="ios-subhead text-muted-foreground">{c.description}</p>}
               <p className="ios-subhead text-muted-foreground">{humanMeta(c)}</p>
             </div>
             {!c.is_system && canWrite && (
-              <button
-                onClick={() => setConfirmCat({ id: c.id, name: c.name })}
+              <span
+                onClick={(e) => { e.stopPropagation(); setConfirmCat({ id: c.id, name: c.name }); }}
                 className="h-11 w-11 flex items-center justify-center rounded-lg text-muted-foreground/70 hover:text-[var(--snm-error)] hover:bg-[color-mix(in_srgb,var(--snm-error)_10%,transparent)] transition shrink-0"
               >
                 <Trash2 className="h-4 w-4" />
-              </button>
+              </span>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
       <CategoryDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={load} />
+      <EditCategoryDialog category={editingCat} onOpenChange={(o) => !o && setEditingCat(null)} onSaved={load} />
 
       <ConfirmSheet
         open={confirmCat !== null}
@@ -151,6 +161,7 @@ function CategoryDialog({
   const [uom, setUom] = useState<UnitUom>("pcs");
   const [basis, setBasis] = useState<CostBasis>("piece");
   const [attrs, setAttrs] = useState<Set<AttrKey>>(new Set(["size"]));
+  const [duty, setDuty] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -158,6 +169,7 @@ function CategoryDialog({
       setName(""); setDescription("");
       setUom("pcs"); setBasis("piece");
       setAttrs(new Set(["size"]));
+      setDuty("");
     }
   }, [open]);
 
@@ -178,6 +190,7 @@ function CategoryDialog({
         unit_uom: uom,
         cost_basis: basis,
         variant_attributes: Array.from(attrs),
+        duty_rate_pct: duty ? parseFloat(duty) : 0,
       });
       toast.success("Category created");
       onOpenChange(false);
@@ -233,6 +246,14 @@ function CategoryDialog({
           </div>
 
           <div className="space-y-2">
+            <Label>Customs Duty %</Label>
+            <Input type="number" step="0.01" min="0" placeholder="0" value={duty} onChange={(e) => setDuty(e.target.value)} />
+            <p className="ios-subhead text-muted-foreground">
+              e.g. Tobacco is 200% in the Maldives. Every brand and pack size in this category inherits this rate automatically. Leave at 0 if this category has no duty.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Variant Attributes</Label>
             <p className="ios-subhead text-muted-foreground">
               These fields will appear when adding a variant in this category.
@@ -260,6 +281,61 @@ function CategoryDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={saving || !name.trim()}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Category editor — mainly for adjusting the duty rate later (customs
+// rates change) since there's no other way to edit an existing category. ──
+
+function EditCategoryDialog({
+  category, onOpenChange, onSaved,
+}: { category: CategoryRow | null; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
+  const [duty, setDuty] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (category) setDuty(category.duty_rate_pct > 0 ? String(category.duty_rate_pct) : "");
+  }, [category]);
+
+  async function save() {
+    if (!category) return;
+    setSaving(true);
+    try {
+      await updateCategory(category.id, { duty_rate_pct: duty ? parseFloat(duty) : 0 });
+      toast.success("Saved");
+      onOpenChange(false);
+      onSaved();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={category !== null} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-popover border-border">
+        <DialogHeader>
+          <DialogTitle>{category?.name}</DialogTitle>
+          <DialogDescription>Adjust this category&apos;s customs duty rate.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Customs Duty %</Label>
+            <Input type="number" step="0.01" min="0" placeholder="0" value={duty} onChange={(e) => setDuty(e.target.value)} />
+            <p className="ios-subhead text-muted-foreground">
+              e.g. Tobacco is 200% in the Maldives. Applies to every brand and pack size in this category on future shipments — already-confirmed GRNs keep the rate that was in effect at the time.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

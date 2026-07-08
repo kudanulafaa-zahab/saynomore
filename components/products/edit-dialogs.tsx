@@ -125,7 +125,6 @@ export function EditModelDialog({
   const [name, setName] = useState("");
   const [catId, setCatId] = useState("");
   const [hs, setHs] = useState("");
-  const [duty, setDuty] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -133,7 +132,6 @@ export function EditModelDialog({
       setName(model.name);
       setCatId(model.category_id);
       setHs(model.hs_code ?? "");
-      setDuty(model.duty_rate_pct?.toString() ?? "");
     }
   }, [open, model]);
 
@@ -145,7 +143,6 @@ export function EditModelDialog({
         name: name.trim(),
         category_id: catId,
         hs_code: hs.trim() || null,
-        duty_rate_pct: duty ? parseFloat(duty) : null,
       });
       toast.success("Saved");
       onOpenChange(false);
@@ -179,22 +176,16 @@ export function EditModelDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>HS Code</Label>
-              <Input value={hs} onChange={(e) => setHs(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Duty %</Label>
-              <Input type="number" step="0.01" min="0" value={duty} onChange={(e) => setDuty(e.target.value)} />
-            </div>
+          <div className="space-y-2">
+            <Label>HS Code</Label>
+            <Input value={hs} onChange={(e) => setHs(e.target.value)} />
           </div>
-          {/* Honest label: nothing reads duty_rate_pct yet — customs duty is
-              entered as a lump sum on the shipment. Without this note a user
-              reasonably assumes duty gets auto-calculated after filling it. */}
-          <p className="ios-subhead font-medium flex items-center gap-1.5" style={{ color: "var(--snm-warning)" }}>
+          {/* Duty rate lives on the Category now (e.g. Tobacco = 200%) — every
+              model/pack size in that category inherits it automatically, set
+              once under Products → Categories rather than per model. */}
+          <p className="ios-subhead flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            For reference only for now — customs duty is still entered as a total on each shipment. Auto-estimation from these rates is planned.
+            Customs duty is set on the Category ({categories.find((c) => c.id === catId)?.name ?? "—"}), not per model — edit it under Products → Categories.
           </p>
         </div>
         <DialogFooter>

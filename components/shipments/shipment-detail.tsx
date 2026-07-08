@@ -510,29 +510,63 @@ export function ShipmentDetail({ id }: { id: string }) {
     if (totalCbm <= 0) return null;
 
     const freightMvr = (shipment.my_freight_share_usd ?? 0) * (usd || 0);
-    const localMvr =
-      (shipment.customs_duty_mvr ?? 0) + (shipment.mpl_charges_mvr ?? 0) +
-      (shipment.agent_fee_mvr ?? 0) + (shipment.last_mile_mvr ?? 0) +
-      (shipment.insurance_mvr ?? 0) + (shipment.other_mvr ?? 0);
-    const poolMvr = freightMvr + localMvr;
+    // Duty is apportioned separately from the other local costs — by each
+    // line's rate-weighted FOB value, not CBM share (mirrors confirm_grn()
+    // in migration 0064: a 200%-duty Tobacco carton must absorb far more of
+    // the real duty bill than a same-volume 0%-duty carton, not an equal
+    // CBM slice of it).
+    const dutyMvr = shipment.customs_duty_mvr ?? 0;
+    const otherLocalMvr =
+      (shipment.mpl_charges_mvr ?? 0) + (shipment.agent_fee_mvr ?? 0) +
+      (shipment.last_mile_mvr ?? 0) + (shipment.insurance_mvr ?? 0) + (shipment.other_mvr ?? 0);
+    const localMvr = dutyMvr + otherLocalMvr; // shown to the user as one "Port & clearing" figure
+    const poolMvr = freightMvr + otherLocalMvr;
 
     const ratesSet = idr > 0 && usd > 0;
 
-    const linesPreview = lines.map((l) => {
+    const rawLines = lines.map((l) => {
       const sku = skus.find((s) => s.id === l.sku_id);
       const fxToMvr = l.fob_currency === "IDR" ? idr : l.fob_currency === "USD" ? usd : 1;
-      const fobMvr   = ratesSet ? l.qty_cartons * l.fob_per_carton * fxToMvr : 0;
+      const fobMvr = ratesSet ? l.qty_cartons * l.fob_per_carton * fxToMvr : 0;
+      const dutyRatePct = sku?.duty_rate_pct ?? 0;
+      return { l, sku, fxToMvr, fobMvr, dutyWeight: fobMvr * dutyRatePct };
+    });
+    const totalDutyWeight = rawLines.reduce((acc, r) => acc + r.dutyWeight, 0);
+
+    const linesPreview = rawLines.map(({ l, sku, fobMvr, dutyWeight }) => {
       const cbmShare = totalCbm > 0 ? (l.qty_cartons * l.cbm_per_carton) / totalCbm : 0;
-      const apportioned = cbmShare * poolMvr;
+      const apportionedOther = cbmShare * poolMvr;
+      const apportionedDuty  = totalDutyWeight > 0 ? (dutyWeight / totalDutyWeight) * dutyMvr : cbmShare * dutyMvr;
+      const apportioned = apportionedOther + apportionedDuty;
       const lineTotal   = fobMvr + apportioned;
       const perCarton   = l.qty_cartons > 0 ? lineTotal / l.qty_cartons : 0;
       const perPack     = sku && sku.packs_per_carton > 0 ? perCarton / sku.packs_per_carton : 0;
       const perPiece    = sku && sku.pcs_per_pack > 0 ? perPack / sku.pcs_per_pack : 0;
-      return { line: l, sku, fobMvr, apportioned, lineTotal, perCarton, perPack, perPiece, ratesSet };
+      return { line: l, sku, fobMvr, apportioned, apportionedDuty, lineTotal, perCarton, perPack, perPiece, ratesSet };
     });
 
     const grandTotal = linesPreview.reduce((acc, p) => acc + p.lineTotal, 0);
     return { totalCbm, freightMvr, localMvr, poolMvr, lines: linesPreview, grandTotal, ratesSet };
+  }, [shipment, lines, skus]);
+
+  // Suggested customs duty total — sum of each line's FOB × its category's
+  // duty rate. Shown as a tappable "Use suggested" affordance next to the
+  // manual Customs duty field; the field itself stays the source of truth
+  // (Ali can always type what customs actually charged instead).
+  const suggestedDutyMvr = useMemo(() => {
+    if (!shipment) return null;
+    const idr = shipment.rate_idr_to_mvr ?? 0;
+    const usd = shipment.rate_usd_to_mvr ?? 0;
+    if (!(idr > 0 && usd > 0) || lines.length === 0) return null;
+    const total = lines.reduce((acc, l) => {
+      const sku = skus.find((s) => s.id === l.sku_id);
+      const dutyRatePct = sku?.duty_rate_pct ?? 0;
+      if (dutyRatePct <= 0) return acc;
+      const fxToMvr = l.fob_currency === "IDR" ? idr : l.fob_currency === "USD" ? usd : 1;
+      const fobMvr = l.qty_cartons * l.fob_per_carton * fxToMvr;
+      return acc + fobMvr * (dutyRatePct / 100);
+    }, 0);
+    return total > 0 ? total : null;
   }, [shipment, lines, skus]);
 
   /* ── Field patch ───────────────────────────────────────────────────────── */
@@ -1238,8 +1272,32 @@ export function ShipmentDetail({ id }: { id: string }) {
                 Charges you paid here in the Maldives. Leave any at 0 if they don&apos;t apply.
               </p>
               <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Customs duty</p>
+                  <NumInput
+                    value={shipment.customs_duty_mvr}
+                    disabled={locked}
+                    compact
+                    min={0}
+                    placeholder="0"
+                    onChange={(v) => patch("customs_duty_mvr", v ?? 0)}
+                  />
+                  {/* Suggested from each product's category duty rate (e.g.
+                      Tobacco = 200%) — a starting point, not a silent
+                      override. Ali still enters what customs actually
+                      charged; this just saves the arithmetic. */}
+                  {!locked && suggestedDutyMvr != null && Math.round(suggestedDutyMvr) !== Math.round(shipment.customs_duty_mvr ?? 0) && (
+                    <button
+                      type="button"
+                      onClick={() => patch("customs_duty_mvr", Math.round(suggestedDutyMvr))}
+                      className="ios-footnote font-medium active:opacity-70"
+                      style={{ color: "var(--snm-brand)" }}
+                    >
+                      Use suggested MVR {fmt0(suggestedDutyMvr)}
+                    </button>
+                  )}
+                </div>
                 {[
-                  { label: "Customs duty",  field: "customs_duty_mvr" },
                   { label: "Port (MPL)",    field: "mpl_charges_mvr"  },
                   { label: "Clearing agent", field: "agent_fee_mvr"   },
                   { label: "Delivery to godown", field: "last_mile_mvr" },
@@ -1259,6 +1317,13 @@ export function ShipmentDetail({ id }: { id: string }) {
                   </div>
                 ))}
               </div>
+              {/* Explain WHY the suggestion may differ per product — visible
+                  whenever any line's category actually carries a duty rate. */}
+              {lines.some((l) => (skus.find((s) => s.id === l.sku_id)?.duty_rate_pct ?? 0) > 0) && (
+                <p className="ios-footnote mt-2" style={{ color: "var(--muted-foreground)" }}>
+                  Some products here have a category duty rate (e.g. Tobacco). Their share of the customs duty above is calculated from their value and rate, not just their carton volume — set duty rates per category under Products.
+                </p>
+              )}
             </div>
 
             {/* Plain-language cost summary — no FOB/Freight/Local jargon */}
