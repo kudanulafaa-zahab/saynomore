@@ -30,11 +30,13 @@ const CHANNELS: { value: CustomerChannel; label: string }[] = [
 
 const CHANNEL_LABEL: Record<string, string> = Object.fromEntries(CHANNELS.map((c) => [c.value, c.label]));
 
+// Non-hierarchical peer categories — dedicated --snm-tag-* palette, never the
+// semantic tokens (a price tier isn't "primary action"/"attention"/"good money").
 const TIERS: { value: PriceTier; label: string; color: string }[] = [
   { value: "retail",    label: "Retail",    color: "var(--muted-foreground)" },
-  { value: "wholesale", label: "Wholesale", color: "var(--snm-warning)" },
-  { value: "vip",       label: "VIP",       color: "var(--snm-brand)" },
-  { value: "promo",     label: "Promo",     color: "var(--snm-success)" },
+  { value: "wholesale", label: "Wholesale", color: "var(--snm-tag-slate)" },
+  { value: "vip",       label: "VIP",       color: "var(--snm-tag-violet)" },
+  { value: "promo",     label: "Promo",     color: "var(--snm-tag-sage)" },
 ];
 const TIER_MAP = Object.fromEntries(TIERS.map((t) => [t.value, t]));
 

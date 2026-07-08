@@ -78,9 +78,22 @@
      Red/green carry meaning only (destructive/loss · success/good money). */
   --snm-error: #FF453A;   /* systemRed (dark) */
   --snm-success: #30D158; /* systemGreen (dark) */
-  --snm-warning: #FF9F0A; /* systemOrange (dark) */
+  /* "Attention/pending" was systemOrange/amber; swapped to systemTeal per Ali
+     (amber clashed with the cool blue-dominant palette). Teal sits far enough
+     from systemBlue in hue+value that it stays clearly distinct at a glance —
+     straight cyan was rejected (too close to blue, verified by design review). */
+  --snm-warning: #40C8E0; /* systemTeal (dark) */
   --snm-info: #0A84FF;    /* systemBlue (dark) */
   --snm-promo: #BF5AF2;   /* systemPurple (dark) */
+
+  /* Categorical TAG colours — for peer labels with no status meaning (e.g. a
+     customer price tier: Retail/Wholesale/VIP/Promo). These must NEVER reuse
+     the semantic tokens above — borrowing --snm-brand/warning/success for a
+     plain category label falsely implies "primary action" / "needs attention"
+     / "good money" where none applies. Dark defaults; light overrides below. */
+  --snm-tag-violet: #A87DE8;
+  --snm-tag-slate:  #9AAABC;
+  --snm-tag-sage:   #5FC17E;
 }
 
 /* ── LIGHT MODE ─────────────────────────────────────────────────────────── */
@@ -99,9 +112,18 @@
      icons. Bright Apple hues still fine as large fills. */
   --snm-success: #248A3D;   /* deepened systemGreen for light-mode text */
   --snm-error:   #FF3B30;   /* systemRed (light) */
-  --snm-warning: #9A5B00;   /* deepened systemOrange for light-mode text */
+  /* Deepened systemTeal (5.3:1 vs background, 5.9:1 vs white cards) — was
+     amber; see dark-mode note above for why teal replaced it. */
+  --snm-warning: #0B6E80;   /* deepened systemTeal for light-mode text */
   --snm-info:    #007AFF;   /* systemBlue (light) */
   --snm-promo:   #8944D6;   /* deepened systemPurple */
+
+  /* Categorical TAG colours, LIGHT — see dark-mode definition for the rule
+     (never reuse semantic tokens for a plain category label). Deepened for
+     AA text contrast on the light background. */
+  --snm-tag-violet: #6D3FCB;
+  --snm-tag-slate:  #5B6B7F;
+  --snm-tag-sage:   #3F7A52;
 
   /* Brand accent, LIGHT — systemBlue #007AFF (Apple's measured light value).
      Passes AA as text on --background and white cards, and as a button fill
@@ -185,7 +207,7 @@
     --snm-brand-on:     #ffffff;
     --snm-success: #30D158;
     --snm-error:   #FF453A;
-    --snm-warning: #FF9F0A;
+    --snm-warning: #40C8E0; /* systemTeal (dark) — was amber, see note above */
     --snm-info:  #0A84FF;
     --snm-promo: #BF5AF2;
 
@@ -262,9 +284,12 @@
   --snm-brand-on:     #ffffff;
   --snm-success: #248A3D;
   --snm-error:   #FF3B30;
-  --snm-warning: #9A5B00;
+  --snm-warning: #0B6E80; /* systemTeal, deepened for light text — was amber */
   --snm-info:    #007AFF;
   --snm-promo:   #8944D6;
+  --snm-tag-violet: #6D3FCB;
+  --snm-tag-slate:  #5B6B7F;
+  --snm-tag-sage:   #3F7A52;
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
   --card:             rgba(255, 255, 255, 0.72);
@@ -319,9 +344,12 @@
   --snm-brand-on:     #ffffff;
   --snm-success: #30D158;
   --snm-error:   #FF453A;
-  --snm-warning: #FF9F0A;
+  --snm-warning: #40C8E0; /* systemTeal (dark) — was amber */
   --snm-info:  #0A84FF;
   --snm-promo: #BF5AF2;
+  --snm-tag-violet: #A87DE8;
+  --snm-tag-slate:  #9AAABC;
+  --snm-tag-sage:   #5FC17E;
   --background: #000000;
   --foreground: #e5e2e1;
   --card:            rgba(255, 255, 255, 0.05);

@@ -669,7 +669,11 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                 <p className="ios-subhead text-muted-foreground px-3 py-2">No matches</p>
               ) : groups.map((b, bi) => {
                 const cov = coverage(b.skuIds);
-                const open = expandedBrand === b.name || skuSearch.trim() !== "";
+                // Only the tapped brand expands — searching already narrows
+                // WHICH brands/lines show (see `groups` above), so forcing every
+                // matched brand open on each keystroke caused the whole list to
+                // suddenly jump/resize as you typed. Tap a chevron to drill in.
+                const open = expandedBrand === b.name;
                 return (
                   <div key={b.name} className={bi > 0 ? "border-t border-border" : ""}>
                     {/* Brand row */}
@@ -684,7 +688,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                           {cov === "all" ? "all" : cov === "some" ? `${b.skuIds.filter((id) => selectedSet.has(id)).length}/${b.skuIds.length}` : `${b.skuIds.length} SKUs`}
                         </span>
                       </button>
-                      <button onClick={() => setExpandedBrand(open && skuSearch.trim() === "" ? null : b.name)} className="h-11 w-10 flex items-center justify-center text-muted-foreground shrink-0">
+                      <button onClick={() => setExpandedBrand(open ? null : b.name)} className="h-11 w-10 flex items-center justify-center text-muted-foreground shrink-0">
                         <ChevronRight className="h-4 w-4 transition-transform" style={{ transform: open ? "rotate(90deg)" : "none" }} />
                       </button>
                     </div>
