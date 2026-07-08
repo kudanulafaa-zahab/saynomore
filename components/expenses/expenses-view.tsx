@@ -589,7 +589,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   return (
     <div
       className="fixed inset-0 z-60 flex items-end"
-      style={{ background: "rgba(0,0,0,0.6)" }}
+      style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
       onClick={onClose}
     >
       <div
@@ -601,6 +601,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
           boxShadow: "var(--glass-shadow-lg)",
           height: "88dvh",
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
+          touchAction: "none",
         }}
       >
         {/* Fixed header — grabber + title stay pinned */}
@@ -616,8 +617,10 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
           </div>
         </div>
 
-        {/* Scrollable body — the ONLY scroll region */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-4">
+        {/* Scrollable body — the ONLY scroll region. touchAction: pan-y so a
+            drag here scrolls vertically only — never pans/drags the sheet
+            itself sideways (the panel + backdrop block all panning above). */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-4" style={{ touchAction: "pan-y" }}>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
               <label className={label}>Channel *</label>
@@ -680,11 +683,11 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                     <div className="flex items-center">
                       <button
                         onClick={() => toggleRange(b.skuIds)}
-                        className="flex-1 flex items-center gap-2 text-left px-3 py-2.5 ios-subhead font-semibold text-foreground"
+                        className="flex-1 min-w-0 flex items-center gap-2 text-left px-3 py-2.5 ios-subhead font-semibold text-foreground"
                       >
                         <Check className="h-4 w-4 shrink-0" style={{ color: cov === "all" ? "var(--snm-brand)" : cov === "some" ? "var(--snm-brand)" : "var(--border)", opacity: cov === "none" ? 0.4 : 1 }} />
-                        <span className="truncate">{b.name}</span>
-                        <span className="ios-footnote font-normal text-muted-foreground">
+                        <span className="truncate min-w-0">{b.name}</span>
+                        <span className="ios-footnote font-normal text-muted-foreground shrink-0">
                           {cov === "all" ? "all" : cov === "some" ? `${b.skuIds.filter((id) => selectedSet.has(id)).length}/${b.skuIds.length}` : `${b.skuIds.length} SKUs`}
                         </span>
                       </button>

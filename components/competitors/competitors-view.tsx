@@ -1276,11 +1276,11 @@ function PriceModal({
   // not a free-floating, content-sized card (which drags with the finger
   // instead of scrolling, and reads as a webpage, not a native sheet).
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.60)" }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.60)", touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl flex flex-col snm-modal-card"
-        style={{ ...CARD_L2, height: "88dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)" }}
+        style={{ ...CARD_L2, height: "88dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", touchAction: "none" }}
       >
         {/* Fixed header — grabber + title stay pinned */}
         <div className="shrink-0 px-6 pt-3">
@@ -1289,7 +1289,7 @@ function PriceModal({
         </div>
 
         {/* Scrollable body — the ONLY scroll region */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-6 pb-4 space-y-4" style={{ touchAction: "pan-y" }}>
           {/* Competitor selector — show all, or allow adding inline */}
           <div className="space-y-1.5">
             <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>

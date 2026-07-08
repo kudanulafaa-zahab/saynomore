@@ -1740,11 +1740,11 @@ function LineDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "rgba(0,0,0,0.65)" }} onClick={onClose}>
+    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "rgba(0,0,0,0.65)", touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl flex flex-col"
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", height: "85dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", height: "85dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", touchAction: "none" }}
       >
         {/* Fixed header — grabber + title stay pinned at the top */}
         <div className="shrink-0 px-6 pt-3">
@@ -1752,8 +1752,9 @@ function LineDialog({
           <h2 className="text-[20px] font-semibold text-foreground mb-5">{editing ? "Edit Product" : "Add Product"}</h2>
         </div>
 
-        {/* Scrollable body — only this region scrolls, so the footer never leaves the screen */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6">
+        {/* Scrollable body — only this region scrolls, so the footer never leaves the screen.
+            touchAction: pan-y so a drag here only scrolls vertically — never pans the sheet itself. */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-6" style={{ touchAction: "pan-y" }}>
 
         {/* SKU picker */}
         <div className="mb-4">
