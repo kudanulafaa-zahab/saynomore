@@ -582,26 +582,31 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   const field = "w-full h-11 px-3 rounded-xl text-sm bg-secondary text-foreground border border-border outline-none";
   const label = "block text-xs uppercase tracking-widest text-muted-foreground mb-1.5";
 
+  // Native bottom sheet — same structure as the app's other sheets: a
+  // fixed-height panel (does NOT scroll itself), pinned header + footer, and
+  // ONE inner scroll region. Tapping the dimmed backdrop closes it and no drag
+  // reaches the page behind, so it feels docked/native, not like a webpage.
   return (
-    <div className="fixed inset-0 bg-black/60 z-60 flex items-end backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-60 flex items-end"
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={onClose}
+    >
       <div
-        className="rounded-t-3xl w-full overflow-y-auto overscroll-contain"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-t-3xl flex flex-col"
         style={{
-          // Solid, page-matching surface (not translucent grey) so the sheet
-          // reads like the Expenses page's own cards. overscroll-contain stops
-          // the scroll from bouncing the page behind it — native sheet feel.
           background: "var(--background)",
           borderTop: "0.5px solid var(--glass-border-lo)",
           boxShadow: "var(--glass-shadow-lg)",
+          height: "88dvh",
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
-          paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--kb-inset))",
         }}
       >
-        {/* Handle */}
-        <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-1" />
-
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-5">
+        {/* Fixed header — grabber + title stay pinned */}
+        <div className="shrink-0 px-5 pt-3">
+          <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               {editing ? "Edit Expense" : "Log Expense"}
             </h2>
@@ -609,7 +614,10 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
               <X className="h-4 w-4" />
             </button>
           </div>
+        </div>
 
+        {/* Scrollable body — the ONLY scroll region */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-4">
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
               <label className={label}>Channel *</label>
@@ -713,24 +721,31 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
             </div>
           </div>
 
-          <div className="mb-5">
+          <div>
             <label className={label}>Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2}
               className="w-full px-3 py-2.5 rounded-xl ios-subhead bg-secondary text-foreground border border-border outline-none resize-none" />
           </div>
+        </div>
 
-          <div className="flex gap-3 pb-[env(safe-area-inset-bottom,16px)] pt-2">
-            <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead text-muted-foreground bg-secondary">
-              Cancel
-            </button>
-            <button
-              onClick={save} disabled={saving || !amountMvr}
-              className="flex-[2] h-12 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save Changes" : "Log Expense"}
-            </button>
-          </div>
+        {/* Fixed footer — pinned, lifts above the keyboard */}
+        <div
+          className="shrink-0 flex gap-3 px-5 pt-3"
+          style={{
+            borderTop: "0.5px solid var(--glass-border-lo)",
+            paddingBottom: "max(env(safe-area-inset-bottom, 16px), var(--kb-inset))",
+          }}
+        >
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead text-muted-foreground bg-secondary">
+            Cancel
+          </button>
+          <button
+            onClick={save} disabled={saving || !amountMvr}
+            className="flex-[2] h-12 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save Changes" : "Log Expense"}
+          </button>
         </div>
       </div>
     </div>
