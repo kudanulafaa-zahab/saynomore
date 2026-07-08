@@ -1269,94 +1269,112 @@ function PriceModal({
     finally { setSaving(false); }
   }
 
+  // Native bottom sheet — fixed-height panel (never scrolls itself), pinned
+  // header + footer, and ONE inner scroll region. This form has a scrollable
+  // product picker plus many fields, so — same as the other sheets in this
+  // app — it must be docked to the screen edges with its own scroll area,
+  // not a free-floating, content-sized card (which drags with the finger
+  // instead of scrolling, and reads as a webpage, not a native sheet).
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
-      <div className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-modal-card" style={CARD_L2}>
-        <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Price" : "Log Competitor Price"}</p>
-
-        {/* Competitor selector — show all, or allow adding inline */}
-        <div className="space-y-1.5">
-          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
-          {competitors.length > 0 ? (
-            <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-              <option value="">Pick competitor</option>
-              {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          ) : (
-            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Add a competitor first using the &ldquo;Add Competitor&rdquo; button.</p>
-          )}
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.60)" }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-t-3xl flex flex-col snm-modal-card"
+        style={{ ...CARD_L2, height: "88dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)" }}
+      >
+        {/* Fixed header — grabber + title stay pinned */}
+        <div className="shrink-0 px-6 pt-3">
+          <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />
+          <p className="text-[16px] font-bold text-foreground pb-3">{editing ? "Edit Price" : "Log Competitor Price"}</p>
         </div>
 
-        {/* Product */}
-        <div>
-          <p className="label-caps text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
-          {!variantId ? (
-            <>
-              <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
-              <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
-                {filteredVariants.map((s) => (
-                  <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-                    <SkuIdentity
-                      brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                      pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
-                    />
-                  </button>
-                ))}
-                {filteredVariants.length === 0 && <p className="px-4 py-3 ios-subhead" style={{ color: "var(--muted-foreground)" }}>No matches</p>}
+        {/* Scrollable body — the ONLY scroll region */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-4 space-y-4">
+          {/* Competitor selector — show all, or allow adding inline */}
+          <div className="space-y-1.5">
+            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
+            {competitors.length > 0 ? (
+              <select value={selectedCompId} onChange={(e) => setSelectedCompId(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                <option value="">Pick competitor</option>
+                {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            ) : (
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Add a competitor first using the &ldquo;Add Competitor&rdquo; button.</p>
+            )}
+          </div>
+
+          {/* Product */}
+          <div>
+            <p className="label-caps text-[12px] mb-1.5" style={{ color: "var(--muted-foreground)" }}>PRODUCT *</p>
+            {!variantId ? (
+              <>
+                <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+                <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
+                  {filteredVariants.map((s) => (
+                    <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                      <SkuIdentity
+                        brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
+                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                      />
+                    </button>
+                  ))}
+                  {filteredVariants.length === 0 && <p className="px-4 py-3 ios-subhead" style={{ color: "var(--muted-foreground)" }}>No matches</p>}
+                </div>
+              </>
+            ) : selectedSku ? (
+              <div className="rounded-xl p-3 flex justify-between items-start gap-3" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                <SkuIdentity
+                  brandName={selectedSku.brand_name} modelName={selectedSku.model_name} variantDisplay={selectedSku.variant_display}
+                  pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton}
+                  size="card"
+                />
+                <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="ios-subhead text-foreground opacity-60 active:opacity-100 shrink-0">Change</button>
               </div>
-            </>
-          ) : selectedSku ? (
-            <div className="rounded-xl p-3 flex justify-between items-start gap-3" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-              <SkuIdentity
-                brandName={selectedSku.brand_name} modelName={selectedSku.model_name} variantDisplay={selectedSku.variant_display}
-                pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton}
-                size="card"
-              />
-              <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="ios-subhead text-foreground opacity-60 active:opacity-100 shrink-0">Change</button>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
+              <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
             </div>
-          ) : null}
-        </div>
+            <div className="space-y-1.5">
+              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
+              <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                {(Object.keys(BASIS_LABEL) as PriceBasis[]).map((b) => <option key={b} value={b}>{BASIS_LABEL[b]}</option>)}
+              </select>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-2 gap-3">
+          {/* Live per-piece preview */}
+          {perPiecePreview != null && (
+            <div className="rounded-xl px-4 py-3 text-center" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
+              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                = <span className="font-bold text-[14px]" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
+              </p>
+            </div>
+          )}
+
+          {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
+            <div className="space-y-1.5">
+              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
+              <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
-            <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
+            <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
+
           <div className="space-y-1.5">
-            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
-            <select value={priceBasis} onChange={(e) => setPriceBasis(e.target.value as PriceBasis)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none appearance-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-              {(Object.keys(BASIS_LABEL) as PriceBasis[]).map((b) => <option key={b} value={b}>{BASIS_LABEL[b]}</option>)}
-            </select>
+            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
         </div>
 
-        {/* Live per-piece preview */}
-        {perPiecePreview != null && (
-          <div className="rounded-xl px-4 py-3 text-center" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
-            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-              = <span className="font-bold text-[14px]" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
-            </p>
-          </div>
-        )}
-
-        {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
-          <div className="space-y-1.5">
-            <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
-            <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>DATE OBSERVED *</p>
-          <input type="date" value={observedDate} onChange={(e) => setObservedDate(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
-        </div>
-
-        <div className="space-y-1.5">
-          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
-        </div>
-
-        <div className="flex gap-2 pt-1">
+        {/* Fixed footer — pinned, lifts above the keyboard */}
+        <div className="shrink-0 flex gap-2 px-6 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
           <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
           <button onClick={save} disabled={saving || !selectedCompId || !variantId || !priceMvr} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Log Price"}
