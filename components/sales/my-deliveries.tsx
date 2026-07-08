@@ -64,7 +64,7 @@ function uomWord(uom: string, qty: number): string {
 // profile), plus a maps deep-link so the driver gets one-tap navigation.
 function deliveryAddress(order: SalesOrderRow, customer?: CustomerRow) {
   const line1  = order.delivery_address_line1 || customer?.address || null;
-  const line2  = order.delivery_address_line2 || null;
+  const line2  = order.delivery_address_line2 || customer?.road || null;
   const island = order.delivery_island || customer?.island || null;
   const parts  = [line1, line2, island].filter(Boolean) as string[];
   const text   = parts.join(", ");

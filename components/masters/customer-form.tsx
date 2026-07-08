@@ -101,6 +101,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
   const [phone, setPhone]       = useState(editing?.phone ?? "");
   const [island, setIsland]     = useState(editing?.island ?? "");
   const [address, setAddress]   = useState(editing?.address ?? "");
+  const [road, setRoad]         = useState(editing?.road ?? "");
   const [company, setCompany]   = useState(editing?.company ?? "");
   const [channel, setChannel]   = useState<CustomerChannel>(editing?.channel ?? "whatsapp");
   const [priceTier, setPriceTier] = useState<PriceTier>(editing?.price_tier ?? "retail");
@@ -135,6 +136,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
       phone: phone.trim() || null,
       island: island.trim() || null,
       address: address.trim() || null,
+      road: road.trim() || null,
       company: company.trim() || null,
       channel: (channel || null) as CustomerChannel | null,
       price_tier: priceTier,
@@ -219,7 +221,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
                 <div className="min-w-0 flex-1">
                   <p className="ios-subhead font-semibold text-foreground truncate">{c.name}</p>
                   <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
-                    {[c.phone, c.island, c.address].filter(Boolean).join(" · ") || "No other details"}
+                    {[c.phone, c.island, c.address, c.road].filter(Boolean).join(" · ") || "No other details"}
                   </p>
                 </div>
                 <span className="ios-subhead font-bold px-2 py-1 rounded-lg shrink-0"
@@ -237,10 +239,17 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
           <Input value={island} onChange={(e) => setIsland(e.target.value)} placeholder="Malé…" />
         </div>
 
-        {/* Address */}
+        {/* Address — house/shop and road are separate fields so the road name
+            has its own place on the shipping label (line 2), instead of being
+            jammed into one freeform line with the house name. */}
         <div className="space-y-2">
-          <Label className={LABEL_CLS}>Address</Label>
-          <Textarea value={address} onChange={(e) => setAddress(e.target.value)} className="min-h-[50px]" placeholder="House / shop, road…" />
+          <Label className={LABEL_CLS}>House / Shop</Label>
+          <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="H. Adhunge" />
+        </div>
+
+        <div className="space-y-2">
+          <Label className={LABEL_CLS}>Road</Label>
+          <Input value={road} onChange={(e) => setRoad(e.target.value)} placeholder="Raivilla Magu" />
         </div>
 
         {/* Company / Shop */}
@@ -334,7 +343,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
             <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
               <p className="ios-subhead font-semibold text-foreground">{phoneConflict.name}</p>
               <p className="ios-subhead snm-num" style={{ color: "var(--muted-foreground)" }}>
-                {[phoneConflict.phone, phoneConflict.island, phoneConflict.address].filter(Boolean).join(" · ")}
+                {[phoneConflict.phone, phoneConflict.island, phoneConflict.address, phoneConflict.road].filter(Boolean).join(" · ")}
               </p>
             </div>
             {onPickExisting && (

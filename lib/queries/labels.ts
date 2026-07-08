@@ -61,6 +61,7 @@ export async function getLabelData(
           name,
           phone,
           address,
+          road,
           island
         )
       )
@@ -92,7 +93,7 @@ export async function getLabelData(
     delivery_address_line1: string | null;
     delivery_address_line2: string | null;
     delivery_island: string | null;
-    customers: { name: string; phone: string | null; address: string | null; island: string | null } | null;
+    customers: { name: string; phone: string | null; address: string | null; road: string | null; island: string | null } | null;
   } | null;
   const customer = order?.customers ?? null;
 
@@ -118,9 +119,9 @@ export async function getLabelData(
     deliveryName: customer?.name ?? "",
     // Prefer the order's one-off delivery address as a whole; only when the
     // order has NO delivery address at all do we fall back to the customer's
-    // saved profile address/island — so a label is never blank just because no
-    // per-order address was typed, and we never mix an order line with a
-    // customer island. (Customer address is one free-text field → line 1.)
+    // saved profile — so a label is never blank just because no per-order
+    // address was typed, and we never mix an order line with a customer
+    // island. Customer house/shop (address) → line 1, road → line 2.
     ...(() => {
       const hasOrderAddress = !!(order?.delivery_address_line1 || order?.delivery_address_line2 || order?.delivery_island);
       return hasOrderAddress
@@ -131,7 +132,7 @@ export async function getLabelData(
           }
         : {
             deliveryAddressLine1: customer?.address ?? null,
-            deliveryAddressLine2: null,
+            deliveryAddressLine2: customer?.road ?? null,
             deliveryIsland: customer?.island ?? null,
           };
     })(),

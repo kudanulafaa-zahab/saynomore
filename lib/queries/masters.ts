@@ -62,6 +62,7 @@ export interface CustomerRow {
   phone: string | null;
   email: string | null;
   address: string | null;
+  road: string | null;
   island: string | null;
   channel: CustomerChannel | null;
   price_tier: PriceTier;
@@ -75,6 +76,7 @@ export interface CustomerInput {
   phone?: string | null;
   email?: string | null;
   address?: string | null;
+  road?: string | null;
   island?: string | null;
   channel?: CustomerChannel | null;
   price_tier?: PriceTier;
