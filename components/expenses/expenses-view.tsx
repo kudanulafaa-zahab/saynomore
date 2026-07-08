@@ -583,10 +583,16 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   const label = "block text-xs uppercase tracking-widest text-muted-foreground mb-1.5";
 
   return (
-    <div className="fixed inset-0 bg-black/75 z-60 flex items-end backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/60 z-60 flex items-end backdrop-blur-sm">
       <div
-        className="glass-modal rounded-t-3xl w-full overflow-y-auto"
+        className="rounded-t-3xl w-full overflow-y-auto overscroll-contain"
         style={{
+          // Solid, page-matching surface (not translucent grey) so the sheet
+          // reads like the Expenses page's own cards. overscroll-contain stops
+          // the scroll from bouncing the page behind it — native sheet feel.
+          background: "var(--background)",
+          borderTop: "0.5px solid var(--glass-border-lo)",
+          boxShadow: "var(--glass-shadow-lg)",
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
           paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--kb-inset))",
         }}

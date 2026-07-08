@@ -818,7 +818,16 @@ function NewSaleSheet({
   const filteredCustomers = useMemo(() => {
     const term = customerSearch.trim().toLowerCase();
     if (!term) return [];
-    return customers.filter((c) => [c.name, c.phone ?? "", c.island ?? ""].join(" ").toLowerCase().includes(term)).slice(0, 10);
+    // Phone is the primary identity for repeat customers. Normalise both sides
+    // (strip +960 / spaces / dashes) so typing "7712345" matches a stored
+    // "+960 771 2345". Text still matches name/island as before.
+    const digits = term.replace(/\D/g, "").replace(/^960/, "");
+    const normPhone = (p: string | null) => (p ?? "").replace(/\D/g, "").replace(/^960/, "");
+    return customers.filter((c) => {
+      const textHit = [c.name, c.phone ?? "", c.island ?? ""].join(" ").toLowerCase().includes(term);
+      const phoneHit = digits.length >= 3 && normPhone(c.phone).includes(digits);
+      return textHit || phoneHit;
+    }).slice(0, 10);
   }, [customers, customerSearch]);
 
   const filteredSkus = useMemo(() => {

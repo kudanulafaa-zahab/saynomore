@@ -59,7 +59,9 @@ export async function getLabelData(
         delivery_island,
         customers (
           name,
-          phone
+          phone,
+          address,
+          island
         )
       )
     `)
@@ -90,7 +92,7 @@ export async function getLabelData(
     delivery_address_line1: string | null;
     delivery_address_line2: string | null;
     delivery_island: string | null;
-    customers: { name: string; phone: string | null } | null;
+    customers: { name: string; phone: string | null; address: string | null; island: string | null } | null;
   } | null;
   const customer = order?.customers ?? null;
 
@@ -114,9 +116,25 @@ export async function getLabelData(
     volumeMl: typeof attrs.volume_ml === "number" ? attrs.volume_ml : null,
 
     deliveryName: customer?.name ?? "",
-    deliveryAddressLine1: order?.delivery_address_line1 ?? null,
-    deliveryAddressLine2: order?.delivery_address_line2 ?? null,
-    deliveryIsland: order?.delivery_island ?? null,
+    // Prefer the order's one-off delivery address as a whole; only when the
+    // order has NO delivery address at all do we fall back to the customer's
+    // saved profile address/island — so a label is never blank just because no
+    // per-order address was typed, and we never mix an order line with a
+    // customer island. (Customer address is one free-text field → line 1.)
+    ...(() => {
+      const hasOrderAddress = !!(order?.delivery_address_line1 || order?.delivery_address_line2 || order?.delivery_island);
+      return hasOrderAddress
+        ? {
+            deliveryAddressLine1: order?.delivery_address_line1 ?? null,
+            deliveryAddressLine2: order?.delivery_address_line2 ?? null,
+            deliveryIsland: order?.delivery_island ?? null,
+          }
+        : {
+            deliveryAddressLine1: customer?.address ?? null,
+            deliveryAddressLine2: null,
+            deliveryIsland: customer?.island ?? null,
+          };
+    })(),
     customerPhone: customer?.phone ?? null,
   };
 }

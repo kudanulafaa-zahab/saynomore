@@ -6,8 +6,10 @@
  * Both the Customers directory (create/edit) and the Sales wizard (new customer
  * mid-order) render this exact component, so the fields, order, and look are
  * identical and stay identical. Field order is Maldives-correct:
- *   Name → Phone → Island → Address → Company → Channel → Price Tier → Email → Notes
- * (Island sits above Address because it decides the boat/route.)
+ *   Phone → Name → Island → Address → Company → Channel → Price Tier → Email → Notes
+ * (Phone is FIRST — it's the primary identity for repeat customers, since names
+ * collide but numbers don't. Island sits above Address because it decides the
+ * boat/route.)
  *
  * The component owns its own field state. On save it calls createCustomer or
  * updateCustomer and hands the saved row back via onSaved so each caller can
@@ -175,17 +177,21 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
         className="flex-1 min-h-0 space-y-4 overflow-y-auto px-5 py-1"
         style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
       >
+        {/* Phone FIRST — the primary way we identify repeat customers. Two
+            people can share a name; a number is unique, and it's the WhatsApp/
+            Viber handle orders come in on. Recommended, not hard-required
+            (walk-ins with no phone must still be recordable); duplicates are
+            warned, never blocked. */}
+        <div className="space-y-2">
+          <Label className={LABEL_CLS}>Phone (WhatsApp)</Label>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+960 771 2345" inputMode="tel" autoFocus={!editing} />
+          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>How we find repeat customers — enter it whenever you can.</p>
+        </div>
+
         {/* Name */}
         <div className="space-y-2">
           <Label className={LABEL_CLS}>Full Name *</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ahmed" />
-        </div>
-
-        {/* Phone */}
-        <div className="space-y-2">
-          <Label className={LABEL_CLS}>Phone</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+960…" inputMode="tel" />
-          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Format: +960 771 2345</p>
         </div>
 
         {/* Live duplicate suggestions — only while creating */}
