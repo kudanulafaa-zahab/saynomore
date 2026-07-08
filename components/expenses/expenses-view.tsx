@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Megaphone, MousePointerClick, Music2, Receipt,
-  Warehouse, Truck, Zap, Plus, Trash2, Pencil, X,
+  Warehouse, Truck, Zap, Plus, Trash2, Pencil, X, Check, ChevronRight,
 } from "lucide-react";
 import {
   listMarketingSpend,
@@ -77,6 +77,12 @@ export function ExpensesView() {
   const [categories, setCategories] = useState<ExpenseCategoryRow[]>([]);
   const [bizRows, setBizRows]       = useState<BusinessExpenseRow[]>([]);
   const [quickCategoryId, setQuickCategoryId] = useState<string>("");
+  const [quickOther, setQuickOther] = useState("");        // free-text when category = Other
+  const [quickOtherError, setQuickOtherError] = useState(false);
+
+  // Is the chosen quick-log category the generic "Other" bucket? If so we need
+  // the user to name the expense (otherwise a pile of "Other" rows is useless).
+  const quickIsOther = categories.find((c) => c.id === quickCategoryId)?.name?.toLowerCase() === "other";
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
@@ -122,16 +128,20 @@ export function ExpensesView() {
     const amt = parseFloat(quickAmount);
     const amountBad = !amt || amt <= 0;
     const categoryBad = !quickCategoryId;
+    const otherBad = quickIsOther && !quickOther.trim();
     setQuickAmountError(amountBad);
     setQuickCategoryError(categoryBad);
+    setQuickOtherError(otherBad);
     if (amountBad) { toast.error("Enter an amount"); return; }
     if (categoryBad) { toast.error("Pick a category"); return; }
+    if (otherBad) { toast.error("Say what this 'Other' expense is"); return; }
     setLoggingQuick(true);
     const payload = {
       category_id: quickCategoryId,
       amount_mvr: amt,
       expense_date: new Date().toISOString().slice(0, 10),
-      description: null,
+      // For "Other", the typed label IS the description so the row is meaningful.
+      description: quickIsOther ? quickOther.trim() : null,
     };
     try {
       const { queued } = await withOfflineFallback(
@@ -141,6 +151,8 @@ export function ExpensesView() {
       haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Expense logged");
       setQuickAmount("");
+      setQuickOther("");
+      setQuickOtherError(false);
       if (!queued) load();
     } catch (e) {
       haptic("error");
@@ -251,13 +263,27 @@ export function ExpensesView() {
           </select>
           <button
             onClick={handleQuickLog}
-            disabled={loggingQuick || !quickAmount}
+            disabled={loggingQuick || !quickAmount || (quickIsOther && !quickOther.trim())}
             className="h-11 px-5 rounded-xl ios-subhead font-semibold shrink-0 disabled:opacity-50"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             {loggingQuick ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log"}
           </button>
         </div>
+
+        {/* "Other" needs a name — only shown when the Other category is chosen,
+            so a generic "Other" row is never left unexplained in the P&L. */}
+        {quickIsOther && (
+          <input
+            value={quickOther}
+            onChange={(e) => { setQuickOther(e.target.value); if (e.target.value.trim()) setQuickOtherError(false); }}
+            onKeyDown={(e) => e.key === "Enter" && handleQuickLog()}
+            placeholder="What is this expense? e.g. Printer repair"
+            autoFocus
+            className="w-full h-11 px-3 mt-2 rounded-xl ios-subhead bg-secondary text-foreground outline-none"
+            style={{ border: quickOtherError ? "1.5px solid var(--snm-error)" : "1px solid var(--border)" }}
+          />
+        )}
       </div>
 
       {/* Business expenses — recent */}
@@ -485,17 +511,50 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   const [skuSearch, setSkuSearch] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const filteredSkus = useMemo(() => {
-    const term = skuSearch.trim().toLowerCase();
-    if (!term) return skus.filter((s) => s.is_active).slice(0, 30);
-    return skus.filter((s) => s.is_active &&
-      [s.brand_name, s.model_name, s.variant_display].join(" ").toLowerCase().includes(term),
-    ).slice(0, 30);
-  }, [skus, skuSearch]);
+  // Campaigns run for a RANGE, not hand-picked SKUs. Group active SKUs into
+  // Brand → Product line (model), so the user attaches "All Mamypoko" or a
+  // whole line in one tap; on save it fans out to the underlying SKU ids so the
+  // per-SKU attribution math (spend ÷ units sold) still works underneath.
+  const activeSkus = useMemo(() => skus.filter((s) => s.is_active), [skus]);
 
+  const groups = useMemo(() => {
+    const term = skuSearch.trim().toLowerCase();
+    const match = (s: SkuFullRow) =>
+      !term || [s.brand_name, s.model_name, s.variant_display].join(" ").toLowerCase().includes(term);
+    // Brand → { name, skuIds, models: Model → { name, skuIds, skus[] } }
+    const brands = new Map<string, { name: string; skuIds: string[]; models: Map<string, { name: string; skuIds: string[]; skus: SkuFullRow[] }> }>();
+    for (const s of activeSkus) {
+      if (!match(s)) continue;
+      let b = brands.get(s.brand_id);
+      if (!b) { b = { name: s.brand_name, skuIds: [], models: new Map() }; brands.set(s.brand_id, b); }
+      b.skuIds.push(s.id);
+      let m = b.models.get(s.model_id);
+      if (!m) { m = { name: s.model_name, skuIds: [], skus: [] }; b.models.set(s.model_id, m); }
+      m.skuIds.push(s.id);
+      m.skus.push(s);
+    }
+    return [...brands.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [activeSkus, skuSearch]);
+
+  const selectedSet = useMemo(() => new Set(selectedSkuIds), [selectedSkuIds]);
+  // How many of a group's SKUs are selected: "none" | "some" | "all".
+  const coverage = (ids: string[]): "none" | "some" | "all" => {
+    const n = ids.filter((id) => selectedSet.has(id)).length;
+    return n === 0 ? "none" : n === ids.length ? "all" : "some";
+  };
+  // Tap a range: if fully selected → clear it, else select all its SKUs.
+  function toggleRange(ids: string[]) {
+    setSelectedSkuIds((prev) => {
+      const cov = ids.every((id) => prev.includes(id)) ? "all" : "partial";
+      if (cov === "all") return prev.filter((id) => !ids.includes(id));
+      const set = new Set(prev); ids.forEach((id) => set.add(id));
+      return [...set];
+    });
+  }
   function toggleSku(id: string) {
     setSelectedSkuIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   }
+  const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
 
   async function save() {
     if (!amountMvr || parseFloat(amountMvr) <= 0) { toast.error("Enter an amount"); return; }
@@ -580,37 +639,71 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
             </div>
           </div>
 
-          {/* SKU Picker */}
+          {/* Promote which products? Attach the campaign to a whole brand or a
+              product line in one tap — it fans out to SKUs on save. */}
           <div className="mb-3">
-            <label className={label}>Linked SKUs <span className="normal-case tracking-normal text-muted-foreground/60">(optional)</span></label>
+            <label className={label}>Promote which products? <span className="normal-case tracking-normal text-muted-foreground/60">(optional)</span></label>
+            <p className="ios-footnote text-muted-foreground mb-2 -mt-0.5">Pick a whole brand or a product line — expand to fine-tune single SKUs.</p>
             {selectedSkuIds.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {selectedSkuIds.map((sid) => {
-                  const s = skus.find((sk) => sk.id === sid);
-                  return s ? (
-                    <span key={sid} className="inline-flex items-center gap-1 bg-secondary text-foreground ios-subhead rounded-lg px-2 py-1">
-                      {s.brand_name} {s.model_name} {s.variant_display}
-                      <button onClick={() => toggleSku(sid)} className="text-muted-foreground hover:text-foreground ml-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ) : null;
-                })}
-              </div>
+              <p className="ios-footnote font-semibold mb-2" style={{ color: "var(--snm-brand)" }}>
+                {selectedSkuIds.length} SKU{selectedSkuIds.length > 1 ? "s" : ""} attached
+              </p>
             )}
-            <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search SKUs to link…" className={field + " mb-1.5"} />
-            <div className="bg-secondary/50 rounded-xl max-h-40 overflow-y-auto border border-border">
-              {filteredSkus.length === 0 ? (
+            <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, line, product…" className={field + " mb-1.5"} />
+            <div className="bg-secondary/50 rounded-xl max-h-56 overflow-y-auto border border-border">
+              {groups.length === 0 ? (
                 <p className="ios-subhead text-muted-foreground px-3 py-2">No matches</p>
-              ) : filteredSkus.map((s, i) => (
-                <button
-                  key={s.id} onClick={() => toggleSku(s.id)}
-                  className={`w-full text-left px-3 py-2 ios-subhead text-foreground hover:bg-accent/20 transition ${i > 0 ? "border-t border-border" : ""} ${selectedSkuIds.includes(s.id) ? "bg-accent/10" : ""}`}
-                >
-                  {s.brand_name} › {s.model_name} › {s.variant_display}
-                  {selectedSkuIds.includes(s.id) && <span className="ml-2 ios-subhead text-muted-foreground">✓</span>}
-                </button>
-              ))}
+              ) : groups.map((b, bi) => {
+                const cov = coverage(b.skuIds);
+                const open = expandedBrand === b.name || skuSearch.trim() !== "";
+                return (
+                  <div key={b.name} className={bi > 0 ? "border-t border-border" : ""}>
+                    {/* Brand row */}
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => toggleRange(b.skuIds)}
+                        className="flex-1 flex items-center gap-2 text-left px-3 py-2.5 ios-subhead font-semibold text-foreground"
+                      >
+                        <Check className="h-4 w-4 shrink-0" style={{ color: cov === "all" ? "var(--snm-brand)" : cov === "some" ? "var(--snm-brand)" : "var(--border)", opacity: cov === "none" ? 0.4 : 1 }} />
+                        <span className="truncate">{b.name}</span>
+                        <span className="ios-footnote font-normal text-muted-foreground">
+                          {cov === "all" ? "all" : cov === "some" ? `${b.skuIds.filter((id) => selectedSet.has(id)).length}/${b.skuIds.length}` : `${b.skuIds.length} SKUs`}
+                        </span>
+                      </button>
+                      <button onClick={() => setExpandedBrand(open && skuSearch.trim() === "" ? null : b.name)} className="h-11 w-10 flex items-center justify-center text-muted-foreground shrink-0">
+                        <ChevronRight className="h-4 w-4 transition-transform" style={{ transform: open ? "rotate(90deg)" : "none" }} />
+                      </button>
+                    </div>
+                    {/* Product lines + SKUs */}
+                    {open && [...b.models.values()].sort((a, c) => a.name.localeCompare(c.name)).map((m) => {
+                      const mcov = coverage(m.skuIds);
+                      return (
+                        <div key={m.name} className="border-t border-border/60">
+                          <button
+                            onClick={() => toggleRange(m.skuIds)}
+                            className="w-full flex items-center gap-2 text-left pl-8 pr-3 py-2 ios-subhead text-foreground"
+                          >
+                            <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-brand)", opacity: mcov === "none" ? 0.35 : 1 }} />
+                            <span className="truncate">{m.name}</span>
+                            <span className="ios-footnote text-muted-foreground">
+                              {mcov === "all" ? "all" : mcov === "some" ? `${m.skuIds.filter((id) => selectedSet.has(id)).length}/${m.skuIds.length}` : `${m.skuIds.length}`}
+                            </span>
+                          </button>
+                          {m.skus.map((s) => (
+                            <button
+                              key={s.id} onClick={() => toggleSku(s.id)}
+                              className="w-full flex items-center gap-2 text-left pl-14 pr-3 py-1.5 ios-footnote text-muted-foreground"
+                            >
+                              <Check className="h-3 w-3 shrink-0" style={{ color: "var(--snm-brand)", opacity: selectedSet.has(s.id) ? 1 : 0.25 }} />
+                              <span className="truncate">{s.variant_display}</span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

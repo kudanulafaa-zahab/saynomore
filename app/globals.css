@@ -377,6 +377,10 @@
     /* Kill the grey iOS tap-flash on EVERY tappable element (not just
        .snm-pressable) — buttons/links get clean press feedback, native feel. */
     -webkit-tap-highlight-color: transparent;
+    /* Stop the elastic rubber-band bounce of the whole document. Without this
+       the page "floats" under the finger at the scroll limits — web feel, not
+       native. `none` docks the page like a real iOS app. */
+    overscroll-behavior: none;
   }
 
   body {
@@ -390,7 +394,9 @@
     padding-right: env(safe-area-inset-right);
     /* iOS momentum scrolling for the whole document */
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    /* `none` (not `contain`) kills the rubber-band bounce so the page feels
+       docked/native, not floating. Scroll containers keep their own momentum. */
+    overscroll-behavior: none;
     /* Block pinch-zoom at CSS level */
     touch-action: pan-x pan-y;
     /* Prevent long-press text selection (native app feel) */
