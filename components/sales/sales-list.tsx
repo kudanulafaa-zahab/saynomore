@@ -1504,31 +1504,29 @@ function NewSaleSheet({
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {models.map(({ modelId, modelName, skus: modelSkus }) => {
-                          // Nothing to hide when a model has just one SKU —
-                          // auto-expand so a single-variant line (e.g. Royal
-                          // Soft's lone pack size) never costs an extra tap.
-                          const expanded = modelSkus.length === 1 || skuSearch.trim() !== "" || expandedModels.has(modelId);
+                          // Every model behaves identically: collapsed by
+                          // default, tap to expand. Search still force-
+                          // expands so a typed match is never hidden.
+                          const expanded = skuSearch.trim() !== "" || expandedModels.has(modelId);
                           return (
                             <div key={modelId} className="col-span-1 sm:col-span-2">
-                              {modelSkus.length > 1 && (
-                                <button
-                                  onClick={() => toggleModel(modelId)}
-                                  aria-expanded={expanded}
-                                  className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl transition active:scale-[0.99]"
-                                  style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
-                                >
-                                  <ChevronDown
-                                    className="h-3.5 w-3.5 shrink-0 transition-transform"
-                                    style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
-                                  />
-                                  <p className="ios-subhead font-semibold text-left flex-1" style={{ color: "var(--foreground)" }}>
-                                    {modelName}
-                                  </p>
-                                  <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                                    {modelSkus.length} SKU{modelSkus.length !== 1 ? "s" : ""}
-                                  </p>
-                                </button>
-                              )}
+                              <button
+                                onClick={() => toggleModel(modelId)}
+                                aria-expanded={expanded}
+                                className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl transition active:scale-[0.99]"
+                                style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
+                              >
+                                <ChevronDown
+                                  className="h-3.5 w-3.5 shrink-0 transition-transform"
+                                  style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+                                />
+                                <p className="ios-subhead font-semibold text-left flex-1" style={{ color: "var(--foreground)" }}>
+                                  {modelName}
+                                </p>
+                                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                                  {modelSkus.length} SKU{modelSkus.length !== 1 ? "s" : ""}
+                                </p>
+                              </button>
                               {expanded && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                                   {modelSkus.map((s) => {
