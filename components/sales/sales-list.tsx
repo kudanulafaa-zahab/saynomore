@@ -765,6 +765,18 @@ function NewSaleSheet({
   onClose: () => void; onCreated: (id: string) => void;
   onCustomerCreated: (c: CustomerRow) => void;
 }) {
+  // Portal target — mounted flag set in an effect (not a bare `typeof
+  // document !== "undefined"` inline check), because that inline check
+  // still evaluates during React's render pass and can race with
+  // hydration: createPortal was thrown with "Target container is not a
+  // DOM element" and crashed this entire component, silently falling back
+  // to a broken render that LOOKED like the old, unfixed sheet — which is
+  // exactly why the previous fix appeared to do nothing. Gating on a
+  // state flag flipped inside useEffect guarantees this only ever runs
+  // client-side, after mount, when document.body is unquestionably real.
+  const [portalReady, setPortalReady] = useState(false);
+  useEffect(() => { setPortalReady(true); }, []);
+
   const [step, setStep] = useState<Step>(1);
   const [orderNumber] = useState(nextOrderNumber(existingOrders));
   const [channel, setChannel] = useState<OrderChannel>("whatsapp");
@@ -1811,7 +1823,7 @@ function NewSaleSheet({
                       what's driving the number on screen, plain language,
                       with a direct tap-through to go fix it. Never leaves
                       Ali staring at a number with no explanation. ── */}
-                  {showPriceExplain && typeof document !== "undefined" && createPortal(
+                  {showPriceExplain && portalReady && createPortal(
                     // Portalled to document.body — NOT rendered inside
                     // NewSaleSheet's own `fixed inset-x-0 top-0` container.
                     // A `position: fixed` element nested inside ANOTHER fixed
