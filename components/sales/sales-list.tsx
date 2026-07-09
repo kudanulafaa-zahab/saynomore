@@ -35,6 +35,7 @@ import { SkuIdentity, PriceSourceTag } from "@/components/ui/sku-identity";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces, describePriceSource } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import { SwipeToDelete } from "@/components/ui/swipe-to-delete";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
@@ -266,6 +267,16 @@ export function SalesList() {
     return r;
   }, [rows, q, statusFilter, unpaidMode, customers]);
 
+  // Render cap for the flat list — at 100+ orders, rendering every row at
+  // once is both a performance problem and a wall of near-identical cards to
+  // scroll past. Search/filter already narrow `filtered` directly, so typing
+  // a name always shows every match regardless of this cap; it only limits
+  // the default unfiltered browse view. Resets to 20 whenever the filter set
+  // changes so switching tabs/search never leaves a stale "Load more" state.
+  const [visibleCount, setVisibleCount] = useState(20);
+  useEffect(() => { setVisibleCount(20); }, [q, statusFilter, groupBy]);
+  const visibleOrders = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+
   // Group by customer — collapse all orders per customer into one expandable row.
   // Walk-in orders are grouped under a single "Walk-in" bucket.
   const grouped = useMemo(() => {
@@ -439,89 +450,89 @@ export function SalesList() {
       ) : groupBy === "orders" ? (
         /* ── Flat order list ── */
         <div className="space-y-1.5">
-          {filtered.map((o) => {
+          {visibleOrders.map((o) => {
             const Icon = STATUS_ICON[o.status];
             const cust = customers.find((c) => c.id === o.customer_id);
             const colors = STATUS_COLOR[o.status];
             const total = o.order_total_mvr ?? 0;
-            return (
-              <div key={o.id} className="flex items-center gap-2 min-w-0">
-                <Link href={`/sales/${o.id}`}
-                  className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
-                  style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-semibold text-foreground truncate">
-                        {cust?.name ?? "Walk-in"}
-                        <span className="ios-subhead ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
-                      </p>
-                      <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
-                        via {o.channel}{cust?.island && <> · {cust.island}</>}
-                      </p>
-                    </div>
+
+            // Which delete config (if any) applies to this order — same three
+            // cases as before, just resolved once instead of three near-
+            // identical buttons:
+            //  • draft: plain delete (no stock posted), fast RLS path.
+            //  • active (confirmed…delivered): Delete returns stock (RPC).
+            //  • cancelled: Delete removes the stale record (stock already
+            //    restored when it was cancelled).
+            const deleteConfig =
+              o.status === "draft" && canWrite
+                ? { restoresStock: false, viaRpc: false }
+                : o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager
+                ? { restoresStock: true, viaRpc: true }
+                : o.status === "cancelled" && isAdminOrManager
+                ? { restoresStock: false, viaRpc: true }
+                : null;
+
+            const row = (
+              <Link href={`/sales/${o.id}`}
+                className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
+                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+                    <Icon className="h-4 w-4" />
                   </div>
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <div className="text-right">
-                      {total > 0 && (
-                        <p className="text-[14px] font-semibold text-foreground snm-num">
-                          {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          <span className="ios-subhead font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
-                        </p>
-                      )}
-                      <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
-                        {STATUS_LABEL[o.status]}
-                      </span>
-                    </div>
-                    <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-foreground truncate">
+                      {cust?.name ?? "Walk-in"}
+                      <span className="ios-subhead ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+                    </p>
+                    <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
+                      via {o.channel}{cust?.island && <> · {cust.island}</>}
+                    </p>
                   </div>
-                </Link>
-                {/* Row actions — outside the link so a tap doesn't navigate.
-                    • draft: plain delete (no stock posted), fast RLS path.
-                    • active (confirmed…delivered): Void keeps it on record and
-                      returns stock; Delete erases it and returns stock (RPC).
-                    • cancelled: Delete removes the stale record (stock already
-                      restored when it was cancelled). This is the affordance
-                      that was missing — cancelled orders had no way off the list. */}
-                {o.status === "draft" && canWrite && (
-                  <button
-                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: false })}
-                    aria-label={`Delete order ${o.order_number}`}
-                    className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
-                    style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-                {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
-                  /* Active order: a single compact Delete keeps the row full-width
-                     (native iOS — no crammed inline buttons). Void lives on the
-                     order detail screen, one tap away via the row link. */
-                  <button
-                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: true, viaRpc: true })}
-                    aria-label={`Delete order ${o.order_number}`}
-                    className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
-                    style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-                {o.status === "cancelled" && isAdminOrManager && (
-                  <button
-                    onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: true })}
-                    aria-label={`Delete order ${o.order_number}`}
-                    className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 snm-pressable"
-                    style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+                </div>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="text-right">
+                    {total > 0 && (
+                      <p className="text-[14px] font-semibold text-foreground snm-num">
+                        {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        <span className="ios-subhead font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+                      </p>
+                    )}
+                    <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
+                      {STATUS_LABEL[o.status]}
+                    </span>
+                  </div>
+                  <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+                </div>
+              </Link>
+            );
+
+            // Delete lives BEHIND the row now (swipe-to-reveal), never a
+            // persistent tap target beside it — a slightly-off tap on the
+            // row edge used to fire Delete by accident. Rows with no
+            // delete permission just render plainly, nothing to swipe.
+            return deleteConfig ? (
+              <SwipeToDelete
+                key={o.id}
+                ariaLabel={`Delete order ${o.order_number}`}
+                onDelete={() => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig })}
+              >
+                {row}
+              </SwipeToDelete>
+            ) : (
+              <div key={o.id}>{row}</div>
             );
           })}
+          {filtered.length > visibleOrders.length && (
+            <button
+              onClick={() => setVisibleCount((n) => n + 20)}
+              className="w-full h-12 rounded-2xl ios-subhead font-semibold transition active:scale-[0.99]"
+              style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+            >
+              Load more ({filtered.length - visibleOrders.length} more)
+            </button>
+          )}
         </div>
 
       ) : (
@@ -582,9 +593,21 @@ export function SalesList() {
                     {orders.map((o) => {
                       const Icon = STATUS_ICON[o.status];
                       const colors = STATUS_COLOR[o.status];
-                      return (
-                        <div key={o.id} className="flex items-center"
-                          style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                      const isActive = o.status !== "draft" && o.status !== "cancelled";
+                      // Same delete config resolution as the flat list above —
+                      // Void (non-destructive, keeps the record) stays as a
+                      // visible row action; only Delete moves behind the swipe.
+                      const deleteConfig =
+                        o.status === "draft" && canWrite
+                          ? { restoresStock: false, viaRpc: false }
+                          : isActive && isAdminOrManager
+                          ? { restoresStock: true, viaRpc: true }
+                          : o.status === "cancelled" && isAdminOrManager
+                          ? { restoresStock: false, viaRpc: true }
+                          : null;
+
+                      const row = (
+                        <div className="flex items-center" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                           <Link href={`/sales/${o.id}`}
                             className="flex-1 flex items-center justify-between gap-3 px-4 py-3 snm-pressable">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -605,47 +628,29 @@ export function SalesList() {
                               <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
                             </div>
                           </Link>
-                          {o.status === "draft" && canWrite && (
+                          {isActive && isAdminOrManager && (
                             <button
-                              onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: false })}
-                              aria-label={`Delete order ${o.order_number}`}
-                              className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
-                              style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
+                              onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
+                              aria-label={`Void order ${o.order_number}`}
+                              className="h-10 px-2.5 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable ios-subhead font-semibold"
+                              style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          {o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager && (
-                            <>
-                              <button
-                                onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
-                                aria-label={`Void order ${o.order_number}`}
-                                className="h-10 px-2.5 mr-1 rounded-xl flex items-center justify-center shrink-0 snm-pressable ios-subhead font-semibold"
-                                style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}
-                              >
-                                Void
-                              </button>
-                              <button
-                                onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: true, viaRpc: true })}
-                                aria-label={`Delete order ${o.order_number}`}
-                                className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
-                                style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </>
-                          )}
-                          {o.status === "cancelled" && isAdminOrManager && (
-                            <button
-                              onClick={() => setConfirmDelete({ id: o.id, label: o.order_number, restoresStock: false, viaRpc: true })}
-                              aria-label={`Delete order ${o.order_number}`}
-                              className="h-10 w-10 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable"
-                              style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              Void
                             </button>
                           )}
                         </div>
+                      );
+
+                      return deleteConfig ? (
+                        <SwipeToDelete
+                          key={o.id}
+                          ariaLabel={`Delete order ${o.order_number}`}
+                          onDelete={() => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig })}
+                        >
+                          {row}
+                        </SwipeToDelete>
+                      ) : (
+                        <div key={o.id}>{row}</div>
                       );
                     })}
                   </div>
