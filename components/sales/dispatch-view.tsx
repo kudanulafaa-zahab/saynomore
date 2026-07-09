@@ -108,7 +108,18 @@ export function DispatchView() {
         listCustomers(),
         listGodowns(),
         listSkusFlat(),
-        admin ? listUsers().catch(() => [] as UserProfileRow[]) : Promise.resolve([] as UserProfileRow[]),
+        admin
+          ? listUsers().catch((e) => {
+              // Don't fail the whole dispatch load over this — but don't go
+              // silent either. A swallowed error here used to look like "no
+              // drivers exist" with zero explanation (managers hit a 403
+              // from an admin-only check that has since been widened to
+              // admin-or-manager; keep the toast so any future regression
+              // is visible instead of silently empty).
+              toast.error("Couldn't load drivers: " + (e as Error).message);
+              return [] as UserProfileRow[];
+            })
+          : Promise.resolve([] as UserProfileRow[]),
       ]);
 
       setSkus(skusFlat);

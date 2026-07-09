@@ -4,7 +4,10 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 
 export async function GET() {
   try {
-    // Verify caller is authenticated admin
+    // Verify caller is authenticated admin or manager. Read-only (lists
+    // users, doesn't create/delete/change roles) — managers need this to
+    // populate the driver-assignment dropdown in Dispatch, same
+    // admin-or-manager bar as everywhere else in the app (is_admin_or_manager()).
     const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -14,8 +17,8 @@ export async function GET() {
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
-    if (profile?.role !== "admin") {
-      return NextResponse.json({ error: "Admin only" }, { status: 403 });
+    if (profile?.role !== "admin" && profile?.role !== "manager") {
+      return NextResponse.json({ error: "Admin or manager only" }, { status: 403 });
     }
 
     const admin = getSupabaseAdmin();
