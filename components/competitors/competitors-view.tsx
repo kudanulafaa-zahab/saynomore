@@ -229,11 +229,17 @@ export function CompetitorsView() {
     setSaveMode(mode);
     setSaving(true);
     try {
+      // v_skus resolves piece/pack/carton price independently per tier — a
+      // leftover fixed_price_per_pack/carton_mvr from an old volume-break
+      // override beats both fixed_selling_price_mvr and target_margin_pct
+      // at that tier, so it must be cleared here or the new price/margin
+      // silently loses to a stale override the next time the SKU loads.
+      const cleared = { fixed_selling_price_mvr: null, fixed_price_per_pack_mvr: null, fixed_price_per_carton_mvr: null, target_margin_pct: null };
       if (mode === "fixed") {
-        await updateSku(simSku.id, { fixed_selling_price_mvr: piecePrice, target_margin_pct: null });
+        await updateSku(simSku.id, { ...cleared, fixed_selling_price_mvr: piecePrice });
         toast.success(`Fixed price saved — MVR ${fmt2(piecePrice)}/pc`);
       } else {
-        await updateSku(simSku.id, { target_margin_pct: impliedMarginPct, fixed_selling_price_mvr: null });
+        await updateSku(simSku.id, { ...cleared, target_margin_pct: impliedMarginPct });
         toast.success(`${impliedMarginPct}% margin saved — MVR ${fmt2(piecePrice)}/pc`);
       }
       await load();

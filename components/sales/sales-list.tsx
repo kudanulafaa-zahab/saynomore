@@ -8,7 +8,7 @@ import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
   Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
-  Warehouse,
+  Warehouse, TrendingUp,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -872,8 +872,14 @@ function NewSaleSheet({
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [showPriceExplain, setShowPriceExplain] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
-  const [newFixedPrice, setNewFixedPrice] = useState("");
-  const [savingFixedPrice, setSavingFixedPrice] = useState(false);
+  // Margin-simulator state for the inline price fix — mirrors the Pricing
+  // screen's Margin Simulator exactly (slider drives a live price from
+  // landed cost, always saved per-pack internally regardless of display
+  // unit) so fixing a price here is never a disconnected typed number.
+  const [simPackPrice, setSimPackPrice] = useState(0);
+  const [simTyped, setSimTyped] = useState("");
+  const [simEditingTyped, setSimEditingTyped] = useState(false);
+  const [savingFixedPrice, setSavingFixedPrice] = useState<"margin" | "fixed" | null>(null);
   const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | "margin" | null>(null);
 
   // Lock the background page while this full-screen sheet is mounted (shared hook).
@@ -1387,8 +1393,17 @@ function NewSaleSheet({
                     const cardPricePerPiece = cardPrice == null ? null
                       : cardUom === "carton" ? cardPrice / (s.pcs_per_pack * s.packs_per_carton)
                       : cardPrice / s.pcs_per_pack;
+                    // A fixed price can come from any of three columns (per-piece
+                    // default, or a per-pack/per-carton volume-break override —
+                    // v_skus.selling_price_per_pack/carton_mvr prefers the tier
+                    // override first). Checking only fixed_selling_price_mvr here
+                    // missed that case entirely, leaving the card with NO source
+                    // tag and no below-cost warning even though cardPrice itself
+                    // was correctly reading the override.
+                    const hasFixedOverride = s.fixed_selling_price_mvr != null
+                      || (cardUom === "carton" ? s.fixed_price_per_carton_mvr != null : s.fixed_price_per_pack_mvr != null);
                     const cardProvenance = describePriceSource({
-                      source: tp ? tp.source : (s.fixed_selling_price_mvr != null ? "sku_default" : (s.target_margin_pct ? "margin" : null)),
+                      source: tp ? tp.source : (hasFixedOverride ? "sku_default" : (s.target_margin_pct ? "margin" : null)),
                       priceListName: tp?.price_list_name,
                       priceListDate: tp?.price_list_date,
                       pricePerPiece: cardPricePerPiece,
@@ -1808,7 +1823,7 @@ function NewSaleSheet({
                     <div
                       className="fixed inset-0 z-[80] flex items-end"
                       style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
-                      onClick={() => { setShowPriceExplain(false); setEditingPrice(false); setNewFixedPrice(""); }}
+                      onClick={() => { setShowPriceExplain(false); setEditingPrice(false); setSimEditingTyped(false); }}
                     >
                       <div
                         onClick={(e) => e.stopPropagation()}
@@ -1817,7 +1832,13 @@ function NewSaleSheet({
                           background: "var(--background)",
                           borderTop: "0.5px solid var(--glass-border-lo)",
                           boxShadow: "var(--glass-shadow-lg)",
-                          height: "70dvh",
+                          // Reaches the TRUE bottom of the screen — never a
+                          // percentage guess. A 70dvh sheet left the real
+                          // bottom 30% of the viewport exposed to the page
+                          // underneath, which is exactly what showed through
+                          // as "the old footer bleeding in below the sheet"
+                          // on a real phone. maxHeight caps it so short
+                          // content doesn't force the sheet absurdly tall.
                           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
                         }}
                       >
@@ -1857,85 +1878,202 @@ function NewSaleSheet({
                             )}
                           </div>
 
-                          {/* Inline price fix — never leaves New Sale. Editing
-                              a customer's price list is a bigger, separate
-                              job (multiple tiers/SKUs) so that case still
-                              deep-links out; but a single SKU's own fixed
-                              price is one number, fixed right here. */}
-                          {editingPrice && (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && (
-                            <div className="rounded-2xl p-4 mt-3 space-y-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                              <p className="ios-subhead font-semibold" style={{ color: "var(--muted-foreground)" }}>
-                                New price (MVR / {uomLabel.toLowerCase()})
-                              </p>
-                              <input
-                                type="number" inputMode="decimal" step="0.01" min="0" autoFocus
-                                value={newFixedPrice}
-                                onChange={(e) => setNewFixedPrice((e.target as HTMLInputElement).value)}
-                                placeholder="0.00"
-                                className="w-full text-[24px] font-bold bg-transparent text-foreground outline-none"
-                              />
-                              {landed != null && (
-                                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                                  Costs you {costForUom?.toFixed(2)} — enter above that to be profitable
+                          {/* Inline price fix — the same Margin Simulator used
+                              on the Pricing screen (slider + typed-override,
+                              saved as either an auto-recalculating target
+                              margin or a locked fixed price), not a bare
+                              number box. Never leaves New Sale. Editing a
+                              customer's price list is a bigger, separate job
+                              (multiple tiers/SKUs) so that case still
+                              deep-links out. */}
+                          {editingPrice && (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && landed != null && (() => {
+                            const pcsPerPack = selectedSku.pcs_per_pack || 1;
+                            const packsPerCarton = selectedSku.packs_per_carton || 1;
+                            const landedPerPack = landed * pcsPerPack;
+                            const landedPerCarton = landedPerPack * packsPerCarton;
+                            const simPiecePrice  = simPackPrice / pcsPerPack;
+                            const simCartonPrice = simPackPrice * packsPerCarton;
+                            const simDisplayPrice = lineUom === "piece" ? simPiecePrice : lineUom === "carton" ? simCartonPrice : simPackPrice;
+                            const simLandedForUom = lineUom === "piece" ? landed : lineUom === "carton" ? landedPerCarton : landedPerPack;
+                            const currentMarginPct = simPackPrice > 0 ? Math.round(((simPackPrice - landedPerPack) / simPackPrice) * 100) : 0;
+                            const sliderVal = Math.max(1, Math.min(99, currentMarginPct));
+                            const fillPct = ((sliderVal - 1) / 98) * 100;
+                            const impliedMarginPct = landedPerPack > 0 && simPackPrice > landedPerPack
+                              ? Math.round(((simPackPrice - landedPerPack) / simPackPrice) * 1000) / 10
+                              : 0;
+
+                            function setDisplayPrice(v: number) {
+                              const asPack = lineUom === "piece" ? v * pcsPerPack : lineUom === "carton" ? v / packsPerCarton : v;
+                              setSimPackPrice(asPack);
+                            }
+
+                            return (
+                              <div className="rounded-2xl p-4 mt-3 space-y-4" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                                {/* Live price display — pencil to type an exact override */}
+                                <div className="rounded-2xl px-5 pt-5 pb-4 text-center relative"
+                                  style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
+                                  {!simEditingTyped && (
+                                    <button
+                                      onClick={() => { setSimTyped(String(Math.round(simDisplayPrice))); setSimEditingTyped(true); }}
+                                      className="absolute top-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center transition active:scale-90"
+                                      style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}
+                                      aria-label="Type exact price"
+                                    >
+                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--muted-foreground)" }}>
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                      </svg>
+                                    </button>
+                                  )}
+                                  {simEditingTyped ? (
+                                    <input
+                                      type="number" inputMode="decimal" autoFocus
+                                      value={simTyped}
+                                      onChange={(e) => setSimTyped(e.target.value)}
+                                      onBlur={() => { const v = parseFloat(simTyped); if (!isNaN(v) && v > 0) setDisplayPrice(v); setSimEditingTyped(false); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") { const v = parseFloat(simTyped); if (!isNaN(v) && v > 0) setDisplayPrice(v); setSimEditingTyped(false); }
+                                        if (e.key === "Escape") setSimEditingTyped(false);
+                                      }}
+                                      className="text-[44px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
+                                    />
+                                  ) : (
+                                    <p className="text-[44px] font-light tracking-tight text-foreground leading-none">{Math.round(simDisplayPrice)}</p>
+                                  )}
+                                  <p className="ios-subhead mt-1 font-medium" style={{ color: "var(--muted-foreground)" }}>MVR / {uomLabel.toLowerCase()}</p>
+                                </div>
+
+                                {/* Margin slider — always computed per-pack to avoid tiny-number drift */}
+                                <div className="rounded-2xl px-5 py-4" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
+                                  <style>{`
+                                    .snm-slider2 { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 9999px; outline: none; cursor: pointer; background: transparent; }
+                                    .snm-slider2::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 32px; height: 32px; border-radius: 50%; background: var(--snm-brand); box-shadow: 0 2px 16px var(--snm-brand-muted); cursor: grab; border: 3px solid rgba(255,255,255,0.75); margin-top: -13px; }
+                                    .snm-slider2::-moz-range-thumb { width: 32px; height: 32px; border-radius: 50%; background: var(--snm-brand); box-shadow: 0 2px 16px var(--snm-brand-muted); cursor: grab; border: 3px solid rgba(255,255,255,0.75); }
+                                    .snm-slider2::-webkit-slider-runnable-track { height: 6px; border-radius: 9999px; }
+                                    .snm-slider2::-moz-range-track { height: 6px; border-radius: 9999px; background: rgba(128,128,128,0.2); }
+                                  `}</style>
+                                  <div className="flex items-center justify-between mb-4">
+                                    <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
+                                    <div className="flex items-baseline gap-0.5">
+                                      <p className="text-[28px] font-bold leading-none" style={{ color: "var(--snm-brand)" }}>{sliderVal}</p>
+                                      <p className="text-[16px] font-semibold leading-none" style={{ color: "var(--muted-foreground)" }}>%</p>
+                                    </div>
+                                  </div>
+                                  <div className="relative">
+                                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden pointer-events-none"
+                                      style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}>
+                                      <div className="h-full rounded-full" style={{ width: `${fillPct}%`, background: "var(--snm-brand)" }} />
+                                    </div>
+                                    <input
+                                      type="range" min={1} max={99} step={1} value={sliderVal}
+                                      onChange={(e) => {
+                                        const pct = parseInt(e.target.value);
+                                        if (landedPerPack > 0) setSimPackPrice(Math.round(landedPerPack / (1 - pct / 100)));
+                                      }}
+                                      className="snm-slider2 relative"
+                                      style={{ touchAction: "none" }}
+                                    />
+                                  </div>
+                                  <div className="flex justify-between mt-1">
+                                    <p className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>1%</p>
+                                    <p className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>99%</p>
+                                  </div>
+                                </div>
+
+                                <p className="ios-subhead text-center" style={{ color: simDisplayPrice <= simLandedForUom ? "var(--snm-error)" : "var(--muted-foreground)" }}>
+                                  Costs you {simLandedForUom.toFixed(2)} — {simDisplayPrice <= simLandedForUom ? "still below cost" : "you're above cost"}
                                 </p>
-                              )}
-                            </div>
-                          )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Fixed footer — always visible, never scrolled past */}
                         <div className="shrink-0 flex flex-col gap-2 px-5 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-                          {editingPrice && (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku ? (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => { setEditingPrice(false); setNewFixedPrice(""); }}
-                                className="flex-1 h-12 rounded-xl font-semibold"
-                                style={{ background: "var(--secondary)", color: "var(--foreground)" }}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                disabled={savingFixedPrice || !newFixedPrice || parseFloat(newFixedPrice) <= 0}
-                                onClick={async () => {
-                                  const val = parseFloat(newFixedPrice);
-                                  if (isNaN(val) || val <= 0) return;
-                                  setSavingFixedPrice(true);
-                                  try {
-                                    // Save in whatever unit the field means — one price
-                                    // per tier, matching exactly what autoPrice() reads
-                                    // for this UOM, so the fix takes effect immediately.
-                                    const patch = lineUom === "carton"
-                                      ? { fixed_price_per_carton_mvr: val }
-                                      : lineUom === "piece"
-                                      ? { fixed_selling_price_mvr: val }
-                                      : { fixed_price_per_pack_mvr: val };
-                                    await updateSku(selectedSku.id, patch);
-                                    setPriceOverrides((prev) => ({ ...prev, [selectedSku.id]: { ...prev[selectedSku.id], ...patch } }));
-                                    setLinePrice(newFixedPrice);
-                                    setPriceManuallyEdited(false);
-                                    // Every branch above writes a fixed-price field, so
-                                    // the shown price is now sourced from the SKU's own
-                                    // fixed price regardless of which UOM was active.
-                                    setAutoPriceSource("sku_default");
-                                    toast.success("Price updated");
-                                    setEditingPrice(false);
-                                    setShowPriceExplain(false);
-                                    setNewFixedPrice("");
-                                  } catch (e) {
-                                    toast.error((e as Error).message);
-                                  } finally {
-                                    setSavingFixedPrice(false);
-                                  }
-                                }}
-                                className="flex-[2] h-12 rounded-xl font-semibold transition disabled:opacity-40 flex items-center justify-center gap-2"
-                                style={{ background: "var(--foreground)", color: "var(--background)" }}
-                              >
-                                {savingFixedPrice ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save & use this price"}
-                              </button>
-                            </div>
-                          ) : (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku ? (
+                          {editingPrice && (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && landed != null ? (() => {
+                            const pcsPerPack = selectedSku.pcs_per_pack || 1;
+                            const packsPerCarton = selectedSku.packs_per_carton || 1;
+                            const landedPerPack = landed * pcsPerPack;
+                            const piecePrice = simPackPrice / pcsPerPack;
+                            const impliedMarginPct = landedPerPack > 0 && simPackPrice > landedPerPack
+                              ? Math.round(((simPackPrice - landedPerPack) / simPackPrice) * 1000) / 10
+                              : 0;
+                            const displayNewPrice = lineUom === "piece" ? piecePrice : lineUom === "carton" ? simPackPrice * packsPerCarton : simPackPrice;
+                            const canSave = simPackPrice > landedPerPack;
+
+                            async function save(mode: "margin" | "fixed") {
+                              if (!selectedSku || !canSave) return;
+                              setSavingFixedPrice(mode);
+                              try {
+                                // v_skus resolves price per tier independently — a
+                                // leftover fixed_price_per_pack/carton_mvr from an
+                                // old volume-break override beats BOTH
+                                // fixed_selling_price_mvr and target_margin_pct at
+                                // that tier, silently reviving the stale price the
+                                // next time this SKU loads. Whichever mode is
+                                // chosen here must win at every tier, so always
+                                // clear all three fixed-price columns first.
+                                const cleared = { fixed_selling_price_mvr: null, fixed_price_per_pack_mvr: null, fixed_price_per_carton_mvr: null, target_margin_pct: null };
+                                if (mode === "fixed") {
+                                  await updateSku(selectedSku.id, { ...cleared, fixed_selling_price_mvr: piecePrice });
+                                  setPriceOverrides((prev) => ({ ...prev, [selectedSku.id]: { ...prev[selectedSku.id], ...cleared, fixed_selling_price_mvr: piecePrice } }));
+                                } else {
+                                  await updateSku(selectedSku.id, { ...cleared, target_margin_pct: impliedMarginPct });
+                                  setPriceOverrides((prev) => ({ ...prev, [selectedSku.id]: { ...prev[selectedSku.id], ...cleared, target_margin_pct: impliedMarginPct } }));
+                                }
+                                setLinePrice(String(Math.round(displayNewPrice)));
+                                setPriceManuallyEdited(false);
+                                setAutoPriceSource(mode === "fixed" ? "sku_default" : "margin");
+                                toast.success(mode === "fixed" ? `Fixed price saved — MVR ${piecePrice.toFixed(2)}/pc` : `${impliedMarginPct}% margin saved`);
+                                setEditingPrice(false);
+                                setShowPriceExplain(false);
+                              } catch (e) {
+                                toast.error((e as Error).message);
+                              } finally {
+                                setSavingFixedPrice(null);
+                              }
+                            }
+
+                            return (
+                              <>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setEditingPrice(false)}
+                                    className="flex-1 h-12 rounded-xl font-semibold"
+                                    style={{ background: "var(--secondary)", color: "var(--foreground)" }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    disabled={!!savingFixedPrice || !canSave}
+                                    onClick={() => save("margin")}
+                                    className="flex-[2] h-12 rounded-xl font-semibold transition disabled:opacity-40 flex items-center justify-center gap-2"
+                                    style={{ background: "var(--snm-brand)", color: "#fff" }}
+                                  >
+                                    {savingFixedPrice === "margin" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><TrendingUp className="h-4 w-4" /> Save at {impliedMarginPct}% margin</>}
+                                  </button>
+                                </div>
+                                <button
+                                  disabled={!!savingFixedPrice || !canSave}
+                                  onClick={() => save("fixed")}
+                                  className="h-11 w-full rounded-xl ios-subhead font-semibold transition disabled:opacity-40 flex items-center justify-center gap-1.5"
+                                  style={{ background: "var(--secondary)", color: "var(--foreground)" }}
+                                >
+                                  {savingFixedPrice === "fixed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : `Or lock as fixed price · MVR ${Math.round(displayNewPrice)}`}
+                                </button>
+                              </>
+                            );
+                          })() : (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku ? (
                             <button
-                              onClick={() => { setNewFixedPrice(linePrice); setEditingPrice(true); }}
+                              onClick={() => {
+                                // Seed the simulator from the current price so
+                                // the slider/thumb starts exactly where the
+                                // shown price already is, not from zero.
+                                const pcsPerPack = selectedSku.pcs_per_pack || 1;
+                                const cur = parseFloat(linePrice) || 0;
+                                const asPack = lineUom === "piece" ? cur * pcsPerPack : lineUom === "carton" ? cur / (selectedSku.packs_per_carton || 1) : cur;
+                                setSimPackPrice(asPack > 0 ? asPack : (selectedSku.landed_per_piece_mvr ?? 0) * pcsPerPack * 1.3);
+                                setEditingPrice(true);
+                              }}
                               className="h-12 w-full rounded-xl font-semibold"
                               style={{ background: "var(--foreground)", color: "var(--background)" }}
                             >
