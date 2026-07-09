@@ -29,7 +29,7 @@ import {
   type CustomerRow, type GodownRow, type PriceTier,
 } from "@/lib/queries/masters";
 import { CustomerForm } from "@/components/masters/customer-form";
-import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, getCurrentUserRole, updateSku, type SkuFullRow } from "@/lib/queries/products";
 import { SkuIdentity, PriceSourceTag } from "@/components/ui/sku-identity";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces, describePriceSource } from "@/lib/queries/sales";
@@ -796,7 +796,18 @@ function NewSaleSheet({
   const [tierPrices, setTierPrices] = useState<Map<string, TierPrice>>(new Map());
 
   const customer = customers.find((c) => c.id === customerId);
-  const selectedSku = skus.find((s) => s.id === selectedSkuId);
+  // Local price fixes made from the "why is this the price?" sheet (see
+  // showPriceExplain below) — applied on top of the parent's `skus` list so
+  // a correction is reflected immediately without leaving New Sale or
+  // waiting for the parent to reload. The parent's own data refreshes
+  // normally next time this screen loads.
+  const [priceOverrides, setPriceOverrides] = useState<Record<string, Partial<SkuFullRow>>>({});
+  const selectedSku = useMemo(() => {
+    const base = skus.find((s) => s.id === selectedSkuId);
+    if (!base) return base;
+    const ov = priceOverrides[base.id];
+    return ov ? { ...base, ...ov } : base;
+  }, [skus, selectedSkuId, priceOverrides]);
 
   // ── Recent customers from localStorage (IDEO: Recents first) ──
   // Store the last 3 used customer IDs so repeat orders need zero search.
@@ -860,6 +871,9 @@ function NewSaleSheet({
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [showPriceExplain, setShowPriceExplain] = useState(false);
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [newFixedPrice, setNewFixedPrice] = useState("");
+  const [savingFixedPrice, setSavingFixedPrice] = useState(false);
   const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | "margin" | null>(null);
 
   // Lock the background page while this full-screen sheet is mounted (shared hook).
@@ -1794,7 +1808,7 @@ function NewSaleSheet({
                     <div
                       className="fixed inset-0 z-[80] flex items-end"
                       style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
-                      onClick={() => setShowPriceExplain(false)}
+                      onClick={() => { setShowPriceExplain(false); setEditingPrice(false); setNewFixedPrice(""); }}
                     >
                       <div
                         onClick={(e) => e.stopPropagation()}
@@ -1842,26 +1856,92 @@ function NewSaleSheet({
                               </p>
                             )}
                           </div>
+
+                          {/* Inline price fix — never leaves New Sale. Editing
+                              a customer's price list is a bigger, separate
+                              job (multiple tiers/SKUs) so that case still
+                              deep-links out; but a single SKU's own fixed
+                              price is one number, fixed right here. */}
+                          {editingPrice && (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && (
+                            <div className="rounded-2xl p-4 mt-3 space-y-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                              <p className="ios-subhead font-semibold" style={{ color: "var(--muted-foreground)" }}>
+                                New price (MVR / {uomLabel.toLowerCase()})
+                              </p>
+                              <input
+                                type="number" inputMode="decimal" step="0.01" min="0" autoFocus
+                                value={newFixedPrice}
+                                onChange={(e) => setNewFixedPrice((e.target as HTMLInputElement).value)}
+                                placeholder="0.00"
+                                className="w-full text-[24px] font-bold bg-transparent text-foreground outline-none"
+                              />
+                              {landed != null && (
+                                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                                  Costs you {costForUom?.toFixed(2)} — enter above that to be profitable
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Fixed footer — always visible, never scrolled past */}
                         <div className="shrink-0 flex flex-col gap-2 px-5 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-                          {(editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && (
+                          {editingPrice && (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => { setEditingPrice(false); setNewFixedPrice(""); }}
+                                className="flex-1 h-12 rounded-xl font-semibold"
+                                style={{ background: "var(--secondary)", color: "var(--foreground)" }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                disabled={savingFixedPrice || !newFixedPrice || parseFloat(newFixedPrice) <= 0}
+                                onClick={async () => {
+                                  const val = parseFloat(newFixedPrice);
+                                  if (isNaN(val) || val <= 0) return;
+                                  setSavingFixedPrice(true);
+                                  try {
+                                    // Save in whatever unit the field means — one price
+                                    // per tier, matching exactly what autoPrice() reads
+                                    // for this UOM, so the fix takes effect immediately.
+                                    const patch = lineUom === "carton"
+                                      ? { fixed_price_per_carton_mvr: val }
+                                      : lineUom === "piece"
+                                      ? { fixed_selling_price_mvr: val }
+                                      : { fixed_price_per_pack_mvr: val };
+                                    await updateSku(selectedSku.id, patch);
+                                    setPriceOverrides((prev) => ({ ...prev, [selectedSku.id]: { ...prev[selectedSku.id], ...patch } }));
+                                    setLinePrice(newFixedPrice);
+                                    setPriceManuallyEdited(false);
+                                    // Every branch above writes a fixed-price field, so
+                                    // the shown price is now sourced from the SKU's own
+                                    // fixed price regardless of which UOM was active.
+                                    setAutoPriceSource("sku_default");
+                                    toast.success("Price updated");
+                                    setEditingPrice(false);
+                                    setShowPriceExplain(false);
+                                    setNewFixedPrice("");
+                                  } catch (e) {
+                                    toast.error((e as Error).message);
+                                  } finally {
+                                    setSavingFixedPrice(false);
+                                  }
+                                }}
+                                className="flex-[2] h-12 rounded-xl font-semibold transition disabled:opacity-40 flex items-center justify-center gap-2"
+                                style={{ background: "var(--foreground)", color: "var(--background)" }}
+                              >
+                                {savingFixedPrice ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save & use this price"}
+                              </button>
+                            </div>
+                          ) : (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku ? (
                             <button
-                              // A hard navigation, not router.push: this leaves the New
-                              // Sale flow entirely for a different screen, and the
-                              // Products page reads ?editSku=<id> on mount to open the
-                              // right SKU's editor directly. A soft client-side
-                              // transition sometimes rendered before the query param
-                              // was observed, landing on the plain list instead — a
-                              // full navigation always resolves it correctly first try.
-                              onClick={() => { window.location.href = `/products?editSku=${selectedSku.id}`; }}
+                              onClick={() => { setNewFixedPrice(linePrice); setEditingPrice(true); }}
                               className="h-12 w-full rounded-xl font-semibold"
                               style={{ background: "var(--foreground)", color: "var(--background)" }}
                             >
-                              Fix this product&apos;s price →
+                              Fix this product&apos;s price
                             </button>
-                          )}
+                          ) : null}
                           {editorProvenance.source === "price_list" && (
                             <button
                               onClick={() => { window.location.href = "/pricelists"; }}
@@ -1871,9 +1951,11 @@ function NewSaleSheet({
                               Manage price lists →
                             </button>
                           )}
-                          <button onClick={() => setShowPriceExplain(false)} className="h-12 w-full rounded-xl font-semibold" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
-                            Close
-                          </button>
+                          {!editingPrice && (
+                            <button onClick={() => setShowPriceExplain(false)} className="h-12 w-full rounded-xl font-semibold" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
+                              Close
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
