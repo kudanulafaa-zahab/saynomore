@@ -104,6 +104,29 @@ export async function notifyAdmins(payload: NotifyPayload): Promise<void> {
   for (const u of data ?? []) notify(u.id, payload);
 }
 
+/**
+ * Delivery-completion fan-out — one canonical path used by EVERY place an
+ * order can be marked delivered (driver's my-deliveries flow AND the office
+ * dispatch board), so the recipient set can never drift between them.
+ *
+ * Notifies all admins/managers (office needs to know it closed) PLUS the
+ * driver who delivered it (their own confirmation). Deduplicated: if the
+ * person who completed it is themselves an admin/manager they still only get
+ * one push, and a driver who is also an admin isn't double-counted.
+ */
+export async function notifyDelivered(
+  payload: NotifyPayload,
+  delivererId?: string | null,
+): Promise<void> {
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("id")
+    .in("role", ["admin", "manager"]);
+  const recipients = new Set<string>((data ?? []).map((u) => u.id));
+  if (delivererId) recipients.add(delivererId);
+  for (const id of recipients) notify(id, payload);
+}
+
 export async function isPushSubscribed(): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   try {

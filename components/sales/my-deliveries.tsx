@@ -15,7 +15,7 @@ import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
 import { withOfflineFallback } from "@/lib/offline-write";
-import { notifyAdmins } from "@/lib/push";
+import { notifyDelivered } from "@/lib/push";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { haptic } from "@/lib/haptics";
 
@@ -121,8 +121,9 @@ function BottomSheet({ open, onClose, title, children }: {
 
 /* ─── cash collection sheet ─────────────────────────────────────────────── */
 
-function CashCollectSheet({ open, order, customerName, expectedMvr, onClose, onDone }: {
+function CashCollectSheet({ open, order, customerName, expectedMvr, delivererId, onClose, onDone }: {
   open: boolean; order?: SalesOrderRow; customerName?: string; expectedMvr: number;
+  delivererId?: string | null;
   onClose: () => void; onDone: () => void;
 }) {
   const [amount, setAmount] = useState("");
@@ -155,15 +156,18 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, onClose, onD
       haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Delivered — remember to deposit the cash");
 
-      // Tell the office a delivery just closed with cash collected. Skip when
-      // queued offline — it isn't real until the update syncs (notifyAdmins
-      // would also fail with no connection).
+      // Tell the office a delivery just closed with cash collected, and
+      // confirm to the driver on their own device. Skip when queued offline —
+      // it isn't real until the update syncs (the push would also fail).
       if (!queued) {
-        notifyAdmins({
-          title: "Delivery completed",
-          body: `${customerName ?? "Walk-in"} · ${order.order_number} · MVR ${collected.toLocaleString()} collected.`,
-          url: "/dispatch",
-        });
+        notifyDelivered(
+          {
+            title: "Delivery completed",
+            body: `${customerName ?? "Walk-in"} · ${order.order_number} · MVR ${collected.toLocaleString()} collected.`,
+            url: "/dispatch",
+          },
+          delivererId,
+        );
       }
       onDone();
     } catch (err) { haptic("error"); toast.error((err as Error).message); }
@@ -654,6 +658,9 @@ export function MyDeliveries() {
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // The signed-in driver — passed as the "deliverer" so completion pushes
+  // reach the office AND the driver's own device (their confirmation).
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [cashSheet, setCashSheet] = useState<{ open: boolean; order?: SalesOrderRow; customerName?: string; expected: number }>({ open: false, expected: 0 });
   const [issueSheet, setIssueSheet] = useState<{ open: boolean; order?: SalesOrderRow }>({ open: false });
@@ -665,6 +672,7 @@ export function MyDeliveries() {
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not signed in");
+      setUserId(userData.user.id);
       const [orders, customers, godowns, skusFlat] = await Promise.all([
         listMyDeliveries(userData.user.id),
         listCustomers(),
@@ -714,6 +722,21 @@ export function MyDeliveries() {
       );
       haptic("success");
       if (queued) toast.info("Saved offline — will sync when connected");
+
+      // Non-cash "Mark Delivered" path — tell the office + confirm to the
+      // driver. Skip when queued offline (not real until it syncs). The cash
+      // path fires its own notifyDelivered inside CashSheet.save().
+      if (patch.status === "delivered" && !queued) {
+        const item = items.find((i) => i.order.id === id);
+        notifyDelivered(
+          {
+            title: "Delivery completed",
+            body: `${item?.customer?.name ?? "Walk-in"} · ${item?.order.order_number ?? ""}`.trim(),
+            url: "/dispatch",
+          },
+          userId,
+        );
+      }
       load(true);
     } catch (e) { haptic("error"); toast.error((e as Error).message); }
   }
@@ -833,6 +856,7 @@ export function MyDeliveries() {
       {/* ── Sheets ──────────────────────────────────────────────────────── */}
       <CashCollectSheet
         open={cashSheet.open} order={cashSheet.order} customerName={cashSheet.customerName} expectedMvr={cashSheet.expected}
+        delivererId={userId}
         onClose={() => setCashSheet({ open: false, expected: 0 })}
         onDone={() => { setCashSheet({ open: false, expected: 0 }); load(true); }}
       />

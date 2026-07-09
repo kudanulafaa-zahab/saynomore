@@ -35,7 +35,7 @@ import { SkuIdentity, PriceSourceTag } from "@/components/ui/sku-identity";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces, describePriceSource } from "@/lib/queries/sales";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
-import { SwipeToDelete } from "@/components/ui/swipe-to-delete";
+import { LongPressActions, type RowAction } from "@/components/ui/long-press-actions";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
@@ -508,18 +508,25 @@ export function SalesList() {
               </Link>
             );
 
-            // Delete lives BEHIND the row now (swipe-to-reveal), never a
-            // persistent tap target beside it — a slightly-off tap on the
-            // row edge used to fire Delete by accident. Rows with no
-            // delete permission just render plainly, nothing to swipe.
+            // Delete is reached by press-and-hold, not a persistent tap
+            // target beside the row (a slightly-off tap used to fire it) and
+            // not a swipe (that fought iOS Safari's scroll gestures and stuck
+            // half-open on real devices). Rows with no delete permission just
+            // render plainly, nothing to hold.
             return deleteConfig ? (
-              <SwipeToDelete
+              <LongPressActions
                 key={o.id}
-                ariaLabel={`Delete order ${o.order_number}`}
-                onDelete={() => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig })}
+                menuTitle={`${cust?.name ?? "Walk-in"} · ${o.order_number}`}
+                actions={[
+                  {
+                    label: "Delete order",
+                    kind: "destructive",
+                    onSelect: () => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig }),
+                  },
+                ]}
               >
                 {row}
-              </SwipeToDelete>
+              </LongPressActions>
             ) : (
               <div key={o.id}>{row}</div>
             );
@@ -594,9 +601,7 @@ export function SalesList() {
                       const Icon = STATUS_ICON[o.status];
                       const colors = STATUS_COLOR[o.status];
                       const isActive = o.status !== "draft" && o.status !== "cancelled";
-                      // Same delete config resolution as the flat list above —
-                      // Void (non-destructive, keeps the record) stays as a
-                      // visible row action; only Delete moves behind the swipe.
+                      // Same delete config resolution as the flat list above.
                       const deleteConfig =
                         o.status === "draft" && canWrite
                           ? { restoresStock: false, viaRpc: false }
@@ -606,49 +611,57 @@ export function SalesList() {
                           ? { restoresStock: false, viaRpc: true }
                           : null;
 
+                      // Both Void (active orders, keeps the record) and Delete
+                      // now live in the press-and-hold menu — the row stays
+                      // clean with no persistent action buttons crowding it.
+                      const rowActions: RowAction[] = [];
+                      if (isActive && isAdminOrManager) {
+                        rowActions.push({
+                          label: "Void order",
+                          kind: "warning",
+                          onSelect: () => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); },
+                        });
+                      }
+                      if (deleteConfig) {
+                        rowActions.push({
+                          label: "Delete order",
+                          kind: "destructive",
+                          onSelect: () => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig }),
+                        });
+                      }
+
                       const row = (
-                        <div className="flex items-center" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-                          <Link href={`/sales/${o.id}`}
-                            className="flex-1 flex items-center justify-between gap-3 px-4 py-3 snm-pressable">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
-                                <Icon className="h-3.5 w-3.5" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="ios-subhead font-semibold text-foreground">{o.order_number}</p>
-                                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                                  {new Date(o.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · via {o.channel}
-                                </p>
-                              </div>
+                        <Link href={`/sales/${o.id}`}
+                          className="flex items-center justify-between gap-3 px-4 py-3 snm-pressable"
+                          style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+                              <Icon className="h-3.5 w-3.5" />
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-1" style={{ background: colors.bg, color: colors.text }}>
-                                {STATUS_LABEL[o.status]}
-                              </span>
-                              <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
+                            <div className="min-w-0">
+                              <p className="ios-subhead font-semibold text-foreground">{o.order_number}</p>
+                              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                                {new Date(o.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · via {o.channel}
+                              </p>
                             </div>
-                          </Link>
-                          {isActive && isAdminOrManager && (
-                            <button
-                              onClick={() => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); }}
-                              aria-label={`Void order ${o.order_number}`}
-                              className="h-10 px-2.5 mr-2 rounded-xl flex items-center justify-center shrink-0 snm-pressable ios-subhead font-semibold"
-                              style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}
-                            >
-                              Void
-                            </button>
-                          )}
-                        </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-1" style={{ background: colors.bg, color: colors.text }}>
+                              {STATUS_LABEL[o.status]}
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
+                          </div>
+                        </Link>
                       );
 
-                      return deleteConfig ? (
-                        <SwipeToDelete
+                      return rowActions.length > 0 ? (
+                        <LongPressActions
                           key={o.id}
-                          ariaLabel={`Delete order ${o.order_number}`}
-                          onDelete={() => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig })}
+                          menuTitle={o.order_number}
+                          actions={rowActions}
                         >
                           {row}
-                        </SwipeToDelete>
+                        </LongPressActions>
                       ) : (
                         <div key={o.id}>{row}</div>
                       );

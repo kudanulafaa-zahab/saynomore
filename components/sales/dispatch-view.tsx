@@ -6,7 +6,7 @@ import {
   Loader2, ChevronDown, CheckCircle2, UserCheck, MapPin, Package,
   Truck, ClipboardList, AlertTriangle, Bell, Warehouse,
 } from "lucide-react";
-import { subscribeToPush, isPushSubscribed, notify } from "@/lib/push";
+import { subscribeToPush, isPushSubscribed, notify, notifyDelivered } from "@/lib/push";
 import {
   listMyDeliveries,
   listAllDispatchOrders,
@@ -171,6 +171,22 @@ export function DispatchView() {
       );
       haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Marked as delivered");
+
+      // Office-side completion — notify all admins/managers + the driver who
+      // was assigned to it. Same fan-out the driver's own flow uses. Skip when
+      // queued offline (not real until it syncs).
+      if (!queued) {
+        const item = items.find((i) => i.order.id === confirmDelivery.id);
+        notifyDelivered(
+          {
+            title: "Delivery completed",
+            body: `${item?.customer?.name ?? "Walk-in"} · ${confirmDelivery.order_number}`.trim(),
+            url: "/dispatch",
+          },
+          item?.order.assigned_driver_id,
+        );
+      }
+
       setConfirmDelivery(null);
       load();
     } catch (e) {
