@@ -98,6 +98,9 @@ export interface SkuFullRow extends SkuRow {
   duty_rate_pct: number;
   default_sellable_units: SellUnit[];
   full_path: string;
+  // Non-null = this brand's SKUs can be mixed to fill one carton (see
+  // MixedCartonSheet in sales-list.tsx); value = pieces per carton.
+  mixed_carton_pieces: number | null;
   // Pricing — all computed by v_skus
   landed_per_piece_mvr: number | null;
   selling_price_per_piece_mvr: number | null;
