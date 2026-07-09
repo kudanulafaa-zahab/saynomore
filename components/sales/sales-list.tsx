@@ -1777,13 +1777,6 @@ function NewSaleSheet({
                     </p>
                   )}
 
-                  {/* ── Add to Order — full width, always accessible ── */}
-                  <button onClick={handleAddLine} disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
-                    className="w-full h-14 rounded-2xl text-[15px] font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-                    style={{ background: "var(--foreground)", color: "var(--background)" }}>
-                    <Plus className="h-5 w-5" /> Add to Order
-                  </button>
-
                   {/* ── "Where did this price come from?" — answers exactly
                       what's driving the number on screen, plain language,
                       with a direct tap-through to go fix it. Never leaves
@@ -2016,14 +2009,29 @@ function NewSaleSheet({
           </>
         )}
         {step === 2 && (
-          <>
-            <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
-            <button disabled={draftLines.length === 0} onClick={() => setStep(3)}
-              className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}>
-              {draftLines.length === 0 ? "Add at least 1 item" : <>Review & Confirm <ArrowRight className="h-4 w-4" /></>}
-            </button>
-          </>
+          selectedSkuId ? (
+            // A product is actively being configured — this docked bar IS
+            // the primary action (was a second, in-flow button before,
+            // which left a dead gap between it and this same bar). One
+            // action, always in the same place, native-form style.
+            <>
+              <button onClick={() => setSelectedSkuId("")} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
+              <button onClick={handleAddLine} disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
+                className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                <Plus className="h-4 w-4" /> Add to Order
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
+              <button disabled={draftLines.length === 0} onClick={() => setStep(3)}
+                className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                {draftLines.length === 0 ? "Add at least 1 item" : <>Review & Confirm <ArrowRight className="h-4 w-4" /></>}
+              </button>
+            </>
+          )
         )}
         {step === 3 && (
           <>
