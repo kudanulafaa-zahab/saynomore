@@ -875,7 +875,10 @@ function NewSaleSheet({
     // Rank: in the chosen godown first, then owned-elsewhere, then zero-everywhere.
     const rank = (s: SkuFullRow) => (stockFor(s) > 0 ? 2 : totalStockFor(s) > 0 ? 1 : 0);
     const ranked = [...pool].sort((a, b) => rank(b) - rank(a));
-    return ranked.slice(0, 40);
+    // Cap raised from the old flat-list limit — SKUs are now grouped by
+    // brand/model (see normalSkus below), so this only needs to bound a
+    // pathological catalogue size, not the visible row count.
+    return ranked.slice(0, 400);
   }, [skus, skuSearch, godownId, stockLevels]);
 
   const stockHere = selectedSku && godownId
@@ -903,6 +906,46 @@ function NewSaleSheet({
   }, [filteredSkus]);
 
   const [mixedCartonBrandId, setMixedCartonBrandId] = useState<string | null>(null);
+
+  // ── Brand → Model grouping for the normal product grid ──
+  // Mamypoko alone spans 5 model lines (Royal Soft, Royal Soft Boy/Girl,
+  // Skin Comfort, Xtra Kering) — flattened by SKU this became a long scroll
+  // of near-identical cards. Brand stays a fixed section label (never
+  // collapses, always visible); each model underneath is independently
+  // collapsible, same chevron-row control Products already uses for its
+  // brand divider, one level deeper. Collapsed by default — New Sale's job
+  // is scanning many brands fast, the opposite default from the Products
+  // catalogue (which stays expanded since that screen IS the catalogue).
+  const brandModelGroups = useMemo(() => {
+    const brands = new Map<string, { brandId: string; brandName: string; models: Map<string, { modelId: string; modelName: string; skus: SkuFullRow[] }> }>();
+    for (const s of normalSkus) {
+      let brand = brands.get(s.brand_id);
+      if (!brand) {
+        brand = { brandId: s.brand_id, brandName: s.brand_name, models: new Map() };
+        brands.set(s.brand_id, brand);
+      }
+      let model = brand.models.get(s.model_id);
+      if (!model) {
+        model = { modelId: s.model_id, modelName: s.model_name, skus: [] };
+        brand.models.set(s.model_id, model);
+      }
+      model.skus.push(s);
+    }
+    return [...brands.values()].map((b) => ({ ...b, models: [...b.models.values()] }));
+  }, [normalSkus]);
+
+  // Empty = every model collapsed (the default). A model is expanded once
+  // its id is in this set — inverted vs. Products' collapsedBrands because
+  // that screen defaults to EXPANDED (nothing pre-hidden); this one defaults
+  // to COLLAPSED, so tracking "expanded" avoids having to pre-seed every id.
+  const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
+  function toggleModel(modelId: string) {
+    setExpandedModels((prev) => {
+      const next = new Set(prev);
+      if (next.has(modelId)) next.delete(modelId); else next.add(modelId);
+      return next;
+    });
+  }
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [showPriceExplain, setShowPriceExplain] = useState(false);
@@ -1453,7 +1496,42 @@ function NewSaleSheet({
                       </button>
                     );
                   })}
-                  {normalSkus.map((s) => {
+                  {brandModelGroups.map(({ brandId, brandName, models }) => (
+                    <div key={brandId} className="col-span-1 sm:col-span-2">
+                      {/* Brand — fixed section label, never collapses, always visible */}
+                      <p className="label-caps text-[12px] px-1 pt-2 pb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                        {brandName}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {models.map(({ modelId, modelName, skus: modelSkus }) => {
+                          // Nothing to hide when a model has just one SKU —
+                          // auto-expand so a single-variant line (e.g. Royal
+                          // Soft's lone pack size) never costs an extra tap.
+                          const expanded = modelSkus.length === 1 || skuSearch.trim() !== "" || expandedModels.has(modelId);
+                          return (
+                            <div key={modelId} className="col-span-1 sm:col-span-2">
+                              {modelSkus.length > 1 && (
+                                <button
+                                  onClick={() => toggleModel(modelId)}
+                                  aria-expanded={expanded}
+                                  className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl transition active:scale-[0.99]"
+                                  style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
+                                >
+                                  <ChevronDown
+                                    className="h-3.5 w-3.5 shrink-0 transition-transform"
+                                    style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+                                  />
+                                  <p className="ios-subhead font-semibold text-left flex-1" style={{ color: "var(--foreground)" }}>
+                                    {modelName}
+                                  </p>
+                                  <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                                    {modelSkus.length} SKU{modelSkus.length !== 1 ? "s" : ""}
+                                  </p>
+                                </button>
+                              )}
+                              {expanded && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                  {modelSkus.map((s) => {
                     const stock = godownId ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0 : null;
                     // Stock in OTHER godowns — so a product held in another warehouse
                     // is never mistaken for out-of-stock (would lose a real sale).
@@ -1610,7 +1688,15 @@ function NewSaleSheet({
                         )}
                       </div>
                     );
-                  })}
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                   {normalSkus.length === 0 && mixedCartonGroups.size === 0 && (
                     <p className="ios-subhead col-span-2 py-4 text-center" style={{ color: "var(--muted-foreground)" }}>
                       {skuSearch.trim()
