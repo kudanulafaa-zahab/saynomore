@@ -1782,6 +1782,15 @@ function NewSaleSheet({
                       with a direct tap-through to go fix it. Never leaves
                       Ali staring at a number with no explanation. ── */}
                   {showPriceExplain && (
+                    // Native bottom sheet — fixed-height panel (never a size
+                    // that "hopes" it fits), pinned header + footer, ONE
+                    // scrollable body. This exact pattern is proven elsewhere
+                    // in the app (shipment LineDialog, SpendSheet); the first
+                    // version of this sheet used a plain content-sized block
+                    // that measured fine in dev preview but was reported cut
+                    // off with no Close button visible on a real phone —
+                    // fixed height + its own scroll region removes that
+                    // ambiguity regardless of viewport/safe-area quirks.
                     <div
                       className="fixed inset-0 z-[80] flex items-end"
                       style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
@@ -1789,41 +1798,54 @@ function NewSaleSheet({
                     >
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full rounded-t-3xl p-5 space-y-4"
-                        style={{ background: "var(--background)", borderTop: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg)", paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
+                        className="w-full rounded-t-3xl flex flex-col"
+                        style={{
+                          background: "var(--background)",
+                          borderTop: "0.5px solid var(--glass-border-lo)",
+                          boxShadow: "var(--glass-shadow-lg)",
+                          height: "70dvh",
+                          maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
+                        }}
                       >
-                        <div className="w-10 h-1 bg-border rounded-full mx-auto" />
-                        <h2 className="text-lg font-semibold text-foreground text-center">Where this price comes from</h2>
-
-                        <div className="rounded-2xl p-4 space-y-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                          {editorProvenance.source === "sku_default" && (
-                            <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
-                              This is the <strong>fixed selling price</strong> saved on this product — not calculated from a formula, someone typed it in directly when the product was set up.
-                            </p>
-                          )}
-                          {editorProvenance.source === "margin" && (
-                            <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
-                              This price is <strong>calculated automatically</strong>: landed cost {landed != null ? `(MVR ${landed.toFixed(2)}/pc)` : ""} plus a target margin of <strong>{selectedSku?.target_margin_pct ?? Math.round(editorProvenance.marginPct ?? 0)}%</strong>.
-                            </p>
-                          )}
-                          {editorProvenance.source === "price_list" && (
-                            <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
-                              This price comes from a <strong>customer price list</strong>{editorProvenance.detail ? ` — ${editorProvenance.detail}` : ""}.
-                            </p>
-                          )}
-                          {landed != null && (
-                            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                              What this product costs you landed: <strong style={{ color: "var(--foreground)" }}>MVR {landed.toFixed(2)} / piece</strong>.
-                            </p>
-                          )}
-                          {margin != null && (
-                            <p className="ios-subhead" style={{ color: margin < 0 ? "var(--snm-error)" : "var(--foreground)" }}>
-                              At the price shown, you're making <strong>{margin.toFixed(1)}% margin</strong>{margin < 0 ? " — you are losing money on this sale." : "."}
-                            </p>
-                          )}
+                        {/* Fixed header — grabber + title stay pinned */}
+                        <div className="shrink-0 px-5 pt-3">
+                          <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />
+                          <h2 className="text-lg font-semibold text-foreground text-center">Where this price comes from</h2>
                         </div>
 
-                        <div className="flex flex-col gap-2">
+                        {/* Scrollable body — the ONLY scroll region */}
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pt-4" style={{ touchAction: "pan-y" }}>
+                          <div className="rounded-2xl p-4 space-y-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                            {editorProvenance.source === "sku_default" && (
+                              <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
+                                This is the <strong>fixed selling price</strong> saved on this product — not calculated from a formula, someone typed it in directly when the product was set up.
+                              </p>
+                            )}
+                            {editorProvenance.source === "margin" && (
+                              <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
+                                This price is <strong>calculated automatically</strong>: landed cost {landed != null ? `(MVR ${landed.toFixed(2)}/pc)` : ""} plus a target margin of <strong>{selectedSku?.target_margin_pct ?? Math.round(editorProvenance.marginPct ?? 0)}%</strong>.
+                              </p>
+                            )}
+                            {editorProvenance.source === "price_list" && (
+                              <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
+                                This price comes from a <strong>customer price list</strong>{editorProvenance.detail ? ` — ${editorProvenance.detail}` : ""}.
+                              </p>
+                            )}
+                            {landed != null && (
+                              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                                What this product costs you landed: <strong style={{ color: "var(--foreground)" }}>MVR {landed.toFixed(2)} / piece</strong>.
+                              </p>
+                            )}
+                            {margin != null && (
+                              <p className="ios-subhead" style={{ color: margin < 0 ? "var(--snm-error)" : "var(--foreground)" }}>
+                                At the price shown, you're making <strong>{margin.toFixed(1)}% margin</strong>{margin < 0 ? " — you are losing money on this sale." : "."}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Fixed footer — always visible, never scrolled past */}
+                        <div className="shrink-0 flex flex-col gap-2 px-5 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
                           {(editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && (
                             <button
                               // A hard navigation, not router.push: this leaves the New
