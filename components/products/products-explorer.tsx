@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
@@ -742,6 +743,21 @@ export function ProductsExplorer() {
       if (fresh) setSelectedSku(fresh);
     }
   }, [skus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deep-link: /products?editSku=<id> opens that SKU's price editor directly —
+  // lets "why is this price what it is?" screens (New Sale) send Ali straight
+  // to the fix instead of "go find it yourself" in a long product list.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  useEffect(() => {
+    const id = searchParams.get("editSku");
+    if (!id || skus.length === 0) return;
+    const match = skus.find((s) => s.id === id);
+    if (match) {
+      setEditSku(match);
+      router.replace("/products", { scroll: false }); // clean the URL, don't reopen on close
+    }
+  }, [searchParams, skus, router]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();

@@ -126,15 +126,22 @@ export function SkuIdentity({
 export function PriceSourceTag({
   provenance,
   size = "sm",
+  onClick,
 }: {
   provenance: PriceProvenance;
   size?: "sm" | "md";
+  /** When set, the tag becomes tappable — used in the sale editor so "why is
+   *  this the price?" has a real answer one tap away, not just a label. */
+  onClick?: () => void;
 }) {
   if (!provenance.source) return null;
   const warn = provenance.belowCost || provenance.belowTarget;
   const fs = size === "md" ? 13 : 12;
+  const Tag = onClick ? "button" : "span";
   return (
-    <span
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -149,10 +156,12 @@ export function PriceSourceTag({
         background: warn
           ? "color-mix(in srgb, var(--snm-error) 12%, transparent)"
           : "var(--secondary)",
+        textDecoration: onClick ? "underline" : "none",
+        textUnderlineOffset: 2,
       }}
     >
       {warn && <AlertTriangle size={fs - 1} strokeWidth={2.5} style={{ flexShrink: 0 }} />}
       {provenance.belowCost ? "Below cost" : provenance.label}
-    </span>
+    </Tag>
   );
 }

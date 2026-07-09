@@ -859,6 +859,7 @@ function NewSaleSheet({
     : null;
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
+  const [showPriceExplain, setShowPriceExplain] = useState(false);
   const [autoPriceSource, setAutoPriceSource] = useState<"price_list" | "sku_default" | "margin" | null>(null);
 
   // Lock the background page while this full-screen sheet is mounted (shared hook).
@@ -1722,7 +1723,7 @@ function NewSaleSheet({
                             Edited
                           </span>
                         ) : editorProvenance.source ? (
-                          <PriceSourceTag provenance={editorProvenance} size="md" />
+                          <PriceSourceTag provenance={editorProvenance} size="md" onClick={() => setShowPriceExplain(true)} />
                         ) : null}
                       </p>
                       {/* Single input — no autoFocus, displays cleanly, editable on tap */}
@@ -1736,19 +1737,29 @@ function NewSaleSheet({
                         style={{ minWidth: 0 }}
                       />
                       {!priceManuallyEdited && editorProvenance.source && editorProvenance.detail && (
-                        <p className="ios-subhead text-center mt-1 leading-tight" style={{ color: "var(--muted-foreground)" }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowPriceExplain(true)}
+                          className="w-full ios-subhead text-center mt-1 leading-tight underline"
+                          style={{ color: "var(--muted-foreground)", textUnderlineOffset: 2 }}
+                        >
                           {editorProvenance.detail}
                           {/* Append the live margin only for List/Fixed — the Margin
                               source already states its % in the detail line. */}
                           {editorProvenance.source !== "margin" && editorProvenance.marginPct != null && !editorProvenance.belowCost && (
                             <> · {Math.round(editorProvenance.marginPct)}% margin</>
                           )}
-                        </p>
+                        </button>
                       )}
                       {priceWarning && (
-                        <p className="ios-subhead text-center mt-1 font-semibold leading-tight" style={{ color: priceWarning.color }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowPriceExplain(true)}
+                          className="w-full ios-subhead text-center mt-1 font-semibold leading-tight underline"
+                          style={{ color: priceWarning.color, textUnderlineOffset: 2 }}
+                        >
                           ⚠ {priceWarning.text}
-                        </p>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1772,6 +1783,86 @@ function NewSaleSheet({
                     style={{ background: "var(--foreground)", color: "var(--background)" }}>
                     <Plus className="h-5 w-5" /> Add to Order
                   </button>
+
+                  {/* ── "Where did this price come from?" — answers exactly
+                      what's driving the number on screen, plain language,
+                      with a direct tap-through to go fix it. Never leaves
+                      Ali staring at a number with no explanation. ── */}
+                  {showPriceExplain && (
+                    <div
+                      className="fixed inset-0 z-[80] flex items-end"
+                      style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
+                      onClick={() => setShowPriceExplain(false)}
+                    >
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full rounded-t-3xl p-5 space-y-4"
+                        style={{ background: "var(--background)", borderTop: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg)", paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
+                      >
+                        <div className="w-10 h-1 bg-border rounded-full mx-auto" />
+                        <h2 className="text-lg font-semibold text-foreground text-center">Where this price comes from</h2>
+
+                        <div className="rounded-2xl p-4 space-y-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                          {editorProvenance.source === "sku_default" && (
+                            <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
+                              This is the <strong>fixed selling price</strong> saved on this product — not calculated from a formula, someone typed it in directly when the product was set up.
+                            </p>
+                          )}
+                          {editorProvenance.source === "margin" && (
+                            <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
+                              This price is <strong>calculated automatically</strong>: landed cost {landed != null ? `(MVR ${landed.toFixed(2)}/pc)` : ""} plus a target margin of <strong>{selectedSku?.target_margin_pct ?? Math.round(editorProvenance.marginPct ?? 0)}%</strong>.
+                            </p>
+                          )}
+                          {editorProvenance.source === "price_list" && (
+                            <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
+                              This price comes from a <strong>customer price list</strong>{editorProvenance.detail ? ` — ${editorProvenance.detail}` : ""}.
+                            </p>
+                          )}
+                          {landed != null && (
+                            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                              What this product costs you landed: <strong style={{ color: "var(--foreground)" }}>MVR {landed.toFixed(2)} / piece</strong>.
+                            </p>
+                          )}
+                          {margin != null && (
+                            <p className="ios-subhead" style={{ color: margin < 0 ? "var(--snm-error)" : "var(--foreground)" }}>
+                              At the price shown, you're making <strong>{margin.toFixed(1)}% margin</strong>{margin < 0 ? " — you are losing money on this sale." : "."}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          {(editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && (
+                            <button
+                              // A hard navigation, not router.push: this leaves the New
+                              // Sale flow entirely for a different screen, and the
+                              // Products page reads ?editSku=<id> on mount to open the
+                              // right SKU's editor directly. A soft client-side
+                              // transition sometimes rendered before the query param
+                              // was observed, landing on the plain list instead — a
+                              // full navigation always resolves it correctly first try.
+                              onClick={() => { window.location.href = `/products?editSku=${selectedSku.id}`; }}
+                              className="h-12 w-full rounded-xl font-semibold"
+                              style={{ background: "var(--foreground)", color: "var(--background)" }}
+                            >
+                              Fix this product&apos;s price →
+                            </button>
+                          )}
+                          {editorProvenance.source === "price_list" && (
+                            <button
+                              onClick={() => { window.location.href = "/pricelists"; }}
+                              className="h-12 w-full rounded-xl font-semibold"
+                              style={{ background: "var(--foreground)", color: "var(--background)" }}
+                            >
+                              Manage price lists →
+                            </button>
+                          )}
+                          <button onClick={() => setShowPriceExplain(false)} className="h-12 w-full rounded-xl font-semibold" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
+                            Close
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })() : null}
