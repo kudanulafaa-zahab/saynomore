@@ -109,21 +109,30 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
   );
 }
 
+// Shown on EVERY SKU card, healthy or not — burn rate is the number that
+// actually drives a reorder decision, so it stays visible at a glance
+// instead of only appearing once something's already wrong (inventory-
+// warehouse + FMCG-import review: DIR-first, not alert-first).
 function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
-  if (!alert || alert.status === "ok") return null;
+  if (!alert) return null;
   const isCritical = alert.status === "critical";
+  const isLow = alert.status === "low";
   const isOverstock = alert.status === "overstock";
-  const color = isCritical ? "var(--snm-error)" : isOverstock ? "var(--muted-foreground)" : "var(--snm-warning)";
+  const dir = alert.dir != null ? Math.round(Number(alert.dir)) : null;
+  const color = isCritical ? "var(--snm-error)"
+    : isLow ? "var(--snm-warning)"
+    : isOverstock ? "var(--muted-foreground)"
+    : "var(--muted-foreground)"; // healthy — neutral, not a warning color
   const dirText = isOverstock
-    ? `${alert.dir}d stock`
-    : alert.dir != null ? `${alert.dir}d left` : "No sales data";
+    ? `${dir}d stock`
+    : dir != null ? `${dir}d left` : "No sales data";
   return (
     <span
       className="ios-subhead font-bold px-2 py-0.5 rounded-full shrink-0"
       style={{
-        background: `color-mix(in srgb, ${color} 15%, transparent)`,
+        background: (isCritical || isLow) ? `color-mix(in srgb, ${color} 15%, transparent)` : "color-mix(in srgb, var(--foreground) 6%, transparent)",
         color,
-        border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+        border: (isCritical || isLow) ? `1px solid color-mix(in srgb, ${color} 25%, transparent)` : "1px solid transparent",
       }}
     >
       {isCritical ? "⚠ " : ""}{dirText}
@@ -537,10 +546,14 @@ export function InventoryView() {
         </div>
       )}
 
-      {/* Summary cards */}
+      {/* Summary cards — the three you act on. SKU count / carton totals
+          (vanity numbers, not decisions) moved to a subtext line instead of
+          full cards, per inventory-warehouse + mobile-UX review: only
+          Value/Alerts/Overstock actually change what you do next. */}
+      <p className="ios-subhead px-1" style={{ color: "var(--muted-foreground)" }}>
+        {stockList.length} SKU{stockList.length !== 1 ? "s" : ""} · {totalCartons.toLocaleString()} ctn · {activeBatches} active batch{activeBatches !== 1 ? "es" : ""}
+      </p>
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="SKUs in Stock" value={String(stockList.length)} sub={`${activeBatches} active batch${activeBatches !== 1 ? "es" : ""}`} />
-        <StatCard label="Total Cartons" value={totalCartons.toLocaleString()} sub="across all SKUs" />
         <StatCard label="Inventory Value" value={`MVR ${fmtMvr(totalValue)}`} sub="at landed cost" />
         <StatCard
           label="Reorder Alerts"
