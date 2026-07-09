@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -1810,16 +1811,22 @@ function NewSaleSheet({
                       what's driving the number on screen, plain language,
                       with a direct tap-through to go fix it. Never leaves
                       Ali staring at a number with no explanation. ── */}
-                  {showPriceExplain && (
-                    // Native bottom sheet — fixed-height panel (never a size
-                    // that "hopes" it fits), pinned header + footer, ONE
-                    // scrollable body. This exact pattern is proven elsewhere
-                    // in the app (shipment LineDialog, SpendSheet); the first
-                    // version of this sheet used a plain content-sized block
-                    // that measured fine in dev preview but was reported cut
-                    // off with no Close button visible on a real phone —
-                    // fixed height + its own scroll region removes that
-                    // ambiguity regardless of viewport/safe-area quirks.
+                  {showPriceExplain && typeof document !== "undefined" && createPortal(
+                    // Portalled to document.body — NOT rendered inside
+                    // NewSaleSheet's own `fixed inset-x-0 top-0` container.
+                    // A `position: fixed` element nested inside ANOTHER fixed
+                    // element is a known iOS Safari compositing trap: the
+                    // inner fixed layer can fail to promote above the
+                    // outer's later-painted children (here, the outer
+                    // sheet's own pinned footer), so the footer visibly
+                    // showed through UNDER this sheet's buttons on a real
+                    // phone despite a higher z-index — z-index only
+                    // resolves stacking within the SAME containing block, and
+                    // nesting fixed-in-fixed silently creates a new one.
+                    // Portalling to <body> guarantees this sheet is a true
+                    // sibling of the page, not a descendant of any other
+                    // fixed element, so it always paints on top of
+                    // everything with no ambiguity.
                     <div
                       className="fixed inset-0 z-[80] flex items-end"
                       style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
@@ -2096,7 +2103,8 @@ function NewSaleSheet({
                           )}
                         </div>
                       </div>
-                    </div>
+                    </div>,
+                    document.body
                   )}
                 </div>
               );
