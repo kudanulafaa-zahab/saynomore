@@ -152,7 +152,7 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
                 display: "flex", alignItems: "center", justifyContent: "center",
                 margin: "0 auto",
               }}>
-                <Camera size={28} color="var(--snm-brand)" />
+                <Camera size={28} color="var(--snm-brand-text)" />
               </div>
               <p className="text-white text-[15px] font-semibold">{error}</p>
               <button

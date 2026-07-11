@@ -261,7 +261,7 @@ function GodownCard({
               {godown.is_default && (
                 <span
                   className="text-[12px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                  style={{ background: "var(--snm-brand-muted)", color: "var(--snm-brand)" }}
+                  style={{ background: "var(--snm-brand-muted)", color: "var(--snm-brand-text)" }}
                 >
                   Default
                 </span>
@@ -518,7 +518,7 @@ export function GodownsView() {
             className="mx-auto h-14 w-14 rounded-2xl flex items-center justify-center mb-4"
             style={{ background: "var(--snm-brand-muted)" }}
           >
-            <Warehouse className="h-6 w-6" style={{ color: "var(--snm-brand)" }} />
+            <Warehouse className="h-6 w-6" style={{ color: "var(--snm-brand-text)" }} />
           </div>
           <p className="text-[15px] font-semibold text-foreground">No godowns yet</p>
           <p className="ios-subhead mt-1 mb-4" style={{ color: "var(--muted-foreground)" }}>

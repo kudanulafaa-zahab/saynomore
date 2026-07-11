@@ -321,7 +321,7 @@ function SkuPanel({
               <div className="flex items-center gap-1.5 mb-2">
                 <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
                 {sku.fixed_selling_price_mvr != null
-                  ? <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
+                  ? <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>FIXED</span>
                   : <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                 }
               </div>
@@ -365,7 +365,7 @@ function SkuPanel({
                   <p className="ios-subhead font-semibold text-foreground snm-num">
                     MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
                     {sku.fixed_price_per_carton_mvr != null && (
-                      <span className="ml-1.5 ios-subhead font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>VOL.</span>
+                      <span className="ml-1.5 ios-subhead font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>VOL.</span>
                     )}
                   </p>
                 </div>
@@ -385,7 +385,7 @@ function SkuPanel({
 
               {/* Header */}
               <div className="px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)" }}>
-                <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand)" }}>
+                <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand-text)" }}>
                   Set pricing — see your profit before saving
                 </p>
               </div>
@@ -1136,7 +1136,7 @@ function Combobox({
                     display: "flex", alignItems: "center", gap: 8,
                   }}
                 >
-                  {o.id === value && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-brand)", flexShrink: 0 }} />}
+                  {o.id === value && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-brand-text)", flexShrink: 0 }} />}
                   {o.label}
                 </button>
                 {onDeleteOption && (
@@ -1166,7 +1166,7 @@ function Combobox({
                 borderTop: "0.5px solid var(--glass-border-lo)",
                 background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)",
                 border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                color: "var(--snm-brand)",
+                color: "var(--snm-brand-text)",
               }}
             >
               + Create &ldquo;{q.trim()}&rdquo;
@@ -1631,7 +1631,7 @@ function NewSkuWizard({
                 style={{ ...inp, opacity: brandId ? 0.45 : 1 }}
               />
               {!brandId && brandInput.trim() && (
-                <p className="ios-subhead" style={{ color: "var(--snm-brand)" }}>
+                <p className="ios-subhead" style={{ color: "var(--snm-brand-text)" }}>
                   Will create &ldquo;{brandInput.trim()}&rdquo; as a new brand
                 </p>
               )}
@@ -1683,7 +1683,7 @@ function NewSkuWizard({
               style={{ ...inp, marginTop: 6 }}
             />
             {!modelId && modelInput.trim() && (
-              <p className="ios-subhead" style={{ color: "var(--snm-brand)" }}>
+              <p className="ios-subhead" style={{ color: "var(--snm-brand-text)" }}>
                 Will create &ldquo;{modelInput.trim()}&rdquo; as a new model
               </p>
             )}
@@ -1991,7 +1991,7 @@ function NewSkuWizard({
                       {derivedBottlePrice != null && (
                         <div>
                           <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Per {tradeUnit.toLowerCase()}</p>
-                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--snm-brand)" }}>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--snm-brand-text)" }}>
                             MVR {derivedBottlePrice.toFixed(2)}
                           </p>
                         </div>

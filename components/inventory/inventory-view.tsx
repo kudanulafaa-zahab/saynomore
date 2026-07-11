@@ -219,7 +219,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
                 }}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--snm-brand)" }} />
+                  <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--snm-brand-text)" }} />
                   <p className="ios-subhead font-medium text-foreground truncate">{godown.name}</p>
                 </div>
                 <p className="ios-subhead font-semibold text-foreground ml-4 shrink-0 snm-num">
@@ -239,12 +239,12 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
         style={{ touchAction: "manipulation" }}
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="ios-subhead font-medium" style={{ color: "var(--snm-brand)" }}>
+        <span className="ios-subhead font-medium" style={{ color: "var(--snm-brand-text)" }}>
           {expanded ? "Hide" : "FIFO batches & landed cost"}
         </span>
         <ChevronDown
           className="h-3.5 w-3.5 transition-transform duration-200"
-          style={{ color: "var(--snm-brand)", transform: expanded ? "rotate(180deg)" : "none" }}
+          style={{ color: "var(--snm-brand-text)", transform: expanded ? "rotate(180deg)" : "none" }}
         />
       </button>
 

@@ -66,7 +66,7 @@ export function BottomNav({ role }: { role: string }) {
                   >
                     <Icon className="h-[17px] w-[17px]" style={{ color: "var(--snm-brand-on)", strokeWidth: 2.2 }} />
                   </div>
-                  <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 12 }}>{item.label}</span>
+                  <span className="label-caps" style={{ color: "var(--snm-brand-text)", fontSize: 12 }}>{item.label}</span>
                 </>
               ) : (
                 <>
@@ -93,7 +93,7 @@ export function BottomNav({ role }: { role: string }) {
                 >
                   <MoreHorizontal className="h-[17px] w-[17px]" style={{ color: "var(--snm-brand-on)", strokeWidth: 2.2 }} />
                 </div>
-                <span className="label-caps" style={{ color: "var(--snm-brand)", fontSize: 12 }}>More</span>
+                <span className="label-caps" style={{ color: "var(--snm-brand-text)", fontSize: 12 }}>More</span>
               </>
             ) : (
               <>

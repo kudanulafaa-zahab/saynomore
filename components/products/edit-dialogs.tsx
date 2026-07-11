@@ -469,7 +469,7 @@ export function EditSkuDialog({
                   <p className="text-[12px] uppercase tracking-wider mb-1.5 font-semibold" style={{ color: "var(--muted-foreground)" }}>
                     Active selling prices
                     {sku.fixed_selling_price_mvr != null
-                      ? <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>FIXED</span>
+                      ? <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>FIXED</span>
                       : <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                     }
                   </p>
@@ -645,7 +645,7 @@ export function EditSkuDialog({
                 Option B — Fixed Price per {unit} (MVR)
                 {usingFixed && (
                   <span className="ml-2 ios-subhead font-bold px-1.5 py-0.5 rounded"
-                    style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand)" }}>
+                    style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>
                     ACTIVE
                   </span>
                 )}
@@ -680,7 +680,7 @@ export function EditSkuDialog({
                   <div className="flex items-center justify-between">
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                     <div className="text-right">
-                      <p className="text-[16px] font-bold" style={{ color: "var(--snm-brand)" }}>MVR {fixedPreview.pack.toFixed(2)}</p>
+                      <p className="text-[16px] font-bold" style={{ color: "var(--snm-brand-text)" }}>MVR {fixedPreview.pack.toFixed(2)}</p>
                       <p className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>MVR {fixedPreview.piece.toFixed(4)} /pc</p>
                     </div>
                   </div>

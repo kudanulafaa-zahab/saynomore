@@ -564,7 +564,7 @@ export function CompetitorsView() {
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
                       <div className="flex items-baseline gap-0.5">
-                        <p className="text-[32px] font-bold leading-none" style={{ color: "var(--snm-brand)" }}>{sliderVal}</p>
+                        <p className="text-[32px] font-bold leading-none" style={{ color: "var(--snm-brand-text)" }}>{sliderVal}</p>
                         <p className="text-[18px] font-semibold leading-none" style={{ color: "var(--muted-foreground)" }}>%</p>
                       </div>
                     </div>
@@ -695,7 +695,7 @@ export function CompetitorsView() {
                   <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                     Customer Tier Prices
                   </p>
-                  <a href="/pricelists" className="ios-subhead font-semibold" style={{ color: "var(--snm-brand)" }}>
+                  <a href="/pricelists" className="ios-subhead font-semibold" style={{ color: "var(--snm-brand-text)" }}>
                     Manage →
                   </a>
                 </div>
@@ -863,12 +863,12 @@ export function CompetitorsView() {
                               <Tag className="h-3.5 w-3.5" style={{ color: "var(--snm-brand-on)" }} />
                             </div>
                             <div>
-                              <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand)" }}>Our Selling Price</p>
+                              <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand-text)" }}>Our Selling Price</p>
                               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[14px] font-semibold" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(ourPc)}<span className="ios-subhead opacity-60">/pc</span></p>
+                            <p className="text-[14px] font-semibold" style={{ color: "var(--snm-brand-text)" }}>MVR {fmt2(ourPc)}<span className="ios-subhead opacity-60">/pc</span></p>
                             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
                           </div>
                         </div>
@@ -1356,7 +1356,7 @@ function PriceModal({
           {perPiecePreview != null && (
             <div className="rounded-xl px-4 py-3 text-center" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                = <span className="font-bold text-[14px]" style={{ color: "var(--snm-brand)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
+                = <span className="font-bold text-[14px]" style={{ color: "var(--snm-brand-text)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
               </p>
             </div>
           )}

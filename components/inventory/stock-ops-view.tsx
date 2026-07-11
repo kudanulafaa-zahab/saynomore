@@ -255,7 +255,7 @@ function VerifyTab({
         className="rounded-2xl px-4 py-3 flex items-start gap-2.5"
         style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}
       >
-        <ClipboardCheck className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--snm-brand)" }} />
+        <ClipboardCheck className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--snm-brand-text)" }} />
         <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
           Each item shows what the system expects. <b>Only change the ones that are wrong</b> — untouched items stay as-is.
         </p>

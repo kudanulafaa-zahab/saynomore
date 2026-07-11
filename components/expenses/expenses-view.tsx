@@ -663,7 +663,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
             <label className={label}>Promote which products? <span className="normal-case tracking-normal text-muted-foreground/60">(optional)</span></label>
             <p className="ios-footnote text-muted-foreground mb-2 -mt-0.5">Pick a whole brand or a product line — expand to fine-tune single SKUs.</p>
             {selectedSkuIds.length > 0 && (
-              <p className="ios-footnote font-semibold mb-2" style={{ color: "var(--snm-brand)" }}>
+              <p className="ios-footnote font-semibold mb-2" style={{ color: "var(--snm-brand-text)" }}>
                 {selectedSkuIds.length} SKU{selectedSkuIds.length > 1 ? "s" : ""} attached
               </p>
             )}

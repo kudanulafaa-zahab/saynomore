@@ -512,7 +512,7 @@ export function SaleDetail({ id }: { id: string }) {
             {!editingAddress && (
               <button
                 onClick={startEditAddress}
-                style={{ fontSize: 11, fontWeight: 600, color: "var(--snm-brand)", background: "transparent", border: "none", cursor: "pointer", padding: "2px 0" }}
+                style={{ fontSize: 11, fontWeight: 600, color: "var(--snm-brand-text)", background: "transparent", border: "none", cursor: "pointer", padding: "2px 0" }}
               >
                 {(order?.delivery_address_line1 || order?.delivery_island) ? "Edit" : "+ Add Address"}
               </button>
@@ -588,9 +588,9 @@ export function SaleDetail({ id }: { id: string }) {
           {sourceGodown && (
             <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
-                <Warehouse style={{ color: "var(--snm-brand)", width: 22, height: 22, flexShrink: 0 }} />
+                <Warehouse style={{ color: "var(--snm-brand-text)", width: 22, height: 22, flexShrink: 0 }} />
                 <div>
-                  <p style={{ color: "var(--snm-brand)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
+                  <p style={{ color: "var(--snm-brand-text)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
                   <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>
                     {sourceGodown.name}
                   </p>
@@ -604,7 +604,7 @@ export function SaleDetail({ id }: { id: string }) {
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: `1px solid ${isCOD ? "color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "color-mix(in srgb, var(--snm-brand) 25%, transparent)"}` }}>
               {isCOD
                 ? <Banknote style={{ color: "var(--snm-warning)", width: 22, height: 22, flexShrink: 0 }} />
-                : <Smartphone style={{ color: "var(--snm-brand)", width: 22, height: 22, flexShrink: 0 }} />}
+                : <Smartphone style={{ color: "var(--snm-brand-text)", width: 22, height: 22, flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ color: isCOD ? "var(--snm-warning)" : "var(--snm-brand)", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                   {isCOD ? "Cash on Delivery" : "Bank Transfer"}
@@ -691,9 +691,9 @@ export function SaleDetail({ id }: { id: string }) {
                 guy needs before he can pick anything up. */}
             {sourceGodown && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
-                <Warehouse style={{ color: "var(--snm-brand)", width: 22, height: 22, flexShrink: 0 }} />
+                <Warehouse style={{ color: "var(--snm-brand-text)", width: 22, height: 22, flexShrink: 0 }} />
                 <div>
-                  <p style={{ color: "var(--snm-brand)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
+                  <p style={{ color: "var(--snm-brand-text)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
                   <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>
                     {sourceGodown.name}
                   </p>
@@ -920,7 +920,7 @@ export function SaleDetail({ id }: { id: string }) {
             <button
               type="button"
               onClick={() => setPayAmount(balance.balance_mvr.toFixed(2).replace(/\.00$/, ""))}
-              style={{ marginTop: 8, background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "var(--snm-brand)", fontWeight: 600, cursor: "pointer" }}
+              style={{ marginTop: 8, background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "var(--snm-brand-text)", fontWeight: 600, cursor: "pointer" }}
             >
               Pay full balance — MVR {fmt(balance.balance_mvr)}
             </button>

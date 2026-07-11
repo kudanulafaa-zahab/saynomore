@@ -174,14 +174,14 @@ function WarehouseSelect({ value, onChange, godowns }: {
         <Warehouse className="h-6 w-6" style={{ color: "var(--snm-brand-on)" }} strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--snm-brand)" }}>
+        <p className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--snm-brand-text)" }}>
           Ship from warehouse
         </p>
         <p className="ios-body font-bold text-foreground truncate">
           {selected ? `${selected.name}${selected.is_default ? " (default)" : ""}` : "Tap to choose warehouse"}
         </p>
       </div>
-      <ChevronDown className="h-5 w-5 shrink-0" style={{ color: "var(--snm-brand)" }} />
+      <ChevronDown className="h-5 w-5 shrink-0" style={{ color: "var(--snm-brand-text)" }} />
       {/* Transparent native select covers the card so the whole thing is tappable */}
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
@@ -1104,7 +1104,7 @@ function NewSaleSheet({
                             style={{
                               background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
                               border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)",
-                              color: "var(--snm-brand)",
+                              color: "var(--snm-brand-text)",
                             }}
                           >
                             ★ {rc.name.split(" ")[0]}
@@ -1205,7 +1205,7 @@ function NewSaleSheet({
                     {orderTier !== customer.price_tier && (
                       <button onClick={() => setOrderTier(customer.price_tier)}
                         className="ios-subhead font-semibold"
-                        style={{ color: "var(--snm-brand)" }}>
+                        style={{ color: "var(--snm-brand-text)" }}>
                         Reset to default ({customer.price_tier})
                       </button>
                     )}
@@ -1310,7 +1310,7 @@ function NewSaleSheet({
                             {first.brand_name}
                           </p>
                           <span className="ios-footnote font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
+                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand-text)" }}>
                             Build a carton
                           </span>
                         </div>
@@ -1330,7 +1330,7 @@ function NewSaleSheet({
                         </div>
                         {inCart > 0 && (
                           <span className="ios-footnote font-semibold shrink-0 px-2 py-0.5 rounded-full inline-block mt-2"
-                            style={{ color: "var(--snm-brand)", background: "var(--snm-brand-muted)" }}>
+                            style={{ color: "var(--snm-brand-text)", background: "var(--snm-brand-muted)" }}>
                             {inCart} carton{inCart === 1 ? "" : "s"} in cart
                           </span>
                         )}
@@ -1501,7 +1501,7 @@ function NewSaleSheet({
                             </div>
                             {inCart > 0 && (
                               <span className="ios-footnote font-semibold shrink-0 px-2 py-0.5 rounded-full"
-                                style={{ color: "var(--snm-brand)", background: "var(--snm-brand-muted)" }}>
+                                style={{ color: "var(--snm-brand-text)", background: "var(--snm-brand-muted)" }}>
                                 {inCart} in cart
                               </span>
                             )}
@@ -1759,7 +1759,7 @@ function NewSaleSheet({
                       <p className="text-[12px] uppercase tracking-widest mb-3 font-semibold flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
                         MVR / {uomLabel}
                         {priceManuallyEdited && linePrice ? (
-                          <span className="ios-subhead px-1.5 py-0.5 rounded font-semibold" style={{ background: "var(--snm-brand-muted)", color: "var(--snm-brand)" }}>
+                          <span className="ios-subhead px-1.5 py-0.5 rounded font-semibold" style={{ background: "var(--snm-brand-muted)", color: "var(--snm-brand-text)" }}>
                             Edited
                           </span>
                         ) : editorProvenance.source ? (
@@ -1971,7 +1971,7 @@ function NewSaleSheet({
                                   <div className="flex items-center justify-between mb-4">
                                     <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
                                     <div className="flex items-baseline gap-0.5">
-                                      <p className="text-[28px] font-bold leading-none" style={{ color: "var(--snm-brand)" }}>{sliderVal}</p>
+                                      <p className="text-[28px] font-bold leading-none" style={{ color: "var(--snm-brand-text)" }}>{sliderVal}</p>
                                       <p className="text-[16px] font-semibold leading-none" style={{ color: "var(--muted-foreground)" }}>%</p>
                                     </div>
                                   </div>
@@ -2136,7 +2136,7 @@ function NewSaleSheet({
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
                         {l.is_mixed_carton_fill && (
                           <span className="ios-subhead font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
+                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand-text)" }}>
                             MIXED CTN
                           </span>
                         )}
@@ -2189,7 +2189,7 @@ function NewSaleSheet({
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
                         {l.is_mixed_carton_fill && (
                           <span className="ios-subhead font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
+                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand-text)" }}>
                             MIXED CTN
                           </span>
                         )}

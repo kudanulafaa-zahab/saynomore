@@ -359,10 +359,10 @@ function ItemsBlock({ lines, skus }: { lines: SalesOrderLineRow[]; skus: SkuFull
                 background: "var(--snm-brand-muted)",
                 border: "1px solid var(--snm-brand-border)",
               }}>
-                <span style={{ display: "block", fontSize: 22, fontWeight: 800, lineHeight: 1, color: "var(--snm-brand)", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ display: "block", fontSize: 22, fontWeight: 800, lineHeight: 1, color: "var(--snm-brand-text)", fontVariantNumeric: "tabular-nums" }}>
                   {l.qty}
                 </span>
-                <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--snm-brand)", textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 2 }}>
+                <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--snm-brand-text)", textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 2 }}>
                   {uomWord(l.uom, l.qty)}
                 </span>
               </div>
@@ -513,9 +513,9 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
             background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
             border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)",
           }}>
-            <Warehouse size={20} style={{ color: "var(--snm-brand)", flexShrink: 0 }} />
+            <Warehouse size={20} style={{ color: "var(--snm-brand-text)", flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--snm-brand)", margin: 0 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--snm-brand-text)", margin: 0 }}>
                 Pick up from
               </p>
               <p style={{ fontSize: 17, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>

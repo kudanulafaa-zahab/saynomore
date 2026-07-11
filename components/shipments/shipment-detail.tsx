@@ -366,7 +366,7 @@ function SharedContainerEstimator({
           {!size && (
             <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
               style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-brand)" }} />
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-brand-text)" }} />
               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 Tap <strong>20ft</strong> or <strong>40ft HQ</strong> above — your share can&apos;t be calculated without the container size.
               </p>
@@ -1189,7 +1189,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             {/* ── Step 1: Exchange rate ── */}
             <div className={locked ? "" : "pt-1"}>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand)" }}>1</span>
+                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand-text)" }}>1</span>
                 <p className="ios-subhead font-semibold text-foreground">Exchange rate</p>
               </div>
               <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
@@ -1239,7 +1239,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             {/* ── Step 2: Shipping (freight) ── */}
             <div>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand)" }}>2</span>
+                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand-text)" }}>2</span>
                 <p className="ios-subhead font-semibold text-foreground">Shipping cost</p>
               </div>
               <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
@@ -1265,7 +1265,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             {/* ── Step 3: Port & clearing costs ── */}
             <div>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand)" }}>3</span>
+                <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand-text)" }}>3</span>
                 <p className="ios-subhead font-semibold text-foreground">Port &amp; clearing costs <span className="font-normal" style={{ color: "var(--muted-foreground)" }}>(in MVR)</span></p>
               </div>
               <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
@@ -1291,7 +1291,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                       type="button"
                       onClick={() => patch("customs_duty_mvr", Math.round(suggestedDutyMvr))}
                       className="ios-footnote font-medium active:opacity-70"
-                      style={{ color: "var(--snm-brand)" }}
+                      style={{ color: "var(--snm-brand-text)" }}
                     >
                       Use suggested MVR {fmt0(suggestedDutyMvr)}
                     </button>

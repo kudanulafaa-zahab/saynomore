@@ -65,7 +65,7 @@ export function OfflineBanner() {
         className="flex items-center justify-between px-4 py-2.5 ios-subhead font-medium"
         style={{
           background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
-          color: "var(--snm-brand)",
+          color: "var(--snm-brand-text)",
           borderBottom: "0.5px solid color-mix(in srgb, var(--snm-brand) 15%, transparent)",
         }}
       >
@@ -83,7 +83,7 @@ export function OfflineBanner() {
             className="snm-pressable ios-subhead px-3 py-1 rounded-lg font-semibold"
             style={{
               background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)",
-              color: "var(--snm-brand)",
+              color: "var(--snm-brand-text)",
             }}
           >
             Sync now

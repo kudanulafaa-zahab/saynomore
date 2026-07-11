@@ -130,7 +130,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
           className="inline-flex items-center gap-1.5 ios-subhead font-semibold px-2.5 py-1 rounded-full"
           style={{
             background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
-            color: "var(--snm-brand)",
+            color: "var(--snm-brand-text)",
             border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)",
           }}
         >

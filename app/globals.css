@@ -53,6 +53,18 @@
      modes (systemBlue is dark enough for white to pass AA). */
   --snm-brand-on: #ffffff;
 
+  /* Text/icon/badge variant of the brand colour — --snm-brand itself is
+     tuned for large fills (buttons, active nav backgrounds), where 3:1 is
+     the WCAG bar and it passes easily. At small-text size (badges like
+     "FIXED"/"VOL.", price highlights, links) it only hit 4.02:1 in light
+     mode — under the 4.5:1 text minimum — and its high-G/high-B mix read as
+     cyan-ish at small sizes in both modes (Ali flagged this on a real
+     device, 2026-07-11, same category as the earlier warning-colour fix).
+     Deepened for light, brightened for dark — same "text needs its own
+     shade" technique already used for success/warning/error. Verified
+     6.15–6.27:1 vs both background and white/dark cards. */
+  --snm-brand-text: #409CFF;
+
   /* Fonts (Apple HIG 2026). --font-sys = SF Pro system stack for ALL UI text
      (real SF Pro on iOS/macOS, Inter/system-ui fallback elsewhere).
      --font-wordmark = Plus Jakarta, used ONLY by the "saynomore" wordmark. */
@@ -132,12 +144,17 @@
   --snm-tag-sage:   #3F7A52;
 
   /* Brand accent, LIGHT — systemBlue #007AFF (Apple's measured light value).
-     Passes AA as text on --background and white cards, and as a button fill
-     with white text. Muted/border tints re-derived from the same hue. */
+     Passes AA as a LARGE fill (button backgrounds, 3:1 bar) with white text,
+     but only 4.02:1 as small TEXT — under the 4.5:1 text minimum. Use
+     --snm-brand-text (below) for any text/icon/badge use instead. Muted/
+     border tints re-derived from the fill hue. */
   --snm-brand:        #007AFF;
   --snm-brand-muted:  rgba(0, 122, 255, 0.12);
   --snm-brand-border: rgba(0, 122, 255, 0.26);
   --snm-brand-on:     #ffffff;
+  /* Deepened for light-mode text — 6.27:1 vs background, 7.0:1 vs white
+     cards. See dark-mode note above for the full rationale. */
+  --snm-brand-text:   #0051C7;
 
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
@@ -210,6 +227,7 @@
     --snm-brand:        #0A84FF;
     --snm-brand-muted:  rgba(10, 132, 255, 0.20);
     --snm-brand-border: rgba(10, 132, 255, 0.34);
+    --snm-brand-text:   #409CFF;
     --snm-brand-on:     #ffffff;
     --snm-success: #30D158;
     --snm-error:   #FF453A;
@@ -288,6 +306,7 @@
   --snm-brand-muted:  rgba(0, 122, 255, 0.12);
   --snm-brand-border: rgba(0, 122, 255, 0.26);
   --snm-brand-on:     #ffffff;
+  --snm-brand-text:   #0051C7;
   --snm-success: #248A3D;
   --snm-error:   #FF3B30;
   --snm-warning: #9A4B00; /* deepened systemOrange for light text — reverted from systemTeal */
@@ -348,6 +367,7 @@
   --snm-brand-muted:  rgba(10, 132, 255, 0.20);
   --snm-brand-border: rgba(10, 132, 255, 0.34);
   --snm-brand-on:     #ffffff;
+  --snm-brand-text:   #409CFF;
   --snm-success: #30D158;
   --snm-error:   #FF453A;
   --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal */
