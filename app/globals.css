@@ -594,9 +594,12 @@
     border-bottom: 0.5px solid var(--glass-border-lo);
   }
   .snm-bottom-nav {
-    background:            color-mix(in srgb, var(--background) 75%, transparent);
-    backdrop-filter:       var(--glass-blur-lg);
-    -webkit-backdrop-filter: var(--glass-blur-lg);
+    /* Solid (not backdrop-filter) on purpose: this bar is permanently on
+       screen and sits directly over cards that already blur(20-30px) while
+       scrolling — two live blur compositor layers stacked at once is a known
+       iOS Safari scroll-jank source. A near-opaque solid reads the same as
+       frosted glass at this opacity without the recompositing cost. */
+    background:  color-mix(in srgb, var(--background) 94%, transparent);
     border-top: 0.5px solid var(--glass-border-lo);
   }
 

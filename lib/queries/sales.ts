@@ -110,6 +110,21 @@ export async function listOrderLines(orderId: string): Promise<SalesOrderLineRow
   return data ?? [];
 }
 
+// Batched variant of listOrderLines for screens that render many orders at once
+// (avoids one round-trip per order).
+export async function listOrderLinesForOrders(orderIds: string[]): Promise<Map<string, SalesOrderLineRow[]>> {
+  const byOrder = new Map<string, SalesOrderLineRow[]>();
+  if (orderIds.length === 0) return byOrder;
+  const { data, error } = await supabase.from("sales_order_lines").select("*").in("order_id", orderIds);
+  if (error) throw error;
+  for (const line of data ?? []) {
+    const existing = byOrder.get(line.order_id);
+    if (existing) existing.push(line);
+    else byOrder.set(line.order_id, [line]);
+  }
+  return byOrder;
+}
+
 // Driver-assigned orders (for staff view — only their own runs)
 export async function listMyDeliveries(driverId: string): Promise<SalesOrderRow[]> {
   const { data, error } = await supabase

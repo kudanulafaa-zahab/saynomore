@@ -10,7 +10,7 @@ import { subscribeToPush, isPushSubscribed, notify, notifyDelivered } from "@/li
 import {
   listMyDeliveries,
   listAllDispatchOrders,
-  listOrderLines,
+  listOrderLinesForOrders,
   updateOrder,
   type SalesOrderRow,
   type SalesOrderLineRow,
@@ -125,16 +125,15 @@ export function DispatchView() {
       setSkus(skusFlat);
       setUsers(allUsers);
 
-      const enriched: OrderWithLines[] = [];
-      for (const o of orders) {
-        const lines = await listOrderLines(o.id);
-        enriched.push({
-          order: o,
-          lines,
-          customer: customers.find((c) => c.id === o.customer_id),
-          godown: godowns.find((g) => g.id === o.source_godown_id),
-        });
-      }
+      const customerById = new Map(customers.map((c) => [c.id, c]));
+      const godownById = new Map(godowns.map((g) => [g.id, g]));
+      const linesByOrder = await listOrderLinesForOrders(orders.map((o) => o.id));
+      const enriched: OrderWithLines[] = orders.map((o) => ({
+        order: o,
+        lines: linesByOrder.get(o.id) ?? [],
+        customer: customerById.get(o.customer_id ?? ""),
+        godown: godownById.get(o.source_godown_id ?? ""),
+      }));
       setItems(enriched);
     } catch (e) {
       toast.error((e as Error).message);

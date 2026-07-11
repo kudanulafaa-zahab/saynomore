@@ -163,14 +163,6 @@ export async function listUsers(): Promise<UserProfileRow[]> {
   return json as UserProfileRow[];
 }
 
-export async function setUserRole(userId: string, role: UserRole) {
-  const { error } = await supabase
-    .from("user_profiles")
-    .update({ role })
-    .eq("id", userId);
-  if (error) throw error;
-}
-
 export async function updateUser(userId: string, fullName: string, role: UserRole) {
   const { error } = await supabase
     .from("user_profiles")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -196,6 +196,54 @@ function WarehouseSelect({ value, onChange, godowns }: {
   );
 }
 
+// ── Order row (memoized — search re-renders SalesList on every keystroke,
+// but a row only needs to re-render if its own order/customer changed) ──────
+
+const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: SalesOrderRow; customer?: CustomerRow }) {
+  const Icon = STATUS_ICON[o.status];
+  const colors = STATUS_COLOR[o.status];
+  const total = o.order_total_mvr ?? 0;
+
+  // Plain tappable row — Void/Delete live on the order detail screen
+  // (one tap away via this link), so no per-row action affordance is
+  // needed here.
+  return (
+    <Link href={`/sales/${o.id}`}
+      className="flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
+      style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
+    >
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[14px] font-semibold text-foreground truncate">
+            {cust?.name ?? "Walk-in"}
+            <span className="ios-subhead ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+          </p>
+          <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
+            via {o.channel}{cust?.island && <> · {cust.island}</>}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2.5 shrink-0">
+        <div className="text-right">
+          {total > 0 && (
+            <p className="text-[14px] font-semibold text-foreground snm-num">
+              {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <span className="ios-subhead font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+            </p>
+          )}
+          <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
+            {STATUS_LABEL[o.status]}
+          </span>
+        </div>
+        <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+      </div>
+    </Link>
+  );
+});
+
 // ── SalesList ─────────────────────────────────────────────────────────────────
 
 export function SalesList() {
@@ -236,6 +284,8 @@ export function SalesList() {
 
   useEffect(() => { load(); }, []);
 
+  const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
+
   const filtered = useMemo(() => {
     let r = rows;
     if (statusFilter !== "all") r = r.filter((x) => x.status === statusFilter);
@@ -243,11 +293,11 @@ export function SalesList() {
     if (unpaidMode) r = r.filter((x) => ["pending", "partial"].includes(x.payment_status));
     const term = q.trim().toLowerCase();
     if (term) r = r.filter((x) => {
-      const cust = customers.find((c) => c.id === x.customer_id);
+      const cust = customerById.get(x.customer_id ?? "");
       return [x.order_number, cust?.name ?? "", cust?.phone ?? ""].join(" ").toLowerCase().includes(term);
     });
     return r;
-  }, [rows, q, statusFilter, unpaidMode, customers]);
+  }, [rows, q, statusFilter, unpaidMode, customerById]);
 
   // Render cap for the flat list — at 100+ orders, rendering every row at
   // once is both a performance problem and a wall of near-identical cards to
@@ -265,7 +315,7 @@ export function SalesList() {
     const map = new Map<string, { customer: CustomerRow | null; orders: SalesOrderRow[] }>();
     for (const o of filtered) {
       const key = o.customer_id ?? "__walkin__";
-      const cust = o.customer_id ? customers.find((c) => c.id === o.customer_id) ?? null : null;
+      const cust = o.customer_id ? customerById.get(o.customer_id) ?? null : null;
       if (!map.has(key)) map.set(key, { customer: cust, orders: [] });
       map.get(key)!.orders.push(o);
     }
@@ -275,7 +325,7 @@ export function SalesList() {
       const bDate = b.orders[0]?.created_at ?? "";
       return bDate.localeCompare(aDate);
     });
-  }, [filtered, customers]);
+  }, [filtered, customerById]);
 
   if (loading) return (
     <div className="space-y-4 animate-pulse">
@@ -432,51 +482,9 @@ export function SalesList() {
       ) : groupBy === "orders" ? (
         /* ── Flat order list ── */
         <div className="space-y-1.5">
-          {visibleOrders.map((o) => {
-            const Icon = STATUS_ICON[o.status];
-            const cust = customers.find((c) => c.id === o.customer_id);
-            const colors = STATUS_COLOR[o.status];
-            const total = o.order_total_mvr ?? 0;
-
-            // Plain tappable row — Void/Delete live on the order detail screen
-            // (one tap away via this link), so no per-row action affordance is
-            // needed here.
-            return (
-              <Link key={o.id} href={`/sales/${o.id}`}
-                className="flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
-                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-foreground truncate">
-                      {cust?.name ?? "Walk-in"}
-                      <span className="ios-subhead ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
-                    </p>
-                    <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
-                      via {o.channel}{cust?.island && <> · {cust.island}</>}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="text-right">
-                    {total > 0 && (
-                      <p className="text-[14px] font-semibold text-foreground snm-num">
-                        {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                        <span className="ios-subhead font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
-                      </p>
-                    )}
-                    <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
-                      {STATUS_LABEL[o.status]}
-                    </span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
-                </div>
-              </Link>
-            );
-          })}
+          {visibleOrders.map((o) => (
+            <OrderRow key={o.id} order={o} customer={customerById.get(o.customer_id ?? "")} />
+          ))}
           {filtered.length > visibleOrders.length && (
             <button
               onClick={() => setVisibleCount((n) => n + 20)}

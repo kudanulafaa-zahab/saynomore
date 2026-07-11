@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
@@ -140,7 +140,7 @@ function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
   );
 }
 
-function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
+const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, isOverstock, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
@@ -344,7 +344,7 @@ function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }
       )}
     </div>
   );
-}
+});
 
 /* ── Main ── */
 
