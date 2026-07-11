@@ -365,8 +365,8 @@ function SharedContainerEstimator({
               freight typed, no container size picked → blank). */}
           {!size && (
             <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
-              style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-brand-text)" }} />
+              style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 Tap <strong>20ft</strong> or <strong>40ft HQ</strong> above — your share can&apos;t be calculated without the container size.
               </p>

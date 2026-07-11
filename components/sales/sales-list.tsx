@@ -2144,7 +2144,7 @@ function NewSaleSheet({
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
                         {l.is_mixed_carton_fill && (
                           <span className="ios-subhead font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand-text)" }}>
+                            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
                             MIXED CTN
                           </span>
                         )}
@@ -2197,7 +2197,7 @@ function NewSaleSheet({
                         <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
                         {l.is_mixed_carton_fill && (
                           <span className="ios-subhead font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand-text)" }}>
+                            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
                             MIXED CTN
                           </span>
                         )}

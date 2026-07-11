@@ -469,7 +469,7 @@ export function EditSkuDialog({
                   <p className="text-[12px] uppercase tracking-wider mb-1.5 font-semibold" style={{ color: "var(--muted-foreground)" }}>
                     Active selling prices
                     {sku.fixed_selling_price_mvr != null
-                      ? <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>FIXED</span>
+                      ? <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>FIXED</span>
                       : <span className="ml-2 px-1.5 py-0.5 rounded ios-subhead" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                     }
                   </p>
@@ -644,8 +644,7 @@ export function EditSkuDialog({
               <Label>
                 Option B — Fixed Price per {unit} (MVR)
                 {usingFixed && (
-                  <span className="ml-2 ios-subhead font-bold px-1.5 py-0.5 rounded"
-                    style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>
+                  <span className="ml-2 ios-subhead font-bold px-1.5 py-0.5 rounded snm-active-pill">
                     ACTIVE
                   </span>
                 )}
@@ -675,7 +674,7 @@ export function EditSkuDialog({
               </div>
               {fixedPreview && (
                 <div className="rounded-lg p-2.5 space-y-2"
-                  style={{ background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 18%, transparent)" }}>
+                  style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
                   {/* Primary: pack/bottle */}
                   <div className="flex items-center justify-between">
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>

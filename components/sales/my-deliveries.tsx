@@ -510,12 +510,12 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
           <div style={{
             display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
             padding: "10px 12px", borderRadius: 12,
-            background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)",
+            background: "var(--muted)",
+            border: "0.5px solid var(--glass-border-lo)",
           }}>
-            <Warehouse size={20} style={{ color: "var(--snm-brand-text)", flexShrink: 0 }} />
+            <Warehouse size={20} style={{ color: "var(--muted-foreground)", flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--snm-brand-text)", margin: 0 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted-foreground)", margin: 0 }}>
                 Pick up from
               </p>
               <p style={{ fontSize: 17, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>

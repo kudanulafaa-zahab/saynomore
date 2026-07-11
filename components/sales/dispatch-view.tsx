@@ -416,10 +416,10 @@ export function DispatchView() {
                           since this is where the driver needs to go first. */}
                       {item.godown?.name && (
                         <div className="flex items-center gap-2.5 pt-3 px-3 py-2.5 rounded-xl"
-                          style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
-                          <Warehouse className="h-4 w-4 shrink-0" style={{ color: "var(--snm-brand-text)" }} />
+                          style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
+                          <Warehouse className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                           <p className="text-[14px] font-bold" style={{ color: "var(--foreground)" }}>
-                            Pick up from <span style={{ color: "var(--snm-brand-text)" }}>{item.godown.name}</span>
+                            Pick up from <span>{item.godown.name}</span>
                           </p>
                         </div>
                       )}

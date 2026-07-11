@@ -321,7 +321,7 @@ function SkuPanel({
               <div className="flex items-center gap-1.5 mb-2">
                 <p className="text-[12px] uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling price</p>
                 {sku.fixed_selling_price_mvr != null
-                  ? <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>FIXED</span>
+                  ? <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>FIXED</span>
                   : <span className="ios-subhead font-bold px-1.5 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>AUTO</span>
                 }
               </div>
@@ -365,7 +365,7 @@ function SkuPanel({
                   <p className="ios-subhead font-semibold text-foreground snm-num">
                     MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
                     {sku.fixed_price_per_carton_mvr != null && (
-                      <span className="ml-1.5 ios-subhead font-bold px-1 py-0.5 rounded" style={{ background: "color-mix(in srgb, var(--snm-brand) 15%, transparent)", color: "var(--snm-brand-text)" }}>VOL.</span>
+                      <span className="ml-1.5 ios-subhead font-bold px-1 py-0.5 rounded" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>VOL.</span>
                     )}
                   </p>
                 </div>
@@ -384,8 +384,8 @@ function SkuPanel({
               style={{ border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)" }}>
 
               {/* Header */}
-              <div className="px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--snm-brand) 8%, transparent)" }}>
-                <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand-text)" }}>
+              <div className="px-4 py-2.5" style={{ background: "var(--muted)" }}>
+                <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
                   Set pricing — see your profit before saving
                 </p>
               </div>
@@ -1984,8 +1984,8 @@ function NewSkuWizard({
                   {fixedPrice && !isNaN(parseFloat(fixedPrice)) && parseFloat(fixedPrice) > 0 && (
                     <div style={{
                       marginTop: 10, padding: "8px 12px", borderRadius: 8,
-                      background: "color-mix(in srgb, var(--snm-brand) 6%, transparent)",
-                      border: "0.5px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)",
+                      background: "var(--muted)",
+                      border: "0.5px solid var(--glass-border-lo)",
                       display: "flex", gap: 16,
                     }}>
                       {derivedBottlePrice != null && (

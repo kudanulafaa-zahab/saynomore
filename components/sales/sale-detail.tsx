@@ -587,10 +587,12 @@ export function SaleDetail({ id }: { id: string }) {
               "go get these items" stage, before the order ever leaves. */}
           {sourceGodown && (
             <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
-                <Warehouse style={{ color: "var(--snm-brand-text)", width: 22, height: 22, flexShrink: 0 }} />
+              {/* Static information sits on a neutral surface — blue is reserved
+                  for interactive elements (HIG: colour communicates affordance). */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "var(--muted)", borderRadius: 12, border: "0.5px solid var(--glass-border-lo)" }}>
+                <Warehouse style={{ color: "var(--muted-foreground)", width: 22, height: 22, flexShrink: 0 }} />
                 <div>
-                  <p style={{ color: "var(--snm-brand-text)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
                   <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>
                     {sourceGodown.name}
                   </p>
@@ -601,12 +603,14 @@ export function SaleDetail({ id }: { id: string }) {
 
           {/* Payment method badge */}
           <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: `1px solid ${isCOD ? "color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "color-mix(in srgb, var(--snm-brand) 25%, transparent)"}` }}>
+            {/* COD keeps amber (cash must be collected — true status); bank
+                transfer is plain information and sits on a neutral surface. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "var(--muted)", borderRadius: 12, border: isCOD ? "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "0.5px solid var(--glass-border-lo)" }}>
               {isCOD
                 ? <Banknote style={{ color: "var(--snm-warning)", width: 22, height: 22, flexShrink: 0 }} />
-                : <Smartphone style={{ color: "var(--snm-brand-text)", width: 22, height: 22, flexShrink: 0 }} />}
+                : <Smartphone style={{ color: "var(--muted-foreground)", width: 22, height: 22, flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: isCOD ? "var(--snm-warning)" : "var(--snm-brand)", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                <p style={{ color: isCOD ? "var(--snm-warning)" : "var(--muted-foreground)", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                   {isCOD ? "Cash on Delivery" : "Bank Transfer"}
                 </p>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
@@ -690,10 +694,10 @@ export function SaleDetail({ id }: { id: string }) {
             {/* Pickup godown — big and first, since this is what the dispatch
                 guy needs before he can pick anything up. */}
             {sourceGodown && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
-                <Warehouse style={{ color: "var(--snm-brand-text)", width: 22, height: 22, flexShrink: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "14px 16px", background: "var(--muted)", borderRadius: 12, border: "0.5px solid var(--glass-border-lo)" }}>
+                <Warehouse style={{ color: "var(--muted-foreground)", width: 22, height: 22, flexShrink: 0 }} />
                 <div>
-                  <p style={{ color: "var(--snm-brand-text)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pick up from</p>
                   <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 700 }}>
                     {sourceGodown.name}
                   </p>

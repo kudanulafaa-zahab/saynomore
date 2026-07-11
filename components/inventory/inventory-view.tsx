@@ -239,7 +239,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
         style={{ touchAction: "manipulation" }}
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="ios-subhead font-medium" style={{ color: "var(--snm-brand-text)" }}>
+        <span className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>
           {expanded ? "Hide" : "FIFO batches & landed cost"}
         </span>
         <ChevronDown

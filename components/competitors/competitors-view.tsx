@@ -857,13 +857,13 @@ export function CompetitorsView() {
                           ? `${sku.target_margin_pct}% margin`
                           : "saved";
                       return (
-                        <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)" }}>
+                        <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--snm-brand)" }}>
                               <Tag className="h-3.5 w-3.5" style={{ color: "var(--snm-brand-on)" }} />
                             </div>
                             <div>
-                              <p className="ios-subhead font-semibold" style={{ color: "var(--snm-brand-text)" }}>Our Selling Price</p>
+                              <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>Our Selling Price</p>
                               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>
                             </div>
                           </div>
@@ -1354,9 +1354,9 @@ function PriceModal({
 
           {/* Live per-piece preview */}
           {perPiecePreview != null && (
-            <div className="rounded-xl px-4 py-3 text-center" style={{ background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-brand) 20%, transparent)" }}>
+            <div className="rounded-xl px-4 py-3 text-center" style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                = <span className="font-bold text-[14px]" style={{ color: "var(--snm-brand-text)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
+                = <span className="font-bold text-[14px]" style={{ color: "var(--foreground)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
               </p>
             </div>
           )}
