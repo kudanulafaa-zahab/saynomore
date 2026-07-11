@@ -264,7 +264,7 @@ function VerifyTab({
       {/* Search */}
       <div
         className="flex items-center gap-2.5 px-4 rounded-2xl"
-        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
+        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
       >
         <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input
@@ -322,8 +322,8 @@ function VerifyTab({
                 className="rounded-2xl px-4 py-3"
                 style={{
                   background: "var(--glass-1)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
                   boxShadow: "var(--glass-shadow), var(--glass-inner)",
                   border: delta !== 0
                     ? `1px solid color-mix(in srgb, ${delta < 0 ? "var(--snm-error)" : "var(--snm-warning)"} 35%, transparent)`
@@ -523,7 +523,7 @@ function TransferTab({
       {/* SKU picker */}
       <div
         className="flex items-center gap-2.5 px-4 rounded-2xl"
-        style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
+        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
       >
         <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
         <input
@@ -545,7 +545,7 @@ function TransferTab({
         return (
         <div
           className="rounded-2xl p-4 space-y-3"
-          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
+          style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "1px solid color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
         >
           <div className="flex items-center justify-between gap-2">
             <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
@@ -626,8 +626,8 @@ function TransferTab({
                 className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
                 style={{
                   background: "var(--glass-1)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
+                  backdropFilter: "var(--glass-blur)",
+                  WebkitBackdropFilter: "var(--glass-blur)",
                   border: active
                     ? "1px solid color-mix(in srgb, var(--snm-brand) 45%, transparent)"
                     : "0.5px solid var(--glass-border-lo)",
@@ -637,7 +637,7 @@ function TransferTab({
                   className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center"
                   style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--snm-brand)" : "transparent" }}
                 >
-                  {active && <Check className="h-3 w-3" style={{ color: "#fff" }} />}
+                  {active && <Check className="h-3 w-3" style={{ color: "var(--snm-on-fill)" }} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
@@ -673,7 +673,7 @@ function GodownPicker({
           onChange={(e) => onChange(e.target.value)}
           aria-label={label}
           className="w-full h-12 rounded-2xl pl-10 pr-4 text-[14px] font-semibold text-foreground appearance-none outline-none"
-          style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)" }}
+          style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)" }}
         >
           {godowns.map((g) => (
             <option key={g.id} value={g.id}>{g.name}</option>

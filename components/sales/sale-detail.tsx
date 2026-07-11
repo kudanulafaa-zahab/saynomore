@@ -452,7 +452,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Progress stepper ─────────────────────────────────────────────── */}
       {!isCancelled && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "20px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: "20px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           {STEPS.map((step, i) => {
             const done    = currentStep > i;
             const active  = currentStep === i;
@@ -491,7 +491,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Customer card ─────────────────────────────────────────────────── */}
       {customer && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--glass-bg-1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <User style={{ color: "var(--muted-foreground)", width: 20, height: 20 }} />
           </div>
@@ -506,7 +506,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── DELIVERY ADDRESS card ─────────────────────────────────────────── */}
       {(isConfirmed || isDispatched) && canWrite && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: editingAddress ? 14 : 0 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase" }}>Delivery Address</p>
             {!editingAddress && (
@@ -586,7 +586,7 @@ export function SaleDetail({ id }: { id: string }) {
           {/* Pickup godown — shown before payment method since this is the
               "go get these items" stage, before the order ever leaves. */}
           {sourceGodown && (
-            <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+            <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--snm-brand) 22%, transparent)" }}>
                 <Warehouse style={{ color: "var(--snm-brand-text)", width: 22, height: 22, flexShrink: 0 }} />
                 <div>
@@ -600,7 +600,7 @@ export function SaleDetail({ id }: { id: string }) {
           )}
 
           {/* Payment method badge */}
-          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "color-mix(in srgb, var(--snm-brand) 10%, transparent)", borderRadius: 12, border: `1px solid ${isCOD ? "color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "color-mix(in srgb, var(--snm-brand) 25%, transparent)"}` }}>
               {isCOD
                 ? <Banknote style={{ color: "var(--snm-warning)", width: 22, height: 22, flexShrink: 0 }} />
@@ -686,7 +686,7 @@ export function SaleDetail({ id }: { id: string }) {
       {/* ── STAGE: Out for delivery ──────────────────────────────────────── */}
       {isDispatched && (
         <>
-          <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
             {/* Pickup godown — big and first, since this is what the dispatch
                 guy needs before he can pick anything up. */}
             {sourceGodown && (
@@ -759,14 +759,14 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── STAGE: Delivered ─────────────────────────────────────────────── */}
       {isDelivered && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
             <CheckCircle2 style={{ color: "var(--snm-success)", width: 22, height: 22 }} />
             <p style={{ color: "var(--snm-success)", fontSize: 16, fontWeight: 700 }}>Delivered</p>
           </div>
 
           {/* Financial summary */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+          <div className="grid grid-cols-2 gap-3 mb-5">
             <div style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 16 }}>
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Order Total</p>
               <p className="snm-num" style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</p>
@@ -929,7 +929,7 @@ export function SaleDetail({ id }: { id: string }) {
 
         <div style={{ marginBottom: 16 }}>
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 8 }}>How was it paid?</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <div className="grid grid-cols-3 gap-2">
             {([
               { value: "transfer" as PaymentMethod, label: "Transfer" },
               { value: "cash" as PaymentMethod, label: "Cash" },
@@ -1108,10 +1108,10 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
   useBodyScrollLock(open);
   if (!open) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "var(--scrim-bg)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "85dvh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "85dvh", overflowY: "auto" }}
       >
         <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         {children}
@@ -1428,10 +1428,10 @@ function LineDialog({
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "var(--scrim-bg)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "90dvh", overflowY: "auto" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "90dvh", overflowY: "auto" }}
       >
         <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 20 }}>{editing ? "Edit item" : "Add item"}</h2>
@@ -1491,7 +1491,7 @@ function LineDialog({
         {skuId && sku && (
           <div style={{ marginBottom: 16 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Selling unit *</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <div className="grid grid-cols-3 gap-2">
               {([
                 { value: "carton" as SaleUom, label: "Carton", sub: `${sku.pcs_per_pack * sku.packs_per_carton} pcs` },
                 { value: "pack"   as SaleUom, label: "Pack",   sub: `${sku.pcs_per_pack} pcs` },
@@ -1521,7 +1521,7 @@ function LineDialog({
         )}
 
         {/* Qty + Price — side by side */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        <div className="grid grid-cols-2 gap-2.5 mb-4">
           <div>
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Qty *</p>
             <input

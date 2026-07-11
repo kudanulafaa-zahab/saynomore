@@ -22,15 +22,15 @@ import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2: React.CSSProperties = {
   background: "var(--glass-2)",
-  backdropFilter: "blur(30px)",
-  WebkitBackdropFilter: "blur(30px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
@@ -363,7 +363,7 @@ export function ShipmentsList() {
 
       {/* ── Delete confirm ── */}
       {deleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
@@ -397,7 +397,7 @@ export function ShipmentsList() {
                   finally { setDeleting(false); }
                 }}
                 className="flex-1 h-12 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                style={{ background: "var(--snm-error)", color: "#fff" }}
+                style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)" }}
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
@@ -446,8 +446,8 @@ function PoCard({
       style={{
         ...(!dimmed ? {
           background: "var(--glass-1)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          backdropFilter: "var(--glass-blur)",
+          WebkitBackdropFilter: "var(--glass-blur)",
           border: "0.5px solid var(--glass-border-lo)",
           boxShadow: "var(--glass-shadow), var(--glass-inner)",
         } : {
@@ -546,7 +546,7 @@ function NewPoSheet({
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 snm-modal-wrap"
-      style={{ background: "rgba(0,0,0,0.60)" }}
+      style={{ background: "var(--scrim-bg)" }}
       onClick={onClose}
     >
       <div
@@ -554,8 +554,8 @@ function NewPoSheet({
         className="w-full rounded-t-3xl sm:rounded-3xl overflow-y-auto snm-modal-card"
         style={{
           background: "var(--glass-2)",
-          backdropFilter: "blur(40px)",
-          WebkitBackdropFilter: "blur(40px)",
+          backdropFilter: "var(--glass-blur-lg)",
+          WebkitBackdropFilter: "var(--glass-blur-lg)",
           padding: "12px 24px",
           paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))",
           maxWidth: 480,

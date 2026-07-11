@@ -35,8 +35,8 @@ import { haptic } from "@/lib/haptics";
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   borderRadius: 16,
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
   border: "0.5px solid var(--glass-border-lo)",
@@ -44,8 +44,8 @@ const CARD: React.CSSProperties = {
 
 const SHEET: React.CSSProperties = {
   background: "var(--glass-2)",
-  backdropFilter: "blur(40px)",
-  WebkitBackdropFilter: "blur(40px)",
+  backdropFilter: "var(--glass-blur-lg)",
+  WebkitBackdropFilter: "var(--glass-blur-lg)",
 };
 
 const inputCls = [
@@ -195,7 +195,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
   useBodyScrollLock(open);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "rgba(0,0,0,0.65)" }} onClick={onClose}>
+    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "var(--scrim-bg)" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl"
@@ -1399,8 +1399,8 @@ export function ShipmentDetail({ id }: { id: string }) {
           paddingBottom: "calc(64px + env(safe-area-inset-bottom, 8px))",
           background: "color-mix(in srgb, var(--background) 92%, transparent)",
           borderTop: "0.5px solid var(--glass-border-lo)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
+          backdropFilter: "var(--glass-blur)",
+          WebkitBackdropFilter: "var(--glass-blur)",
         }}
       >
         {locked ? (
@@ -1426,7 +1426,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             className="w-full h-14 rounded-xl text-sm font-bold uppercase tracking-widest transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             style={{
               background: grnBlockReason ? "var(--glass-2)" : "var(--snm-success)",
-              color: grnBlockReason ? "var(--muted-foreground)" : "#fff",
+              color: grnBlockReason ? "var(--muted-foreground)" : "var(--snm-on-fill)",
             }}
           >
             {grnBlockReason
@@ -1574,7 +1574,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           </button>
           <button onClick={handleConfirmGrn} disabled={confirming}
             className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ background: "var(--snm-success)", color: "#fff" }}>
+            style={{ background: "var(--snm-success)", color: "var(--snm-on-fill)" }}>
             {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm & Lock →"}
           </button>
         </div>
@@ -1613,7 +1613,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             }}
             disabled={reopening}
             className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center"
-            style={{ background: "var(--snm-warning)", color: "#fff" }}>
+            style={{ background: "var(--snm-warning)", color: "var(--snm-on-fill)" }}>
             {reopening ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reopen to Edit"}
           </button>
         </div>
@@ -1645,7 +1645,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             }}
             disabled={voiding}
             className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center"
-            style={{ background: "var(--snm-error)", color: "#fff" }}>
+            style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)" }}>
             {voiding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Void & Delete"}
           </button>
         </div>
@@ -1666,7 +1666,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               catch (e) { haptic("error"); toast.error((e as Error).message); }
             }}
             className="flex-[2] h-12 rounded-xl ios-subhead font-bold"
-            style={{ background: "var(--snm-error)", color: "#fff" }}>
+            style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)" }}>
             Delete
           </button>
         </div>
@@ -1694,7 +1694,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               } catch (e) { toast.error((e as Error).message); }
             }}
             className="flex-[2] h-12 rounded-xl ios-subhead font-bold"
-            style={{ background: "var(--snm-error)", color: "#fff" }}>
+            style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)" }}>
             Remove
           </button>
         </div>
@@ -1805,11 +1805,11 @@ function LineDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "rgba(0,0,0,0.65)", touchAction: "none" }} onClick={onClose}>
+    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl flex flex-col"
-        style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", height: "85dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", touchAction: "none" }}
+        style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", height: "85dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", touchAction: "none" }}
       >
         {/* Fixed header — grabber + title stay pinned at the top */}
         <div className="shrink-0 px-6 pt-3">

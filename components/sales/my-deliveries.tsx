@@ -89,7 +89,7 @@ function BottomSheet({ open, onClose, title, children }: {
     <>
       <div onClick={onClose} style={{
         position: "fixed", inset: 0, zIndex: 60,
-        background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
+        background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)",
       }} />
       <div
         onTouchStart={(e) => { startY.current = e.touches[0].clientY; }}
@@ -99,7 +99,7 @@ function BottomSheet({ open, onClose, title, children }: {
         }}
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 61,
-          background: "var(--glass-bg-2)", backdropFilter: "blur(28px) saturate(180%)",
+          background: "var(--glass-bg-2)", backdropFilter: "var(--glass-blur)",
           borderRadius: "24px 24px 0 0",
           paddingBottom: "env(safe-area-inset-bottom, 24px)",
           boxShadow: "0 -8px 40px rgba(0,0,0,0.20)",
@@ -221,7 +221,7 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, delivererId,
         style={{
           marginTop: 20, width: "100%", height: 64, borderRadius: 18, border: "none",
           background: saving || !amount ? "var(--glass-border-lo)" : "var(--snm-success)",
-          color: "#fff", fontSize: 18, fontWeight: 800, cursor: saving || !amount ? "not-allowed" : "pointer",
+          color: "var(--snm-on-fill)", fontSize: 18, fontWeight: 800, cursor: saving || !amount ? "not-allowed" : "pointer",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
           transition: "background 0.15s, transform 0.1s",
           touchAction: "manipulation",
@@ -310,7 +310,7 @@ function IssueSheet({ open, order, onClose, onDone }: {
         style={{
           marginTop: 16, width: "100%", height: 60, borderRadius: 16, border: "none",
           background: saving || !note.trim() ? "var(--glass-border-lo)" : "var(--snm-error)",
-          color: "#fff", fontSize: 17, fontWeight: 700,
+          color: "var(--snm-on-fill)", fontSize: 17, fontWeight: 700,
           cursor: saving || !note.trim() ? "not-allowed" : "pointer",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
         }}
@@ -452,8 +452,8 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
   return (
     <div style={{
       background: "var(--glass-bg-1)",
-      backdropFilter: "blur(28px) saturate(180%)",
-      WebkitBackdropFilter: "blur(28px) saturate(180%)",
+      backdropFilter: "var(--glass-blur)",
+      WebkitBackdropFilter: "var(--glass-blur)",
       borderRadius: 20,
       overflow: "hidden",
       border: "0.5px solid var(--glass-border-lo)",
@@ -573,7 +573,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
             onClick={() => onAction(order.id, { status: "out_for_delivery" })}
             style={{
               width: "100%", height: 56, borderRadius: 16, border: "none",
-              background: "var(--snm-info)", color: "#fff",
+              background: "var(--snm-info)", color: "var(--snm-on-fill)",
               fontSize: 16, fontWeight: 700, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
               transition: "transform 0.1s",
@@ -594,7 +594,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
                 onClick={() => onCash(order, totalMvr, customer?.name)}
                 style={{
                   width: "100%", height: 72, borderRadius: 18, border: "none",
-                  background: "var(--snm-success)", color: "#fff", cursor: "pointer",
+                  background: "var(--snm-success)", color: "var(--snm-on-fill)", cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
                 }}
               >
@@ -610,7 +610,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
                 onClick={() => onAction(order.id, { status: "delivered", delivered_at: new Date().toISOString() })}
                 style={{
                   width: "100%", height: 64, borderRadius: 18, border: "none",
-                  background: "var(--snm-success)", color: "#fff",
+                  background: "var(--snm-success)", color: "var(--snm-on-fill)",
                   fontSize: 18, fontWeight: 800, cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                 }}
@@ -821,7 +821,7 @@ export function MyDeliveries() {
       {/* ── Empty state ─────────────────────────────────────────────────── */}
       {total === 0 && (
         <div style={{
-          background: "var(--glass-bg-1)", backdropFilter: "blur(28px) saturate(180%)",
+          background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)",
           borderRadius: 20, padding: "48px 32px", textAlign: "center",
           border: "0.5px solid var(--glass-border-lo)",
           boxShadow: "var(--glass-shadow), var(--glass-inner)",

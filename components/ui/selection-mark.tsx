@@ -32,7 +32,7 @@ export function SelectionMark({ state, size = 16 }: { state: SelectionState; siz
       className="shrink-0 rounded-full flex items-center justify-center"
       style={{ width: size, height: size, background: "var(--snm-success)" }}
     >
-      <Icon style={{ width: size * 0.68, height: size * 0.68, color: "#ffffff" }} strokeWidth={3} />
+      <Icon style={{ width: size * 0.68, height: size * 0.68, color: "var(--snm-on-fill)" }} strokeWidth={3} />
     </span>
   );
 }

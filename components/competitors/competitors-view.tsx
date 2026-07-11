@@ -31,15 +31,15 @@ import { haptic } from "@/lib/haptics";
 
 const CARD = {
   background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
-  backdropFilter: "blur(30px)",
-  WebkitBackdropFilter: "blur(30px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
@@ -631,7 +631,7 @@ export function CompetitorsView() {
                     className="h-7 px-3 rounded-lg ios-subhead font-semibold transition active:scale-95 shrink-0"
                     style={{
                       background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                      color: alertThreshold === t ? "#fff" : "var(--muted-foreground)",
+                      color: alertThreshold === t ? "var(--snm-on-fill)" : "var(--muted-foreground)",
                     }}>
                     {t}%
                   </button>
@@ -647,7 +647,7 @@ export function CompetitorsView() {
                 className="w-full h-14 rounded-2xl text-[15px] font-bold transition active:scale-[0.97] disabled:opacity-40 flex items-center justify-center gap-2"
                 style={{
                   background: isPriceChanged ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                  color: isPriceChanged ? "#fff" : "var(--muted-foreground)",
+                  color: isPriceChanged ? "var(--snm-on-fill)" : "var(--muted-foreground)",
                   touchAction: "manipulation",
                   boxShadow: isPriceChanged ? "0 4px 20px color-mix(in srgb, var(--snm-brand) 40%, transparent)" : "none",
                 }}
@@ -1076,7 +1076,7 @@ export function CompetitorsView() {
         />
       )}
       {deleteCompDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}><AlertTriangle className="h-5 w-5" /></div>
@@ -1114,7 +1114,7 @@ export function CompetitorsView() {
         </div>
       )}
       {deletePriceDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <p className="text-[15px] font-bold text-foreground">Remove price entry?</p>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
@@ -1156,8 +1156,8 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
-  const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
+  const CARD = { background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   async function save() {
     if (!name.trim()) return;
@@ -1177,7 +1177,7 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
@@ -1212,8 +1212,8 @@ function PriceModal({
   onDone: () => void;
 }) {
   useBodyScrollLock(true);
-  const CARD = { background: "var(--glass-1)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
+  const CARD = { background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
   const [variantId, setVariantId] = useState(editing?.variant_id ?? "");
@@ -1282,7 +1282,7 @@ function PriceModal({
   // not a free-floating, content-sized card (which drags with the finger
   // instead of scrolling, and reads as a webpage, not a native sheet).
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.60)", touchAction: "none" }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl flex flex-col snm-modal-card"

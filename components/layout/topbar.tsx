@@ -1,31 +1,29 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut, Search as SearchIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ThemeToggle } from "./theme-toggle";
+import { OPEN_PALETTE_EVENT } from "./command-palette";
 
 // Calm Technology: peripheral sync awareness — never blocks, never pops up.
 // Online: shows "Updated Xm ago". Offline: shows a quiet red pill.
+function subscribeOnline(onChange: () => void) {
+  window.addEventListener("online", onChange);
+  window.addEventListener("offline", onChange);
+  return () => {
+    window.removeEventListener("online", onChange);
+    window.removeEventListener("offline", onChange);
+  };
+}
+
 function SyncStamp() {
   const [loadedAt] = useState(() => Date.now());
   const [label, setLabel]   = useState("Just updated");
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    // Initialise from browser state
-    setOnline(navigator.onLine);
-
-    const goOnline  = () => setOnline(true);
-    const goOffline = () => setOnline(false);
-    window.addEventListener("online",  goOnline);
-    window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online",  goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
-  }, []);
+  // Browser connectivity is external state — subscribe instead of syncing it
+  // into useState from an effect. Server snapshot assumes online.
+  const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
 
   useEffect(() => {
     const tick = () => {
@@ -87,9 +85,6 @@ export function Topbar({ name, role }: { name: string; role: string }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
-  // Close on route change
-  useEffect(() => { setMenuOpen(false); }, [router]);
-
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -102,8 +97,8 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       className="fixed top-0 w-full z-40 flex items-center justify-between px-4"
       style={{
         background: "color-mix(in srgb, var(--background) 82%, transparent)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
         borderBottom: "0.5px solid var(--glass-border-lo)",
         paddingTop: "env(safe-area-inset-top, 0px)",
         height: "calc(52px + env(safe-area-inset-top, 0px))",
@@ -140,8 +135,18 @@ export function Topbar({ name, role }: { name: string; role: string }) {
         <SyncStamp />
       )}
 
-      {/* Right: theme toggle + avatar dropdown */}
+      {/* Right: search hint + theme toggle + avatar dropdown */}
       <div className="flex items-center gap-1">
+        {/* Desktop-only ⌘K affordance — opens the command palette */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT))}
+          aria-label="Open quick navigation (Cmd+K)"
+          className="hidden lg:flex items-center gap-2 h-8 px-2.5 mr-1 rounded-lg snm-pressable"
+          style={{ background: "var(--secondary)", border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
+        >
+          <SearchIcon className="h-3.5 w-3.5" />
+          <kbd className="ios-caption1">⌘K</kbd>
+        </button>
         <ThemeToggle />
 
         {/* Avatar + popover — React state driven, reliable on mobile */}
@@ -163,8 +168,8 @@ export function Topbar({ name, role }: { name: string; role: string }) {
                 animate-in fade-in zoom-in-95 duration-150 origin-top-right"
               style={{
                 background: "var(--glass-2)",
-                backdropFilter: "blur(32px)",
-                WebkitBackdropFilter: "blur(32px)",
+                backdropFilter: "var(--glass-blur)",
+                WebkitBackdropFilter: "var(--glass-blur)",
                 border: "0.5px solid var(--glass-border-lo)",
                 boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
                 zIndex: 60,

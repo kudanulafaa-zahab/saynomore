@@ -34,7 +34,7 @@ export function ConfirmSheet({
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[200]"
-        style={{ background: "rgba(0,0,0,0.50)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+        style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
         onClick={onClose}
       />
 
@@ -47,7 +47,7 @@ export function ConfirmSheet({
       >
         <div
           className="mx-2 mb-2 rounded-3xl overflow-hidden"
-          style={{ background: "var(--glass-bg-1)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)", boxShadow: "var(--glass-shadow-lg)" }}
+          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow-lg)" }}
         >
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
@@ -83,7 +83,7 @@ export function ConfirmSheet({
                 onClick={onConfirm}
                 disabled={loading}
                 className="flex-1 rounded-2xl py-3.5 text-[14px] font-semibold transition-all active:scale-[0.97]"
-                style={{ background: "var(--snm-error)", color: "#ffffff", opacity: loading ? 0.6 : 1 }}
+                style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)", opacity: loading ? 0.6 : 1 }}
               >
                 {loading ? "Deleting…" : confirmLabel}
               </button>

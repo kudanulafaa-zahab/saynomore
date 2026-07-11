@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { OfflineBanner } from "@/components/layout/offline-banner";
+import { CommandPalette } from "@/components/layout/command-palette";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await getSupabaseServer();
@@ -54,6 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <BottomNav role={role} />
+      <CommandPalette role={role} />
     </div>
   );
 }

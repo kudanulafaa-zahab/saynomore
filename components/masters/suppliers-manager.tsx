@@ -34,15 +34,15 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 const CARD = {
   background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
-  backdropFilter: "blur(30px)",
-  WebkitBackdropFilter: "blur(30px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
@@ -443,7 +443,7 @@ function SupplierModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "rgba(0,0,0,0.60)" }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-modal-card" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">
           {editing ? "Edit Vendor" : "New Vendor"}

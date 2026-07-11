@@ -40,9 +40,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Must match --background in globals.css exactly, or iOS paints a visibly
+  // off-colour band behind the status bar / Dynamic Island.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f7fb" },
-    { media: "(prefers-color-scheme: dark)",  color: "#0a0a0f" },
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: dark)",  color: "#000000" },
   ],
   width: "device-width",
   initialScale: 1,

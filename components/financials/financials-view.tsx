@@ -14,8 +14,8 @@ import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type Cod
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 };
 
@@ -128,7 +128,7 @@ function CodView() {
         {customDate && (
           <div style={{ marginTop: 10 }}>
             <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)}
-              style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer", width: "100%" }} />
+              style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer", width: "100%" }} />
           </div>
         )}
       </div>
@@ -140,7 +140,7 @@ function CodView() {
           <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>
             Cash Summary — {date === today ? "Today" : date}
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
+          <div className="grid grid-cols-2 gap-5">
             {[
               { label: "Expected",        value: `MVR ${fmt(totalExpected)}`,  color: "var(--foreground)" },
               { label: "Collected",       value: `MVR ${fmt(totalCollected)}`, color: Math.abs(totalVariance) < 0.01 ? "var(--snm-success)" : "var(--snm-error)" },
@@ -374,7 +374,7 @@ export function FinancialsView() {
       </div>
 
       {/* ── Tab switcher ── */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "blur(20px)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
         {([
           { key: "profit", label: "P&L" },
           { key: "cod",    label: "COD Cash" },

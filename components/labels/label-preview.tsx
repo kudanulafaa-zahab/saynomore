@@ -89,7 +89,7 @@ export function LabelPreview({ data }: { data: LabelData }) {
         </div>
 
         {/* Boat details panel */}
-        <div style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", borderRadius: 16, marginBottom: 16, overflow: "hidden", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, marginBottom: 16, overflow: "hidden", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <button
             onClick={() => setEditing(!editing)}
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "transparent", border: "none", color: "var(--foreground)", cursor: "pointer" }}
@@ -102,7 +102,7 @@ export function LabelPreview({ data }: { data: LabelData }) {
           </button>
 
           {editing && (
-            <div style={{ padding: "0 20px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="grid grid-cols-2 gap-3 px-5 pb-5">
               <div style={{ gridColumn: "1 / -1" }}>
                 <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Boat Name</p>
                 <input

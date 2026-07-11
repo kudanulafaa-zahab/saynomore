@@ -53,6 +53,11 @@
      modes (systemBlue is dark enough for white to pass AA). */
   --snm-brand-on: #ffffff;
 
+  /* Foreground that sits ON any saturated semantic fill (success/error/
+     warning/info buttons and pills). White in both modes — every Apple
+     system colour used as a fill is dark enough for white to pass AA. */
+  --snm-on-fill: #ffffff;
+
   /* Text/icon/badge variant of the brand colour — --snm-brand itself is
      tuned for large fills (buttons, active nav backgrounds), where 3:1 is
      the WCAG bar and it passes easily. At small-text size (badges like
@@ -102,6 +107,22 @@
   --snm-warning: #FF9F0A; /* systemOrange (dark) */
   --snm-info: #0A84FF;    /* systemBlue (dark) */
   --snm-promo: #BF5AF2;   /* systemPurple (dark) */
+
+  /* ── Motion tokens — one spring language app-wide ─────────────────────────
+     --snm-spring: overshoot spring for press/appear (tap states, sheet pops).
+     --snm-ease-out: settling curve for everything else (hover, colour, fade).
+     Components must reference these instead of hardcoding cubic-beziers so a
+     single edit retunes the whole app's physicality.                        */
+  --snm-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --snm-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --snm-dur-press: 0.1s;
+  --snm-dur-fast:  0.15s;
+  --snm-dur-med:   0.3s;
+
+  /* ── Scrim — the ONE backdrop recipe for every modal/sheet/overlay ────────
+     Always dark in both themes (iOS dims with black regardless of mode).   */
+  --scrim-bg:   rgba(0, 0, 0, 0.50);
+  --scrim-blur: blur(8px);
 
   /* Categorical TAG colours — for peer labels with no status meaning (e.g. a
      customer price tier: Retail/Wholesale/VIP/Promo). These must NEVER reuse
@@ -730,7 +751,8 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
+    transition: opacity var(--snm-dur-fast) var(--snm-ease-out),
+                transform var(--snm-dur-press) var(--snm-spring);
   }
   .snm-btn:active { transform: scale(0.97); }
   .snm-btn-primary {
@@ -783,8 +805,8 @@
      Additive only — apply by adding the class; changes nothing on its own.
      Frog Design: every tap must convey cause and effect.                    */
   .snm-pressable {
-    transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1),
-                background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform var(--snm-dur-press) var(--snm-spring),
+                background-color var(--snm-dur-fast) var(--snm-ease-out);
     -webkit-tap-highlight-color: transparent;
   }
   .snm-pressable:active { transform: scale(0.97); }
@@ -898,6 +920,29 @@
     letter-spacing: var(--ios-title1-ls);  /* 0.364px */
     font-weight:    700;
     color:          var(--foreground);
+  }
+}
+
+/* ── Reduced Transparency (Apple accessibility) ──────────────────────────────
+   iOS "Reduce Transparency" swaps every glass material for a solid surface.
+   Honour prefers-reduced-transparency the same way: opaque fills, no blur.
+   Borders/shadows stay so surfaces keep their depth hierarchy.              */
+@media (prefers-reduced-transparency: reduce) {
+  /* Elevated surfaces become the solid popover colour so they still read as
+     raised cards against the page background. */
+  .glass, .snm-card, .snm-card-l2, .snm-glass-btn,
+  .glass-modal, .glass-elevated, .glass-input {
+    background: var(--popover) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* Navigation chrome becomes the solid page colour (matches iOS, where bars
+     turn opaque under Reduce Transparency). */
+  .glass-sidebar, .glass-bottom-nav, .snm-topbar, .snm-bottom-nav,
+  .snm-overlay-header, .snm-overlay-footer {
+    background: var(--background) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
 

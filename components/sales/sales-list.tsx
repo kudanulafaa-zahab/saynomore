@@ -41,15 +41,15 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 const CARD = {
   background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
-  backdropFilter: "blur(30px)",
-  WebkitBackdropFilter: "blur(30px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
@@ -387,7 +387,7 @@ export function SalesList() {
           style={{
             background: "color-mix(in srgb, var(--snm-error) 8%, var(--glass-1))",
             border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)",
-            backdropFilter: "blur(20px)",
+            backdropFilter: "var(--glass-blur)",
             boxShadow: "var(--glass-shadow), var(--glass-inner)",
           }}
         >
@@ -1700,8 +1700,8 @@ function NewSaleSheet({
                         border: mixedCarton
                           ? "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)"
                           : "0.5px solid var(--glass-border-lo)",
-                        backdropFilter: "blur(20px)",
-                        WebkitBackdropFilter: "blur(20px)",
+                        backdropFilter: "var(--glass-blur)",
+                        WebkitBackdropFilter: "var(--glass-blur)",
                       }}
                     >
                       <div className="text-left">
@@ -1847,7 +1847,7 @@ function NewSaleSheet({
                     // everything with no ambiguity.
                     <div
                       className="fixed inset-0 z-[80] flex items-end"
-                      style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
+                      style={{ background: "var(--scrim-bg)", touchAction: "none" }}
                       onClick={() => { setShowPriceExplain(false); setEditingPrice(false); setSimEditingTyped(false); }}
                     >
                       <div
@@ -2072,7 +2072,7 @@ function NewSaleSheet({
                                     disabled={!!savingFixedPrice || !canSave}
                                     onClick={() => save("margin")}
                                     className="flex-[2] h-12 rounded-xl font-semibold transition disabled:opacity-40 flex items-center justify-center gap-2"
-                                    style={{ background: "var(--snm-brand)", color: "#fff" }}
+                                    style={{ background: "var(--snm-brand)", color: "var(--snm-on-fill)" }}
                                   >
                                     {savingFixedPrice === "margin" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><TrendingUp className="h-4 w-4" /> Save at {impliedMarginPct}% margin</>}
                                   </button>
@@ -2408,7 +2408,7 @@ function MixedCartonSheet({
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end"
-      style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
+      style={{ background: "var(--scrim-bg)", touchAction: "none" }}
       onClick={onClose}
     >
       <div

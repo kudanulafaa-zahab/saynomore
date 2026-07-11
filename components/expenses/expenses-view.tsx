@@ -590,7 +590,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   return (
     <div
       className="fixed inset-0 z-60 flex items-end"
-      style={{ background: "rgba(0,0,0,0.6)", touchAction: "none" }}
+      style={{ background: "var(--scrim-bg)", touchAction: "none" }}
       onClick={onClose}
     >
       <div

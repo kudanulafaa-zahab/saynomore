@@ -327,10 +327,10 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
       {/* Phone-duplicate confirmation — appears on save when the phone already exists */}
       {phoneConflict && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center"
-          style={{ background: "color-mix(in srgb, var(--background) 55%, transparent)", backdropFilter: "blur(2px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+          style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
           onClick={() => setPhoneConflict(null)}>
           <div className="w-full max-w-lg p-5 space-y-3" onClick={(e) => e.stopPropagation()}
-            style={{ background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderTop: "0.5px solid var(--glass-border-lo)", borderRadius: "20px 20px 0 0", boxShadow: "var(--glass-shadow-lg)" }}>
+            style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", borderTop: "0.5px solid var(--glass-border-lo)", borderRadius: "20px 20px 0 0", boxShadow: "var(--glass-shadow-lg)" }}>
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
               <div className="min-w-0">

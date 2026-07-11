@@ -109,7 +109,7 @@ export function BottomNav({ role }: { role: string }) {
       {sheetOpen && (
         <div
           className="fixed inset-0 z-50 lg:hidden"
-          style={{ background: "rgba(0,0,0,0.50)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+          style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
           onClick={() => setSheetOpen(false)}
         />
       )}

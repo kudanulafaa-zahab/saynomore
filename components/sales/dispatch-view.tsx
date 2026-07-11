@@ -515,7 +515,7 @@ export function DispatchView() {
                         <button
                           onClick={() => setConfirmDelivery(item.order)}
                           className="w-full h-[52px] rounded-2xl text-[14px] font-bold tracking-wide transition active:scale-[0.97]"
-                          style={{ background: "var(--snm-success)", color: "#ffffff" }}
+                          style={{ background: "var(--snm-success)", color: "var(--snm-on-fill)" }}
                         >
                           Mark as Delivered
                         </button>
@@ -566,7 +566,7 @@ export function DispatchView() {
         <>
           <div
             className="fixed inset-0 z-50"
-            style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+            style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
             onClick={() => setConfirmDelivery(null)}
           />
           <div
@@ -603,7 +603,7 @@ export function DispatchView() {
                   onClick={markDelivered}
                   disabled={saving}
                   className="flex-[2] h-[52px] rounded-2xl text-[14px] font-bold active:scale-[0.97] transition"
-                  style={{ background: "var(--snm-success)", color: "#ffffff", opacity: saving ? 0.6 : 1 }}
+                  style={{ background: "var(--snm-success)", color: "var(--snm-on-fill)", opacity: saving ? 0.6 : 1 }}
                 >
                   {saving ? "Saving…" : "Confirm Delivered"}
                 </button>

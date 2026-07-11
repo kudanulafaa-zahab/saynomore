@@ -113,7 +113,7 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
     <>
       <div
         className="fixed inset-0 z-40"
-        style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+        style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
         onClick={onClose}
       />
       <div
@@ -228,7 +228,7 @@ function SkuPanel({
   return (
     <div
       className="flex flex-col h-full min-h-0 flex-1"
-      style={{ background: "var(--glass-2)", backdropFilter: "blur(30px)", WebkitBackdropFilter: "blur(30px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
+      style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}
     >
       {/* Header */}
       <div
@@ -392,7 +392,7 @@ function SkuPanel({
 
               <div className="px-4 py-3 space-y-3" style={{ background: "color-mix(in srgb, var(--foreground) 3%, transparent)" }}>
                 {/* Two inputs side by side */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="ios-subhead mb-1.5" style={{ color: "var(--muted-foreground)" }}>
                       Price per {tradeLabel} (MVR)
@@ -803,8 +803,8 @@ export function ProductsExplorer() {
       className={`flex flex-col rounded-2xl ${scroll ? "h-full overflow-hidden" : ""}`}
       style={{
         background: "var(--glass-1)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
         border: "0.5px solid var(--glass-border-lo)",
         boxShadow: "var(--glass-shadow), var(--glass-inner)",
       }}
@@ -871,7 +871,7 @@ export function ProductsExplorer() {
                 className="shrink-0 h-7 px-3 rounded-full ios-subhead font-medium transition whitespace-nowrap"
                 style={{
                   background: filterBrand === b.id ? "var(--snm-brand)" : "var(--secondary)",
-                  color: filterBrand === b.id ? "#ffffff" : "var(--muted-foreground)",
+                  color: filterBrand === b.id ? "var(--snm-on-fill)" : "var(--muted-foreground)",
                 }}
               >
                 {b.name}
@@ -969,7 +969,7 @@ export function ProductsExplorer() {
             className="rounded-2xl flex flex-col items-center justify-center text-center px-8"
             style={{
               background: "var(--glass-1)",
-              backdropFilter: "blur(20px)",
+              backdropFilter: "var(--glass-blur)",
               border: "0.5px solid var(--glass-border-lo)",
               boxShadow: "var(--glass-shadow), var(--glass-inner)",
             }}
@@ -1101,7 +1101,7 @@ function Combobox({
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 100,
-          background: "var(--glass-2)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
+          background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)",
           border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, overflow: "hidden",
           boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
         }}>
@@ -1253,7 +1253,7 @@ function CategoryPills({
             ...pill,
             background: active ? "var(--snm-brand)" : "transparent",
             borderColor: active ? "var(--snm-brand)" : "var(--glass-border)",
-            color: active ? "#fff" : "var(--muted-foreground)",
+            color: active ? "var(--snm-on-fill)" : "var(--muted-foreground)",
           }}>
             <button
               type="button"
@@ -1722,7 +1722,7 @@ function NewSkuWizard({
                               border: "1px solid",
                               background: variantAttrs[key] === opt ? "var(--snm-brand)" : "transparent",
                               borderColor: variantAttrs[key] === opt ? "var(--snm-brand)" : "var(--glass-border)",
-                              color: variantAttrs[key] === opt ? "#fff" : "var(--muted-foreground)",
+                              color: variantAttrs[key] === opt ? "var(--snm-on-fill)" : "var(--muted-foreground)",
                               cursor: "pointer",
                             }}
                           >
@@ -1917,7 +1917,7 @@ function NewSkuWizard({
                   </div>
 
                   {/* Strategy row: Margin % + Fixed price side by side */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div className="grid grid-cols-2 gap-2.5">
 
                     {/* Margin % */}
                     <div className="space-y-1.5">
@@ -2029,7 +2029,7 @@ function NewSkuWizard({
                     <p style={{ fontSize: 11, color: "var(--muted-foreground)", marginBottom: 10 }}>
                       Optional — set a lower price for carton buyers. Overrides the base price above for that unit only.
                     </p>
-                    <div style={{ display: "grid", gridTemplateColumns: sellsPack && sellsCarton ? "1fr 1fr" : "1fr", gap: 10 }}>
+                    <div className={`grid gap-2.5 ${sellsPack && sellsCarton ? "grid-cols-2" : "grid-cols-1"}`}>
                       {/* Pack price only for products actually sold in packs. */}
                       {sellsPack && (
                         <div className="space-y-1.5">

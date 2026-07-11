@@ -337,8 +337,8 @@ export default async function DashboardPage() {
           style={{
             background: `color-mix(in srgb, ${exception.color} 8%, var(--glass-1))`,
             border: `1px solid color-mix(in srgb, ${exception.color} 30%, transparent)`,
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
             boxShadow: "var(--glass-shadow), var(--glass-inner)",
           }}
         >
@@ -347,7 +347,7 @@ export default async function DashboardPage() {
             <p className="text-[14px] font-semibold text-foreground truncate">{exception.label}</p>
           </div>
           <span className="ios-subhead font-bold shrink-0 px-3 py-1.5 rounded-xl"
-            style={{ background: exception.color, color: "#fff" }}>
+            style={{ background: exception.color, color: "var(--snm-on-fill)" }}>
             {exception.cta} →
           </span>
         </Link>

@@ -20,8 +20,8 @@ import { haptic } from "@/lib/haptics";
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  backdropFilter: "var(--glass-blur)",
+  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
   border: "0.5px solid var(--glass-border-lo)",
 };
@@ -164,7 +164,7 @@ export function ReorderView() {
                           border: on ? "none" : "1.5px solid var(--glass-border)",
                         }}
                       >
-                        {on && <Check className="h-3.5 w-3.5" style={{ color: "#fff" }} />}
+                        {on && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-on-fill)" }} />}
                       </span>
                     </button>
 
@@ -254,7 +254,7 @@ export function ReorderView() {
           style={{
             paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
             background: "color-mix(in srgb, var(--background) 85%, transparent)",
-            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+            backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)",
             borderTop: "0.5px solid var(--glass-border-lo)",
           }}>
           <div className="max-w-4xl mx-auto flex items-center gap-3">
