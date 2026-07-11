@@ -923,6 +923,51 @@
   }
 }
 
+/* ── Display P3 wide gamut (2026 doctrine · Retina/OLED) ─────────────────────
+   Every iPhone since 7 renders Display P3 — ~25% more colour volume than
+   sRGB. Native iOS accents use it; sRGB-only web apps look subtly duller
+   than the OS around them. Re-express the ACCENT FILLS in P3 so buttons,
+   pills and active states get the true system-colour vibrancy on capable
+   screens, with the sRGB hex values above as the automatic fallback.
+   Deliberately NOT converted: the deepened *-text variants (light mode) and
+   --snm-brand-text — their WCAG ratios were verified in sRGB on device;
+   fills only carry a 3:1 large-element bar and keep white foregrounds. */
+@media (color-gamut: p3) {
+  @supports (color: color(display-p3 1 1 1)) {
+    /* Light (default + manual override) */
+    :root, .light {
+      --snm-brand: color(display-p3 0 0.478 1);
+      --snm-info:  color(display-p3 0 0.478 1);
+      --snm-error: color(display-p3 1 0.231 0.188);
+    }
+    /* Dark — Apple's own dark-mode accents, P3-native */
+    .dark {
+      --snm-brand:   color(display-p3 0.039 0.518 1);
+      --snm-info:    color(display-p3 0.039 0.518 1);
+      --snm-error:   color(display-p3 1 0.271 0.227);
+      --snm-success: color(display-p3 0.188 0.82 0.345);
+      --snm-warning: color(display-p3 1 0.624 0.039);
+      --snm-promo:   color(display-p3 0.749 0.353 0.949);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --snm-brand:   color(display-p3 0.039 0.518 1);
+        --snm-info:    color(display-p3 0.039 0.518 1);
+        --snm-error:   color(display-p3 1 0.271 0.227);
+        --snm-success: color(display-p3 0.188 0.82 0.345);
+        --snm-warning: color(display-p3 1 0.624 0.039);
+        --snm-promo:   color(display-p3 0.749 0.353 0.949);
+      }
+      /* System-dark but user forced light — keep light P3 values */
+      :root.light, .light {
+        --snm-brand: color(display-p3 0 0.478 1);
+        --snm-info:  color(display-p3 0 0.478 1);
+        --snm-error: color(display-p3 1 0.231 0.188);
+      }
+    }
+  }
+}
+
 /* ── Reduced Transparency (Apple accessibility) ──────────────────────────────
    iOS "Reduce Transparency" swaps every glass material for a solid surface.
    Honour prefers-reduced-transparency the same way: opaque fills, no blur.
