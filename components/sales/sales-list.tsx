@@ -21,7 +21,7 @@ const BarcodeScanner = dynamic(
   { ssr: false },
 );
 import {
-  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale, deleteOrder, deleteSalesOrder, voidOrder,
+  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale,
   getTierPricesForSkus,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
 } from "@/lib/queries/sales";
@@ -34,8 +34,6 @@ import { listSkusFlat, getCurrentUserRole, updateSku, type SkuFullRow } from "@/
 import { SkuIdentity, PriceSourceTag } from "@/components/ui/sku-identity";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces, describePriceSource } from "@/lib/queries/sales";
-import { ConfirmSheet } from "@/components/ui/confirm-sheet";
-import { LongPressActions, type RowAction } from "@/components/ui/long-press-actions";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
@@ -217,27 +215,11 @@ export function SalesList() {
   const [newDialog, setNewDialog] = useState(false);
   const [groupBy, setGroupBy] = useState<"orders" | "customers">("orders");
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
-  // confirmDelete: permanent delete. `restoresStock` is true for active orders
-  // (their FIFO 'out' movements get reversed back to inventory by the
-  // delete_sales_order RPC); false for drafts (no stock posted) and cancelled
-  // orders (stock already restored when they were voided/cancelled). `viaRpc`
-  // decides deleteSalesOrder() (returns stock, any status) vs the plain draft
-  // deleteOrder() RLS path.
-  // confirmVoid: cancel an active order but KEEP it on record (audit trail),
-  // reversing FIFO stock via voidOrder(); requires a reason.
-  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string; restoresStock: boolean; viaRpc: boolean } | null>(null);
-  const [confirmVoid, setConfirmVoid] = useState<{ id: string; label: string } | null>(null);
-  const [voidReason, setVoidReason] = useState("");
-  const [voidReasonError, setVoidReasonError] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [voiding, setVoiding] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
-  const [isAdminOrManager, setIsAdminOrManager] = useState(false);
 
   useEffect(() => {
     getCurrentUserRole().then((r) => {
       setCanWrite(r !== "viewer");
-      setIsAdminOrManager(r === "admin" || r === "manager");
     }).catch(() => {});
   }, []);
 
@@ -456,25 +438,12 @@ export function SalesList() {
             const colors = STATUS_COLOR[o.status];
             const total = o.order_total_mvr ?? 0;
 
-            // Which delete config (if any) applies to this order — same three
-            // cases as before, just resolved once instead of three near-
-            // identical buttons:
-            //  • draft: plain delete (no stock posted), fast RLS path.
-            //  • active (confirmed…delivered): Delete returns stock (RPC).
-            //  • cancelled: Delete removes the stale record (stock already
-            //    restored when it was cancelled).
-            const deleteConfig =
-              o.status === "draft" && canWrite
-                ? { restoresStock: false, viaRpc: false }
-                : o.status !== "draft" && o.status !== "cancelled" && isAdminOrManager
-                ? { restoresStock: true, viaRpc: true }
-                : o.status === "cancelled" && isAdminOrManager
-                ? { restoresStock: false, viaRpc: true }
-                : null;
-
-            const row = (
-              <Link href={`/sales/${o.id}`}
-                className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
+            // Plain tappable row — Void/Delete live on the order detail screen
+            // (one tap away via this link), so no per-row action affordance is
+            // needed here.
+            return (
+              <Link key={o.id} href={`/sales/${o.id}`}
+                className="flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
                 style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -506,29 +475,6 @@ export function SalesList() {
                   <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
                 </div>
               </Link>
-            );
-
-            // Delete is reached by press-and-hold, not a persistent tap
-            // target beside the row (a slightly-off tap used to fire it) and
-            // not a swipe (that fought iOS Safari's scroll gestures and stuck
-            // half-open on real devices). Rows with no delete permission just
-            // render plainly, nothing to hold.
-            return deleteConfig ? (
-              <LongPressActions
-                key={o.id}
-                menuTitle={`${cust?.name ?? "Walk-in"} · ${o.order_number}`}
-                actions={[
-                  {
-                    label: "Delete order",
-                    kind: "destructive",
-                    onSelect: () => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig }),
-                  },
-                ]}
-              >
-                {row}
-              </LongPressActions>
-            ) : (
-              <div key={o.id}>{row}</div>
             );
           })}
           {filtered.length > visibleOrders.length && (
@@ -600,38 +546,10 @@ export function SalesList() {
                     {orders.map((o) => {
                       const Icon = STATUS_ICON[o.status];
                       const colors = STATUS_COLOR[o.status];
-                      const isActive = o.status !== "draft" && o.status !== "cancelled";
-                      // Same delete config resolution as the flat list above.
-                      const deleteConfig =
-                        o.status === "draft" && canWrite
-                          ? { restoresStock: false, viaRpc: false }
-                          : isActive && isAdminOrManager
-                          ? { restoresStock: true, viaRpc: true }
-                          : o.status === "cancelled" && isAdminOrManager
-                          ? { restoresStock: false, viaRpc: true }
-                          : null;
-
-                      // Both Void (active orders, keeps the record) and Delete
-                      // now live in the press-and-hold menu — the row stays
-                      // clean with no persistent action buttons crowding it.
-                      const rowActions: RowAction[] = [];
-                      if (isActive && isAdminOrManager) {
-                        rowActions.push({
-                          label: "Void order",
-                          kind: "warning",
-                          onSelect: () => { setVoidReason(""); setVoidReasonError(false); setConfirmVoid({ id: o.id, label: o.order_number }); },
-                        });
-                      }
-                      if (deleteConfig) {
-                        rowActions.push({
-                          label: "Delete order",
-                          kind: "destructive",
-                          onSelect: () => setConfirmDelete({ id: o.id, label: o.order_number, ...deleteConfig }),
-                        });
-                      }
-
-                      const row = (
-                        <Link href={`/sales/${o.id}`}
+                      // Plain tappable row — Void/Delete live on the order
+                      // detail screen, one tap away via this link.
+                      return (
+                        <Link key={o.id} href={`/sales/${o.id}`}
                           className="flex items-center justify-between gap-3 px-4 py-3 snm-pressable"
                           style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -653,18 +571,6 @@ export function SalesList() {
                           </div>
                         </Link>
                       );
-
-                      return rowActions.length > 0 ? (
-                        <LongPressActions
-                          key={o.id}
-                          menuTitle={o.order_number}
-                          actions={rowActions}
-                        >
-                          {row}
-                        </LongPressActions>
-                      ) : (
-                        <div key={o.id}>{row}</div>
-                      );
                     })}
                   </div>
                 )}
@@ -684,89 +590,6 @@ export function SalesList() {
         />
       )}
 
-      <ConfirmSheet
-        open={confirmDelete !== null}
-        onClose={() => setConfirmDelete(null)}
-        title="Delete order?"
-        message={confirmDelete
-          ? `${confirmDelete.label} will be permanently deleted.${confirmDelete.restoresStock ? " Its stock will be returned to inventory." : ""}`
-          : ""}
-        confirmLabel="Delete"
-        loading={deleting}
-        onConfirm={async () => {
-          if (!confirmDelete) return;
-          setDeleting(true);
-          try {
-            if (confirmDelete.viaRpc) await deleteSalesOrder(confirmDelete.id);
-            else await deleteOrder(confirmDelete.id);
-            toast.success(confirmDelete.restoresStock ? "Order deleted — stock restored" : "Order deleted");
-            load();
-            setConfirmDelete(null);
-          }
-          catch (e) { toast.error((e as Error).message); }
-          finally { setDeleting(false); }
-        }}
-      />
-
-      {/* Void order — for anything past draft. Needs a reason, so it's a
-          dedicated sheet rather than the plain ConfirmSheet used for delete. */}
-      {confirmVoid && (
-        <>
-          <div
-            className="fixed inset-0 z-[200]"
-            style={{ background: "rgba(0,0,0,0.50)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
-            onClick={() => setConfirmVoid(null)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 z-[201]" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
-            <div className="mx-2 mb-2 rounded-3xl overflow-hidden p-5" style={{ background: "var(--glass-bg-1)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)", boxShadow: "var(--glass-shadow-lg)" }}>
-              <p className="text-[15px] font-semibold mb-1" style={{ color: "var(--snm-error)" }}>Void order?</p>
-              <p className="ios-subhead mb-4" style={{ color: "var(--muted-foreground)" }}>
-                <strong style={{ color: "var(--foreground)" }}>{confirmVoid.label}</strong> will be cancelled and its stock restored to inventory. The order stays on record for audit history.
-              </p>
-              <p className="text-[11px] font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Reason *</p>
-              <textarea
-                value={voidReason}
-                onChange={(e) => { setVoidReason(e.target.value); if (e.target.value.trim()) setVoidReasonError(false); }}
-                placeholder="e.g. Customer cancelled, wrong order entered…"
-                rows={3}
-                className="w-full rounded-xl p-3 text-[14px] mb-1"
-                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)", border: voidReasonError ? "1.5px solid var(--snm-error)" : "0.5px solid var(--glass-border-lo)", outline: "none", resize: "none", boxSizing: "border-box" }}
-              />
-              {voidReasonError && (
-                <p className="ios-subhead mb-3" style={{ color: "var(--snm-error)" }}>A reason is required to void this order.</p>
-              )}
-              <div className="flex gap-2.5" style={{ marginTop: voidReasonError ? 0 : 12 }}>
-                <button
-                  onClick={() => setConfirmVoid(null)}
-                  disabled={voiding}
-                  className="flex-1 rounded-2xl py-3.5 text-[14px] font-semibold"
-                  style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!confirmVoid || !voidReason.trim()) { setVoidReasonError(true); toast.error("Enter a reason for voiding this order"); return; }
-                    setVoiding(true);
-                    try {
-                      await voidOrder(confirmVoid.id, voidReason.trim());
-                      toast.success("Order voided — stock restored");
-                      load();
-                      setConfirmVoid(null);
-                    } catch (e) { toast.error((e as Error).message); }
-                    finally { setVoiding(false); }
-                  }}
-                  disabled={voiding || !voidReason.trim()}
-                  className="flex-1 rounded-2xl py-3.5 text-[14px] font-semibold"
-                  style={{ background: "var(--snm-error)", color: "#ffffff", opacity: voiding || !voidReason.trim() ? 0.6 : 1 }}
-                >
-                  {voiding ? "Voiding…" : "Void Order"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }
