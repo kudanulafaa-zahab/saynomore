@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Megaphone, MousePointerClick, Music2, Receipt,
-  Warehouse, Truck, Zap, Plus, Trash2, Pencil, X, Check, ChevronRight,
+  Warehouse, Truck, Zap, Plus, Trash2, Pencil, X, ChevronRight,
 } from "lucide-react";
 import {
   listMarketingSpend,
@@ -21,6 +21,7 @@ import {
   type BusinessExpenseRow,
 } from "@/lib/queries/expenses";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { SelectionMark } from "@/components/ui/selection-mark";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
@@ -685,7 +686,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                         onClick={() => toggleRange(b.skuIds)}
                         className="flex-1 min-w-0 flex items-center gap-2 text-left px-3 py-2.5 ios-subhead font-semibold text-foreground"
                       >
-                        <Check className="h-4 w-4 shrink-0" style={{ color: cov === "all" ? "var(--snm-brand)" : cov === "some" ? "var(--snm-brand)" : "var(--border)", opacity: cov === "none" ? 0.4 : 1 }} />
+                        <SelectionMark state={cov} size={17} />
                         <span className="truncate min-w-0">{b.name}</span>
                         <span className="ios-footnote font-normal text-muted-foreground shrink-0">
                           {cov === "all" ? "all" : cov === "some" ? `${b.skuIds.filter((id) => selectedSet.has(id)).length}/${b.skuIds.length}` : `${b.skuIds.length} SKUs`}
@@ -704,7 +705,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                             onClick={() => toggleRange(m.skuIds)}
                             className="w-full flex items-center gap-2 text-left pl-8 pr-3 py-2 ios-subhead text-foreground"
                           >
-                            <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--snm-brand)", opacity: mcov === "none" ? 0.35 : 1 }} />
+                            <SelectionMark state={mcov} size={15} />
                             <span className="truncate">{m.name}</span>
                             <span className="ios-footnote text-muted-foreground">
                               {mcov === "all" ? "all" : mcov === "some" ? `${m.skuIds.filter((id) => selectedSet.has(id)).length}/${m.skuIds.length}` : `${m.skuIds.length}`}
@@ -715,7 +716,7 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
                               key={s.id} onClick={() => toggleSku(s.id)}
                               className="w-full flex items-center gap-2 text-left pl-14 pr-3 py-1.5 ios-footnote text-muted-foreground"
                             >
-                              <Check className="h-3 w-3 shrink-0" style={{ color: "var(--snm-brand)", opacity: selectedSet.has(s.id) ? 1 : 0.25 }} />
+                              <SelectionMark state={selectedSet.has(s.id) ? "all" : "none"} size={13} />
                               <span className="truncate">{s.variant_display}</span>
                             </button>
                           ))}

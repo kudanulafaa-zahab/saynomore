@@ -78,11 +78,16 @@
      Red/green carry meaning only (destructive/loss · success/good money). */
   --snm-error: #FF453A;   /* systemRed (dark) */
   --snm-success: #30D158; /* systemGreen (dark) */
-  /* "Attention/pending" was systemOrange/amber; swapped to systemTeal per Ali
-     (amber clashed with the cool blue-dominant palette). Teal sits far enough
-     from systemBlue in hue+value that it stays clearly distinct at a glance —
-     straight cyan was rejected (too close to blue, verified by design review). */
-  --snm-warning: #40C8E0; /* systemTeal (dark) */
+  /* "Attention/pending" — systemOrange (Apple HIG's actual semantic warning
+     colour; every native iOS surface — Settings, Health, Wallet, low-battery —
+     uses orange/yellow for caution, never teal/cyan). A prior revision moved
+     this to systemTeal to avoid clashing with the blue-dominant palette, but
+     that was the wrong fix: cyan is a perceptually "cool/recessive" hue, so
+     even at a passing WCAG ratio it read as dim (Ali flagged real-device
+     legibility, 2026-07-11). Orange's warmth is what makes a warning color
+     work — it's SUPPOSED to visually interrupt a cool palette, not blend in.
+     Reverted to Apple's own systemOrange. */
+  --snm-warning: #FF9F0A; /* systemOrange (dark) */
   --snm-info: #0A84FF;    /* systemBlue (dark) */
   --snm-promo: #BF5AF2;   /* systemPurple (dark) */
 
@@ -112,9 +117,10 @@
      icons. Bright Apple hues still fine as large fills. */
   --snm-success: #248A3D;   /* deepened systemGreen for light-mode text */
   --snm-error:   #FF3B30;   /* systemRed (light) */
-  /* Deepened systemTeal (5.3:1 vs background, 5.9:1 vs white cards) — was
-     amber; see dark-mode note above for why teal replaced it. */
-  --snm-warning: #0B6E80;   /* deepened systemTeal for light-mode text */
+  /* Deepened systemOrange (5.57:1 vs background, 6.21:1 vs white cards) —
+     same deepening technique as --snm-success above. See dark-mode note for
+     why this reverted from systemTeal back to Apple's actual warning colour. */
+  --snm-warning: #9A4B00;   /* deepened systemOrange for light-mode text */
   --snm-info:    #007AFF;   /* systemBlue (light) */
   --snm-promo:   #8944D6;   /* deepened systemPurple */
 
@@ -207,7 +213,7 @@
     --snm-brand-on:     #ffffff;
     --snm-success: #30D158;
     --snm-error:   #FF453A;
-    --snm-warning: #40C8E0; /* systemTeal (dark) — was amber, see note above */
+    --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal, see note above */
     --snm-info:  #0A84FF;
     --snm-promo: #BF5AF2;
 
@@ -284,7 +290,7 @@
   --snm-brand-on:     #ffffff;
   --snm-success: #248A3D;
   --snm-error:   #FF3B30;
-  --snm-warning: #0B6E80; /* systemTeal, deepened for light text — was amber */
+  --snm-warning: #9A4B00; /* deepened systemOrange for light text — reverted from systemTeal */
   --snm-info:    #007AFF;
   --snm-promo:   #8944D6;
   --snm-tag-violet: #6D3FCB;
@@ -344,7 +350,7 @@
   --snm-brand-on:     #ffffff;
   --snm-success: #30D158;
   --snm-error:   #FF453A;
-  --snm-warning: #40C8E0; /* systemTeal (dark) — was amber */
+  --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal */
   --snm-info:  #0A84FF;
   --snm-promo: #BF5AF2;
   --snm-tag-violet: #A87DE8;
