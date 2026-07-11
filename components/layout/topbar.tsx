@@ -112,7 +112,7 @@ export function Topbar({ name, role }: { name: string; role: string }) {
       {/* Logo */}
       <div className="flex items-center gap-2.5">
         <img
-          src="/icon-96.png"
+          src="/icon.svg"
           alt="SayNoMore"
           width={28}
           height={28}
