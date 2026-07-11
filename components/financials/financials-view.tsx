@@ -11,6 +11,7 @@ import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueR
 import { groupByBrand } from "@/lib/group-by-brand";
 import { getPnl, type PnlRow } from "@/lib/queries/expenses";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
+import { MarginWatch } from "./margin-watch";
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
@@ -392,6 +393,9 @@ export function FinancialsView() {
 
       {/* ── P&L tab ── */}
       {tab === "profit" && <>
+
+        {/* ── 0. Margin watch — prices that stopped earning their target ── */}
+        <MarginWatch />
 
         {/* ── 1. P&L Waterfall card ── */}
         <section style={{ ...CARD, borderRadius: 16, padding: 24, marginBottom: 12 }}>
