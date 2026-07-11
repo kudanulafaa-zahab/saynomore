@@ -139,7 +139,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-10 space-y-7 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "blur(20px)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
         <div className="space-y-3 text-center">
           <img
-            src="/icon.svg"
+            src="/icon-96.png"
             alt="SayNoMore"
             width={56}
             height={56}

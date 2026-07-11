@@ -51,7 +51,7 @@ export function Sidebar({ role }: { role: string }) {
       >
         <div className="flex items-center gap-2.5">
           <img
-            src="/icon.svg"
+            src="/icon-96.png"
             alt="SayNoMore"
             width={28}
             height={28}
