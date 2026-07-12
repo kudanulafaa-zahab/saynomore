@@ -41,15 +41,11 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 const CARD = {
   background: "var(--glass-1)",
-  backdropFilter: "var(--glass-blur)",
-  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
-  backdropFilter: "var(--glass-blur)",
-  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
@@ -387,7 +383,6 @@ export function SalesList() {
           style={{
             background: "color-mix(in srgb, var(--snm-error) 8%, var(--glass-1))",
             border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)",
-            backdropFilter: "var(--glass-blur)",
             boxShadow: "var(--glass-shadow), var(--glass-inner)",
           }}
         >
@@ -1708,8 +1703,6 @@ function NewSaleSheet({
                         border: mixedCarton
                           ? "1px solid color-mix(in srgb, var(--snm-brand) 30%, transparent)"
                           : "0.5px solid var(--glass-border-lo)",
-                        backdropFilter: "var(--glass-blur)",
-                        WebkitBackdropFilter: "var(--glass-blur)",
                       }}
                     >
                       <div className="text-left">

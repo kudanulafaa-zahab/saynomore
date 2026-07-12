@@ -135,8 +135,6 @@ export function PriceListsView() {
               className="rounded-2xl p-5"
               style={{
                 background: "var(--glass-1)",
-                backdropFilter: "var(--glass-blur)",
-                WebkitBackdropFilter: "var(--glass-blur)",
                 border: "0.5px solid var(--glass-border-lo)",
                 boxShadow: "var(--glass-shadow), var(--glass-inner)",
               }}

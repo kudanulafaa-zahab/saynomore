@@ -31,15 +31,11 @@ import { haptic } from "@/lib/haptics";
 
 const CARD = {
   background: "var(--glass-1)",
-  backdropFilter: "var(--glass-blur)",
-  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
 const CARD_L2 = {
   background: "var(--glass-2)",
-  backdropFilter: "var(--glass-blur)",
-  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
@@ -1156,8 +1152,8 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
-  const CARD = { background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
+  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   async function save() {
     if (!name.trim()) return;
@@ -1212,8 +1208,8 @@ function PriceModal({
   onDone: () => void;
 }) {
   useBodyScrollLock(true);
-  const CARD = { background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
+  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD_L2 = { background: "var(--glass-2)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
   const [variantId, setVariantId] = useState(editing?.variant_id ?? "");

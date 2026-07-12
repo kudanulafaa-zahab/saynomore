@@ -84,7 +84,7 @@ export default function LoginPage() {
   if (showReset) {
     return (
       <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
-        <div className="w-full max-w-md p-10 space-y-6 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
+        <div className="w-full max-w-md p-10 space-y-6 rounded-2xl" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
           <div className="text-center space-y-1">
             <h1 className="text-xl font-semibold" style={{ color: "var(--foreground)" }}>Set your password</h1>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
@@ -136,7 +136,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
-      <div className="w-full max-w-md p-10 space-y-7 rounded-2xl" style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
+      <div className="w-full max-w-md p-10 space-y-7 rounded-2xl" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
         <div className="space-y-3 text-center">
           <img
             src="/icon.svg"

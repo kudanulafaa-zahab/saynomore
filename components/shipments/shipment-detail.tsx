@@ -35,8 +35,6 @@ import { haptic } from "@/lib/haptics";
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
-  backdropFilter: "var(--glass-blur)",
-  WebkitBackdropFilter: "var(--glass-blur)",
   borderRadius: 16,
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
   border: "0.5px solid var(--glass-border-lo)",

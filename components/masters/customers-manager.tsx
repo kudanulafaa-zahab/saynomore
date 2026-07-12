@@ -118,7 +118,7 @@ export function CustomersManager() {
       {/* Search */}
       <div
         className="flex items-center rounded-2xl px-4 gap-3"
-        style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", height: 52 }}
+        style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", height: 52 }}
       >
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
@@ -144,7 +144,7 @@ export function CustomersManager() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div
           className="rounded-3xl p-5 flex flex-col justify-between"
-          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
+          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
         >
           <p className="label-caps text-[12px] text-muted-foreground">Active Clients</p>
           <div className="flex items-baseline gap-2">
@@ -153,7 +153,7 @@ export function CustomersManager() {
         </div>
         <div
           className="rounded-3xl p-5 flex flex-col justify-between"
-          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
+          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
         >
           <p className="label-caps text-[12px] text-muted-foreground">Avg. Lifetime Value</p>
           <div className="flex items-baseline gap-2">
@@ -163,7 +163,7 @@ export function CustomersManager() {
         </div>
         <div
           className="rounded-3xl p-5 flex flex-col justify-between"
-          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
+          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", minHeight: 140 }}
         >
           <p className="label-caps text-[12px] text-muted-foreground">Top Channel</p>
           <div className="flex items-center gap-3 mt-2">
@@ -179,7 +179,7 @@ export function CustomersManager() {
       {filtered.length === 0 ? (
         <div
           className="rounded-3xl p-12 text-center space-y-4"
-          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
+          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
         >
           <p className="text-base font-semibold text-foreground">
             {rows.length === 0 ? "No customers yet" : "No matches"}
@@ -205,7 +205,7 @@ export function CustomersManager() {
             <div
               key={c.id}
               className="snm-pressable rounded-3xl p-5 cursor-pointer"
-              style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
+              style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
             >
               <div className="flex items-center justify-between gap-4">
                 {/* Avatar + name */}

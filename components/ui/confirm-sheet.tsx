@@ -47,7 +47,7 @@ export function ConfirmSheet({
       >
         <div
           className="mx-2 mb-2 rounded-3xl overflow-hidden"
-          style={{ background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow-lg)" }}
+          style={{ background: "var(--glass-bg-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", boxShadow: "var(--glass-shadow-lg)" }}
         >
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">

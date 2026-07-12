@@ -803,8 +803,6 @@ export function ProductsExplorer() {
       className={`flex flex-col rounded-2xl ${scroll ? "h-full overflow-hidden" : ""}`}
       style={{
         background: "var(--glass-1)",
-        backdropFilter: "var(--glass-blur)",
-        WebkitBackdropFilter: "var(--glass-blur)",
         border: "0.5px solid var(--glass-border-lo)",
         boxShadow: "var(--glass-shadow), var(--glass-inner)",
       }}
@@ -969,7 +967,6 @@ export function ProductsExplorer() {
             className="rounded-2xl flex flex-col items-center justify-center text-center px-8"
             style={{
               background: "var(--glass-1)",
-              backdropFilter: "var(--glass-blur)",
               border: "0.5px solid var(--glass-border-lo)",
               boxShadow: "var(--glass-shadow), var(--glass-inner)",
             }}

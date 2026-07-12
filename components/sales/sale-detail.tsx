@@ -452,7 +452,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Progress stepper ─────────────────────────────────────────────── */}
       {!isCancelled && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: "20px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: "20px 16px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           {STEPS.map((step, i) => {
             const done    = currentStep > i;
             const active  = currentStep === i;
@@ -491,7 +491,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── Customer card ─────────────────────────────────────────────────── */}
       {customer && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--glass-bg-1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <User style={{ color: "var(--muted-foreground)", width: 20, height: 20 }} />
           </div>
@@ -506,7 +506,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── DELIVERY ADDRESS card ─────────────────────────────────────────── */}
       {(isConfirmed || isDispatched) && canWrite && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: editingAddress ? 14 : 0 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase" }}>Delivery Address</p>
             {!editingAddress && (
@@ -586,7 +586,7 @@ export function SaleDetail({ id }: { id: string }) {
           {/* Pickup godown — shown before payment method since this is the
               "go get these items" stage, before the order ever leaves. */}
           {sourceGodown && (
-            <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+            <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
               {/* Static information sits on a neutral surface — blue is reserved
                   for interactive elements (HIG: colour communicates affordance). */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "var(--muted)", borderRadius: 12, border: "0.5px solid var(--glass-border-lo)" }}>
@@ -602,7 +602,7 @@ export function SaleDetail({ id }: { id: string }) {
           )}
 
           {/* Payment method badge */}
-          <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
             {/* COD keeps amber (cash must be collected — true status); bank
                 transfer is plain information and sits on a neutral surface. */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 16px", background: isCOD ? "color-mix(in srgb, var(--snm-warning) 10%, transparent)" : "var(--muted)", borderRadius: 12, border: isCOD ? "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" : "0.5px solid var(--glass-border-lo)" }}>
@@ -690,7 +690,7 @@ export function SaleDetail({ id }: { id: string }) {
       {/* ── STAGE: Out for delivery ──────────────────────────────────────── */}
       {isDispatched && (
         <>
-          <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
             {/* Pickup godown — big and first, since this is what the dispatch
                 guy needs before he can pick anything up. */}
             {sourceGodown && (
@@ -763,7 +763,7 @@ export function SaleDetail({ id }: { id: string }) {
 
       {/* ── STAGE: Delivered ─────────────────────────────────────────────── */}
       {isDelivered && (
-        <div style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
             <CheckCircle2 style={{ color: "var(--snm-success)", width: 22, height: 22 }} />
             <p style={{ color: "var(--snm-success)", fontSize: 16, fontWeight: 700 }}>Delivered</p>

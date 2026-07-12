@@ -67,7 +67,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
   return (
     <div
       className="rounded-2xl p-4"
-      style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
+      style={{ background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
     >
       <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
       <p className="text-[26px] font-semibold tracking-tight leading-none snm-num" style={{ color: accent ?? "var(--foreground)" }}>{value}</p>
@@ -156,8 +156,6 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
       className="rounded-2xl overflow-hidden"
       style={{
         background: "var(--glass-1)",
-        backdropFilter: "var(--glass-blur)",
-        WebkitBackdropFilter: "var(--glass-blur)",
         boxShadow: "var(--glass-shadow), var(--glass-inner)",
         border: isCritical
           ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
@@ -577,8 +575,6 @@ export function InventoryView() {
           className="flex items-center gap-2.5 px-4 rounded-2xl"
           style={{
             background: "var(--glass-1)",
-            backdropFilter: "var(--glass-blur)",
-            WebkitBackdropFilter: "var(--glass-blur)",
             boxShadow: "var(--glass-shadow), var(--glass-inner)",
             height: 46,
             border: "0.5px solid var(--glass-border-lo)",

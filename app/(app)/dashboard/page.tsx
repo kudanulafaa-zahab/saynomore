@@ -337,8 +337,6 @@ export default async function DashboardPage() {
           style={{
             background: `color-mix(in srgb, ${exception.color} 8%, var(--glass-1))`,
             border: `1px solid color-mix(in srgb, ${exception.color} 30%, transparent)`,
-            backdropFilter: "var(--glass-blur)",
-            WebkitBackdropFilter: "var(--glass-blur)",
             boxShadow: "var(--glass-shadow), var(--glass-inner)",
           }}
         >

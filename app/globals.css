@@ -453,10 +453,6 @@
     /* Kill the grey iOS tap-flash on EVERY tappable element (not just
        .snm-pressable) — buttons/links get clean press feedback, native feel. */
     -webkit-tap-highlight-color: transparent;
-    /* Stop the elastic rubber-band bounce of the whole document. Without this
-       the page "floats" under the finger at the scroll limits — web feel, not
-       native. `none` docks the page like a real iOS app. */
-    overscroll-behavior: none;
   }
 
   body {
@@ -470,9 +466,9 @@
     padding-right: env(safe-area-inset-right);
     /* iOS momentum scrolling for the whole document */
     -webkit-overflow-scrolling: touch;
-    /* `none` (not `contain`) kills the rubber-band bounce so the page feels
-       docked/native, not floating. Scroll containers keep their own momentum. */
-    overscroll-behavior: none;
+    /* Rubber-band bounce stays ON — it's the iOS signature. A 8 Jul commit
+       set overscroll-behavior:none believing bounce was "web feel"; that's
+       backwards (every native app bounces) and it made scrolling feel dead. */
     /* Block pinch-zoom at CSS level */
     touch-action: pan-x pan-y;
     /* Prevent long-press text selection (native app feel) */
@@ -528,9 +524,10 @@
 
   /* ── Primary surface — cards, list rows, panels ── */
   .glass {
+    /* Content surface — NO backdrop-filter (glass is for floating chrome).
+       Behind an in-flow card sits only the flat page background, so blur
+       here was invisible cost: one extra compositor layer per card. */
     background:            var(--glass-bg-1);
-    backdrop-filter:       var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
     border:        0.5px solid var(--glass-border-lo);
     border-radius: var(--radius-xl);
     box-shadow:    var(--glass-shadow), var(--glass-inner);
@@ -580,8 +577,6 @@
   /* ── Input fields ── */
   .glass-input {
     background:            var(--glass-bg-1);
-    backdrop-filter:       var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
     border:        0.5px solid var(--glass-border-lo);
     border-radius: calc(var(--radius) * 1.25);
     box-shadow:    var(--glass-inner);
@@ -591,9 +586,8 @@
 
   /* ── snm-card aliases — components use these directly ── */
   .snm-card {
+    /* Content surface — no blur, see .glass note. */
     background:            var(--glass-bg-1);
-    backdrop-filter:       var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
     border:        0.5px solid var(--glass-border-lo);
     border-radius: 16px;
     box-shadow:    var(--glass-shadow), var(--glass-inner);

@@ -452,8 +452,6 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
   return (
     <div style={{
       background: "var(--glass-bg-1)",
-      backdropFilter: "var(--glass-blur)",
-      WebkitBackdropFilter: "var(--glass-blur)",
       borderRadius: 20,
       overflow: "hidden",
       border: "0.5px solid var(--glass-border-lo)",
@@ -821,7 +819,7 @@ export function MyDeliveries() {
       {/* ── Empty state ─────────────────────────────────────────────────── */}
       {total === 0 && (
         <div style={{
-          background: "var(--glass-bg-1)", backdropFilter: "var(--glass-blur)",
+          background: "var(--glass-bg-1)",
           borderRadius: 20, padding: "48px 32px", textAlign: "center",
           border: "0.5px solid var(--glass-border-lo)",
           boxShadow: "var(--glass-shadow), var(--glass-inner)",

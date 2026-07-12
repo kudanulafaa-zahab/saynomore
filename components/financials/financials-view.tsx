@@ -15,8 +15,6 @@ import { MarginWatch } from "./margin-watch";
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
-  backdropFilter: "var(--glass-blur)",
-  WebkitBackdropFilter: "var(--glass-blur)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 };
 
@@ -129,7 +127,7 @@ function CodView() {
         {customDate && (
           <div style={{ marginTop: 10 }}>
             <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)}
-              style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer", width: "100%" }} />
+              style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, height: 44, padding: "0 14px", color: "var(--foreground)", fontSize: 14, outline: "none", cursor: "pointer", width: "100%" }} />
           </div>
         )}
       </div>
@@ -375,7 +373,7 @@ export function FinancialsView() {
       </div>
 
       {/* ── Tab switcher ── */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
         {([
           { key: "profit", label: "P&L" },
           { key: "cod",    label: "COD Cash" },

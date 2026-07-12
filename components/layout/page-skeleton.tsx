@@ -17,8 +17,6 @@ export function SkeletonRows({ rows = 6 }: { rows?: number }) {
       className="rounded-2xl overflow-hidden"
       style={{
         background: "var(--glass-1)",
-        backdropFilter: "var(--glass-blur)",
-        WebkitBackdropFilter: "var(--glass-blur)",
         border: "0.5px solid var(--glass-border-lo)",
         boxShadow: "var(--glass-shadow), var(--glass-inner)",
       }}

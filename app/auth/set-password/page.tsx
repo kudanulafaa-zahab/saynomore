@@ -84,7 +84,7 @@ function SetPasswordForm() {
   return (
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
       <div className="w-full max-w-md p-10 space-y-7 rounded-2xl"
-        style={{ background: "var(--glass-1)", backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
+        style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
         <div className="space-y-3 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: "var(--snm-brand)" }}>
             <span className="text-xl font-bold text-white">S</span>
