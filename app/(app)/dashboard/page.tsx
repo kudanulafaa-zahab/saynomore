@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { MorningBriefing } from "@/components/layout/morning-briefing";
 
 function mvr(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -138,6 +139,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-4">
+
+      {/* ── Zone 0: Morning briefing — yesterday + the watch list ── */}
+      <MorningBriefing />
 
       {/* ── Zone 1: Business Health ──
            Whole card links to Reports, where profit breaks down by

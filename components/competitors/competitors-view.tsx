@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PromoAdvisor } from "./promo-advisor";
 import {
   Loader2, Plus, Search, Store, Pencil, Trash2, AlertTriangle,
   ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2,
@@ -269,6 +270,9 @@ export function CompetitorsView() {
           </button>
         )}
       </div>
+
+      {/* Slow movers with margin headroom — see promo-advisor.tsx */}
+      <PromoAdvisor />
 
       {/* ── Priced above competitors — all SKUs at a glance, worst gap first ── */}
       {priceGaps.length > 0 && (

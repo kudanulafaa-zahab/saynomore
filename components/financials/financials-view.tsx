@@ -12,6 +12,7 @@ import { groupByBrand } from "@/lib/group-by-brand";
 import { getPnl, type PnlRow } from "@/lib/queries/expenses";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
 import { MarginWatch } from "./margin-watch";
+import { ReceivablesView } from "./receivables-view";
 
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
@@ -243,8 +244,9 @@ function CodView() {
 export function FinancialsView() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const initialTab   = searchParams.get("tab") === "cod" ? "cod" : "profit";
-  const [tab, setTab] = useState<"profit" | "cod">(initialTab);
+  const tabParam     = searchParams.get("tab");
+  const initialTab   = tabParam === "cod" ? "cod" : tabParam === "owed" ? "owed" : "profit";
+  const [tab, setTab] = useState<"profit" | "cod" | "owed">(initialTab);
 
   const [rows, setRows]         = useState<ReportRow[]>([]);
   const [pnl, setPnl]           = useState<PnlRow | null>(null);
@@ -357,6 +359,7 @@ export function FinancialsView() {
       <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
         {([
           { key: "profit", label: "P&L" },
+          { key: "owed",   label: "Owed" },
           { key: "cod",    label: "COD Cash" },
         ] as const).map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
@@ -369,6 +372,9 @@ export function FinancialsView() {
 
       {/* ── COD tab ── */}
       {tab === "cod" && <CodView />}
+
+      {/* ── Receivables aging ── */}
+      {tab === "owed" && <ReceivablesView />}
 
       {/* ── P&L tab ── */}
       {tab === "profit" && <>

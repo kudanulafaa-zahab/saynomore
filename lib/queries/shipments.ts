@@ -46,6 +46,7 @@ export interface ShipmentLineRow {
   qty_cartons: number;
   qty_cartons_actual: number | null;
   qty_loose_packs: number;
+  expiry_date: string | null;
   cbm_per_carton: number;
   fob_per_carton: number;
   fob_currency: FobCurrency;
@@ -96,6 +97,7 @@ export interface ShipmentLineInput {
   qty_cartons: number;
   qty_cartons_actual?: number | null;
   qty_loose_packs?: number | null;       // extra loose packs received (rare)
+  expiry_date?: string | null;           // batch expiry captured at GRN (FMCG)
   cbm_per_carton: number;
   fob_per_carton: number;
   fob_currency: FobCurrency;

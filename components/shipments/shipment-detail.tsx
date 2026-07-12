@@ -1758,6 +1758,9 @@ function LineDialog({
       : String(editing.fob_per_carton);
   });
   const [saving, setSaving]             = useState(false);
+  // Batch expiry — optional but first-class for FMCG. Captured here at the
+  // shipment line; confirm_grn batches inherit it (migration 0071 trigger).
+  const [expiryDate, setExpiryDate]     = useState(editing?.expiry_date ?? "");
   const [search, setSearch]             = useState("");
   const [showScanner, setShowScanner]   = useState(false);
 
@@ -1802,6 +1805,7 @@ function LineDialog({
       cbm_per_carton: Number(sku.cbm_per_carton),
       fob_per_carton: fobPerCartonValue,
       fob_currency: fobCurrency,
+      expiry_date: expiryDate || null,
     };
     setSaving(true);
     try {
@@ -1968,6 +1972,23 @@ function LineDialog({
                 {fobEntryUnit === "pack" && sku && fobPerCarton && !isNaN(parseFloat(fobPerCarton))
                   ? `= ${(parseFloat(fobPerCarton) * sku.packs_per_carton).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fobCurrency} / carton`
                   : "Price on this shipment's invoice — can differ from previous shipments."}
+              </p>
+            </div>
+
+            {/* Batch expiry — optional; powers the expiring-stock alerts. */}
+            <div className="mb-6">
+              <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>
+                Expiry date <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+              </p>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="snm-input"
+                style={{ colorScheme: "inherit" }}
+              />
+              <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                From the carton print. The app warns you before this batch dies on the shelf.
               </p>
             </div>
 
