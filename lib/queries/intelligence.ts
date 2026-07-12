@@ -26,6 +26,7 @@ export interface PromoSuggestionRow {
   stock_pieces: number;
   stock_value_mvr: number;
   days_of_stock: number | null; // null = no sales in the last 90 days
+  expiry_days_left: number | null; // soonest expiring batch, null if unknown
   current_pack_mvr: number;
   promo_pack_mvr: number;       // price at the 10% floor margin
   discount_pct: number;
@@ -55,6 +56,22 @@ export async function getMorningBriefing(): Promise<MorningBriefing> {
   const { data, error } = await supabase.rpc("get_morning_briefing");
   if (error) throw error;
   return data as MorningBriefing;
+}
+
+export interface CampaignRoiRow {
+  spend_id: string;
+  revenue_during: number;
+  revenue_before: number;
+  lift_mvr: number;
+  roi_multiple: number | null;
+}
+
+/** Per-campaign sales lift: attached SKUs' revenue during the campaign window
+ *  vs an equal window immediately before. Measured, not just recorded. */
+export async function getCampaignRoi(): Promise<CampaignRoiRow[]> {
+  const { data, error } = await supabase.rpc("get_campaign_roi");
+  if (error) throw error;
+  return (data ?? []) as CampaignRoiRow[];
 }
 
 export interface ExpiringStockRow {

@@ -66,18 +66,36 @@ export function PromoAdvisor() {
                 <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
                   {r.days_of_stock == null
                     ? "No sales in 90 days"
-                    : `${r.days_of_stock}d of stock`}{" "}
+                    : r.days_of_stock > 730
+                      ? "2y+ of stock at current pace"
+                      : `${r.days_of_stock}d of stock`}{" "}
                   · MVR {fmt(Number(r.stock_value_mvr))} at cost
                 </p>
-                <p className="ios-footnote snm-num mt-0.5" style={{ color: "var(--foreground)" }}>
-                  <span style={{ textDecoration: "line-through", color: "var(--muted-foreground)" }}>
+                {r.expiry_days_left != null && r.expiry_days_left <= 180 && (
+                  <p className="ios-footnote font-semibold mt-0.5" style={{ color: "var(--snm-warning)" }}>
+                    ⚠ Expires in {r.expiry_days_left} days — clear it first
+                  </p>
+                )}
+                {/* Money in bold foreground; the qualifiers as chips — small
+                    colored TEXT was illegible on mobile (Ali, screenshot).
+                    Chips carry a tinted background, so the color reads even
+                    at footnote size in daylight. */}
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <span className="ios-subhead snm-num" style={{ textDecoration: "line-through", color: "var(--muted-foreground)" }}>
                     {fmt(r.current_pack_mvr)}
-                  </span>{" "}
-                  → <b>MVR {fmt(r.promo_pack_mvr)}/pack</b>{" "}
-                  <span style={{ color: "var(--snm-success)", fontWeight: 600 }}>
-                    (−{r.discount_pct}%, still 10% margin)
                   </span>
-                </p>
+                  <span className="ios-subhead font-bold snm-num" style={{ color: "var(--foreground)" }}>
+                    → MVR {fmt(r.promo_pack_mvr)}/pack
+                  </span>
+                  <span className="ios-caption1 font-bold px-1.5 py-0.5 rounded-md snm-num"
+                    style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>
+                    −{r.discount_pct}%
+                  </span>
+                  <span className="ios-caption1 font-semibold px-1.5 py-0.5 rounded-md"
+                    style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+                    keeps 10%
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => copyCaption(r)}

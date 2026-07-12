@@ -7,6 +7,7 @@ import {
   listMarketingSpend, deleteMarketingSpend,
   type MarketingSpendRow,
 } from "@/lib/queries/expenses";
+import { getCampaignRoi, type CampaignRoiRow } from "@/lib/queries/intelligence";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { SpendSheet } from "@/components/expenses/expenses-view";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
@@ -21,6 +22,7 @@ function fmt(n: number) {
  *  is pro-rated into the P&L automatically — Market decides, Expenses records. */
 export function CampaignsCard() {
   const [rows, setRows] = useState<MarketingSpendRow[]>([]);
+  const [roi, setRoi]   = useState<Map<string, CampaignRoiRow>>(new Map());
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [canWrite, setCanWrite] = useState(false);
   const [sheet, setSheet] = useState<{ open: boolean; editing?: MarketingSpendRow }>({ open: false });
@@ -29,9 +31,13 @@ export function CampaignsCard() {
 
   async function load() {
     try {
-      const [r, s] = await Promise.all([listMarketingSpend(), listSkusFlat()]);
+      const [r, s, ro] = await Promise.all([
+        listMarketingSpend(), listSkusFlat(),
+        getCampaignRoi().catch(() => [] as CampaignRoiRow[]),
+      ]);
       setRows(r);
       setSkus(s);
+      setRoi(new Map(ro.map((x) => [x.spend_id, x])));
     } catch (e) { toast.error((e as Error).message); }
   }
   useEffect(() => {
@@ -74,6 +80,28 @@ export function CampaignsCard() {
                   {new Date(r.start_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
                   {" · "}MVR {fmt(Number(r.amount_mvr))}
                 </p>
+                {(() => {
+                  // Measured, not just recorded: sales lift of the attached
+                  // SKUs during the campaign vs the window before it.
+                  const m = roi.get(r.id);
+                  if (!m) return null;
+                  const lift = Number(m.lift_mvr);
+                  if (m.roi_multiple != null && lift > 0) {
+                    return (
+                      <p className="ios-footnote font-semibold snm-num" style={{ color: "var(--snm-success)" }}>
+                        ≈{m.roi_multiple}× return · +MVR {fmt(lift)} in sales during it
+                      </p>
+                    );
+                  }
+                  if (lift < 0) {
+                    return (
+                      <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                        No lift measured (−MVR {fmt(Math.abs(lift))} vs before)
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
               {canWrite && (
                 <div className="flex items-center gap-1 shrink-0">

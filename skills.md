@@ -25,11 +25,13 @@ new decision conflicts with one of these, the law wins unless Ali overrules it.
 
 The standing laws, each with the incident that created it:
 
-- **The accent is systemIndigo, never systemBlue.** Blue is iOS's factory
-  default and reads "unstyled template." Indigo (light `#5856D6` · dark
-  `#5E5CE6`, P3 variants in globals.css) is native but *chosen*, and can never
-  be confused with money semantics. Ali rejected blue three separate times
-  before this law was written.
+- **The accent is GRAPHITE MONOCHROME — no hue.** Ali rejected systemBlue
+  (three times) and then systemIndigo (2026-07-12): any hue-based accent
+  reads as decoration to him. `--snm-brand` = `var(--foreground)` (black in
+  light, white in dark), `--snm-brand-on` = background, tints via color-mix.
+  Interactive text signals through WEIGHT, not hue. The payoff for a money
+  app: green/red/orange are the only hues on screen — color always means
+  money. Do not propose a new accent hue; the debate is settled.
 - **Color communicates affordance.** Indigo/brand = tappable or "us". Neutral
   gray = information (static tiles, hints, previews, metadata badges like
   FIXED/VOL./MIXED CTN). Semantic colors mark true status only: green = good

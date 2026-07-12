@@ -41,36 +41,27 @@
   --radius-2xl: calc(var(--radius) * 2);
   --radius-3xl: calc(var(--radius) * 2.5);
 
-  /* Brand accent — ONE system accent = systemIndigo (Apple's premium hue —
-     Reminders, invites), applied app-wide through these tokens. Chosen over
-     systemBlue 2026-07-12: blue is iOS's *default* accent and read as
-     unstyled/generic (Ali flagged it repeatedly); indigo stays native but
-     deliberate, and can never be confused with the money semantics (green/
-     red/orange). DARK default #5E5CE6; light overrides below with #5856D6.
-     White text passes 5.06-5.65:1 on both fills (better than blue's 4.02). */
-  --snm-brand: #5E5CE6;
-  --snm-brand-muted: rgba(94, 92, 230, 0.22);
-  --snm-brand-border: rgba(94, 92, 230, 0.36);
-  /* Foreground that sits ON the brand fill — white on systemBlue in both
-     modes (systemBlue is dark enough for white to pass AA). */
-  --snm-brand-on: #ffffff;
+  /* Brand accent — GRAPHITE MONOCHROME. Ali rejected systemBlue (three
+     times) and then systemIndigo (2026-07-12): the pattern is that ANY
+     hue-based accent reads as decoration to him. The accent is therefore
+     the foreground itself — black in light, white in dark — matching the
+     primary buttons he has always liked. The payoff for a money app:
+     green/red/orange are now the ONLY hues on screen, so color always
+     means money. Contrast is maximal by construction (foreground on
+     background). Defined once; adapts to both modes automatically. */
+  --snm-brand: var(--foreground);
+  --snm-brand-muted: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --snm-brand-border: color-mix(in srgb, var(--foreground) 22%, transparent);
+  --snm-brand-on: var(--background);
 
   /* Foreground that sits ON any saturated semantic fill (success/error/
      warning/info buttons and pills). White in both modes — every Apple
      system colour used as a fill is dark enough for white to pass AA. */
   --snm-on-fill: #ffffff;
 
-  /* Text/icon/badge variant of the brand colour — --snm-brand itself is
-     tuned for large fills (buttons, active nav backgrounds), where 3:1 is
-     the WCAG bar and it passes easily. At small-text size (badges like
-     "FIXED"/"VOL.", price highlights, links) it only hit 4.02:1 in light
-     mode — under the 4.5:1 text minimum — and its high-G/high-B mix read as
-     cyan-ish at small sizes in both modes (Ali flagged this on a real
-     device, 2026-07-11, same category as the earlier warning-colour fix).
-     Deepened for light, brightened for dark — same "text needs its own
-     shade" technique already used for success/warning/error. Verified
-     6.15–6.27:1 vs both background and white/dark cards. */
-  --snm-brand-text: #7D7AFF;
+  /* Brand text = foreground (monochrome): links/interactive text signal
+     through weight, not hue. Contrast maximal in both modes. */
+  --snm-brand-text: var(--foreground);
 
   /* Fonts (Apple HIG 2026). --font-sys = SF Pro system stack for ALL UI text
      (real SF Pro on iOS/macOS, Inter/system-ui fallback elsewhere).
@@ -166,17 +157,6 @@
   --snm-tag-slate:  #5B6B7F;
   --snm-tag-sage:   #3F7A52;
 
-  /* Brand accent, LIGHT — systemIndigo #5856D6 (see dark-mode note for why
-     indigo replaced blue). Fill passes 5.65:1 with white text; still use
-     --snm-brand-text for small text/icons/badges. Muted/border tints
-     re-derived from the fill hue. */
-  --snm-brand:        #5856D6;
-  --snm-brand-muted:  rgba(88, 86, 214, 0.12);
-  --snm-brand-border: rgba(88, 86, 214, 0.26);
-  --snm-brand-on:     #ffffff;
-  /* Deepened indigo for light-mode text — 6.17:1 vs background, 6.89:1 vs
-     white cards (same deepen-for-text technique as success/warning/error). */
-  --snm-brand-text:   #4B49C4;
 
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
@@ -246,11 +226,6 @@
   :root {
     color-scheme: dark;
 
-    --snm-brand:        #5E5CE6;
-    --snm-brand-muted:  rgba(94, 92, 230, 0.22);
-    --snm-brand-border: rgba(94, 92, 230, 0.36);
-    --snm-brand-text:   #7D7AFF;
-    --snm-brand-on:     #ffffff;
     --snm-success: #30D158;
     --snm-error:   #FF453A;
     --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal, see note above */
@@ -324,11 +299,6 @@
 .light {
   color-scheme: light;
   /* Kept in sync with :root's light-mode values above -- see contrast note there. */
-  --snm-brand:        #5856D6;
-  --snm-brand-muted:  rgba(88, 86, 214, 0.12);
-  --snm-brand-border: rgba(88, 86, 214, 0.26);
-  --snm-brand-on:     #ffffff;
-  --snm-brand-text:   #4B49C4;
   --snm-success: #248A3D;
   --snm-error:   #FF3B30;
   --snm-warning: #9A4B00; /* deepened systemOrange for light text — reverted from systemTeal */
@@ -385,11 +355,6 @@
 /* ── Manual .dark override ──────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
-  --snm-brand:        #5E5CE6;
-  --snm-brand-muted:  rgba(94, 92, 230, 0.22);
-  --snm-brand-border: rgba(94, 92, 230, 0.36);
-  --snm-brand-on:     #ffffff;
-  --snm-brand-text:   #7D7AFF;
   --snm-success: #30D158;
   --snm-error:   #FF453A;
   --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal */
@@ -953,13 +918,11 @@
   @supports (color: color(display-p3 1 1 1)) {
     /* Light (default + manual override) */
     :root, .light {
-      --snm-brand: color(display-p3 0.345 0.337 0.839);
       --snm-info:  color(display-p3 0 0.478 1);
       --snm-error: color(display-p3 1 0.231 0.188);
     }
     /* Dark — Apple's own dark-mode accents, P3-native */
     .dark {
-      --snm-brand:   color(display-p3 0.369 0.361 0.902);
       --snm-info:    color(display-p3 0.039 0.518 1);
       --snm-error:   color(display-p3 1 0.271 0.227);
       --snm-success: color(display-p3 0.188 0.82 0.345);
@@ -968,7 +931,6 @@
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --snm-brand:   color(display-p3 0.369 0.361 0.902);
         --snm-info:    color(display-p3 0.039 0.518 1);
         --snm-error:   color(display-p3 1 0.271 0.227);
         --snm-success: color(display-p3 0.188 0.82 0.345);
@@ -977,7 +939,6 @@
       }
       /* System-dark but user forced light — keep light P3 values */
       :root.light, .light {
-        --snm-brand: color(display-p3 0.345 0.337 0.839);
         --snm-info:  color(display-p3 0 0.478 1);
         --snm-error: color(display-p3 1 0.231 0.188);
       }
