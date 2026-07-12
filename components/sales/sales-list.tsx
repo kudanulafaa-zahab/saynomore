@@ -971,7 +971,9 @@ function NewSaleSheet({
     }
   }
 
-  function handleAddLine() {
+  // The actual add — reached directly for healthy prices, or via the
+  // below-cost confirm sheet. Both entry doors share one guard.
+  function doAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
     setDraftLines((prev) => [...prev, {
       key: `${selectedSku.id}-${Date.now()}`,
@@ -981,6 +983,21 @@ function NewSaleSheet({
     }]);
     setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack");
     setMixedCarton(false); setPriceManuallyEdited(false); setAutoPriceSource(null);
+  }
+
+  const [editorBelowCostConfirm, setEditorBelowCostConfirm] = useState(false);
+
+  function handleAddLine() {
+    if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
+    const landed = selectedSku.landed_per_piece_mvr;
+    const mult = lineUom === "carton" ? selectedSku.pcs_per_pack * selectedSku.packs_per_carton
+               : lineUom === "pack" ? selectedSku.pcs_per_pack : 1;
+    const pricePerPiece = parseFloat(linePrice) / mult;
+    if (landed != null && pricePerPiece < landed) {
+      setEditorBelowCostConfirm(true);
+      return;
+    }
+    doAddLine();
   }
 
   // Create order + lines + immediately confirm (post_sale) in one shot
@@ -1653,7 +1670,7 @@ function NewSaleSheet({
                         return (
                           <span className="ios-subhead font-bold px-2.5 py-1 rounded-full"
                             style={{ background: profit >= 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: profit >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-                            {profit >= 0 ? `Makes MVR ${amt}/${u}` : `Loses MVR ${amt}/${u}`}
+                            {profit >= 0 ? `Makes MVR ${amt}/${u} · ${Math.round((profit / priceVal) * 100)}%` : `Loses MVR ${amt}/${u}`}
                           </span>
                         );
                       })()}
@@ -1798,12 +1815,12 @@ function NewSaleSheet({
                         className="w-full text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
                         style={{ minWidth: 0 }}
                       />
-                      {priceManuallyEdited && costForUom != null && !isNaN(priceVal) && priceVal > 0 && priceVal - costForUom >= 0 && (() => {
+                      {costForUom != null && !isNaN(priceVal) && priceVal > 0 && priceVal - costForUom >= 0 && (() => {
                         const profit = priceVal - costForUom;
                         const amt = profit >= 10 ? profit.toFixed(0) : profit.toFixed(2);
                         return (
                           <p className="w-full ios-subhead text-center mt-1 font-semibold leading-tight" style={{ color: "var(--snm-success)" }}>
-                            Makes MVR {amt}/{uomLabel.toLowerCase()}
+                            Makes MVR {amt}/{uomLabel.toLowerCase()} · {Math.round((profit / priceVal) * 100)}%
                           </p>
                         );
                       })()}
@@ -1815,11 +1832,6 @@ function NewSaleSheet({
                           style={{ color: "var(--muted-foreground)", textUnderlineOffset: 2 }}
                         >
                           {editorProvenance.detail}
-                          {/* Append the live margin only for List/Fixed — the Margin
-                              source already states its % in the detail line. */}
-                          {editorProvenance.source !== "margin" && editorProvenance.marginPct != null && !editorProvenance.belowCost && (
-                            <> · {Math.round(editorProvenance.marginPct)}% margin</>
-                          )}
                         </button>
                       )}
                       {priceWarning && (
@@ -2363,6 +2375,31 @@ function NewSaleSheet({
                 setBelowCostAdd(null);
               }}
               onClose={() => setBelowCostAdd(null)}
+            />
+          );
+        })(),
+        document.body,
+      )}
+
+      {editorBelowCostConfirm && selectedSku && portalReady && createPortal(
+        (() => {
+          const s = selectedSku;
+          const mult = lineUom === "carton" ? s.pcs_per_pack * s.packs_per_carton
+                     : lineUom === "pack" ? s.pcs_per_pack : 1;
+          const cost = (s.landed_per_piece_mvr ?? 0) * mult;
+          const price = parseFloat(linePrice) || 0;
+          const qty = parseFloat(lineQty) || 0;
+          const lossEach = cost - price;
+          const lossTotal = lossEach * qty;
+          const u = lineUom === "pack" ? packLabel(s).toLowerCase() : lineUom;
+          return (
+            <ConfirmSheet
+              open
+              title="This sells below cost"
+              message={`${s.brand_name} ${s.variant_display} costs you MVR ${cost.toFixed(0)}/${u} right now — at MVR ${price.toFixed(0)} you lose about MVR ${lossEach.toFixed(lossEach >= 10 ? 0 : 2)} per ${u}${qty > 1 ? ` (MVR ${lossTotal.toFixed(0)} on this line)` : ""}. Go back to adjust the price, or add it anyway.`}
+              confirmLabel="Add at a loss"
+              onConfirm={() => { setEditorBelowCostConfirm(false); doAddLine(); }}
+              onClose={() => setEditorBelowCostConfirm(false)}
             />
           );
         })(),
