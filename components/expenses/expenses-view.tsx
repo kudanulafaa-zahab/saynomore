@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   Loader2, Megaphone, MousePointerClick, Music2, Receipt,
-  Warehouse, Truck, Zap, Plus, Trash2, Pencil, X, ChevronRight,
+  Trash2, X, ChevronRight,
 } from "lucide-react";
 import {
   listMarketingSpend,
