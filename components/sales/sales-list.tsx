@@ -1635,12 +1635,20 @@ function NewSaleSheet({
                           Cost {costForUom.toFixed(lineUom === "piece" ? 4 : 2)} MVR/{uomLabel.toLowerCase()}
                         </span>
                       )}
-                      {margin !== null && (
-                        <span className="ios-subhead font-bold px-2.5 py-1 rounded-full"
-                          style={{ background: margin >= 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: margin >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-                          {margin.toFixed(1)}% margin
-                        </span>
-                      )}
+                      {margin !== null && costForUom != null && (() => {
+                        // Plain money, not accountant-speak: "Makes MVR 25/pack",
+                        // never "-5.8% margin". Profit in rufiyaa is what the owner
+                        // actually thinks in; percentages live in Financials.
+                        const profit = priceVal - costForUom;
+                        const amt = Math.abs(profit) >= 10 ? Math.abs(profit).toFixed(0) : Math.abs(profit).toFixed(2);
+                        const u = uomLabel.toLowerCase();
+                        return (
+                          <span className="ios-subhead font-bold px-2.5 py-1 rounded-full"
+                            style={{ background: profit >= 0 ? "color-mix(in srgb, var(--snm-success) 12%, transparent)" : "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: profit >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+                            {profit >= 0 ? `Makes MVR ${amt}/${u}` : `Loses MVR ${amt}/${u}`}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* No GRN warning */}
@@ -1653,9 +1661,9 @@ function NewSaleSheet({
                     {/* Below-target-margin warning — suggestion only, never blocks the sale.
                         Distinct from the red "below 0%" badge above: this fires even on a
                         still-profitable sale if it undercuts the owner's own target margin. */}
-                    {margin !== null && selectedSku.target_margin_pct != null && margin < selectedSku.target_margin_pct && (
+                    {margin !== null && margin >= 0 && selectedSku.target_margin_pct != null && margin < selectedSku.target_margin_pct && (
                       <p className="ios-subhead mt-2 font-medium" style={{ color: "var(--snm-warning)" }}>
-                        ⚠ Below target margin ({selectedSku.target_margin_pct}% target)
+                        ⚠ Less profit than you usually aim for ({selectedSku.target_margin_pct}%)
                       </p>
                     )}
                   </div>
