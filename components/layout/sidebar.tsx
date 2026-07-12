@@ -19,11 +19,10 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}
-      className="flex items-center gap-3 rounded-xl px-3 ios-subhead font-medium transition-all active:scale-[0.97]"
+      className={`snm-navlink flex items-center gap-3 rounded-xl px-3 ios-subhead font-medium active:scale-[0.97] ${active ? "snm-navlink-active" : ""}`}
       style={{
-        minHeight: 44,
-        background: active ? "var(--snm-brand-muted)" : "transparent",
-        color:      active ? "var(--snm-brand)"       : "var(--muted-foreground)",
+        minHeight: 40,
+        color: active ? undefined : "var(--muted-foreground)",
       }}
     >
       <Icon
@@ -98,11 +97,8 @@ export function Sidebar({ role }: { role: string }) {
         <div className="px-3 py-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <Link
             href="/settings"
-            className="flex items-center gap-3 rounded-xl px-3 py-2 ios-subhead font-medium transition-all active:scale-[0.97]"
-            style={{
-              background: pathname === "/settings" ? "var(--snm-brand-muted)" : "transparent",
-              color:      pathname === "/settings" ? "var(--snm-brand)"       : "var(--muted-foreground)",
-            }}
+            className={`snm-navlink flex items-center gap-3 rounded-xl px-3 py-2 ios-subhead font-medium active:scale-[0.97] ${pathname === "/settings" ? "snm-navlink-active" : ""}`}
+            style={{ color: pathname === "/settings" ? undefined : "var(--muted-foreground)" }}
           >
             <Settings
               className="h-[15px] w-[15px] shrink-0"

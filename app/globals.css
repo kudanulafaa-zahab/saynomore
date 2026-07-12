@@ -610,14 +610,33 @@
     border-bottom: 0.5px solid var(--glass-border-lo);
   }
   .snm-bottom-nav {
-    /* Solid (not backdrop-filter) on purpose: this bar is permanently on
-       screen and sits directly over cards that already blur(20-30px) while
-       scrolling — two live blur compositor layers stacked at once is a known
-       iOS Safari scroll-jank source. A near-opaque solid reads the same as
-       frosted glass at this opacity without the recompositing cost. */
+    /* Legacy docked bar (kept for compat). The live tab bar is
+       .snm-tabbar-float below. */
     background:  color-mix(in srgb, var(--background) 94%, transparent);
     border-top: 0.5px solid var(--glass-border-lo);
   }
+
+  /* ── Floating tab bar — iOS 26 Liquid Glass signature ─────────────────────
+     A capsule inset from the screen edges, floating above content on glass.
+     Blur here is safe: content cards no longer carry backdrop-filter, so
+     this is the single live blur layer during scroll (the 8 Jul jank was
+     caused by TWO stacked blur layers, not by the bar itself). */
+  .snm-tabbar-float {
+    background:              var(--glass-bg-2);
+    backdrop-filter:         var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: 9999px;
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
+  }
+
+  /* ── Desktop sidebar link — hover/active handled in CSS so the cursor
+     always signals affordance (skills.md seat 1, desktop half). ── */
+  .snm-navlink { transition: background-color var(--snm-dur-fast) var(--snm-ease-out), color var(--snm-dur-fast) var(--snm-ease-out); }
+  @media (hover: hover) {
+    .snm-navlink:hover:not(.snm-navlink-active) { background: var(--muted); color: var(--foreground); }
+  }
+  .snm-navlink-active { background: var(--snm-brand); color: var(--snm-brand-on); }
 
   /* ── Full-screen overlay header — safe-area aware ──────────────────────────
      Apply to the header of any fixed inset-0 overlay (sales, pricelists, etc).
@@ -910,9 +929,12 @@
      Every page heading uses this instead of ad-hoc text-[26/28/32px]. Gives
      the app a single, consistent large-title style matching iOS navigation.  */
   .ios-page-title {
-    font-size:      var(--ios-title1);     /* 28px */
-    line-height:    var(--ios-title1-lh);  /* 34px */
-    letter-spacing: var(--ios-title1-ls);  /* 0.364px */
+    /* Apple Large Title — the anchor of every screen's hierarchy. Was
+       Title1 (28px); true large titles are what make iOS screens read as
+       "places" rather than web pages. */
+    font-size:      var(--ios-large-title);     /* 34px */
+    line-height:    var(--ios-large-title-lh);  /* 41px */
+    letter-spacing: var(--ios-large-title-ls);
     font-weight:    700;
     color:          var(--foreground);
   }
@@ -979,6 +1001,7 @@
   /* Navigation chrome becomes the solid page colour (matches iOS, where bars
      turn opaque under Reduce Transparency). */
   .glass-sidebar, .glass-bottom-nav, .snm-topbar, .snm-bottom-nav,
+  .snm-tabbar-float,
   .snm-overlay-header, .snm-overlay-footer {
     background: var(--background) !important;
     backdrop-filter: none !important;

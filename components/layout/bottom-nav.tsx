@@ -41,12 +41,17 @@ export function BottomNav({ role }: { role: string }) {
 
   return (
     <>
-      {/* ── Tab bar ── */}
+      {/* ── Floating tab bar — a glass capsule inset from the screen edges
+             (iOS 26 Liquid Glass). Sits above the home indicator via
+             safe-area; content scrolls underneath and reads through the
+             blur, which is what makes it feel layered rather than docked. ── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex justify-around items-center snm-bottom-nav"
+        className="fixed left-4 right-4 z-40 lg:hidden flex justify-around items-center snm-tabbar-float"
         style={{
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          height: "calc(60px + env(safe-area-inset-bottom, 0px))",
+          bottom: "max(14px, env(safe-area-inset-bottom, 0px))",
+          height: 64,
+          paddingLeft: 6,
+          paddingRight: 6,
         }}
       >
         {primary.map((item: NavItem) => {
@@ -56,7 +61,7 @@ export function BottomNav({ role }: { role: string }) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 flex flex-col items-center justify-center gap-[3px] pt-2 transition-all active:scale-90 duration-150"
+              className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150"
             >
               {active ? (
                 <>
@@ -83,7 +88,7 @@ export function BottomNav({ role }: { role: string }) {
             onClick={() => setSheetOpen(true)}
             aria-label="More navigation options"
             aria-expanded={sheetOpen}
-            className="flex-1 flex flex-col items-center justify-center gap-[3px] pt-2 transition-all active:scale-90 duration-150"
+            className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150"
           >
             {overflowActive ? (
               <>
