@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Loader2, Megaphone, MousePointerClick, Music2, Receipt,
@@ -61,9 +62,6 @@ export function ExpensesView() {
   const [rows, setRows] = useState<MarketingSpendRow[]>([]);
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSheet, setShowSheet] = useState(false);
-  const [editingRow, setEditingRow] = useState<MarketingSpendRow | undefined>(undefined);
-  const [deleteTarget, setDeleteTarget] = useState<MarketingSpendRow | null>(null);
   const [deleteBizTarget, setDeleteBizTarget] = useState<BusinessExpenseRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -109,13 +107,6 @@ export function ExpensesView() {
   useEffect(() => { load(); }, []);
 
   const totalMvr = useMemo(() => rows.reduce((a, r) => a + Number(r.amount_mvr), 0), [rows]);
-
-  const channelTotals = useMemo(() =>
-    (Object.keys(CHANNEL_LABEL) as SpendChannel[]).map((ch) => ({
-      ch,
-      total: rows.filter((r) => r.channel === ch).reduce((a, r) => a + Number(r.amount_mvr), 0),
-    })).sort((a, b) => b.total - a.total),
-  [rows]);
 
   const bizThisMonth = useMemo(() => {
     const m = new Date().toISOString().slice(0, 7);
@@ -191,45 +182,24 @@ export function ExpensesView() {
           <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>Finance</p>
           <h1 className="ios-page-title">Expenses</h1>
         </div>
-        {canWrite && (
-          <button
-            onClick={() => { setEditingRow(undefined); setShowSheet(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl ios-subhead font-semibold"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
-          >
-            <Plus className="h-4 w-4" /> Log Campaign
-          </button>
-        )}
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Summary — this page is the money-out ledger. Campaign THINKING
+          (promo advisor, competitor prices, logging campaigns) lives in
+          Market; spend still totals here because it is an expense. */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="glass p-4 rounded-2xl space-y-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Marketing</p>
-          <p className="text-xl font-semibold text-foreground snm-num">MVR {fmtShort(totalMvr)}</p>
-          <p className="ios-subhead text-muted-foreground">all time</p>
-        </div>
-        <div className="glass p-4 rounded-2xl space-y-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Campaigns</p>
-          <p className="text-xl font-semibold text-foreground snm-num">{rows.length}</p>
-          <p className="ios-subhead text-muted-foreground">logged</p>
-        </div>
-        <div className="glass p-4 rounded-2xl space-y-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Top Channel</p>
-          <p className="text-base font-semibold text-foreground truncate">
-            {channelTotals[0]?.total > 0 ? CHANNEL_LABEL[channelTotals[0].ch] : "—"}
-          </p>
-          <p className="ios-subhead text-muted-foreground snm-num">
-            {channelTotals[0]?.total > 0 ? `MVR ${fmtShort(channelTotals[0].total)}` : "no data"}
-          </p>
-        </div>
-        <div className="glass p-4 rounded-2xl space-y-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Expenses</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">This Month</p>
           <p className="text-xl font-semibold text-foreground snm-num">
             {bizThisMonth > 0 ? `MVR ${fmtShort(bizThisMonth)}` : "—"}
           </p>
-          <p className="ios-subhead text-muted-foreground">{new Date().toLocaleString("en-MV", { month: "long" })} · rent, salaries…</p>
+          <p className="ios-subhead text-muted-foreground">rent, salaries, running costs</p>
         </div>
+        <Link href="/competitors" className="glass p-4 rounded-2xl space-y-1 block active:scale-[0.98] transition">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Marketing</p>
+          <p className="text-xl font-semibold text-foreground snm-num">MVR {fmtShort(totalMvr)}</p>
+          <p className="ios-subhead" style={{ color: "var(--snm-brand-text)" }}>{rows.length} campaign{rows.length === 1 ? "" : "s"} · manage in Market ›</p>
+        </Link>
       </div>
 
       {/* Quick log bar — general business expenses (feeds the P&L's
@@ -324,156 +294,6 @@ export function ExpensesView() {
         </div>
       )}
 
-      {/* Channel breakdown + Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Channel breakdown */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">By Channel</h2>
-          <div className="space-y-2">
-            {CATEGORY_ROWS.map(({ key, icon: Icon, label, meta }) => {
-              const total = rows.filter((r) => r.channel === key).reduce((a, r) => a + Number(r.amount_mvr), 0);
-              const pct = totalMvr > 0 ? Math.round((total / totalMvr) * 100) : 0;
-              return (
-                <div key={key} className="glass p-4 rounded-2xl flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                      <Icon className="h-5 w-5 text-foreground" />
-                    </div>
-                    <div>
-                      <p className="ios-subhead font-medium text-foreground">{label}</p>
-                      <p className="ios-subhead text-muted-foreground">{meta}</p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-base font-semibold text-foreground snm-num">
-                      {total > 0 ? `MVR ${fmtShort(total)}` : "—"}
-                    </p>
-                    <p className="ios-subhead text-muted-foreground">{pct > 0 ? `${pct}% of total` : "No data"}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Recent Activity</h2>
-          <div className="glass rounded-2xl overflow-hidden">
-            {rows.length === 0 ? (
-              <div className="p-10 text-center">
-                <p className="ios-subhead text-muted-foreground">No expenses logged yet.</p>
-                <p className="ios-subhead text-muted-foreground mt-1">Use the bar above to log your first expense.</p>
-              </div>
-            ) : (
-              rows.slice(0, 10).map((r, i) => {
-                const Icon = CHANNEL_ICON[r.channel];
-                return (
-                  <div
-                    key={r.id}
-                    className={`flex items-center justify-between px-4 py-3 hover:bg-accent/20 transition`}
-                    style={i > 0 ? { borderTop: "0.5px solid var(--glass-border-lo)" } : undefined}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="ios-subhead text-foreground truncate">
-                          {r.campaign_name ?? CHANNEL_LABEL[r.channel]}
-                        </p>
-                        <p className="ios-subhead text-muted-foreground">
-                          {new Date(r.start_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <p className="snm-num ios-subhead font-medium text-foreground">
-                        MVR {fmt(Number(r.amount_mvr))}
-                      </p>
-                      {canWrite && (
-                        <>
-                          <button
-                            onClick={() => { setEditingRow(r); setShowSheet(true); }}
-                            className="snm-pressable flex items-center justify-center"
-                            style={{ width: 44, height: 44, margin: -4 }}
-                          >
-                            <span className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(r)}
-                            className="snm-pressable flex items-center justify-center"
-                            style={{ width: 44, height: 44, margin: -4 }}
-                          >
-                            <span className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Log / Edit Sheet */}
-      {showSheet && (
-        <SpendSheet
-          editing={editingRow}
-          skus={skus}
-          onClose={() => { setShowSheet(false); setEditingRow(undefined); }}
-          onDone={() => { setShowSheet(false); setEditingRow(undefined); load(); }}
-        />
-      )}
-
-      {/* Delete confirm */}
-      {deleteTarget && (
-        <div className="fixed inset-0 bg-black/60 z-60 flex items-center justify-center px-4">
-          <div className="glass-modal rounded-2xl p-6 w-full max-w-sm space-y-4">
-            <p className="text-base font-semibold text-foreground">Delete expense?</p>
-            <p className="ios-subhead text-muted-foreground">
-              <span className="text-foreground font-medium">
-                {deleteTarget.campaign_name ?? CHANNEL_LABEL[deleteTarget.channel]}
-              </span>{" "}
-              will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="flex-1 h-11 rounded-xl ios-subhead text-muted-foreground bg-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deleting}
-                onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    await deleteMarketingSpend(deleteTarget.id);
-                    haptic("success");
-                    toast.success("Deleted");
-                    setDeleteTarget(null);
-                    load();
-                  } catch (e) { haptic("error"); toast.error((e as Error).message); }
-                  finally { setDeleting(false); }
-                }}
-                className="flex-1 h-11 rounded-xl text-sm font-semibold disabled:opacity-50 transition"
-                style={{ background: "var(--snm-error)", color: "var(--background)" }}
-              >
-                {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Business-expense delete confirm — never delete without asking */}
       <ConfirmSheet
         open={deleteBizTarget !== null}
@@ -494,7 +314,7 @@ export function ExpensesView() {
 
 // ── Spend Sheet ──────────────────────────────────────────────────────────────
 
-function SpendSheet({ editing, skus, onClose, onDone }: {
+export function SpendSheet({ editing, skus, onClose, onDone }: {
   editing?: MarketingSpendRow;
   skus: SkuFullRow[];
   onClose: () => void;

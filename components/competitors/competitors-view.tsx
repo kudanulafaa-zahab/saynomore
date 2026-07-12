@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PromoAdvisor } from "./promo-advisor";
+import { CampaignsCard } from "./campaigns-card";
 import {
   Loader2, Plus, Search, Store, Pencil, Trash2, AlertTriangle,
   ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2,
@@ -273,6 +274,9 @@ export function CompetitorsView() {
 
       {/* Slow movers with margin headroom — see promo-advisor.tsx */}
       <PromoAdvisor />
+
+      {/* Log/track campaigns right where the advisor suggests them */}
+      <CampaignsCard />
 
       {/* ── Priced above competitors — all SKUs at a glance, worst gap first ── */}
       {priceGaps.length > 0 && (
