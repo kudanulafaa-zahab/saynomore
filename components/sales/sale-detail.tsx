@@ -40,6 +40,7 @@ import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
 import { SkuIdentity } from "@/components/ui/sku-identity";
+import { notifyAdmins } from "@/lib/push";
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /*  Constants                                                                  */
@@ -286,6 +287,12 @@ export function SaleDetail({ id }: { id: string }) {
       });
       haptic("success");
       toast.success(amt < 0 ? "Refund recorded" : "Payment recorded");
+      // Money events reach the office like delivery events do.
+      notifyAdmins({
+        title: amt < 0 ? "Refund recorded" : "Payment received",
+        body: `MVR ${Math.abs(amt).toLocaleString()} ${payMethod} on ${order.order_number}`,
+        url: `/sales`,
+      });
       setPanel(null);
       load();
     } catch (e) { toast.error((e as Error).message); }
@@ -344,6 +351,11 @@ export function SaleDetail({ id }: { id: string }) {
       if (isTrueDraft) await deleteOrder(order.id);
       else await deleteSalesOrder(order.id);
       toast.success(restoresStock ? "Order deleted — stock restored" : "Order deleted");
+      notifyAdmins({
+        title: "Order deleted",
+        body: `${order.order_number} was deleted${restoresStock ? " — stock restored" : ""}`,
+        url: "/sales",
+      });
       router.push("/sales");
     } catch (e) { toast.error((e as Error).message); }
     finally { setDeleting(false); }
@@ -357,6 +369,11 @@ export function SaleDetail({ id }: { id: string }) {
       await voidOrder(order.id, voidReason.trim());
       haptic("success");
       toast.success("Order voided — stock restored");
+      notifyAdmins({
+        title: "Order voided",
+        body: `${order.order_number} voided — ${voidReason.trim()}`,
+        url: "/sales",
+      });
       router.push("/sales");
     } catch (e) { toast.error((e as Error).message); }
     finally { setVoiding(false); }

@@ -26,6 +26,8 @@ import {
   type ContainerSizeHint,
 } from "@/lib/queries/shipments";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { notifyAdmins } from "@/lib/push";
+import { getPricingHealth } from "@/lib/queries/pricing";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
@@ -611,6 +613,20 @@ export function ShipmentDetail({ id }: { id: string }) {
       await confirmGrn(shipment.id, grnGodownId || null);
       setPanel(null);
       await load();
+      // Close the costing loop: tell the office stock landed, and whether
+      // any selling prices drifted below target at the new landed costs.
+      getPricingHealth()
+        .then((rows) => {
+          const drifted = rows.filter((r) => r.status === "below_target").length;
+          notifyAdmins({
+            title: "Shipment received",
+            body: `GRN confirmed for ${shipment.reference}. ${drifted > 0
+              ? `${drifted} price${drifted === 1 ? "" : "s"} now below target — see Margin Watch.`
+              : "All margins still on target."}`,
+            url: drifted > 0 ? "/financials" : "/shipments",
+          });
+        })
+        .catch(() => {/* notification is non-critical */});
       const { listSkusFlat: freshFetch } = await import("@/lib/queries/products");
       const freshSkus = await freshFetch();
       const changes: PriceChange[] = [];
