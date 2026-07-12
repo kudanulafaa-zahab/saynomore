@@ -74,7 +74,6 @@ export function UsersManager() {
   const [deleting, setDeleting] = useState(false);
 
   async function load() {
-    setLoading(true);
     try { setUsers(await listUsers()); }
     catch (e) { toast.error((e as Error).message); }
     finally { setLoading(false); }

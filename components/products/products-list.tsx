@@ -18,7 +18,6 @@ export function ProductsList() {
   }, []);
 
   async function load() {
-    setLoading(true);
     try {
       const data = await listSkusFlat();
       setRows(data);

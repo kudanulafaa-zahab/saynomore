@@ -33,14 +33,14 @@ export function ConfirmSheet({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[200]"
+        className="fixed inset-0 z-[200] snm-scrim-in"
         style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
         onClick={onClose}
       />
 
       {/* Sheet */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-[201]"
+        className="fixed bottom-0 left-0 right-0 z-[201] snm-sheet-in"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}

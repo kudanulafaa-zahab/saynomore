@@ -326,7 +326,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
 
       {/* Phone-duplicate confirmation — appears on save when the phone already exists */}
       {phoneConflict && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center"
+        <div className="fixed inset-0 z-[70] flex items-end justify-center snm-scrim-in"
           style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
           onClick={() => setPhoneConflict(null)}>
           <div className="w-full max-w-lg p-5 space-y-3" onClick={(e) => e.stopPropagation()}

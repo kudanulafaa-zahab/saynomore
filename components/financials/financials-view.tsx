@@ -52,32 +52,14 @@ function CodView() {
   const [drillLoading, setDrillLoading] = useState(false);
   const [customDate, setCustomDate]   = useState(false);
 
-  // Monthly COD summary (current month, all days)
-  const [monthRows, setMonthRows]         = useState<CodReconRow[]>([]);
-  const [monthLoading, setMonthLoading]   = useState(true);
-
-  const firstOfMonth = new Date();
-  firstOfMonth.setDate(1);
-  const monthStart = firstOfMonth.toISOString().slice(0, 10);
-
   useEffect(() => {
-    // Load today's reconciliation
-    setLoading(true);
+    // Load today's reconciliation (initial state is the skeleton; date
+    // changes swap in place without flashing it again)
     getCodReconciliation(date)
       .then(setRows)
       .catch((e) => toast.error((e as Error).message))
       .finally(() => setLoading(false));
   }, [date]);
-
-  useEffect(() => {
-    // Load month summary — we reuse the same RPC with today's date and
-    // derive a rough monthly picture from the single-day data structure.
-    // Since the RPC only accepts a single date, we load today's as the
-    // "current day" view. Monthly aggregate would need a new RPC — we
-    // surface what we have with clear labelling.
-    setMonthLoading(false);
-    setMonthRows([]); // placeholder — would need get_cod_monthly RPC
-  }, [monthStart]);
 
   async function toggleDriver(driverId: string) {
     if (expanded === driverId) { setExpanded(null); setDrillRows([]); return; }
@@ -278,7 +260,6 @@ export function FinancialsView() {
   const lastMonthEnd   = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().slice(0, 10);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([
       // The whole P&L (incl. period-correct marketing proration and the
       // opex category breakdown) is one Postgres call — no financial math

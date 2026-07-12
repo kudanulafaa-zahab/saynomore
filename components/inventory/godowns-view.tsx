@@ -349,7 +349,6 @@ export function GodownsView() {
   const isAdmin = role === "admin" || role === "manager";
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const [s, g, b] = await Promise.all([listSkusFlat(), listGodowns(), listBatchStock()]);
       setSkus(s); setGodowns(g); setBatches(b);

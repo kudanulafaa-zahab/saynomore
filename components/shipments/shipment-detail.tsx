@@ -193,10 +193,10 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
   useBodyScrollLock(open);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "var(--scrim-bg)" }} onClick={onClose}>
+    <div className="fixed inset-0 z-60 flex items-end snm-scrim-in" style={{ background: "var(--scrim-bg)" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl"
+        className="w-full rounded-t-3xl snm-sheet-in"
         style={{
           ...SHEET,
           padding: "12px 24px",
@@ -1803,10 +1803,10 @@ function LineDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-end" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
+    <div className="fixed inset-0 z-60 flex items-end snm-scrim-in" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl flex flex-col"
+        className="w-full rounded-t-3xl flex flex-col snm-sheet-in"
         style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", height: "85dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", touchAction: "none" }}
       >
         {/* Fixed header — grabber + title stay pinned at the top */}

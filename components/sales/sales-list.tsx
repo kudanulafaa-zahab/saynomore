@@ -1881,13 +1881,13 @@ function NewSaleSheet({
                     // fixed element, so it always paints on top of
                     // everything with no ambiguity.
                     <div
-                      className="fixed inset-0 z-[80] flex items-end"
+                      className="fixed inset-0 z-[80] flex items-end snm-scrim-in"
                       style={{ background: "var(--scrim-bg)", touchAction: "none" }}
                       onClick={() => { setShowPriceExplain(false); setEditingPrice(false); setSimEditingTyped(false); }}
                     >
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full rounded-t-3xl flex flex-col"
+                        className="w-full rounded-t-3xl flex flex-col snm-sheet-in"
                         style={{
                           background: "var(--background)",
                           borderTop: "0.5px solid var(--glass-border-lo)",
@@ -2492,13 +2492,13 @@ function MixedCartonSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end"
+      className="fixed inset-0 z-[80] flex items-end snm-scrim-in"
       style={{ background: "var(--scrim-bg)", touchAction: "none" }}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl flex flex-col"
+        className="w-full rounded-t-3xl flex flex-col snm-sheet-in"
         style={{
           background: "var(--background)",
           borderTop: "0.5px solid var(--glass-border-lo)",

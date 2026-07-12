@@ -90,7 +90,6 @@ export function ExpensesView() {
   }, []);
 
   async function load() {
-    setLoading(true);
     try {
       const [r, s, cats, biz] = await Promise.all([
         listMarketingSpend(), listSkusFlat(), listExpenseCategories(), listBusinessExpenses(),
@@ -589,13 +588,13 @@ function SpendSheet({ editing, skus, onClose, onDone }: {
   // reaches the page behind, so it feels docked/native, not like a webpage.
   return (
     <div
-      className="fixed inset-0 z-60 flex items-end"
+      className="fixed inset-0 z-60 flex items-end snm-scrim-in"
       style={{ background: "var(--scrim-bg)", touchAction: "none" }}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl flex flex-col"
+        className="w-full rounded-t-3xl flex flex-col snm-sheet-in"
         style={{
           background: "var(--background)",
           borderTop: "0.5px solid var(--glass-border-lo)",

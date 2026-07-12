@@ -631,13 +631,13 @@ export function InventoryView() {
             </p>
           </div>
           {stockList.length === 0 && (
-            <a
+            <Link
               href="/shipments"
               className="mt-1 h-11 px-6 rounded-full text-sm font-semibold flex items-center justify-center active:opacity-70"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               Go to Shipments
-            </a>
+            </Link>
           )}
         </div>
       ) : (

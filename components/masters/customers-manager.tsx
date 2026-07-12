@@ -60,7 +60,6 @@ export function CustomersManager() {
   const [confirmCustomer, setConfirmCustomer] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
-    setLoading(true);
     try { setRows(await listCustomers()); }
     catch (e) { toast.error((e as Error).message); }
     finally { setLoading(false); }

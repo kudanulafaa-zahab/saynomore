@@ -76,7 +76,6 @@ export function CategoriesManager() {
   useEffect(() => { getCurrentUserRole().then((r) => setCanWrite(r !== "viewer" && r !== null)).catch(() => {}); }, []);
 
   async function load() {
-    setLoading(true);
     try {
       setRows(await listCategories());
     } catch (err) {

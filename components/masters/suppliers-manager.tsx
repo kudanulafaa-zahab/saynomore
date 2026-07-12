@@ -98,7 +98,6 @@ export function SuppliersManager() {
   const [confirmSupplier, setConfirmSupplier] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
-    setLoading(true);
     try {
       const data = await listSuppliers();
       setRows(data);
@@ -439,7 +438,7 @@ function SupplierModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-modal-card" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">
           {editing ? "Edit Vendor" : "New Vendor"}

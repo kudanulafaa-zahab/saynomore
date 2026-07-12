@@ -108,7 +108,7 @@ export function BottomNav({ role }: { role: string }) {
       {/* ── Sheet backdrop ── */}
       {sheetOpen && (
         <div
-          className="fixed inset-0 z-50 lg:hidden"
+          className="fixed inset-0 z-50 lg:hidden snm-scrim-in"
           style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
           onClick={() => setSheetOpen(false)}
         />

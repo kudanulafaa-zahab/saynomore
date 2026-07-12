@@ -112,18 +112,18 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
   return (
     <>
       <div
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-40 snm-scrim-in"
         style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
         onClick={onClose}
       />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden flex flex-col"
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden flex flex-col snm-sheet-in"
         style={{
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
           border: "0.5px solid var(--glass-border-lo)",
           transform: `translateY(${dragY}px)`,
-          transition: startY.current == null ? "transform 0.25s cubic-bezier(0.32,0.72,0,1)" : "none",
+          transition: dragY === 0 ? "transform 0.25s cubic-bezier(0.32,0.72,0,1)" : "none",
         }}
       >
         {/* Grabber — drag-to-dismiss handle */}
@@ -721,7 +721,6 @@ export function ProductsExplorer() {
   }, [loading]);
 
   const loadAll = useCallback(async () => {
-    setLoading(true);
     try {
       const [c, b, m, v, s] = await Promise.all([
         listCategories(), listBrands(), listModels(), listVariants(), listSkusFlat(),

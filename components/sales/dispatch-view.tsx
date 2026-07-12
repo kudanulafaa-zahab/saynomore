@@ -565,12 +565,12 @@ export function DispatchView() {
       {confirmDelivery && (
         <>
           <div
-            className="fixed inset-0 z-50"
+            className="fixed inset-0 z-50 snm-scrim-in"
             style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
             onClick={() => setConfirmDelivery(null)}
           />
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px]"
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] snm-sheet-in"
             style={{
               background: "var(--glass-bg-2)",
               backdropFilter: "var(--glass-blur-lg)",

@@ -94,7 +94,7 @@ export function CommandPalette({ role }: { role: string }) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] hidden lg:flex items-start justify-center"
+      className="fixed inset-0 z-[80] hidden lg:flex items-start justify-center snm-scrim-in"
       style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)", paddingTop: "18vh" }}
       onMouseDown={close}
       role="dialog"

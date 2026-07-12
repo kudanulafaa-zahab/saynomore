@@ -65,7 +65,6 @@ export function PriceListsView() {
   }, []);
 
   async function load() {
-    setLoading(true);
     try {
       const [pl, sk] = await Promise.all([listPriceLists(), listSkusFlat()]);
       setPriceLists(pl);
@@ -527,7 +526,6 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
   const [confirmRemoving, setConfirmRemoving] = useState(false);
 
   async function loadItems() {
-    setLoading(true);
     try { setItems(await listPriceListItems(priceList.id)); }
     catch (e) { toast.error((e as Error).message); }
     finally { setLoading(false); }

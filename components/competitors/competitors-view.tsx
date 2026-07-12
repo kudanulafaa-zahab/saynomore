@@ -86,7 +86,6 @@ export function CompetitorsView() {
   const [tierCoverage, setTierCoverage] = useState<TierCoverage[]>([]);
 
   async function load() {
-    setLoading(true);
     try {
       const [c, p, s] = await Promise.all([listCompetitors(), listCompetitorPrices(), listSkusFlat()]);
       setCompetitors(c);
@@ -1072,7 +1071,7 @@ export function CompetitorsView() {
         />
       )}
       {deleteCompDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}><AlertTriangle className="h-5 w-5" /></div>
@@ -1110,7 +1109,7 @@ export function CompetitorsView() {
         </div>
       )}
       {deletePriceDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
           <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
             <p className="text-[15px] font-bold text-foreground">Remove price entry?</p>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
@@ -1173,7 +1172,7 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap" style={{ background: "var(--scrim-bg)" }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
       <div className="w-full max-w-md rounded-3xl p-6 space-y-4" style={CARD_L2}>
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
@@ -1278,10 +1277,10 @@ function PriceModal({
   // not a free-floating, content-sized card (which drags with the finger
   // instead of scrolling, and reads as a webpage, not a native sheet).
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end snm-scrim-in" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl flex flex-col snm-modal-card"
+        className="w-full rounded-t-3xl flex flex-col snm-modal-card snm-sheet-in"
         style={{ ...CARD_L2, height: "88dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", touchAction: "none" }}
       >
         {/* Fixed header — grabber + title stay pinned */}
