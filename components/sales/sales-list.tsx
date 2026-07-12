@@ -32,6 +32,7 @@ import {
 import { CustomerForm } from "@/components/masters/customer-form";
 import { listSkusFlat, getCurrentUserRole, updateSku, type SkuFullRow } from "@/lib/queries/products";
 import { SkuIdentity, PriceSourceTag } from "@/components/ui/sku-identity";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces, describePriceSource } from "@/lib/queries/sales";
 import { withOfflineFallback } from "@/lib/offline-write";
@@ -793,6 +794,22 @@ function NewSaleSheet({
 
   const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
   const [showPriceExplain, setShowPriceExplain] = useState(false);
+  // Quick-add on a below-cost SKU pauses for a deliberate choice — losing
+  // money must never be a single accidental tap. Holds the pending add.
+  const [belowCostAdd, setBelowCostAdd] = useState<{ sku: SkuFullRow; uom: ReturnType<typeof defaultUom>; price: number } | null>(null);
+
+  function pushQuickLine(s: SkuFullRow, uom: ReturnType<typeof defaultUom>, price: number) {
+    const pcs = toPieces(uom, 1, s.pcs_per_pack, s.packs_per_carton);
+    setDraftLines((prev) => [...prev, {
+      key: `${s.id}-${Date.now()}`,
+      sku: s, uom, qty: 1,
+      qty_pieces: pcs,
+      unit_price_mvr: price,
+      line_total_mvr: price,
+      is_mixed_carton_fill: false,
+    }]);
+    toast.success(`${s.brand_name} ${s.variant_display} added`);
+  }
   const [editingPrice, setEditingPrice] = useState(false);
   // Margin-simulator state for the inline price fix — mirrors the Pricing
   // screen's Margin Simulator exactly (slider drives a live price from
@@ -1425,17 +1442,13 @@ function NewSaleSheet({
                       // Allow adding when stock exists in ANY godown; block only when
                       // out everywhere. Products in another warehouse are sellable.
                       if (!hasPrice || outOfStock) return;
-                      const qty = 1;
-                      const pcs = toPieces(cardUom, qty, s.pcs_per_pack, s.packs_per_carton);
-                      setDraftLines((prev) => [...prev, {
-                        key: `${s.id}-${Date.now()}`,
-                        sku: s, uom: cardUom, qty,
-                        qty_pieces: pcs,
-                        unit_price_mvr: cardPrice!,
-                        line_total_mvr: cardPrice!,
-                        is_mixed_carton_fill: false,
-                      }]);
-                      toast.success(`${s.brand_name} ${s.variant_display} added`);
+                      // Below cost: pause for a deliberate choice instead of a
+                      // silent one-tap loss (Ali, 12 Jul, with screenshot).
+                      if (cardProvenance.belowCost) {
+                        setBelowCostAdd({ sku: s, uom: cardUom, price: cardPrice! });
+                        return;
+                      }
+                      pushQuickLine(s, cardUom, cardPrice!);
                     }
 
                     const hereQty = stock ?? 0;
@@ -1785,6 +1798,15 @@ function NewSaleSheet({
                         className="w-full text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
                         style={{ minWidth: 0 }}
                       />
+                      {priceManuallyEdited && costForUom != null && !isNaN(priceVal) && priceVal > 0 && priceVal - costForUom >= 0 && (() => {
+                        const profit = priceVal - costForUom;
+                        const amt = profit >= 10 ? profit.toFixed(0) : profit.toFixed(2);
+                        return (
+                          <p className="w-full ios-subhead text-center mt-1 font-semibold leading-tight" style={{ color: "var(--snm-success)" }}>
+                            Makes MVR {amt}/{uomLabel.toLowerCase()}
+                          </p>
+                        );
+                      })()}
                       {!priceManuallyEdited && editorProvenance.source && editorProvenance.detail && (
                         <button
                           type="button"
@@ -2320,6 +2342,31 @@ function NewSaleSheet({
           onResult={handleScanResult}
           onClose={() => setShowScanner(false)}
         />
+      )}
+
+      {belowCostAdd && portalReady && createPortal(
+        (() => {
+          const s = belowCostAdd.sku;
+          const mult = belowCostAdd.uom === "carton" ? s.pcs_per_pack * s.packs_per_carton
+                     : belowCostAdd.uom === "pack" ? s.pcs_per_pack : 1;
+          const cost = (s.landed_per_piece_mvr ?? 0) * mult;
+          const loss = cost - belowCostAdd.price;
+          const u = belowCostAdd.uom === "pack" ? packLabel(s).toLowerCase() : belowCostAdd.uom;
+          return (
+            <ConfirmSheet
+              open
+              title="This sells below cost"
+              message={`${s.brand_name} ${s.variant_display} costs you MVR ${cost.toFixed(0)}/${u} right now — at MVR ${belowCostAdd.price.toFixed(0)} you lose about MVR ${loss.toFixed(loss >= 10 ? 0 : 2)} per ${u}. Cancel and tap the product card to adjust the price, or add it anyway.`}
+              confirmLabel="Add at a loss"
+              onConfirm={() => {
+                pushQuickLine(s, belowCostAdd.uom, belowCostAdd.price);
+                setBelowCostAdd(null);
+              }}
+              onClose={() => setBelowCostAdd(null)}
+            />
+          );
+        })(),
+        document.body,
       )}
 
       {mixedCartonBrandId && portalReady && createPortal(
