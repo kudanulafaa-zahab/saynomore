@@ -141,7 +141,13 @@
      (~2.9:1) in daylight — this app's real operating condition. Deepened values
      verified >=4.5:1 vs --background and white cards; used for coloured text +
      icons. Bright Apple hues still fine as large fills. */
-  --snm-success: #248A3D;   /* deepened systemGreen for light-mode text */
+  /* Deep emerald. The prior #248A3D measured only 3.94:1 vs the light
+     background — genuinely under the 4.5:1 text minimum, which is why light
+     mode green kept reading weak/pale (Ali flagged it repeatedly). #0E6E33
+     measures 5.71:1 vs bg and 6.37:1 vs white cards, and its 10-15% tints
+     read as considered surfaces instead of washed mint. Dark mode untouched
+     (Ali approved it). */
+  --snm-success: #0E6E33;
   --snm-error:   #FF3B30;   /* systemRed (light) */
   /* Deepened systemOrange (5.57:1 vs background, 6.21:1 vs white cards) —
      same deepening technique as --snm-success above. See dark-mode note for
@@ -299,7 +305,7 @@
 .light {
   color-scheme: light;
   /* Kept in sync with :root's light-mode values above -- see contrast note there. */
-  --snm-success: #248A3D;
+  --snm-success: #0E6E33;
   --snm-error:   #FF3B30;
   --snm-warning: #9A4B00; /* deepened systemOrange for light text — reverted from systemTeal */
   --snm-info:    #007AFF;

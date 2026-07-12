@@ -261,14 +261,24 @@ export function CompetitorsView() {
           <h1 className="ios-page-title">Pricing</h1>
         </div>
         {canWrite && (
-          <button
-            onClick={() => setCompetitorDialog({ open: true })}
-            className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-bold transition active:scale-[0.97]"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
-          >
-            <Plus className="h-4 w-4" />
-            Add Competitor
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCompetitorDialog({ open: true })}
+              className="flex items-center gap-1.5 h-11 px-4 rounded-full text-sm font-bold transition active:scale-[0.97]"
+              style={{ background: "var(--muted)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+            >
+              <Plus className="h-4 w-4" />
+              Competitor
+            </button>
+            <button
+              onClick={() => setPriceDialog({ open: true })}
+              className="flex items-center gap-1.5 h-11 px-4 rounded-full text-sm font-bold transition active:scale-[0.97]"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              <Tag className="h-4 w-4" />
+              Log Price
+            </button>
+          </div>
         )}
       </div>
 
@@ -1047,18 +1057,6 @@ export function CompetitorsView() {
         )}
       </div>
 
-      {/* ── Log Price FAB — thumb zone, bottom-right (Luke Wroblewski: 75% thumb use) ── */}
-      {canWrite && (
-        <button
-          onClick={() => setPriceDialog({ open: true })}
-          className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-30 flex items-center gap-2 h-14 px-5 rounded-full shadow-lg transition active:scale-[0.95]"
-          style={{ background: "var(--foreground)", color: "var(--background)", touchAction: "manipulation", boxShadow: "0 4px 24px color-mix(in srgb, var(--foreground) 20%, transparent)" }}
-          aria-label="Log competitor price"
-        >
-          <Tag className="h-4 w-4 shrink-0" />
-          <span className="text-[14px] font-bold">Log Price</span>
-        </button>
-      )}
 
       {/* ── Modals ── */}
       {competitorDialog.open && (

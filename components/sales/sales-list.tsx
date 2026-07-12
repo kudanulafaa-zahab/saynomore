@@ -210,7 +210,10 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
       style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+        {/* Neutral tile — the pill on the right already states status in
+            color; painting it twice per row was the "light green everywhere"
+            wash Ali flagged. One row, one colored element. */}
+        <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
@@ -557,7 +560,7 @@ export function SalesList() {
                           className="flex items-center justify-between gap-3 px-4 py-3 snm-pressable"
                           style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.bg, color: colors.text }}>
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
                               <Icon className="h-3.5 w-3.5" />
                             </div>
                             <div className="min-w-0">
