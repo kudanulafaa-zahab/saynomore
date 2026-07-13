@@ -38,11 +38,21 @@ The standing laws, each with the incident that created it:
   money/on, red = loss/destructive, orange = attention/cash-to-collect,
   systemBlue = pure info status (sync). A static panel painted in accent
   color is a bug (the "Pick up from"/"Bank Transfer" incident).
-- **Glass on floating chrome only — never on content.** Bars, sheets, menus,
-  palettes blur; in-flow cards never do (behind them is only the flat page
-  background — blur there is invisible GPU cost; caused real scroll lag).
-  Use the tokens: `--glass-blur` / `--glass-blur-lg`, one scrim recipe
-  (`--scrim-bg`/`--scrim-blur`).
+- **Backdrop-blur on floating chrome only — never on content.** Bars, sheets,
+  menus, palettes blur; in-flow cards never carry `backdrop-filter` (that was
+  the real scroll-lag cause — one compositor layer per card). Use the tokens:
+  `--glass-blur` / `--glass-blur-lg`, one scrim recipe (`--scrim-bg`/
+  `--scrim-blur`).
+- **Luminous glass on content = translucency, not blur (2026-07-13).** Ali
+  asked for glassmorphic content cards system-wide. The sanctioned recipe
+  gives that look with zero per-card blur: one fixed atmospheric page gradient
+  (`--app-bg`, painted by `body::before`) sits behind translucent surfaces so
+  depth peeks through, plus a specular top sheen (`--glass-sheen`) and the 1px
+  inner hairline (`--glass-inner`). `.snm-card`/`.glass` layer sheen over
+  `--glass-bg-1`. The gradients are NEUTRAL luminance only — no hue — so the
+  monochrome-accent law holds and green/red/orange stay the only meaning-
+  bearing colours. Do not "fix" content translucency by adding `backdrop-filter`
+  back; that reintroduces the jank the law above forbids.
 - **Rubber-band bounce stays ON.** It is the iOS signature. A commit once
   set `overscroll-behavior: none` believing bounce was "web feel" — that is
   backwards and it made the app feel dead. Never reintroduce it.

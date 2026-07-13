@@ -216,6 +216,18 @@
   --glass-blur:      blur(28px) saturate(180%);
   --glass-blur-lg:   blur(48px) saturate(200%);
 
+  /* ── Atmospheric depth (light) ────────────────────────────────────────
+     One fixed page-background gradient sits behind every translucent card,
+     so the surfaces read as real glass without per-card backdrop blur (the
+     blur that once caused scroll jank). Neutral luminance only — no hue, so
+     green/red/orange stay the only meaningful colours on screen. */
+  --app-bg:
+    radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
+    linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
+  /* Specular sheen laid over the card fill — a soft top-down highlight that
+     gives the surface material "curvature", the way light catches real glass. */
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.14) 32%, rgba(255,255,255,0) 62%);
+
   /* Legacy aliases (components reference these directly) */
   --glass-1: var(--glass-bg-1);
   --glass-2: var(--glass-bg-2);
@@ -289,6 +301,15 @@
     --glass-blur:      blur(32px) saturate(160%);
     --glass-blur-lg:   blur(56px) saturate(180%);
 
+    /* ── Atmospheric depth (dark) ──────────────────────────────────────
+       Neutral graphite glow near the top fading to pure OLED black — gives
+       the void real depth for translucent cards to float above. */
+    --app-bg:
+      radial-gradient(1000px 780px at 50% -16%, rgba(72,74,84,0.40), rgba(72,74,84,0) 58%),
+      radial-gradient(760px 620px at 100% 6%, rgba(48,50,60,0.28), rgba(48,50,60,0) 55%),
+      linear-gradient(180deg, #070708 0%, #000000 60%);
+    --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0) 62%);
+
     /* Legacy aliases */
     --glass-1: var(--glass-bg-1);
     --glass-2: var(--glass-bg-2);
@@ -349,6 +370,10 @@
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
   --glass-blur:      blur(28px) saturate(180%);
   --glass-blur-lg:   blur(48px) saturate(200%);
+  --app-bg:
+    radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
+    linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.14) 32%, rgba(255,255,255,0) 62%);
   --glass-1: var(--glass-bg-1);
   --glass-2: var(--glass-bg-2);
   --surface:            #f2f2f7;
@@ -405,6 +430,11 @@
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
   --glass-blur:      blur(32px) saturate(160%);
   --glass-blur-lg:   blur(56px) saturate(180%);
+  --app-bg:
+    radial-gradient(1000px 780px at 50% -16%, rgba(72,74,84,0.40), rgba(72,74,84,0) 58%),
+    radial-gradient(760px 620px at 100% 6%, rgba(48,50,60,0.28), rgba(48,50,60,0) 55%),
+    linear-gradient(180deg, #070708 0%, #000000 60%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0) 62%);
   --glass-1: var(--glass-bg-1);
   --glass-2: var(--glass-bg-2);
   --surface:            #0a0a0a;
@@ -431,6 +461,7 @@
     color: var(--foreground);
     font-family: var(--font-sys);
     min-height: 100dvh;
+    position: relative;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     padding-left:  env(safe-area-inset-left);
@@ -445,6 +476,21 @@
     /* Prevent long-press text selection (native app feel) */
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  /* ── Atmospheric page background ──────────────────────────────────────────
+     A single fixed gradient layer behind all content. Because it never
+     scrolls, translucent cards above it reveal a subtly shifting backdrop as
+     the page moves — the "glass peeking onto depth" effect — at the cost of
+     exactly one GPU layer (not one per card). Sits at z-index -1 under the
+     app shell. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--app-bg);
+    pointer-events: none;
   }
 
   /* Re-enable text selection only where users actually need to select text */
@@ -496,9 +542,12 @@
   /* ── Primary surface — cards, list rows, panels ── */
   .glass {
     /* Content surface — NO backdrop-filter (glass is for floating chrome).
-       Behind an in-flow card sits only the flat page background, so blur
-       here was invisible cost: one extra compositor layer per card. */
-    background:            var(--glass-bg-1);
+       Materiality now comes from three cheap ingredients instead of blur:
+       a translucent fill over the atmospheric page gradient (depth peeks
+       through), a specular top sheen (--glass-sheen), and the 1px inner
+       hairline (--glass-inner). No per-card compositor layer, no scroll jank. */
+    background-color: var(--glass-bg-1);
+    background-image: var(--glass-sheen);
     border:        0.5px solid var(--glass-border-lo);
     border-radius: var(--radius-xl);
     box-shadow:    var(--glass-shadow), var(--glass-inner);
@@ -557,8 +606,10 @@
 
   /* ── snm-card aliases — components use these directly ── */
   .snm-card {
-    /* Content surface — no blur, see .glass note. */
-    background:            var(--glass-bg-1);
+    /* Content surface — no blur, see .glass note. Luminous glass = translucent
+       fill over the atmospheric backdrop + specular sheen + inner hairline. */
+    background-color: var(--glass-bg-1);
+    background-image: var(--glass-sheen);
     border:        0.5px solid var(--glass-border-lo);
     border-radius: 16px;
     box-shadow:    var(--glass-shadow), var(--glass-inner);
