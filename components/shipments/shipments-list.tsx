@@ -14,7 +14,7 @@ import {
   type ShipmentRow, type ShipmentStatus,
 } from "@/lib/queries/shipments";
 import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
-import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { Sheet } from "@/components/ui/sheet";
 import { getCurrentUserRole, listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory";
 
@@ -23,11 +23,6 @@ import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory
 const CARD: React.CSSProperties = {
   background: "var(--glass-1)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
-} as const;
-
-const CARD_L2: React.CSSProperties = {
-  background: "var(--glass-2)",
-  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
 /* ── Status config ───────────────────────────────────────────────────────── */
@@ -359,8 +354,7 @@ export function ShipmentsList() {
 
       {/* ── Delete confirm ── */}
       {deleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
-          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
+        <Sheet open onClose={() => setDeleteDialog(null)} maxWidth="max-w-sm">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
@@ -398,8 +392,7 @@ export function ShipmentsList() {
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
             </div>
-          </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );
@@ -517,7 +510,6 @@ function NewPoSheet({
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
-  useBodyScrollLock(true);
   const [reference, setReference]   = useState(nextShipmentRef(existing));
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
   const [saving, setSaving]         = useState(false);
@@ -538,27 +530,7 @@ function NewPoSheet({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 snm-modal-wrap snm-scrim-in"
-      style={{ background: "var(--scrim-bg)" }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl sm:rounded-3xl overflow-y-auto snm-modal-card snm-sheet-in"
-        style={{
-          background: "var(--glass-2)",
-          backdropFilter: "var(--glass-blur-lg)",
-          WebkitBackdropFilter: "var(--glass-blur-lg)",
-          padding: "12px 24px",
-          paddingBottom: "calc(32px + env(safe-area-inset-bottom, 16px))",
-          maxWidth: 480,
-          boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
-        }}
-      >
-        {/* Handle */}
-        <div className="w-10 h-1 rounded-full mx-auto mb-6 sm:hidden" style={{ background: "var(--glass-border)" }} />
-
+    <Sheet open onClose={onClose} maxWidth="max-w-[480px]">
         {/* Icon + title */}
         <div className="flex items-center gap-3 mb-6">
           <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--glass-bg-2)" }}>
@@ -623,7 +595,6 @@ function NewPoSheet({
               : <><span>Create & Add Products</span><ChevronRight className="h-4 w-4" /></>}
           </button>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

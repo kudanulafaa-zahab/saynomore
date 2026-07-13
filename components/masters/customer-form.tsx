@@ -21,6 +21,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -324,13 +325,10 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
         </Button>
       </div>
 
-      {/* Phone-duplicate confirmation — appears on save when the phone already exists */}
+      {/* Phone-duplicate confirmation — appears on save when the phone already exists.
+          z=70 so it sits above the customer-form dialog it's raised from. */}
       {phoneConflict && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center snm-scrim-in"
-          style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-          onClick={() => setPhoneConflict(null)}>
-          <div className="w-full max-w-lg p-5 space-y-3" onClick={(e) => e.stopPropagation()}
-            style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", borderTop: "0.5px solid var(--glass-border-lo)", borderRadius: "20px 20px 0 0", boxShadow: "var(--glass-shadow-lg)" }}>
+        <Sheet open onClose={() => setPhoneConflict(null)} maxWidth="max-w-lg" z={70}>
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
               <div className="min-w-0">
@@ -365,8 +363,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
             <Button variant="ghost" className="h-11 w-full" onClick={() => setPhoneConflict(null)}>
               Cancel
             </Button>
-          </div>
-        </div>
+        </Sheet>
       )}
     </>
   );

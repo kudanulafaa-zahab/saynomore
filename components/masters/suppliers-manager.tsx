@@ -27,7 +27,7 @@ import {
   type SupplierCurrency,
 } from "@/lib/queries/masters";
 import { withOfflineFallback } from "@/lib/offline-write";
-import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { Sheet } from "@/components/ui/sheet";
 import { haptic } from "@/lib/haptics";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
@@ -35,11 +35,6 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 const CARD = {
   background: "var(--glass-1)",
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
-} as const;
-
-const CARD_L2 = {
-  background: "var(--glass-2)",
-  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
 } as const;
 
 const CURRENCIES: SupplierCurrency[] = ["IDR", "USD", "MVR", "MYR", "THB", "CNY", "EUR"];
@@ -397,7 +392,6 @@ function SupplierModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  useBodyScrollLock(true);
   const [name, setName] = useState(editing?.name ?? "");
   const [country, setCountry] = useState(editing?.country ?? "Indonesia");
   const [currency, setCurrency] = useState<SupplierCurrency>(editing?.invoice_currency ?? "IDR");
@@ -438,8 +432,7 @@ function SupplierModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
-      <div className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-modal-card" style={CARD_L2}>
+    <Sheet open onClose={onClose}>
         <p className="text-[16px] font-bold text-foreground">
           {editing ? "Edit Vendor" : "New Vendor"}
         </p>
@@ -477,7 +470,6 @@ function SupplierModal({
             {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save Changes" : "Create Vendor"}
           </button>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

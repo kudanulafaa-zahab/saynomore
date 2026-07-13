@@ -24,7 +24,7 @@ import {
   type CompetitorPriceGap,
 } from "@/lib/queries/competitors";
 import { withOfflineFallback } from "@/lib/offline-write";
-import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { Sheet } from "@/components/ui/sheet";
 import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
@@ -36,25 +36,6 @@ const CARD = {
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
-// Opaque modal/sheet surface. --glass-2 is only ~13% opaque in dark mode, so a
-// dialog built on it lets the page bleed through (the "locked/see-through"
-// bug). --popover is the near-opaque surface meant for floating panels; pair it
-// with the heavy glass blur so it reads as a solid layer above the content.
-const MODAL_SURFACE = {
-  background: "var(--popover)",
-  backdropFilter: "var(--glass-blur-lg)",
-  WebkitBackdropFilter: "var(--glass-blur-lg)",
-  boxShadow: "var(--glass-shadow-lg)",
-  border: "0.5px solid var(--glass-border-lo)",
-} as const;
-
-// Backdrop scrim for those modals — the blur is what actually hides the page
-// behind a translucent-edged panel, so it must be applied, not just the tint.
-const MODAL_SCRIM = {
-  background: "var(--scrim-bg)",
-  backdropFilter: "var(--scrim-blur)",
-  WebkitBackdropFilter: "var(--scrim-blur)",
-} as const;
 
 const BASIS_LABEL: Record<PriceBasis, string> = {
   per_pack:   "Per pack",
@@ -1126,8 +1107,7 @@ export function CompetitorsView() {
         />
       )}
       {deleteCompDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={MODAL_SCRIM} onClick={() => setDeleteCompDialog(null)}>
-          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4 snm-sheet-in" style={MODAL_SURFACE} onClick={(e) => e.stopPropagation()}>
+        <Sheet open onClose={() => setDeleteCompDialog(null)} maxWidth="max-w-sm">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}><AlertTriangle className="h-5 w-5" /></div>
               <div>
@@ -1160,12 +1140,10 @@ export function CompetitorsView() {
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
             </div>
-          </div>
-        </div>
+        </Sheet>
       )}
       {deletePriceDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={MODAL_SCRIM} onClick={() => setDeletePriceDialog(null)}>
-          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4 snm-sheet-in" style={MODAL_SURFACE} onClick={(e) => e.stopPropagation()}>
+        <Sheet open onClose={() => setDeletePriceDialog(null)} maxWidth="max-w-sm">
             <p className="text-[15px] font-bold text-foreground">Remove price entry?</p>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
             <div className="flex gap-2">
@@ -1192,8 +1170,7 @@ export function CompetitorsView() {
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Delete"}
               </button>
             </div>
-          </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );
@@ -1202,7 +1179,6 @@ export function CompetitorsView() {
 // ── Competitor Modal ──────────────────────────────────────────────────────────
 
 function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow; onClose: () => void; onDone: () => void }) {
-  useBodyScrollLock(true);
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -1226,33 +1202,23 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in"
-      style={MODAL_SCRIM}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-sheet-in"
-        style={MODAL_SURFACE}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
-        <div className="space-y-1.5">
-          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
-        </div>
-        <div className="space-y-1.5">
-          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
-        </div>
-        <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
-          <button onClick={save} disabled={saving || !name.trim()} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Add"}
-          </button>
-        </div>
+    <Sheet open onClose={onClose}>
+      <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
+      <div className="space-y-1.5">
+        <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Novelty" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
       </div>
-    </div>
+      <div className="space-y-1.5">
+        <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={2} className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+        <button onClick={save} disabled={saving || !name.trim()} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Add"}
+        </button>
+      </div>
+    </Sheet>
   );
 }
 
@@ -1268,7 +1234,6 @@ function PriceModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  useBodyScrollLock(true);
   const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
@@ -1338,20 +1303,22 @@ function PriceModal({
   // not a free-floating, content-sized card (which drags with the finger
   // instead of scrolling, and reads as a webpage, not a native sheet).
   return (
-    <div className="fixed inset-0 z-50 flex items-end snm-scrim-in" style={{ ...MODAL_SCRIM, touchAction: "none" }} onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full rounded-t-3xl flex flex-col snm-modal-card snm-sheet-in"
-        style={{ ...MODAL_SURFACE, borderBottom: "none", height: "88dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", touchAction: "none" }}
-      >
-        {/* Fixed header — grabber + title stay pinned */}
-        <div className="shrink-0 px-6 pt-3">
-          <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />
-          <p className="text-[16px] font-bold text-foreground pb-3">{editing ? "Edit Price" : "Log Competitor Price"}</p>
+    <Sheet
+      open
+      onClose={onClose}
+      variant="docked"
+      heightDvh={88}
+      header={<p className="text-[16px] font-bold text-foreground pb-3">{editing ? "Edit Price" : "Log Competitor Price"}</p>}
+      footer={
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={save} disabled={saving || !selectedCompId || !variantId || !priceMvr} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Log Price"}
+          </button>
         </div>
-
-        {/* Scrollable body — the ONLY scroll region */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-6 pb-4 space-y-4" style={{ touchAction: "pan-y" }}>
+      }
+    >
+      <div className="space-y-4">
           {/* Competitor selector — show all, or allow adding inline */}
           <div className="space-y-1.5">
             <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>COMPETITOR *</p>
@@ -1433,16 +1400,7 @@ function PriceModal({
             <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NOTES</p>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Promo price seen at Novelty Maafannu" rows={2} className="w-full rounded-xl px-4 py-3 ios-subhead text-foreground outline-none placeholder:text-muted-foreground resize-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
           </div>
-        </div>
-
-        {/* Fixed footer — pinned, lifts above the keyboard */}
-        <div className="shrink-0 flex gap-2 px-6 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-          <button onClick={onClose} className="flex-1 h-12 rounded-xl ios-subhead font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
-          <button onClick={save} disabled={saving || !selectedCompId || !variantId || !priceMvr} className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40" style={{ background: "var(--foreground)", color: "var(--background)" }}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : editing ? "Save" : "Log Price"}
-          </button>
-        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }
