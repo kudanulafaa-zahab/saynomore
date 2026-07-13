@@ -36,9 +36,24 @@ const CARD = {
   boxShadow: "var(--glass-shadow), var(--glass-inner)",
 } as const;
 
-const CARD_L2 = {
-  background: "var(--glass-2)",
-  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
+// Opaque modal/sheet surface. --glass-2 is only ~13% opaque in dark mode, so a
+// dialog built on it lets the page bleed through (the "locked/see-through"
+// bug). --popover is the near-opaque surface meant for floating panels; pair it
+// with the heavy glass blur so it reads as a solid layer above the content.
+const MODAL_SURFACE = {
+  background: "var(--popover)",
+  backdropFilter: "var(--glass-blur-lg)",
+  WebkitBackdropFilter: "var(--glass-blur-lg)",
+  boxShadow: "var(--glass-shadow-lg)",
+  border: "0.5px solid var(--glass-border-lo)",
+} as const;
+
+// Backdrop scrim for those modals — the blur is what actually hides the page
+// behind a translucent-edged panel, so it must be applied, not just the tint.
+const MODAL_SCRIM = {
+  background: "var(--scrim-bg)",
+  backdropFilter: "var(--scrim-blur)",
+  WebkitBackdropFilter: "var(--scrim-blur)",
 } as const;
 
 const BASIS_LABEL: Record<PriceBasis, string> = {
@@ -1111,8 +1126,8 @@ export function CompetitorsView() {
         />
       )}
       {deleteCompDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
-          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={MODAL_SCRIM} onClick={() => setDeleteCompDialog(null)}>
+          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4 snm-sheet-in" style={MODAL_SURFACE} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}><AlertTriangle className="h-5 w-5" /></div>
               <div>
@@ -1149,8 +1164,8 @@ export function CompetitorsView() {
         </div>
       )}
       {deletePriceDialog && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
-          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4" style={CARD_L2}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={MODAL_SCRIM} onClick={() => setDeletePriceDialog(null)}>
+          <div className="w-full max-w-sm rounded-3xl p-6 space-y-4 snm-sheet-in" style={MODAL_SURFACE} onClick={(e) => e.stopPropagation()}>
             <p className="text-[15px] font-bold text-foreground">Remove price entry?</p>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>This price record will be permanently deleted.</p>
             <div className="flex gap-2">
@@ -1192,7 +1207,6 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   async function save() {
     if (!name.trim()) return;
@@ -1212,8 +1226,16 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in" style={{ background: "var(--scrim-bg)" }}>
-      <div className="w-full max-w-md rounded-3xl p-6 space-y-4" style={CARD_L2}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 snm-modal-wrap snm-scrim-in"
+      style={MODAL_SCRIM}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-3xl p-6 space-y-4 snm-sheet-in"
+        style={MODAL_SURFACE}
+        onClick={(e) => e.stopPropagation()}
+      >
         <p className="text-[16px] font-bold text-foreground">{editing ? "Edit Competitor" : "Add Competitor"}</p>
         <div className="space-y-1.5">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>NAME *</p>
@@ -1248,7 +1270,6 @@ function PriceModal({
 }) {
   useBodyScrollLock(true);
   const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
-  const CARD_L2 = { background: "var(--glass-2)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
   const [variantId, setVariantId] = useState(editing?.variant_id ?? "");
@@ -1317,11 +1338,11 @@ function PriceModal({
   // not a free-floating, content-sized card (which drags with the finger
   // instead of scrolling, and reads as a webpage, not a native sheet).
   return (
-    <div className="fixed inset-0 z-50 flex items-end snm-scrim-in" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end snm-scrim-in" style={{ ...MODAL_SCRIM, touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full rounded-t-3xl flex flex-col snm-modal-card snm-sheet-in"
-        style={{ ...CARD_L2, height: "88dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", touchAction: "none" }}
+        style={{ ...MODAL_SURFACE, borderBottom: "none", height: "88dvh", maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)", touchAction: "none" }}
       >
         {/* Fixed header — grabber + title stay pinned */}
         <div className="shrink-0 px-6 pt-3">
