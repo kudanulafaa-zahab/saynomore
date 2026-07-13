@@ -1,63 +1,80 @@
-# SESSION HANDOFF — SayNoMore
+# START HERE — SayNoMore, current source of truth
 
-_Last updated: 2026-07-13 · read this first, then `CLAUDE.md` + `skills.md`._
+_Last verified: 2026-07-13. If a memory note or an old file disagrees with THIS
+file, this file wins — it is checked against live git/Supabase/Vercel below._
+_Read this first, then `CLAUDE.md` + `skills.md`._
 
-## How to read this repo
-- `CLAUDE.md` = hard rules (money math in Postgres, publish flow, key paths).
-- `skills.md` = the design/engineering laws with the incident behind each one.
-  **These win over any fresh idea unless Ali overrules.**
-- This file = live status + how to work with Ali's iPhone.
+---
 
-## Where things stand (all LIVE in production, verified READY on Vercel)
-Branch: `claude/saynomore-handoff-n1e3du` → ff-merged to `main`. Latest commits:
-- `42f4689` — **Luminous glass design language.** Atmospheric page gradient
-  (`--app-bg`, painted by `body::before`, one fixed GPU layer, neutral
-  luminance only) behind translucent cards + specular sheen (`--glass-sheen`)
-  + 1px inner hairline. NO per-card backdrop-blur (that was the old scroll-lag
-  cause). Light/dark share identical DNA. skills.md law updated to sanction it.
-- `5274c5c` — **Dispatch "Completed Today" bug + dashboard heading.**
-  `listAllDispatchOrders()` used to pull *all* delivered orders ever and dump
-  them under "Completed Today"; now bounded to since-midnight Maldives time
-  (helper `mvtStartOfTodayISO` in `lib/queries/sales.ts`). Dashboard now opens
-  with a time-aware greeting header (`app/(app)/dashboard/page.tsx`).
-- `c5bfef3` — light-mode deep-emerald success `#0E6E33` (old `#248A3D` measured
-  3.94:1, below AA); one-colour-per-sales-row; Log Price moved off the content
-  into the Market header.
+## The app
+An **installed iOS PWA** for an FMCG import/distribution business in the Maldives.
+Owner: **Ali** (non-technical, runs the business daily from his iPhone).
+Full flow: 7-level SKU hierarchy → purchase order → shipment with CBM landed-cost
+engine → GRN receipt → tier-priced sales orders → FIFO depletion → dispatch/COD →
+payments → P&L / reports.
 
-## Open / needs Ali's eyes on device
-1. **Glass intensity is unverified on the real phone.** The atmospheric depth
-   is deliberately subtle. If it reads too strong or too faint in Maldivian
-   daylight, tune it in ONE place: `--app-bg` (light + dark blocks) and
-   `--glass-sheen` in `app/globals.css`. Nothing else needs touching.
-2. **System-wide light-green audit** was done at the token level (one
-   `--snm-success` change deepens everything), but Ali asked to "look at
-   everything" — worth a screenshot pass across every module to confirm no
-   pale-green survives in an inline usage. **Dark-mode green must NOT change
-   (Ali approved it).**
-3. The glassmorphic restyle so far lives at the token layer, so it hit every
-   `.snm-card`/`.glass` at once. If Ali wants per-module refinement (KPI card
-   typography hierarchy, chart restyle — "Refined Data Viz"), that's the next
-   layer of work and is component-by-component.
+## Exact coordinates (verified live, 2026-07-13)
+- **Live app (the PWA):** https://saynomore-beta.vercel.app
+  ← this is Ali's exact installed app. Verify every change here.
+- **Login:** account **kudanulafaa@gmail.com**.
+  🔒 Password is NOT stored in this repo (it is public). It lives in Ali's
+  password manager. Never commit it here or anywhere in git.
+- **GitHub:** `kudanulafaa-zahab/saynomore` (PUBLIC repo). Default branch `main`.
+- **Active dev branch:** `claude/saynomore-handoff-n1e3du` (ff-merged into `main`).
+- **Supabase:** project ref `smhdwkrmiytvpsgqezsl` · name `saynomore` ·
+  org `yzyphsswhzbdhjbwqxlq` · URL https://smhdwkrmiytvpsgqezsl.supabase.co
+  (Claude is authorized to apply migrations directly to this production project.)
+- **Vercel:** project `saynomore` · team `kudanulafaa-zahabs-projects`
+  (`team_qyYXhgTXNYb5dCxNgfIMmQxk`). `main` auto-deploys to the live URL above.
+- **Stack:** Next.js 16.2.4 (App Router + Turbopack, React Compiler on), React 19,
+  TypeScript strict, Tailwind v4, Supabase (Postgres + RLS). npm package name is
+  `saynomore-ali`.
 
-## Working with Ali's iOS device (the QA channel)
-- Ali runs the business from an **installed iOS PWA**. His **screenshots are
-  the bug reports** — treat each as evidence and trace it to a line of code.
-- **Live self-verification from inside the container was blocked last session**
-  by the environment network policy (couldn't reach the production URL or
-  Supabase to log in). If live verification matters this session, that policy
-  needs to allow the app domain + Supabase; otherwise fall back to: build/tsc
-  locally + Ali's screenshots. Ali holds the app login — do not store it here.
-- Production URL is the Vercel project `saynomore`
-  (team `kudanulafaa-zahabs-projects`). Never claim a mobile fix works without
-  either a screenshot from Ali or live access — say plainly when you couldn't
-  verify and what would unlock it.
+## Working folder (environment-dependent — the GitHub repo is the constant)
+- **Desktop (Claude app on Windows):** `C:\Users\futurehomes\Desktop\Claude APP\saynomore-ali`
+  — this is the canonical local checkout. If a sibling `saynomore` folder exists,
+  ignore it; use `saynomore-ali`.
+- **Claude Code on the web:** each session clones fresh to its own path
+  (e.g. `/home/user/saynomore`). That's normal and correct — it's the same
+  GitHub repo. Trust `git remote -v` + `git log origin/main`, not the folder name.
+
+## Latest state on `main` (as of this file)
+Tip includes, newest first: **HANDOFF (this)** · luminous glass design language
+(atmospheric `--app-bg` + `--glass-sheen`, no per-card blur) · dispatch
+"Completed Today" fix (bounded to Maldives midnight) + dashboard greeting header ·
+light-mode deep-emerald success `#0E6E33` · graphite accent · chrome overhaul
+(large titles, floating glass tab bar) · business intelligence (receivables aging,
+expiry tracking, Promo Advisor, morning briefing, campaign ROI) · office/driver
+notifications · Market/Expenses restructure. All deployed READY to the live URL.
+
+⚠️ If a session ever reports the "last commit" as `d17bde0` ("Perf: fix dispatch
+N+1…"), it is **~24 commits stale**. Fix it: `git fetch origin && git reset --hard
+origin/main`, then re-read this file. Do NOT let a stale checkout force-push.
+
+## Open / needs Ali's eyes on the phone
+1. **Glass depth is unverified on the real device.** Deliberately subtle. Too
+   strong or too faint? Tune ONE place: `--app-bg` + `--glass-sheen` (light AND
+   dark blocks) in `app/globals.css`. Nothing else.
+2. **Light-green sweep:** deepened at the token level (one `--snm-success`), but
+   Ali asked to check every module by screenshot. **Dark-mode green must NOT
+   change — Ali approved it.**
+3. **Refined Data Viz** (per-module KPI typography hierarchy, chart restyle) is
+   the next design layer — component-by-component, not yet done.
+
+## Working with Ali's iPhone (the QA channel)
+- Ali's **screenshots are the bug reports** — trace each to a line of code.
+- **Self-verifying live from inside a container is gated by the environment's
+  network policy.** If a session can't reach `saynomore-beta.vercel.app` or
+  Supabase to log in, that policy must allow those domains; otherwise fall back
+  to `tsc`/`build` + Ali's screenshots. Never claim a mobile fix works without a
+  screenshot or live access — say plainly when you couldn't verify.
 
 ## Publish flow (every confirmed change)
-`commit → git push -u origin <branch> → git checkout main → git merge --ff-only
-→ git push origin main → confirm Vercel deploy READY`. Supabase changes go live
-immediately via MCP (migrations: file in `supabase/migrations/NNNN_*.sql` AND
-apply live in the same work unit; run advisors after DDL; REVOKE anon on every
-new SECURITY DEFINER fn in the same migration).
+`commit → git push -u origin <branch> → git checkout main → git merge --ff-only →
+git push origin main → confirm Vercel READY at the live URL`. Supabase migrations:
+file in `supabase/migrations/NNNN_*.sql` AND apply live via MCP in the same work
+unit; REVOKE anon on every new SECURITY DEFINER fn in the same migration; run
+advisors after DDL.
 
 ## Talking to Ali
 Plain English, lead with the answer, ONE recommendation, rufiyaa before
