@@ -104,9 +104,9 @@ export function MarginWatch() {
         </span>
       </div>
       <p className="ios-footnote mb-4" style={{ color: "var(--muted-foreground)" }}>
-        {drifted.length > 0 && `${drifted.length} price${drifted.length === 1 ? "" : "s"} below target margin. `}
-        {unpriced.length > 0 && `${unpriced.length} in stock with no price. `}
-        {uncosted.length > 0 && `${uncosted.length} in stock with no landed cost.`}
+        {drifted.length > 0 && `${drifted.length} price${drifted.length === 1 ? "" : "s"} slipped below your target after the latest shipment cost more — you're leaving margin on the table. Tap to reprice to target. `}
+        {unpriced.length > 0 && `${unpriced.length} product${unpriced.length === 1 ? " is" : "s are"} in stock with no selling price — you can't sell ${unpriced.length === 1 ? "it" : "them"} until priced. `}
+        {uncosted.length > 0 && `${uncosted.length} ${uncosted.length === 1 ? "has" : "have"} no landed cost yet — margin can't be trusted until the GRN is costed.`}
       </p>
 
       <div className="space-y-2">
@@ -142,10 +142,11 @@ export function MarginWatch() {
               <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
                 {r.status === "below_target" && r.worst_margin_pct != null && (
                   <>
+                    {"Earning only "}
                     <span style={{ color: "var(--snm-warning)", fontWeight: 600 }}>
                       {r.worst_margin_pct}%
                     </span>
-                    {" now · target "}{r.target_margin_pct}% · MVR {fmt(Number(r.stock_value_mvr))} in stock
+                    {" where you set "}{r.target_margin_pct}%{" · MVR "}{fmt(Number(r.stock_value_mvr))} in stock at this price
                   </>
                 )}
                 {r.status === "no_price" && (

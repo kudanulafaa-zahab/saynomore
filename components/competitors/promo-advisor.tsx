@@ -26,15 +26,43 @@ export function PromoAdvisor() {
 
   const totalValue = rows.reduce((s, r) => s + Number(r.stock_value_mvr), 0);
 
-  async function copyCaption(r: PromoSuggestionRow) {
+  // A short, human month like "August" from an expiry days count — used to
+  // give the caption a concrete "best before" instead of a vague "hurry".
+  function expiryMonth(daysLeft: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + daysLeft);
+    return d.toLocaleDateString("en-MV", { month: "long" });
+  }
+
+  // The caption adapts to WHY this SKU is on the list, so no two posts read
+  // the same. Expiring stock leads with a best-before date (real urgency);
+  // pure dead stock leads with the saving. Warm, order-now, no fake claims.
+  function buildCaption(r: PromoSuggestionRow): string {
     const name = r.full_path.replace(/ › /g, " ");
-    const caption =
-      `🔥 OFFER — ${name}\n` +
-      `Now MVR ${fmt(r.promo_pack_mvr)}/pack (was MVR ${fmt(r.current_pack_mvr)}) — save ${r.discount_pct}%!\n` +
-      `${r.pcs_per_pack} pcs per pack · while stocks last.\n` +
-      `📱 Order via WhatsApp / Viber.`;
+    const priceLine = `Now just MVR ${fmt(r.promo_pack_mvr)}/pack — was MVR ${fmt(r.current_pack_mvr)}, you save ${r.discount_pct}%.`;
+    const packLine  = `${r.pcs_per_pack} pieces in every pack.`;
+    const order     = `📱 Message us on WhatsApp or Viber to order — delivery across Malé.`;
+
+    const expiring = r.expiry_days_left != null && r.expiry_days_left <= 180;
+    if (expiring) {
+      return (
+        `✨ ${name} — special price this month\n` +
+        `${priceLine}\n` +
+        `Best before ${expiryMonth(r.expiry_days_left!)} — stock up while it lasts. ${packLine}\n` +
+        order
+      );
+    }
+    return (
+      `✨ ${name} — this week's deal\n` +
+      `${priceLine}\n` +
+      `${packLine} Limited stock — first come, first served.\n` +
+      order
+    );
+  }
+
+  async function copyCaption(r: PromoSuggestionRow) {
     try {
-      await navigator.clipboard.writeText(caption);
+      await navigator.clipboard.writeText(buildCaption(r));
       toast.success("Caption copied — paste it on Facebook/Instagram/Viber");
     } catch {
       toast.error("Could not copy — long-press to select instead");
@@ -47,11 +75,13 @@ export function PromoAdvisor() {
         <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>Promo advisor</p>
         <span className="ios-caption1 font-semibold px-2 py-0.5 rounded-full"
           style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
-          MVR {fmt(totalValue)} sitting
+          MVR {fmt(totalValue)} to free up
         </span>
       </div>
       <p className="ios-footnote mb-4" style={{ color: "var(--muted-foreground)" }}>
-        Slow stock you could clear at a promo price that still makes 10% on today&apos;s landed cost.
+        {rows.length === 1 ? "This product is" : `These ${rows.length} products are`} moving slowly and tying up cash.
+        Clear {rows.length === 1 ? "it" : "them"} at the promo price below — still MVR-positive at 10% on today&apos;s cost —
+        and turn shelf stock back into money. Tap <span style={{ color: "var(--foreground)", fontWeight: 600 }}>Copy post</span> for a ready caption.
       </p>
 
       <div className="space-y-2">
@@ -65,15 +95,15 @@ export function PromoAdvisor() {
                 </p>
                 <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
                   {r.days_of_stock == null
-                    ? "No sales in 90 days"
+                    ? "Hasn't sold in 90 days"
                     : r.days_of_stock > 730
-                      ? "2y+ of stock at current pace"
-                      : `${r.days_of_stock}d of stock`}{" "}
-                  · MVR {fmt(Number(r.stock_value_mvr))} at cost
+                      ? "Over 2 years' stock at this pace"
+                      : `${r.days_of_stock} days of stock left`}{" "}
+                  · frees MVR {fmt(Number(r.stock_value_mvr))} in cash
                 </p>
                 {r.expiry_days_left != null && r.expiry_days_left <= 180 && (
                   <p className="ios-footnote font-semibold mt-0.5" style={{ color: "var(--snm-warning)" }}>
-                    ⚠ Expires in {r.expiry_days_left} days — clear it first
+                    ⚠ Expires in {r.expiry_days_left} days — sell this one first or it's a write-off
                   </p>
                 )}
                 {/* Money in bold foreground; the qualifiers as chips — small

@@ -291,11 +291,16 @@ export function CompetitorsView() {
       {/* ── Priced above competitors — all SKUs at a glance, worst gap first ── */}
       {priceGaps.length > 0 && (
         <div className="rounded-2xl p-4" style={CARD}>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-4 w-4" style={{ color: "var(--snm-warning)" }} />
-            <p className="ios-subhead font-bold text-foreground">
-              {priceGaps.length} product{priceGaps.length !== 1 ? "s" : ""} priced above competitors
-            </p>
+          <div className="flex items-start gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--snm-warning)" }} />
+            <div>
+              <p className="ios-subhead font-bold text-foreground">
+                {priceGaps.length} product{priceGaps.length !== 1 ? "s" : ""} dearer than the competition
+              </p>
+              <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                Customers may buy elsewhere. Tap one to see the gap and how low you can go while staying profitable.
+              </p>
+            </div>
           </div>
           <div className="space-y-1.5">
             {priceGaps.map((g) => (
@@ -462,15 +467,28 @@ export function CompetitorsView() {
                 : isAlert
                   ? "color-mix(in srgb, var(--snm-error) 30%, transparent)"
                   : "color-mix(in srgb, var(--snm-warning) 30%, transparent)";
+              // What margin Ali would KEEP if he matched the cheapest competitor
+              // per piece — real recommendation, from landed cost already in scope.
+              const marginIfMatched = topCompPerPiece > landedPerPiece && topCompPerPiece > 0
+                ? ((topCompPerPiece - landedPerPiece) / topCompPerPiece) * 100
+                : null;
+              const compName = topCompEntry?.comp?.name ?? "the cheapest competitor";
+              const advice = delta <= 0
+                ? `You're the cheapest here — hold this price and protect the margin.`
+                : marginIfMatched != null && marginIfMatched >= 5
+                  ? `Match ${compName} and you'd still keep ${marginIfMatched.toFixed(0)}% margin. Undercutting could win the sale.`
+                  : marginIfMatched != null
+                    ? `Matching ${compName} drops you to ${marginIfMatched.toFixed(0)}% margin — thin. Compete on service, not price.`
+                    : `Matching ${compName} would sell below your cost — don't chase this one on price.`;
               return (
                 <div className="rounded-2xl px-5 py-4" style={{ background: bg, border: `1px solid ${border}` }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: col }}>
-                        {delta <= 0 ? "You're cheaper" : isAlert ? "Review price" : "Slightly above"}
+                        {delta <= 0 ? "You're cheaper" : isAlert ? "Priced too high" : "Slightly above"}
                       </p>
                       <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                        vs <span className="font-semibold" style={{ color: "var(--foreground)" }}>{topCompEntry?.comp?.name}</span> · cheapest
+                        vs <span className="font-semibold" style={{ color: "var(--foreground)" }}>{topCompEntry?.comp?.name}</span> · cheapest logged
                       </p>
                     </div>
                     <div className="text-right shrink-0">
@@ -480,6 +498,10 @@ export function CompetitorsView() {
                       <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>MVR/pc · {Math.abs(pctAbove).toFixed(0)}%</p>
                     </div>
                   </div>
+                  {/* The recommendation — the whole point of the panel */}
+                  <p className="ios-subhead mt-3 pt-3" style={{ color: "var(--foreground)", borderTop: `1px solid ${border}` }}>
+                    {advice}
+                  </p>
                 </div>
               );
             })()}

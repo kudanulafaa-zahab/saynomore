@@ -89,14 +89,14 @@ export function CampaignsCard() {
                   if (m.roi_multiple != null && lift > 0) {
                     return (
                       <p className="ios-footnote font-semibold snm-num" style={{ color: "var(--snm-success)" }}>
-                        ≈{m.roi_multiple}× return · +MVR {fmt(lift)} in sales during it
+                        Earned back MVR {m.roi_multiple} for every MVR 1 spent · +MVR {fmt(lift)} extra sales — worth repeating
                       </p>
                     );
                   }
                   if (lift < 0) {
                     return (
                       <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
-                        No lift measured (−MVR {fmt(Math.abs(lift))} vs before)
+                        No sales lift (−MVR {fmt(Math.abs(lift))} vs the weeks before) — try a different product or offer next time
                       </p>
                     );
                   }

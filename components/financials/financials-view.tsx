@@ -130,8 +130,8 @@ function CodView() {
               { label: "Pending Deposit", value: `MVR ${fmt(totalPending)}`,   color: totalPending > 0 ? "var(--snm-warning)" : "var(--snm-success)" },
             ].map((s) => (
               <div key={s.label}>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</p>
-                <p style={{ color: s.color, fontSize: 18, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{s.value}</p>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 5 }}>{s.label}</p>
+                <p style={{ color: s.color, fontSize: 21, fontWeight: 700, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{s.value}</p>
               </div>
             ))}
           </div>
@@ -485,29 +485,59 @@ export function FinancialsView() {
             <p style={{ color: "var(--muted-foreground)", fontSize: 14, textAlign: "center", padding: "24px 0" }}>No data yet.</p>
           ) : (
             <>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
-                {monthly.map((m) => {
-                  const revH      = chartMax > 0 ? Math.max((Number(m.revenue_mvr) / chartMax) * 100, 4) : 4;
-                  const isCurrent = m.month_start.slice(0, 7) === today.toISOString().slice(0, 7);
-                  const isTapped  = tappedBar === m.month_start;
-                  return (
-                    <div key={m.month_start} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                      {/* Value label on tap */}
-                      <p style={{ fontSize: 10, fontWeight: 700, color: "var(--foreground)", opacity: isTapped ? 1 : 0, transition: "opacity 0.15s", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                        {fmtShort(Number(m.revenue_mvr))}
-                      </p>
-                      <div style={{ width: "100%", height: 96, display: "flex", alignItems: "flex-end" }}>
-                        <button
-                          onClick={() => setTappedBar(isTapped ? null : m.month_start)}
-                          style={{ width: "100%", height: `${revH}%`, minHeight: 4,
-                            background: isCurrent ? "var(--foreground)" : isTapped ? "var(--foreground)" : "color-mix(in srgb, var(--foreground) 35%, transparent)",
-                            borderRadius: "4px 4px 0 0", border: "none", cursor: "pointer",
-                            transition: "background 0.15s, height 0.2s", touchAction: "manipulation" }}
-                          aria-label={`${m.month_label}: MVR ${fmtShort(Number(m.revenue_mvr))}`}
-                        />
+              {/* Plot area: bars sit on a 0-baseline, with a faint peak gridline
+                  at the top so a lone tall bar has a reference to read against. */}
+              <div style={{ position: "relative", height: 96, marginBottom: 4 }}>
+                {/* Peak gridline (top of plot = chartMax) */}
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 0, borderTop: "0.5px dashed var(--glass-border-lo)" }} />
+                {/* Zero baseline (bottom of plot) */}
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 0, borderTop: "1px solid color-mix(in srgb, var(--foreground) 14%, transparent)" }} />
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: "100%" }}>
+                  {monthly.map((m) => {
+                    const rev       = Number(m.revenue_mvr);
+                    const isEmpty   = rev <= 0;
+                    const revH      = chartMax > 0 && !isEmpty ? Math.max((rev / chartMax) * 100, 6) : 0;
+                    const isCurrent = m.month_start.slice(0, 7) === today.toISOString().slice(0, 7);
+                    const isTapped  = tappedBar === m.month_start;
+                    return (
+                      <div key={m.month_start} style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end" }}>
+                        {/* Empty month → a short "ghost" placeholder that reads as
+                            no-data, not a broken tiny bar. */}
+                        {isEmpty ? (
+                          <button
+                            onClick={() => setTappedBar(isTapped ? null : m.month_start)}
+                            style={{ width: "100%", height: 6, background: "transparent",
+                              borderTop: "1.5px dashed color-mix(in srgb, var(--foreground) 18%, transparent)",
+                              borderLeft: "none", borderRight: "none", borderBottom: "none",
+                              cursor: "pointer", touchAction: "manipulation" }}
+                            aria-label={`${m.month_label}: no revenue`}
+                          />
+                        ) : (
+                          <div style={{ position: "relative", width: "100%", height: `${revH}%` }}>
+                            {/* Value label on tap, floating above the bar */}
+                            <p style={{ position: "absolute", bottom: "100%", left: 0, right: 0, textAlign: "center", marginBottom: 4, fontSize: 10, fontWeight: 700, color: "var(--foreground)", opacity: isTapped ? 1 : 0, transition: "opacity 0.15s", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", pointerEvents: "none" }}>
+                              {fmtShort(rev)}
+                            </p>
+                            <button
+                              onClick={() => setTappedBar(isTapped ? null : m.month_start)}
+                              style={{ width: "100%", height: "100%",
+                                background: isCurrent || isTapped ? "var(--foreground)" : "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                                borderRadius: "4px 4px 0 0", border: "none", cursor: "pointer",
+                                transition: "background 0.15s, height 0.2s", touchAction: "manipulation" }}
+                              aria-label={`${m.month_label}: MVR ${fmtShort(rev)}`}
+                            />
+                          </div>
+                        )}
                       </div>
-                      <span style={{ color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: isCurrent ? 700 : 400 }}>{m.month_label}</span>
-                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {monthly.map((m) => {
+                  const isCurrent = m.month_start.slice(0, 7) === today.toISOString().slice(0, 7);
+                  return (
+                    <span key={m.month_start} style={{ flex: 1, textAlign: "center", color: isCurrent ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: isCurrent ? 700 : 400 }}>{m.month_label}</span>
                   );
                 })}
               </div>

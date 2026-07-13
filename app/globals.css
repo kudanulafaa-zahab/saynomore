@@ -204,8 +204,11 @@
 
   /* ── Real glass tokens (light) ────────────────────────────────────────
      Apple uses ~72% white fill + strong highlight + crisp specular edge.
-     backdrop-filter: blur(28px) saturate(180%) — matches iOS Control Centre.  */
-  --glass-bg-1:      rgba(255, 255, 255, 0.68);
+     backdrop-filter: blur(28px) saturate(180%) — matches iOS Control Centre.
+     bg-1 nudged 0.68 → 0.62 (2026-07-13) so the atmospheric --app-bg peeks
+     through and cards read as glass, not solid white — still a solid-enough
+     layer for body text. Tune HERE + the [data-theme="light"] block only. */
+  --glass-bg-1:      rgba(255, 255, 255, 0.62);
   --glass-bg-2:      rgba(255, 255, 255, 0.84);
   --glass-bg-3:      rgba(255, 255, 255, 0.96);
   --glass-border:    rgba(255, 255, 255, 0.90);
@@ -225,8 +228,10 @@
     radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
     linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
   /* Specular sheen laid over the card fill — a soft top-down highlight that
-     gives the surface material "curvature", the way light catches real glass. */
-  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.14) 32%, rgba(255,255,255,0) 62%);
+     gives the surface material "curvature", the way light catches real glass.
+     Top stop 0.55 → 0.68 (2026-07-13) to keep the card top reading crisp now
+     that the fill is more translucent. */
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.16) 32%, rgba(255,255,255,0) 62%);
 
   /* Legacy aliases (components reference these directly) */
   --glass-1: var(--glass-bg-1);
@@ -360,7 +365,7 @@
   --sidebar-accent-foreground:  #1c1c1e;
   --sidebar-border:             rgba(0, 0, 0, 0.07);
   --sidebar-ring:               rgba(0, 0, 0, 0.15);
-  --glass-bg-1:      rgba(255, 255, 255, 0.68);
+  --glass-bg-1:      rgba(255, 255, 255, 0.62); /* 0.68 → 0.62, see base light block */
   --glass-bg-2:      rgba(255, 255, 255, 0.84);
   --glass-bg-3:      rgba(255, 255, 255, 0.96);
   --glass-border:    rgba(255, 255, 255, 0.90);
@@ -373,7 +378,7 @@
   --app-bg:
     radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
     linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
-  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.14) 32%, rgba(255,255,255,0) 62%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.16) 32%, rgba(255,255,255,0) 62%);
   --glass-1: var(--glass-bg-1);
   --glass-2: var(--glass-bg-2);
   --surface:            #f2f2f7;

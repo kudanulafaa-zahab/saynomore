@@ -20,17 +20,19 @@ export function MorningBriefing() {
   if (!b) return null;
 
   const quiet = b.yesterday_orders === 0 && b.yesterday_collected === 0;
+  // Each watch item leads with the money at stake and ends with the action —
+  // Ali should know what it costs him and what to do, not just a count.
   const watch: { text: string; href: string; tone: string }[] = [];
   if (b.overdue_count > 0) watch.push({
-    text: `${b.overdue_count} customer${b.overdue_count === 1 ? "" : "s"} owe MVR ${fmt(b.overdue_mvr)} past 30 days`,
+    text: `Chase MVR ${fmt(b.overdue_mvr)} owed by ${b.overdue_count} customer${b.overdue_count === 1 ? "" : "s"} — past 30 days, collect before it turns to bad debt`,
     href: "/financials?tab=owed", tone: "var(--snm-error)",
   });
   if (b.expiring_value_mvr > 0) watch.push({
-    text: `MVR ${fmt(b.expiring_value_mvr)} of stock expires within 60 days`,
+    text: `MVR ${fmt(b.expiring_value_mvr)} of stock expires within 60 days — move it now or write it off`,
     href: "/inventory", tone: "var(--snm-warning)",
   });
   if (b.slow_movers > 0) watch.push({
-    text: `${b.slow_movers} slow mover${b.slow_movers === 1 ? "" : "s"} could clear with a promo`,
+    text: `${b.slow_movers} slow mover${b.slow_movers === 1 ? "" : "s"} tying up cash — a promo could turn ${b.slow_movers === 1 ? "it" : "them"} back into money`,
     href: "/competitors", tone: "var(--snm-warning)",
   });
 
