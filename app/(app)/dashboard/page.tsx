@@ -107,9 +107,13 @@ export default async function DashboardPage() {
     : null;
 
   const now           = new Date();
-  const monthName     = now.toLocaleString("en-MV", { month: "long" });
+  const monthName     = now.toLocaleString("en-MV", { month: "long", timeZone: "Indian/Maldives" });
   const lastMonthName = new Date(now.getFullYear(), now.getMonth() - 1).toLocaleString("en-MV", { month: "long" });
-  const todayLabel    = now.toLocaleString("en-MV", { weekday: "short", day: "numeric", month: "short" });
+  const todayLabel    = now.toLocaleString("en-MV", { weekday: "short", day: "numeric", month: "short", timeZone: "Indian/Maldives" });
+
+  // Greeting by the owner's local hour (Maldives), so the header always reads true.
+  const mvtHour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Indian/Maldives" }).format(now));
+  const greeting = mvtHour < 12 ? "Good morning" : mvtHour < 17 ? "Good afternoon" : "Good evening";
 
   const marginColor =
     grossMargin < 10 ? "var(--snm-error)"
@@ -139,6 +143,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-4">
+
+      {/* ── Page header — the dashboard needs a visible title like every other
+           screen. Time-aware greeting + today's date, Maldives time. ── */}
+      <div>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+          {todayLabel}
+        </p>
+        <h1 className="ios-page-title">{greeting}</h1>
+      </div>
 
       {/* ── Zone 0: Morning briefing — yesterday + the watch list ── */}
       <MorningBriefing />

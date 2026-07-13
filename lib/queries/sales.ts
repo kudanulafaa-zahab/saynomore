@@ -137,15 +137,32 @@ export async function listMyDeliveries(driverId: string): Promise<SalesOrderRow[
   return data ?? [];
 }
 
-// Admin/manager view — all confirmed/dispatching orders across all drivers
+// Admin/manager view — every active order, plus deliveries completed *today*.
+// The board's "Completed Today" section must mean today: pulling all delivered
+// orders ever (as this once did) piled months of history under today's heading.
+// Bound delivered to since-midnight in Maldives time (UTC+5, no DST).
 export async function listAllDispatchOrders(): Promise<SalesOrderRow[]> {
+  const startOfTodayMvt = mvtStartOfTodayISO();
   const { data, error } = await supabase
     .from("sales_orders")
     .select("*")
-    .in("status", ["confirmed", "picked", "out_for_delivery", "delivered"])
+    .or(
+      `status.in.(confirmed,picked,out_for_delivery),` +
+      `and(status.eq.delivered,delivered_at.gte.${startOfTodayMvt})`,
+    )
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/** Midnight today in Maldives time (UTC+5), as a UTC ISO string. */
+function mvtStartOfTodayISO(): string {
+  const MVT_OFFSET_MS = 5 * 60 * 60 * 1000;
+  const nowMvt = new Date(Date.now() + MVT_OFFSET_MS);
+  const midnightMvtAsUtc = Date.UTC(
+    nowMvt.getUTCFullYear(), nowMvt.getUTCMonth(), nowMvt.getUTCDate(),
+  );
+  return new Date(midnightMvtAsUtc - MVT_OFFSET_MS).toISOString();
 }
 
 // ── Writes ───────────────────────────────────────────────────────────────
