@@ -36,26 +36,39 @@ export function MorningBriefing() {
     href: "/competitors", tone: "var(--snm-warning)",
   });
 
+  // Four scannable stats instead of a run-on sentence — number over label,
+  // so the whole of yesterday reads at a glance. Money uses tabular figures.
+  const stats: { value: string; label: string; num?: boolean }[] = [
+    { value: `MVR ${fmt(b.yesterday_revenue)}`,   label: "Sold",      num: true },
+    { value: `${b.yesterday_orders}`,             label: b.yesterday_orders === 1 ? "Order" : "Orders" },
+    { value: `${b.yesterday_delivered}`,          label: "Delivered" },
+    { value: `MVR ${fmt(b.yesterday_collected)}`, label: "Collected", num: true },
+  ];
+
   return (
     <div className="snm-card p-5 mb-4">
-      <p className="label-caps mb-2" style={{ color: "var(--muted-foreground)" }}>Yesterday</p>
-      <p className="ios-body" style={{ color: "var(--foreground)" }}>
-        {quiet ? (
-          <>No sales recorded.</>
-        ) : (
-          <>
-            Sold <b className="snm-num">MVR {fmt(b.yesterday_revenue)}</b> across{" "}
-            <b>{b.yesterday_orders}</b> order{b.yesterday_orders === 1 ? "" : "s"},{" "}
-            delivered <b>{b.yesterday_delivered}</b>, collected{" "}
-            <b className="snm-num">MVR {fmt(b.yesterday_collected)}</b>.
-          </>
-        )}
-      </p>
+      <p className="label-caps mb-3" style={{ color: "var(--muted-foreground)" }}>Yesterday</p>
+
+      {quiet ? (
+        <p className="ios-body" style={{ color: "var(--muted-foreground)" }}>No sales recorded.</p>
+      ) : (
+        <div className="grid grid-cols-4 gap-2">
+          {stats.map((s) => (
+            <div key={s.label} className="min-w-0">
+              <p className={`text-[17px] font-semibold leading-tight text-foreground truncate${s.num ? " snm-num" : ""}`}>
+                {s.value}
+              </p>
+              <p className="ios-caption1 mt-0.5" style={{ color: "var(--muted-foreground)" }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {watch.length > 0 && (
-        <div className="mt-3 pt-3 space-y-1.5" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+        <div className="mt-4 pt-4 space-y-2.5" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           {watch.map((w) => (
-            <Link key={w.text} href={w.href} className="flex items-center gap-2 ios-subhead font-medium">
-              <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ background: w.tone }} />
+            <Link key={w.text} href={w.href} className="flex items-start gap-2.5 ios-subhead font-medium">
+              <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[7px]" style={{ background: w.tone }} />
               <span style={{ color: "var(--foreground)" }}>{w.text}</span>
             </Link>
           ))}

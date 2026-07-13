@@ -156,75 +156,81 @@ export default async function DashboardPage() {
       {/* ── Zone 0: Morning briefing — yesterday + the watch list ── */}
       <MorningBriefing />
 
-      {/* ── Zone 1: Business Health ──
-           Whole card links to Reports, where profit breaks down by
-           Brand → Model → SKU — the total here is just the summary. ── */}
+      {/* ── Zone 1: This Month ──
+           Clear top-to-bottom hierarchy: Revenue is the hero, Gross + Net
+           sit below as a grouped 2-up (Net = the owner's bottom line). Whole
+           card links to Reports (profit breaks down Brand → Model → SKU). ── */}
       <Link href="/reports" className="block snm-card rounded-2xl p-6 transition active:scale-[0.98]" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-4">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-            {monthName} Performance
+            {monthName} — This Month
           </p>
           <span className="flex items-center gap-0.5 ios-subhead" style={{ color: "var(--muted-foreground)" }}>
             Profit by product <ChevronRight className="h-3.5 w-3.5" />
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <p className="ios-subhead font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Revenue</p>
-            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none snm-num">
+        {/* Hero — Revenue, with month-over-month change beside it */}
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[40px] font-semibold tracking-tight text-foreground leading-none snm-num">
               {mvr(revenueMonth)}
-              <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+              <span className="text-xl ml-1.5 font-medium" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
+            <p className="ios-subhead font-medium mt-1.5" style={{ color: "var(--muted-foreground)" }}>Revenue</p>
           </div>
+          {revChangePct !== null && (
+            <div className="flex items-center gap-1 shrink-0 px-2.5 py-1 rounded-full"
+              style={{
+                background: `color-mix(in srgb, ${revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)"} 12%, transparent)`,
+                color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)",
+              }}>
+              {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+              <span className="ios-caption1 font-semibold snm-num">
+                {revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(0)}%
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Grouped 2-up — Gross Profit and Net Profit (the bottom line) */}
+        <div className="grid grid-cols-2 gap-6 mt-5 pt-5"
+          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <div>
-            <p className="ios-subhead font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>Gross Profit</p>
-            <p className="text-[36px] font-semibold tracking-tight text-foreground leading-none snm-num">
-              {mvr(grossProfit)}
-              <span className="text-xl ml-1" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+            <p className="ios-caption1 font-medium mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Gross Profit</p>
+            <p className="text-[24px] font-bold tracking-tight text-foreground leading-none snm-num">
+              {mvr(grossProfit)} <span className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
-            <p className="ios-subhead mt-1 font-semibold snm-num" style={{ color: marginColor }}>
+            <p className="ios-subhead mt-1.5 font-semibold snm-num" style={{ color: marginColor }}>
               {grossMargin.toFixed(1)}% margin
             </p>
           </div>
-        </div>
-
-        {/* Net Profit — the owner's bottom line, after all costs & expenses.
-            Matches Financials exactly (same get_pnl RPC). */}
-        <div className="flex items-baseline justify-between gap-3 mt-4 pt-4"
-          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-          <p className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>Net Profit</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-[22px] font-bold tracking-tight snm-num leading-none" style={{ color: netColor }}>
-              {mvr(netProfit)} <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+          <div>
+            <p className="ios-caption1 font-medium mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Net Profit</p>
+            <p className="text-[24px] font-bold tracking-tight leading-none snm-num" style={{ color: netColor }}>
+              {mvr(netProfit)} <span className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
             {netMargin !== null && (
-              <span className="ios-subhead font-semibold snm-num" style={{ color: netColor }}>
-                {netMargin.toFixed(1)}%
-              </span>
+              <p className="ios-subhead mt-1.5 font-semibold snm-num" style={{ color: netColor }}>
+                {netMargin.toFixed(1)}% margin
+              </p>
             )}
           </div>
         </div>
+      </Link>
 
-        {revChangePct !== null && (
-          <div className="flex items-center gap-1.5 mt-3"
-            style={{ color: revChangePct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
-            {revChangePct >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-            <span className="ios-subhead snm-num">
-              {revChangePct >= 0 ? "+" : ""}{revChangePct.toFixed(1)}% vs {lastMonthName}
-            </span>
-          </div>
-        )}
-
-        {/* Today's revenue — labelled clearly so context is never ambiguous */}
-        <div className="flex items-baseline gap-3 mt-4 pt-4"
-          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-          <p className="text-[12px] font-semibold uppercase tracking-wider"
-            style={{ color: "var(--muted-foreground)" }}>Today</p>
-          <p className="ios-subhead font-semibold text-foreground snm-num">{mvr(revenueToday)} MVR</p>
+      {/* ── Zone 1b: Today ── a quiet, separate card so today's running total
+           never competes with the month's headline figures. ── */}
+      <div className="snm-card rounded-2xl px-5 py-4 flex items-center justify-between gap-3"
+        style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+        <div className="flex items-center gap-2.5">
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Today</p>
           <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
         </div>
-      </Link>
+        <p className="text-[18px] font-semibold text-foreground snm-num leading-none">
+          {mvr(revenueToday)} <span className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+        </p>
+      </div>
 
       {/* ── Zone 2: Live Order Pipeline ──
            Single card, one tap → /dispatch which always shows real active orders.
