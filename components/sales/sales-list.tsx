@@ -2110,7 +2110,7 @@ function NewSaleSheet({
                                     disabled={!!savingFixedPrice || !canSave}
                                     onClick={() => save("margin")}
                                     className="flex-[2] h-12 rounded-xl font-semibold transition disabled:opacity-40 flex items-center justify-center gap-2"
-                                    style={{ background: "var(--snm-brand)", color: "var(--snm-on-fill)" }}
+                                    style={{ background: "var(--snm-brand)", color: "var(--snm-brand-on)" }}
                                   >
                                     {savingFixedPrice === "margin" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><TrendingUp className="h-4 w-4" /> Save at {impliedMarginPct}% margin</>}
                                   </button>

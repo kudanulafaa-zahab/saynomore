@@ -162,7 +162,7 @@ export function ReorderView() {
                           border: on ? "none" : "1.5px solid var(--glass-border)",
                         }}
                       >
-                        {on && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-on-fill)" }} />}
+                        {on && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-brand-on)" }} />}
                       </span>
                     </button>
 

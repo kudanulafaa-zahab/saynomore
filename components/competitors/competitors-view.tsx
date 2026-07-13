@@ -674,7 +674,7 @@ export function CompetitorsView() {
                     className="h-7 px-3 rounded-lg ios-subhead font-semibold transition active:scale-95 shrink-0"
                     style={{
                       background: alertThreshold === t ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                      color: alertThreshold === t ? "var(--snm-on-fill)" : "var(--muted-foreground)",
+                      color: alertThreshold === t ? "var(--snm-brand-on)" : "var(--muted-foreground)",
                     }}>
                     {t}%
                   </button>
@@ -690,7 +690,7 @@ export function CompetitorsView() {
                 className="w-full h-14 rounded-2xl text-[15px] font-bold transition active:scale-[0.97] disabled:opacity-40 flex items-center justify-center gap-2"
                 style={{
                   background: isPriceChanged ? "var(--snm-brand)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                  color: isPriceChanged ? "var(--snm-on-fill)" : "var(--muted-foreground)",
+                  color: isPriceChanged ? "var(--snm-brand-on)" : "var(--muted-foreground)",
                   touchAction: "manipulation",
                   boxShadow: isPriceChanged ? "0 4px 20px color-mix(in srgb, var(--snm-brand) 40%, transparent)" : "none",
                 }}

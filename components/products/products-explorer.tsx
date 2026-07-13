@@ -868,7 +868,7 @@ export function ProductsExplorer() {
                 className="shrink-0 h-7 px-3 rounded-full ios-subhead font-medium transition whitespace-nowrap"
                 style={{
                   background: filterBrand === b.id ? "var(--snm-brand)" : "var(--secondary)",
-                  color: filterBrand === b.id ? "var(--snm-on-fill)" : "var(--muted-foreground)",
+                  color: filterBrand === b.id ? "var(--snm-brand-on)" : "var(--muted-foreground)",
                 }}
               >
                 {b.name}
@@ -1249,7 +1249,7 @@ function CategoryPills({
             ...pill,
             background: active ? "var(--snm-brand)" : "transparent",
             borderColor: active ? "var(--snm-brand)" : "var(--glass-border)",
-            color: active ? "var(--snm-on-fill)" : "var(--muted-foreground)",
+            color: active ? "var(--snm-brand-on)" : "var(--muted-foreground)",
           }}>
             <button
               type="button"
@@ -1718,7 +1718,7 @@ function NewSkuWizard({
                               border: "1px solid",
                               background: variantAttrs[key] === opt ? "var(--snm-brand)" : "transparent",
                               borderColor: variantAttrs[key] === opt ? "var(--snm-brand)" : "var(--glass-border)",
-                              color: variantAttrs[key] === opt ? "var(--snm-on-fill)" : "var(--muted-foreground)",
+                              color: variantAttrs[key] === opt ? "var(--snm-brand-on)" : "var(--muted-foreground)",
                               cursor: "pointer",
                             }}
                           >

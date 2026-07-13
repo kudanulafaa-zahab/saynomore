@@ -633,7 +633,7 @@ function TransferTab({
                   className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center"
                   style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--snm-brand)" : "transparent" }}
                 >
-                  {active && <Check className="h-3 w-3" style={{ color: "var(--snm-on-fill)" }} />}
+                  {active && <Check className="h-3 w-3" style={{ color: "var(--snm-brand-on)" }} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
