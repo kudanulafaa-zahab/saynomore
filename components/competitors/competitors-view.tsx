@@ -78,6 +78,7 @@ export function CompetitorsView() {
   const [alertThreshold, setAlertThreshold] = useState(10);
   const [canWrite, setCanWrite]     = useState(false);
   const [priceGaps, setPriceGaps]   = useState<CompetitorPriceGap[]>([]);
+  const [gapsExpanded, setGapsExpanded] = useState(false);
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
@@ -303,7 +304,7 @@ export function CompetitorsView() {
             </div>
           </div>
           <div className="space-y-1.5">
-            {priceGaps.map((g) => (
+            {(gapsExpanded ? priceGaps : priceGaps.slice(0, 3)).map((g) => (
               <button
                 key={g.sku_id}
                 onClick={() => {
@@ -327,6 +328,17 @@ export function CompetitorsView() {
               </button>
             ))}
           </div>
+          {priceGaps.length > 3 && (
+            <button
+              onClick={() => setGapsExpanded((v) => !v)}
+              className="w-full mt-2 flex items-center justify-center gap-1 rounded-xl py-2 ios-subhead font-semibold transition active:opacity-70"
+              style={{ background: "var(--muted)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+            >
+              {gapsExpanded
+                ? <>Show less <ChevronUp className="h-3.5 w-3.5" /></>
+                : <>Show {priceGaps.length - 3} more <ChevronDown className="h-3.5 w-3.5" /></>}
+            </button>
+          )}
         </div>
       )}
 

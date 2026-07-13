@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Megaphone } from "lucide-react";
+import { Megaphone, ChevronDown, ChevronUp } from "lucide-react";
 import { getPromoSuggestions, type PromoSuggestionRow } from "@/lib/queries/intelligence";
 
 function fmt(n: number) {
@@ -13,8 +13,11 @@ function fmt(n: number) {
  *  sitting >180 days deep (or not selling at all), suggests a clearance
  *  price that still keeps a 10% margin at the latest landed cost, with a
  *  ready-to-post caption. Turning dead stock into cash beats holding it. */
+const PREVIEW_COUNT = 3; // biggest cash-freers shown; the rest collapse
+
 export function PromoAdvisor() {
   const [rows, setRows] = useState<PromoSuggestionRow[] | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     getPromoSuggestions()
@@ -25,6 +28,12 @@ export function PromoAdvisor() {
   if (rows === null || rows.length === 0) return null; // quiet when healthy
 
   const totalValue = rows.reduce((s, r) => s + Number(r.stock_value_mvr), 0);
+
+  // Most cash freed first — so the 3 shown by default are always the ones
+  // worth acting on. The long tail collapses behind "Show N more".
+  const sorted  = [...rows].sort((a, b) => Number(b.stock_value_mvr) - Number(a.stock_value_mvr));
+  const visible = expanded ? sorted : sorted.slice(0, PREVIEW_COUNT);
+  const hidden  = sorted.length - visible.length;
 
   // A short, human month like "August" from an expiry days count — used to
   // give the caption a concrete "best before" instead of a vague "hurry".
@@ -85,7 +94,7 @@ export function PromoAdvisor() {
       </p>
 
       <div className="space-y-2">
-        {rows.map((r) => (
+        {visible.map((r) => (
           <div key={r.sku_id} className="rounded-xl px-3 py-2.5"
             style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
             <div className="flex items-center gap-3">
@@ -139,6 +148,19 @@ export function PromoAdvisor() {
           </div>
         ))}
       </div>
+
+      {/* Collapse the long tail — only the biggest cash-freers show by default */}
+      {(hidden > 0 || expanded) && sorted.length > PREVIEW_COUNT && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="snm-pressable w-full mt-3 flex items-center justify-center gap-1 rounded-xl py-2.5 ios-footnote font-semibold"
+          style={{ background: "var(--muted)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+        >
+          {expanded
+            ? <>Show less <ChevronUp className="h-3.5 w-3.5" /></>
+            : <>Show {hidden} more <ChevronDown className="h-3.5 w-3.5" /></>}
+        </button>
+      )}
     </div>
   );
 }

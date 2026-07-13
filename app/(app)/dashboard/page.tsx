@@ -54,10 +54,23 @@ export default async function DashboardPage() {
   const firstOfMonth   = new Date(nowMv.getFullYear(), nowMv.getMonth(), 1).toISOString().slice(0, 10);
   const tomorrow       = new Date(nowMv.getFullYear(), nowMv.getMonth(), nowMv.getDate() + 1).toISOString().slice(0, 10);
 
-  const [{ data }, { data: pnlData }] = await Promise.all([
+  const [{ data }, { data: pnlData }, { data: { user } }] = await Promise.all([
     supabase.rpc("get_dashboard_metrics"),
     supabase.rpc("get_pnl", { p_from: firstOfMonth, p_to: tomorrow }),
+    supabase.auth.getUser(),
   ]);
+
+  // First name for a personalised greeting — works for every user, since it
+  // reads their own profile. Falls back cleanly to no name if unavailable.
+  let firstName = "";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile?.full_name) firstName = String(profile.full_name).trim().split(/\s+/)[0];
+  }
 
   const pnl        = pnlData?.[0] ?? null;
   const netProfit  = Number(pnl?.net_profit_mvr ?? 0);
@@ -150,8 +163,33 @@ export default async function DashboardPage() {
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
           {todayLabel}
         </p>
-        <h1 className="ios-page-title">{greeting}</h1>
+        <h1 className="ios-page-title">{greeting}{firstName ? `, ${firstName}` : ""}</h1>
       </div>
+
+      {/* ── Zone 0a: Money-at-risk strip ──
+           Surfaced right under the greeting: for a distributor owner, the
+           single most urgent thing (money owed, cash not banked, orders
+           stuck) is the first thing he should see — not buried below the
+           month figures. Same one-exception logic, just lifted to the top. ── */}
+      {exception && (
+        <Link href={exception.href}
+          className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 transition active:scale-[0.98]"
+          style={{
+            background: `color-mix(in srgb, ${exception.color} 8%, var(--glass-1))`,
+            border: `1px solid color-mix(in srgb, ${exception.color} 30%, transparent)`,
+            boxShadow: "var(--glass-shadow), var(--glass-inner)",
+          }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: exception.color }} />
+            <p className="text-[14px] font-semibold text-foreground truncate">{exception.label}</p>
+          </div>
+          <span className="ios-subhead font-bold shrink-0 px-3 py-1.5 rounded-xl"
+            style={{ background: exception.color, color: "var(--snm-on-fill)" }}>
+            {exception.cta} →
+          </span>
+        </Link>
+      )}
 
       {/* ── Zone 0: Morning briefing — yesterday + the watch list ── */}
       <MorningBriefing />
@@ -349,29 +387,6 @@ export default async function DashboardPage() {
           )}
 
         </div>
-      )}
-
-      {/* ── Zone 4: Single action strip ──
-           Highest priority exception only. Disappears on a clean day.
-      ── */}
-      {exception && (
-        <Link href={exception.href}
-          className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 transition active:scale-[0.98]"
-          style={{
-            background: `color-mix(in srgb, ${exception.color} 8%, var(--glass-1))`,
-            border: `1px solid color-mix(in srgb, ${exception.color} 30%, transparent)`,
-            boxShadow: "var(--glass-shadow), var(--glass-inner)",
-          }}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: exception.color }} />
-            <p className="text-[14px] font-semibold text-foreground truncate">{exception.label}</p>
-          </div>
-          <span className="ios-subhead font-bold shrink-0 px-3 py-1.5 rounded-xl"
-            style={{ background: exception.color, color: "var(--snm-on-fill)" }}>
-            {exception.cta} →
-          </span>
-        </Link>
       )}
 
       {/* ── Zone 5: Exceptions ──

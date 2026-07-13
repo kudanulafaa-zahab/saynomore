@@ -37,12 +37,14 @@ export function MorningBriefing() {
   });
 
   // Four scannable stats instead of a run-on sentence — number over label,
-  // so the whole of yesterday reads at a glance. Money uses tabular figures.
+  // so the whole of yesterday reads at a glance. The money figures drop the
+  // repeated "MVR " prefix (the label 'MVR sold' / 'MVR collected' carries the
+  // unit) so long values like 1,184 never truncate on a phone.
   const stats: { value: string; label: string; num?: boolean }[] = [
-    { value: `MVR ${fmt(b.yesterday_revenue)}`,   label: "Sold",      num: true },
-    { value: `${b.yesterday_orders}`,             label: b.yesterday_orders === 1 ? "Order" : "Orders" },
-    { value: `${b.yesterday_delivered}`,          label: "Delivered" },
-    { value: `MVR ${fmt(b.yesterday_collected)}`, label: "Collected", num: true },
+    { value: fmt(b.yesterday_revenue),   label: "MVR sold",      num: true },
+    { value: `${b.yesterday_orders}`,    label: b.yesterday_orders === 1 ? "Order" : "Orders" },
+    { value: `${b.yesterday_delivered}`, label: "Delivered" },
+    { value: fmt(b.yesterday_collected), label: "MVR collected", num: true },
   ];
 
   return (
@@ -52,13 +54,13 @@ export function MorningBriefing() {
       {quiet ? (
         <p className="ios-body" style={{ color: "var(--muted-foreground)" }}>No sales recorded.</p>
       ) : (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2.5">
           {stats.map((s) => (
             <div key={s.label} className="min-w-0">
-              <p className={`text-[17px] font-semibold leading-tight text-foreground truncate${s.num ? " snm-num" : ""}`}>
+              <p className={`text-[19px] font-semibold leading-tight text-foreground truncate${s.num ? " snm-num" : ""}`}>
                 {s.value}
               </p>
-              <p className="ios-caption1 mt-0.5" style={{ color: "var(--muted-foreground)" }}>{s.label}</p>
+              <p className="ios-caption1 mt-0.5 leading-tight" style={{ color: "var(--muted-foreground)" }}>{s.label}</p>
             </div>
           ))}
         </div>

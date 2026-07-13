@@ -78,6 +78,21 @@ export function CustomersManager() {
     );
   }, [rows, q]);
 
+  // Group alphabetically by first letter (iOS Contacts pattern) with sticky
+  // headers, so the directory stays scannable at 100+ customers. Names sort
+  // case-insensitively; anything not starting A–Z falls under "#".
+  const grouped = useMemo(() => {
+    const map = new Map<string, CustomerRow[]>();
+    const sorted = [...filtered].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    for (const c of sorted) {
+      const ch = (c.name.trim()[0] ?? "#").toUpperCase();
+      const key = /[A-Z]/.test(ch) ? ch : "#";
+      (map.get(key) ?? map.set(key, []).get(key)!).push(c);
+    }
+    return [...map.entries()]; // insertion order = sorted order
+  }, [filtered]);
+
   // Stats
   const topChannel = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -199,8 +214,19 @@ export function CustomersManager() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((c) => (
+        <div className="space-y-6">
+          {grouped.map(([letter, group]) => (
+            <div key={letter} className="space-y-3">
+              {/* Sticky A–Z section header — offset by the fixed topbar height */}
+              <div
+                className="sticky z-10 flex items-center gap-3 px-1 py-1"
+                style={{ top: "calc(52px + env(safe-area-inset-top, 0px))" }}
+              >
+                <span className="label-caps text-[13px] font-bold" style={{ color: "var(--muted-foreground)" }}>{letter}</span>
+                <span className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
+                <span className="ios-caption1" style={{ color: "var(--muted-foreground)" }}>{group.length}</span>
+              </div>
+              {group.map((c) => (
             <div
               key={c.id}
               className="snm-pressable rounded-3xl p-5 cursor-pointer"
@@ -294,6 +320,8 @@ export function CustomersManager() {
                   )}
                 </div>
               )}
+            </div>
+              ))}
             </div>
           ))}
         </div>
