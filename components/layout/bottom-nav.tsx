@@ -63,22 +63,13 @@ export function BottomNav({ role }: { role: string }) {
               href={item.href}
               className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150"
             >
-              {active ? (
-                <>
-                  <div
-                    className="h-[30px] w-[52px] rounded-full flex items-center justify-center"
-                    style={{ background: "var(--snm-brand)" }}
-                  >
-                    <Icon className="h-[17px] w-[17px]" style={{ color: "var(--snm-brand-on)", strokeWidth: 2.2 }} />
-                  </div>
-                  <span className="label-caps" style={{ color: "var(--snm-brand-text)", fontSize: 12 }}>{item.label}</span>
-                </>
-              ) : (
-                <>
-                  <Icon className="h-[22px] w-[22px]" style={{ color: "var(--muted-foreground)", strokeWidth: 1.6 }} />
-                  <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{item.label}</span>
-                </>
-              )}
+              <Icon
+                className="h-[22px] w-[22px]"
+                style={{ color: active ? "var(--foreground)" : "var(--muted-foreground)", strokeWidth: active ? 2.2 : 1.6 }}
+              />
+              <span style={{ color: active ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: active ? 700 : 500 }}>
+                {item.label}
+              </span>
             </Link>
           );
         })}
@@ -90,22 +81,13 @@ export function BottomNav({ role }: { role: string }) {
             aria-expanded={sheetOpen}
             className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150"
           >
-            {overflowActive ? (
-              <>
-                <div
-                  className="h-[30px] w-[52px] rounded-full flex items-center justify-center"
-                  style={{ background: "var(--snm-brand)" }}
-                >
-                  <MoreHorizontal className="h-[17px] w-[17px]" style={{ color: "var(--snm-brand-on)", strokeWidth: 2.2 }} />
-                </div>
-                <span className="label-caps" style={{ color: "var(--snm-brand-text)", fontSize: 12 }}>More</span>
-              </>
-            ) : (
-              <>
-                <MoreHorizontal className="h-[22px] w-[22px]" style={{ color: "var(--muted-foreground)", strokeWidth: 1.6 }} />
-                <span className="label-caps" style={{ color: "var(--muted-foreground)", fontSize: 12 }}>More</span>
-              </>
-            )}
+            <MoreHorizontal
+              className="h-[22px] w-[22px]"
+              style={{ color: overflowActive ? "var(--foreground)" : "var(--muted-foreground)", strokeWidth: overflowActive ? 2.2 : 1.6 }}
+            />
+            <span style={{ color: overflowActive ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: overflowActive ? 700 : 500 }}>
+              More
+            </span>
           </button>
         )}
       </nav>
