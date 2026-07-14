@@ -213,6 +213,14 @@
   --glass-bg-3:      rgba(255, 255, 255, 0.96);
   --glass-border:    rgba(255, 255, 255, 0.90);
   --glass-border-lo: rgba(0, 0, 0, 0.08);
+  /* Floating tab bar only (2026-07-14): on the light page (#f2f2f7) neither
+     --glass-bg-2 nor --glass-border-lo gave enough separation — the pill
+     blended into the page (Ali, screenshot, both themes). This is the one
+     piece of chrome that must always read as elevated over a same-tone
+     page, so it gets its own slightly stronger fill + a real dark hairline
+     instead of tuning the shared card tokens (which are correct as-is). */
+  --tabbar-bg:       rgba(255, 255, 255, 0.92);
+  --tabbar-border:   rgba(0, 0, 0, 0.12);
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
@@ -300,6 +308,12 @@
     --glass-bg-3:      rgba(255, 255, 255, 0.18);
     --glass-border:    rgba(255, 255, 255, 0.22);
     --glass-border-lo: rgba(255, 255, 255, 0.20);
+    /* Floating tab bar only (2026-07-14): on the near-black dark page a dark
+       drop-shadow can't separate the pill, and --glass-bg-2 at 13% white read
+       as barely-there. A brighter fill + a real light hairline lifts it off
+       the page instead — see the light-mode note above for the full story. */
+    --tabbar-bg:       rgba(255, 255, 255, 0.16);
+    --tabbar-border:   rgba(255, 255, 255, 0.32);
     --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
     --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
     --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
@@ -370,6 +384,8 @@
   --glass-bg-3:      rgba(255, 255, 255, 0.96);
   --glass-border:    rgba(255, 255, 255, 0.90);
   --glass-border-lo: rgba(0, 0, 0, 0.08);
+  --tabbar-bg:       rgba(255, 255, 255, 0.92);
+  --tabbar-border:   rgba(0, 0, 0, 0.12);
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
@@ -430,6 +446,8 @@
   --glass-bg-3:      rgba(255, 255, 255, 0.18);
   --glass-border:    rgba(255, 255, 255, 0.22);
   --glass-border-lo: rgba(255, 255, 255, 0.20);
+  --tabbar-bg:       rgba(255, 255, 255, 0.16);
+  --tabbar-border:   rgba(255, 255, 255, 0.32);
   --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
   --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
@@ -647,12 +665,19 @@
      A capsule inset from the screen edges, floating above content on glass.
      Blur here is safe: content cards no longer carry backdrop-filter, so
      this is the single live blur layer during scroll (the 8 Jul jank was
-     caused by TWO stacked blur layers, not by the bar itself). */
+     caused by TWO stacked blur layers, not by the bar itself).
+     Uses --tabbar-bg/--tabbar-border, NOT the shared --glass-bg-2/
+     --glass-border-lo (2026-07-14, Ali screenshot both themes): this is the
+     one piece of chrome that must always read as elevated above a same-tone
+     page, unlike in-page cards which are meant to blend gently. A drop-
+     shadow alone can't separate same-luminance surfaces (dark shadow on a
+     near-black page, pale fill on a near-white page), so the hairline does
+     the real work here. */
   .snm-tabbar-float {
-    background:              var(--glass-bg-2);
+    background:              var(--tabbar-bg);
     backdrop-filter:         var(--glass-blur-lg);
     -webkit-backdrop-filter: var(--glass-blur-lg);
-    border:        0.5px solid var(--glass-border-lo);
+    border:        1px solid var(--tabbar-border);
     border-radius: 9999px;
     box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
   }
