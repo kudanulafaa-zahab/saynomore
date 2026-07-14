@@ -11,6 +11,7 @@ import { getReportsData, getContributionMargin, getAbcAnalysis, type ReportRow, 
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
 import { formatQtyInTradeUnits, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
 import { groupByBrand, type BrandGroup } from "@/lib/group-by-brand";
+import { TopBrandsChart } from "./top-brands-chart";
 
 // ── Date helpers ─────────────────────────────────────────────────────────
 
@@ -543,6 +544,7 @@ function BestSellersTable({ rows }: { rows: ReportRow[] }) {
 
   return (
     <div className="space-y-2">
+      <TopBrandsChart groups={groups} />
       {groups.map((g) => {
         const isOpen = open.has(g.brand);
         const barPct = g.grossProfit > 0 ? (g.grossProfit / maxProfit) * 100 : 0;

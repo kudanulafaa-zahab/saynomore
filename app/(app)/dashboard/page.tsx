@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MorningBriefing } from "@/components/layout/morning-briefing";
+import { RevenueTrendChart } from "@/components/dashboard/revenue-trend-chart";
 
 function mvr(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -54,10 +55,11 @@ export default async function DashboardPage() {
   const firstOfMonth   = new Date(nowMv.getFullYear(), nowMv.getMonth(), 1).toISOString().slice(0, 10);
   const tomorrow       = new Date(nowMv.getFullYear(), nowMv.getMonth(), nowMv.getDate() + 1).toISOString().slice(0, 10);
 
-  const [{ data }, { data: pnlData }, { data: { user } }] = await Promise.all([
+  const [{ data }, { data: pnlData }, { data: { user } }, { data: dailyRevenueData }] = await Promise.all([
     supabase.rpc("get_dashboard_metrics"),
     supabase.rpc("get_pnl", { p_from: firstOfMonth, p_to: tomorrow }),
     supabase.auth.getUser(),
+    supabase.rpc("get_daily_revenue", { p_days: 7 }),
   ]);
 
   // First name for a personalised greeting — works for every user, since it
@@ -127,6 +129,8 @@ export default async function DashboardPage() {
   // Greeting by the owner's local hour (Maldives), so the header always reads true.
   const mvtHour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Indian/Maldives" }).format(now));
   const greeting = mvtHour < 12 ? "Good morning" : mvtHour < 17 ? "Good afternoon" : "Good evening";
+
+  const todayIso = new Intl.DateTimeFormat("en-CA", { timeZone: "Indian/Maldives" }).format(now); // YYYY-MM-DD
 
   const marginColor =
     grossMargin < 10 ? "var(--snm-error)"
@@ -256,6 +260,17 @@ export default async function DashboardPage() {
           </div>
         </div>
       </Link>
+
+      {/* ── Zone 1a: Revenue trend — 7 days ── */}
+      {dailyRevenueData && dailyRevenueData.length > 0 && (
+        <RevenueTrendChart
+          days={dailyRevenueData.map((d: { day_label: string; day_date: string; revenue_mvr: number | string; orders_count: number }) => ({
+            ...d,
+            revenue_mvr: Number(d.revenue_mvr),
+          }))}
+          todayIso={todayIso}
+        />
+      )}
 
       {/* ── Zone 1b: Today ── a quiet, separate card so today's running total
            never competes with the month's headline figures. ── */}
