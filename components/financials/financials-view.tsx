@@ -360,7 +360,7 @@ export function FinancialsView() {
   const monthName = today.toLocaleString("en-MV", { month: "long" });
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100dvh", padding: "0 0 120px 0" }}>
+    <div style={{ padding: "0 0 120px 0" }}>
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 20 }}>
@@ -369,7 +369,7 @@ export function FinancialsView() {
       </div>
 
       {/* ── Tab switcher ── */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, background: "var(--glass-1)", padding: 4, borderRadius: 14, border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}>
+      <div className="glass-panel" style={{ display: "flex", gap: 6, marginBottom: 20, padding: 4, borderRadius: 14 }}>
         {([
           { key: "profit", label: "P&L" },
           { key: "owed",   label: "Owed" },
@@ -377,8 +377,8 @@ export function FinancialsView() {
         ] as const).map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, transition: "all 0.15s",
-              background: tab === t.key ? "var(--foreground)" : "transparent",
-              color:      tab === t.key ? "var(--background)" : "var(--muted-foreground)" }}
+              background: tab === t.key ? "var(--glass-accent)" : "transparent",
+              color:      tab === t.key ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
           >{t.label}</button>
         ))}
       </div>

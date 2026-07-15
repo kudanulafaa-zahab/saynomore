@@ -413,7 +413,7 @@ export function SaleDetail({ id }: { id: string }) {
   const currentStep = stepIndex(order.status);
 
   return (
-    <div style={{ background: "var(--background)", minHeight: "100dvh", padding: "0 0 140px 0" }}>
+    <div style={{ padding: "0 0 140px 0" }}>
 
       {/* ── Top nav ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
