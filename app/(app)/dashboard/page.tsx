@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { MorningBriefing } from "@/components/layout/morning-briefing";
 import { RevenueTrendChart } from "@/components/dashboard/revenue-trend-chart";
+import { MarginCompositionChart } from "@/components/dashboard/margin-composition-chart";
 
 function mvr(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -74,9 +75,12 @@ export default async function DashboardPage() {
     if (profile?.full_name) firstName = String(profile.full_name).trim().split(/\s+/)[0];
   }
 
-  const pnl        = pnlData?.[0] ?? null;
-  const netProfit  = Number(pnl?.net_profit_mvr ?? 0);
-  const netMargin  = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
+  const pnl         = pnlData?.[0] ?? null;
+  const netProfit    = Number(pnl?.net_profit_mvr ?? 0);
+  const netMargin    = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
+  const pnlCogs      = Number(pnl?.cogs_mvr ?? 0);
+  const pnlRevenue   = Number(pnl?.revenue_mvr ?? 0);
+  const pnlOtherCosts = Number(pnl?.marketing_mvr ?? 0) + Number(pnl?.other_opex_mvr ?? 0);
 
   const m: Metrics = (data?.[0] ?? {
     revenue_today_mvr:           0,
@@ -269,6 +273,17 @@ export default async function DashboardPage() {
             revenue_mvr: Number(d.revenue_mvr),
           }))}
           todayIso={todayIso}
+        />
+      )}
+
+      {/* ── Zone 1a2: Margin composition — where this month's revenue went ── */}
+      {pnlRevenue > 0 && (
+        <MarginCompositionChart
+          revenueMvr={pnlRevenue}
+          cogsMvr={pnlCogs}
+          otherCostsMvr={pnlOtherCosts}
+          netProfitMvr={netProfit}
+          netMarginPct={netMargin}
         />
       )}
 

@@ -12,6 +12,8 @@ import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expens
 import { formatQtyInTradeUnits, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
 import { groupByBrand, type BrandGroup } from "@/lib/group-by-brand";
 import { TopBrandsChart } from "./top-brands-chart";
+import { MarginDistributionChart } from "./margin-distribution-chart";
+import { TopContributorsChart } from "./top-contributors-chart";
 
 // ── Date helpers ─────────────────────────────────────────────────────────
 
@@ -419,7 +421,10 @@ export function ReportsView() {
             <p className="text-muted-foreground ios-subhead">No sales in this period.</p>
           </div>
         ) : (
-          <ContributionTable rows={contribFiltered} />
+          <>
+            <TopContributorsChart rows={contribFiltered} />
+            <ContributionTable rows={contribFiltered} />
+          </>
         )
       ) : tab === "abc" ? (
         abcFiltered.length === 0 ? (
@@ -436,7 +441,10 @@ export function ReportsView() {
       ) : tab === "bestsellers" ? (
         <BestSellersTable rows={filtered} />
       ) : tab === "margins" ? (
-        <MarginsTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+        <>
+          <MarginDistributionChart rows={filtered} />
+          <MarginsTable rows={filtered} onSort={setSortKey} sortKey={sortKey} />
+        </>
       ) : (
         <StockTable
           rows={filtered}
