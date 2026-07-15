@@ -29,7 +29,7 @@ export function ReceivablesView() {
 
   if (rows === null) {
     return (
-      <div className="snm-card p-5">
+      <div className="glass-panel p-5">
         <div className="snm-skel h-2.5 w-40 rounded-full mb-3" />
         <div className="snm-skel h-9 rounded-xl" />
       </div>
@@ -38,7 +38,7 @@ export function ReceivablesView() {
 
   if (rows.length === 0) {
     return (
-      <div className="snm-card p-4 flex items-center gap-3">
+      <div className="glass-panel p-4 flex items-center gap-3">
         <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "var(--snm-success)" }} />
         <div>
           <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
@@ -59,7 +59,7 @@ export function ReceivablesView() {
   return (
     <div className="space-y-3">
       {/* Summary */}
-      <div className="snm-card p-5">
+      <div className="glass-panel p-5">
         <p className="label-caps mb-1" style={{ color: "var(--muted-foreground)" }}>Owed to you</p>
         <p className="currency-display snm-num" style={{ color: "var(--foreground)" }}>
           MVR {fmt(total)}
@@ -76,7 +76,7 @@ export function ReceivablesView() {
         {rows.map((r) => {
           const b = BUCKET_STYLE[r.bucket];
           return (
-            <div key={r.customer_id ?? "walkin"} className="snm-card p-4 flex items-center gap-3">
+            <div key={r.customer_id ?? "walkin"} className="glass-panel p-4 flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
                   {r.customer_name}

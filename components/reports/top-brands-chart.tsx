@@ -29,7 +29,7 @@ export function TopBrandsChart({ groups }: { groups: BrandGroup[] }) {
   const max = Math.max(...top.map((g) => g.revenue), 1);
 
   return (
-    <div className="snm-card rounded-2xl p-5 mb-3" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+    <div className="glass-panel rounded-2xl p-5 mb-3" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
       <p className="label-caps text-[12px] mb-4" style={{ color: "var(--muted-foreground)" }}>
         Top Brands by Revenue
       </p>

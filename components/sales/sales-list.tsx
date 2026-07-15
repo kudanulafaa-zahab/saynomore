@@ -41,13 +41,15 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 // ── Styling constants ─────────────────────────────────────────────────────────
 
 const CARD = {
-  background: "var(--glass-1)",
-  boxShadow: "var(--glass-shadow), var(--glass-inner)",
+  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
+  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
+  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
 } as const;
 
 const CARD_L2 = {
-  background: "var(--glass-2)",
-  boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
+  background: "linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong))",
+  border: "1px solid var(--glass-border-strong, rgba(255,255,255,0.75))",
+  boxShadow: "inset 0 1px 1px var(--glass-specular-strong), var(--glass-shadow-lg)",
 } as const;
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -446,7 +448,7 @@ export function SalesList() {
       </div>
 
       {/* View toggle — Orders (flat) vs Customers (grouped) */}
-      <div className="flex rounded-xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)", ...CARD }}>
+      <div className="flex rounded-xl overflow-hidden" style={{ ...CARD }}>
         {([
           { val: "orders",    icon: List,  label: "Orders"    },
           { val: "customers", icon: Users, label: "Customers" },

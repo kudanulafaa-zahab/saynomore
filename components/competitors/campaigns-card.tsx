@@ -48,7 +48,7 @@ export function CampaignsCard() {
   const total = rows.reduce((a, r) => a + Number(r.amount_mvr), 0);
 
   return (
-    <div className="snm-card p-5 mb-4">
+    <div className="glass-panel p-5 mb-4">
       <div className="flex items-center justify-between mb-1">
         <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>Campaigns</p>
         {canWrite && (

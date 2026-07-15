@@ -60,7 +60,7 @@ export function MarginWatch() {
   // Loading: quiet skeleton row, never a spinner block
   if (rows === null) {
     return (
-      <div className="snm-card p-5 mb-5">
+      <div className="glass-panel p-5 mb-5">
         <div className="snm-skel h-2.5 w-36 rounded-full mb-3" />
         <div className="snm-skel h-9 rounded-xl" />
       </div>
@@ -70,7 +70,7 @@ export function MarginWatch() {
   // Healthy: one calm line, not an empty box
   if (rows.length === 0) {
     return (
-      <div className="snm-card p-4 mb-5 flex items-center gap-3">
+      <div className="glass-panel p-4 mb-5 flex items-center gap-3">
         <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "var(--snm-success)" }} />
         <div>
           <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
@@ -90,7 +90,7 @@ export function MarginWatch() {
   const valueAtRisk = rows.reduce((s, r) => s + Number(r.stock_value_mvr || 0), 0);
 
   return (
-    <div className="snm-card p-5 mb-5">
+    <div className="glass-panel p-5 mb-5">
       <div className="flex items-center justify-between mb-1">
         <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>Margin watch</p>
         <span

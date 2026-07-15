@@ -61,11 +61,11 @@ export function ProductsList() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="snm-card p-10 text-center ios-subhead text-muted-foreground">
+        <div className="glass-panel p-10 text-center ios-subhead text-muted-foreground">
           {rows.length === 0 ? "No products yet — add some from the Tree tab." : "No matches."}
         </div>
       ) : (
-        <div className="snm-card overflow-hidden">
+        <div className="glass-panel overflow-hidden">
           {/* Desktop header */}
           <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-[12px] uppercase tracking-widest text-muted-foreground border-b bg-secondary/30" style={{ borderColor: "var(--glass-border-lo)" }}>
             <div className="col-span-3">Brand · Model</div>

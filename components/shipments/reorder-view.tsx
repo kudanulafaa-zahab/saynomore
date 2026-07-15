@@ -19,9 +19,9 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 
 const CARD: React.CSSProperties = {
-  background: "var(--glass-1)",
-  boxShadow: "var(--glass-shadow), var(--glass-inner)",
-  border: "0.5px solid var(--glass-border-lo)",
+  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
+  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
+  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
 };
 
 const STATUS: Record<ReorderSuggestion["status"], { label: string; color: string }> = {

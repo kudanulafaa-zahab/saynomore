@@ -409,13 +409,13 @@ export function ReportsView() {
       </div>
 
       {loading ? (
-        <div className="snm-card p-12 flex flex-col items-center text-muted-foreground">
+        <div className="glass-panel p-12 flex flex-col items-center text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin mb-3" />
           <p className="ios-subhead">Loading…</p>
         </div>
       ) : tab === "contribution" ? (
         contribFiltered.length === 0 ? (
-          <div className="snm-card p-10 text-center">
+          <div className="glass-panel p-10 text-center">
             <p className="text-muted-foreground ios-subhead">No sales in this period.</p>
           </div>
         ) : (
@@ -423,14 +423,14 @@ export function ReportsView() {
         )
       ) : tab === "abc" ? (
         abcFiltered.length === 0 ? (
-          <div className="snm-card p-10 text-center">
+          <div className="glass-panel p-10 text-center">
             <p className="text-muted-foreground ios-subhead">No sales in this period.</p>
           </div>
         ) : (
           <AbcTable rows={abcFiltered} />
         )
       ) : filtered.length === 0 ? (
-        <div className="snm-card p-10 text-center">
+        <div className="glass-panel p-10 text-center">
           <p className="text-muted-foreground ios-subhead">No data for this period.</p>
         </div>
       ) : tab === "bestsellers" ? (

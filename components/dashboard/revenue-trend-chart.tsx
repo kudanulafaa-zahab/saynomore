@@ -26,7 +26,7 @@ export function RevenueTrendChart({ days, todayIso }: { days: DayPoint[]; todayI
   const barWidth = (100 - gap * (barCount - 1)) / barCount;
 
   return (
-    <div className="snm-card rounded-2xl p-5" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+    <div className="glass-panel rounded-2xl p-5" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
       <div className="flex items-center justify-between mb-1">
         <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
           Last {barCount} Days

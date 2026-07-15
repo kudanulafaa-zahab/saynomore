@@ -79,7 +79,7 @@ export function PromoAdvisor() {
   }
 
   return (
-    <div className="snm-card p-5 mb-4">
+    <div className="glass-panel p-5 mb-4">
       <div className="flex items-center justify-between mb-1">
         <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>Promo advisor</p>
         <span className="ios-caption1 font-semibold px-2 py-0.5 rounded-full"

@@ -48,7 +48,7 @@ export function MorningBriefing() {
   ];
 
   return (
-    <div className="snm-card p-5 mb-4">
+    <div className="glass-panel p-5 mb-4">
       <p className="label-caps mb-3" style={{ color: "var(--muted-foreground)" }}>Yesterday</p>
 
       {quiet ? (

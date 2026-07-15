@@ -33,8 +33,9 @@ import { getCurrentUserRole } from "@/lib/queries/products";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 const CARD = {
-  background: "var(--glass-1)",
-  boxShadow: "var(--glass-shadow), var(--glass-inner)",
+  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
+  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
+  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
 } as const;
 
 const CURRENCIES: SupplierCurrency[] = ["IDR", "USD", "MVR", "MYR", "THB", "CNY", "EUR"];

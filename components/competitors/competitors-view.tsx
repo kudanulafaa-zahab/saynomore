@@ -31,9 +31,14 @@ import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 
+// Liquid Glass content surface (2026-07-15) — matches .glass-panel's recipe
+// (fill + specular inset highlight + border) without needing 21 JSX call
+// sites converted to className. No backdrop-filter here by design: content
+// cards use translucency over the wallpaper, blur is chrome-only.
 const CARD = {
-  background: "var(--glass-1)",
-  boxShadow: "var(--glass-shadow), var(--glass-inner)",
+  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
+  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
+  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
 } as const;
 
 
