@@ -36,12 +36,17 @@ export function MarginWatch() {
   const [fixing, setFixing] = useState<string | null>(null);
 
   useEffect(() => {
+    // Guard against a fast tab-switch away before this resolves — see the
+    // same fix in inventory-view.tsx for the full "Load failed" story.
+    let cancelled = false;
     Promise.all([getPricingHealth(), getCurrentUserRole()])
       .then(([r, role]) => {
+        if (cancelled) return;
         setRows(r);
         setCanFix(role === "admin" || role === "manager");
       })
-      .catch((e) => toast.error((e as Error).message));
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); });
+    return () => { cancelled = true; };
   }, []);
 
   async function fix(row: PricingHealthRow) {

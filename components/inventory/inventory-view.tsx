@@ -360,10 +360,20 @@ export function InventoryView() {
   );
 
   useEffect(() => {
+    // Guard against a fast tab-switch away from Inventory before this
+    // resolves: on iOS Safari a page-navigation-cancelled fetch rejects as
+    // "TypeError: Load failed", and without this guard that stale error
+    // toasts on whatever screen the user has already moved to — reads as
+    // "Inventory is broken" when the visit was simply abandoned mid-load.
+    let cancelled = false;
     Promise.all([listSkusFlat(), listGodowns(), listBatchStock(), listReorderSuggestions()])
-      .then(([s, g, b, a]) => { setSkus(s); setGodowns(g); setBatches(b); setAlerts(a); })
-      .catch((e) => toast.error((e as Error).message))
-      .finally(() => setLoading(false));
+      .then(([s, g, b, a]) => {
+        if (cancelled) return;
+        setSkus(s); setGodowns(g); setBatches(b); setAlerts(a);
+      })
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const alertMap = useMemo(() => {

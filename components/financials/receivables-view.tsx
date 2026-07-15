@@ -22,9 +22,13 @@ export function ReceivablesView() {
   const [rows, setRows] = useState<ReceivableRow[] | null>(null);
 
   useEffect(() => {
+    // Guard against a fast tab-switch away before this resolves — see the
+    // same fix in inventory-view.tsx for the full "Load failed" story.
+    let cancelled = false;
     getReceivablesAging()
-      .then(setRows)
-      .catch((e) => toast.error((e as Error).message));
+      .then((r) => { if (!cancelled) setRows(r); })
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); });
+    return () => { cancelled = true; };
   }, []);
 
   if (rows === null) {

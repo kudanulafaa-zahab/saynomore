@@ -98,10 +98,14 @@ export function StockOpsView() {
   }
 
   useEffect(() => {
+    // Guard against a fast tab-switch away before this resolves — see the
+    // same fix in inventory-view.tsx for the full "Load failed" story.
+    let cancelled = false;
     Promise.all([listSkusFlat(), listGodowns(), listStockLevels()])
-      .then(([s, g, l]) => { setSkus(s); setGodowns(g); setLevels(l); })
-      .catch((e) => toast.error((e as Error).message))
-      .finally(() => setLoading(false));
+      .then(([s, g, l]) => { if (!cancelled) { setSkus(s); setGodowns(g); setLevels(l); } })
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const skuMap = useMemo(() => {
@@ -692,7 +696,11 @@ function EmptyState({ text }: { text: string }) {
 function VerificationHistory() {
   const [sessions, setSessions] = useState<VerificationSession[] | null>(null);
   useEffect(() => {
-    listVerificationHistory().then(setSessions).catch((e) => toast.error((e as Error).message));
+    let cancelled = false;
+    listVerificationHistory()
+      .then((s) => { if (!cancelled) setSessions(s); })
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); });
+    return () => { cancelled = true; };
   }, []);
   if (sessions === null) {
     return <div className="h-12 rounded-2xl animate-pulse" style={{ background: "var(--glass-1)" }} />;

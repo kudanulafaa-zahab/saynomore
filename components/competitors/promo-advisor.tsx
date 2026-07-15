@@ -20,9 +20,15 @@ export function PromoAdvisor() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    // Guard against a fast tab-switch away before this resolves — a
+    // navigation-cancelled fetch can reject (iOS Safari: "Load failed")
+    // after the user has already left, which would otherwise toast a
+    // ghost error on whatever screen they're on next.
+    let cancelled = false;
     getPromoSuggestions()
-      .then(setRows)
-      .catch((e) => toast.error((e as Error).message));
+      .then((r) => { if (!cancelled) setRows(r); })
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); });
+    return () => { cancelled = true; };
   }, []);
 
   if (rows === null || rows.length === 0) return null; // quiet when healthy

@@ -56,11 +56,16 @@ function CodView() {
 
   useEffect(() => {
     // Load today's reconciliation (initial state is the skeleton; date
-    // changes swap in place without flashing it again)
+    // changes swap in place without flashing it again). Guarded against a
+    // stale response landing after the date changed again or the user
+    // navigated away — otherwise a cancelled fetch can toast a ghost error
+    // (iOS Safari renders an aborted fetch as "TypeError: Load failed").
+    let cancelled = false;
     getCodReconciliation(date)
-      .then(setRows)
-      .catch((e) => toast.error((e as Error).message))
-      .finally(() => setLoading(false));
+      .then((r) => { if (!cancelled) setRows(r); })
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [date]);
 
   async function toggleDriver(driverId: string) {
@@ -263,6 +268,11 @@ export function FinancialsView() {
   const lastMonthEnd   = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().slice(0, 10);
 
   useEffect(() => {
+    // Guarded against a fast tab-switch away before this resolves — an
+    // abandoned/cancelled fetch can still reject after the user has left
+    // (iOS Safari: "TypeError: Load failed"), which without this guard
+    // would toast a ghost error on whatever screen they've moved to.
+    let cancelled = false;
     Promise.all([
       // The whole P&L (incl. period-correct marketing proration and the
       // opex category breakdown) is one Postgres call — no financial math
@@ -273,13 +283,15 @@ export function FinancialsView() {
       getMonthlyRevenue(6),
     ])
       .then(([p, lp, r, m]) => {
+        if (cancelled) return;
         setPnl(p);
         setLastPnl(lp);
         setRows(r);
         setMonthly(m);
       })
-      .catch((e) => toast.error((e as Error).message))
-      .finally(() => setLoading(false));
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
