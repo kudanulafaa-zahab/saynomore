@@ -890,6 +890,7 @@ export function SaleDetail({ id }: { id: string }) {
               placeholder={String(totals.mvr.toFixed(0))}
               value={cashCollected}
               onChange={(e) => setCashCollected(e.target.value)}
+              onFocus={(e) => e.target.select()}
               style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
             />
           </div>
@@ -935,6 +936,7 @@ export function SaleDetail({ id }: { id: string }) {
             placeholder="0"
             value={payAmount}
             onChange={(e) => setPayAmount(e.target.value)}
+            onFocus={(e) => e.target.select()}
             style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "12px", fontSize: 22, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
           />
           {balance && balance.balance_mvr > 0.005 && (
@@ -1550,6 +1552,7 @@ function LineDialog({
               type="number" inputMode={uom === "piece" ? "numeric" : "decimal"}
               step={uom === "piece" ? "1" : "0.5"} min="1"
               value={qty} onChange={(e) => setQty(e.target.value)}
+              onFocus={(e) => e.target.select()}
               style={{ ...inputStyle, fontSize: 22, fontWeight: 600, textAlign: "center" }}
             />
           </div>
@@ -1580,6 +1583,7 @@ function LineDialog({
                   type="number" inputMode="decimal" step="0.01" min="0"
                   value={unitPrice}
                   onChange={(e) => setUnitPrice(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   style={{ ...inputStyle, fontSize: 20, fontWeight: 600 }}
                 />
                 {autoPrice != null && (

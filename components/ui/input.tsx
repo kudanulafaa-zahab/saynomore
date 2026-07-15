@@ -3,11 +3,18 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, onFocus, ...props }: React.ComponentProps<"input">) {
   return (
     <InputPrimitive
       type={type}
       data-slot="input"
+      // Number fields are always "replace the whole value", never "edit part
+      // of it" — select-all on focus so tapping in immediately lets you type
+      // a fresh figure instead of having to backspace the old one first
+      // (Ali: had to manually clear every numeric field before typing).
+      // Text/search/etc keep native focus behaviour, where partial edits are
+      // the normal case. A caller-supplied onFocus still runs first/wins.
+      onFocus={type === "number" ? (e) => { onFocus?.(e); e.currentTarget.select(); } : onFocus}
       className={cn(
         // h-11 (44px) — Apple HIG minimum touch target. Was h-8 (32px);
         // every consumer of this shared primitive (Customer form, SKU forms,

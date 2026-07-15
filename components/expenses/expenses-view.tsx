@@ -216,6 +216,7 @@ export function ExpensesView() {
               placeholder="0.00"
               value={quickAmount}
               onChange={(e) => { setQuickAmount(e.target.value); if (parseFloat(e.target.value) > 0) setQuickAmountError(false); }}
+              onFocus={(e) => e.target.select()}
               onKeyDown={(e) => e.key === "Enter" && handleQuickLog()}
               className="w-full h-11 pl-12 pr-3 rounded-xl ios-subhead bg-secondary text-foreground outline-none"
               style={{ border: quickAmountError ? "1.5px solid var(--snm-error)" : "1px solid var(--border)" }}
@@ -455,6 +456,7 @@ export function SpendSheet({ editing, skus, onClose, onDone }: {
               <input
                 type="number" step="0.01" min="0"
                 value={amountMvr} onChange={(e) => setAmountMvr(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="0.00" className={field}
               />
             </div>

@@ -351,6 +351,7 @@ function VerifyTab({
                           placeholder={String(toCtns(r.expected, pcsPerCtn))}
                           value={raw?.ctn ?? ""}
                           onChange={(e) => setField("ctn", e.target.value)}
+                          onFocus={(e) => e.target.select()}
                           className="w-14 h-12 rounded-xl text-center text-[16px] font-semibold text-foreground outline-none"
                           style={{ background: fieldBg, border: "1px solid var(--glass-border-lo)" }}
                         />
@@ -365,6 +366,7 @@ function VerifyTab({
                           placeholder={String(hasCtnTier ? remPacks(r.expected, r.sku.pcs_per_pack, pcsPerCtn) : Math.floor(r.expected / r.sku.pcs_per_pack))}
                           value={raw?.pk ?? ""}
                           onChange={(e) => setField("pk", e.target.value)}
+                          onFocus={(e) => e.target.select()}
                           className="w-14 h-12 rounded-xl text-center text-[16px] font-semibold text-foreground outline-none"
                           style={{ background: fieldBg, border: "1px solid var(--glass-border-lo)" }}
                         />
@@ -379,6 +381,7 @@ function VerifyTab({
                           placeholder={String(r.expected)}
                           value={raw?.pk ?? ""}
                           onChange={(e) => setField("pk", e.target.value)}
+                          onFocus={(e) => e.target.select()}
                           className="w-16 h-12 rounded-xl text-center text-[16px] font-semibold text-foreground outline-none"
                           style={{ background: fieldBg, border: "1px solid var(--glass-border-lo)" }}
                         />
@@ -567,6 +570,7 @@ function TransferTab({
               aria-label={`${unit === "carton" ? "Cartons" : unit === "pack" ? "Packs" : "Pieces"} to transfer`}
               value={qty}
               onChange={(e) => setQty(e.target.value)}
+              onFocus={(e) => e.target.select()}
               className="flex-1 h-12 rounded-xl px-4 text-[16px] font-semibold text-foreground outline-none"
               style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: `1px solid ${overAvailable ? "color-mix(in srgb, var(--snm-error) 45%, transparent)" : "var(--glass-border-lo)"}` }}
             />

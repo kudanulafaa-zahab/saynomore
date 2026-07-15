@@ -1785,6 +1785,7 @@ function NewSaleSheet({
                           type="number" inputMode="numeric" min="1"
                           value={lineQty}
                           onChange={(e) => setLineQty((e.target as HTMLInputElement).value)}
+                          onFocus={(e) => e.target.select()}
                           placeholder="0"
                           className="flex-1 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
                           style={{ minWidth: 0 }}
@@ -1815,6 +1816,7 @@ function NewSaleSheet({
                         type="number" inputMode="decimal" step="0.01" min="0"
                         value={linePrice}
                         onChange={(e) => handlePriceChange((e.target as HTMLInputElement).value)}
+                        onFocus={(e) => e.target.select()}
                         onBlur={handlePriceBlur}
                         placeholder={hasNoPrice ? "Tap to set" : "0.00"}
                         className="w-full text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
@@ -1994,6 +1996,7 @@ function NewSaleSheet({
                                       type="number" inputMode="decimal" autoFocus
                                       value={simTyped}
                                       onChange={(e) => setSimTyped(e.target.value)}
+                                      onFocus={(e) => e.target.select()}
                                       onBlur={() => { const v = parseFloat(simTyped); if (!isNaN(v) && v > 0) setDisplayPrice(v); setSimEditingTyped(false); }}
                                       onKeyDown={(e) => {
                                         if (e.key === "Enter") { const v = parseFloat(simTyped); if (!isNaN(v) && v > 0) setDisplayPrice(v); setSimEditingTyped(false); }

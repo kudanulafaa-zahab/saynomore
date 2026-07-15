@@ -107,6 +107,7 @@ function NumInput({
       value={local}
       placeholder={placeholder ?? "0"}
       onChange={(e) => setLocal(e.target.value)}
+      onFocus={(e) => e.target.select()}
       onBlur={() => {
         let n = local === "" ? null : Number(local);
         // Costs can never be negative — a stray minus sign here would
@@ -335,6 +336,7 @@ function SharedContainerEstimator({
               placeholder="e.g. 8000"
               disabled={disabled}
               onChange={(e) => setTotalFreight(e.target.value)}
+              onFocus={(e) => e.target.select()}
               onBlur={() => {
                 const n = totalFreight === "" ? null : Number(totalFreight);
                 if (n !== (shipment.total_container_freight_usd ?? null)) onPatch("total_container_freight_usd", n);
@@ -1950,6 +1952,7 @@ function LineDialog({
                   inputMode="decimal"
                   value={fobPerCarton}
                   onChange={(e) => setFobPerCarton(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder={fobEntryUnit === "pack" ? "e.g. 12800" : "e.g. 51200"}
                   className="flex-1 h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                   style={inputSty2}

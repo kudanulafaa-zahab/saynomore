@@ -192,6 +192,7 @@ export function ReorderView() {
                           type="number" inputMode="numeric"
                           value={qty[r.sku_id] ?? 0}
                           onChange={(e) => setQ(r.sku_id, parseInt(e.target.value || "0", 10))}
+                          onFocus={(e) => e.target.select()}
                           disabled={!canWrite}
                           className="snm-num w-12 h-11 text-center text-[14px] font-bold text-foreground rounded-lg outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                           style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", MozAppearance: "textfield" } as React.CSSProperties}

@@ -911,6 +911,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
             type="number" inputMode="decimal" step="0.5" min="0" max="99"
             value={marginStr}
             onChange={(e) => applyMargin(e.target.value)}
+            onFocus={(e) => e.target.select()}
             placeholder={landed ? "e.g. 30 → fills all prices" : "No landed cost yet"}
             disabled={!landed}
             className={inputCls}
@@ -932,6 +933,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           type="number" inputMode="decimal" step="0.5" min="0.01"
           value={packStr}
           onChange={(e) => applyPack(e.target.value)}
+          onFocus={(e) => e.target.select()}
           placeholder="e.g. 100"
           className={inputCls}
         />
@@ -948,6 +950,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           type="number" inputMode="decimal" step="1" min="0.01"
           value={cartonStr}
           onChange={(e) => applyCarton(e.target.value)}
+          onFocus={(e) => e.target.select()}
           placeholder="e.g. 360 (lower than 4 × pack = 400)"
           className={inputCls}
         />
@@ -979,6 +982,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           type="number" inputMode="decimal" step="0.01" min="0.01"
           value={pieceStr}
           onChange={(e) => applyPiece(e.target.value)}
+          onFocus={(e) => e.target.select()}
           placeholder="auto-filled from pack ÷ pcs"
           className={inputCls}
         />

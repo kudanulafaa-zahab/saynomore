@@ -401,6 +401,7 @@ function SkuPanel({
                       type="number" inputMode="decimal" step="0.01" min="0.01"
                       value={inlineFixed}
                       onChange={(e) => { setInlineFixed(e.target.value); if (e.target.value) setInlineMargin(""); }}
+                      onFocus={(e) => e.target.select()}
                       disabled={savingPrice || !canWrite}
                       placeholder={landedPerPack ? `cost: ${landedPerPack.toFixed(2)}` : "e.g. 12.00"}
                       style={{
@@ -420,6 +421,7 @@ function SkuPanel({
                       type="number" inputMode="decimal" step="0.5" min="1" max="99"
                       value={inlineMargin}
                       onChange={(e) => { setInlineMargin(e.target.value); if (e.target.value) setInlineFixed(""); }}
+                      onFocus={(e) => e.target.select()}
                       disabled={!!inlineFixed || savingPrice || !canWrite}
                       placeholder="e.g. 30"
                       style={{
@@ -1785,12 +1787,14 @@ function NewSkuWizard({
                 <Label className="ios-subhead">Pcs per Pack *</Label>
                 <input type="number" inputMode="numeric" min="1"
                   value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder="e.g. 34" style={inp} />
               </div>
               <div className="space-y-1.5">
                 <Label className="ios-subhead">Packs per Carton *</Label>
                 <input type="number" inputMode="numeric" min="1"
                   value={packsPerCtn} onChange={(e) => setPacksPerCtn(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder="e.g. 4" style={inp} />
               </div>
             </div>
@@ -1808,12 +1812,15 @@ function NewSkuWizard({
               <div className="grid grid-cols-3 gap-2">
                 <input type="number" inputMode="decimal" step="0.1"
                   value={lenCm} onChange={(e) => setLenCm(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder="L" style={inp} />
                 <input type="number" inputMode="decimal" step="0.1"
                   value={widCm} onChange={(e) => setWidCm(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder="W" style={inp} />
                 <input type="number" inputMode="decimal" step="0.1"
                   value={htCm} onChange={(e) => setHtCm(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   placeholder="H" style={inp} />
               </div>
               {cbm !== null && (
@@ -1924,6 +1931,7 @@ function NewSkuWizard({
                         <input type="number" inputMode="decimal" step="0.5" min="1" max="99"
                           value={marginPct}
                           onChange={(e) => { setMarginPct(e.target.value); if (e.target.value) setFixedPrice(""); }}
+                          onFocus={(e) => e.target.select()}
                           placeholder="e.g. 30"
                           style={{ ...inp, width: "100%", opacity: fixedPrice ? 0.4 : 1 }}
                           disabled={!!fixedPrice} />
@@ -1964,6 +1972,7 @@ function NewSkuWizard({
                         <input type="number" inputMode="decimal" step="0.01" min="0.01"
                           value={fixedPrice}
                           onChange={(e) => { setFixedPrice(e.target.value); if (e.target.value) setMarginPct(""); }}
+                          onFocus={(e) => e.target.select()}
                           placeholder={fixedEntryUnit === "carton" ? "e.g. 320.00" : "e.g. 45.00"}
                           style={{ ...inp, width: "100%" }} />
                         <span style={{ fontSize: 11, color: "var(--muted-foreground)", flexShrink: 0 }}>MVR</span>
@@ -2033,6 +2042,7 @@ function NewSkuWizard({
                           <input type="number" inputMode="decimal" step="0.01" min="0.01"
                             value={fixedPackPrice}
                             onChange={(e) => setFixedPackPrice(e.target.value)}
+                            onFocus={(e) => e.target.select()}
                             placeholder="e.g. 88.00"
                             style={{ ...inp, width: "100%" }} />
                           {fixedPackPrice && pcsN > 1 && (
@@ -2051,6 +2061,7 @@ function NewSkuWizard({
                           <input type="number" inputMode="decimal" step="0.01" min="0.01"
                             value={fixedCartonPrice}
                             onChange={(e) => setFixedCartonPrice(e.target.value)}
+                            onFocus={(e) => e.target.select()}
                             placeholder="e.g. 320.00"
                             style={{ ...inp, width: "100%" }} />
                           {fixedCartonPrice && pcsPerCarton && pcsN > 1 && (

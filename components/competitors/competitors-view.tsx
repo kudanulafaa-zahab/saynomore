@@ -543,30 +543,24 @@ export function CompetitorsView() {
                 </div>
               </div>
 
-              {/* Price display card — pencil button triggers edit, rest of card is non-interactive */}
-              <div
-                className="rounded-2xl px-5 pt-5 pb-4 text-center relative"
-                style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
-              >
-                {/* Pencil button — tap to manually enter a price in the current display unit */}
-                {!simEditing && (
-                  <button
-                    onClick={() => { setSimTyped(String(Math.round(simDisplayPrice))); setSimEditing(true); }}
-                    className="absolute top-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center transition active:scale-90"
-                    style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}
-                    aria-label="Edit price"
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--muted-foreground)" }}>
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                  </button>
-                )}
-                {simEditing ? (
+              {/* Price display card — the whole card is tappable to type a price
+                  directly (not just a tiny corner pencil, which was easy to miss
+                  entirely and read as "only the slider works"). The unit label
+                  under the number always names exactly what you're setting
+                  (Per piece/pack/carton), so switching Pc/Pk/Ctn above and typing
+                  a number here can never be ambiguous about which price it sets. */}
+              {simEditing ? (
+                <div
+                  className="rounded-2xl px-5 pt-5 pb-4 text-center relative"
+                  style={{ background: "color-mix(in srgb, var(--glass-accent) 8%, transparent)", border: "1.5px solid var(--glass-accent)" }}
+                >
                   <input
+                    autoFocus
                     type="number"
-                    inputMode="numeric"
+                    inputMode="decimal"
                     value={simTyped}
                     onChange={(e) => setSimTyped(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     onBlur={() => {
                       const v = parseFloat(simTyped);
                       // setSimDisplayPrice converts from current display unit back to per-pack
@@ -583,13 +577,33 @@ export function CompetitorsView() {
                     }}
                     className="text-[52px] font-light tracking-tight text-foreground text-center bg-transparent outline-none border-none w-full"
                   />
-                ) : (
+                  <p className="ios-subhead mt-1 font-semibold" style={{ color: "var(--glass-accent)" }}>
+                    Enter MVR {simLabel.toLowerCase()} · Enter to save
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setSimTyped(String(Math.round(simDisplayPrice))); setSimEditing(true); }}
+                  className="w-full rounded-2xl px-5 pt-5 pb-4 text-center relative transition active:scale-[0.98]"
+                  style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
+                  aria-label={`Edit ${simLabel.toLowerCase()} price, currently ${fmtInt(simDisplayPrice)} MVR`}
+                >
+                  <span
+                    className="absolute top-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--muted-foreground)" }}>
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </span>
                   <p className="text-[52px] font-light tracking-tight text-foreground leading-none">
                     {fmtInt(simDisplayPrice)}
                   </p>
-                )}
-                <p className="ios-subhead mt-1 font-medium" style={{ color: "var(--muted-foreground)" }}>MVR {simLabel}</p>
-              </div>
+                  <p className="ios-subhead mt-1 font-medium" style={{ color: "var(--muted-foreground)" }}>
+                    MVR {simLabel} · tap to type a price
+                  </p>
+                </button>
+              )}
 
               {/* Margin slider — always calculated in per-pack terms to avoid tiny-number precision loss */}
               {(() => {
@@ -1370,7 +1384,7 @@ function PriceModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PRICE (MVR) *</p>
-              <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+              <input type="number" step="0.01" min="0" value={priceMvr} onChange={(e) => setPriceMvr(e.target.value)} onFocus={(e) => e.target.select()} className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
             </div>
             <div className="space-y-1.5">
               <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>PRICE BASIS *</p>
@@ -1392,7 +1406,7 @@ function PriceModal({
           {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
             <div className="space-y-1.5">
               <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
-              <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} placeholder="Optional" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
+              <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Optional" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
             </div>
           )}
 

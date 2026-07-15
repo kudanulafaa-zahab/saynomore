@@ -194,6 +194,7 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, delivererId,
         // variances on every non-whole COD total.
         type="number" inputMode="decimal" step="0.01" min="0"
         value={amount} onChange={(e) => setAmount(e.target.value)}
+        onFocus={(e) => e.target.select()}
         placeholder="0.00"
         style={{
           width: "100%", height: 72, fontSize: 36, fontWeight: 800,
