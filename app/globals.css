@@ -250,6 +250,66 @@
   --on-surface-variant: #6c6c70;
   --outline:            #aeaeb2;
   --outline-variant:    #d1d1d6;
+
+  /* ═══ LIQUID GLASS PALETTE (2026-07-15, Ali's explicit adoption) ═══
+     Supersedes the graphite-monochrome accent rule that governed this file
+     until now — see tag `pre-liquid-glass-2026-07-15` to restore the prior
+     state if needed. Ali reviewed the z-axis anatomy reference and chose to
+     adopt the purple accent + jewel-tone wallpaper bokeh system-wide,
+     overriding the earlier "no hue-based accent" decision. */
+  --wallpaper-stop-1: #ffd8a8;
+  --wallpaper-stop-2: #ffc9c9;
+  --wallpaper-stop-3: #d0bfff;
+  --wallpaper-stop-4: #a5d8ff;
+  --wallpaper-base:   #f7f3ec;
+
+  --glass-fill-top:          rgba(255, 255, 255, 0.6);
+  --glass-fill-bottom:       rgba(255, 255, 255, 0.3);
+  --glass-fill-top-strong:   rgba(255, 255, 255, 0.65);
+  --glass-fill-bottom-strong:rgba(255, 255, 255, 0.35);
+  --glass-fill-top-subtle:   rgba(255, 255, 255, 0.55);
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.28);
+  --glass-saturate:          155%;
+  --glass-saturate-strong:   160%;
+  --glass-specular:          rgba(255, 255, 255, 0.9);
+  --glass-specular-strong:   rgba(255, 255, 255, 0.95);
+  --glass-divider:           rgba(36, 35, 31, 0.08);
+  --glass-radius-sm:   10px;
+  --glass-radius-md:   14px;
+  --glass-radius-lg:   18px;
+  --glass-radius-xl:   20px;
+  --glass-radius-pill: 999px;
+  --glass-blur-sm-lg: 18px;  /* raw px scale from tokens.css, distinct from the app's existing --glass-blur/-lg (which are full blur()+saturate() shorthands) */
+  --glass-blur-md-lg: 22px;
+  --glass-blur-lg-lg: 28px;
+  --glass-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --glass-accent: #845ef7;
+  --glass-selected-bg:      #24231f;
+  --glass-selected-text:    #ffffff;
+  --glass-unselected-bg:    rgba(255, 255, 255, 0.5);
+  --glass-unselected-border:rgba(255, 255, 255, 0.6);
+
+  /* Brand accent now follows the new Liquid Glass palette instead of
+     graphite. This is the deliberate reversal — see note above. */
+  --snm-brand:        var(--glass-accent);
+  --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 12%, transparent);
+  --snm-brand-border: color-mix(in srgb, var(--glass-accent) 30%, transparent);
+  --snm-brand-on:     #ffffff;
+  --snm-brand-text:   var(--glass-accent);
+
+  /* Status colors — fully adopted from tokens.css per Ali's explicit call
+     (2026-07-15), replacing the prior contrast-tuned values below. --snm-*
+     IS the single source now; --status-* aliases exist only for the new
+     glass-components.css classes that reference that naming directly. */
+  --snm-success: #2b8a3e;
+  --snm-error:   #c92a2a;
+  --snm-warning: #e8590c;
+  --snm-info:    #845ef7;
+  --status-success: var(--snm-success); --status-success-bg: rgba(43, 138, 62, 0.14);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(232, 89, 12, 0.14);
+  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
+  --status-info:    var(--snm-info);    --status-info-bg:    rgba(132, 94, 247, 0.14);
 }
 
 /* ── DARK MODE — Void & Vapor ───────────────────────────────────────────── */
@@ -338,6 +398,48 @@
     --on-surface-variant: #c4c7c8;
     --outline:            #8e9192;
     --outline-variant:    #444748;
+
+    /* ═══ LIQUID GLASS PALETTE — dark (2026-07-15) ═══ */
+    --wallpaper-stop-1: #3b2373;
+    --wallpaper-stop-2: #591c68;
+    --wallpaper-stop-3: #0f3a6b;
+    --wallpaper-stop-4: #063e47;
+    --wallpaper-base:   #050308;
+
+    --glass-fill-top:          rgba(255, 255, 255, 0.09);
+    --glass-fill-bottom:       rgba(255, 255, 255, 0.03);
+    --glass-fill-top-strong:   rgba(255, 255, 255, 0.1);
+    --glass-fill-bottom-strong:rgba(255, 255, 255, 0.03);
+    --glass-fill-top-subtle:   rgba(255, 255, 255, 0.08);
+    --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.02);
+    --glass-saturate:          120%;
+    --glass-saturate-strong:   130%;
+    --glass-specular:          rgba(255, 255, 255, 0.13);
+    --glass-specular-strong:   rgba(255, 255, 255, 0.15);
+    --glass-divider:           rgba(255, 255, 255, 0.08);
+
+    --glass-accent: #b197fc;
+    --glass-selected-bg:      #edebe4;
+    --glass-selected-text:    #050308;
+    --glass-unselected-bg:    rgba(255, 255, 255, 0.07);
+    --glass-unselected-border:rgba(255, 255, 255, 0.12);
+
+    --snm-brand:        var(--glass-accent);
+    --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 14%, transparent);
+    --snm-brand-border: color-mix(in srgb, var(--glass-accent) 32%, transparent);
+    --snm-brand-on:     #050308;
+    --snm-brand-text:   var(--glass-accent);
+
+    /* Status colors get a brighter shift in dark mode (tokens.css) —
+       standard green-600/red-600 desaturate against dark glass. */
+    --snm-success: #69db7c;
+    --snm-error:   #ff8787;
+    --snm-warning: #ffa94d;
+    --snm-info:    #b197fc;
+    --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
+    --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
+    --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
+    --status-info:    var(--snm-info);    --status-info-bg:    rgba(177, 151, 252, 0.16);
   }
 }
 
@@ -402,6 +504,46 @@
   --on-surface-variant: #6c6c70;
   --outline:            #aeaeb2;
   --outline-variant:    #d1d1d6;
+
+  /* ═══ LIQUID GLASS PALETTE — light, manual toggle (2026-07-15) ═══ */
+  --wallpaper-stop-1: #ffd8a8;
+  --wallpaper-stop-2: #ffc9c9;
+  --wallpaper-stop-3: #d0bfff;
+  --wallpaper-stop-4: #a5d8ff;
+  --wallpaper-base:   #f7f3ec;
+
+  --glass-fill-top:          rgba(255, 255, 255, 0.6);
+  --glass-fill-bottom:       rgba(255, 255, 255, 0.3);
+  --glass-fill-top-strong:   rgba(255, 255, 255, 0.65);
+  --glass-fill-bottom-strong:rgba(255, 255, 255, 0.35);
+  --glass-fill-top-subtle:   rgba(255, 255, 255, 0.55);
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.28);
+  --glass-saturate:          155%;
+  --glass-saturate-strong:   160%;
+  --glass-specular:          rgba(255, 255, 255, 0.9);
+  --glass-specular-strong:   rgba(255, 255, 255, 0.95);
+  --glass-divider:           rgba(36, 35, 31, 0.08);
+
+  --glass-accent: #845ef7;
+  --glass-selected-bg:      #24231f;
+  --glass-selected-text:    #ffffff;
+  --glass-unselected-bg:    rgba(255, 255, 255, 0.5);
+  --glass-unselected-border:rgba(255, 255, 255, 0.6);
+
+  --snm-brand:        var(--glass-accent);
+  --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 12%, transparent);
+  --snm-brand-border: color-mix(in srgb, var(--glass-accent) 30%, transparent);
+  --snm-brand-on:     #ffffff;
+  --snm-brand-text:   var(--glass-accent);
+
+  --snm-success: #2b8a3e;
+  --snm-error:   #c92a2a;
+  --snm-warning: #e8590c;
+  --snm-info:    #845ef7;
+  --status-success: var(--snm-success); --status-success-bg: rgba(43, 138, 62, 0.14);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(232, 89, 12, 0.14);
+  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
+  --status-info:    var(--snm-info);    --status-info-bg:    rgba(132, 94, 247, 0.14);
 }
 
 /* ── Manual .dark override ──────────────────────────────────────────────── */
@@ -465,6 +607,49 @@
   --on-surface-variant: #c4c7c8;
   --outline:            #8e9192;
   --outline-variant:    #444748;
+
+  /* ═══ LIQUID GLASS PALETTE — dark, manual toggle (2026-07-15) ═══
+     This is the block that actually fires when the user picks Dark in the
+     UI (next-themes sets .dark on <html>) — see tag
+     `pre-liquid-glass-2026-07-15` to restore the prior graphite state. */
+  --wallpaper-stop-1: #3b2373;
+  --wallpaper-stop-2: #591c68;
+  --wallpaper-stop-3: #0f3a6b;
+  --wallpaper-stop-4: #063e47;
+  --wallpaper-base:   #050308;
+
+  --glass-fill-top:          rgba(255, 255, 255, 0.09);
+  --glass-fill-bottom:       rgba(255, 255, 255, 0.03);
+  --glass-fill-top-strong:   rgba(255, 255, 255, 0.1);
+  --glass-fill-bottom-strong:rgba(255, 255, 255, 0.03);
+  --glass-fill-top-subtle:   rgba(255, 255, 255, 0.08);
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.02);
+  --glass-saturate:          120%;
+  --glass-saturate-strong:   130%;
+  --glass-specular:          rgba(255, 255, 255, 0.13);
+  --glass-specular-strong:   rgba(255, 255, 255, 0.15);
+  --glass-divider:           rgba(255, 255, 255, 0.08);
+
+  --glass-accent: #b197fc;
+  --glass-selected-bg:      #edebe4;
+  --glass-selected-text:    #050308;
+  --glass-unselected-bg:    rgba(255, 255, 255, 0.07);
+  --glass-unselected-border:rgba(255, 255, 255, 0.12);
+
+  --snm-brand:        var(--glass-accent);
+  --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 14%, transparent);
+  --snm-brand-border: color-mix(in srgb, var(--glass-accent) 32%, transparent);
+  --snm-brand-on:     #050308;
+  --snm-brand-text:   var(--glass-accent);
+
+  --snm-success: #69db7c;
+  --snm-error:   #ff8787;
+  --snm-warning: #ffa94d;
+  --snm-info:    #b197fc;
+  --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
+  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
+  --status-info:    var(--snm-info);    --status-info-bg:    rgba(177, 151, 252, 0.16);
 }
 
 @layer base {
@@ -989,6 +1174,164 @@
     letter-spacing: var(--ios-large-title-ls);
     font-weight:    700;
     color:          var(--foreground);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LIQUID GLASS COMPONENTS (2026-07-15, Ali's explicit adoption)
+     Ported from glass-components.css, remapped onto this app's existing
+     --foreground/--muted-foreground text tokens instead of forking a
+     parallel --text-primary system. Every rule reads the palette added
+     above — nothing here is a literal color/blur/opacity.
+     See tag `pre-liquid-glass-2026-07-15` for the prior state.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /* ---- Base wallpaper (apply to the app shell / root screen container) ---- */
+  .glass-wallpaper {
+    position: relative;
+    background: var(--wallpaper-base);
+    transition: background var(--glass-transition);
+  }
+  .glass-wallpaper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(circle at 25% 15%, var(--wallpaper-stop-1) 0%, transparent 45%),
+      radial-gradient(circle at 80% 20%, var(--wallpaper-stop-2) 0%, transparent 40%),
+      radial-gradient(circle at 15% 80%, var(--wallpaper-stop-3) 0%, transparent 42%),
+      radial-gradient(circle at 90% 85%, var(--wallpaper-stop-4) 0%, transparent 45%),
+      radial-gradient(circle at 50% 50%, var(--wallpaper-base) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* ---- Core glass panel (cards, sheets, modals) ---- */
+  .glass-panel {
+    position: relative;
+    z-index: 1;
+    border-radius: var(--glass-radius-xl);
+    padding: 14px 16px;
+    background: linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom));
+    backdrop-filter: blur(22px) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(22px) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
+    box-shadow: inset 0 1px 1px var(--glass-specular), 0 4px 14px rgba(0,0,0,0.08);
+    transition: background var(--glass-transition), border-color var(--glass-transition);
+  }
+  .glass-panel--sm {
+    border-radius: var(--glass-radius-lg);
+    padding: 12px 14px;
+    backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
+  }
+  .glass-panel--strong {
+    background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
+    backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
+  }
+
+  /* ---- Pill button ---- */
+  .glass-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: var(--glass-radius-md);
+    background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
+    backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.75));
+    box-shadow: inset 0 1px 1px var(--glass-specular-strong);
+    color: var(--foreground);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* ---- Stat strip (equal-weight metrics in one unified panel) ---- */
+  .glass-stat-strip { display: flex; }
+  .glass-stat-strip__item { flex: 1; text-align: center; padding: 0 6px; }
+  .glass-stat-strip__value { font-size: 17px; font-weight: 500; color: var(--foreground); }
+  .glass-stat-strip__label { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+  .glass-stat-strip__divider { width: 1px; background: var(--glass-divider); }
+
+  /* ---- Status tile (icon + value + caption) ---- */
+  .glass-status-tile { display: flex; align-items: center; gap: 10px; }
+  .glass-status-tile__icon {
+    width: 30px; height: 30px; border-radius: var(--glass-radius-sm);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .glass-status-tile__icon--success { background: var(--status-success-bg); color: var(--status-success); }
+  .glass-status-tile__icon--warning { background: var(--status-warning-bg); color: var(--status-warning); }
+  .glass-status-tile__icon--danger  { background: var(--status-danger-bg);  color: var(--status-danger); }
+  .glass-status-tile__value { font-size: 15px; font-weight: 500; color: var(--foreground); }
+  .glass-status-tile__caption { font-size: 11px; color: var(--muted-foreground); }
+
+  /* ---- Search field ---- */
+  .glass-search {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px; border-radius: var(--glass-radius-lg);
+    background: linear-gradient(180deg, var(--glass-fill-top-subtle), var(--glass-fill-bottom-subtle));
+    backdrop-filter: blur(18px) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
+    box-shadow: inset 0 1px 1px var(--glass-specular);
+  }
+  .glass-search input { border: none; background: none; outline: none; font-size: 13px; color: var(--foreground); width: 100%; }
+  .glass-search input::placeholder { color: var(--muted-foreground); }
+  .glass-search svg, .glass-search i { color: var(--muted-foreground); }
+
+  /* ---- Filter chips ---- */
+  .glass-chip {
+    padding: 6px 12px; border-radius: var(--glass-radius-md);
+    font-size: 13px; font-weight: 500; white-space: nowrap;
+    background: var(--glass-unselected-bg);
+    border: 1px solid var(--glass-unselected-border);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: background var(--glass-transition), color var(--glass-transition);
+  }
+  .glass-chip[aria-selected="true"], .glass-chip--selected {
+    background: var(--glass-selected-bg);
+    color: var(--glass-selected-text);
+    border-color: transparent;
+  }
+
+  /* ---- Bottom tab bar ---- */
+  .glass-tabbar {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 9px 6px 6px;
+    background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
+    backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
+    border-top: 1px solid var(--glass-border, rgba(255,255,255,0.75));
+    box-shadow: inset 0 1px 1px var(--glass-specular-strong);
+  }
+  .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted-foreground); }
+  .glass-tab--active { color: var(--glass-accent); font-weight: 500; }
+
+  /* ---- Divider used inside panels ---- */
+  .glass-divider { height: 1px; background: var(--glass-divider); border: none; }
+
+  /* ---- Status badge ---- */
+  .glass-badge { display: inline-flex; padding: 3px 9px; border-radius: var(--glass-radius-sm); font-size: 11px; font-weight: 500; }
+  .glass-badge--warning { background: var(--status-warning-bg); color: var(--status-warning); }
+  .glass-badge--success { background: var(--status-success-bg); color: var(--status-success); }
+  .glass-badge--danger  { background: var(--status-danger-bg);  color: var(--status-danger); }
+
+  /* Respect reduced-motion (the app already has a global rule further below;
+     this scopes it explicitly to the new classes too, matching the source). */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-panel, .glass-chip, .glass-wallpaper { transition: none; }
+  }
+
+  /* Fallback for WebViews without backdrop-filter support */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-panel, .glass-panel--sm, .glass-panel--strong,
+    .glass-pill, .glass-search, .glass-tabbar {
+      background: var(--wallpaper-base);
+      opacity: 0.98;
+    }
   }
 }
 
