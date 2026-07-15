@@ -41,7 +41,8 @@ export function Sidebar({ role }: { role: string }) {
 
   return (
     <aside
-      className="fixed left-0 top-0 z-40 h-dvh w-60 hidden lg:flex flex-col glass-sidebar"
+      className="fixed left-0 top-0 z-40 h-dvh w-60 hidden lg:flex flex-col glass-panel--strong"
+      style={{ borderRadius: 0, borderTop: "none", borderLeft: "none", borderBottom: "none" }}
     >
       {/* Logo — 52px matches topbar */}
       <div

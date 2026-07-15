@@ -94,12 +94,12 @@ export function Topbar({ name, role }: { name: string; role: string }) {
 
   return (
     <header
-      className="fixed top-0 w-full z-40 flex items-center justify-between px-4"
+      className="fixed top-0 w-full z-40 flex items-center justify-between px-4 glass-panel--strong"
       style={{
-        background: "color-mix(in srgb, var(--background) 82%, transparent)",
-        backdropFilter: "var(--glass-blur)",
-        WebkitBackdropFilter: "var(--glass-blur)",
-        borderBottom: "0.5px solid var(--glass-border-lo)",
+        borderRadius: 0,
+        borderTop: "none",
+        borderLeft: "none",
+        borderRight: "none",
         paddingTop: "env(safe-area-inset-top, 0px)",
         height: "calc(52px + env(safe-area-inset-top, 0px))",
       }}
@@ -164,16 +164,9 @@ export function Topbar({ name, role }: { name: string; role: string }) {
 
           {menuOpen && (
             <div
-              className="absolute right-0 top-full mt-2 w-52 rounded-2xl overflow-hidden
+              className="absolute right-0 top-full mt-2 w-52 rounded-2xl overflow-hidden glass-panel
                 animate-in fade-in zoom-in-95 duration-150 origin-top-right"
-              style={{
-                background: "var(--glass-2)",
-                backdropFilter: "var(--glass-blur)",
-                WebkitBackdropFilter: "var(--glass-blur)",
-                border: "0.5px solid var(--glass-border-lo)",
-                boxShadow: "var(--glass-shadow-lg), var(--glass-inner)",
-                zIndex: 60,
-              }}
+              style={{ zIndex: 60 }}
             >
               {/* User info */}
               <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>

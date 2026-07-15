@@ -202,7 +202,7 @@ export default async function DashboardPage() {
            Clear top-to-bottom hierarchy: Revenue is the hero, Gross + Net
            sit below as a grouped 2-up (Net = the owner's bottom line). Whole
            card links to Reports (profit breaks down Brand → Model → SKU). ── */}
-      <Link href="/reports" className="block snm-card rounded-2xl p-6 transition active:scale-[0.98]" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+      <Link href="/reports" className="block glass-panel rounded-2xl transition active:scale-[0.98]" style={{ padding: 24 }}>
         <div className="flex items-center justify-between mb-4">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
             {monthName} — This Month
@@ -274,8 +274,7 @@ export default async function DashboardPage() {
 
       {/* ── Zone 1b: Today ── a quiet, separate card so today's running total
            never competes with the month's headline figures. ── */}
-      <div className="snm-card rounded-2xl px-5 py-4 flex items-center justify-between gap-3"
-        style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+      <div className="glass-panel flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Today</p>
           <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{todayLabel}</p>
@@ -289,66 +288,69 @@ export default async function DashboardPage() {
            Single card, one tap → /dispatch which always shows real active orders.
            Three columns = three stages. Colour signals state, not just decoration.
       ── */}
-      <Link href="/dispatch" className="block snm-card rounded-2xl overflow-hidden transition active:scale-[0.98]"
-        style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+      <Link href="/dispatch" className="block glass-panel transition active:scale-[0.98]" style={{ padding: 0, overflow: "hidden" }}>
         <div className="px-4 pt-4 pb-1">
           <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Order Pipeline — Today</p>
         </div>
-        <div className="grid grid-cols-3 divide-x" style={{ borderColor: "var(--glass-border-lo)" }}>
+        <div className="glass-stat-strip" style={{ padding: "8px 0" }}>
 
-          <div className="px-4 py-4">
+          <div className="glass-stat-strip__item" style={{ textAlign: "left", paddingLeft: 16 }}>
             <div className="flex items-center gap-1.5 mb-2">
               <ClipboardList className="h-3.5 w-3.5 shrink-0"
                 style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--muted-foreground)" }} />
               <p className="text-[12px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Awaiting</p>
             </div>
-            <p className="text-2xl font-bold leading-none snm-num"
+            <p className="glass-stat-strip__value text-2xl font-bold leading-none snm-num"
               style={{ color: awaitingDispatch > 0 ? "var(--snm-warning)" : "var(--foreground)" }}>
               {awaitingDispatch}
             </p>
-            <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="glass-stat-strip__label ios-subhead mt-1">
               {awaitingDispatch === 1 ? "order" : "orders"}
             </p>
           </div>
 
-          <div className="px-4 py-4">
+          <div className="glass-stat-strip__divider" />
+
+          <div className="glass-stat-strip__item" style={{ textAlign: "left", paddingLeft: 16 }}>
             <div className="flex items-center gap-1.5 mb-2">
               <Truck className="h-3.5 w-3.5 shrink-0"
-                style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--muted-foreground)" }} />
+                style={{ color: onRoad > 0 ? "var(--glass-accent)" : "var(--muted-foreground)" }} />
               <p className="text-[12px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>On Road</p>
               {onRoad > 0 && (
                 <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
-                  style={{ background: "var(--snm-brand)" }} />
+                  style={{ background: "var(--glass-accent)" }} />
               )}
             </div>
-            <p className="text-2xl font-bold leading-none snm-num"
-              style={{ color: onRoad > 0 ? "var(--snm-brand)" : "var(--foreground)" }}>
+            <p className="glass-stat-strip__value text-2xl font-bold leading-none snm-num"
+              style={{ color: onRoad > 0 ? "var(--glass-accent)" : "var(--foreground)" }}>
               {onRoad}
             </p>
-            <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
+            <p className="glass-stat-strip__label ios-subhead mt-1">
               {onRoad === 1 ? "order" : "orders"}
             </p>
           </div>
 
-          <div className="px-4 py-4">
+          <div className="glass-stat-strip__divider" />
+
+          <div className="glass-stat-strip__item" style={{ textAlign: "left", paddingLeft: 16 }}>
             <div className="flex items-center gap-1.5 mb-2">
               <PackageCheck className="h-3.5 w-3.5 shrink-0"
                 style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--muted-foreground)" }} />
               <p className="text-[12px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--muted-foreground)" }}>Delivered</p>
             </div>
-            <p className="text-2xl font-bold leading-none snm-num"
+            <p className="glass-stat-strip__value text-2xl font-bold leading-none snm-num"
               style={{ color: deliveredToday > 0 ? "var(--snm-success)" : "var(--foreground)" }}>
               {deliveredToday}
             </p>
-            <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>today</p>
+            <p className="glass-stat-strip__label ios-subhead mt-1">today</p>
           </div>
 
         </div>
         <div className="flex items-center justify-end gap-1 px-4 py-2"
-          style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+          style={{ borderTop: "1px solid var(--glass-divider)" }}>
           <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Open dispatch board</p>
           <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
         </div>
@@ -363,7 +365,7 @@ export default async function DashboardPage() {
 
           {pendingMvr > 0 && (
             <Link href="/sales?filter=unpaid"
-              className="snm-card rounded-2xl p-5 active:scale-[0.97] block"
+              className="glass-panel active:scale-[0.97] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}>
               <div className="flex justify-between items-start mb-3">
                 <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Unpaid</p>
@@ -383,7 +385,7 @@ export default async function DashboardPage() {
 
           {codUndeposited > 0 && (
             <Link href="/financials?tab=cod"
-              className="snm-card rounded-2xl p-5 active:scale-[0.97] block"
+              className="glass-panel active:scale-[0.97] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
               <div className="flex justify-between items-start mb-3">
                 <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Cash in Hand</p>
@@ -420,7 +422,7 @@ export default async function DashboardPage() {
 
           {overdueOrders > 0 && (
             <Link href="/dispatch"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
+              className="glass-panel flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
@@ -440,7 +442,7 @@ export default async function DashboardPage() {
 
           {lowStockCount > 0 && (
             <Link href="/inventory"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
+              className="glass-panel flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 28%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
@@ -460,7 +462,7 @@ export default async function DashboardPage() {
 
           {arrivingSoon > 0 && (
             <Link href="/shipments"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
+              className="glass-panel flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand)" }}>
@@ -480,7 +482,7 @@ export default async function DashboardPage() {
 
           {reorderCount > 0 && (
             <Link href="/reorder"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
+              className="glass-panel flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--snm-warning) 28%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
@@ -500,7 +502,7 @@ export default async function DashboardPage() {
 
           {overstockCount > 0 && (
             <Link href="/inventory?filter=overstock"
-              className="snm-card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] block"
+              className="glass-panel flex items-center gap-4 active:scale-[0.98] block"
               style={{ border: "1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent)" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: "color-mix(in srgb, var(--muted-foreground) 12%, transparent)", color: "var(--muted-foreground)" }}>

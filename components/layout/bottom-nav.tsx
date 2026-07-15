@@ -41,14 +41,14 @@ export function BottomNav({ role }: { role: string }) {
 
   return (
     <>
-      {/* ── Floating tab bar — a glass capsule inset from the screen edges
-             (iOS 26 Liquid Glass). Sits above the home indicator via
-             safe-area; content scrolls underneath and reads through the
-             blur, which is what makes it feel layered rather than docked. ── */}
+      {/* ── Floating tab bar — Liquid Glass pinned/translucent layer (z-axis
+             anatomy layer 4). glass-tabbar carries the fill/blur/specular
+             recipe from the new palette; active tab uses --glass-accent. ── */}
       <nav
-        className="fixed left-4 right-4 z-40 lg:hidden flex justify-around items-center snm-tabbar-float"
+        className="fixed left-4 right-4 z-40 lg:hidden glass-tabbar"
         style={{
           bottom: "max(14px, env(safe-area-inset-bottom, 0px))",
+          borderRadius: "var(--glass-radius-pill)",
           height: 64,
           paddingLeft: 6,
           paddingRight: 6,
@@ -61,15 +61,10 @@ export function BottomNav({ role }: { role: string }) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150"
+              className={`flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150 glass-tab${active ? " glass-tab--active" : ""}`}
             >
-              <Icon
-                className="h-[22px] w-[22px]"
-                style={{ color: active ? "var(--foreground)" : "var(--muted-foreground)", strokeWidth: active ? 2.2 : 1.6 }}
-              />
-              <span style={{ color: active ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: active ? 700 : 500 }}>
-                {item.label}
-              </span>
+              <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.6} />
+              <span style={{ fontSize: 11 }}>{item.label}</span>
             </Link>
           );
         })}
@@ -79,15 +74,10 @@ export function BottomNav({ role }: { role: string }) {
             onClick={() => setSheetOpen(true)}
             aria-label="More navigation options"
             aria-expanded={sheetOpen}
-            className="flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150"
+            className={`flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150 glass-tab${overflowActive ? " glass-tab--active" : ""}`}
           >
-            <MoreHorizontal
-              className="h-[22px] w-[22px]"
-              style={{ color: overflowActive ? "var(--foreground)" : "var(--muted-foreground)", strokeWidth: overflowActive ? 2.2 : 1.6 }}
-            />
-            <span style={{ color: overflowActive ? "var(--foreground)" : "var(--muted-foreground)", fontSize: 11, fontWeight: overflowActive ? 700 : 500 }}>
-              More
-            </span>
+            <MoreHorizontal className="h-[22px] w-[22px]" strokeWidth={overflowActive ? 2.2 : 1.6} />
+            <span style={{ fontSize: 11 }}>More</span>
           </button>
         )}
       </nav>
@@ -109,7 +99,7 @@ export function BottomNav({ role }: { role: string }) {
         style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
       >
         <div
-          className="mx-2 mb-2 rounded-3xl overflow-hidden glass-modal"
+          className="mx-2 mb-2 rounded-3xl overflow-hidden glass-panel--strong"
           style={{ boxShadow: "var(--glass-shadow-lg)" }}
         >
           {/* Drag handle */}
