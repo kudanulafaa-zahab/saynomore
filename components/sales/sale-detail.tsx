@@ -1134,7 +1134,17 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
     <div style={{ position: "fixed", inset: 0, background: "var(--scrim-bg)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", borderRadius: "20px 20px 0 0", width: "100%", padding: "28px 24px max(40px, env(safe-area-inset-bottom, 40px), var(--kb-inset))", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "85dvh", overflowY: "auto" }}
+        style={{
+          background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)",
+          borderRadius: "20px 20px 0 0", width: "100%",
+          // Bottom padding must clear the floating tab bar's own footprint
+          // (64px tall + its 14px/safe-area offset from the screen edge),
+          // not just the safe-area inset — otherwise the sheet's last row
+          // sits right where the tab bar renders and reads as "cut off"
+          // (Ali, screenshot: Print Labels' last product hidden behind nav).
+          padding: "28px 24px max(92px, calc(78px + env(safe-area-inset-bottom, 0px)), var(--kb-inset))",
+          boxShadow: "var(--glass-shadow-lg), var(--glass-inner)", maxHeight: "85dvh", overflowY: "auto",
+        }}
       >
         <div style={{ width: 40, height: 4, background: "var(--glass-border)", borderRadius: 999, margin: "0 auto 24px" }} />
         {children}

@@ -213,14 +213,16 @@
   --glass-bg-3:      rgba(255, 255, 255, 0.96);
   --glass-border:    rgba(255, 255, 255, 0.90);
   --glass-border-lo: rgba(0, 0, 0, 0.08);
-  /* Floating tab bar only (2026-07-14): on the light page (#f2f2f7) neither
-     --glass-bg-2 nor --glass-border-lo gave enough separation — the pill
-     blended into the page (Ali, screenshot, both themes). This is the one
-     piece of chrome that must always read as elevated over a same-tone
-     page, so it gets its own slightly stronger fill + a real dark hairline
-     instead of tuning the shared card tokens (which are correct as-is). */
-  --tabbar-bg:       rgba(255, 255, 255, 0.92);
-  --tabbar-border:   rgba(0, 0, 0, 0.12);
+  /* Floating tab bar only (2026-07-14, strengthened 2026-07-16): the shared
+     card tokens blend into the page — first found true against the flat
+     #f2f2f7 page, and true again against the new jewel-tone wallpaper's
+     near-white highlight (Ali, screenshot: "same color as background").
+     This is the one piece of chrome that must always read as elevated
+     regardless of what's behind it, so it stays its own dedicated, more
+     opaque fill + a firmer hairline rather than tuning the shared glass
+     tokens (correct as-is for content cards, which are meant to blend). */
+  --tabbar-bg:       rgba(255, 255, 255, 0.97);
+  --tabbar-border:   rgba(0, 0, 0, 0.16);
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
@@ -486,8 +488,8 @@
   --glass-bg-3:      rgba(255, 255, 255, 0.96);
   --glass-border:    rgba(255, 255, 255, 0.90);
   --glass-border-lo: rgba(0, 0, 0, 0.08);
-  --tabbar-bg:       rgba(255, 255, 255, 0.92);
-  --tabbar-border:   rgba(0, 0, 0, 0.12);
+  --tabbar-bg:       rgba(255, 255, 255, 0.97);
+  --tabbar-border:   rgba(0, 0, 0, 0.16);
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
@@ -1297,14 +1299,30 @@
     border-color: transparent;
   }
 
-  /* ---- Bottom tab bar ---- */
+  /* ---- Bottom tab bar ────────────────────────────────────────────────────
+     Uses the DEDICATED --tabbar-bg/--tabbar-border tokens, not the generic
+     glass-fill-*-strong recipe every other panel shares. The tab bar is the
+     one piece of chrome that must always read as visibly elevated above a
+     same-tone page — floating over the jewel-tone wallpaper made the shared
+     glass-panel recipe blend right into the background in light mode (Ali,
+     screenshot). --tabbar-bg/-border are tuned per-theme specifically for
+     that contrast; see their definitions for the fuller history. */
   .glass-tabbar {
     display: flex; justify-content: space-around; align-items: center;
     padding: 9px 6px 6px;
-    background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
+    background: var(--tabbar-bg);
     backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
     -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
-    border-top: 1px solid var(--glass-border, rgba(255,255,255,0.75));
+    /* Own compositor layer, promoted once and left alone: on iOS Safari a
+       `position: fixed` + backdrop-filter element re-samples the blur from
+       whatever is painting underneath it, so a long list rendering many rows
+       at once made the tab bar visibly judder until the page settled (Ali:
+       "vibrating up and down... happens most in long lists"). Forcing GPU
+       compositing here means the blur is computed from a stable snapshot
+       instead of live-resampling during the paint burst. */
+    will-change: transform;
+    transform: translateZ(0);
+    border: 1px solid var(--tabbar-border);
     box-shadow: inset 0 1px 1px var(--glass-specular-strong);
   }
   .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted-foreground); }
