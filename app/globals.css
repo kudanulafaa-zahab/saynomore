@@ -1207,6 +1207,14 @@
     pointer-events: none;
   }
 
+  /* ---- Calm wallpaper (data-entry screens: forms, wizards) ----
+     Same bokeh, same base colour — just muted, so dense lists of thin rows
+     (a customer picker, not a dashboard of large cards) stay easy to read
+     instead of the gradient reading as a wash across the whole screen. */
+  .glass-wallpaper--calm::before {
+    opacity: 0.35;
+  }
+
   /* ---- Core glass panel (cards, sheets, modals) ---- */
   .glass-panel {
     position: relative;

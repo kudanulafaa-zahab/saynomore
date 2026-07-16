@@ -615,6 +615,14 @@ function NewSaleSheet({
   onClose: () => void; onCreated: (id: string) => void;
   onCustomerCreated: (c: CustomerRow) => void;
 }) {
+  // This full-screen sheet uses the calmer wallpaper variant (see
+  // .glass-wallpaper--calm) since it's a dense list of thin rows rather
+  // than a few large cards — same bokeh, muted, so rows stay legible. On
+  // top of that muted backdrop the denser CARD_L2 fill reads as glass the
+  // same way Dashboard's cards do; shadows the outer CARD constant for
+  // every ...CARD spread in this function.
+  const CARD = CARD_L2;
+
   // Portal target — mounted flag set in an effect (not a bare `typeof
   // document !== "undefined"` inline check), because that inline check
   // still evaluates during React's render pass and can race with
@@ -1067,14 +1075,8 @@ function NewSaleSheet({
   if (!portalReady) return null;
   return createPortal(
     <div
-      className="fixed inset-x-0 top-0 z-50 flex flex-col"
+      className="fixed inset-x-0 top-0 z-50 flex flex-col glass-wallpaper glass-wallpaper--calm"
       style={{
-        // Opaque flat wallpaper base — NOT the .glass-wallpaper class, which
-        // also paints the bokeh ::before gradient. This sheet is portalled to
-        // document.body as its own layer, so stacking a second bokeh gradient
-        // directly behind its translucent glass-panel header/cards doubled up
-        // with the app shell's own wallpaper and washed the whole screen out.
-        background: "var(--wallpaper-base)",
         touchAction: "none",
         // 100dvh = dynamic viewport height — shrinks when keyboard opens on iOS 15.4+
         // This is the correct, CSS-native solution. No JS measurement needed.
@@ -1532,8 +1534,12 @@ function NewSaleSheet({
                             />
                           </div>
 
-                          {/* Price + availability — one neutral row, one accent only */}
-                          <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1 }}>
+                          {/* Price + availability — one neutral row, one accent only.
+                              Right-padded when the quick-add "+" button is present
+                              (absolutely positioned over this same bottom-right corner)
+                              so the "in cart" badge wraps clear of it instead of
+                              rendering underneath it. */}
+                          <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1, paddingRight: hasPrice && !outOfStock ? 44 : 0 }}>
                             <div className="min-w-0">
                               <div className="flex items-baseline gap-1.5 flex-wrap">
                                 <span className="font-semibold" style={{ fontSize: 22, letterSpacing: "-0.02em", color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
