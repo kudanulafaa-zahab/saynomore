@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__*__apply_migration",
+      "mcp__*__execute_sql",
+      "mcp__*__list_migrations",
+      "mcp__*__get_advisors",
+      "mcp__*__list_tables",
+      "mcp__*__list_projects",
+      "mcp__*__get_project",
+      "mcp__*__get_project_url",
+      "mcp__*__get_logs"
+    ]
+  }
+}
