@@ -1057,10 +1057,24 @@ function NewSaleSheet({
 
   const stepLabels: Record<Step, string> = { 1: "Customer", 2: "Products", 3: "Confirm" };
 
-  return (
+  // Portalled to document.body: this is a full-screen `position: fixed`
+  // takeover, and the app shell's content wrapper carries its own
+  // `z-[1]` stacking context (needed so it paints above the wallpaper's
+  // ::before pseudo-element). Any fixed layer nested inside that wrapper
+  // is capped at that context's ceiling and can never out-rank the
+  // shell's own always-on-top Topbar/BottomNav (z-40), no matter its own
+  // z-index — same reasoning as the price-explain sheet's portal below.
+  if (!portalReady) return null;
+  return createPortal(
     <div
-      className="fixed inset-x-0 top-0 z-50 flex flex-col glass-wallpaper"
+      className="fixed inset-x-0 top-0 z-50 flex flex-col"
       style={{
+        // Opaque flat wallpaper base — NOT the .glass-wallpaper class, which
+        // also paints the bokeh ::before gradient. This sheet is portalled to
+        // document.body as its own layer, so stacking a second bokeh gradient
+        // directly behind its translucent glass-panel header/cards doubled up
+        // with the app shell's own wallpaper and washed the whole screen out.
+        background: "var(--wallpaper-base)",
         touchAction: "none",
         // 100dvh = dynamic viewport height — shrinks when keyboard opens on iOS 15.4+
         // This is the correct, CSS-native solution. No JS measurement needed.
@@ -2430,7 +2444,8 @@ function NewSaleSheet({
         />,
         document.body,
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
