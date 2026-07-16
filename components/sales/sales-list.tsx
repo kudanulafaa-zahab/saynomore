@@ -375,7 +375,7 @@ export function SalesList() {
           <button
             onClick={() => setNewDialog(true)}
             className="flex items-center gap-2 h-11 px-5 rounded-2xl text-sm font-semibold transition active:scale-95"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
+            style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}
           >
             <Plus className="h-4 w-4" /> New Sale
           </button>
@@ -435,8 +435,8 @@ export function SalesList() {
               onClick={() => setStatusFilter(key)}
               className="shrink-0 h-11 px-4 rounded-full text-[14px] font-semibold transition active:scale-95"
               style={{
-                background: active ? "var(--foreground)" : "var(--glass-1)",
-                color:      active ? "var(--background)" : "var(--muted-foreground)",
+                background: active ? "var(--glass-accent)" : "var(--glass-1)",
+                color:      active ? "var(--snm-brand-on)" : "var(--muted-foreground)",
                 border:     active ? "none" : "0.5px solid var(--glass-border-lo)",
                 touchAction: "manipulation",
               }}
@@ -456,7 +456,7 @@ export function SalesList() {
           <button key={val} onClick={() => setGroupBy(val)}
             className="flex-1 flex items-center justify-center gap-2 h-10 text-[14px] font-semibold transition"
             style={groupBy === val
-              ? { background: "var(--foreground)", color: "var(--background)" }
+              ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
               : { background: "transparent", color: "var(--muted-foreground)" }}>
             <Icon className="h-3.5 w-3.5" />{label}
           </button>
@@ -474,7 +474,7 @@ export function SalesList() {
           </p>
           {rows.length === 0 && (
             <button onClick={() => setNewDialog(true)} className="mt-2 h-11 px-6 rounded-2xl ios-subhead font-semibold"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}>
+              style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
               Record first sale
             </button>
           )}
@@ -1059,9 +1059,8 @@ function NewSaleSheet({
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-50 flex flex-col"
+      className="fixed inset-x-0 top-0 z-50 flex flex-col glass-wallpaper"
       style={{
-        background: "var(--background)",
         touchAction: "none",
         // 100dvh = dynamic viewport height — shrinks when keyboard opens on iOS 15.4+
         // This is the correct, CSS-native solution. No JS measurement needed.
@@ -1071,9 +1070,9 @@ function NewSaleSheet({
     >
 
       {/* Header — safe-area aware, clears Dynamic Island / notch */}
-      <header className="snm-overlay-header px-5 shrink-0">
+      <header className="glass-panel--strong px-5 shrink-0 relative z-[1]" style={{ borderRadius: 0, borderLeft: "none", borderRight: "none", borderTop: "none", borderBottom: "0.5px solid var(--glass-border-lo)" }}>
         {/* Visible row sits BELOW the safe area inset */}
-        <div className="flex items-center justify-between py-3.5">
+        <div className="flex items-center justify-between py-3.5" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="text-foreground opacity-60 active:opacity-100 text-xl">✕</button>
             <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
@@ -1093,7 +1092,7 @@ function NewSaleSheet({
           {([1, 2, 3] as Step[]).map((s) => (
             <div key={s} className="flex items-center gap-2 flex-1">
               <div className="h-6 w-6 rounded-full flex items-center justify-center ios-subhead font-bold shrink-0 transition-all"
-                style={step === s ? { background: "var(--foreground)", color: "var(--background)" }
+                style={step === s ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
                   : step > s ? { background: "color-mix(in srgb, var(--snm-success) 20%, transparent)", color: "var(--snm-success)" }
                   : { background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                 {step > s ? "✓" : s}
@@ -1260,11 +1259,11 @@ function NewSaleSheet({
                         <button key={t} type="button" onClick={() => setOrderTier(t)}
                           className="py-2 rounded-xl ios-subhead font-semibold capitalize transition active:scale-95 relative"
                           style={isActive
-                            ? { background: "var(--foreground)", color: "var(--background)" }
+                            ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
                             : { background: "color-mix(in srgb, var(--foreground) 7%, transparent)", color: "var(--muted-foreground)" }}>
                           {t}
                           {isDefault && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ background: "var(--snm-brand)" }} />
+                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ background: "var(--glass-accent)" }} />
                           )}
                         </button>
                       );
@@ -1717,7 +1716,7 @@ function NewSaleSheet({
                         <button key={u} onClick={() => setLineUom(u)}
                           className="flex-1 py-2.5 rounded-xl ios-subhead font-semibold transition active:scale-95"
                           style={lineUom === u
-                            ? { background: "var(--foreground)", color: "var(--background)" }
+                            ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
                             : { color: "var(--muted-foreground)" }}>
                           {label}
                         </button>
@@ -1793,7 +1792,7 @@ function NewSaleSheet({
                         <button
                           onClick={() => setLineQty(String(qtyNum + 1))}
                           className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
-                          style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                          style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                           +
                         </button>
                       </div>
@@ -2143,7 +2142,7 @@ function NewSaleSheet({
                                 setEditingPrice(true);
                               }}
                               className="h-12 w-full rounded-xl font-semibold"
-                              style={{ background: "var(--foreground)", color: "var(--background)" }}
+                              style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}
                             >
                               Fix this product&apos;s price
                             </button>
@@ -2152,7 +2151,7 @@ function NewSaleSheet({
                             <button
                               onClick={() => { window.location.href = "/pricelists"; }}
                               className="h-12 w-full rounded-xl font-semibold"
-                              style={{ background: "var(--foreground)", color: "var(--background)" }}
+                              style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}
                             >
                               Manage price lists →
                             </button>
@@ -2298,7 +2297,7 @@ function NewSaleSheet({
       </div>
 
       {/* Fixed bottom actions */}
-      <footer className="snm-overlay-footer shrink-0 px-5 gap-3" style={{ paddingTop: "12px" }}>
+      <footer className="glass-panel--strong shrink-0 px-5 gap-3 flex items-center relative z-[1]" style={{ paddingTop: "12px", paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))", minHeight: 72, borderRadius: 0, borderLeft: "none", borderRight: "none", borderBottom: "none", borderTop: "0.5px solid var(--glass-border-lo)" }}>
         {step === 1 && (
           <>
             <button onClick={onClose} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
@@ -2314,7 +2313,7 @@ function NewSaleSheet({
                 setStep(2);
               }}
               className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}>
+              style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
               Add Products <ArrowRight className="h-4 w-4" />
             </button>
           </>
@@ -2329,7 +2328,7 @@ function NewSaleSheet({
               <button onClick={() => setSelectedSkuId("")} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
               <button onClick={handleAddLine} disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
                 className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                 <Plus className="h-4 w-4" /> Add to Order
               </button>
             </>
@@ -2338,7 +2337,7 @@ function NewSaleSheet({
               <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
               <button disabled={draftLines.length === 0} onClick={() => setStep(3)}
                 className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                 {draftLines.length === 0 ? "Add at least 1 item" : <>Review & Confirm <ArrowRight className="h-4 w-4" /></>}
               </button>
             </>
@@ -2349,7 +2348,7 @@ function NewSaleSheet({
             <button onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
             <button disabled={saving} onClick={handleSubmit}
               className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}>
+              style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Place Order <ArrowRight className="h-4 w-4" /></>}
             </button>
           </>
@@ -2568,7 +2567,7 @@ function MixedCartonSheet({
                     onClick={() => setCount(s.id, count + 1)}
                     disabled={outOfStock || atCap}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
-                    style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                    style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                     +
                   </button>
                 </div>
@@ -2588,7 +2587,7 @@ function MixedCartonSheet({
             onClick={handleAdd}
             disabled={!canAdd}
             className="h-14 w-full rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}>
+            style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
             <Plus className="h-4 w-4" /> Add Carton to Order
           </button>
         </div>
