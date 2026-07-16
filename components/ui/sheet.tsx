@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 /**
@@ -75,7 +76,22 @@ export function Sheet({
   const startY = useRef<number | null>(null);
   useBodyScrollLock(open);
 
-  if (!open) return null;
+  // Portalled to document.body: the app shell's content wrapper
+  // (app/(app)/layout.tsx) carries a load-bearing `z-[1]` (needed so it
+  // paints above the wallpaper's ::before gradient — removing it washes
+  // every page out, see commit 29eedaf). Any fixed-position overlay nested
+  // inside that wrapper is capped at that stacking context's ceiling and
+  // can never out-rank the shell's own always-on-top Topbar/BottomNav,
+  // no matter its own z-index — footers/headers get visually buried under
+  // the floating nav. Portalling escapes the shell's stacking context
+  // entirely instead of fighting it from inside, same fix already proven
+  // for NewSaleSheet/price-explain/MixedCartonSheet. Gated on a state flag
+  // flipped inside useEffect (not a bare typeof check) so createPortal
+  // never runs before document.body exists during hydration.
+  const [portalReady, setPortalReady] = useState(false);
+  useEffect(() => { setPortalReady(true); }, []);
+
+  if (!open || !portalReady) return null;
 
   const close = () => { if (dismissable) onClose(); };
 
@@ -86,7 +102,7 @@ export function Sheet({
   }
 
   if (variant === "docked") {
-    return (
+    return createPortal(
       <div
         className="fixed inset-0 flex items-end snm-scrim-in"
         style={{ ...SCRIM, zIndex: z, touchAction: "none" }}
@@ -125,12 +141,13 @@ export function Sheet({
             </div>
           )}
         </div>
-      </div>
+      </div>,
+      document.body,
     );
   }
 
   // variant="auto" — compact content-sized card
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 flex items-end sm:items-center justify-center p-4 snm-scrim-in"
       style={{ ...SCRIM, zIndex: z, paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
@@ -145,6 +162,7 @@ export function Sheet({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
