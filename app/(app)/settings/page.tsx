@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { UsersManager } from "@/components/masters/users-manager";
+import { PaletteSection } from "@/components/settings/palette-section";
 
 export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false);
@@ -22,6 +23,8 @@ export default function SettingsPage() {
         <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>System</p>
         <h1 className="ios-page-title">Settings</h1>
       </div>
+
+      <PaletteSection />
 
       <UsersManager />
 

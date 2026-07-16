@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineProvider } from "@/components/layout/offline-provider";
+import { PALETTE_INIT_SCRIPT } from "@/lib/palette";
 import "./globals.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
@@ -62,6 +63,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`h-full antialiased ${plusJakarta.variable}`}>
+      <head>
+        {/* Applies the stored palette (Sunrise/Aurora/Ember) to <html> before
+            React hydrates, so there's no flash of the default palette —
+            same reasoning as next-themes' own no-flash inline script. */}
+        <script dangerouslySetInnerHTML={{ __html: PALETTE_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full" style={{ fontFamily: SF_STACK }}>
         <ThemeProvider>
           <OfflineProvider>

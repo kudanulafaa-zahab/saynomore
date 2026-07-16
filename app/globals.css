@@ -253,18 +253,13 @@
   --outline:            #aeaeb2;
   --outline-variant:    #d1d1d6;
 
-  /* ═══ LIQUID GLASS PALETTE (2026-07-15, Ali's explicit adoption) ═══
+  /* ═══ LIQUID GLASS — theme-only surface tokens (2026-07-15) ═══
      Supersedes the graphite-monochrome accent rule that governed this file
      until now — see tag `pre-liquid-glass-2026-07-15` to restore the prior
-     state if needed. Ali reviewed the z-axis anatomy reference and chose to
-     adopt the purple accent + jewel-tone wallpaper bokeh system-wide,
-     overriding the earlier "no hue-based accent" decision. */
-  --wallpaper-stop-1: #ffd8a8;
-  --wallpaper-stop-2: #ffc9c9;
-  --wallpaper-stop-3: #d0bfff;
-  --wallpaper-stop-4: #a5d8ff;
-  --wallpaper-base:   #f7f3ec;
-
+     state if needed. These glass-fill/blur/radius tokens depend ONLY on
+     light/dark, identical across all 3 palettes (2026-07-16) — see the
+     PALETTE block below (scoped by [data-palette]) for wallpaper/accent/
+     status colors, which DO vary per palette. */
   --glass-fill-top:          rgba(255, 255, 255, 0.6);
   --glass-fill-bottom:       rgba(255, 255, 255, 0.3);
   --glass-fill-top-strong:   rgba(255, 255, 255, 0.65);
@@ -281,37 +276,143 @@
   --glass-radius-lg:   18px;
   --glass-radius-xl:   20px;
   --glass-radius-pill: 999px;
-  --glass-blur-sm-lg: 18px;  /* raw px scale from tokens.css, distinct from the app's existing --glass-blur/-lg (which are full blur()+saturate() shorthands) */
-  --glass-blur-md-lg: 22px;
-  --glass-blur-lg-lg: 28px;
   --glass-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --wallpaper-blur: 90px;
 
-  --glass-accent: #845ef7;
   --glass-selected-bg:      #24231f;
   --glass-selected-text:    #ffffff;
   --glass-unselected-bg:    rgba(255, 255, 255, 0.5);
   --glass-unselected-border:rgba(255, 255, 255, 0.6);
+}
 
-  /* Brand accent now follows the new Liquid Glass palette instead of
-     graphite. This is the deliberate reversal — see note above. */
+/* ═══════════════════════════════════════════════════════════════════════
+   PALETTE TOKENS — 3-theme system (2026-07-16): Sunrise / Aurora / Ember,
+   each with its own light + dark mode (6 combinations total). Selected via
+   [data-palette] on <html>, combined with the EXISTING .light/.dark classes
+   (next-themes, attribute="class" — unchanged). Wallpaper base, 4 bokeh
+   fields plus per-field opacity, accent color, and the derived snm-brand
+   and status-color tokens all live here; glass-fill/blur/radius above stay
+   theme-only (identical across all 3 palettes) per the source spec.
+   Falls back to Sunrise if [data-palette] hasn't been applied yet (first
+   paint before the inline script runs) — see app/layout.tsx.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ---- SUNRISE (default fallback + explicit) ---- */
+:root:not([data-palette]),
+[data-palette="sunrise"] {
+  --wallpaper-field-1: #ffd9a0;
+  --wallpaper-field-2: #ffc4c9;
+  --wallpaper-field-3: #ffe3b0;
+  --wallpaper-field-4: #fff8ec;
+  --wallpaper-opacity-1: 0.42;
+  --wallpaper-opacity-2: 0.34;
+  --wallpaper-opacity-3: 0.3;
+  --wallpaper-opacity-4: 0.4;
+}
+:root:not([data-palette]),
+.light[data-palette="sunrise"], [data-palette="sunrise"]:not(.dark) {
+  --wallpaper-base: #f7f2e9;
+  --glass-accent: #d97a3a;
+}
+.dark[data-palette="sunrise"] {
+  --wallpaper-base: #0e0805;
+  --wallpaper-field-1: #7a4a1e;
+  --wallpaper-field-2: #6b2338;
+  --wallpaper-field-3: #8a4a35;
+  --wallpaper-field-4: #e8c9a0;
+  --wallpaper-opacity-1: 0.4;
+  --wallpaper-opacity-2: 0.32;
+  --wallpaper-opacity-3: 0.3;
+  --wallpaper-opacity-4: 0.16;
+  --glass-accent: #e8a55c;
+}
+
+/* ---- AURORA ---- */
+[data-palette="aurora"]:not(.dark) {
+  --wallpaper-base: #eef3f4;
+  --wallpaper-field-1: #9fe3d0;
+  --wallpaper-field-2: #9cc7f0;
+  --wallpaper-field-3: #c0b0f0;
+  --wallpaper-field-4: #ffffff;
+  --wallpaper-opacity-1: 0.42;
+  --wallpaper-opacity-2: 0.38;
+  --wallpaper-opacity-3: 0.34;
+  --wallpaper-opacity-4: 0.46;
+  --glass-accent: #0f9488;
+}
+.dark[data-palette="aurora"] {
+  --wallpaper-base: #020709;
+  --wallpaper-field-1: #0d5c52;
+  --wallpaper-field-2: #163f78;
+  --wallpaper-field-3: #3a2a6e;
+  --wallpaper-field-4: #a8e8dc;
+  --wallpaper-opacity-1: 0.36;
+  --wallpaper-opacity-2: 0.36;
+  --wallpaper-opacity-3: 0.32;
+  --wallpaper-opacity-4: 0.16;
+  --glass-accent: #5eead4;
+}
+
+/* ---- EMBER ---- */
+[data-palette="ember"]:not(.dark) {
+  --wallpaper-base: #f8ede8;
+  --wallpaper-field-1: #ff8a4d;
+  --wallpaper-field-2: #e0568f;
+  --wallpaper-field-3: #ffbe4d;
+  --wallpaper-field-4: #fff0e0;
+  --wallpaper-opacity-1: 0.46;
+  --wallpaper-opacity-2: 0.38;
+  --wallpaper-opacity-3: 0.36;
+  --wallpaper-opacity-4: 0.32;
+  --glass-accent: #d6337a;
+}
+.dark[data-palette="ember"] {
+  --wallpaper-base: #06031a;
+  --wallpaper-field-1: #4a2d94;
+  --wallpaper-field-2: #6a2ba8;
+  --wallpaper-field-3: #1c3f8f;
+  --wallpaper-field-4: #c1a8ff;
+  --wallpaper-opacity-1: 0.4;
+  --wallpaper-opacity-2: 0.34;
+  --wallpaper-opacity-3: 0.38;
+  --wallpaper-opacity-4: 0.2;
+  --glass-accent: #a78bfa;
+}
+
+/* ---- Brand/status tokens derived from the palette accent — same for
+   every palette, just riding whatever --glass-accent the palette above
+   set. Scoped broadly ([data-palette], any theme) so one rule covers all
+   6 combinations instead of repeating per-palette. ---- */
+[data-palette] {
   --snm-brand:        var(--glass-accent);
   --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 12%, transparent);
   --snm-brand-border: color-mix(in srgb, var(--glass-accent) 30%, transparent);
-  --snm-brand-on:     #ffffff;
   --snm-brand-text:   var(--glass-accent);
+}
+[data-palette]:not(.dark) { --snm-brand-on: #ffffff; }
+.dark[data-palette]       { --snm-brand-on: #050308; }
 
-  /* Status colors — fully adopted from tokens.css per Ali's explicit call
-     (2026-07-15), replacing the prior contrast-tuned values below. --snm-*
-     IS the single source now; --status-* aliases exist only for the new
-     glass-components.css classes that reference that naming directly. */
+/* Status colors — light values (any palette, not dark) */
+[data-palette]:not(.dark) {
   --snm-success: #2b8a3e;
   --snm-error:   #c92a2a;
   --snm-warning: #e8590c;
-  --snm-info:    #845ef7;
+  --snm-info:    var(--glass-accent);
   --status-success: var(--snm-success); --status-success-bg: rgba(43, 138, 62, 0.14);
   --status-warning: var(--snm-warning); --status-warning-bg: rgba(232, 89, 12, 0.14);
   --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
-  --status-info:    var(--snm-info);    --status-info-bg:    rgba(132, 94, 247, 0.14);
+  --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 14%, transparent);
+}
+/* Status colors — dark values (any palette) */
+.dark[data-palette] {
+  --snm-success: #69db7c;
+  --snm-error:   #ff8787;
+  --snm-warning: #ffa94d;
+  --snm-info:    var(--glass-accent);
+  --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
+  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
+  --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 16%, transparent);
 }
 
 /* ── DARK MODE — Void & Vapor ───────────────────────────────────────────── */
@@ -401,13 +502,12 @@
     --outline:            #8e9192;
     --outline-variant:    #444748;
 
-    /* ═══ LIQUID GLASS PALETTE — dark (2026-07-15) ═══ */
-    --wallpaper-stop-1: #3b2373;
-    --wallpaper-stop-2: #591c68;
-    --wallpaper-stop-3: #0f3a6b;
-    --wallpaper-stop-4: #063e47;
-    --wallpaper-base:   #050308;
-
+    /* ═══ LIQUID GLASS — theme-only tokens, dark (2026-07-15) ═══
+       This block is a pre-hydration fallback for OS-dark/no explicit class
+       yet (next-themes normally applies the .dark class itself, even in
+       "system" mode — see the [data-palette] rules below and in
+       app/globals.css's palette section for the actual wallpaper/accent/
+       status colors, which depend on data-palette + .dark together). */
     --glass-fill-top:          rgba(255, 255, 255, 0.09);
     --glass-fill-bottom:       rgba(255, 255, 255, 0.03);
     --glass-fill-top-strong:   rgba(255, 255, 255, 0.1);
@@ -419,29 +519,54 @@
     --glass-specular:          rgba(255, 255, 255, 0.13);
     --glass-specular-strong:   rgba(255, 255, 255, 0.15);
     --glass-divider:           rgba(255, 255, 255, 0.08);
-
-    --glass-accent: #b197fc;
     --glass-selected-bg:      #edebe4;
     --glass-selected-text:    #050308;
     --glass-unselected-bg:    rgba(255, 255, 255, 0.07);
     --glass-unselected-border:rgba(255, 255, 255, 0.12);
+  }
 
-    --snm-brand:        var(--glass-accent);
-    --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 14%, transparent);
-    --snm-brand-border: color-mix(in srgb, var(--glass-accent) 32%, transparent);
-    --snm-brand-on:     #050308;
-    --snm-brand-text:   var(--glass-accent);
-
-    /* Status colors get a brighter shift in dark mode (tokens.css) —
-       standard green-600/red-600 desaturate against dark glass. */
-    --snm-success: #69db7c;
-    --snm-error:   #ff8787;
-    --snm-warning: #ffa94d;
-    --snm-info:    #b197fc;
+  /* Palette rules for the OS-dark/no-explicit-class window — mirrors the
+     .dark[data-palette] rules below without requiring the literal class.
+     Extremely short-lived in practice (next-themes applies .dark almost
+     immediately), but keeps this fallback path palette-correct too.
+     MUST exclude :not(.light) — otherwise, whenever the OS itself is in
+     dark mode, this media query fires unconditionally and its dark
+     wallpaper values beat an explicit .light override at equal CSS
+     specificity purely by later source order (a real bug caught live:
+     forcing Light in the UI while the OS was dark still showed the dark
+     Sunrise wallpaper). */
+  :root[data-palette="sunrise"]:not(.light) {
+    --wallpaper-base: #0e0805;
+    --wallpaper-field-1: #7a4a1e; --wallpaper-field-2: #6b2338;
+    --wallpaper-field-3: #8a4a35; --wallpaper-field-4: #e8c9a0;
+    --wallpaper-opacity-1: 0.4; --wallpaper-opacity-2: 0.32;
+    --wallpaper-opacity-3: 0.3; --wallpaper-opacity-4: 0.16;
+    --glass-accent: #e8a55c;
+  }
+  :root[data-palette="aurora"]:not(.light) {
+    --wallpaper-base: #020709;
+    --wallpaper-field-1: #0d5c52; --wallpaper-field-2: #163f78;
+    --wallpaper-field-3: #3a2a6e; --wallpaper-field-4: #a8e8dc;
+    --wallpaper-opacity-1: 0.36; --wallpaper-opacity-2: 0.36;
+    --wallpaper-opacity-3: 0.32; --wallpaper-opacity-4: 0.16;
+    --glass-accent: #5eead4;
+  }
+  :root[data-palette="ember"]:not(.light) {
+    --wallpaper-base: #06031a;
+    --wallpaper-field-1: #4a2d94; --wallpaper-field-2: #6a2ba8;
+    --wallpaper-field-3: #1c3f8f; --wallpaper-field-4: #c1a8ff;
+    --wallpaper-opacity-1: 0.4; --wallpaper-opacity-2: 0.34;
+    --wallpaper-opacity-3: 0.38; --wallpaper-opacity-4: 0.2;
+    --glass-accent: #a78bfa;
+  }
+  :root[data-palette]:not(.light) {
+    --snm-brand-on: #050308;
+    --snm-success: #69db7c; --snm-error: #ff8787; --snm-warning: #ffa94d;
+    --snm-info: var(--glass-accent);
     --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
     --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
     --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
-    --status-info:    var(--snm-info);    --status-info-bg:    rgba(177, 151, 252, 0.16);
+    --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 16%, transparent);
   }
 }
 
@@ -507,13 +632,10 @@
   --outline:            #aeaeb2;
   --outline-variant:    #d1d1d6;
 
-  /* ═══ LIQUID GLASS PALETTE — light, manual toggle (2026-07-15) ═══ */
-  --wallpaper-stop-1: #ffd8a8;
-  --wallpaper-stop-2: #ffc9c9;
-  --wallpaper-stop-3: #d0bfff;
-  --wallpaper-stop-4: #a5d8ff;
-  --wallpaper-base:   #f7f3ec;
-
+  /* ═══ LIQUID GLASS — theme-only tokens, light manual toggle (2026-07-15) ═══
+     Palette-specific wallpaper/accent/status colors live in the
+     [data-palette] section near the top of this file (2026-07-16) — they
+     combine with this .light class the same way they combine with .dark. */
   --glass-fill-top:          rgba(255, 255, 255, 0.6);
   --glass-fill-bottom:       rgba(255, 255, 255, 0.3);
   --glass-fill-top-strong:   rgba(255, 255, 255, 0.65);
@@ -525,27 +647,10 @@
   --glass-specular:          rgba(255, 255, 255, 0.9);
   --glass-specular-strong:   rgba(255, 255, 255, 0.95);
   --glass-divider:           rgba(36, 35, 31, 0.08);
-
-  --glass-accent: #845ef7;
   --glass-selected-bg:      #24231f;
   --glass-selected-text:    #ffffff;
   --glass-unselected-bg:    rgba(255, 255, 255, 0.5);
   --glass-unselected-border:rgba(255, 255, 255, 0.6);
-
-  --snm-brand:        var(--glass-accent);
-  --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 12%, transparent);
-  --snm-brand-border: color-mix(in srgb, var(--glass-accent) 30%, transparent);
-  --snm-brand-on:     #ffffff;
-  --snm-brand-text:   var(--glass-accent);
-
-  --snm-success: #2b8a3e;
-  --snm-error:   #c92a2a;
-  --snm-warning: #e8590c;
-  --snm-info:    #845ef7;
-  --status-success: var(--snm-success); --status-success-bg: rgba(43, 138, 62, 0.14);
-  --status-warning: var(--snm-warning); --status-warning-bg: rgba(232, 89, 12, 0.14);
-  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
-  --status-info:    var(--snm-info);    --status-info-bg:    rgba(132, 94, 247, 0.14);
 }
 
 /* ── Manual .dark override ──────────────────────────────────────────────── */
@@ -610,16 +715,12 @@
   --outline:            #8e9192;
   --outline-variant:    #444748;
 
-  /* ═══ LIQUID GLASS PALETTE — dark, manual toggle (2026-07-15) ═══
-     This is the block that actually fires when the user picks Dark in the
-     UI (next-themes sets .dark on <html>) — see tag
-     `pre-liquid-glass-2026-07-15` to restore the prior graphite state. */
-  --wallpaper-stop-1: #3b2373;
-  --wallpaper-stop-2: #591c68;
-  --wallpaper-stop-3: #0f3a6b;
-  --wallpaper-stop-4: #063e47;
-  --wallpaper-base:   #050308;
-
+  /* ═══ LIQUID GLASS — theme-only tokens, dark manual toggle (2026-07-15) ═══
+     This is the block that fires when the user picks Dark (next-themes
+     sets .dark on <html>) — see tag `pre-liquid-glass-2026-07-15` to
+     restore the prior graphite state. Palette-specific wallpaper/accent/
+     status colors live in the [data-palette] section near the top of this
+     file (2026-07-16), combined with .dark via `.dark[data-palette="…"]`. */
   --glass-fill-top:          rgba(255, 255, 255, 0.09);
   --glass-fill-bottom:       rgba(255, 255, 255, 0.03);
   --glass-fill-top-strong:   rgba(255, 255, 255, 0.1);
@@ -631,27 +732,10 @@
   --glass-specular:          rgba(255, 255, 255, 0.13);
   --glass-specular-strong:   rgba(255, 255, 255, 0.15);
   --glass-divider:           rgba(255, 255, 255, 0.08);
-
-  --glass-accent: #b197fc;
   --glass-selected-bg:      #edebe4;
   --glass-selected-text:    #050308;
   --glass-unselected-bg:    rgba(255, 255, 255, 0.07);
   --glass-unselected-border:rgba(255, 255, 255, 0.12);
-
-  --snm-brand:        var(--glass-accent);
-  --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 14%, transparent);
-  --snm-brand-border: color-mix(in srgb, var(--glass-accent) 32%, transparent);
-  --snm-brand-on:     #050308;
-  --snm-brand-text:   var(--glass-accent);
-
-  --snm-success: #69db7c;
-  --snm-error:   #ff8787;
-  --snm-warning: #ffa94d;
-  --snm-info:    #b197fc;
-  --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
-  --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
-  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
-  --status-info:    var(--snm-info);    --status-info-bg:    rgba(177, 151, 252, 0.16);
 }
 
 @layer base {
@@ -1187,24 +1271,80 @@
      See tag `pre-liquid-glass-2026-07-15` for the prior state.
      ══════════════════════════════════════════════════════════════════════ */
 
-  /* ---- Base wallpaper (apply to the app shell / root screen container) ---- */
+  /* ---- Base wallpaper (apply to the app shell / root screen container) ----
+     Replaced 2026-07-16 with the 3-palette bokeh recipe from Ali's updated
+     glass-components.css: 4 discrete blurred light fields (not large radial
+     gradients) using --wallpaper-field-1..4 + --wallpaper-opacity-1..4 (set
+     per-palette, see the [data-palette] tokens near the top of this file). */
   .glass-wallpaper {
     position: relative;
     background: var(--wallpaper-base);
     transition: background var(--glass-transition);
+    overflow: hidden; /* keeps the blurred, oversized ::before from spilling past rounded corners */
+    isolation: isolate; /* scopes blur/blend compositing to this element */
   }
+
   .glass-wallpaper::before {
     content: "";
     position: absolute;
     inset: 0;
     z-index: 0;
-    background:
-      radial-gradient(circle at 25% 15%, var(--wallpaper-stop-1) 0%, transparent 45%),
-      radial-gradient(circle at 80% 20%, var(--wallpaper-stop-2) 0%, transparent 40%),
-      radial-gradient(circle at 15% 80%, var(--wallpaper-stop-3) 0%, transparent 42%),
-      radial-gradient(circle at 90% 85%, var(--wallpaper-stop-4) 0%, transparent 45%),
-      radial-gradient(circle at 50% 50%, var(--wallpaper-base) 0%, transparent 60%);
     pointer-events: none;
+    background-repeat: no-repeat;
+    /* Each field is a large, soft radial gradient fading to transparent —
+       the gradient interpolation itself IS the soft edge, so no filter:blur
+       is applied to the element. (An earlier version applied
+       filter: blur(90px) to this whole full-viewport layer for a true
+       "bokeh" look; that rasterizes and blurs an enormous canvas on every
+       paint and stalled rendering outright in testing — confirmed via a
+       hung preview-tool screenshot, not just theorized. A large gradient
+       footprint + a distant fade stop reads as equally soft ambient light
+       at near-zero render cost, which is the right trade for a page-root
+       background that sits behind scrolling content.) */
+    background-image:
+      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 100%), transparent) 0%, transparent 70%),
+      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 100%), transparent) 0%, transparent 65%),
+      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 100%), transparent) 0%, transparent 68%),
+      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 100%), transparent) 0%, transparent 62%);
+    background-size: 780px 780px, 640px 640px, 700px 700px, 560px 560px;
+    background-position:
+      -180px -180px,                        /* field 1 — top-left */
+      calc(100% + 60px) 90px,               /* field 2 — top-right */
+      -140px calc(100% - 120px),            /* field 3 — bottom-left */
+      35% 30%;                              /* field 4 — highlight, upper-mid */
+    /* Own compositor layer (cheap: no filter to rasterize) so this layer's
+       paint never forces a repaint of scrolling content above it. */
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* Fallback for engines without color-mix() support (older Android
+     WebViews) — falls back to full-opacity fields rather than a broken
+     wallpaper. The opacity token is simply unused in this path. */
+  @supports not (background: color-mix(in srgb, red 50%, transparent)) {
+    .glass-wallpaper::before {
+      background-image:
+        radial-gradient(circle, var(--wallpaper-field-1) 0%, transparent 75%),
+        radial-gradient(circle, var(--wallpaper-field-2) 0%, transparent 75%),
+        radial-gradient(circle, var(--wallpaper-field-3) 0%, transparent 75%),
+        radial-gradient(circle, var(--wallpaper-field-4) 0%, transparent 75%);
+    }
+  }
+
+  /* Large soft gradients can quantize into visible steps ("banding") on
+     8-bit displays. A very faint procedural noise texture, blended with
+     mix-blend-mode: overlay at ~3% opacity, breaks up the smooth channel
+     transitions without being visible as "noise" itself. */
+  .glass-wallpaper::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-repeat: repeat;
   }
 
   /* ---- Calm wallpaper (data-entry screens: forms, wizards) ----
