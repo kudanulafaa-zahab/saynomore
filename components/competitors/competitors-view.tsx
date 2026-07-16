@@ -1313,7 +1313,11 @@ function PriceModal({
 
   const selectedSku = skus.find((s) => s.variant_id === variantId);
 
-  // Live per-piece calculation preview
+  // Live per-piece calculation preview. their_pcs_per_pack is the whole point
+  // of this field: a competitor's pack can hold a different piece count than
+  // ours (their 44/pk vs our 56/pk), so a raw pack-to-pack price comparison
+  // is meaningless — everything must land on a per-piece basis first, using
+  // THEIR pack size when given, before it can be compared to our own price.
   const perPiecePreview = useMemo(() => {
     const price = parseFloat(priceMvr);
     if (!price || !selectedSku) return null;
@@ -1324,6 +1328,27 @@ function PriceModal({
     if (priceBasis === "per_carton")  return price / ourCtn;
     return null;
   }, [priceMvr, priceBasis, theirPcsPerPack, selectedSku]);
+
+  // What this means for OUR price, in OUR own units — the auto-calculation
+  // Ali actually asked for. Their per-piece price times our pack/carton size
+  // gives "what we'd charge per pack/carton to match them exactly", so a
+  // competitor's odd pack size never has to be mentally converted by hand.
+  // Never writes anywhere — purely a read-only comparison in this sheet;
+  // Ali still sets his own prices via the Margin Simulator (never auto-
+  // overwritten, per the fixed-price rule).
+  const ourComparison = useMemo(() => {
+    if (perPiecePreview == null || !selectedSku || selectedSku.selling_price_per_piece_mvr == null) return null;
+    const ourPerPiece = selectedSku.selling_price_per_piece_mvr;
+    const diff = ourPerPiece - perPiecePreview;
+    const diffPct = (diff / perPiecePreview) * 100;
+    return {
+      ourPerPiece,
+      diff,
+      diffPct,
+      matchPackPrice: perPiecePreview * selectedSku.pcs_per_pack,
+      matchCartonPrice: perPiecePreview * selectedSku.pcs_per_pack * selectedSku.packs_per_carton,
+    };
+  }, [perPiecePreview, selectedSku]);
 
   async function save() {
     if (!selectedCompId || !variantId || !priceMvr) return;
@@ -1468,12 +1493,36 @@ function PriceModal({
             </div>
           </div>
 
-          {/* Live per-piece preview */}
+          {/* Live per-piece preview, plus what it means for our own price */}
           {perPiecePreview != null && (
-            <div className="rounded-xl px-4 py-3 text-center" style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
-              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                = <span className="font-bold text-[14px]" style={{ color: "var(--foreground)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
+            <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
+              <p className="ios-subhead text-center" style={{ color: "var(--muted-foreground)" }}>
+                Their price = <span className="font-bold text-[14px]" style={{ color: "var(--foreground)" }}>MVR {fmt2(perPiecePreview)}</span> per piece
               </p>
+              {ourComparison ? (
+                <>
+                  <div className="flex items-center justify-between pt-2" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                    <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>Your price</p>
+                    <p className="ios-subhead font-bold snm-num" style={{ color: "var(--foreground)" }}>MVR {fmt2(ourComparison.ourPerPiece)}/pc</p>
+                  </div>
+                  <p
+                    className="ios-footnote font-semibold text-center"
+                    style={{ color: ourComparison.diff > 0.005 ? "var(--snm-warning)" : ourComparison.diff < -0.005 ? "var(--snm-success)" : "var(--muted-foreground)" }}
+                  >
+                    {ourComparison.diff > 0.005
+                      ? `You're MVR ${fmt2(ourComparison.diff)} (${ourComparison.diffPct.toFixed(1)}%) more per piece`
+                      : ourComparison.diff < -0.005
+                      ? `You're MVR ${fmt2(Math.abs(ourComparison.diff))} (${Math.abs(ourComparison.diffPct).toFixed(1)}%) cheaper per piece`
+                      : "Same price per piece"}
+                  </p>
+                  <div className="flex items-center justify-between pt-2" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                    <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>To match, in your pack size</p>
+                    <p className="ios-subhead font-bold snm-num" style={{ color: "var(--foreground)" }}>MVR {fmt2(ourComparison.matchPackPrice)}/pack</p>
+                  </div>
+                </>
+              ) : (
+                <p className="ios-footnote text-center" style={{ color: "var(--muted-foreground)" }}>No selling price set for this product yet — can&apos;t compare</p>
+              )}
             </div>
           )}
 
