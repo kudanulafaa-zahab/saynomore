@@ -172,7 +172,7 @@ export function CompetitorsView() {
       let perPiece: number | null = null;
       if (p.price_basis === "per_piece")   perPiece = Number(p.price_mvr);
       else if (p.price_basis === "per_pack")  perPiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? pcsPerPack);
-      else if (p.price_basis === "per_carton") perPiece = Number(p.price_mvr) / (pcsPerPack * packsPerCarton);
+      else if (p.price_basis === "per_carton") perPiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? (pcsPerPack * packsPerCarton));
       return { p, comp, perPiece };
     }).filter((x) => x.perPiece != null).sort((a, b) => a.perPiece! - b.perPiece!);
     return normalized[0] ?? null;
@@ -196,7 +196,7 @@ export function CompetitorsView() {
         let pricePiece: number | null = null;
         if (p.price_basis === "per_piece")   pricePiece = Number(p.price_mvr);
         else if (p.price_basis === "per_pack")  pricePiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? ourPcsPerPack);
-        else if (p.price_basis === "per_carton") pricePiece = Number(p.price_mvr) / ourPcsPerCarton;
+        else if (p.price_basis === "per_carton") pricePiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? ourPcsPerCarton);
         return { price: p, competitor, pricePiece };
       }).sort((a, b) => {
         if (a.pricePiece == null) return 1;
@@ -862,7 +862,7 @@ export function CompetitorsView() {
                               <p className="ios-subhead font-medium text-foreground truncate">{competitor?.name ?? "Unknown"}</p>
                               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                                 {BASIS_LABEL[price.price_basis]} · {new Date(price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
-                                {price.their_pcs_per_pack ? <> · {price.their_pcs_per_pack} pcs/pk</> : null}
+                                {price.their_pcs_per_pack ? <> · {price.their_pcs_per_pack} pcs/{price.price_basis === "per_carton" ? "ctn" : "pk"}</> : null}
                               </p>
                             </div>
                           </div>
@@ -1074,7 +1074,7 @@ export function CompetitorsView() {
                                 <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                                   <span className="text-foreground font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
                                   {" "}{BASIS_LABEL[p.price_basis]}
-                                  {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/pk` : ""}
+                                  {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/${p.price_basis === "per_carton" ? "ctn" : "pk"}` : ""}
                                   {" · "}{new Date(p.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
                                 </p>
                                 {p.notes && <p className="ios-subhead mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
@@ -1261,6 +1261,10 @@ function PriceModal({
   const [priceMvr, setPriceMvr] = useState(editing ? String(editing.price_mvr) : "");
   const [priceBasis, setPriceBasis] = useState<PriceBasis>(editing?.price_basis ?? "per_pack");
   const [theirPcsPerPack, setTheirPcsPerPack] = useState(editing?.their_pcs_per_pack ? String(editing.their_pcs_per_pack) : "");
+  // Was this field auto-filled by us (safe to keep overwriting as the
+  // product/basis changes) or has Ali typed his own number (never touch it
+  // again)? Starts true only when there's nothing already saved to protect.
+  const [pcsAutoFilled, setPcsAutoFilled] = useState(!editing?.their_pcs_per_pack);
   const [observedDate, setObservedDate] = useState(editing?.observed_date ?? new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -1313,19 +1317,36 @@ function PriceModal({
 
   const selectedSku = skus.find((s) => s.variant_id === variantId);
 
+  // The pieces field always needs to hold a real number the moment it's
+  // relevant (per_pack or per_carton basis) — leaving it blank invited a
+  // silent "assume it matches ours" fallback that nobody could see, and
+  // typing an untested value into an empty box produced nonsense (e.g. 256
+  // pieces in a diaper pack → a 28,000% gap). Pre-fill with our own pack/
+  // carton size so the number driving the conversion is always visible and
+  // correct-by-default; Ali only edits it when the competitor's really
+  // differs. Keeps re-deriving the default as the product/basis changes,
+  // but only while still auto-filled — stops the moment Ali types his own.
+  useEffect(() => {
+    if (!selectedSku || !pcsAutoFilled) return;
+    if (priceBasis === "per_pack")   setTheirPcsPerPack(String(selectedSku.pcs_per_pack));
+    else if (priceBasis === "per_carton") setTheirPcsPerPack(String(selectedSku.pcs_per_carton));
+  }, [selectedSku, priceBasis, pcsAutoFilled]);
+
   // Live per-piece calculation preview. their_pcs_per_pack is the whole point
-  // of this field: a competitor's pack can hold a different piece count than
-  // ours (their 44/pk vs our 56/pk), so a raw pack-to-pack price comparison
-  // is meaningless — everything must land on a per-piece basis first, using
-  // THEIR pack size when given, before it can be compared to our own price.
+  // of this field: a competitor's pack/carton can hold a different piece
+  // count than ours (their 44/pk vs our 56/pk), so a raw pack-to-pack or
+  // carton-to-carton price comparison is meaningless — everything must land
+  // on a per-piece basis first, using THEIR piece count (pre-filled with
+  // ours, editable), before it can be compared to our own price. Mirrors
+  // get_competitor_price_gaps exactly (supabase/migrations) so this preview
+  // and the Price Gaps dashboard never disagree.
   const perPiecePreview = useMemo(() => {
     const price = parseFloat(priceMvr);
     if (!price || !selectedSku) return null;
-    const ourPcs = selectedSku.pcs_per_pack;
-    const ourCtn = ourPcs * selectedSku.packs_per_carton;
+    const theirPcs = parseInt(theirPcsPerPack);
     if (priceBasis === "per_piece")   return price;
-    if (priceBasis === "per_pack")    return price / (parseInt(theirPcsPerPack) || ourPcs);
-    if (priceBasis === "per_carton")  return price / ourCtn;
+    if (priceBasis === "per_pack")    return price / (theirPcs || selectedSku.pcs_per_pack);
+    if (priceBasis === "per_carton")  return price / (theirPcs || selectedSku.pcs_per_carton);
     return null;
   }, [priceMvr, priceBasis, theirPcsPerPack, selectedSku]);
 
@@ -1493,6 +1514,28 @@ function PriceModal({
             </div>
           </div>
 
+          {/* The piece count that actually drives the conversion below — shown
+              and filled in BEFORE the preview, not after, so cause comes
+              before effect. Only relevant when their price is for a pack or
+              a carton; a per-piece price needs no conversion at all. */}
+          {(priceBasis === "per_pack" || priceBasis === "per_carton") && (
+            <div className="space-y-1.5">
+              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                THEIR PIECES PER {priceBasis === "per_pack" ? "PACK" : "CARTON"}
+              </p>
+              <input
+                type="number" min="1" value={theirPcsPerPack}
+                onChange={(e) => { setTheirPcsPerPack(e.target.value); setPcsAutoFilled(false); }}
+                onFocus={(e) => e.target.select()}
+                className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
+              />
+              <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                Pre-filled with ours — change it only if their {priceBasis === "per_pack" ? "pack" : "carton"} holds a different count.
+              </p>
+            </div>
+          )}
+
           {/* Live per-piece preview, plus what it means for our own price */}
           {perPiecePreview != null && (
             <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
@@ -1523,13 +1566,6 @@ function PriceModal({
               ) : (
                 <p className="ios-footnote text-center" style={{ color: "var(--muted-foreground)" }}>No selling price set for this product yet — can&apos;t compare</p>
               )}
-            </div>
-          )}
-
-          {(priceBasis === "per_pack" || priceBasis === "per_piece") && (
-            <div className="space-y-1.5">
-              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>THEIR PCS/PACK {priceBasis === "per_pack" ? "(if different from ours)" : ""}</p>
-              <input type="number" min="1" value={theirPcsPerPack} onChange={(e) => setTheirPcsPerPack(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Optional" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
             </div>
           )}
 
