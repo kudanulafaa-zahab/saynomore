@@ -25,7 +25,7 @@ import {
 } from "@/lib/queries/competitors";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { Sheet } from "@/components/ui/sheet";
-import { listSkusFlat, updateSku, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, updateSku, getCurrentUserRole, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
@@ -1267,14 +1267,49 @@ function PriceModal({
 
   const uniqueVariants = useMemo(() => {
     const seen = new Set<string>();
-    return skus.filter((s) => { if (seen.has(s.variant_id)) return false; seen.add(s.variant_id); return true; });
+    const deduped = skus.filter((s) => { if (seen.has(s.variant_id)) return false; seen.add(s.variant_id); return true; });
+    // Explicit sort (not just relying on listSkusFlat's own order) — brand →
+    // model → natural size order (NB, S, M, L, XL, XXL, …), the same
+    // comparator every other product list in the app uses, so the picker
+    // below is guaranteed to group and expand in that hierarchy regardless
+    // of how `skus` was sourced.
+    return [...deduped].sort(compareSkusForDisplay);
   }, [skus]);
 
   const filteredVariants = useMemo(() => {
     const term = skuSearch.trim().toLowerCase();
-    if (!term) return uniqueVariants.slice(0, 30);
-    return uniqueVariants.filter((s) => [s.brand_name, s.model_name, s.variant_display].join(" ").toLowerCase().includes(term)).slice(0, 30);
+    if (!term) return uniqueVariants;
+    return uniqueVariants.filter((s) => [s.brand_name, s.model_name, s.variant_display].join(" ").toLowerCase().includes(term));
   }, [uniqueVariants, skuSearch]);
+
+  // Brand -> Model grouping, same shape as the New Sale wizard's product grid
+  // (components/sales/sales-list.tsx). A flat list of every variant read as a
+  // wall of near-identical rows once a brand spans several model lines (e.g.
+  // Mamypoko: Royal Soft, Royal Soft Boy/Girl, Skin Comfort, Xtra Kering) and
+  // forced a cramped scroll-inside-scroll box to hold it. Brand stays a fixed
+  // section label (never collapses); each model underneath is independently
+  // collapsible, collapsed by default. Typing still force-expands every model
+  // so a search match is never hidden behind a closed accordion.
+  const brandModelGroups = useMemo(() => {
+    const brands = new Map<string, { brandId: string; brandName: string; models: Map<string, { modelId: string; modelName: string; variants: SkuFullRow[] }> }>();
+    for (const s of filteredVariants) {
+      let brand = brands.get(s.brand_id);
+      if (!brand) { brand = { brandId: s.brand_id, brandName: s.brand_name, models: new Map() }; brands.set(s.brand_id, brand); }
+      let model = brand.models.get(s.model_id);
+      if (!model) { model = { modelId: s.model_id, modelName: s.model_name, variants: [] }; brand.models.set(s.model_id, model); }
+      model.variants.push(s);
+    }
+    return [...brands.values()].map((b) => ({ ...b, models: [...b.models.values()] }));
+  }, [filteredVariants]);
+
+  const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
+  function toggleModel(modelId: string) {
+    setExpandedModels((prev) => {
+      const next = new Set(prev);
+      if (next.has(modelId)) next.delete(modelId); else next.add(modelId);
+      return next;
+    });
+  }
 
   const selectedSku = skus.find((s) => s.variant_id === variantId);
 
@@ -1357,16 +1392,55 @@ function PriceModal({
             {!variantId ? (
               <>
                 <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Search brand, model…" className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none placeholder:text-muted-foreground mb-2" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }} />
-                <div className="rounded-xl overflow-hidden max-h-[180px] overflow-y-auto" style={CARD}>
-                  {filteredVariants.map((s) => (
-                    <button key={s.variant_id} onClick={() => setVariantId(s.variant_id)} className="w-full text-left px-4 py-3 active:opacity-70" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-                      <SkuIdentity
-                        brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
-                      />
-                    </button>
+                <div className="space-y-3">
+                  {brandModelGroups.map(({ brandId, brandName, models }) => (
+                    <div key={brandId}>
+                      {/* Brand — fixed section label, never collapses */}
+                      <p className="label-caps text-[12px] px-1 pb-1.5" style={{ color: "var(--muted-foreground)" }}>{brandName}</p>
+                      <div className="space-y-2">
+                        {models.map(({ modelId, modelName, variants }) => {
+                          // Collapsed by default; typing force-expands so a
+                          // search match is never hidden behind a closed row.
+                          const expanded = skuSearch.trim() !== "" || expandedModels.has(modelId);
+                          return (
+                            <div key={modelId} className="rounded-xl overflow-hidden" style={CARD}>
+                              <button
+                                type="button"
+                                onClick={() => toggleModel(modelId)}
+                                aria-expanded={expanded}
+                                className="w-full flex items-center gap-1.5 px-4 py-3 text-left active:opacity-70"
+                              >
+                                <ChevronDown
+                                  className="h-3.5 w-3.5 shrink-0 transition-transform"
+                                  style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+                                />
+                                <p className="ios-subhead font-semibold flex-1" style={{ color: "var(--foreground)" }}>{modelName}</p>
+                                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                                  {variants.length} size{variants.length !== 1 ? "s" : ""}
+                                </p>
+                              </button>
+                              {expanded && variants.map((s) => (
+                                <button
+                                  key={s.variant_id}
+                                  onClick={() => setVariantId(s.variant_id)}
+                                  className="w-full text-left px-4 py-3 active:opacity-70"
+                                  style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}
+                                >
+                                  <SkuIdentity
+                                    brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
+                                    pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ))}
-                  {filteredVariants.length === 0 && <p className="px-4 py-3 ios-subhead" style={{ color: "var(--muted-foreground)" }}>No matches</p>}
+                  {brandModelGroups.length === 0 && (
+                    <p className="px-1 py-3 ios-subhead" style={{ color: "var(--muted-foreground)" }}>No matches</p>
+                  )}
                 </div>
               </>
             ) : selectedSku ? (
