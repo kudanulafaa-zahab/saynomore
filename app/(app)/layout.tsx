@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-dvh overflow-x-hidden glass-wallpaper">
+    <div className="min-h-dvh overflow-x-hidden glass-wallpaper glass-wallpaper--pinned">
       <Sidebar role={role} />
       <Topbar name={name} role={role} />
       <div className="lg:pl-60 relative z-[1]" style={{ paddingTop: "calc(52px + env(safe-area-inset-top, 0px))" }}>

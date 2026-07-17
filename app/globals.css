@@ -1402,6 +1402,28 @@
     opacity: 0.35;
   }
 
+  /* ---- Pinned wallpaper — fixes "the glass looks static" (2026-07-17) ----
+     The app shell's .glass-wallpaper wraps min-h-dvh content that GROWS with
+     the page (normal document flow, not its own scroll container), so the
+     plain ::before/::after above — position: absolute, inset: 0 — size
+     themselves to the FULL height of a long scrolling screen, not the
+     viewport. The four bokeh fields anchor to the top/bottom of that whole
+     (tall) box, so on any screen with more than one screenful of content the
+     middle of the scroll — which is most of what you actually see while
+     scrolling — shows none of them: just flat --wallpaper-base behind every
+     card, unchanging no matter how far you scroll (Ali, screenshot: cards
+     read as flat painted colour, not glass). body::before (above) already
+     gets this right for the neutral --app-bg via position: fixed; this
+     modifier applies the identical fix to the coloured bokeh layer. Add
+     alongside .glass-wallpaper on the ONE full-page scrolling shell
+     (app/(app)/layout.tsx) — leave bounded fixed-height usages (e.g. the
+     New Sale wizard header in sales-list.tsx) on the plain class, since
+     position: fixed here would blow their box out to the full viewport. */
+  .glass-wallpaper--pinned::before,
+  .glass-wallpaper--pinned::after {
+    position: fixed;
+  }
+
   /* ---- Core glass panel (cards, sheets, modals) ---- */
   .glass-panel {
     position: relative;
