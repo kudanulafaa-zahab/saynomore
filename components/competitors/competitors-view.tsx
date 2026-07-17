@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { PromoAdvisor } from "./promo-advisor";
 import { CampaignsCard } from "./campaigns-card";
@@ -53,7 +54,21 @@ const BASIS_LABEL: Record<PriceBasis, string> = {
 function fmt2(n: number) { return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtInt(n: number) { return Math.ceil(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 
+// This screen (nav label "Market") used to be one ~1000px-of-content scroll
+// mixing six different jobs: promo alerts, campaign logging, a price-gap
+// warning, a single-SKU pricing calculator, a customer-tier price table, a
+// full price comparison list, and competitor management. Split into three
+// tabs so each visit lands on the one job it's for, instead of scrolling
+// past five others to reach it. Deep-linkable via ?tab= — morning-briefing's
+// existing bare /competitors link still lands on Overview by default.
+type MarketTab = "overview" | "pricing" | "competitors";
+
 export function CompetitorsView() {
+  const searchParams = useSearchParams();
+  const tabParam     = searchParams.get("tab");
+  const initialTab: MarketTab = tabParam === "pricing" ? "pricing" : tabParam === "competitors" ? "competitors" : "overview";
+  const [tab, setTab] = useState<MarketTab>(initialTab);
+
   const [competitors, setCompetitors] = useState<CompetitorRow[]>([]);
   const [prices, setPrices]           = useState<CompetitorPriceRow[]>([]);
   const [skus, setSkus]               = useState<SkuFullRow[]>([]);
@@ -284,6 +299,23 @@ export function CompetitorsView() {
         )}
       </div>
 
+      {/* ── Tab switcher — same recipe as Financials' P&L/Owed/COD tabs ── */}
+      <div className="glass-panel" style={{ display: "flex", gap: 6, padding: 4, borderRadius: 14 }}>
+        {([
+          { key: "overview",    label: "Overview" },
+          { key: "pricing",     label: "Pricing Tool" },
+          { key: "competitors", label: "Competitors" },
+        ] as const).map((t) => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, transition: "all 0.15s",
+              background: tab === t.key ? "var(--glass-accent)" : "transparent",
+              color:      tab === t.key ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
+          >{t.label}</button>
+        ))}
+      </div>
+
+      {tab === "overview" && (
+      <>
       {/* Slow movers with margin headroom — see promo-advisor.tsx */}
       <PromoAdvisor />
 
@@ -342,7 +374,17 @@ export function CompetitorsView() {
           )}
         </div>
       )}
+      </>
+      )}
 
+      {/* Pricing Tool: the single-SKU deep-dive — landed cost, competitor
+          floor, Margin Simulator, tier prices. Ali's highest-stakes,
+          most-frequent tool here (it sets the real number on the invoice),
+          so it's now its own tab instead of buried under Overview's alerts —
+          Clay's "one primary focal point per screen": a calculator this
+          consequential shouldn't compete for attention with promo cards. */}
+      {tab === "pricing" && (
+      <>
       {/* ── SKU Selector ── */}
       {skus.length > 0 && (
         <div>
@@ -828,7 +870,16 @@ export function CompetitorsView() {
           </div>
         </div>
       )}
+      </>
+      )}
 
+      {/* Competitors: the reference/browse tab — bulk price comparison
+          across every SKU, plus competitor management. Genuinely different
+          usage mode from Pricing Tool (scanning many rows vs. focused
+          single-SKU editing), so it earns its own tab rather than sitting
+          underneath the calculator. */}
+      {tab === "competitors" && (
+      <>
       {/* ── Per-Piece Comparison Table ── */}
       {perPieceComparison.length > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
@@ -1120,7 +1171,8 @@ export function CompetitorsView() {
           </div>
         )}
       </div>
-
+      </>
+      )}
 
       {/* ── Modals ── */}
       {competitorDialog.open && (
