@@ -336,7 +336,7 @@ function VerifyTab({
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-foreground leading-snug truncate">{skuLabel(r.sku)}</p>
                     <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                      {r.sku.internal_code} · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn)}</span>
+                      {r.sku.internal_code} · {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn)}</span>
                     </p>
                   </div>
                   {/* Count entry — cartons + loose packs, matching how stock
@@ -553,7 +553,12 @@ function TransferTab({
           style={{ background: "var(--glass-1)", border: "1px solid color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
         >
           <div className="flex items-center justify-between gap-2">
-            <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
+            <div className="min-w-0">
+              <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
+              <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                {selected.pcs_per_pack}/pk × {selected.packs_per_carton}/ctn
+              </p>
+            </div>
             <p className="snm-num ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
               {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} avail
             </p>
@@ -646,7 +651,11 @@ function TransferTab({
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
                   <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} available
+                    {/* Same brand/model/size can exist as two different SKUs with
+                        different pack configs (e.g. Xtra Kering XXXL 34/pk vs
+                        44/pk) — without this they're visually identical and
+                        impossible to tell apart when picking one to move. */}
+                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} available
                   </p>
                 </div>
               </button>
