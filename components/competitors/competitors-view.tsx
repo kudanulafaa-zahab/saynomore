@@ -1002,6 +1002,7 @@ export function CompetitorsView() {
                       <div className="flex items-start justify-between gap-1">
                         <p className="label-caps text-[10px] truncate" style={{ color: "var(--muted-foreground)" }}>
                           {cheapest?.competitor?.name?.toUpperCase() ?? "COMPETITOR"}
+                          {cheapest?.price.their_pcs_per_pack ? ` · ${cheapest.price.their_pcs_per_pack}PC/PK` : ""}
                         </p>
                         {canWrite && cheapest && (
                           <div className="flex items-center gap-0.5 shrink-0 -mt-1 -mr-1">
@@ -1035,6 +1036,16 @@ export function CompetitorsView() {
                       )}
                     </div>
                   </div>
+
+                  {/* Plain-English note when pack sizes differ — this is the actual
+                      answer to "why don't the pcs/pack match": both pack prices above
+                      are shown in YOUR {sku.pcs_per_pack}-pc pack size so they're
+                      directly comparable, not the competitor's real pack. */}
+                  {cheapest?.price.their_pcs_per_pack != null && cheapest.price.their_pcs_per_pack !== sku.pcs_per_pack && (
+                    <p className="ios-footnote mt-2 text-center" style={{ color: "var(--muted-foreground)" }}>
+                      {cheapest.competitor?.name ?? "They"} sell {cheapest.price.their_pcs_per_pack} pcs/pack, not {sku.pcs_per_pack} — both prices above are converted to your pack size to compare fairly.
+                    </p>
+                  )}
 
                   {/* Other competitors on this SKU — collapsed, not equal-weight cards */}
                   {rest.length > 0 && (
