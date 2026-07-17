@@ -1333,42 +1333,74 @@
 
   .glass-wallpaper::before {
     content: "";
-    position: absolute;
+    /* position: FIXED — this is the whole trick to real Liquid Glass, and
+       getting it wrong is why the effect kept dying. The colour layer must
+       stay PINNED to the screen while the glass cards scroll OVER it, so each
+       translucent card acts like a lens: the colour visible through it shifts
+       as the card travels up the viewport. That relative motion IS the
+       shimmer. When this layer was position: absolute instead, it scrolled at
+       the SAME rate as the cards, so the colour was glued to each card and
+       travelled with it — Ali, twice: "the background is in the card… the same
+       bokeh moves with the card as if the card also has this background
+       attached." Fixed kills that: cards move, colour stays.
+       The earlier fixed attempt still felt dead only because the fields were
+       sparse (clustered at the edges, flat middle) — nothing to shimmer over.
+       The fix is fixed + a RICH field spread across the whole viewport
+       (below), so wherever a card is, there's varied colour behind it that
+       changes as it scrolls. */
+    position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    /* repeat-y — the fix for BOTH the "it's flat in the middle" AND the "it
-       doesn't move" complaints at once. This layer is position: absolute
-       inside the min-h-dvh shell, so it spans the FULL height of a long page
-       and scrolls WITH the content — that's what makes the colour slide
-       underneath the glass cards as you scroll (Ali: the build where "the
-       background moved underneath… looked fantastic"). Left as no-repeat, the
-       four fields only landed near the very top and bottom of a tall page, so
-       the middle of a long scroll went flat — which a prior revision "fixed"
-       by pinning the layer to the viewport (position: fixed). That stopped
-       the flatness but froze the layer to the screen, killing the motion and
-       making the glass feel dead (Ali: "background the same size as the phone
-       screen and it doesn't move… liquid glass is completely gone"). Tiling
-       the fields down the page instead keeps soft light present EVERYWHERE on
-       a long scroll AND keeps the whole thing moving with the content. The
-       staggered tile heights (780/640/700/560) drift in and out of phase so
-       the repeat never reads as an obvious pattern; the gradients' own soft
-       fade (no filter:blur — a prior filter:blur(90px) on this full-page
-       canvas stalled rendering outright) keeps it cheap and ambient. */
-    background-repeat: repeat-y;
+    background-repeat: no-repeat;
+    /* Four soft fields spread to fill the viewport — top-left, top-right,
+       bottom-left, and a centre highlight — so the vertical span a card
+       travels through has distinct colour zones (warm top → highlight centre →
+       cooler bottom). No filter:blur (a prior filter:blur(90px) on this
+       full-viewport canvas stalled rendering outright); the gradients' own
+       long fade to transparent is the softness.
+
+       ULTRA-SMOOTH / NO BANDING: each field is a THREE-stop radial (full →
+       ~45% alpha at mid → transparent). A plain two-stop (solid → transparent)
+       fade steps visibly on 8-bit OLED in the dark palettes; the mid stop
+       bends the alpha curve so the falloff is perceptually even instead of a
+       hard linear ramp. The dither layer in ::after finishes the job on any
+       residual quantising. (Deliberately NOT using `in oklab` gradient
+       interpolation — if an engine can't parse it the WHOLE background-image
+       is dropped and the bokeh vanishes; the 3-stop + dither is smooth enough
+       without that risk.)
+
+       DYNAMIC SIZING: sizes are in vmax, not px — the fields scale with the
+       device, so the composition looks identically full on a small phone, a
+       large phone, or a desktop pane instead of a fixed px blob that reads
+       cramped or sparse depending on screen. (Because the layer is fixed, it
+       already fills any page length — a long page never runs it out or bands
+       it; vmax makes it fill any screen SIZE the same way.) */
     background-image:
-      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 100%), transparent) 0%, transparent 70%),
-      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 100%), transparent) 0%, transparent 65%),
-      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 100%), transparent) 0%, transparent 68%),
-      radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 100%), transparent) 0%, transparent 62%);
-    background-size: 780px 780px, 640px 640px, 700px 700px, 560px 560px;
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 45%), transparent) 34%,
+        transparent 74%),
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 45%), transparent) 32%,
+        transparent 70%),
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 45%), transparent) 33%,
+        transparent 72%),
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 45%), transparent) 30%,
+        transparent 68%);
+    background-size: 118vmax 118vmax, 100vmax 100vmax, 110vmax 110vmax, 88vmax 88vmax;
     background-position:
-      -180px 40px,                          /* field 1 — left column */
-      calc(100% + 60px) 220px,              /* field 2 — right column */
-      -140px 480px,                         /* field 3 — left, lower phase */
-      40% 300px;                            /* field 4 — mid highlight */
-    /* Own compositor layer (cheap: no filter to rasterize) so this layer's
-       paint never forces a repaint of scrolling content above it. */
+      -12% -8%,                             /* field 1 — top-left */
+      108% 4%,                              /* field 2 — top-right */
+      -8% 104%,                             /* field 3 — bottom-left */
+      58% 48%;                              /* field 4 — centre highlight */
+    /* Own compositor layer (cheap: no filter to rasterize) so this fixed
+       layer's paint never forces a repaint of the scrolling content above. */
     transform: translateZ(0);
     will-change: transform;
   }
@@ -1379,24 +1411,29 @@
   @supports not (background: color-mix(in srgb, red 50%, transparent)) {
     .glass-wallpaper::before {
       background-image:
-        radial-gradient(circle, var(--wallpaper-field-1) 0%, transparent 75%),
-        radial-gradient(circle, var(--wallpaper-field-2) 0%, transparent 75%),
-        radial-gradient(circle, var(--wallpaper-field-3) 0%, transparent 75%),
-        radial-gradient(circle, var(--wallpaper-field-4) 0%, transparent 75%);
+        radial-gradient(circle, var(--wallpaper-field-1) 0%, transparent 74%),
+        radial-gradient(circle, var(--wallpaper-field-2) 0%, transparent 70%),
+        radial-gradient(circle, var(--wallpaper-field-3) 0%, transparent 72%),
+        radial-gradient(circle, var(--wallpaper-field-4) 0%, transparent 68%);
     }
   }
 
   /* Large soft gradients can quantize into visible steps ("banding") on
-     8-bit displays. A very faint procedural noise texture, blended with
-     mix-blend-mode: overlay at ~3% opacity, breaks up the smooth channel
-     transitions without being visible as "noise" itself. */
+     8-bit OLED displays. A faint procedural noise texture, blended with
+     mix-blend-mode: overlay, breaks up the smooth channel transitions
+     without being visible as "noise" itself — this is the dither that makes
+     the fade read as truly continuous. 0.035 → 0.05: the dark palettes band
+     more (deep near-black gradients have fewer code values to step through),
+     so they need slightly more dither than the light ones did. */
   .glass-wallpaper::after {
     content: "";
-    position: absolute;
+    /* Fixed to match the colour layer above — the anti-banding noise belongs
+       to the same stationary backdrop plane, not to the scrolling content. */
+    position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.035;
+    opacity: 0.05;
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     background-repeat: repeat;
