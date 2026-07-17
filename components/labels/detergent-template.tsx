@@ -36,7 +36,11 @@ export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatTim
 
   return (
     <div style={{ width: "105mm", height: "148mm", position: "relative", overflow: "hidden", background: "white" }}>
-      {/* Layer 1 — PNG base */}
+      {/* Layer 1 — PNG base. Deliberately a plain <img>, not next/image: this
+          is a fixed-size print label (105mm × 148mm), not a responsive web
+          image — next/image's lazy-loading/srcset/layout-shift machinery has
+          nothing to optimize here and risks disturbing the exact absolute
+          positioning the SVG text overlay below is aligned against. */}
       <img
         src="/sosoft-label-design.png"
         alt=""

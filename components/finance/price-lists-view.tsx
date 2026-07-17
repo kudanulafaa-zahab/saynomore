@@ -55,7 +55,6 @@ export function PriceListsView() {
   const [openList, setOpenList]     = useState<PriceListRow | null>(null);
   const [newListTier, setNewListTier] = useState<PriceTier | null>(null);
   const [createdList, setCreatedList] = useState<PriceListRow | null>(null);
-  const [deleting, setDeleting]     = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [confirmDeleting, setConfirmDeleting] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
@@ -198,15 +197,11 @@ export function PriceListsView() {
                       {canWrite && (
                         <button
                           onClick={() => handleDelete(pl.id, pl.name)}
-                          disabled={deleting === pl.id}
                           className="ml-3 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 active:opacity-60"
                           style={{ color: "var(--snm-error)" }}
                           aria-label="Delete price list"
                         >
-                          {deleting === pl.id
-                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            : <Trash2 className="h-3.5 w-3.5" />
-                          }
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
@@ -236,7 +231,6 @@ export function PriceListsView() {
           priceList={openList}
           skus={skus}
           canWrite={canWrite}
-          onClose={() => setOpenList(null)}
           onDone={() => { setOpenList(null); load(); }}
         />
       )}
@@ -507,11 +501,10 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
 }
 
 /* ── Edit existing price list items ──────────────────────────────────────── */
-function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
+function PriceListItemsSheet({ priceList, skus, canWrite, onDone }: {
   priceList: PriceListRow;
   skus: SkuFullRow[];
   canWrite: boolean;
-  onClose: () => void;
   onDone: () => void;
 }) {
   const t = TIERS.find((x) => x.value === priceList.tier)!;
@@ -520,7 +513,6 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
   const [search, setSearch]         = useState("");
   const [addSkuId, setAddSkuId]     = useState("");
   const [addSheet, setAddSheet]     = useState(false);
-  const [deleting, setDeleting]     = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmRemoving, setConfirmRemoving] = useState(false);
@@ -531,7 +523,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { loadItems(); }, [priceList.id]);
+  useEffect(() => { loadItems(); }, [priceList.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setSkuIds = useMemo(() => new Set(items.map((i) => i.sku_id)), [items]);
   const filteredSkus = useMemo(() => {
@@ -542,17 +534,13 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
       .slice(0, 40);
   }, [skus, setSkuIds, search]);
 
-  function handleDelete(itemId: string) {
-    setConfirmRemove(itemId);
-  }
-
   return (
     <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Header */}
       <div className="snm-overlay-header px-5">
       <div className="flex items-center gap-3 pt-4 pb-4">
         <button
-          onClick={onClose}
+          onClick={onDone}
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: "var(--glass-1)", color: "var(--muted-foreground)" }}
         >
@@ -675,11 +663,10 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onClose, onDone }: {
                         extraAction={
                           <button
                             onClick={() => setConfirmRemove(item.id)}
-                            disabled={deleting === item.id}
                             className="flex-1 py-3 rounded-full text-sm font-medium flex items-center justify-center gap-1.5 active:opacity-60"
                             style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)", border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}
                           >
-                            {deleting === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Trash2 className="h-3.5 w-3.5" /> Remove</>}
+                            <Trash2 className="h-3.5 w-3.5" /> Remove
                           </button>
                         }
                       />

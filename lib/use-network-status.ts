@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { drainQueue, getPendingCount } from "./offline-queue";
 
 export interface NetworkStatus {

@@ -127,7 +127,6 @@ export default async function DashboardPage() {
 
   const now           = new Date();
   const monthName     = now.toLocaleString("en-MV", { month: "long", timeZone: "Indian/Maldives" });
-  const lastMonthName = new Date(now.getFullYear(), now.getMonth() - 1).toLocaleString("en-MV", { month: "long" });
   const todayLabel    = now.toLocaleString("en-MV", { weekday: "short", day: "numeric", month: "short", timeZone: "Indian/Maldives" });
 
   // Greeting by the owner's local hour (Maldives), so the header always reads true.

@@ -10,7 +10,7 @@ import {
 import { getReportsData, getContributionMargin, getAbcAnalysis, type ReportRow, type ContributionRow, type AbcRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
 import { formatQtyInTradeUnits, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
-import { groupByBrand, type BrandGroup } from "@/lib/group-by-brand";
+import { groupByBrand } from "@/lib/group-by-brand";
 import { TopBrandsChart } from "./top-brands-chart";
 import { MarginDistributionChart } from "./margin-distribution-chart";
 import { TopContributorsChart } from "./top-contributors-chart";
@@ -537,7 +537,7 @@ function BestSellersTable({ rows }: { rows: ReportRow[] }) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (brand: string) => setOpen((prev) => {
     const next = new Set(prev);
-    next.has(brand) ? next.delete(brand) : next.add(brand);
+    if (next.has(brand)) next.delete(brand); else next.add(brand);
     return next;
   });
 

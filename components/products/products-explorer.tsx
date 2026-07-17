@@ -10,12 +10,8 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogTitle,
 } from "@/components/ui/dialog";
@@ -24,7 +20,7 @@ import {
   createBrand, createModel, createVariant, createSku, createCategory, deleteCategory, deleteModel,
   toggleSkuActive, getCurrentUserRole, updateSku,
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
-  type SkuFullRow, type AttrKey, type UnitUom, type CostBasis, type SellUnit,
+  type SkuFullRow, type AttrKey, type SellUnit,
 } from "@/lib/queries/products";
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
@@ -38,33 +34,6 @@ const BarcodeScanner = dynamic(
   () => import("@/components/ui/barcode-scanner").then((m) => m.BarcodeScanner),
   { ssr: false }
 );
-
-/* ── Attr metadata ── */
-
-interface AttrSpec {
-  key: AttrKey; label: string; placeholder?: string;
-  type: "text" | "number"; options?: string[]; suffix?: string;
-}
-
-const ATTR_SPECS: Record<AttrKey, AttrSpec> = {
-  size:      { key: "size",      label: "Size",    placeholder: "NB, S, M…",   type: "text" },
-  scent:     { key: "scent",     label: "Scent",   placeholder: "Mint…",       type: "text" },
-  format:    { key: "format",    label: "Format",  type: "text",
-               options: ["Bottle","Pouch","Pack","Box"] },
-  volume_ml: { key: "volume_ml", label: "Volume",  placeholder: "1500",        type: "number", suffix: "ml" },
-  weight_g:  { key: "weight_g",  label: "Weight",  placeholder: "250",         type: "number", suffix: "g"  },
-  colour:    { key: "colour",    label: "Colour",  placeholder: "Pink…",       type: "text" },
-  other:     { key: "other",     label: "Other",   placeholder: "Optional",    type: "text" },
-};
-
-function attrsToDisplay(attrs: Record<string, string | number>, schema: AttrKey[]): string {
-  return schema.map((k) => {
-    const v = attrs[k];
-    if (v === undefined || v === "") return "";
-    const spec = ATTR_SPECS[k];
-    return spec?.suffix ? `${v}${spec.suffix}` : String(v);
-  }).filter(Boolean).join(" ");
-}
 
 /* ── Helpers ── */
 
@@ -786,7 +755,7 @@ export function ProductsExplorer() {
 
   const toggleBrand = (brandId: string) => setCollapsedBrands((prev) => {
     const next = new Set(prev);
-    next.has(brandId) ? next.delete(brandId) : next.add(brandId);
+    if (next.has(brandId)) next.delete(brandId); else next.add(brandId);
     return next;
   });
 
@@ -1048,13 +1017,12 @@ function SectionHead({ children }: { children: React.ReactNode }) {
 
 /* ── Combobox: type to search, shows "Create X" when no match ── */
 function Combobox({
-  value, onChange, options, placeholder, createLabel, onCreateClick, disabled, onDeleteOption,
+  value, onChange, options, placeholder, onCreateClick, disabled, onDeleteOption,
 }: {
   value: string;
   onChange: (id: string) => void;
   options: { id: string; label: string }[];
   placeholder: string;
-  createLabel?: string;
   onCreateClick?: () => void;
   disabled?: boolean;
   onDeleteOption?: (id: string, label: string) => void;
@@ -1478,7 +1446,7 @@ function NewSkuWizard({
     setLocalBrands([]); setLocalModels([]); setLocalCategories([]); setDeletedCategoryIds(new Set()); setDeletedModelIds(new Set());
   }
 
-  useEffect(() => { if (open) reset(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (open) reset(); }, [open]);
 
   // ── Resolve brand: find existing or create new
   async function resolveBrand(name: string): Promise<string> {

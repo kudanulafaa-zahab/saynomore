@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -66,7 +66,6 @@ export function CustomersManager() {
   }
   useEffect(() => { load(); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
-  const isAdmin = role === "admin";
   const canWrite = role !== "viewer" && role !== null;
 
   const filtered = useMemo(() => {

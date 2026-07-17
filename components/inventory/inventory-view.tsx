@@ -3,7 +3,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, RefreshCw, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
+import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";

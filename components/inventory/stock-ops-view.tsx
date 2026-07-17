@@ -160,7 +160,7 @@ export function StockOpsView() {
       {tab === "verify" ? (
         <VerifyTab skus={skus} godowns={godowns} levels={levels} onDone={reloadLevels} />
       ) : (
-        <TransferTab skus={skus} godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} />
+        <TransferTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} />
       )}
     </div>
   );
@@ -443,9 +443,9 @@ function VerifyTab({
 /* ════════════════════════════════════════════════════════════════════════ */
 
 function TransferTab({
-  skus, godowns, levels, skuMap, onDone,
+  godowns, levels, skuMap, onDone,
 }: {
-  skus: SkuFullRow[]; godowns: GodownRow[]; levels: StockLevel[];
+  godowns: GodownRow[]; levels: StockLevel[];
   skuMap: Map<string, SkuFullRow>; onDone: () => Promise<void>;
 }) {
   const [fromId, setFromId] = useState<string>(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");

@@ -722,7 +722,7 @@ export function MyDeliveries() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 

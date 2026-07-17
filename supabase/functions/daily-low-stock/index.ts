@@ -13,7 +13,7 @@ function json(payload: object, status: number) {
   });
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async () => {
   // Access control is handled by the gateway JWT check (the function is only
   // reachable with a valid Supabase key) — same as the send-push function. No
   // extra bearer-string guard here: the Supabase gateway rewrites the

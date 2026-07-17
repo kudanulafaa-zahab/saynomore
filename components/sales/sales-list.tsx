@@ -505,7 +505,7 @@ export function SalesList() {
             const isOpen = expandedCustomers.has(key);
             const toggle = () => setExpandedCustomers((prev) => {
               const next = new Set(prev);
-              isOpen ? next.delete(key) : next.add(key);
+              if (isOpen) next.delete(key); else next.add(key);
               return next;
             });
             const name = customer?.name ?? "Walk-in";
@@ -1959,7 +1959,7 @@ function NewSaleSheet({
                             )}
                             {margin != null && (
                               <p className="ios-subhead" style={{ color: margin < 0 ? "var(--snm-error)" : "var(--foreground)" }}>
-                                At the price shown, you're making <strong>{margin.toFixed(1)}% margin</strong>{margin < 0 ? " — you are losing money on this sale." : "."}
+                                At the price shown, you&apos;re making <strong>{margin.toFixed(1)}% margin</strong>{margin < 0 ? " — you are losing money on this sale." : "."}
                               </p>
                             )}
                           </div>
@@ -1984,9 +1984,6 @@ function NewSaleSheet({
                             const currentMarginPct = simPackPrice > 0 ? Math.round(((simPackPrice - landedPerPack) / simPackPrice) * 100) : 0;
                             const sliderVal = Math.max(1, Math.min(99, currentMarginPct));
                             const fillPct = ((sliderVal - 1) / 98) * 100;
-                            const impliedMarginPct = landedPerPack > 0 && simPackPrice > landedPerPack
-                              ? Math.round(((simPackPrice - landedPerPack) / simPackPrice) * 1000) / 10
-                              : 0;
 
                             function setDisplayPrice(v: number) {
                               const asPack = lineUom === "piece" ? v * pcsPerPack : lineUom === "carton" ? v / packsPerCarton : v;

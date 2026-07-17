@@ -34,7 +34,6 @@ import {
   type BrandRow,
   type ModelRow,
   type VariantRow,
-  type SkuRow,
   type SkuFullRow,
   type CategoryRow,
   type AttrKey,

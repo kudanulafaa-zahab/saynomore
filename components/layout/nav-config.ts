@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Truck,
   Boxes,
   ShoppingCart,
   BarChart2,

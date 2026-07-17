@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 import { navForRole, type NavItem } from "./nav-config";
@@ -50,11 +51,12 @@ export function Sidebar({ role }: { role: string }) {
         style={{ height: 52, borderBottom: "0.5px solid var(--glass-border-lo)" }}
       >
         <div className="flex items-center gap-2.5">
-          <img
+          <Image
             src="/icon.svg"
             alt="SayNoMore"
             width={28}
             height={28}
+            unoptimized
             className="w-7 h-7 rounded-lg shrink-0"
             style={{ objectFit: "cover" }}
           />

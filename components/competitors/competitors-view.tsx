@@ -169,8 +169,6 @@ export function CompetitorsView() {
   const piecePrice  = simPrice / pcsPerPack;
   const cartonPrice = simPrice * packsPerCarton;
 
-  const grossMarginMvr = packPrice - landedPerPack;
-  const grossMarginPct = landedPerPack > 0 ? (grossMarginMvr / packPrice) * 100 : 0;
   const impliedMarginPct = landedPerPack > 0 && packPrice > landedPerPack
     ? Math.round(((packPrice - landedPerPack) / packPrice) * 1000) / 10
     : 0;

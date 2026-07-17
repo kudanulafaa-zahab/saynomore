@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, Eye, EyeOff, WifiOff } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -138,11 +137,12 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center px-6" style={{ background: "var(--background)" }}>
       <div className="w-full max-w-md p-10 space-y-7 rounded-2xl" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg), var(--glass-inner)" }}>
         <div className="space-y-3 text-center">
-          <img
+          <Image
             src="/icon.svg"
             alt="SayNoMore"
             width={56}
             height={56}
+            unoptimized
             className="mx-auto h-14 w-14 rounded-2xl"
             style={{ objectFit: "cover", boxShadow: "0 8px 32px color-mix(in srgb, var(--snm-brand) 35%, transparent)" }}
           />

@@ -4,14 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  Loader2, Megaphone, MousePointerClick, Music2, Receipt,
-  Trash2, X, ChevronRight,
+  Loader2, Trash2, X, ChevronRight,
 } from "lucide-react";
 import {
   listMarketingSpend,
   createMarketingSpend,
   updateMarketingSpend,
-  deleteMarketingSpend,
   listExpenseCategories,
   listBusinessExpenses,
   createBusinessExpense,
@@ -21,7 +19,7 @@ import {
   type ExpenseCategoryRow,
   type BusinessExpenseRow,
 } from "@/lib/queries/expenses";
-import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { SelectionMark } from "@/components/ui/selection-mark";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { withOfflineFallback } from "@/lib/offline-write";
@@ -36,20 +34,6 @@ const CHANNEL_LABEL: Record<SpendChannel, string> = {
   other:      "Other",
 };
 
-const CHANNEL_ICON: Record<SpendChannel, React.ElementType> = {
-  meta_boost: Megaphone,
-  google:     MousePointerClick,
-  tiktok_ad:  Music2,
-  other:      Receipt,
-};
-
-const CATEGORY_ROWS = [
-  { key: "meta_boost" as SpendChannel, icon: Megaphone,        label: "Social Media Ads",  meta: "Variable • Per campaign" },
-  { key: "google"     as SpendChannel, icon: MousePointerClick, label: "Google Ads",         meta: "Variable • Per click"    },
-  { key: "tiktok_ad"  as SpendChannel, icon: Music2,            label: "TikTok Ads",         meta: "Variable • Per campaign" },
-  { key: "other"      as SpendChannel, icon: Receipt,           label: "Other Expenses",     meta: "Miscellaneous"           },
-];
-
 function fmt(n: number) {
   return n.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -60,7 +44,6 @@ function fmtShort(n: number) {
 
 export function ExpensesView() {
   const [rows, setRows] = useState<MarketingSpendRow[]>([]);
-  const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteBizTarget, setDeleteBizTarget] = useState<BusinessExpenseRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -89,11 +72,10 @@ export function ExpensesView() {
 
   async function load() {
     try {
-      const [r, s, cats, biz] = await Promise.all([
-        listMarketingSpend(), listSkusFlat(), listExpenseCategories(), listBusinessExpenses(),
+      const [r, cats, biz] = await Promise.all([
+        listMarketingSpend(), listExpenseCategories(), listBusinessExpenses(),
       ]);
       setRows(r);
-      setSkus(s);
       setCategories(cats);
       setBizRows(biz);
       setQuickCategoryId((prev) => prev || cats[0]?.id || "");

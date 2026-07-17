@@ -156,7 +156,6 @@ export function SaleDetail({ id }: { id: string }) {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
 
-  const isAdmin   = role === "admin";
   const isAdminOrManager = role === "admin" || role === "manager";
   const canWrite  = role !== "viewer" && role !== null;
   const customer  = customers.find((c) => c.id === order?.customer_id);
@@ -181,14 +180,6 @@ export function SaleDetail({ id }: { id: string }) {
   const linesEditable = (order?.status === "confirmed" || order?.status === "picked") && isAdminOrManager;
 
   /* ── Actions ───────────────────────────────────────────────────────────── */
-
-  async function patch(field: string, value: number | string | boolean | null) {
-    if (!order) return;
-    try {
-      await updateOrder(order.id, { [field]: value } as Record<string, unknown>);
-      setOrder({ ...order, [field]: value } as SalesOrderRow);
-    } catch (e) { toast.error((e as Error).message); }
-  }
 
   async function savePaymentRef() {
     if (!order) return;
@@ -1030,7 +1021,7 @@ export function SaleDetail({ id }: { id: string }) {
       <Sheet open={panel === "void"} onClose={() => setPanel(null)}>
         <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Void Order?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 16 }}>
-          <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> will be cancelled and its stock restored to inventory. The order stays on record for audit history — it's marked cancelled, not erased.
+          <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> will be cancelled and its stock restored to inventory. The order stays on record for audit history — it&apos;s marked cancelled, not erased.
         </p>
         <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>Reason *</p>
         <textarea

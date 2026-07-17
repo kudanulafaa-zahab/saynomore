@@ -156,22 +156,6 @@ async function networkFirst(request, cacheName, timeoutMs) {
   }
 }
 
-async function cacheFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  if (cached) return cached;
-
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch {
-    return new Response("Offline", { status: 503 });
-  }
-}
-
 // Serve from cache immediately (fast), while fetching a fresh copy in the
 // background to update the cache for next time. Best of both: instant loads
 // AND self-healing when an asset changes.

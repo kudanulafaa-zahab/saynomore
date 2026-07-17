@@ -118,7 +118,7 @@ export function PromoAdvisor() {
                 </p>
                 {r.expiry_days_left != null && r.expiry_days_left <= 180 && (
                   <p className="ios-footnote font-semibold mt-0.5" style={{ color: "var(--snm-warning)" }}>
-                    ⚠ Expires in {r.expiry_days_left} days — sell this one first or it's a write-off
+                    ⚠ Expires in {r.expiry_days_left} days — sell this one first or it&apos;s a write-off
                   </p>
                 )}
                 {/* Money in bold foreground; the qualifiers as chips — small

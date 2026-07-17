@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut, Search as SearchIcon } from "lucide-react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -106,11 +107,12 @@ export function Topbar({ name, role }: { name: string; role: string }) {
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5">
-        <img
+        <Image
           src="/icon.svg"
           alt="SayNoMore"
           width={28}
           height={28}
+          unoptimized
           className="w-7 h-7 rounded-lg shrink-0"
           style={{ objectFit: "cover" }}
         />

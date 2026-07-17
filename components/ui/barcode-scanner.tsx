@@ -35,6 +35,12 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
 
   useEffect(() => {
     if (!videoRef.current) return;
+    // Captured once, up front — by the time the cleanup below runs (unmount,
+    // or camera/device change re-running this effect), videoRef.current may
+    // already point somewhere else or be null. Stopping the SAME <video>
+    // element this effect actually attached the stream to is what matters,
+    // not whatever the ref happens to hold later.
+    const video = videoRef.current;
     resultFired.current = false;
 
     const reader = new BrowserMultiFormatReader();
@@ -47,7 +53,7 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
     };
 
     reader
-      .decodeFromConstraints(constraints, videoRef.current, (result, err) => {
+      .decodeFromConstraints(constraints, video, (result, err) => {
         if (result && !resultFired.current) {
           resultFired.current = true;
           onResult(result.getText());
@@ -68,10 +74,10 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
 
     return () => {
       // Stop all video tracks to release camera
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      if (video.srcObject) {
+        const stream = video.srcObject as MediaStream;
         stream.getTracks().forEach((t) => t.stop());
-        videoRef.current.srcObject = null;
+        video.srcObject = null;
       }
     };
   }, [cameras, cameraIdx, onResult]);

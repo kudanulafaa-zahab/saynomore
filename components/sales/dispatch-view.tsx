@@ -75,7 +75,6 @@ export function DispatchView() {
   const [items, setItems]                 = useState<OrderWithLines[]>([]);
   const [skus, setSkus]                   = useState<SkuFullRow[]>([]);
   const [users, setUsers]                 = useState<UserProfileRow[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentRole, setCurrentRole]     = useState<"admin" | "manager" | "staff" | "viewer" | null>(null);
   const [loading, setLoading]             = useState(true);
   const [expanded, setExpanded]           = useState<string | null>(null);
@@ -91,7 +90,6 @@ export function DispatchView() {
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not signed in");
-      setCurrentUserId(userData.user.id);
 
       const { data: profile } = await supabase
         .from("user_profiles")
