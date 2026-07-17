@@ -7,7 +7,7 @@ import {
   Search, MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight,
   Check, AlertTriangle, Loader2, History,
 } from "lucide-react";
-import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import {
   listStockLevels, type StockLevel,
@@ -201,7 +201,7 @@ function VerifyTab({
     const filtered = term
       ? list.filter((r) => skuLabel(r.sku).toLowerCase().includes(term) || (r.sku.internal_code ?? "").toLowerCase().includes(term))
       : list;
-    return filtered.sort((a, b) => skuLabel(a.sku).localeCompare(skuLabel(b.sku)));
+    return filtered.sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
   }, [levels, godownId, skus, q]);
 
   // Reset edits when godown changes.
@@ -469,7 +469,7 @@ function TransferTab({
     const filtered = term
       ? list.filter((r) => skuLabel(r.sku).toLowerCase().includes(term) || (r.sku.internal_code ?? "").toLowerCase().includes(term))
       : list;
-    return filtered.sort((a, b) => skuLabel(a.sku).localeCompare(skuLabel(b.sku)));
+    return filtered.sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
   }, [levels, fromId, skuMap, q]);
 
   const selected = skuId ? skuMap.get(skuId) : undefined;

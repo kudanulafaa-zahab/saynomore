@@ -93,6 +93,10 @@ export interface SkuFullRow extends SkuRow {
   brand_name: string;
   category_id: string;
   category_name: string;
+  /** Business-curated browse order from product_categories.sort_order
+   *  (e.g. Diapers=10, Liquid Detergent=20, Powder Detergent=30, Tobacco=100)
+   *  — NOT alphabetical. Added by migration 0075_v_skus_category_sort_order. */
+  category_sort_order: number;
   unit_uom: UnitUom;
   cost_basis: CostBasis;
   duty_rate_pct: number;
@@ -170,17 +174,26 @@ function skuVariantRank(display: string | null | undefined): number {
   return key in SKU_SIZE_RANK ? SKU_SIZE_RANK[key] : 900;
 }
 
-/** Catalogue display order: brand → model line → natural variant (size) order,
-    so SKUs read top-to-bottom by line instead of interleaving models.
-    Exported so every list (products, shipments picker, …) sorts identically. */
+/** Catalogue display order: brand → category (business-curated sort_order,
+    e.g. Diapers before Tobacco — NOT alphabetical) → model line → natural
+    variant (size) order → packaging (smallest pack config first, for the
+    rare case of two SKUs sharing brand/model/variant but different pack
+    sizes), so SKUs read top-to-bottom by line instead of interleaving
+    models. Exported so every list (Inventory, Godowns, Stock Ops, shipments
+    picker, …) sorts identically. */
 export function compareSkusForDisplay(a: SkuFullRow, b: SkuFullRow): number {
   const brand = a.brand_name.localeCompare(b.brand_name);
   if (brand !== 0) return brand;
+  const category = a.category_sort_order - b.category_sort_order;
+  if (category !== 0) return category;
   const model = a.model_name.localeCompare(b.model_name);
   if (model !== 0) return model;
   const rank = skuVariantRank(a.variant_display) - skuVariantRank(b.variant_display);
   if (rank !== 0) return rank;
-  return (a.variant_display ?? "").localeCompare(b.variant_display ?? "");
+  const variant = (a.variant_display ?? "").localeCompare(b.variant_display ?? "");
+  if (variant !== 0) return variant;
+  if (a.pcs_per_pack !== b.pcs_per_pack) return a.pcs_per_pack - b.pcs_per_pack;
+  return a.packs_per_carton - b.packs_per_carton;
 }
 
 export async function listSkusFlat(): Promise<SkuFullRow[]> {

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Warehouse, ChevronDown, Plus, Pencil, Trash2, Star, X, Check, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { listBatchStock, type BatchStock } from "@/lib/queries/inventory";
-import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
+import { listSkusFlat, compareSkusForDisplay, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import {
   listGodowns, createGodown, updateGodown, deleteGodown,
   type GodownRow, type GodownInput,
@@ -378,7 +378,7 @@ export function GodownsView() {
           return sku ? { sku, ...entry } : null;
         })
         .filter((x): x is SkuSlot => x !== null)
-        .sort((a, b) => b.value - a.value);
+        .sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
 
       const totalCartons = skuSlots.reduce((sum, s) => {
         const pcsPerCtn = s.sku.pcs_per_pack * s.sku.packs_per_carton;
@@ -388,8 +388,14 @@ export function GodownsView() {
 
       return { godown, skus: skuSlots, totalCartons, totalValue };
     })
-    // Show godowns with stock first, then empty — never hide any
-    .sort((a, b) => b.totalValue - a.totalValue);
+    // Default warehouse first (Ali's primary godown), then alphabetical —
+    // a fixed, predictable order matching how he actually thinks about his
+    // own warehouses, not a ranking that reshuffles as stock value moves
+    // between them (never hides an empty godown either).
+    .sort((a, b) => {
+      if (a.godown.is_default !== b.godown.is_default) return a.godown.is_default ? -1 : 1;
+      return a.godown.name.localeCompare(b.godown.name);
+    });
   }, [godowns, batches, skus]);
 
   async function handleCreate(name: string, location: string) {

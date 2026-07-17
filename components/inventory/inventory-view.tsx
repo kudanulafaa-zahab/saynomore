@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
-import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 
 type SortMode = "urgency" | "overstock" | "value" | "az";
@@ -355,8 +355,14 @@ export function InventoryView() {
   const [loading, setLoading]   = useState(true);
   const [q, setQ]               = useState("");
   const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
+  // Default to the catalogue browse order (brand → category → model → size),
+  // not urgency — urgency/value/overstock are opt-in triage lenses, but
+  // landing on Inventory should read like a shelf, not a to-do list (Ali,
+  // screenshot: sizes/models interleaved with no recognisable order —
+  // that was urgency mode's value-descending tiebreak reshuffling every
+  // model together, not a real bug in the urgency lens itself).
   const [sortMode, setSortMode] = useState<SortMode>(
-    searchParams.get("filter") === "overstock" ? "overstock" : "urgency",
+    searchParams.get("filter") === "overstock" ? "overstock" : "az",
   );
 
   useEffect(() => {
@@ -445,7 +451,7 @@ export function InventoryView() {
     // Sort each brand's SKUs by the chosen mode
     for (const [, g] of map) {
       g.skus.sort((a, b) => {
-        if (sortMode === "az") return a.sku.model_name.localeCompare(b.sku.model_name);
+        if (sortMode === "az") return compareSkusForDisplay(a.sku, b.sku);
         if (sortMode === "value") return b.totalValue - a.totalValue;
         if (sortMode === "overstock") return (b.alert?.dir ?? 0) - (a.alert?.dir ?? 0);
         // urgency (default): critical first, then low, then overstock, then ok
@@ -606,7 +612,7 @@ export function InventoryView() {
             { mode: "urgency", label: "Urgency" },
             { mode: "overstock", label: "Overstock" },
             { mode: "value", label: "Value" },
-            { mode: "az", label: "A–Z" },
+            { mode: "az", label: "Catalog" },
           ] as { mode: SortMode; label: string }[]).map(({ mode, label }) => (
             <button
               key={mode}
