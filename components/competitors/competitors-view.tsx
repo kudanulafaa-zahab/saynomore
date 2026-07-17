@@ -95,6 +95,14 @@ export function CompetitorsView() {
   const [canWrite, setCanWrite]     = useState(false);
   const [priceGaps, setPriceGaps]   = useState<CompetitorPriceGap[]>([]);
   const [gapsExpanded, setGapsExpanded] = useState(false);
+  // Price Comparison table: collapsed by default beyond the cheapest logged
+  // competitor per SKU — a group with 4-5 competitors was rendering 4-5
+  // full-weight cards nobody needed to see at once (Ali only acts on the
+  // cheapest one). Keyed by variant_id.
+  const [expandedComparisons, setExpandedComparisons] = useState<Set<string>>(new Set());
+  function toggleComparisonExpanded(vid: string) {
+    setExpandedComparisons((prev) => { const next = new Set(prev); if (next.has(vid)) next.delete(vid); else next.add(vid); return next; });
+  }
 
   useEffect(() => {
     getCurrentUserRole().then((r) => setCanWrite(r !== "viewer")).catch(() => {});
@@ -197,10 +205,13 @@ export function CompetitorsView() {
   const topCompPerPack    = topCompPerPiece != null ? topCompPerPiece * pcsPerPack : null;
   const topCompPerCarton  = topCompPerPiece != null ? topCompPerPiece * pcsPerPack * packsPerCarton : null;
 
-  // Per-piece comparison table (all variants with competitor prices)
+  // Per-piece comparison table (all variants with competitor prices).
+  // gapPct (our price vs cheapest logged competitor, positive = we're
+  // pricier) drives both the sort order below and the verdict banner in
+  // the render — computed once here instead of twice.
   const perPieceComparison = useMemo(() => {
     const variantIds = Array.from(new Set(prices.map((p) => p.variant_id)));
-    return variantIds.map((vid) => {
+    const groups = variantIds.map((vid) => {
       const sku = skus.find((s) => s.variant_id === vid);
       if (!sku) return null;
       const ourPcsPerPack   = sku.pcs_per_pack ?? 1;
@@ -218,8 +229,22 @@ export function CompetitorsView() {
         if (b.pricePiece == null) return -1;
         return a.pricePiece - b.pricePiece;
       });
-      return { vid, sku, normalized };
-    }).filter(Boolean) as { vid: string; sku: SkuFullRow; normalized: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null }[] }[];
+      const ourPiece = sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) : null;
+      const cheapestPiece = normalized[0]?.pricePiece ?? null;
+      const gapPct = ourPiece != null && cheapestPiece != null && cheapestPiece > 0
+        ? ((ourPiece - cheapestPiece) / cheapestPiece) * 100
+        : null;
+      return { vid, sku, normalized, gapPct };
+    }).filter(Boolean) as { vid: string; sku: SkuFullRow; normalized: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null }[]; gapPct: number | null }[];
+    // Worst gap (most overpriced vs. the competition) leads — the most
+    // actionable comparison first, not insertion order. Groups with no
+    // comparable price (no competitor logged, or our price unset) sink
+    // to the bottom since there's nothing to act on yet.
+    return groups.sort((a, b) => {
+      if (a.gapPct == null) return 1;
+      if (b.gapPct == null) return -1;
+      return b.gapPct - a.gapPct;
+    });
   }, [prices, skus, competitors]);
 
   const pricesByComp = useMemo(() => {
@@ -880,147 +905,192 @@ export function CompetitorsView() {
           underneath the calculator. */}
       {tab === "competitors" && (
       <>
-      {/* ── Per-Piece Comparison Table ── */}
+      {/* ── Price Comparison ──
+           Redesign (2026-07-17, Ali's screenshot): the old layout stacked
+           two full-weight cards — competitor price, then "Our Selling
+           Price" — at equal visual size, both bold, and "Our Selling
+           Price" was ALWAYS painted brand orange regardless of whether
+           that price was actually good or bad news. That's exactly the
+           "static panel painted in accent colour" bug the design law
+           forbids: orange means "us / tappable," not a status. A group
+           where we're 22% pricier than the cheapest competitor read
+           identically to one where we're 20% cheaper.
+           Fix: one verdict banner per SKU leads (green = cheaper, orange =
+           pricier but under the alert threshold, red = pricier over it —
+           the exact same three-tier rule the Margin Simulator's own
+           competitive-gap panel already uses, so a SKU never reads "fine"
+           on one tab and "flagged" on the other). "Your price" then
+           inherits that same colour instead of a fixed brand tint. Only
+           the cheapest competitor is shown at full weight — the one Ali
+           actually needs to react to — with the rest collapsed behind
+           "+N more" (Clay: one primary focal point per card, not a wall of
+           equally-weighted rows). Groups are sorted worst-gap-first so the
+           most actionable comparison leads the list instead of insertion
+           order. */}
       {perPieceComparison.length > 0 && (
         <div className="rounded-xl overflow-hidden" style={CARD}>
           <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Price Comparison</h2>
-            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>Shown in your pack &amp; carton size · sorted cheapest first</p>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>Your price vs the cheapest competitor · worst gap first</p>
           </div>
           <div className="divide-y divide-border">
-            {perPieceComparison.map(({ vid, sku, normalized }) => {
-              const ourCost = sku.landed_per_piece_mvr;
+            {perPieceComparison.map(({ vid, sku, normalized, gapPct }) => {
+              const ourPiece = sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) : null;
+              const ourPack  = sku.selling_price_per_pack_mvr != null ? Number(sku.selling_price_per_pack_mvr) : (ourPiece != null ? ourPiece * sku.pcs_per_pack : null);
+              const ourCtn   = sku.selling_price_per_carton_mvr != null ? Number(sku.selling_price_per_carton_mvr) : null;
+              const marginLabel = sku.fixed_selling_price_mvr != null
+                ? `Fixed · ${sku.actual_margin_pct != null ? `${sku.actual_margin_pct}% margin` : "no landed cost yet"}`
+                : sku.target_margin_pct != null ? `${sku.target_margin_pct}% margin` : null;
+
+              const cheapest = normalized[0] ?? null;
+              const rest = normalized.slice(1);
+              const isExpanded = expandedComparisons.has(vid);
+
+              let verdict: { deltaPack: number; color: string; bg: string; border: string; label: string } | null = null;
+              if (gapPct != null && ourPiece != null && cheapest?.pricePiece != null) {
+                const isAlert = gapPct > 0 && gapPct > alertThreshold;
+                const color = gapPct <= 0 ? "var(--snm-success)" : isAlert ? "var(--snm-error)" : "var(--snm-warning)";
+                verdict = {
+                  deltaPack: (ourPiece - cheapest.pricePiece) * sku.pcs_per_pack,
+                  color,
+                  bg: `color-mix(in srgb, ${color} 10%, transparent)`,
+                  border: `color-mix(in srgb, ${color} 25%, transparent)`,
+                  label: gapPct <= 0 ? "cheaper" : "pricier",
+                };
+              }
+
               return (
                 <div key={vid} className="p-5">
                   <div className="mb-3">
                     <p className="text-[14px] font-semibold text-foreground">{sku.brand_name} · {sku.model_name} · {sku.variant_display}</p>
-                    <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                       {sku.pcs_per_pack} pcs/pk · {sku.packs_per_carton} pk/ctn
-                      {ourCost != null && <> · Landed MVR {fmt2(Number(ourCost))}/pc</>}
+                      {sku.landed_per_piece_mvr != null && <> · Landed MVR {fmt2(Number(sku.landed_per_piece_mvr))}/pc</>}
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    {normalized.map(({ price, competitor, pricePiece }) => {
-                      const delta = ourCost != null && pricePiece != null ? pricePiece - Number(ourCost) : null;
-                      const deltaColor = delta == null ? "var(--muted-foreground)" : delta > 0 ? "var(--snm-success)" : "var(--snm-error)";
-                      return (
-                        <div key={price.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "var(--glass-bg-1)" }}>
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--glass-bg-2)" }}>
-                              <Store className="h-3.5 w-3.5 text-foreground" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="ios-subhead font-medium text-foreground truncate">{competitor?.name ?? "Unknown"}</p>
-                              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                                {BASIS_LABEL[price.price_basis]} · {new Date(price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
-                                {price.their_pcs_per_pack ? <> · {price.their_pcs_per_pack} pcs/{price.price_basis === "per_carton" ? "ctn" : "pk"}</> : null}
-                              </p>
-                            </div>
+
+                  {/* Verdict — the one thing to notice about this SKU */}
+                  {verdict && (
+                    <div className="rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between gap-3" style={{ background: verdict.bg, border: `1px solid ${verdict.border}` }}>
+                      <p className="ios-subhead font-bold" style={{ color: verdict.color }}>
+                        {verdict.deltaPack <= 0 ? "▼" : "▲"} MVR {fmt2(Math.abs(verdict.deltaPack))}/pk {verdict.label}
+                      </p>
+                      <p className="ios-footnote text-right shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                        vs {cheapest?.competitor?.name ?? "competitor"} · {Math.abs(gapPct!).toFixed(0)}%
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Your price vs the cheapest competitor, side by side */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="rounded-xl p-3" style={{ background: verdict ? verdict.bg : "var(--muted)", border: `0.5px solid ${verdict ? verdict.border : "var(--glass-border-lo)"}` }}>
+                      <p className="label-caps text-[10px]" style={{ color: "var(--muted-foreground)" }}>YOUR PRICE</p>
+                      {ourPack != null ? (
+                        <>
+                          <p className="text-[17px] font-bold snm-num mt-1 leading-none" style={{ color: verdict ? verdict.color : "var(--foreground)" }}>
+                            MVR {fmt2(ourPack)}<span className="ios-footnote opacity-60">/pk</span>
+                          </p>
+                          <p className="ios-footnote snm-num mt-1" style={{ color: "var(--muted-foreground)" }}>
+                            {ourCtn != null && <>MVR {fmt2(ourCtn)}/ctn · </>}{fmt2(ourPiece!)}/pc
+                          </p>
+                          {marginLabel && <p className="ios-footnote mt-1 truncate" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>}
+                        </>
+                      ) : (
+                        <p className="ios-footnote mt-2" style={{ color: "var(--muted-foreground)" }}>Not set</p>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl p-3" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="label-caps text-[10px] truncate" style={{ color: "var(--muted-foreground)" }}>
+                          {cheapest?.competitor?.name?.toUpperCase() ?? "COMPETITOR"}
+                        </p>
+                        {canWrite && cheapest && (
+                          <div className="flex items-center gap-0.5 shrink-0 -mt-1 -mr-1">
+                            <button onClick={() => setPriceDialog({ open: true, editing: cheapest.price, competitorId: cheapest.price.competitor_id })} aria-label="Edit price" className="h-6 w-6 rounded-md flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => setDeletePriceDialog(cheapest.price)} aria-label="Delete price" className="h-6 w-6 rounded-md flex items-center justify-center" style={{ color: "var(--snm-error)" }}>
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-4">
-                            <div className="text-right">
-                              {pricePiece != null ? (
-                                <>
-                                  {/* Their price, converted to OUR pack/carton size — the
-                                      numbers Ali actually transacts in. Per-piece is the
-                                      math that makes different pack sizes comparable at
-                                      all, so it stays, just shrunk to a footnote instead
-                                      of leading the row. */}
-                                  <p className="text-[16px] font-bold text-foreground snm-num">
-                                    MVR {fmt2(pricePiece * sku.pcs_per_pack)}<span className="ios-subhead text-foreground/40">/pk</span>
-                                  </p>
-                                  <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
-                                    MVR {fmt2(pricePiece * sku.pcs_per_carton)}/ctn · {fmt2(pricePiece)}/pc
-                                  </p>
-                                  {delta != null && (
-                                    <p className="ios-subhead font-medium" style={{ color: deltaColor }}>
-                                      {delta > 0 ? "+" : ""}{fmt2(delta)}/pc vs landed
-                                    </p>
-                                  )}
-                                </>
-                              ) : (
-                                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                                  {fmt2(Number(price.price_mvr))} ({BASIS_LABEL[price.price_basis]})
-                                </p>
-                              )}
-                            </div>
-                            {/* Edit / delete this competitor price — was only reachable
-                                from the Competitors list; add it here where prices
-                                are actually reviewed. */}
-                            {canWrite && (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => setPriceDialog({ open: true, editing: price, competitorId: price.competitor_id })}
-                                  aria-label="Edit price"
-                                  className="h-8 w-8 rounded-lg flex items-center justify-center"
-                                  style={{ background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => setDeletePriceDialog(price)}
-                                  aria-label="Delete price"
-                                  className="h-8 w-8 rounded-lg flex items-center justify-center"
-                                  style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", color: "var(--snm-error)" }}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {/* Our price — brand orange identity, not error colour (NNG: colour semantics) */}
-                    {sku.selling_price_per_piece_mvr != null && (() => {
-                      const ourPc = Number(sku.selling_price_per_piece_mvr);
-                      const marginLabel = sku.fixed_selling_price_mvr != null
-                        ? `Fixed · ${sku.actual_margin_pct != null ? `${sku.actual_margin_pct}% actual margin` : "no landed cost yet"}`
-                        : sku.target_margin_pct != null
-                          ? `${sku.target_margin_pct}% margin`
-                          : "saved";
-                      return (
-                        <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--snm-brand)" }}>
-                              <Tag className="h-3.5 w-3.5" style={{ color: "var(--snm-brand-on)" }} />
-                            </div>
-                            <div>
-                              <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>Our Selling Price</p>
-                              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[16px] font-bold snm-num" style={{ color: "var(--snm-brand-text)" }}>
-                              MVR {fmt2(sku.selling_price_per_pack_mvr != null ? Number(sku.selling_price_per_pack_mvr) : ourPc * sku.pcs_per_pack)}
-                              <span className="ios-subhead opacity-60">/pk</span>
-                            </p>
-                            <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
-                              MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn · {fmt2(ourPc)}/pc
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {/* Simulated price — only shown for the selected SKU when simulator differs */}
-                    {simSku?.id === sku.id && isPriceChanged && (
-                      <div className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px dashed color-mix(in srgb, var(--snm-warning) 35%, transparent)" }}>
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}>
-                            <TrendingUp className="h-3.5 w-3.5" style={{ color: "var(--snm-warning)" }} />
-                          </div>
-                          <div>
-                            <p className="ios-subhead font-medium" style={{ color: "var(--snm-warning)" }}>Simulated Price</p>
-                            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{impliedMarginPct}% margin · not saved yet</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[16px] font-bold snm-num" style={{ color: "var(--snm-warning)" }}>MVR {fmt2(packPrice)}<span className="ios-subhead opacity-60">/pk</span></p>
-                          <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(cartonPrice)}/ctn · {fmt2(piecePrice)}/pc</p>
-                        </div>
+                        )}
                       </div>
-                    )}
+                      {cheapest?.pricePiece != null ? (
+                        <>
+                          <p className="text-[17px] font-bold snm-num mt-1 leading-none text-foreground">
+                            MVR {fmt2(cheapest.pricePiece * sku.pcs_per_pack)}<span className="ios-footnote text-foreground/40">/pk</span>
+                          </p>
+                          <p className="ios-footnote snm-num mt-1" style={{ color: "var(--muted-foreground)" }}>
+                            MVR {fmt2(cheapest.pricePiece * sku.pcs_per_carton)}/ctn · {fmt2(cheapest.pricePiece)}/pc
+                          </p>
+                          <p className="ios-footnote mt-1 truncate" style={{ color: "var(--muted-foreground)" }}>
+                            {new Date(cheapest.price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                          </p>
+                        </>
+                      ) : cheapest ? (
+                        <p className="ios-footnote mt-2" style={{ color: "var(--muted-foreground)" }}>
+                          {fmt2(Number(cheapest.price.price_mvr))} ({BASIS_LABEL[cheapest.price.price_basis]})
+                        </p>
+                      ) : (
+                        <p className="ios-footnote mt-2" style={{ color: "var(--muted-foreground)" }}>No price logged</p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Other competitors on this SKU — collapsed, not equal-weight cards */}
+                  {rest.length > 0 && (
+                    <button
+                      onClick={() => toggleComparisonExpanded(vid)}
+                      className="w-full mt-2 flex items-center justify-center gap-1 rounded-lg py-1.5 ios-footnote font-semibold transition active:opacity-70"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      {isExpanded
+                        ? <>Hide {rest.length} more <ChevronUp className="h-3 w-3" /></>
+                        : <>+{rest.length} more competitor{rest.length !== 1 ? "s" : ""} <ChevronDown className="h-3 w-3" /></>}
+                    </button>
+                  )}
+                  {isExpanded && rest.map(({ price, competitor, pricePiece }) => (
+                    <div key={price.id} className="flex items-center justify-between rounded-lg px-3 py-2 mt-1.5" style={{ background: "var(--glass-bg-1)" }}>
+                      <div className="min-w-0">
+                        <p className="ios-footnote font-medium text-foreground truncate">{competitor?.name ?? "Unknown"}</p>
+                        <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                          {new Date(price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        {pricePiece != null ? (
+                          <p className="ios-footnote font-semibold snm-num text-foreground">MVR {fmt2(pricePiece * sku.pcs_per_pack)}/pk</p>
+                        ) : (
+                          <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{fmt2(Number(price.price_mvr))} ({BASIS_LABEL[price.price_basis]})</p>
+                        )}
+                        {canWrite && (
+                          <div className="flex items-center gap-0.5">
+                            <button onClick={() => setPriceDialog({ open: true, editing: price, competitorId: price.competitor_id })} aria-label="Edit price" className="h-6 w-6 rounded-md flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => setDeletePriceDialog(price)} aria-label="Delete price" className="h-6 w-6 rounded-md flex items-center justify-center" style={{ color: "var(--snm-error)" }}>
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Simulated price — only shown for the selected SKU when simulator differs */}
+                  {simSku?.id === sku.id && isPriceChanged && (
+                    <div className="flex items-center justify-between rounded-xl px-4 py-3 mt-2.5" style={{ background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px dashed color-mix(in srgb, var(--snm-warning) 35%, transparent)" }}>
+                      <div>
+                        <p className="ios-subhead font-medium" style={{ color: "var(--snm-warning)" }}>Simulated Price</p>
+                        <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{impliedMarginPct}% margin · not saved yet</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[16px] font-bold snm-num" style={{ color: "var(--snm-warning)" }}>MVR {fmt2(packPrice)}<span className="ios-footnote opacity-60">/pk</span></p>
+                        <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(cartonPrice)}/ctn · {fmt2(piecePrice)}/pc</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
