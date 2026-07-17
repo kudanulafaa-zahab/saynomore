@@ -834,7 +834,7 @@ export function CompetitorsView() {
         <div className="rounded-xl overflow-hidden" style={CARD}>
           <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Price Comparison</h2>
-            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>All prices normalised to per piece · sorted cheapest first</p>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>Shown in your pack &amp; carton size · sorted cheapest first</p>
           </div>
           <div className="divide-y divide-border">
             {perPieceComparison.map(({ vid, sku, normalized }) => {
@@ -870,10 +870,20 @@ export function CompetitorsView() {
                             <div className="text-right">
                               {pricePiece != null ? (
                                 <>
-                                  <p className="text-[14px] font-semibold text-foreground">MVR {fmt2(pricePiece)}<span className="ios-subhead text-foreground/40">/pc</span></p>
+                                  {/* Their price, converted to OUR pack/carton size — the
+                                      numbers Ali actually transacts in. Per-piece is the
+                                      math that makes different pack sizes comparable at
+                                      all, so it stays, just shrunk to a footnote instead
+                                      of leading the row. */}
+                                  <p className="text-[16px] font-bold text-foreground snm-num">
+                                    MVR {fmt2(pricePiece * sku.pcs_per_pack)}<span className="ios-subhead text-foreground/40">/pk</span>
+                                  </p>
+                                  <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                                    MVR {fmt2(pricePiece * sku.pcs_per_carton)}/ctn · {fmt2(pricePiece)}/pc
+                                  </p>
                                   {delta != null && (
                                     <p className="ios-subhead font-medium" style={{ color: deltaColor }}>
-                                      {delta > 0 ? "+" : ""}{fmt2(delta)} vs landed
+                                      {delta > 0 ? "+" : ""}{fmt2(delta)}/pc vs landed
                                     </p>
                                   )}
                                 </>
@@ -930,8 +940,13 @@ export function CompetitorsView() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[14px] font-semibold" style={{ color: "var(--snm-brand-text)" }}>MVR {fmt2(ourPc)}<span className="ios-subhead opacity-60">/pc</span></p>
-                            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn</p>
+                            <p className="text-[16px] font-bold snm-num" style={{ color: "var(--snm-brand-text)" }}>
+                              MVR {fmt2(sku.selling_price_per_pack_mvr != null ? Number(sku.selling_price_per_pack_mvr) : ourPc * sku.pcs_per_pack)}
+                              <span className="ios-subhead opacity-60">/pk</span>
+                            </p>
+                            <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                              MVR {fmt2(Number(sku.selling_price_per_carton_mvr))}/ctn · {fmt2(ourPc)}/pc
+                            </p>
                           </div>
                         </div>
                       );
@@ -949,8 +964,8 @@ export function CompetitorsView() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-[14px] font-semibold" style={{ color: "var(--snm-warning)" }}>MVR {fmt2(piecePrice)}<span className="ios-subhead opacity-60">/pc</span></p>
-                          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(cartonPrice)}/ctn</p>
+                          <p className="text-[16px] font-bold snm-num" style={{ color: "var(--snm-warning)" }}>MVR {fmt2(packPrice)}<span className="ios-subhead opacity-60">/pk</span></p>
+                          <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(cartonPrice)}/ctn · {fmt2(piecePrice)}/pc</p>
                         </div>
                       </div>
                     )}
