@@ -297,34 +297,39 @@
    paint before the inline script runs) — see app/layout.tsx.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ---- SUNRISE (default fallback + explicit) ---- */
+/* ---- SUNRISE (default fallback + explicit) ----
+   Light: warm gold/rose PLUS a pale sky-blue note (field-3) — that blue note
+   is what keeps this from reading identical to Ember, which stays warm-only
+   in light mode. Dark: true midnight navy/indigo (2026-07-17 refinement —
+   the previous dark Sunrise was brown/rose and read too close to Ember's
+   dark mode; pure blue family now, no brown/violet/magenta). */
 :root:not([data-palette]),
 [data-palette="sunrise"] {
   --wallpaper-field-1: #ffd9a0;
   --wallpaper-field-2: #ffc4c9;
-  --wallpaper-field-3: #ffe3b0;
+  --wallpaper-field-3: #bcd9f5;
   --wallpaper-field-4: #fff8ec;
   --wallpaper-opacity-1: 0.42;
-  --wallpaper-opacity-2: 0.34;
+  --wallpaper-opacity-2: 0.32;
   --wallpaper-opacity-3: 0.3;
   --wallpaper-opacity-4: 0.4;
 }
 :root:not([data-palette]),
 .light[data-palette="sunrise"], [data-palette="sunrise"]:not(.dark) {
-  --wallpaper-base: #f7f2e9;
+  --wallpaper-base: #f6f2ea;
   --glass-accent: #d97a3a;
 }
 .dark[data-palette="sunrise"] {
-  --wallpaper-base: #0e0805;
-  --wallpaper-field-1: #7a4a1e;
-  --wallpaper-field-2: #6b2338;
-  --wallpaper-field-3: #8a4a35;
-  --wallpaper-field-4: #e8c9a0;
-  --wallpaper-opacity-1: 0.4;
-  --wallpaper-opacity-2: 0.32;
-  --wallpaper-opacity-3: 0.3;
+  --wallpaper-base: #03060f;
+  --wallpaper-field-1: #16264d;
+  --wallpaper-field-2: #22336e;
+  --wallpaper-field-3: #2c4478;
+  --wallpaper-field-4: #aac6f2;
+  --wallpaper-opacity-1: 0.42;
+  --wallpaper-opacity-2: 0.36;
+  --wallpaper-opacity-3: 0.32;
   --wallpaper-opacity-4: 0.16;
-  --glass-accent: #e8a55c;
+  --glass-accent: #7ba3e8;
 }
 
 /* ---- AURORA ---- */
@@ -377,6 +382,40 @@
   --wallpaper-opacity-3: 0.38;
   --wallpaper-opacity-4: 0.2;
   --glass-accent: #a78bfa;
+}
+
+/* ---- MONOCHROME (2026-07-17) — "color carries meaning, not decoration."
+   The wallpaper itself is built entirely from grays (barely-there warm-
+   neutral in light, cool-neutral in dark) — the ONLY saturated color
+   anywhere on screen in this palette is --snm-success/warning/error
+   (reorder alerts, margin deltas), which stay fully saturated via the
+   shared status-color block below (it doesn't key off --glass-accent for
+   those, only for --snm-info). --glass-accent here is a neutral slate,
+   used only for selection state (active tab, chosen swatch), never as
+   page decoration. */
+[data-palette="monochrome"]:not(.dark) {
+  --wallpaper-base: #f4f4f2;
+  --wallpaper-field-1: #e2e2de;
+  --wallpaper-field-2: #d8d8d4;
+  --wallpaper-field-3: #ececea;
+  --wallpaper-field-4: #ffffff;
+  --wallpaper-opacity-1: 0.5;
+  --wallpaper-opacity-2: 0.4;
+  --wallpaper-opacity-3: 0.45;
+  --wallpaper-opacity-4: 0.35;
+  --glass-accent: #4b4b52;
+}
+.dark[data-palette="monochrome"] {
+  --wallpaper-base: #0a0a0b;
+  --wallpaper-field-1: #1c1c1f;
+  --wallpaper-field-2: #262629;
+  --wallpaper-field-3: #141416;
+  --wallpaper-field-4: #3a3a40;
+  --wallpaper-opacity-1: 0.55;
+  --wallpaper-opacity-2: 0.45;
+  --wallpaper-opacity-3: 0.5;
+  --wallpaper-opacity-4: 0.4;
+  --glass-accent: #b5b5bd;
 }
 
 /* ---- Brand/status tokens derived from the palette accent — same for
@@ -536,12 +575,12 @@
      forcing Light in the UI while the OS was dark still showed the dark
      Sunrise wallpaper). */
   :root[data-palette="sunrise"]:not(.light) {
-    --wallpaper-base: #0e0805;
-    --wallpaper-field-1: #7a4a1e; --wallpaper-field-2: #6b2338;
-    --wallpaper-field-3: #8a4a35; --wallpaper-field-4: #e8c9a0;
-    --wallpaper-opacity-1: 0.4; --wallpaper-opacity-2: 0.32;
-    --wallpaper-opacity-3: 0.3; --wallpaper-opacity-4: 0.16;
-    --glass-accent: #e8a55c;
+    --wallpaper-base: #03060f;
+    --wallpaper-field-1: #16264d; --wallpaper-field-2: #22336e;
+    --wallpaper-field-3: #2c4478; --wallpaper-field-4: #aac6f2;
+    --wallpaper-opacity-1: 0.42; --wallpaper-opacity-2: 0.36;
+    --wallpaper-opacity-3: 0.32; --wallpaper-opacity-4: 0.16;
+    --glass-accent: #7ba3e8;
   }
   :root[data-palette="aurora"]:not(.light) {
     --wallpaper-base: #020709;
@@ -558,6 +597,14 @@
     --wallpaper-opacity-1: 0.4; --wallpaper-opacity-2: 0.34;
     --wallpaper-opacity-3: 0.38; --wallpaper-opacity-4: 0.2;
     --glass-accent: #a78bfa;
+  }
+  :root[data-palette="monochrome"]:not(.light) {
+    --wallpaper-base: #0a0a0b;
+    --wallpaper-field-1: #1c1c1f; --wallpaper-field-2: #262629;
+    --wallpaper-field-3: #141416; --wallpaper-field-4: #3a3a40;
+    --wallpaper-opacity-1: 0.55; --wallpaper-opacity-2: 0.45;
+    --wallpaper-opacity-3: 0.5; --wallpaper-opacity-4: 0.4;
+    --glass-accent: #b5b5bd;
   }
   :root[data-palette]:not(.light) {
     --snm-brand-on: #050308;

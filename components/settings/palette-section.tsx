@@ -28,7 +28,7 @@ export function PaletteSection() {
           <ThemeToggle />
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {PALETTES.map((p) => {
             const { label, colors } = PALETTE_SWATCHES[p];
             const active = palette === p;
