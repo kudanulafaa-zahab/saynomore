@@ -161,9 +161,12 @@ The standing laws, each with the incident that created it:
   choose between technical options.
 - His screenshots are the QA channel — treat each as a bug report with
   perfect evidence (7-for-7 in the overhaul sessions).
-- Publish everything after each confirmed working change: commit → push
-  branch → ff-merge main → Vercel auto-deploy → verify READY. Supabase
-  changes go live immediately via MCP.
+- Publish everything after each confirmed working change: commit straight
+  to `main` and push → Vercel production deploy → verify READY. No
+  intermediate branch push (2026-07-17: Ali asked to stop generating
+  preview deployments — commit directly to production every time, no
+  detour through a feature branch). Supabase changes go live immediately
+  via MCP.
 - Never claim a live/mobile fix works without verifying — and say plainly
   when verification wasn't possible and what would unlock it.
 
