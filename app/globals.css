@@ -1337,17 +1337,25 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    background-repeat: no-repeat;
-    /* Each field is a large, soft radial gradient fading to transparent —
-       the gradient interpolation itself IS the soft edge, so no filter:blur
-       is applied to the element. (An earlier version applied
-       filter: blur(90px) to this whole full-viewport layer for a true
-       "bokeh" look; that rasterizes and blurs an enormous canvas on every
-       paint and stalled rendering outright in testing — confirmed via a
-       hung preview-tool screenshot, not just theorized. A large gradient
-       footprint + a distant fade stop reads as equally soft ambient light
-       at near-zero render cost, which is the right trade for a page-root
-       background that sits behind scrolling content.) */
+    /* repeat-y — the fix for BOTH the "it's flat in the middle" AND the "it
+       doesn't move" complaints at once. This layer is position: absolute
+       inside the min-h-dvh shell, so it spans the FULL height of a long page
+       and scrolls WITH the content — that's what makes the colour slide
+       underneath the glass cards as you scroll (Ali: the build where "the
+       background moved underneath… looked fantastic"). Left as no-repeat, the
+       four fields only landed near the very top and bottom of a tall page, so
+       the middle of a long scroll went flat — which a prior revision "fixed"
+       by pinning the layer to the viewport (position: fixed). That stopped
+       the flatness but froze the layer to the screen, killing the motion and
+       making the glass feel dead (Ali: "background the same size as the phone
+       screen and it doesn't move… liquid glass is completely gone"). Tiling
+       the fields down the page instead keeps soft light present EVERYWHERE on
+       a long scroll AND keeps the whole thing moving with the content. The
+       staggered tile heights (780/640/700/560) drift in and out of phase so
+       the repeat never reads as an obvious pattern; the gradients' own soft
+       fade (no filter:blur — a prior filter:blur(90px) on this full-page
+       canvas stalled rendering outright) keeps it cheap and ambient. */
+    background-repeat: repeat-y;
     background-image:
       radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 100%), transparent) 0%, transparent 70%),
       radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 100%), transparent) 0%, transparent 65%),
@@ -1355,10 +1363,10 @@
       radial-gradient(circle, color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 100%), transparent) 0%, transparent 62%);
     background-size: 780px 780px, 640px 640px, 700px 700px, 560px 560px;
     background-position:
-      -180px -180px,                        /* field 1 — top-left */
-      calc(100% + 60px) 90px,               /* field 2 — top-right */
-      -140px calc(100% - 120px),            /* field 3 — bottom-left */
-      35% 30%;                              /* field 4 — highlight, upper-mid */
+      -180px 40px,                          /* field 1 — left column */
+      calc(100% + 60px) 220px,              /* field 2 — right column */
+      -140px 480px,                         /* field 3 — left, lower phase */
+      40% 300px;                            /* field 4 — mid highlight */
     /* Own compositor layer (cheap: no filter to rasterize) so this layer's
        paint never forces a repaint of scrolling content above it. */
     transform: translateZ(0);
@@ -1400,28 +1408,6 @@
      instead of the gradient reading as a wash across the whole screen. */
   .glass-wallpaper--calm::before {
     opacity: 0.35;
-  }
-
-  /* ---- Pinned wallpaper — fixes "the glass looks static" (2026-07-17) ----
-     The app shell's .glass-wallpaper wraps min-h-dvh content that GROWS with
-     the page (normal document flow, not its own scroll container), so the
-     plain ::before/::after above — position: absolute, inset: 0 — size
-     themselves to the FULL height of a long scrolling screen, not the
-     viewport. The four bokeh fields anchor to the top/bottom of that whole
-     (tall) box, so on any screen with more than one screenful of content the
-     middle of the scroll — which is most of what you actually see while
-     scrolling — shows none of them: just flat --wallpaper-base behind every
-     card, unchanging no matter how far you scroll (Ali, screenshot: cards
-     read as flat painted colour, not glass). body::before (above) already
-     gets this right for the neutral --app-bg via position: fixed; this
-     modifier applies the identical fix to the coloured bokeh layer. Add
-     alongside .glass-wallpaper on the ONE full-page scrolling shell
-     (app/(app)/layout.tsx) — leave bounded fixed-height usages (e.g. the
-     New Sale wizard header in sales-list.tsx) on the plain class, since
-     position: fixed here would blow their box out to the full viewport. */
-  .glass-wallpaper--pinned::before,
-  .glass-wallpaper--pinned::after {
-    position: fixed;
   }
 
   /* ---- Core glass panel (cards, sheets, modals) ---- */
