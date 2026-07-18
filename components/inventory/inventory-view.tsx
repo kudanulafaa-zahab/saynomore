@@ -618,10 +618,12 @@ export function InventoryView() {
         <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           <ArrowUpDown className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           {([
+            // Default mode leads the row — the selected chip must never load
+            // half-clipped off the edge of the scrollable chip strip.
+            { mode: "az", label: "Catalog" },
             { mode: "urgency", label: "Urgency" },
             { mode: "overstock", label: "Overstock" },
             { mode: "value", label: "Value" },
-            { mode: "az", label: "Catalog" },
           ] as { mode: SortMode; label: string }[]).map(({ mode, label }) => (
             <button
               key={mode}

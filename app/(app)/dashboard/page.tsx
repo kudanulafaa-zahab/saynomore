@@ -189,7 +189,10 @@ export default async function DashboardPage() {
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: exception.color }} />
-            <p className="text-[14px] font-semibold text-foreground truncate">{exception.label}</p>
+            {/* Wrap, never truncate: this strip exists to deliver ONE message —
+                an alert that cuts itself off ("1 order waiting fo…") fails its
+                only job. Two lines beats an unreadable one. */}
+            <p className="text-[14px] font-semibold text-foreground leading-snug">{exception.label}</p>
           </div>
           <span className="ios-subhead font-bold shrink-0 px-3 py-1.5 rounded-xl"
             style={{ background: exception.color, color: "var(--snm-on-fill)" }}>
