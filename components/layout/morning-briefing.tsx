@@ -31,6 +31,12 @@ export function MorningBriefing() {
     text: `MVR ${fmt(b.expiring_value_mvr)} of stock expires within 60 days — move it now or write it off`,
     href: "/inventory", tone: "var(--snm-warning)",
   });
+  for (const oc of b.overdue_customers ?? []) watch.push({
+    // The app as salesperson: their rhythm broke — call before the order
+    // goes to someone else. Deep-links to the customer book.
+    text: `${oc.name} usually orders every ${oc.usual_gap_days} days — it's been ${oc.days_since_last}. Worth a call${oc.phone ? ` (${oc.phone})` : ""}`,
+    href: "/customers", tone: "var(--snm-warning)",
+  });
   if (b.slow_movers > 0) watch.push({
     text: `${b.slow_movers} slow mover${b.slow_movers === 1 ? "" : "s"} tying up cash — a promo could turn ${b.slow_movers === 1 ? "it" : "them"} back into money`,
     href: "/competitors", tone: "var(--snm-warning)",

@@ -1,6 +1,12 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { swrFetch, invalidate } from "@/lib/swr-lite";
+
+// Stock numbers may be up to 30s stale on a purely passive revisit; any
+// mutation in this app invalidates immediately, so the user's own actions
+// always read back fresh.
+const STOCK_TTL = 30_000;
 
 // ── Stock levels (per SKU per godown) ────────────────────────────────────
 
@@ -11,9 +17,11 @@ export interface StockLevel {
 }
 
 export async function listStockLevels(): Promise<StockLevel[]> {
-  const { data, error } = await supabase.from("v_stock_levels").select("*");
-  if (error) throw error;
-  return (data ?? []) as StockLevel[];
+  return swrFetch("stock:levels", STOCK_TTL, async () => {
+    const { data, error } = await supabase.from("v_stock_levels").select("*");
+    if (error) throw error;
+    return (data ?? []) as StockLevel[];
+  });
 }
 
 // ── Batch-level stock (for FIFO drill-down) ──────────────────────────────
@@ -28,9 +36,11 @@ export interface BatchStock {
 }
 
 export async function listBatchStock(): Promise<BatchStock[]> {
-  const { data, error } = await supabase.from("v_batch_stock").select("*");
-  if (error) throw error;
-  return (data ?? []) as BatchStock[];
+  return swrFetch("stock:batches", STOCK_TTL, async () => {
+    const { data, error } = await supabase.from("v_batch_stock").select("*");
+    if (error) throw error;
+    return (data ?? []) as BatchStock[];
+  });
 }
 
 // ── Reorder alerts (DIR-based) ───────────────────────────────────────────
@@ -71,6 +81,13 @@ export interface ReorderSuggestion {
   pcs_per_carton: number;
   revenue_per_day: number;       // ranking signal (velocity × price)
   status: ReorderStatus;
+  /** Latest confirmed shipment's supplier for this SKU (0078). */
+  supplier_name: string | null;
+  /** Lead time learned from the last 3 confirmed shipments; null = no history. */
+  lead_days: number | null;
+  /** Place the order by this day so stock lands before running out; clamped
+   *  to today ("already late" shows as today). Null = no sales velocity. */
+  order_by_date: string | null;
 }
 
 export async function listReorderSuggestions(
@@ -121,6 +138,7 @@ export async function recordAdjustment(input: AdjustInput) {
     notes: input.notes ?? null,
   });
   if (error) throw error;
+  invalidate("stock:");
 }
 
 // ── Stock transfer (godown → godown, FIFO cost-preserving) ────────────────
@@ -145,6 +163,7 @@ export async function recordStockTransfer(input: TransferInput): Promise<string>
     p_notes: input.notes ?? null,
   });
   if (error) throw error;
+  invalidate("stock:");
   return data as string;
 }
 
@@ -171,6 +190,7 @@ export async function recordVerification(
     p_notes: notes ?? null,
   });
   if (error) throw error;
+  invalidate("stock:");
   return data as string;
 }
 

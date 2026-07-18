@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { swrFetch, invalidate } from "@/lib/swr-lite";
 
 // ── Suppliers ────────────────────────────────────────────────────────────
 
@@ -84,26 +85,31 @@ export interface CustomerInput {
 }
 
 export async function listCustomers(): Promise<CustomerRow[]> {
-  const { data, error } = await supabase.from("customers").select("*").order("name");
-  if (error) throw error;
-  return data ?? [];
+  return swrFetch("masters:customers", 300_000, async () => {
+    const { data, error } = await supabase.from("customers").select("*").order("name");
+    if (error) throw error;
+    return data ?? [];
+  });
 }
 
 export async function createCustomer(input: CustomerInput) {
   const { data, error } = await supabase.from("customers").insert(input).select().single();
   if (error) throw error;
+  invalidate("masters:");
   return data;
 }
 
 export async function updateCustomer(id: string, patch: Partial<CustomerInput>) {
   const { data, error } = await supabase.from("customers").update(patch).eq("id", id).select().single();
   if (error) throw error;
+  invalidate("masters:");
   return data;
 }
 
 export async function deleteCustomer(id: string) {
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) throw error;
+  invalidate("masters:");
 }
 
 // ── Godowns ──────────────────────────────────────────────────────────────
@@ -123,25 +129,30 @@ export interface GodownInput {
 }
 
 export async function listGodowns(): Promise<GodownRow[]> {
-  const { data, error } = await supabase.from("godowns").select("*").order("name");
-  if (error) throw error;
-  return data ?? [];
+  return swrFetch("masters:godowns", 300_000, async () => {
+    const { data, error } = await supabase.from("godowns").select("*").order("name");
+    if (error) throw error;
+    return data ?? [];
+  });
 }
 
 export async function createGodown(input: GodownInput) {
   const { data, error } = await supabase.from("godowns").insert(input).select().single();
   if (error) throw error;
+  invalidate("masters:");
   return data;
 }
 
 export async function updateGodown(id: string, patch: Partial<GodownInput>) {
   const { error } = await supabase.from("godowns").update(patch).eq("id", id);
   if (error) throw error;
+  invalidate("masters:");
 }
 
 export async function deleteGodown(id: string) {
   const { error } = await supabase.from("godowns").delete().eq("id", id);
   if (error) throw error;
+  invalidate("masters:");
 }
 
 // ── Users ────────────────────────────────────────────────────────────────

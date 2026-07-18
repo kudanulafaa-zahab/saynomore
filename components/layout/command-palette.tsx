@@ -94,8 +94,12 @@ export function CommandPalette({ role }: { role: string }) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] hidden lg:flex items-start justify-center snm-scrim-in"
-      style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)", paddingTop: "18vh" }}
+      // Was desktop-only (hidden lg:flex) — now the phone's global search
+      // too, opened by the topbar's search button. Full-screen takeover
+      // (owns its scroll per the scroll-ownership law); card sits high so
+      // the keyboard never covers the results.
+      className="fixed inset-0 z-[80] flex items-start justify-center snm-scrim-in px-4 lg:px-0"
+      style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)", paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 16px), 8vh)" }}
       onMouseDown={close}
       role="dialog"
       aria-modal="true"
@@ -123,7 +127,7 @@ export function CommandPalette({ role }: { role: string }) {
             style={{ color: "var(--foreground)" }}
           />
           <kbd
-            className="ios-caption1 px-1.5 py-0.5 rounded-md shrink-0"
+            className="ios-caption1 px-1.5 py-0.5 rounded-md shrink-0 hidden lg:inline-block"
             style={{ background: "var(--muted)", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)" }}
           >
             esc

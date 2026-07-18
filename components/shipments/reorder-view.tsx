@@ -168,6 +168,18 @@ export function ReorderView() {
 
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-semibold text-foreground leading-snug">{nameOf(r)}</p>
+                      {/* Lead with the decision, not the math: the day the order
+                          must be placed (learned from this SKU's real shipment
+                          lead times) — red when that day is already here. */}
+                      {r.order_by_date != null && (
+                        <p className="snm-num ios-subhead font-semibold mt-0.5"
+                          style={{ color: new Date(r.order_by_date) <= new Date() ? "var(--snm-error)" : "var(--foreground)" }}>
+                          Order by {new Date(r.order_by_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                          {r.lead_days != null
+                            ? ` · ${r.supplier_name ?? "supplier"} takes ~${Math.round(r.lead_days)}d`
+                            : ""}
+                        </p>
+                      )}
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="snm-num ios-subhead font-medium" style={{ color: st.color }}>
                           {r.dir != null ? `${Math.round(r.dir)}d left` : "no sales data"} · {st.label}

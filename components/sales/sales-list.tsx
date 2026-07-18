@@ -9,7 +9,7 @@ import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
   Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
-  Warehouse, TrendingUp,
+  Warehouse, TrendingUp, RotateCcw,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -22,8 +22,9 @@ const BarcodeScanner = dynamic(
 );
 import {
   listOrders, createOrder, nextOrderNumber, createOrderLine, postSale,
-  getTierPricesForSkus,
+  getTierPricesForSkus, getLastOrderForCustomer,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
+  type LastOrderSummary,
 } from "@/lib/queries/sales";
 import {
   listCustomers, listGodowns,
@@ -666,6 +667,20 @@ function NewSaleSheet({
   // Tier pricing — fetched once when customer is confirmed and we move to step 2
   const [tierPrices, setTierPrices] = useState<Map<string, TierPrice>>(new Map());
 
+  // "Repeat last order" — the customer's previous basket, fetched when a real
+  // customer is picked. Shops mostly reorder the same basket; one tap rebuilds
+  // it at TODAY's tier prices (never the old prices — fixed-price rule).
+  const [lastOrder, setLastOrder] = useState<LastOrderSummary | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setLastOrder(null);
+    if (!customerId || customerId === "walkin") return;
+    getLastOrderForCustomer(customerId)
+      .then((lo) => { if (!cancelled) setLastOrder(lo); })
+      .catch(() => { /* non-fatal — banner simply doesn't show */ });
+    return () => { cancelled = true; };
+  }, [customerId]);
+
   const customer = customers.find((c) => c.id === customerId);
   // Local price fixes made from the "why is this the price?" sheet (see
   // showPriceExplain below) — applied on top of the parent's `skus` list so
@@ -810,6 +825,50 @@ function NewSaleSheet({
   // Quick-add on a below-cost SKU pauses for a deliberate choice — losing
   // money must never be a single accidental tap. Holds the pending add.
   const [belowCostAdd, setBelowCostAdd] = useState<{ sku: SkuFullRow; uom: ReturnType<typeof defaultUom>; price: number } | null>(null);
+
+  // One-tap rebuild of the customer's previous basket at TODAY's prices.
+  // Every line passes the same doors a manual add would: active SKU, enough
+  // stock somewhere, a resolvable price, and never below cost — lines that
+  // fail any guard are skipped and counted, not silently altered.
+  function repeatLastOrder() {
+    if (!lastOrder) return;
+    const added: DraftLine[] = [];
+    let skipped = 0;
+    for (const line of lastOrder.lines) {
+      const sku = skus.find((s) => s.id === line.sku_id && s.is_active);
+      if (!sku) { skipped++; continue; }
+      const totalStock = stockLevels
+        .filter((l) => l.sku_id === sku.id)
+        .reduce((a, l) => a + l.qty_pieces, 0);
+      if (totalStock < line.qty_pieces) { skipped++; continue; }
+      let uom: SaleUom = line.uom === "carton" || line.uom === "pack" || line.uom === "piece" ? line.uom : "piece";
+      const perUnit = toPieces(uom, 1, sku.pcs_per_pack, sku.packs_per_carton);
+      let qty = perUnit > 0 ? line.qty_pieces / perUnit : NaN;
+      if (!Number.isInteger(qty) || qty <= 0) { uom = "piece"; qty = line.qty_pieces; }
+      const ap = autoPrice(sku, uom, false);
+      const price = parseFloat(ap.price);
+      if (!ap.price || !Number.isFinite(price) || price <= 0) { skipped++; continue; }
+      const perPiece = price / toPieces(uom, 1, sku.pcs_per_pack, sku.packs_per_carton);
+      if (sku.landed_per_piece_mvr != null && perPiece < Number(sku.landed_per_piece_mvr)) { skipped++; continue; }
+      added.push({
+        key: `${sku.id}-${Date.now()}-${added.length}`,
+        sku, uom, qty,
+        qty_pieces: line.qty_pieces,
+        unit_price_mvr: price,
+        line_total_mvr: price * qty,
+        is_mixed_carton_fill: false,
+      });
+    }
+    if (added.length === 0) {
+      toast.error("Couldn't repeat — those items are out of stock or unpriced today");
+      return;
+    }
+    setDraftLines((prev) => [...prev, ...added]);
+    toast.success(
+      `${added.length} item${added.length !== 1 ? "s" : ""} added from last order` +
+      (skipped > 0 ? ` — ${skipped} skipped (stock or price)` : ""),
+    );
+  }
 
   function pushQuickLine(s: SkuFullRow, uom: ReturnType<typeof defaultUom>, price: number) {
     const pcs = toPieces(uom, 1, s.pcs_per_pack, s.packs_per_carton);
@@ -1315,6 +1374,32 @@ function NewSaleSheet({
         {step === 2 && (
           <div className="space-y-4">
             <WarehouseSelect value={godownId} onChange={setGodownId} godowns={godowns} />
+
+            {/* Repeat last order — the fastest possible order entry for a
+                repeat customer. Shown only while the cart is still empty so
+                it never competes with an in-progress basket. */}
+            {!selectedSkuId && draftLines.length === 0 && lastOrder && (
+              <button
+                onClick={repeatLastOrder}
+                className="w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 transition active:scale-[0.98]"
+                style={{
+                  background: "color-mix(in srgb, var(--snm-brand) 10%, var(--glass-1))",
+                  border: "1px solid var(--snm-brand-border)",
+                  boxShadow: "var(--glass-shadow), var(--glass-inner)",
+                }}
+              >
+                <span className="flex items-center gap-2.5 min-w-0">
+                  <RotateCcw className="h-4 w-4 shrink-0" style={{ color: "var(--snm-brand)" }} />
+                  <span className="text-left min-w-0">
+                    <span className="block text-[14px] font-semibold text-foreground">Repeat last order</span>
+                    <span className="block ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                      {lastOrder.lines.length} item{lastOrder.lines.length !== 1 ? "s" : ""} · {new Date(lastOrder.createdAt).toLocaleDateString("en-MV", { day: "numeric", month: "short" })} · today&rsquo;s prices
+                    </span>
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+              </button>
+            )}
 
             {/* Product picker */}
             {!selectedSkuId ? (

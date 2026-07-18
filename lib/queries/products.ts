@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { swrFetch, invalidate } from "@/lib/swr-lite";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -197,12 +198,17 @@ export function compareSkusForDisplay(a: SkuFullRow, b: SkuFullRow): number {
 }
 
 export async function listSkusFlat(): Promise<SkuFullRow[]> {
-  const { data, error } = await supabase
-    .from("v_skus")
-    .select("*")
-    .order("brand_name");
-  if (error) throw error;
-  return ((data ?? []) as SkuFullRow[]).sort(compareSkusForDisplay);
+  // Catalogue changes rarely mid-session; price/SKU mutations below
+  // invalidate immediately, so 5 min of passive reuse is safe — and makes
+  // every screen that needs the catalogue paint instantly on revisit.
+  return swrFetch("skus:flat", 300_000, async () => {
+    const { data, error } = await supabase
+      .from("v_skus")
+      .select("*")
+      .order("brand_name");
+    if (error) throw error;
+    return ((data ?? []) as SkuFullRow[]).sort(compareSkusForDisplay);
+  });
 }
 
 // ── Writes ───────────────────────────────────────────────────────────────
@@ -214,6 +220,7 @@ export async function createBrand(name: string, notes?: string) {
     .select()
     .single();
   if (error) throw error;
+  invalidate("skus:");
   return data;
 }
 
@@ -231,6 +238,7 @@ export async function createModel(input: CreateModelInput) {
     .select()
     .single();
   if (error) throw error;
+  invalidate("skus:");
   return data;
 }
 
@@ -246,6 +254,7 @@ export async function createVariant(input: CreateVariantInput) {
     .select()
     .single();
   if (error) throw error;
+  invalidate("skus:");
   return data;
 }
 
@@ -272,6 +281,7 @@ export async function createSku(input: CreateSkuInput) {
     .select()
     .single();
   if (error) throw error;
+  invalidate("skus:");
   return data;
 }
 
@@ -279,46 +289,56 @@ export async function createSku(input: CreateSkuInput) {
 export async function deleteBrand(id: string) {
   const { error } = await supabase.from("brands").delete().eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function deleteModel(id: string) {
   const { error } = await supabase.from("product_models").delete().eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function deleteVariant(id: string) {
   const { error } = await supabase.from("variants").delete().eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function deleteSku(id: string) {
   const { error } = await supabase.from("skus").delete().eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function toggleSkuActive(id: string, is_active: boolean) {
   const { error } = await supabase.from("skus").update({ is_active }).eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 
 // ── Admin-only cascade deletes (refused unless caller is admin) ─────────
 export async function adminDeleteBrandCascade(id: string) {
   const { error } = await supabase.rpc("admin_delete_brand_cascade", { p_brand_id: id });
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function adminDeleteModelCascade(id: string) {
   const { error } = await supabase.rpc("admin_delete_model_cascade", { p_model_id: id });
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function adminDeleteVariantCascade(id: string) {
   const { error } = await supabase.rpc("admin_delete_variant_cascade", { p_variant_id: id });
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function adminDeleteSku(id: string) {
   const { error } = await supabase.rpc("admin_delete_sku", { p_sku_id: id });
   if (error) throw error;
+  invalidate("skus:");
 }
 
 // ── Updates ─────────────────────────────────────────────────────────────
 export async function updateBrand(id: string, patch: { name?: string; notes?: string | null }) {
   const { error } = await supabase.from("brands").update(patch).eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function updateModel(
   id: string,
@@ -326,6 +346,7 @@ export async function updateModel(
 ) {
   const { error } = await supabase.from("product_models").update(patch).eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function updateVariant(
   id: string,
@@ -333,6 +354,7 @@ export async function updateVariant(
 ) {
   const { error } = await supabase.from("variants").update(patch).eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 export async function updateSku(
   id: string,
@@ -354,6 +376,7 @@ export async function updateSku(
 ) {
   const { error } = await supabase.from("skus").update(patch).eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 
 // ── Current user role (for hiding admin-only UI) ────────────────────────
@@ -424,6 +447,7 @@ export async function createCategory(input: CreateCategoryInput) {
     .select()
     .single();
   if (error) throw error;
+  invalidate("skus:");
   return data;
 }
 
@@ -433,9 +457,11 @@ export async function updateCategory(id: string, patch: Partial<CreateCategoryIn
     .update(patch)
     .eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }
 
 export async function deleteCategory(id: string) {
   const { error } = await supabase.from("product_categories").delete().eq("id", id);
   if (error) throw error;
+  invalidate("skus:");
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { invalidate } from "@/lib/swr-lite";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -248,6 +249,7 @@ export async function confirmGrn(shipmentId: string, godownId?: string | null) {
     p_godown_id: godownId ?? undefined,
   });
   if (error) throw error;
+  invalidate("stock:", "skus:");
   return data;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { invalidate } from "@/lib/swr-lite";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,31 @@ export async function listOrderLines(orderId: string): Promise<SalesOrderLineRow
   return data ?? [];
 }
 
+// The customer's most recent real (non-draft, non-cancelled) order — feeds the
+// New Sale wizard's "Repeat last order" one-tap basket. Returns only the line
+// SHAPE (sku/qty/uom); prices are deliberately NOT returned — a repeated order
+// is always re-priced at today's tier prices, never yesterday's.
+export interface LastOrderSummary {
+  orderId: string;
+  createdAt: string;
+  lines: { sku_id: string; qty_pieces: number; uom: SaleUom }[];
+}
+export async function getLastOrderForCustomer(customerId: string): Promise<LastOrderSummary | null> {
+  const { data, error } = await supabase
+    .from("sales_orders")
+    .select("id, created_at, status, sales_order_lines(sku_id, qty_pieces, uom)")
+    .eq("customer_id", customerId)
+    .not("status", "in", "(draft,cancelled)")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const lines = ((data as unknown as { sales_order_lines: { sku_id: string; qty_pieces: number; uom: SaleUom }[] }).sales_order_lines ?? []);
+  if (lines.length === 0) return null;
+  return { orderId: data.id, createdAt: data.created_at, lines };
+}
+
 // Batched variant of listOrderLines for screens that render many orders at once
 // (avoids one round-trip per order).
 export async function listOrderLinesForOrders(orderIds: string[]): Promise<Map<string, SalesOrderLineRow[]>> {
@@ -213,6 +239,7 @@ export async function deleteOrderLine(id: string) {
 export async function postSale(orderId: string) {
   const { data, error } = await supabase.rpc("post_sale", { p_order_id: orderId });
   if (error) throw error;
+  invalidate("stock:");
   return data;
 }
 

@@ -49,6 +49,9 @@ export interface MorningBriefing {
   overdue_mvr: number;
   slow_movers: number;
   expiring_value_mvr: number;
+  /** Repeat customers past 1.5× their own median ordering gap (0078) —
+   *  empty when everyone's on rhythm. */
+  overdue_customers: { name: string; phone: string | null; usual_gap_days: number; days_since_last: number }[];
 }
 
 /** Yesterday's business + the watch list, one call. */

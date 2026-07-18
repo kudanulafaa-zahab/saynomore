@@ -149,6 +149,16 @@ export function Topbar({ name, role }: { name: string; role: string }) {
           <SearchIcon className="h-3.5 w-3.5" />
           <kbd className="ios-caption1">⌘K</kbd>
         </button>
+        {/* Global search — phones had no path to the command palette
+            (desktop has ⌘K). 44pt target, monochrome icon = tappable. */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT))}
+          aria-label="Search"
+          className="lg:hidden h-11 w-11 -m-1 flex items-center justify-center active:opacity-60"
+          style={{ color: "var(--foreground)" }}
+        >
+          <SearchIcon className="h-[18px] w-[18px]" />
+        </button>
         <ThemeToggle />
 
         {/* Avatar + popover — React state driven, reliable on mobile */}
