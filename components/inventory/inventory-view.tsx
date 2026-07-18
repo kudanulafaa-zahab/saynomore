@@ -389,9 +389,18 @@ export function InventoryView() {
   }, [alerts]);
 
   const stockList = useMemo<SkuStock[]>(() => {
+    // One pass over batches up front instead of re-filtering the whole batch
+    // array per SKU (was O(SKUs × batches) — quadratic as the catalogue grows).
+    const batchesBySku = new Map<string, BatchStock[]>();
+    for (const b of batches) {
+      if (b.qty_pieces_remaining <= 0) continue;
+      const list = batchesBySku.get(b.sku_id);
+      if (list) list.push(b); else batchesBySku.set(b.sku_id, [b]);
+    }
+    const godownById = new Map(godowns.map((g) => [g.id, g]));
     return skus
       .map((sku) => {
-        const skuBatches = batches.filter((b) => b.sku_id === sku.id && b.qty_pieces_remaining > 0);
+        const skuBatches = batchesBySku.get(sku.id) ?? [];
         const godownMap  = new Map<string, { pieces: number; batches: BatchStock[] }>();
         for (const b of skuBatches) {
           const entry = godownMap.get(b.godown_id) ?? { pieces: 0, batches: [] };
@@ -401,7 +410,7 @@ export function InventoryView() {
         }
         const byGodown: GodownSlot[] = Array.from(godownMap.entries())
           .map(([gid, entry]) => {
-            const godown = godowns.find((g) => g.id === gid);
+            const godown = godownById.get(gid);
             return godown ? { godown, ...entry } : null;
           })
           .filter((x): x is GodownSlot => x !== null);

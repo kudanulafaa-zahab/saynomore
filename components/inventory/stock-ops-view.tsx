@@ -190,10 +190,11 @@ function VerifyTab({
 
   // Every SKU that has stock in this godown, pre-filled with system count.
   const rows = useMemo(() => {
+    const skuById = new Map(skus.map((s) => [s.id, s]));
     const inGodown = levels.filter((l) => l.godown_id === godownId && l.qty_pieces > 0);
     const list = inGodown
       .map((l) => {
-        const sku = skus.find((s) => s.id === l.sku_id);
+        const sku = skuById.get(l.sku_id);
         return sku ? { sku, expected: l.qty_pieces } : null;
       })
       .filter((x): x is { sku: SkuFullRow; expected: number } => x !== null);

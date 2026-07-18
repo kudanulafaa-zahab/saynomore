@@ -208,15 +208,23 @@ export function CompetitorsView() {
   // pricier) drives both the sort order below and the verdict banner in
   // the render — computed once here instead of twice.
   const perPieceComparison = useMemo(() => {
-    const variantIds = Array.from(new Set(prices.map((p) => p.variant_id)));
-    const groups = variantIds.map((vid) => {
-      const sku = skus.find((s) => s.variant_id === vid);
+    // Index once — was skus.find per variant and competitors.find per price
+    // (quadratic as the catalogue / price log grow).
+    const skuByVariant = new Map(skus.map((s) => [s.variant_id, s]));
+    const competitorById = new Map(competitors.map((c) => [c.id, c]));
+    const pricesByVariant = new Map<string, CompetitorPriceRow[]>();
+    for (const p of prices) {
+      const list = pricesByVariant.get(p.variant_id);
+      if (list) list.push(p); else pricesByVariant.set(p.variant_id, [p]);
+    }
+    const groups = Array.from(pricesByVariant.keys()).map((vid) => {
+      const sku = skuByVariant.get(vid);
       if (!sku) return null;
       const ourPcsPerPack   = sku.pcs_per_pack ?? 1;
       const ourPcsPerCarton = ourPcsPerPack * (sku.packs_per_carton ?? 1);
-      const variantPrices = prices.filter((p) => p.variant_id === vid);
+      const variantPrices = pricesByVariant.get(vid)!;
       const normalized = variantPrices.map((p) => {
-        const competitor = competitors.find((c) => c.id === p.competitor_id);
+        const competitor = competitorById.get(p.competitor_id);
         let pricePiece: number | null = null;
         if (p.price_basis === "per_piece")   pricePiece = Number(p.price_mvr);
         else if (p.price_basis === "per_pack")  pricePiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? ourPcsPerPack);

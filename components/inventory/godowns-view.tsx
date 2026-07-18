@@ -360,8 +360,17 @@ export function GodownsView() {
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
 
   const groups = useMemo<GodownGroup[]>(() => {
+    // Index once up front — was re-scanning every batch per godown and every
+    // SKU per batch entry (O(godowns × batches) + O(entries × skus)).
+    const skuById = new Map(skus.map((s) => [s.id, s]));
+    const batchesByGodown = new Map<string, BatchStock[]>();
+    for (const b of batches) {
+      if (b.qty_pieces_remaining <= 0) continue;
+      const list = batchesByGodown.get(b.godown_id);
+      if (list) list.push(b); else batchesByGodown.set(b.godown_id, [b]);
+    }
     return godowns.map((godown) => {
-      const godownBatches = batches.filter((b) => b.godown_id === godown.id && b.qty_pieces_remaining > 0);
+      const godownBatches = batchesByGodown.get(godown.id) ?? [];
 
       const skuMap = new Map<string, { pieces: number; value: number; batches: BatchStock[] }>();
       for (const b of godownBatches) {
@@ -374,7 +383,7 @@ export function GodownsView() {
 
       const skuSlots: SkuSlot[] = Array.from(skuMap.entries())
         .map(([skuId, entry]) => {
-          const sku = skus.find((s) => s.id === skuId);
+          const sku = skuById.get(skuId);
           return sku ? { sku, ...entry } : null;
         })
         .filter((x): x is SkuSlot => x !== null)
