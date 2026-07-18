@@ -1349,8 +1349,8 @@
        (below), so wherever a card is, there's varied colour behind it that
        changes as it scrolls.
 
-       PARALLAX (2026-07-18, Ali): the layer is now ~16vh TALLER than the
-       viewport (inset -8vh top/bottom) and drifts slowly against scroll via
+       PARALLAX (2026-07-18, Ali): the layer is now ~32vh TALLER than the
+       viewport (inset -16vh top/bottom) and drifts slowly against scroll via
        a scroll-driven animation (see the @supports block after this rule) —
        content moves at 1×, the light field at a fraction, the exact layered
        depth native iOS uses. Because the timeline is the ROOT scroll, the
@@ -1361,7 +1361,7 @@
        listener) so it can't jank or cost battery; engines without
        scroll-driven animations simply keep today's pinned behaviour. */
     position: fixed;
-    inset: -8vh 0;
+    inset: -16vh 0;
     z-index: 0;
     pointer-events: none;
     background-repeat: no-repeat;
@@ -1391,15 +1391,15 @@
     background-image:
       radial-gradient(circle,
         color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 100%), transparent) 0%,
-        color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 45%), transparent) 34%,
+        color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 60%), transparent) 34%,
         transparent 74%),
       radial-gradient(circle,
         color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 100%), transparent) 0%,
-        color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 45%), transparent) 32%,
+        color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 58%), transparent) 32%,
         transparent 70%),
       radial-gradient(circle,
         color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 100%), transparent) 0%,
-        color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 45%), transparent) 33%,
+        color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 58%), transparent) 33%,
         transparent 72%),
       radial-gradient(circle,
         color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 100%), transparent) 0%,
@@ -1418,19 +1418,29 @@
   }
 
   /* ── Parallax drift — scroll-driven, compositor-thread only ──────────────
-     The oversized (-8vh inset) layer starts shifted down 8vh at page top and
-     ends shifted up 8vh at page bottom: content scrolls at 1×, the light
+     The oversized (-16vh inset) layer starts shifted down 16vh at page top
+     and ends shifted up 16vh at page bottom: content scrolls at 1×, the light
      field drifts against it, and the full composition maps onto the page's
      entire scroll range regardless of its length. scroll(root) = document
      scroll; inside fixed full-screen takeovers (New Sale wizard) the page
      doesn't scroll, so the layer correctly holds still there. */
   @keyframes snm-wallpaper-parallax {
-    from { transform: translate3d(0, 8vh, 0); }
-    to   { transform: translate3d(0, -8vh, 0); }
+    from { transform: translate3d(0, 16vh, 0); }
+    to   { transform: translate3d(0, -16vh, 0); }
   }
   @supports (animation-timeline: scroll()) {
     .glass-wallpaper::before {
-      animation: snm-wallpaper-parallax linear both;
+      /* THE BUG: the `animation` shorthand defaults animation-duration to 0s
+         when it's not stated — even though scroll(root) is clearly driving
+         the timing. A 0-duration animation has no range to interpolate
+         across, so it never visibly moved at all ("completely stuck").
+         `auto` is the value CSS Animations Level 2 defines specifically for
+         this: "let the scroll timeline's full range be the duration." Set as
+         longhands, not the shorthand, so this can never silently regress. */
+      animation-name: snm-wallpaper-parallax;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-duration: auto;
       animation-timeline: scroll(root);
     }
   }
