@@ -1347,9 +1347,21 @@
        sparse (clustered at the edges, flat middle) — nothing to shimmer over.
        The fix is fixed + a RICH field spread across the whole viewport
        (below), so wherever a card is, there's varied colour behind it that
-       changes as it scrolls. */
+       changes as it scrolls.
+
+       PARALLAX (2026-07-18, Ali): the layer is now ~16vh TALLER than the
+       viewport (inset -8vh top/bottom) and drifts slowly against scroll via
+       a scroll-driven animation (see the @supports block after this rule) —
+       content moves at 1×, the light field at a fraction, the exact layered
+       depth native iOS uses. Because the timeline is the ROOT scroll, the
+       drift maps intelligently onto the page: a short page drifts a little,
+       a long page spreads the same full sweep of the composition across its
+       entire scroll — the field always spans the whole journey and no edge
+       is ever exposed. Compositor-thread only (transform, no JS, no scroll
+       listener) so it can't jank or cost battery; engines without
+       scroll-driven animations simply keep today's pinned behaviour. */
     position: fixed;
-    inset: 0;
+    inset: -8vh 0;
     z-index: 0;
     pointer-events: none;
     background-repeat: no-repeat;
@@ -1403,6 +1415,30 @@
        layer's paint never forces a repaint of the scrolling content above. */
     transform: translateZ(0);
     will-change: transform;
+  }
+
+  /* ── Parallax drift — scroll-driven, compositor-thread only ──────────────
+     The oversized (-8vh inset) layer starts shifted down 8vh at page top and
+     ends shifted up 8vh at page bottom: content scrolls at 1×, the light
+     field drifts against it, and the full composition maps onto the page's
+     entire scroll range regardless of its length. scroll(root) = document
+     scroll; inside fixed full-screen takeovers (New Sale wizard) the page
+     doesn't scroll, so the layer correctly holds still there. */
+  @keyframes snm-wallpaper-parallax {
+    from { transform: translate3d(0, 8vh, 0); }
+    to   { transform: translate3d(0, -8vh, 0); }
+  }
+  @supports (animation-timeline: scroll()) {
+    .glass-wallpaper::before {
+      animation: snm-wallpaper-parallax linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+  /* Scroll-driven animations ignore duration overrides, so the global
+     reduced-motion rule can't flatten this one — opt out explicitly.
+     The wallpaper falls back to its pinned (non-drifting) behaviour. */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-wallpaper::before { animation: none; }
   }
 
   /* Fallback for engines without color-mix() support (older Android
