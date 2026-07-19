@@ -16,6 +16,8 @@ import { ReceivablesView } from "./receivables-view";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
+  backdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
+  WebkitBackdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
   border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
   boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
 };

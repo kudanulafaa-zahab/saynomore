@@ -39,6 +39,8 @@ import { haptic } from "@/lib/haptics";
 // cards use translucency over the wallpaper, blur is chrome-only.
 const CARD = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
+  backdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
+  WebkitBackdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
   border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
   boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
 } as const;
@@ -1396,7 +1398,7 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
-  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)", backdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))", WebkitBackdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))" } as const;
 
   async function save() {
     if (!name.trim()) return;
@@ -1448,7 +1450,7 @@ function PriceModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)" } as const;
+  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)", backdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))", WebkitBackdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
   const [variantId, setVariantId] = useState(editing?.variant_id ?? "");

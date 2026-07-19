@@ -38,11 +38,15 @@ The standing laws, each with the incident that created it:
   money/on, red = loss/destructive, orange = attention/cash-to-collect,
   systemBlue = pure info status (sync). A static panel painted in accent
   color is a bug (the "Pick up from"/"Bank Transfer" incident).
-- **Backdrop-blur on floating chrome only — never on content.** Bars, sheets,
-  menus, palettes blur; in-flow cards never carry `backdrop-filter` (that was
-  the real scroll-lag cause — one compositor layer per card). Use the tokens:
-  `--glass-blur` / `--glass-blur-lg`, one scrim recipe (`--scrim-bg`/
-  `--scrim-blur`).
+- **[OVERRULED by Ali, 2026-07-20] Backdrop-blur on content cards is now ON.**
+  The former law ("blur on floating chrome only — never on content") was based
+  on attributing the July scroll stutter to per-card blur; Ali's re-diagnosis
+  is that the stutter was the tab bar waiting on load-time paint bursts, not
+  card blur, and he explicitly asked for real per-card glassmorphism. Current
+  doctrine: in-flow cards carry light blur (14px × frost dial) while floating
+  chrome carries heavier blur (22-28px) — native iOS layering. If sustained
+  scroll jank is ever MEASURED again, bring evidence to Ali before changing
+  this back; do not silently re-impose the old law.
 - **Luminous glass on content = translucency, not blur (2026-07-13).** Ali
   asked for glassmorphic content cards system-wide. The sanctioned recipe
   gives that look with zero per-card blur: one fixed atmospheric page gradient

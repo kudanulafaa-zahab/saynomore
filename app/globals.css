@@ -909,13 +909,15 @@
 
   /* ── Primary surface — cards, list rows, panels ── */
   .glass {
-    /* Content surface — NO backdrop-filter (glass is for floating chrome).
-       Materiality now comes from three cheap ingredients instead of blur:
-       a translucent fill over the atmospheric page gradient (depth peeks
-       through), a specular top sheen (--glass-sheen), and the 1px inner
-       hairline (--glass-inner). No per-card compositor layer, no scroll jank. */
+    /* Content surface — REAL backdrop blur (Ali overruled the no-blur-on-
+       content law 2026-07-20: the July stutter traced to load-time paint
+       bursts, not card blur). Content blurs LIGHTER (14px) than floating
+       chrome (22-28px) — native iOS layering — and scales with the frost
+       dial like every other glass ingredient. */
     background-color: var(--glass-bg-1);
     background-image: var(--glass-sheen);
+    backdrop-filter:         blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
     border:        0.5px solid var(--glass-border-lo);
     border-radius: var(--radius-xl);
     box-shadow:    var(--glass-shadow), var(--glass-inner);
@@ -974,10 +976,12 @@
 
   /* ── snm-card aliases — components use these directly ── */
   .snm-card {
-    /* Content surface — no blur, see .glass note. Luminous glass = translucent
-       fill over the atmospheric backdrop + specular sheen + inner hairline. */
+    /* Content surface — real backdrop blur, see .glass note (Ali's
+       2026-07-20 overrule). Light 14px card blur under chrome's 22-28px. */
     background-color: var(--glass-bg-1);
     background-image: var(--glass-sheen);
+    backdrop-filter:         blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
     border:        0.5px solid var(--glass-border-lo);
     border-radius: 16px;
     box-shadow:    var(--glass-shadow), var(--glass-inner);
@@ -1462,8 +1466,8 @@
      as an effect. The scale floor (1.06) keeps the oversized layer covering
      the viewport through the ±2.5vw/±2vh wander, so no edge ever peeks. */
   @keyframes snm-wallpaper-breathe {
-    from { transform: translate3d(-3.5vw, -2.5vh, 0) scale(1.08); }
-    to   { transform: translate3d(3.5vw, 2.5vh, 0) scale(1.16); }
+    from { transform: translate3d(-5vw, -3.5vh, 0) scale(1.11); }
+    to   { transform: translate3d(5vw, 3.5vh, 0) scale(1.22); }
   }
   @supports (animation-timeline: scroll()) {
     .glass-wallpaper::before {
@@ -1477,7 +1481,7 @@
          both purely compositor-thread. */
       animation-name: snm-wallpaper-parallax, snm-wallpaper-breathe;
       animation-timeline: scroll(root), auto;
-      animation-duration: auto, 36s;
+      animation-duration: auto, 24s;
       animation-timing-function: linear, ease-in-out;
       animation-iteration-count: 1, infinite;
       animation-direction: normal, alternate;
@@ -1489,7 +1493,7 @@
      breathe alone, no parallax. */
   @supports not (animation-timeline: scroll()) {
     .glass-wallpaper::before {
-      animation: snm-wallpaper-breathe 36s ease-in-out infinite alternate;
+      animation: snm-wallpaper-breathe 24s ease-in-out infinite alternate;
     }
   }
   /* Scroll-driven animations ignore duration overrides, so the global
