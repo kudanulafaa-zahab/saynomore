@@ -393,7 +393,7 @@ export default async function DashboardPage() {
               </p>
               <div className="flex items-center justify-between mt-1">
                 <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                  {pendingCount} delivered order{pendingCount !== 1 ? "s" : ""}
+                  {pendingCount} unpaid order{pendingCount !== 1 ? "s" : ""}
                 </p>
                 <ChevronRight className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
               </div>
