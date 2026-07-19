@@ -4,6 +4,12 @@ export type Palette = (typeof PALETTES)[number];
 export const PALETTE_STORAGE_KEY = "snm-palette";
 export const DEFAULT_PALETTE: Palette = "sunrise";
 
+/** Liquid Glass frost dial: 0–100 in steps of 5; 50 = the hand-tuned default
+ *  look (the CSS multipliers are exactly 1.0 there — see --glass-frost in
+ *  globals.css). Stored as an integer percent. */
+export const FROST_STORAGE_KEY = "snm-frost";
+export const DEFAULT_FROST = 50;
+
 export function isPalette(value: unknown): value is Palette {
   return typeof value === "string" && (PALETTES as readonly string[]).includes(value);
 }
@@ -33,5 +39,12 @@ export const PALETTE_INIT_SCRIPT = `
   } catch (e) {
     document.documentElement.setAttribute("data-palette", ${JSON.stringify(DEFAULT_PALETTE)});
   }
+  try {
+    var frost = parseInt(localStorage.getItem(${JSON.stringify(FROST_STORAGE_KEY)}) || "", 10);
+    if (isNaN(frost) || frost < 0 || frost > 100) frost = ${DEFAULT_FROST};
+    if (frost !== ${DEFAULT_FROST}) {
+      document.documentElement.style.setProperty("--glass-frost", String(frost / 100));
+    }
+  } catch (e) { /* default frost stays — CSS fallback is 0.5 */ }
 })();
 `;

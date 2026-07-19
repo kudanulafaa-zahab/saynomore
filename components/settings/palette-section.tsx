@@ -1,12 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { Check } from "lucide-react";
 import { usePalette } from "@/lib/use-palette";
-import { PALETTES, PALETTE_SWATCHES } from "@/lib/palette";
+import { PALETTES, PALETTE_SWATCHES, FROST_STORAGE_KEY, DEFAULT_FROST } from "@/lib/palette";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+
+function readFrost(): number {
+  if (typeof window === "undefined") return DEFAULT_FROST;
+  const v = parseInt(localStorage.getItem(FROST_STORAGE_KEY) ?? "", 10);
+  return isNaN(v) || v < 0 || v > 100 ? DEFAULT_FROST : v;
+}
 
 export function PaletteSection() {
   const { palette, setPalette } = usePalette();
+
+  // Liquid Glass frost dial — live preview: every glass surface on screen
+  // (this very card included) retunes as the thumb moves, because the whole
+  // material reads from the one --glass-frost variable.
+  const [frost, setFrost] = useState(readFrost);
+  function applyFrost(v: number) {
+    setFrost(v);
+    document.documentElement.style.setProperty("--glass-frost", String(v / 100));
+    try { localStorage.setItem(FROST_STORAGE_KEY, String(v)); } catch { /* session-only */ }
+  }
 
   return (
     <section
@@ -69,6 +86,47 @@ export function PaletteSection() {
               </button>
             );
           })}
+        </div>
+
+        {/* ── Glass finish — the Liquid Glass frost dial ──
+             Clear (thin, see-through, light blur) ↔ Frosty (dense, bright
+             rim light, heavy blur). 5% steps; 50% is the tuned default.
+             Fills, hairline borders, specular rim and blur all move
+             together — one material, one dial. */}
+        <div className="pt-1">
+          <div className="flex items-baseline justify-between mb-2">
+            <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>Glass finish</p>
+            <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+              {frost === DEFAULT_FROST ? "Default" : `${frost}%`}
+            </p>
+          </div>
+          <div className="relative">
+            <div
+              className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden pointer-events-none"
+              style={{ background: "color-mix(in srgb, var(--foreground) 12%, transparent)" }}
+            >
+              <div className="h-full rounded-full" style={{ width: `${frost}%`, background: "var(--snm-brand)" }} />
+            </div>
+            <input
+              type="range"
+              min={0} max={100} step={5}
+              value={frost}
+              onChange={(e) => applyFrost(parseInt(e.target.value, 10))}
+              aria-label="Glass finish, clear to frosty"
+              className="snm-frost-slider relative w-full"
+              style={{ touchAction: "none" }}
+            />
+            <style>{`
+              .snm-frost-slider { -webkit-appearance: none; appearance: none; height: 32px; background: transparent; outline: none; cursor: pointer; }
+              .snm-frost-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--snm-brand); border: 3px solid rgba(255,255,255,0.75); box-shadow: 0 2px 12px var(--snm-brand-muted); cursor: grab; }
+              .snm-frost-slider::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--snm-brand); border: 3px solid rgba(255,255,255,0.75); box-shadow: 0 2px 12px var(--snm-brand-muted); cursor: grab; }
+              .snm-frost-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+            `}</style>
+          </div>
+          <div className="flex justify-between mt-0.5">
+            <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>Clear</p>
+            <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>Frosty</p>
+          </div>
         </div>
       </div>
     </section>

@@ -135,6 +135,20 @@
      Bottom sheets lift their footer with max(safe-area, var(--kb-inset)). */
   --kb-inset: 0px;
 
+  /* ── Liquid Glass master dial (2026-07-20, Ali) ─────────────────────────
+     ONE user scalar drives the whole material, Apple-style: 0 = clear glass
+     (thin fill, faint hairlines, subtle rim light, light blur — colour
+     bleeds through), 1 = heavy frost. 0.5 reproduces the app's hand-tuned
+     look EXACTLY (both derived factors equal 1.0 there), so the default is
+     a no-op. Set pre-paint from localStorage (snm-frost) by the init script
+     in lib/palette.ts; the Settings slider updates it live. Every glass
+     alpha below multiplies by --frost-a, every blur radius by --frost-b —
+     fills, hairline borders, specular rim lighting and blur move in
+     lockstep, which is what makes the material read as one substance. */
+  --glass-frost: 0.5;
+  --frost-a: calc(0.5 + var(--glass-frost));       /* alpha  ×0.5 … ×1.5 */
+  --frost-b: calc(0.6 + 0.8 * var(--glass-frost)); /* blur   ×0.6 … ×1.4 */
+
   /* Apple system colours, LIGHT. systemRed #FF3B30 passes as text/fill. Green/
      orange are deepened from Apple's bright systemGreen(#34C759)/systemOrange
      (#FF9500) because those fail 4.5:1 as small text on the light background
@@ -208,11 +222,11 @@
      bg-1 nudged 0.68 → 0.62 (2026-07-13) so the atmospheric --app-bg peeks
      through and cards read as glass, not solid white — still a solid-enough
      layer for body text. Tune HERE + the [data-theme="light"] block only. */
-  --glass-bg-1:      rgba(255, 255, 255, 0.62);
-  --glass-bg-2:      rgba(255, 255, 255, 0.84);
-  --glass-bg-3:      rgba(255, 255, 255, 0.96);
-  --glass-border:    rgba(255, 255, 255, 0.90);
-  --glass-border-lo: rgba(0, 0, 0, 0.08);
+  --glass-bg-1:      rgba(255, 255, 255, calc(0.62 * var(--frost-a)));
+  --glass-bg-2:      rgba(255, 255, 255, calc(0.84 * var(--frost-a)));
+  --glass-bg-3:      rgba(255, 255, 255, calc(0.96 * var(--frost-a)));
+  --glass-border:    rgba(255, 255, 255, calc(0.90 * var(--frost-a)));
+  --glass-border-lo: rgba(0, 0, 0, calc(0.08 * var(--frost-a)));
   /* Floating tab bar only (2026-07-14, strengthened 2026-07-16): the shared
      card tokens blend into the page — first found true against the flat
      #f2f2f7 page, and true again against the new jewel-tone wallpaper's
@@ -221,13 +235,13 @@
      regardless of what's behind it, so it stays its own dedicated, more
      opaque fill + a firmer hairline rather than tuning the shared glass
      tokens (correct as-is for content cards, which are meant to blend). */
-  --tabbar-bg:       rgba(255, 255, 255, 0.97);
-  --tabbar-border:   rgba(0, 0, 0, 0.16);
+  --tabbar-bg:       rgba(255, 255, 255, calc(0.97 * var(--frost-a)));
+  --tabbar-border:   rgba(0, 0, 0, calc(0.16 * var(--frost-a)));
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
-  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
-  --glass-blur:      blur(28px) saturate(180%);
-  --glass-blur-lg:   blur(48px) saturate(200%);
+  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-a))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-a)));
+  --glass-blur:      blur(calc(28px * var(--frost-b))) saturate(180%);
+  --glass-blur-lg:   blur(calc(48px * var(--frost-b))) saturate(200%);
 
   /* ── Atmospheric depth (light) ────────────────────────────────────────
      One fixed page-background gradient sits behind every translucent card,
@@ -241,7 +255,7 @@
      gives the surface material "curvature", the way light catches real glass.
      Top stop 0.55 → 0.68 (2026-07-13) to keep the card top reading crisp now
      that the fill is more translucent. */
-  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.16) 32%, rgba(255,255,255,0) 62%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.68 * var(--frost-a))) 0%, rgba(255,255,255, calc(0.16 * var(--frost-a))) 32%, rgba(255,255,255, calc(0 * var(--frost-a))) 62%);
 
   /* Legacy aliases (components reference these directly) */
   --glass-1: var(--glass-bg-1);
@@ -260,17 +274,17 @@
      light/dark, identical across all 3 palettes (2026-07-16) — see the
      PALETTE block below (scoped by [data-palette]) for wallpaper/accent/
      status colors, which DO vary per palette. */
-  --glass-fill-top:          rgba(255, 255, 255, 0.6);
-  --glass-fill-bottom:       rgba(255, 255, 255, 0.3);
-  --glass-fill-top-strong:   rgba(255, 255, 255, 0.65);
-  --glass-fill-bottom-strong:rgba(255, 255, 255, 0.35);
-  --glass-fill-top-subtle:   rgba(255, 255, 255, 0.55);
-  --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.28);
+  --glass-fill-top:          rgba(255, 255, 255, calc(0.6 * var(--frost-a)));
+  --glass-fill-bottom:       rgba(255, 255, 255, calc(0.3 * var(--frost-a)));
+  --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.65 * var(--frost-a)));
+  --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.35 * var(--frost-a)));
+  --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.55 * var(--frost-a)));
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.28 * var(--frost-a)));
   --glass-saturate:          155%;
   --glass-saturate-strong:   160%;
-  --glass-specular:          rgba(255, 255, 255, 0.9);
-  --glass-specular-strong:   rgba(255, 255, 255, 0.95);
-  --glass-divider:           rgba(36, 35, 31, 0.08);
+  --glass-specular:          rgba(255, 255, 255, calc(0.9 * var(--frost-a)));
+  --glass-specular-strong:   rgba(255, 255, 255, calc(0.95 * var(--frost-a)));
+  --glass-divider:           rgba(36, 35, 31, calc(0.08 * var(--frost-a)));
   --glass-radius-sm:   10px;
   --glass-radius-md:   14px;
   --glass-radius-lg:   18px;
@@ -281,8 +295,8 @@
 
   --glass-selected-bg:      #24231f;
   --glass-selected-text:    #ffffff;
-  --glass-unselected-bg:    rgba(255, 255, 255, 0.5);
-  --glass-unselected-border:rgba(255, 255, 255, 0.6);
+  --glass-unselected-bg:    rgba(255, 255, 255, calc(0.5 * var(--frost-a)));
+  --glass-unselected-border:rgba(255, 255, 255, calc(0.6 * var(--frost-a)));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -505,22 +519,22 @@
        Dark glass = visible frosted lift above pure black OLED background.
        bg-1 at 0.09 gives enough contrast for cards to read as surfaces.
        border-lo at 0.20 makes hairlines visible at 0.5px on Retina.       */
-    --glass-bg-1:      rgba(255, 255, 255, 0.09);
-    --glass-bg-2:      rgba(255, 255, 255, 0.13);
-    --glass-bg-3:      rgba(255, 255, 255, 0.18);
-    --glass-border:    rgba(255, 255, 255, 0.22);
-    --glass-border-lo: rgba(255, 255, 255, 0.20);
+    --glass-bg-1:      rgba(255, 255, 255, calc(0.09 * var(--frost-a)));
+    --glass-bg-2:      rgba(255, 255, 255, calc(0.13 * var(--frost-a)));
+    --glass-bg-3:      rgba(255, 255, 255, calc(0.18 * var(--frost-a)));
+    --glass-border:    rgba(255, 255, 255, calc(0.22 * var(--frost-a)));
+    --glass-border-lo: rgba(255, 255, 255, calc(0.20 * var(--frost-a)));
     /* Floating tab bar only (2026-07-14): on the near-black dark page a dark
        drop-shadow can't separate the pill, and --glass-bg-2 at 13% white read
        as barely-there. A brighter fill + a real light hairline lifts it off
        the page instead — see the light-mode note above for the full story. */
-    --tabbar-bg:       rgba(255, 255, 255, 0.16);
-    --tabbar-border:   rgba(255, 255, 255, 0.32);
+    --tabbar-bg:       rgba(255, 255, 255, calc(0.16 * var(--frost-a)));
+    --tabbar-border:   rgba(255, 255, 255, calc(0.32 * var(--frost-a)));
     --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
     --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
-    --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
-    --glass-blur:      blur(32px) saturate(160%);
-    --glass-blur-lg:   blur(56px) saturate(180%);
+    --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(0.18 * var(--frost-a))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.20 * var(--frost-a)));
+    --glass-blur:      blur(calc(32px * var(--frost-b))) saturate(160%);
+    --glass-blur-lg:   blur(calc(56px * var(--frost-b))) saturate(180%);
 
     /* ── Atmospheric depth (dark) ──────────────────────────────────────
        Neutral graphite glow near the top fading to pure OLED black — gives
@@ -529,7 +543,7 @@
       radial-gradient(1000px 780px at 50% -16%, rgba(72,74,84,0.40), rgba(72,74,84,0) 58%),
       radial-gradient(760px 620px at 100% 6%, rgba(48,50,60,0.28), rgba(48,50,60,0) 55%),
       linear-gradient(180deg, #070708 0%, #000000 60%);
-    --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0) 62%);
+    --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.10 * var(--frost-a))) 0%, rgba(255,255,255, calc(0.03 * var(--frost-a))) 32%, rgba(255,255,255, calc(0 * var(--frost-a))) 62%);
 
     /* Legacy aliases */
     --glass-1: var(--glass-bg-1);
@@ -547,21 +561,21 @@
        "system" mode — see the [data-palette] rules below and in
        app/globals.css's palette section for the actual wallpaper/accent/
        status colors, which depend on data-palette + .dark together). */
-    --glass-fill-top:          rgba(255, 255, 255, 0.09);
-    --glass-fill-bottom:       rgba(255, 255, 255, 0.03);
-    --glass-fill-top-strong:   rgba(255, 255, 255, 0.1);
-    --glass-fill-bottom-strong:rgba(255, 255, 255, 0.03);
-    --glass-fill-top-subtle:   rgba(255, 255, 255, 0.08);
-    --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.02);
+    --glass-fill-top:          rgba(255, 255, 255, calc(0.09 * var(--frost-a)));
+    --glass-fill-bottom:       rgba(255, 255, 255, calc(0.03 * var(--frost-a)));
+    --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.1 * var(--frost-a)));
+    --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.03 * var(--frost-a)));
+    --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.08 * var(--frost-a)));
+    --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.02 * var(--frost-a)));
     --glass-saturate:          120%;
     --glass-saturate-strong:   130%;
-    --glass-specular:          rgba(255, 255, 255, 0.13);
-    --glass-specular-strong:   rgba(255, 255, 255, 0.15);
-    --glass-divider:           rgba(255, 255, 255, 0.08);
+    --glass-specular:          rgba(255, 255, 255, calc(0.13 * var(--frost-a)));
+    --glass-specular-strong:   rgba(255, 255, 255, calc(0.15 * var(--frost-a)));
+    --glass-divider:           rgba(255, 255, 255, calc(0.08 * var(--frost-a)));
     --glass-selected-bg:      #edebe4;
     --glass-selected-text:    #050308;
-    --glass-unselected-bg:    rgba(255, 255, 255, 0.07);
-    --glass-unselected-border:rgba(255, 255, 255, 0.12);
+    --glass-unselected-bg:    rgba(255, 255, 255, calc(0.07 * var(--frost-a)));
+    --glass-unselected-border:rgba(255, 255, 255, calc(0.12 * var(--frost-a)));
   }
 
   /* Palette rules for the OS-dark/no-explicit-class window — mirrors the
@@ -655,22 +669,22 @@
   --sidebar-accent-foreground:  #1c1c1e;
   --sidebar-border:             rgba(0, 0, 0, 0.07);
   --sidebar-ring:               rgba(0, 0, 0, 0.15);
-  --glass-bg-1:      rgba(255, 255, 255, 0.62); /* 0.68 → 0.62, see base light block */
-  --glass-bg-2:      rgba(255, 255, 255, 0.84);
-  --glass-bg-3:      rgba(255, 255, 255, 0.96);
-  --glass-border:    rgba(255, 255, 255, 0.90);
-  --glass-border-lo: rgba(0, 0, 0, 0.08);
-  --tabbar-bg:       rgba(255, 255, 255, 0.97);
-  --tabbar-border:   rgba(0, 0, 0, 0.16);
+  --glass-bg-1:      rgba(255, 255, 255, calc(0.62 * var(--frost-a))); /* 0.68 → 0.62, see base light block */
+  --glass-bg-2:      rgba(255, 255, 255, calc(0.84 * var(--frost-a)));
+  --glass-bg-3:      rgba(255, 255, 255, calc(0.96 * var(--frost-a)));
+  --glass-border:    rgba(255, 255, 255, calc(0.90 * var(--frost-a)));
+  --glass-border-lo: rgba(0, 0, 0, calc(0.08 * var(--frost-a)));
+  --tabbar-bg:       rgba(255, 255, 255, calc(0.97 * var(--frost-a)));
+  --tabbar-border:   rgba(0, 0, 0, calc(0.16 * var(--frost-a)));
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
-  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
-  --glass-blur:      blur(28px) saturate(180%);
-  --glass-blur-lg:   blur(48px) saturate(200%);
+  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-a))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-a)));
+  --glass-blur:      blur(calc(28px * var(--frost-b))) saturate(180%);
+  --glass-blur-lg:   blur(calc(48px * var(--frost-b))) saturate(200%);
   --app-bg:
     radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
     linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
-  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.16) 32%, rgba(255,255,255,0) 62%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.68 * var(--frost-a))) 0%, rgba(255,255,255, calc(0.16 * var(--frost-a))) 32%, rgba(255,255,255, calc(0 * var(--frost-a))) 62%);
   --glass-1: var(--glass-bg-1);
   --glass-2: var(--glass-bg-2);
   --surface:            #f2f2f7;
@@ -683,21 +697,21 @@
      Palette-specific wallpaper/accent/status colors live in the
      [data-palette] section near the top of this file (2026-07-16) — they
      combine with this .light class the same way they combine with .dark. */
-  --glass-fill-top:          rgba(255, 255, 255, 0.6);
-  --glass-fill-bottom:       rgba(255, 255, 255, 0.3);
-  --glass-fill-top-strong:   rgba(255, 255, 255, 0.65);
-  --glass-fill-bottom-strong:rgba(255, 255, 255, 0.35);
-  --glass-fill-top-subtle:   rgba(255, 255, 255, 0.55);
-  --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.28);
+  --glass-fill-top:          rgba(255, 255, 255, calc(0.6 * var(--frost-a)));
+  --glass-fill-bottom:       rgba(255, 255, 255, calc(0.3 * var(--frost-a)));
+  --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.65 * var(--frost-a)));
+  --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.35 * var(--frost-a)));
+  --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.55 * var(--frost-a)));
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.28 * var(--frost-a)));
   --glass-saturate:          155%;
   --glass-saturate-strong:   160%;
-  --glass-specular:          rgba(255, 255, 255, 0.9);
-  --glass-specular-strong:   rgba(255, 255, 255, 0.95);
-  --glass-divider:           rgba(36, 35, 31, 0.08);
+  --glass-specular:          rgba(255, 255, 255, calc(0.9 * var(--frost-a)));
+  --glass-specular-strong:   rgba(255, 255, 255, calc(0.95 * var(--frost-a)));
+  --glass-divider:           rgba(36, 35, 31, calc(0.08 * var(--frost-a)));
   --glass-selected-bg:      #24231f;
   --glass-selected-text:    #ffffff;
-  --glass-unselected-bg:    rgba(255, 255, 255, 0.5);
-  --glass-unselected-border:rgba(255, 255, 255, 0.6);
+  --glass-unselected-bg:    rgba(255, 255, 255, calc(0.5 * var(--frost-a)));
+  --glass-unselected-border:rgba(255, 255, 255, calc(0.6 * var(--frost-a)));
 }
 
 /* ── Manual .dark override ──────────────────────────────────────────────── */
@@ -737,23 +751,23 @@
   --sidebar-accent-foreground:  #e5e2e1;
   --sidebar-border:             rgba(255, 255, 255, 0.07);
   --sidebar-ring:               rgba(255, 255, 255, 0.20);
-  --glass-bg-1:      rgba(255, 255, 255, 0.09);
-  --glass-bg-2:      rgba(255, 255, 255, 0.13);
-  --glass-bg-3:      rgba(255, 255, 255, 0.18);
-  --glass-border:    rgba(255, 255, 255, 0.22);
-  --glass-border-lo: rgba(255, 255, 255, 0.20);
-  --tabbar-bg:       rgba(255, 255, 255, 0.16);
-  --tabbar-border:   rgba(255, 255, 255, 0.32);
+  --glass-bg-1:      rgba(255, 255, 255, calc(0.09 * var(--frost-a)));
+  --glass-bg-2:      rgba(255, 255, 255, calc(0.13 * var(--frost-a)));
+  --glass-bg-3:      rgba(255, 255, 255, calc(0.18 * var(--frost-a)));
+  --glass-border:    rgba(255, 255, 255, calc(0.22 * var(--frost-a)));
+  --glass-border-lo: rgba(255, 255, 255, calc(0.20 * var(--frost-a)));
+  --tabbar-bg:       rgba(255, 255, 255, calc(0.16 * var(--frost-a)));
+  --tabbar-border:   rgba(255, 255, 255, calc(0.32 * var(--frost-a)));
   --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
   --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
-  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.20);
-  --glass-blur:      blur(32px) saturate(160%);
-  --glass-blur-lg:   blur(56px) saturate(180%);
+  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(0.18 * var(--frost-a))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.20 * var(--frost-a)));
+  --glass-blur:      blur(calc(32px * var(--frost-b))) saturate(160%);
+  --glass-blur-lg:   blur(calc(56px * var(--frost-b))) saturate(180%);
   --app-bg:
     radial-gradient(1000px 780px at 50% -16%, rgba(72,74,84,0.40), rgba(72,74,84,0) 58%),
     radial-gradient(760px 620px at 100% 6%, rgba(48,50,60,0.28), rgba(48,50,60,0) 55%),
     linear-gradient(180deg, #070708 0%, #000000 60%);
-  --glass-sheen: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0) 62%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.10 * var(--frost-a))) 0%, rgba(255,255,255, calc(0.03 * var(--frost-a))) 32%, rgba(255,255,255, calc(0 * var(--frost-a))) 62%);
   --glass-1: var(--glass-bg-1);
   --glass-2: var(--glass-bg-2);
   --surface:            #0a0a0a;
@@ -768,21 +782,21 @@
      restore the prior graphite state. Palette-specific wallpaper/accent/
      status colors live in the [data-palette] section near the top of this
      file (2026-07-16), combined with .dark via `.dark[data-palette="…"]`. */
-  --glass-fill-top:          rgba(255, 255, 255, 0.09);
-  --glass-fill-bottom:       rgba(255, 255, 255, 0.03);
-  --glass-fill-top-strong:   rgba(255, 255, 255, 0.1);
-  --glass-fill-bottom-strong:rgba(255, 255, 255, 0.03);
-  --glass-fill-top-subtle:   rgba(255, 255, 255, 0.08);
-  --glass-fill-bottom-subtle:rgba(255, 255, 255, 0.02);
+  --glass-fill-top:          rgba(255, 255, 255, calc(0.09 * var(--frost-a)));
+  --glass-fill-bottom:       rgba(255, 255, 255, calc(0.03 * var(--frost-a)));
+  --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.1 * var(--frost-a)));
+  --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.03 * var(--frost-a)));
+  --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.08 * var(--frost-a)));
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.02 * var(--frost-a)));
   --glass-saturate:          120%;
   --glass-saturate-strong:   130%;
-  --glass-specular:          rgba(255, 255, 255, 0.13);
-  --glass-specular-strong:   rgba(255, 255, 255, 0.15);
-  --glass-divider:           rgba(255, 255, 255, 0.08);
+  --glass-specular:          rgba(255, 255, 255, calc(0.13 * var(--frost-a)));
+  --glass-specular-strong:   rgba(255, 255, 255, calc(0.15 * var(--frost-a)));
+  --glass-divider:           rgba(255, 255, 255, calc(0.08 * var(--frost-a)));
   --glass-selected-bg:      #edebe4;
   --glass-selected-text:    #050308;
-  --glass-unselected-bg:    rgba(255, 255, 255, 0.07);
-  --glass-unselected-border:rgba(255, 255, 255, 0.12);
+  --glass-unselected-bg:    rgba(255, 255, 255, calc(0.07 * var(--frost-a)));
+  --glass-unselected-border:rgba(255, 255, 255, calc(0.12 * var(--frost-a)));
 }
 
 @layer base {
@@ -1500,8 +1514,8 @@
     border-radius: var(--glass-radius-xl);
     padding: 14px 16px;
     background: linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom));
-    backdrop-filter: blur(22px) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(22px) saturate(var(--glass-saturate));
+    backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
     border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
     box-shadow: inset 0 1px 1px var(--glass-specular), 0 4px 14px rgba(0,0,0,0.08);
     transition: background var(--glass-transition), border-color var(--glass-transition);
@@ -1509,13 +1523,13 @@
   .glass-panel--sm {
     border-radius: var(--glass-radius-lg);
     padding: 12px 14px;
-    backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
-    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
+    backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
   }
   .glass-panel--strong {
     background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
-    backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
-    -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
+    backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
   }
 
   /* ---- Pill button ---- */
@@ -1526,8 +1540,8 @@
     padding: 8px 12px;
     border-radius: var(--glass-radius-md);
     background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
-    backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
-    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-saturate-strong));
+    backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
     border: 1px solid var(--glass-border, rgba(255,255,255,0.75));
     box-shadow: inset 0 1px 1px var(--glass-specular-strong);
     color: var(--foreground);
@@ -1560,8 +1574,8 @@
     display: flex; align-items: center; gap: 8px;
     padding: 9px 14px; border-radius: var(--glass-radius-lg);
     background: linear-gradient(180deg, var(--glass-fill-top-subtle), var(--glass-fill-bottom-subtle));
-    backdrop-filter: blur(18px) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-saturate));
+    backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate));
     border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
     box-shadow: inset 0 1px 1px var(--glass-specular);
   }
@@ -1597,8 +1611,8 @@
     display: flex; justify-content: space-around; align-items: center;
     padding: 9px 6px 6px;
     background: var(--tabbar-bg);
-    backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
-    -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate-strong));
+    backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
     /* Own compositor layer, promoted once and left alone: on iOS Safari a
        `position: fixed` + backdrop-filter element re-samples the blur from
        whatever is painting underneath it, so a long list rendering many rows
