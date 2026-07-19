@@ -146,8 +146,12 @@
      fills, hairline borders, specular rim lighting and blur move in
      lockstep, which is what makes the material read as one substance. */
   --glass-frost: 0.5;
-  --frost-a: calc(0.5 + var(--glass-frost));       /* alpha  ×0.5 … ×1.5 */
-  --frost-b: calc(0.6 + 0.8 * var(--glass-frost)); /* blur   ×0.6 … ×1.4 */
+  /* Linear through (0 → ×0) and (0.5 → ×1): 0% is TRUE transparency — no
+     fill, no hairline, no rim, no blur; the content floats directly on the
+     wallpaper. 100% is ×2 (alphas clamp at 1, so the frosty end saturates
+     into dense matte). Default 50% stays exactly ×1 = the tuned look. */
+  --frost-a: calc(2 * var(--glass-frost));  /* alpha ×0 … ×2 */
+  --frost-b: calc(2 * var(--glass-frost));  /* blur  ×0 … ×2 */
 
   /* Apple system colours, LIGHT. systemRed #FF3B30 passes as text/fill. Green/
      orange are deepened from Apple's bright systemGreen(#34C759)/systemOrange
@@ -1442,25 +1446,46 @@
     from { transform: translate3d(0, 16vh, 0); }
     to   { transform: translate3d(0, -16vh, 0); }
   }
+  /* Ambient "breathing" — the light field slowly wanders and swells even
+     with the phone at rest, so the glass overlays always have LIVE colour
+     moving behind their blur (Ali: background must feel dynamic, work with
+     the glass). Slow enough (48s to-and-fro) to read as atmosphere, never
+     as an effect. The scale floor (1.06) keeps the oversized layer covering
+     the viewport through the ±2.5vw/±2vh wander, so no edge ever peeks. */
+  @keyframes snm-wallpaper-breathe {
+    from { transform: translate3d(-2.5vw, -2vh, 0) scale(1.06); }
+    to   { transform: translate3d(2.5vw, 2vh, 0) scale(1.12); }
+  }
   @supports (animation-timeline: scroll()) {
     .glass-wallpaper::before {
-      /* THE BUG: the `animation` shorthand defaults animation-duration to 0s
-         when it's not stated — even though scroll(root) is clearly driving
-         the timing. A 0-duration animation has no range to interpolate
-         across, so it never visibly moved at all ("completely stuck").
-         `auto` is the value CSS Animations Level 2 defines specifically for
-         this: "let the scroll timeline's full range be the duration." Set as
-         longhands, not the shorthand, so this can never silently regress. */
-      animation-name: snm-wallpaper-parallax;
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-      animation-duration: auto;
-      animation-timeline: scroll(root);
+      /* Duration pitfall: the `animation` shorthand defaults duration to 0s
+         even when a scroll timeline drives the timing — a 0-duration
+         animation has no range to interpolate, i.e. it never moves. `auto`
+         is the CSS Animations L2 value for "the scroll timeline's own
+         range". Longhands, so this can't silently regress.
+         The TWO animations stack on transform via animation-composition:
+         the scroll parallax replaces, the time-driven breathe ADDS on top —
+         both purely compositor-thread. */
+      animation-name: snm-wallpaper-parallax, snm-wallpaper-breathe;
+      animation-timeline: scroll(root), auto;
+      animation-duration: auto, 48s;
+      animation-timing-function: linear, ease-in-out;
+      animation-iteration-count: 1, infinite;
+      animation-direction: normal, alternate;
+      animation-fill-mode: both, none;
+      animation-composition: replace, add;
+    }
+  }
+  /* Engines without scroll-driven animations still get the ambient life —
+     breathe alone, no parallax. */
+  @supports not (animation-timeline: scroll()) {
+    .glass-wallpaper::before {
+      animation: snm-wallpaper-breathe 48s ease-in-out infinite alternate;
     }
   }
   /* Scroll-driven animations ignore duration overrides, so the global
-     reduced-motion rule can't flatten this one — opt out explicitly.
-     The wallpaper falls back to its pinned (non-drifting) behaviour. */
+     reduced-motion rule can't flatten these — opt out explicitly.
+     The wallpaper falls back to its pinned (motionless) behaviour. */
   @media (prefers-reduced-motion: reduce) {
     .glass-wallpaper::before { animation: none; }
   }
