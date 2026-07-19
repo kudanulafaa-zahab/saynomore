@@ -422,6 +422,7 @@ export function ReportsView() {
           </div>
         ) : (
           <>
+            <BrandProfitRollup rows={contribFiltered} />
             <TopContributorsChart rows={contribFiltered} />
             <ContributionTable rows={contribFiltered} />
           </>
@@ -530,6 +531,59 @@ function SortTh({ label, sortKey, active, onSort }: {
 // financial math happens here.
 
 const fmt0 = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+// ── Profit by brand ───────────────────────────────────────────────────────
+// The "which product LINES make me the most money" glance. Rolls the per-SKU
+// contribution (revenue − cost − marketing) up to the brand — no new math,
+// just sums of already-audited numbers. Money-first, one thin magnitude bar
+// per brand; the bar is neutral (magnitude only) and the number turns red on
+// a net loss, so colour keeps meaning money per the design law.
+function BrandProfitRollup({ rows }: { rows: ContributionRow[] }) {
+  const brands = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of rows) {
+      map.set(r.brand_name, (map.get(r.brand_name) ?? 0) + Number(r.contribution_mvr));
+    }
+    return [...map.entries()]
+      .map(([name, profit]) => ({ name, profit }))
+      .sort((a, b) => b.profit - a.profit);
+  }, [rows]);
+
+  // Nothing to compare with a single brand — the per-SKU views already cover it.
+  if (brands.length < 2) return null;
+  const max = Math.max(...brands.map((b) => Math.abs(b.profit)), 1);
+
+  return (
+    <div className="glass-panel p-4 mb-3">
+      <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+        Profit by brand · after marketing
+      </p>
+      <div className="space-y-2.5">
+        {brands.map((b) => {
+          const neg = b.profit < 0;
+          return (
+            <div key={b.name}>
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <span className="ios-subhead font-medium text-foreground truncate">{b.name}</span>
+                <span className="ios-subhead font-semibold snm-num shrink-0"
+                  style={{ color: neg ? "var(--snm-error)" : "var(--foreground)" }}>
+                  {neg ? "−" : ""}MVR {fmt0(Math.abs(b.profit))}
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--glass-bg-2)" }}>
+                <div className="h-full rounded-full"
+                  style={{
+                    width: `${(Math.abs(b.profit) / max) * 100}%`,
+                    background: neg ? "var(--snm-error)" : "color-mix(in srgb, var(--foreground) 42%, transparent)",
+                  }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function BestSellersTable({ rows }: { rows: ReportRow[] }) {
   const groups = useMemo(() => groupByBrand(rows), [rows]);

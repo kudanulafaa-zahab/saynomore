@@ -27,6 +27,7 @@ import {
 import { withOfflineFallback } from "@/lib/offline-write";
 import { Sheet } from "@/components/ui/sheet";
 import { listSkusFlat, updateSku, getCurrentUserRole, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
+import { listReorderAlerts } from "@/lib/queries/inventory";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
@@ -111,13 +112,19 @@ export function CompetitorsView() {
   // Price list coverage for selected SKU — one entry per tier
   type TierCoverage = { tier: string; price_per_piece_mvr: number | null; price_per_pack_mvr: number | null; price_per_carton_mvr: number | null; source: string };
   const [tierCoverage, setTierCoverage] = useState<TierCoverage[]>([]);
+  // sku_id → recent pieces/day, powering the "at current sales speed" preview
+  const [velocityMap, setVelocityMap] = useState<Map<string, number>>(new Map());
 
   async function load() {
     try {
-      const [c, p, s] = await Promise.all([listCompetitors(), listCompetitorPrices(), listSkusFlat()]);
+      const [c, p, s, alerts] = await Promise.all([
+        listCompetitors(), listCompetitorPrices(), listSkusFlat(), listReorderAlerts(),
+      ]);
       setCompetitors(c);
       setPrices(p);
       setSkus(s);
+      // sku_id → recent pieces sold per day, for the price-change impact preview
+      setVelocityMap(new Map(alerts.map((a) => [a.sku_id, Number(a.daily_avg_pieces) || 0])));
       const first = s.find((sk) => sk.is_active && sk.landed_per_piece_mvr != null);
       if (first) {
         setSimSku(first);
@@ -756,6 +763,40 @@ export function CompetitorsView() {
                 );
               })}
             </div>
+
+            {/* ── Price-change impact — the decision with its consequence attached.
+                 Projects the monthly money difference vs the CURRENT saved price
+                 at recent sales speed. First-order only (assumes volume holds),
+                 so it's labelled "if sales stay ..." — never implies certainty. */}
+            {(() => {
+              const currentPack = simSku?.selling_price_per_pack_mvr != null ? Number(simSku.selling_price_per_pack_mvr) : null;
+              if (!simSku || currentPack == null || !isPriceChanged) return null;
+              const dailyPieces = velocityMap.get(simSku.id) ?? 0;
+              if (dailyPieces <= 0) {
+                return (
+                  <div className="rounded-xl p-3" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                      No recent sales yet — can&rsquo;t project a monthly impact for this product.
+                    </p>
+                  </div>
+                );
+              }
+              const deltaPerPiece = piecePrice - currentPack / pcsPerPack;
+              const monthlyImpact = deltaPerPiece * dailyPieces * 30;
+              const monthlyPacks  = Math.round((dailyPieces * 30) / pcsPerPack);
+              const up  = monthlyImpact >= 0;
+              const col = up ? "var(--snm-success)" : "var(--snm-error)";
+              return (
+                <div className="rounded-xl p-3" style={{ background: `color-mix(in srgb, ${col} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${col} 25%, transparent)` }}>
+                  <p className="text-[17px] font-bold snm-num leading-none" style={{ color: col }}>
+                    {up ? "+" : "−"}MVR {fmtInt(Math.abs(monthlyImpact))}<span className="ios-footnote font-semibold">/month</span>
+                  </p>
+                  <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
+                    vs your current price, if sales hold at ~{monthlyPacks} pack{monthlyPacks !== 1 ? "s" : ""}/month
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* ── Alert threshold — moved out of competitive gap, its own quiet row ── */}
             {topCompPerPiece != null && (
