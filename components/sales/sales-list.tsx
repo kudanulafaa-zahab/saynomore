@@ -256,7 +256,12 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
 export function SalesList() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  // ?filter=unpaid → pre-filter to delivered orders with pending payment
+  // ?filter=unpaid → show every order still owing money, matching the
+  // dashboard "Unpaid" tile and the Finance "Owed" panel exactly. Both read
+  // get_receivables_aging(): any active order (not draft/cancelled) whose
+  // payment isn't settled — whether it's confirmed, on the road, or already
+  // delivered. It is NOT delivered-only; a confirmed bank-transfer order the
+  // customer hasn't paid is money Ali is still owed and wants to chase.
   const unpaidMode   = searchParams.get("filter") === "unpaid";
 
   const [rows, setRows] = useState<SalesOrderRow[]>([]);
@@ -266,7 +271,7 @@ export function SalesList() {
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">(unpaidMode ? "delivered" : "all");
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [newDialog, setNewDialog] = useState(false);
   const [groupBy, setGroupBy] = useState<"orders" | "customers">("orders");
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
@@ -296,8 +301,12 @@ export function SalesList() {
   const filtered = useMemo(() => {
     let r = rows;
     if (statusFilter !== "all") r = r.filter((x) => x.status === statusFilter);
-    // Unpaid mode: further restrict to delivered orders with pending/partial payment
-    if (unpaidMode) r = r.filter((x) => ["pending", "partial"].includes(x.payment_status));
+    // Unpaid mode: every live order still owing money — same set as
+    // get_receivables_aging (active, i.e. not draft/cancelled, and payment not
+    // settled). Deliberately spans confirmed → out_for_delivery → delivered so
+    // the count here matches the dashboard tile that linked in.
+    if (unpaidMode) r = r.filter((x) =>
+      !["draft", "cancelled"].includes(x.status) && ["pending", "partial"].includes(x.payment_status));
     const term = q.trim().toLowerCase();
     if (term) r = r.filter((x) => {
       const cust = customerById.get(x.customer_id ?? "");
@@ -400,7 +409,7 @@ export function SalesList() {
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--snm-error)" }} />
             <p className="ios-subhead font-semibold text-foreground">
-              Showing {filtered.length} unpaid delivered order{filtered.length !== 1 ? "s" : ""}
+              Showing {filtered.length} order{filtered.length !== 1 ? "s" : ""} awaiting payment
             </p>
           </div>
           <button
@@ -475,7 +484,7 @@ export function SalesList() {
           </div>
           <h3 className="text-base font-semibold text-foreground">{rows.length === 0 ? "No sales yet" : "No matches"}</h3>
           <p className="ios-subhead max-w-sm" style={{ color: "var(--muted-foreground)" }}>
-            {unpaidMode ? "All delivered orders have been paid. Nothing outstanding." : rows.length === 0 ? "Record a sale when a customer messages you on WhatsApp, Viber, or other channels." : "Try a different filter."}
+            {unpaidMode ? "Every order has been paid. Nothing outstanding." : rows.length === 0 ? "Record a sale when a customer messages you on WhatsApp, Viber, or other channels." : "Try a different filter."}
           </p>
           {rows.length === 0 && (
             <button onClick={() => setNewDialog(true)} className="mt-2 h-11 px-6 rounded-2xl ios-subhead font-semibold"
