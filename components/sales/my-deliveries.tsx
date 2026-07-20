@@ -15,7 +15,7 @@ import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
 import { withOfflineFallback } from "@/lib/offline-write";
-import { notifyDelivered, subscribeToPush, isPushSubscribed } from "@/lib/push";
+import { notifyDelivered } from "@/lib/push";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { haptic } from "@/lib/haptics";
 
@@ -661,19 +661,6 @@ export function MyDeliveries() {
   // reach the office AND the driver's own device (their confirmation).
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Drivers were never prompted to enable push (the prompt only existed on
-  // the office Dispatch board) — so "New Delivery Assigned" alerts reached
-  // nobody. Show a one-tap banner until this device is subscribed.
-  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
-  useEffect(() => {
-    isPushSubscribed().then(setPushEnabled).catch(() => setPushEnabled(false));
-  }, []);
-  async function enableAlerts() {
-    const r = await subscribeToPush();
-    if (r.ok) { setPushEnabled(true); toast.success("Delivery alerts on — you'll get a ping when an order is assigned to you"); }
-    else toast.error(r.reason ?? "Could not enable notifications");
-  }
-
   const [cashSheet, setCashSheet] = useState<{ open: boolean; order?: SalesOrderRow; customerName?: string; expected: number }>({ open: false, expected: 0 });
   const [issueSheet, setIssueSheet] = useState<{ open: boolean; order?: SalesOrderRow }>({ open: false });
 
@@ -806,21 +793,6 @@ export function MyDeliveries() {
             <RefreshCw size={16} style={{ color: "var(--muted-foreground)", animation: refreshing ? "spin 1s linear infinite" : "none" }} />
           </button>
         </div>
-
-        {pushEnabled === false && (
-          <button
-            onClick={enableAlerts}
-            className="snm-pressable w-full flex items-center gap-3 rounded-2xl px-4 py-3 mt-3 text-left"
-            style={{ background: "var(--snm-brand-muted)", border: "1px solid var(--snm-brand-border)" }}
-          >
-            <span className="ios-subhead font-semibold shrink-0" style={{ color: "var(--snm-brand-text)" }}>
-              🔔 Turn on delivery alerts
-            </span>
-            <span className="ios-footnote flex-1" style={{ color: "var(--muted-foreground)" }}>
-              Get a ping the moment an order is assigned to you
-            </span>
-          </button>
-        )}
 
         {/* Progress bar — always visible if any orders */}
         {total > 0 && (

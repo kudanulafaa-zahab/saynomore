@@ -5,6 +5,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { OfflineBanner } from "@/components/layout/offline-banner";
 import { CommandPalette } from "@/components/layout/command-palette";
+import { NotificationsBootstrap } from "@/components/layout/notifications-bootstrap";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await getSupabaseServer();
@@ -51,6 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="lg:pl-60 relative z-[1]" style={{ paddingTop: "calc(52px + env(safe-area-inset-top, 0px))" }}>
         <OfflineBanner />
         <main className="px-4 py-5 pb-32 lg:pb-10 max-w-5xl mx-auto lg:max-w-none lg:px-10 xl:px-14 2xl:max-w-[1440px] 2xl:mx-auto">
+          <NotificationsBootstrap />
           {children}
         </main>
       </div>

@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, ChevronDown, CheckCircle2, UserCheck, MapPin, Package,
-  Truck, ClipboardList, AlertTriangle, Bell, Warehouse,
+  Truck, ClipboardList, AlertTriangle, Warehouse,
 } from "lucide-react";
-import { subscribeToPush, isPushSubscribed, notify, notifyDelivered } from "@/lib/push";
+import { notify, notifyDelivered } from "@/lib/push";
 import {
   listMyDeliveries,
   listAllDispatchOrders,
@@ -81,7 +81,6 @@ export function DispatchView() {
   const [confirmDelivery, setConfirmDelivery] = useState<SalesOrderRow | null>(null);
   const [saving, setSaving]               = useState(false);
   const [assigningId, setAssigningId]     = useState<string | null>(null);
-  const [pushEnabled, setPushEnabled]     = useState<boolean | null>(null);
 
   const isAdmin = currentRole === "admin" || currentRole === "manager";
 
@@ -141,17 +140,6 @@ export function DispatchView() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    isPushSubscribed().then(setPushEnabled);
-  }, []);
-
-  async function enablePush() {
-    const result = await subscribeToPush();
-    setPushEnabled(result.ok);
-    if (result.ok) toast.success("Notifications enabled");
-    else toast.error(result.reason ?? "Could not enable notifications");
-  }
 
   const active    = items.filter((i) => ["confirmed", "picked", "out_for_delivery"].includes(i.order.status));
   const completed = items.filter((i) => i.order.status === "delivered");
@@ -229,7 +217,7 @@ export function DispatchView() {
           title: "New Delivery Assigned",
           body: `You have a new delivery for ${customerName}.`,
           url: "/dispatch",
-        });
+        }, "delivery");
       }
 
       load();
@@ -264,16 +252,6 @@ export function DispatchView() {
             {isAdmin ? "Assign drivers · track all deliveries" : "Your assigned deliveries"}
           </p>
         </div>
-        {!isAdmin && pushEnabled === false && (
-          <button
-            onClick={enablePush}
-            className="mt-1 flex items-center gap-1.5 px-3 py-2 rounded-xl ios-subhead font-semibold shrink-0 transition active:scale-95"
-            style={{ background: "var(--foreground)", color: "var(--background)" }}
-          >
-            <Bell className="h-3.5 w-3.5" />
-            Notifications
-          </button>
-        )}
       </div>
 
       {/* ── Stat cards ── */}

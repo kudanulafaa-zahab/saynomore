@@ -283,7 +283,7 @@ export function SaleDetail({ id }: { id: string }) {
         title: amt < 0 ? "Refund recorded" : "Payment received",
         body: `MVR ${Math.abs(amt).toLocaleString()} ${payMethod} on ${order.order_number}`,
         url: `/sales`,
-      });
+      }, "money");
       setPanel(null);
       load();
     } catch (e) { toast.error((e as Error).message); }
@@ -346,7 +346,7 @@ export function SaleDetail({ id }: { id: string }) {
         title: "Order deleted",
         body: `${order.order_number} was deleted${restoresStock ? " — stock restored" : ""}`,
         url: "/sales",
-      });
+      }, "money");
       router.push("/sales");
     } catch (e) { toast.error((e as Error).message); }
     finally { setDeleting(false); }
@@ -364,7 +364,7 @@ export function SaleDetail({ id }: { id: string }) {
         title: "Order voided",
         body: `${order.order_number} voided — ${voidReason.trim()}`,
         url: "/sales",
-      });
+      }, "money");
       router.push("/sales");
     } catch (e) { toast.error((e as Error).message); }
     finally { setVoiding(false); }

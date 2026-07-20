@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Plus, UserCircle, Shield, Truck, Users, Eye, EyeOff,
-  AlertTriangle, Pencil, Trash2,
+  AlertTriangle, Pencil, Trash2, Bell,
 } from "lucide-react";
+import { AdminNotificationsDialog } from "@/components/settings/notifications-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,6 +71,7 @@ export function UsersManager() {
   const [myId, setMyId] = useState<string | null>(null);
   const [inviteDialog, setInviteDialog] = useState(false);
   const [editDialog, setEditDialog] = useState<UserProfileRow | null>(null);
+  const [notifDialog, setNotifDialog] = useState<UserProfileRow | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<UserProfileRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -190,6 +192,13 @@ export function UsersManager() {
                   >
                     {ROLE_LABEL[u.role]}
                   </span>
+                  <button
+                    onClick={() => setNotifDialog(u)}
+                    aria-label={`Notifications for ${u.full_name ?? u.email}`}
+                    className="h-11 w-11 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition"
+                  >
+                    <Bell className="h-3.5 w-3.5" />
+                  </button>
                   {!isMe && (
                     <>
                       <button
@@ -220,6 +229,14 @@ export function UsersManager() {
         onOpenChange={setInviteDialog}
         onDone={() => { setInviteDialog(false); load(); }}
       />
+
+      {notifDialog && (
+        <AdminNotificationsDialog
+          userId={notifDialog.id}
+          userName={notifDialog.full_name ?? notifDialog.email ?? "member"}
+          onClose={() => setNotifDialog(null)}
+        />
+      )}
 
       {editDialog && (
         <EditUserDialog

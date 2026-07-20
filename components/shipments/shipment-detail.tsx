@@ -628,7 +628,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               ? `${drifted} price${drifted === 1 ? "" : "s"} now below target — see Margin Watch.`
               : "All margins still on target."}`,
             url: drifted > 0 ? "/financials" : "/shipments",
-          });
+          }, "stock");
         })
         .catch(() => {/* notification is non-critical */});
       const { listSkusFlat: freshFetch } = await import("@/lib/queries/products");

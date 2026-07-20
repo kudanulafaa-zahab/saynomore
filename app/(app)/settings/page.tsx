@@ -5,6 +5,7 @@ import { Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { UsersManager } from "@/components/masters/users-manager";
 import { PaletteSection } from "@/components/settings/palette-section";
+import { NotificationsSection } from "@/components/settings/notifications-section";
 
 export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false);
@@ -25,6 +26,8 @@ export default function SettingsPage() {
       </div>
 
       <PaletteSection />
+
+      <NotificationsSection />
 
       <UsersManager />
 

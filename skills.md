@@ -154,6 +154,14 @@ The standing laws, each with the incident that created it:
   path, admin fan-out + dedup, fire-and-forget): driver assigned → driver;
   delivered / payment / void / delete / GRN-with-Margin-Watch-summary →
   office; daily 07:00 MVT low-stock digest (pg_cron, Vault-fed).
+- **Every push carries a category** (`delivery` | `money` | `stock`) and the
+  send-push edge function gates it against `user_notification_prefs`
+  (migration 0082) — never bypass that gate with a category-less send.
+  `delivery` is the critical class: users can't switch it off (Settings shows
+  it locked "Always on"); admins can, per user, from Team Members. No pref
+  row = enabled — that's the on-by-default. Settings is the notifications
+  home (one-tap enable + toggle list); the app silently re-subscribes on
+  every open once iOS permission exists (`NotificationsBootstrap`).
 - Order entry is speed-first: quick-add is one tap when healthy; friction
   appears only when money would be lost.
 

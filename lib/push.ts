@@ -80,10 +80,16 @@ export async function subscribeToPush(): Promise<PushResult> {
 
 export type NotifyPayload = { title: string; body: string; url?: string };
 
+// Every push carries a category; the send-push edge function checks it against
+// user_notification_prefs (migration 0082) server-side before sending, so
+// preferences can't be bypassed from any client. 'delivery' is the critical
+// class — users can't switch it off themselves (admins can).
+export type NotifyCategory = "delivery" | "money" | "stock";
+
 const PUSH_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-push`;
 
 /** Fire-and-forget push to a single user. Never throws — push is non-critical. */
-export function notify(userId: string, payload: NotifyPayload): void {
+export function notify(userId: string, payload: NotifyPayload, category: NotifyCategory): void {
   if (!userId) return;
   fetch(PUSH_ENDPOINT, {
     method: "POST",
@@ -91,17 +97,17 @@ export function notify(userId: string, payload: NotifyPayload): void {
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
     },
-    body: JSON.stringify({ user_id: userId, ...payload }),
+    body: JSON.stringify({ user_id: userId, category, ...payload }),
   }).catch(() => {/* non-critical */});
 }
 
 /** Push to every admin/manager — used for office-facing events (delivery done). */
-export async function notifyAdmins(payload: NotifyPayload): Promise<void> {
+export async function notifyAdmins(payload: NotifyPayload, category: NotifyCategory): Promise<void> {
   const { data } = await supabase
     .from("user_profiles")
     .select("id")
     .in("role", ["admin", "manager"]);
-  for (const u of data ?? []) notify(u.id, payload);
+  for (const u of data ?? []) notify(u.id, payload, category);
 }
 
 /**
@@ -124,7 +130,7 @@ export async function notifyDelivered(
     .in("role", ["admin", "manager"]);
   const recipients = new Set<string>((data ?? []).map((u) => u.id));
   if (delivererId) recipients.add(delivererId);
-  for (const id of recipients) notify(id, payload);
+  for (const id of recipients) notify(id, payload, "delivery");
 }
 
 export async function isPushSubscribed(): Promise<boolean> {
