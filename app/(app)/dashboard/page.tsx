@@ -13,6 +13,7 @@ import {
   Ship,
   PackageX,
   RefreshCw,
+  AlertOctagon,
 } from "lucide-react";
 import Link from "next/link";
 import { MorningBriefing } from "@/components/layout/morning-briefing";
@@ -47,6 +48,7 @@ interface Metrics {
   reorder_needed_count:        number;
   slow_stock_value_mvr:        number;
   slow_stock_count:            number;
+  out_of_stock_count:          number;
 }
 
 export default async function DashboardPage() {
@@ -106,6 +108,7 @@ export default async function DashboardPage() {
     reorder_needed_count:        0,
     slow_stock_value_mvr:        0,
     slow_stock_count:            0,
+    out_of_stock_count:          0,
   }) as Metrics;
 
   const revenueMonth      = Number(m.revenue_this_month_mvr);
@@ -125,6 +128,7 @@ export default async function DashboardPage() {
   const reorderCount      = Number(m.reorder_needed_count);
   const slowStockValue    = Number(m.slow_stock_value_mvr);
   const slowStockCount    = Number(m.slow_stock_count);
+  const outOfStockCount   = Number(m.out_of_stock_count);
 
   const revChangePct = revenueLastMonth > 0
     ? ((revenueMonth - revenueLastMonth) / revenueLastMonth) * 100
@@ -154,6 +158,8 @@ export default async function DashboardPage() {
       ? { label: `${overdueOrders} order${overdueOrders !== 1 ? "s" : ""} overdue — no driver assigned`, cta: "Dispatch now", href: "/dispatch", color: "var(--snm-error)" }
       : awaitingDispatch > 0
       ? { label: `${awaitingDispatch} order${awaitingDispatch !== 1 ? "s" : ""} waiting for a driver`, cta: "Assign now", href: "/dispatch", color: "var(--snm-warning)" }
+      : outOfStockCount > 0
+      ? { label: `${outOfStockCount} SKU${outOfStockCount !== 1 ? "s" : ""} out of stock — losing sales`, cta: "Reorder now", href: "/inventory?filter=out", color: "var(--snm-error)" }
       : pendingMvr > 0
       ? { label: `MVR ${mvr(pendingMvr)} unpaid — ${pendingCount} order${pendingCount !== 1 ? "s" : ""}`, cta: "View orders", href: "/sales?filter=unpaid", color: "var(--snm-error)" }
       : codUndeposited > 0
@@ -164,7 +170,7 @@ export default async function DashboardPage() {
 
   // Exceptions section: only items with NO other card representation on screen.
   // Each one is a genuine exception that needs owner awareness — not a duplicate.
-  const hasExceptions = overdueOrders > 0 || lowStockCount > 0 || arrivingSoon > 0 || slowStockCount > 0 || reorderCount > 0;
+  const hasExceptions = outOfStockCount > 0 || overdueOrders > 0 || lowStockCount > 0 || arrivingSoon > 0 || slowStockCount > 0 || reorderCount > 0;
 
   return (
     <div className="space-y-4">
@@ -441,6 +447,28 @@ export default async function DashboardPage() {
           <p className="label-caps text-[12px] px-1" style={{ color: "var(--muted-foreground)" }}>
             Needs Attention
           </p>
+
+          {/* Out of stock — the most damaging silent leak: a product that still
+              sells but has nothing on the shelf. Top of the list, red. */}
+          {outOfStockCount > 0 && (
+            <Link href="/inventory?filter=out"
+              className="glass-panel flex items-center gap-4 active:scale-[0.98] block"
+              style={{ border: "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)" }}>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
+                <AlertOctagon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="ios-subhead font-semibold text-foreground">
+                  {outOfStockCount} SKU{outOfStockCount !== 1 ? "s" : ""} out of stock
+                </p>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  Still selling but nothing on the shelf — reorder now
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
+            </Link>
+          )}
 
           {overdueOrders > 0 && (
             <Link href="/dispatch"

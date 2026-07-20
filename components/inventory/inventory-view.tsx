@@ -3,13 +3,13 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Search, AlertTriangle, Package, ChevronDown, MapPin, Layers, TrendingDown, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
+import { Search, AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, TrendingDown, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 
-type SortMode = "urgency" | "overstock" | "value" | "az";
+type SortMode = "urgency" | "out" | "overstock" | "value" | "az";
 
 /* ── Helpers ── */
 
@@ -48,6 +48,7 @@ interface SkuStock {
   totalValue: number;
   byGodown: GodownSlot[];
   fifoLandedPerPiece: number;
+  isOut: boolean;
   isLow: boolean;
   isOverstock: boolean;
   alert: ReorderSuggestion | null;
@@ -57,6 +58,7 @@ interface BrandGroup {
   skus: SkuStock[];
   totalCartons: number;
   totalValue: number;
+  hasOut: boolean;
   hasLow: boolean;
   hasCritical: boolean;
 }
@@ -115,34 +117,38 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
 // warehouse + FMCG-import review: DIR-first, not alert-first).
 function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
   if (!alert) return null;
+  const isOut = alert.status === "out";
   const isCritical = alert.status === "critical";
   const isLow = alert.status === "low";
   const isOverstock = alert.status === "overstock";
   const dir = alert.dir != null ? Math.round(Number(alert.dir)) : null;
-  const color = isCritical ? "var(--snm-error)"
+  const color = isOut ? "var(--snm-error)"
+    : isCritical ? "var(--snm-error)"
     : isLow ? "var(--snm-warning)"
     : isOverstock ? "var(--muted-foreground)"
     : "var(--muted-foreground)"; // healthy — neutral, not a warning color
-  const dirText = isOverstock
-    ? `${dir}d stock`
+  const dirText = isOut
+    ? "OUT OF STOCK"
+    : isOverstock ? `${dir}d stock`
     : dir != null ? `${dir}d left` : "No sales data";
+  const emphasised = isOut || isCritical || isLow;
   return (
     <span
       className="ios-subhead font-bold px-2 py-0.5 rounded-full shrink-0"
       style={{
-        background: (isCritical || isLow) ? `color-mix(in srgb, ${color} 15%, transparent)` : "color-mix(in srgb, var(--foreground) 6%, transparent)",
+        background: emphasised ? `color-mix(in srgb, ${color} 15%, transparent)` : "color-mix(in srgb, var(--foreground) 6%, transparent)",
         color,
-        border: (isCritical || isLow) ? `1px solid color-mix(in srgb, ${color} 25%, transparent)` : "1px solid transparent",
+        border: emphasised ? `1px solid color-mix(in srgb, ${color} 25%, transparent)` : "1px solid transparent",
       }}
     >
-      {isCritical ? "⚠ " : ""}{dirText}
+      {isOut ? "⛔ " : isCritical ? "⚠ " : ""}{dirText}
     </span>
   );
 }
 
 const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, isOverstock, alert } = row;
+  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
   const totalCtns       = toCtns(totalPieces, pcsPerCtn);
   const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
@@ -157,7 +163,9 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
       style={{
         background: "var(--glass-1)",
         boxShadow: "var(--glass-shadow), var(--glass-inner)",
-        border: isCritical
+        border: isOut
+          ? "1.5px solid color-mix(in srgb, var(--snm-error) 55%, transparent)"
+          : isCritical
           ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
           : isLow
           ? "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)"
@@ -170,7 +178,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
       <div className="px-4 pt-4 pb-3 flex items-start gap-3">
         <div
           className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-          style={{ background: isCritical ? "var(--snm-error)" : isLow ? "var(--snm-warning)" : isOverstock ? "var(--muted-foreground)" : "var(--snm-success)" }}
+          style={{ background: (isOut || isCritical) ? "var(--snm-error)" : isLow ? "var(--snm-warning)" : isOverstock ? "var(--muted-foreground)" : "var(--snm-success)" }}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -190,7 +198,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
         <div className="text-right shrink-0 ml-2">
           <p
             className="text-[22px] font-bold leading-none tracking-tight snm-num"
-            style={{ color: isLow ? "var(--snm-error)" : "var(--foreground)" }}
+            style={{ color: (isOut || isLow) ? "var(--snm-error)" : "var(--foreground)" }}
           >
             {totalCtns}
             <span className="ios-subhead font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
@@ -231,7 +239,31 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
         </div>
       )}
 
-      {/* ── Expand button for FIFO batch detail ── */}
+      {/* ── Out of stock: zero across every godown — say so plainly ── */}
+      {isOut && (
+        <div
+          className="mx-4 mb-3 flex items-start gap-2.5 px-3 py-2.5 rounded-xl"
+          style={{
+            background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--snm-error) 22%, transparent)",
+          }}
+        >
+          <AlertOctagon className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-error)" }} />
+          <div>
+            <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>
+              Out of stock — 0 in every godown
+            </p>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              {alert?.daily_avg_pieces != null && alert.daily_avg_pieces > 0
+                ? `Still selling ~${alert.daily_avg_pieces.toFixed(1)} pcs/day — reorder now`
+                : "Reorder to put it back on the shelf"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Expand button for FIFO batch detail — only when there's stock ── */}
+      {totalPieces > 0 && (
       <button
         className="w-full min-h-[44px] flex items-center justify-center gap-1.5 pb-3"
         style={{ touchAction: "manipulation" }}
@@ -245,8 +277,9 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
           style={{ color: "var(--snm-brand-text)", transform: expanded ? "rotate(180deg)" : "none" }}
         />
       </button>
+      )}
 
-      {expanded && (
+      {totalPieces > 0 && expanded && (
         <div
           className="px-4 pb-4 space-y-4"
           style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingTop: 16 }}
@@ -362,7 +395,9 @@ export function InventoryView() {
   // that was urgency mode's value-descending tiebreak reshuffling every
   // model together, not a real bug in the urgency lens itself).
   const [sortMode, setSortMode] = useState<SortMode>(
-    searchParams.get("filter") === "overstock" ? "overstock" : "az",
+    searchParams.get("filter") === "overstock" ? "overstock"
+    : searchParams.get("filter") === "out" ? "out"
+    : "az",
   );
 
   useEffect(() => {
@@ -420,15 +455,19 @@ export function InventoryView() {
         const pcsPerCtn          = sku.pcs_per_pack * sku.packs_per_carton;
         const fifoLandedPerPiece = [...skuBatches].sort((a, b) => a.received_at.localeCompare(b.received_at))[0]?.landed_per_piece_mvr ?? 0;
         const alert              = alertMap.get(sku.id) ?? null;
+        const isOut              = alert?.status === "out";
         // isLow: use DIR if we have sales history, else fall back to < 5 cartons
         const isLow              = alert
           ? alert.status === "critical" || alert.status === "low"
           : toCtns(totalPieces, pcsPerCtn) < 5;
         const isOverstock         = alert?.status === "overstock";
 
-        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isLow, isOverstock, alert };
+        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, alert };
       })
-      .filter((r) => r.sku.is_active && r.totalPieces > 0);
+      // Keep in-stock SKUs, plus zero-stock ones the engine flagged 'out' (a
+      // seller with nothing on the shelf) — those must NOT vanish just because
+      // their on-hand hit zero; that was the whole bug.
+      .filter((r) => r.sku.is_active && (r.totalPieces > 0 || r.isOut));
   }, [skus, batches, godowns, alertMap]);
 
   const filtered = useMemo(() => {
@@ -441,6 +480,7 @@ export function InventoryView() {
       );
     }
     if (sortMode === "overstock") list = list.filter((r) => r.isOverstock);
+    if (sortMode === "out") list = list.filter((r) => r.isOut);
     return list;
   }, [stockList, q, sortMode]);
 
@@ -448,11 +488,12 @@ export function InventoryView() {
     const map = new Map<string, BrandGroup>();
     for (const row of filtered) {
       const brand  = row.sku.brand_name;
-      const entry  = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasLow: false, hasCritical: false };
+      const entry  = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasOut: false, hasLow: false, hasCritical: false };
       const pcsPerCtn = row.sku.pcs_per_pack * row.sku.packs_per_carton;
       entry.skus.push(row);
       entry.totalCartons += toCtns(row.totalPieces, pcsPerCtn);
       entry.totalValue   += row.totalValue;
+      entry.hasOut        = entry.hasOut || row.isOut;
       entry.hasLow        = entry.hasLow || row.isLow;
       entry.hasCritical   = entry.hasCritical || (row.alert?.status === "critical");
       map.set(brand, entry);
@@ -463,19 +504,21 @@ export function InventoryView() {
         if (sortMode === "az") return compareSkusForDisplay(a.sku, b.sku);
         if (sortMode === "value") return b.totalValue - a.totalValue;
         if (sortMode === "overstock") return (b.alert?.dir ?? 0) - (a.alert?.dir ?? 0);
-        // urgency (default): critical first, then low, then overstock, then ok
-        const order = { critical: 0, low: 1, overstock: 2, ok: 3 };
+        if (sortMode === "out") return b.totalValue - a.totalValue;
+        // urgency (default): out first, then critical, low, overstock, ok
+        const order = { out: 0, critical: 1, low: 2, overstock: 3, ok: 4 };
         const aLevel = a.alert?.status ?? (a.isLow ? "low" : "ok");
         const bLevel = b.alert?.status ?? (b.isLow ? "low" : "ok");
         if (aLevel !== bLevel) return order[aLevel as keyof typeof order] - order[bLevel as keyof typeof order];
         return b.totalValue - a.totalValue;
       });
     }
-    // Sort brands to match: urgency mode surfaces critical/low brands first,
+    // Sort brands to match: urgency mode surfaces out/critical/low brands first,
     // other modes just sort by total value (az mode keeps brand alpha order).
     return Array.from(map.entries()).sort(([brandA, a], [brandB, b]) => {
       if (sortMode === "az") return brandA.localeCompare(brandB);
-      if (sortMode === "value" || sortMode === "overstock") return b.totalValue - a.totalValue;
+      if (sortMode === "value" || sortMode === "overstock" || sortMode === "out") return b.totalValue - a.totalValue;
+      if (a.hasOut !== b.hasOut) return a.hasOut ? -1 : 1;
       if (a.hasCritical !== b.hasCritical) return a.hasCritical ? -1 : 1;
       if (a.hasLow !== b.hasLow) return a.hasLow ? -1 : 1;
       return b.totalValue - a.totalValue;
@@ -485,6 +528,7 @@ export function InventoryView() {
   const totalValue      = stockList.reduce((s, r) => s + r.totalValue, 0);
   const totalCartons    = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
   const lowStockCount   = stockList.filter((r) => r.isLow).length;
+  const outCount        = stockList.filter((r) => r.isOut).length;
   const criticalCount   = stockList.filter((r) => r.alert?.status === "critical").length;
   const overstockCount  = stockList.filter((r) => r.isOverstock).length;
   const activeBatches   = batches.filter((b) => b.qty_pieces_remaining > 0).length;
@@ -622,6 +666,11 @@ export function InventoryView() {
             // half-clipped off the edge of the scrollable chip strip.
             { mode: "az", label: "Catalog" },
             { mode: "urgency", label: "Urgency" },
+            // "Out of stock" lens only appears when something's actually out
+            // (or it's the active view) — never a permanently-empty chip.
+            ...((outCount > 0 || sortMode === "out")
+              ? [{ mode: "out" as SortMode, label: "Out of stock" }]
+              : []),
             { mode: "overstock", label: "Overstock" },
             { mode: "value", label: "Value" },
           ] as { mode: SortMode; label: string }[]).map(({ mode, label }) => (
@@ -649,11 +698,13 @@ export function InventoryView() {
           </div>
           <div className="space-y-1">
             <p className="text-[15px] font-semibold text-foreground">
-              {stockList.length === 0 ? "No stock yet" : "No results"}
+              {stockList.length === 0 ? "No stock yet" : sortMode === "out" ? "Nothing out of stock" : "No results"}
             </p>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
               {stockList.length === 0
                 ? "Confirm a shipment GRN to populate your inventory."
+                : sortMode === "out"
+                ? "Every selling product has stock on the shelf."
                 : "Try a different search term."}
             </p>
           </div>

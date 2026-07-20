@@ -27,6 +27,7 @@ const CARD: React.CSSProperties = {
 };
 
 const STATUS: Record<ReorderSuggestion["status"], { label: string; color: string }> = {
+  out:       { label: "Out of stock", color: "var(--snm-error)" },
   critical:  { label: "Order now",   color: "var(--snm-error)" },
   low:       { label: "Order soon",  color: "var(--snm-warning)" },
   ok:        { label: "Healthy",     color: "var(--snm-success)" },
@@ -61,7 +62,7 @@ export function ReorderView() {
       const p = new Set<string>();
       for (const r of sug) {
         q[r.sku_id] = r.suggested_cartons;
-        if (r.suggested_cartons > 0 && (r.status === "critical" || r.status === "low")) p.add(r.sku_id);
+        if (r.suggested_cartons > 0 && (r.status === "out" || r.status === "critical" || r.status === "low")) p.add(r.sku_id);
       }
       setQty(q);
       setPicked(p);
@@ -80,7 +81,7 @@ export function ReorderView() {
   }, [skus]);
 
   // Split into what to act on vs the rest.
-  const toOrder   = rows.filter((r) => r.status === "critical" || r.status === "low");
+  const toOrder   = rows.filter((r) => r.status === "out" || r.status === "critical" || r.status === "low");
   const overstock = rows.filter((r) => r.status === "overstock");
   const healthy   = rows.filter((r) => r.status === "ok");
 

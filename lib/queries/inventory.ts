@@ -63,7 +63,9 @@ export async function listReorderAlerts(): Promise<SkuReorderAlert[]> {
 // ── Reorder suggestions ("What to order next") ───────────────────────────
 // Suggested order quantities + smart ranking, from get_reorder_suggestions RPC.
 
-export type ReorderStatus = "critical" | "low" | "ok" | "overstock";
+// "out" = zero on hand across all godowns while it still sells — the top
+// severity, above "critical" (migration 0084).
+export type ReorderStatus = "out" | "critical" | "low" | "ok" | "overstock";
 
 export interface ReorderSuggestion {
   sku_id: string;
