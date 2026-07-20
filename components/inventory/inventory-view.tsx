@@ -3,7 +3,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Search, AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, TrendingDown, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
+import { Search, AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
@@ -122,6 +122,10 @@ function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
   const isLow = alert.status === "low";
   const isOverstock = alert.status === "overstock";
   const dir = alert.dir != null ? Math.round(Number(alert.dir)) : null;
+  // No badge for healthy items with no sales history — "No sales data" on
+  // every dormant SKU was pure clutter. Show it only when the number means
+  // something: out / critical / low / overstock, or a real burn rate.
+  if (dir == null && !isOut) return null;
   const color = isOut ? "var(--snm-error)"
     : isCritical ? "var(--snm-error)"
     : isLow ? "var(--snm-warning)"
@@ -154,8 +158,22 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
   const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
   const landedPerCarton = landedPerPack * sku.packs_per_carton;
   const isCritical      = alert?.status === "critical";
+  const sortedGodowns   = [...byGodown].sort((a, b) => b.pieces - a.pieces);
 
-  const sortedGodowns = [...byGodown].sort((a, b) => b.pieces - a.pieces);
+  const accent = (isOut || isCritical) ? "var(--snm-error)"
+    : isLow ? "var(--snm-warning)"
+    : isOverstock ? "var(--muted-foreground)"
+    : "var(--snm-success)";
+
+  // One-line location summary keeps godowns distinguishable (Ali's law) without
+  // the stacked block that made every card tall. One godown → just the name
+  // (the carton count is already the big number); many → per-godown cartons.
+  const godownLine = isOut
+    ? "Out of stock — reorder now"
+    : sortedGodowns.length === 0 ? "No stock on hand"
+    : sortedGodowns.length === 1 ? sortedGodowns[0].godown.name
+    : sortedGodowns.map((g) => `${g.godown.name} ${toCtns(g.pieces, pcsPerCtn)}`).join(" · ");
+  const metaLine = searchActive ? `${sku.internal_code} · ${godownLine}` : godownLine;
 
   return (
     <div
@@ -169,20 +187,20 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
           ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
           : isLow
           ? "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)"
-          : isOverstock
-          ? "1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent)"
           : "0.5px solid var(--glass-border-lo)",
       }}
     >
-      {/* ── Top: SKU name + total qty ── */}
-      <div className="px-4 pt-4 pb-3 flex items-start gap-3">
-        <div
-          className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-          style={{ background: (isOut || isCritical) ? "var(--snm-error)" : isLow ? "var(--snm-warning)" : isOverstock ? "var(--muted-foreground)" : "var(--snm-success)" }}
-        />
+      {/* ── Compact tappable row — one line per product; detail on demand ── */}
+      <button
+        className="w-full text-left px-4 py-3 flex items-center gap-3 active:opacity-80"
+        style={{ touchAction: "manipulation" }}
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: accent }} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[15px] font-semibold text-foreground leading-snug">
+          <div className="flex items-center gap-2">
+            <p className="text-[15px] font-semibold text-foreground leading-snug truncate">
               {searchActive && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
               {sku.model_name}
               {sku.variant_display
@@ -191,118 +209,98 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
             </p>
             <DirBadge alert={alert} />
           </div>
-          <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-            {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
+          <p className="ios-subhead mt-0.5 truncate" style={{ color: isOut ? "var(--snm-error)" : "var(--muted-foreground)" }}>
+            {metaLine}
           </p>
         </div>
-        <div className="text-right shrink-0 ml-2">
+        <div className="text-right shrink-0">
           <p
-            className="text-[22px] font-bold leading-none tracking-tight snm-num"
+            className="text-[19px] font-bold leading-none tracking-tight snm-num"
             style={{ color: (isOut || isLow) ? "var(--snm-error)" : "var(--foreground)" }}
           >
             {totalCtns}
             <span className="ios-subhead font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
           </p>
-          <p className="ios-subhead mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+          <p className="ios-footnote mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
         </div>
-      </div>
-
-      {/* ── Godown breakdown — always visible, no tap needed ── */}
-      {sortedGodowns.length > 0 && (
-        <div
-          className="mx-4 mb-3 rounded-xl overflow-hidden"
-          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
-        >
-          {sortedGodowns.map(({ godown, pieces }, i) => {
-            const ctns  = toCtns(pieces, pcsPerCtn);
-            const packs = remPacks(pieces, sku.pcs_per_pack, pcsPerCtn);
-            return (
-              <div
-                key={godown.id}
-                className="flex items-center justify-between px-3 py-2.5"
-                style={{
-                  borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" : undefined,
-                }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--snm-brand-text)" }} />
-                  <p className="ios-subhead font-medium text-foreground truncate">{godown.name}</p>
-                </div>
-                <p className="ios-subhead font-semibold text-foreground ml-4 shrink-0 snm-num">
-                  {ctns > 0 && <>{ctns} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
-                  {packs > 0 && <><span className="mx-1 ios-subhead" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
-                  {ctns === 0 && packs === 0 && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── Out of stock: zero across every godown — say so plainly ── */}
-      {isOut && (
-        <div
-          className="mx-4 mb-3 flex items-start gap-2.5 px-3 py-2.5 rounded-xl"
-          style={{
-            background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--snm-error) 22%, transparent)",
-          }}
-        >
-          <AlertOctagon className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-error)" }} />
-          <div>
-            <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>
-              Out of stock — 0 in every godown
-            </p>
-            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-              {alert?.daily_avg_pieces != null && alert.daily_avg_pieces > 0
-                ? `Still selling ~${alert.daily_avg_pieces.toFixed(1)} pcs/day — reorder now`
-                : "Reorder to put it back on the shelf"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Expand button for FIFO batch detail — only when there's stock ── */}
-      {totalPieces > 0 && (
-      <button
-        className="w-full min-h-[44px] flex items-center justify-center gap-1.5 pb-3"
-        style={{ touchAction: "manipulation" }}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>
-          {expanded ? "Hide" : "FIFO batches & landed cost"}
-        </span>
         <ChevronDown
-          className="h-3.5 w-3.5 transition-transform duration-200"
-          style={{ color: "var(--snm-brand-text)", transform: expanded ? "rotate(180deg)" : "none" }}
+          className="h-4 w-4 shrink-0 transition-transform duration-200"
+          style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(180deg)" : "none" }}
         />
       </button>
-      )}
 
-      {totalPieces > 0 && expanded && (
+      {expanded && (
         <div
           className="px-4 pb-4 space-y-4"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingTop: 16 }}
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingTop: 14 }}
         >
-          {/* Landed cost grid */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "Landed / pc",  value: `MVR ${fifoLandedPerPiece.toFixed(3)}` },
-              { label: "Landed / pk",  value: `MVR ${landedPerPack.toFixed(2)}` },
-              { label: "Landed / ctn", value: `MVR ${landedPerCarton.toFixed(0)}` },
-            ].map((c) => (
-              <div
-                key={c.label}
-                className="rounded-xl p-3 text-center"
-                style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
-              >
-                <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
-                <p className="ios-subhead font-semibold text-foreground">{c.value}</p>
-              </div>
-            ))}
-          </div>
+          {/* Pack config + code — lookup detail, not needed at a glance */}
+          <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+            {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
+          </p>
 
-          {/* FIFO batches per godown, sorted by qty desc */}
+          {/* Out of stock message */}
+          {isOut && (
+            <div
+              className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl"
+              style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 22%, transparent)" }}
+            >
+              <AlertOctagon className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "var(--snm-error)" }} />
+              <div>
+                <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>Out of stock — 0 in every godown</p>
+                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  {alert?.daily_avg_pieces != null && alert.daily_avg_pieces > 0
+                    ? `Still selling ~${alert.daily_avg_pieces.toFixed(1)} pcs/day — reorder now`
+                    : "Reorder to put it back on the shelf"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Godown breakdown */}
+          {sortedGodowns.length > 0 && (
+            <div className="rounded-xl overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+              {sortedGodowns.map(({ godown, pieces }, i) => {
+                const ctns  = toCtns(pieces, pcsPerCtn);
+                const packs = remPacks(pieces, sku.pcs_per_pack, pcsPerCtn);
+                return (
+                  <div
+                    key={godown.id}
+                    className="flex items-center justify-between px-3 py-2.5"
+                    style={{ borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" : undefined }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <MapPin className="h-3 w-3 shrink-0" style={{ color: "var(--snm-brand-text)" }} />
+                      <p className="ios-subhead font-medium text-foreground truncate">{godown.name}</p>
+                    </div>
+                    <p className="ios-subhead font-semibold text-foreground ml-4 shrink-0 snm-num">
+                      {ctns > 0 && <>{ctns} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
+                      {packs > 0 && <><span className="mx-1 ios-subhead" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
+                      {ctns === 0 && packs === 0 && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Landed cost grid — only when a batch exists */}
+          {totalPieces > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "Landed / pc",  value: `MVR ${fifoLandedPerPiece.toFixed(3)}` },
+                { label: "Landed / pk",  value: `MVR ${landedPerPack.toFixed(2)}` },
+                { label: "Landed / ctn", value: `MVR ${landedPerCarton.toFixed(0)}` },
+              ].map((c) => (
+                <div key={c.label} className="rounded-xl p-3 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+                  <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>
+                  <p className="ios-subhead font-semibold text-foreground">{c.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* FIFO batches per godown */}
           {sortedGodowns.map(({ godown, pieces, batches }) => (
             <div key={godown.id}>
               <div className="flex items-center justify-between mb-2">
@@ -534,6 +532,19 @@ export function InventoryView() {
   const activeBatches   = batches.filter((b) => b.qty_pieces_remaining > 0).length;
   const searchActive    = q.trim() !== "";
 
+  // Pinned "Needs attention" — out, then critical, then low — so trouble is
+  // visible the instant you arrive instead of buried inside a brand group.
+  // Only in the browse sorts (Catalog / Value); the triage lenses already
+  // surface these, and search has its own results, so no duplication there.
+  const attentionRows = useMemo(() => {
+    if (searchActive) return [];
+    const rank = (r: SkuStock) => (r.isOut ? 0 : r.alert?.status === "critical" ? 1 : 2);
+    return stockList
+      .filter((r) => r.isOut || r.isLow)
+      .sort((a, b) => rank(a) - rank(b) || b.totalValue - a.totalValue);
+  }, [stockList, searchActive]);
+  const showAttention = !searchActive && (sortMode === "az" || sortMode === "value") && attentionRows.length > 0;
+
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -591,27 +602,6 @@ export function InventoryView() {
           </Link>
         )}
       </div>
-
-      {/* ── Critical alert banner — only shown when urgent ── */}
-      {criticalCount > 0 && (
-        <div
-          className="rounded-2xl px-4 py-3 flex items-center gap-3"
-          style={{
-            background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)",
-          }}
-        >
-          <TrendingDown className="h-5 w-5 shrink-0" style={{ color: "var(--snm-error)" }} />
-          <div className="flex-1 min-w-0">
-            <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>
-              {criticalCount} SKU{criticalCount !== 1 ? "s" : ""} critically low — less than 7 days remaining
-            </p>
-            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-              Reorder immediately to avoid stock-out
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Summary cards — the three you act on. SKU count / carton totals
           (vanity numbers, not decisions) moved to a subtext line instead of
@@ -690,6 +680,18 @@ export function InventoryView() {
         </div>
       </div>
 
+      {/* ── Needs attention — pinned above the catalogue so trouble surfaces ── */}
+      {showAttention && (
+        <div className="space-y-2">
+          <p className="label-caps text-[12px] px-1" style={{ color: "var(--snm-error)" }}>
+            Needs attention
+          </p>
+          {attentionRows.map((row) => (
+            <SkuCard key={`att-${row.sku.id}`} row={row} searchActive={false} />
+          ))}
+        </div>
+      )}
+
       {/* Stock list */}
       {filtered.length === 0 ? (
         <div className="rounded-2xl p-12 flex flex-col items-center text-center gap-3" style={{ background: "var(--glass-1)" }}>
@@ -733,7 +735,7 @@ export function InventoryView() {
                   <div className="flex items-center gap-2">
                     <div
                       className="w-2 h-2 rounded-full shrink-0"
-                      style={{ background: brandData.hasCritical ? "var(--snm-error)" : brandData.hasLow ? "var(--snm-warning)" : "var(--snm-success)" }}
+                      style={{ background: (brandData.hasOut || brandData.hasCritical) ? "var(--snm-error)" : brandData.hasLow ? "var(--snm-warning)" : "var(--snm-success)" }}
                     />
                     <p className="ios-subhead font-bold uppercase tracking-wider text-foreground">{brand}</p>
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
