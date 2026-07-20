@@ -318,24 +318,18 @@ export function CompetitorsView() {
           <h1 className="ios-page-title">Pricing</h1>
         </div>
         {canWrite && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCompetitorDialog({ open: true })}
-              className="flex items-center gap-1.5 h-11 px-4 rounded-full text-sm font-bold transition active:scale-[0.97]"
-              style={{ background: "var(--muted)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
-            >
-              <Plus className="h-4 w-4" />
-              Competitor
-            </button>
-            <button
-              onClick={() => setPriceDialog({ open: true })}
-              className="flex items-center gap-1.5 h-11 px-4 rounded-full text-sm font-bold transition active:scale-[0.97]"
-              style={{ background: "var(--foreground)", color: "var(--background)" }}
-            >
-              <Tag className="h-4 w-4" />
-              Log Price
-            </button>
-          </div>
+          // One primary action in the header — "Log Price", the frequent one.
+          // Two text buttons plus the title overflowed 390px and clipped this
+          // one off-screen. Adding a competitor lives in the Competitors tab
+          // (a setup action), so it no longer needs a header slot too.
+          <button
+            onClick={() => setPriceDialog({ open: true })}
+            className="flex items-center gap-1.5 h-11 px-4 rounded-full text-sm font-bold transition active:scale-[0.97] shrink-0"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Tag className="h-4 w-4" />
+            Log Price
+          </button>
         )}
       </div>
 

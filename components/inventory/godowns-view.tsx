@@ -119,17 +119,13 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
   const [expanded, setExpanded] = useState(false);
   const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
   const qty = fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn);
-  const ctns = pcsPerCtn > 0 ? Math.floor(pieces / pcsPerCtn) : 0;
 
-  // Visual urgency accent — IDEO: colour as primary signal, no text needed
-  const urgency = ctns <= 2 ? "critical" : ctns <= 6 ? "low" : "ok";
-  const urgencyColor =
-    urgency === "critical" ? "var(--snm-error)"
-    : urgency === "low"    ? "var(--snm-warning)"
-    : "transparent";
-
+  // Godowns answers "where is my stock", not "what's low". Low/critical is a
+  // velocity decision that lives in Inventory + Reorder — flagging it here off
+  // a raw carton count contradicted those screens (2 slow-selling cartons is
+  // not "critical"), so it's deliberately not shown. Clean location view.
   return (
-    <div style={{ borderLeft: urgency !== "ok" ? `3px solid ${urgencyColor}` : "3px solid transparent", marginLeft: -2, paddingLeft: urgency !== "ok" ? 8 : 0, borderRadius: urgency !== "ok" ? "0 0 0 0" : undefined }}>
+    <div>
       <button
         className="w-full flex items-center justify-between py-3.5 text-left"
         style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" }}
@@ -142,13 +138,8 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
               ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
               : null}
           </p>
-          <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          <p className="ios-subhead mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
             {sku.internal_code}
-            {urgency !== "ok" && (
-              <span className="ml-2 font-bold" style={{ color: urgencyColor, fontSize: 13 }}>
-                {urgency === "critical" ? "· critically low" : "· low stock"}
-              </span>
-            )}
           </p>
         </div>
         <div className="flex items-center gap-3 ml-3 shrink-0">
@@ -220,7 +211,10 @@ function GodownCard({
   onSetDefault: (g: GodownRow) => void;
   onDelete: (g: GodownRow) => void;
 }) {
-  const [open, setOpen] = useState(true);
+  // Collapsed by default — overview first. You land on one line per warehouse
+  // (Veesange 158 ctn · MVR 66.9K) and tap to see what's inside, instead of
+  // every SKU in every godown dumping into one long wall on open.
+  const [open, setOpen] = useState(false);
   const { godown, skus, totalCartons, totalValue } = group;
   const hasStock = skus.length > 0;
 
@@ -254,20 +248,19 @@ function GodownCard({
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-[15px] font-semibold text-foreground">{godown.name}</p>
-              {godown.is_default && (
-                <span
-                  className="text-[12px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                  style={{ background: "var(--snm-brand-muted)", color: "var(--snm-brand-text)" }}
-                >
-                  Default
-                </span>
-              )}
-            </div>
-            {godown.location
-              ? <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>{godown.location}</p>
-              : null}
+            {/* Name gets the full first line; "Default" moves to the subtitle
+                (the icon is already brand-tinted for the default godown) so a
+                long name like "Veesange" no longer truncates to make room. */}
+            <p className="text-[15px] font-semibold text-foreground truncate">{godown.name}</p>
+            {(godown.is_default || godown.location) && (
+              <p className="ios-subhead truncate mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                {godown.is_default && (
+                  <span className="font-semibold uppercase tracking-wider" style={{ color: "var(--snm-brand-text)" }}>Default</span>
+                )}
+                {godown.is_default && godown.location ? " · " : ""}
+                {godown.location ?? ""}
+              </p>
+            )}
           </div>
           {hasStock && (
             <div className="text-right shrink-0 ml-2">
@@ -286,8 +279,12 @@ function GodownCard({
           )}
         </button>
 
-        {/* Action buttons — 44x44 tap targets (Apple HIG minimum), 8px+ gap
-            between destructive Delete and its neighbors to reduce mis-taps */}
+        {/* Management actions (set default / edit / delete) — hidden in the
+            collapsed overview to keep the row clean and prevent the name/qty
+            collision; they appear when the godown is expanded, and always for
+            an empty godown (which can't expand but may need deleting).
+            44x44 tap targets (Apple HIG), 8px+ gap around destructive Delete. */}
+        {(!hasStock || open) && (
         <div className="flex items-center gap-2 ml-2 shrink-0">
           {!godown.is_default && (
             <button
@@ -320,6 +317,7 @@ function GodownCard({
             </button>
           )}
         </div>
+        )}
       </div>
 
       {/* SKU list */}
