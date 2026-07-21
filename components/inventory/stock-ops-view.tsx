@@ -316,6 +316,11 @@ function VerifyTab({
             const pkVal  = raw ? Math.max(0, Math.floor(Number(raw.pk)  || 0)) : 0;
             const n = touched ? ctnVal * pcsPerCtn + pkVal * r.sku.pcs_per_pack : r.expected;
             const delta = touched ? n - r.expected : 0;
+            // Out of stock in this godown: no delta yet, but the row still
+            // wants to stand out. Give it the same warning rim as the
+            // dashboard's "out of stock" Needs-Attention card (--snm-error at
+            // 35%). Once counted, the delta border below takes over.
+            const isOut = r.expected === 0;
             // On first touch of a row, seed the OTHER field with its expected value
             // rather than blank — otherwise editing one field silently reads the
             // untouched field as 0 (e.g. changing cartons alone would drop the
@@ -345,7 +350,9 @@ function VerifyTab({
                   boxShadow: "var(--glass-shadow), var(--glass-inner)",
                   border: delta !== 0
                     ? `1px solid color-mix(in srgb, ${delta < 0 ? "var(--snm-error)" : "var(--snm-warning)"} 35%, transparent)`
-                    : "0.5px solid var(--glass-border-lo)",
+                    : isOut
+                      ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
+                      : "0.5px solid var(--glass-border-lo)",
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
