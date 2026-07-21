@@ -88,7 +88,12 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
       <div
         className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden flex flex-col snm-sheet-in"
         style={{
-          maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
+          // A DEFINITE height (not just max-height) — iOS Safari only lets the
+          // inner body own its scroll and keep the footer (Deactivate / Edit
+          // SKU) pinned when the flex column has a resolved height. With only
+          // max-height the body ran full-length and the footer was clipped off
+          // the bottom of the sheet. This is the native iOS "large detent".
+          height: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
           border: "0.5px solid var(--glass-border-lo)",
           transform: `translateY(${dragY}px)`,
@@ -216,9 +221,23 @@ function SkuPanel({
           </p>
           <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>{sku.internal_code}</p>
         </div>
+        {/* Primary action lives in the nav bar (top-right), the native iOS
+            place for "Edit" — always visible regardless of how tall the sheet
+            body gets or where the floating tab bar sits. The footer keeps the
+            secondary Deactivate/Delete actions. */}
+        {canWrite && (
+          <button
+            onClick={onEdit}
+            className="h-11 px-3 rounded-full flex items-center justify-center gap-1.5 shrink-0 transition active:scale-95"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            <span className="ios-subhead font-semibold">Edit</span>
+          </button>
+        )}
         <button
           onClick={onClose}
-          className="h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition"
+          className="h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition ml-2"
           style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}
         >
           <X className="h-4 w-4" />
