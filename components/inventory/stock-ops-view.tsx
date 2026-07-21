@@ -188,33 +188,36 @@ function VerifyTab({
   const [saving, setSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Every SKU that has stock in this godown, pre-filled with system count.
-  // When SEARCHING, also surface active SKUs that show as empty in this godown
-  // (expected 0) — so you can count UP found stock for something the system
-  // thinks is out of stock. Without this you could only ever count down. The
-  // record_verification RPC values any surplus at the SKU's last known landed
-  // cost, so found stock never breaks the money trail. (Hidden by default so
-  // the sheet stays short; only appears once you type a name/code.)
+  // The full count sheet: EVERY active product, pre-filled with the system
+  // count for this godown (0 if the system thinks it's empty here). Showing
+  // the whole shelf — not just in-stock items — is what makes a physical
+  // verification actually work: you can count something UP from 0 (found
+  // stock the system didn't know about), not only down. Untouched rows stay
+  // as-is on submit, so a long list costs nothing. Search is word-based so it
+  // shrugs off the " · " separators and partial terms (e.g. "xtra kering nb",
+  // "nbs", or the code all find the same SKU). A surplus is valued by the
+  // record_verification RPC at the SKU's last known landed cost, so found
+  // stock never breaks the money trail.
   const rows = useMemo(() => {
-    const skuById = new Map(skus.map((s) => [s.id, s]));
-    const inGodown = levels.filter((l) => l.godown_id === godownId && l.qty_pieces > 0);
-    const list = inGodown
-      .map((l) => {
-        const sku = skuById.get(l.sku_id);
-        return sku ? { sku, expected: l.qty_pieces } : null;
-      })
-      .filter((x): x is { sku: SkuFullRow; expected: number } => x !== null);
-    const term = q.trim().toLowerCase();
-    if (!term) return list.sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
-
-    const matches = (s: SkuFullRow) =>
-      skuLabel(s).toLowerCase().includes(term) || (s.internal_code ?? "").toLowerCase().includes(term);
-    const filtered = list.filter((r) => matches(r.sku));
-    const present = new Set(filtered.map((r) => r.sku.id));
-    const zeros = skus
-      .filter((s) => s.is_active && !present.has(s.id) && matches(s))
-      .map((s) => ({ sku: s, expected: 0 }));
-    return [...filtered, ...zeros].sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
+    const qtyBySku = new Map(
+      levels.filter((l) => l.godown_id === godownId).map((l) => [l.sku_id, l.qty_pieces]),
+    );
+    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = (s: SkuFullRow) => {
+      if (words.length === 0) return true;
+      const hay = `${skuLabel(s)} ${s.internal_code ?? ""}`.toLowerCase();
+      return words.every((w) => hay.includes(w));
+    };
+    return skus
+      .filter((s) => s.is_active && matches(s))
+      .map((s) => ({ sku: s, expected: qtyBySku.get(s.id) ?? 0 }))
+      .sort((a, b) => {
+        // In-stock first (the rows you're most likely counting), then the
+        // empties — each group in the normal catalogue order.
+        const ai = a.expected > 0 ? 0 : 1, bi = b.expected > 0 ? 0 : 1;
+        if (ai !== bi) return ai - bi;
+        return compareSkusForDisplay(a.sku, b.sku);
+      });
   }, [levels, godownId, skus, q]);
 
   // Reset edits when godown changes.
@@ -295,7 +298,7 @@ function VerifyTab({
 
       {/* Count sheet */}
       {rows.length === 0 ? (
-        <EmptyState text={`No stock recorded in ${godown?.name ?? "this warehouse"} yet.`} />
+        <EmptyState text={q.trim() ? "No products match your search." : "No active products yet — add one in Products first."} />
       ) : (
         <div className="space-y-2">
           {rows.map((r) => {
