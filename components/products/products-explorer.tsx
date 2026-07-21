@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
@@ -60,6 +61,8 @@ function packLabel(sku: SkuFullRow): string {
 function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   const [dragY, setDragY] = useState(0);
   const startY = useRef<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Lock the background page while the sheet is open (iOS-correct).
   useBodyScrollLock(true);
@@ -78,15 +81,24 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
     startY.current = null;
   }
 
-  return (
+  if (!mounted) return null;
+
+  // Portal to <body> so the sheet escapes the app shell's `relative z-[1]`
+  // wrapper. Rendered inline, its z-index was trapped BELOW the Topbar and
+  // BottomNav (both z-40 at the document root), so those bars painted over the
+  // sheet — obscuring the Edit action under the topbar and smearing the
+  // sheet's bright content through the tab bar's blur (the "white blob"). At
+  // body level the sheet is a true modal above all chrome, like the shared
+  // Sheet component. z-[60] clears the z-40 bars.
+  return createPortal(
     <>
       <div
-        className="fixed inset-0 z-40 snm-scrim-in"
+        className="fixed inset-0 z-[55] snm-scrim-in"
         style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
         onClick={onClose}
       />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden flex flex-col snm-sheet-in"
+        className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-3xl overflow-hidden flex flex-col snm-sheet-in"
         style={{
           // A DEFINITE height (not just max-height) — iOS Safari only lets the
           // inner body own its scroll and keep the footer (Deactivate / Edit
@@ -112,7 +124,8 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
         </div>
         {children}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 
