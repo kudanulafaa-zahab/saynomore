@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type TouchEvent as ReactTouchEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import { Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
@@ -48,7 +48,9 @@ function channelIcon(ch: string | null) {
 }
 
 function getInitials(name: string) {
-  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  // Single first letter for everyone — consistent avatars. (Two-letter
+  // initials for two-name customers but one for single names read as a bug.)
+  return (name.trim()[0] ?? "?").toUpperCase();
 }
 
 export function CustomersManager() {
@@ -102,11 +104,28 @@ export function CustomersManager() {
     if (!presentLetters.has(l)) return;
     document.getElementById(secId(l))?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
   };
+  // Active scrub state drives the magnified letter bubble + the enlarged
+  // letter under the finger; lastHaptic gates the tap so it only fires once
+  // per letter change (not on every touchmove frame).
+  const [scrub, setScrub] = useState<{ letter: string; y: number } | null>(null);
+  const lastHaptic = useRef<string | null>(null);
   const railTouch = (e: ReactTouchEvent<HTMLDivElement>) => {
     const t = e.touches[0]; if (!t) return;
     const holder = (document.elementFromPoint(t.clientX, t.clientY) as HTMLElement | null)?.closest?.("[data-letter]") as HTMLElement | null;
     const l = holder?.getAttribute("data-letter");
-    if (l && presentLetters.has(l)) { e.preventDefault(); jumpToLetter(l, false); }
+    if (l && presentLetters.has(l)) {
+      e.preventDefault();
+      setScrub({ letter: l, y: t.clientY });
+      if (lastHaptic.current !== l) { lastHaptic.current = l; haptic("light"); }
+      jumpToLetter(l, false);
+    }
+  };
+  const railEnd = () => { setScrub(null); lastHaptic.current = null; };
+  const railTap = (l: string, ev: ReactMouseEvent) => {
+    if (!presentLetters.has(l)) return;
+    jumpToLetter(l); haptic("light");
+    setScrub({ letter: l, y: ev.clientY });
+    window.setTimeout(() => setScrub((s) => (s?.letter === l ? null : s)), 520);
   };
 
   // Stats
@@ -122,7 +141,7 @@ export function CustomersManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ paddingRight: showRail ? 30 : undefined }}>
 
       {/* Header */}
       <div className="flex items-end justify-between gap-4">
@@ -230,7 +249,7 @@ export function CustomersManager() {
           )}
         </div>
       ) : (
-        <div className="space-y-6" style={{ paddingRight: showRail ? 22 : 0 }}>
+        <div className="space-y-6">
           {grouped.map(([letter, group]) => (
             <div key={letter} id={secId(letter)} className="space-y-3" style={{ scrollMarginTop: "calc(64px + env(safe-area-inset-top, 0px))" }}>
               {/* Sticky A–Z section header — offset by the fixed topbar height */}
@@ -364,36 +383,77 @@ export function CustomersManager() {
         }}
       />
 
-      {/* iOS A–Z index rail — mobile only; sits on the right edge above the
-          list (which gets right padding so cards never slide under it). */}
+      {/* iOS A–Z index rail — mobile only. A slim glass track of letters on
+          the right; tap a letter or drag down it to jump. A magnified bubble
+          shows the current letter while scrubbing, the active letter enlarges,
+          and each change gives a light haptic. The list is right-padded so
+          cards never slide under it. */}
       {showRail && (
-        <div
-          className="fixed right-0 top-1/2 -translate-y-1/2 z-30 lg:hidden flex flex-col items-center py-2"
-          style={{ paddingRight: 3, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
-          onTouchStart={railTouch}
-          onTouchMove={railTouch}
-          aria-hidden="true"
-        >
-          {AZ_LETTERS.map((l) => {
-            const on = presentLetters.has(l);
-            return (
-              <button
-                key={l}
-                data-letter={l}
-                tabIndex={-1}
-                onClick={() => { if (on) { jumpToLetter(l); haptic("light"); } }}
-                className="flex items-center justify-center"
-                style={{
-                  width: 18, height: 14, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
-                  color: on ? "var(--snm-brand-text)" : "var(--muted-foreground)",
-                  opacity: on ? 0.9 : 0.26, background: "transparent", border: "none", padding: 0,
-                }}
-              >
-                {l}
-              </button>
-            );
-          })}
-        </div>
+        <>
+          {/* Magnified letter bubble — appears beside the finger while scrubbing */}
+          {scrub && (
+            <div
+              className="fixed z-40 lg:hidden pointer-events-none flex items-center justify-center snm-scrim-in"
+              style={{
+                right: 62,
+                top: Math.min(Math.max(scrub.y, 96), (typeof window !== "undefined" ? window.innerHeight : 800) - 96),
+                transform: "translateY(-50%)",
+                width: 68, height: 68, borderRadius: 22,
+                background: "var(--glass-bg-2)",
+                backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)",
+                border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow-lg)",
+                fontSize: 32, fontWeight: 700, color: "var(--foreground)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {scrub.letter}
+            </div>
+          )}
+
+          <div
+            className="fixed top-1/2 -translate-y-1/2 z-30 lg:hidden flex flex-col items-center"
+            style={{
+              right: "max(6px, env(safe-area-inset-right, 0px))",
+              padding: "8px 5px", borderRadius: 999,
+              background: scrub ? "var(--glass-bg-2)" : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+              border: "0.5px solid var(--glass-border-lo)",
+              backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)",
+              boxShadow: scrub ? "var(--glass-shadow)" : "none",
+              transition: "background .2s ease, box-shadow .2s ease",
+              touchAction: "none", userSelect: "none", WebkitUserSelect: "none",
+            }}
+            onTouchStart={railTouch}
+            onTouchMove={railTouch}
+            onTouchEnd={railEnd}
+            onTouchCancel={railEnd}
+            aria-hidden="true"
+          >
+            {AZ_LETTERS.map((l) => {
+              const on = presentLetters.has(l);
+              const active = scrub?.letter === l;
+              return (
+                <button
+                  key={l}
+                  data-letter={l}
+                  tabIndex={-1}
+                  onClick={(ev) => railTap(l, ev)}
+                  className="flex items-center justify-center"
+                  style={{
+                    width: 22, height: 19, lineHeight: 1,
+                    fontSize: active ? 15 : 11.5,
+                    fontWeight: active ? 800 : 600,
+                    color: active ? "var(--foreground)" : on ? "var(--snm-brand-text)" : "var(--muted-foreground)",
+                    opacity: on ? 1 : 0.3,
+                    background: "transparent", border: "none", padding: 0,
+                    transition: "font-size .12s ease, color .12s ease",
+                  }}
+                >
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
