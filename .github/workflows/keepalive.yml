@@ -1,0 +1,38 @@
+name: Supabase keep-alive
+
+# Supabase's Free plan pauses the project after 7 days with no external
+# database activity, which would take the whole app down. This workflow pings
+# a tiny heartbeat function (public.keepalive — returns only the server clock,
+# no data) once a day so the database is never idle long enough to be paused.
+# Running daily leaves a 6-day safety margin: even if a run is skipped or fails,
+# the project stays well under the 7-day line.
+#
+# The apikey below is the project's PUBLISHABLE key — it is already public
+# (it ships inside the app's client bundle), so it is safe to keep here.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # every day at 06:00 UTC (11:00 MVT)
+  workflow_dispatch: {}    # allows a manual run from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase heartbeat
+        run: |
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" \
+              -X POST "https://smhdwkrmiytvpsgqezsl.supabase.co/rest/v1/rpc/keepalive" \
+              -H "apikey: sb_publishable_2P96aLGLI_tBfQ6215PCVA_Mz616YbR" \
+              -H "Content-Type: application/json") || true
+            echo "Attempt $attempt → HTTP $code"
+            cat /tmp/resp.txt; echo
+            if [ "$code" = "200" ]; then
+              echo "Heartbeat OK — project kept alive."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Heartbeat failed after 3 attempts."
+          exit 1
