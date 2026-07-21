@@ -262,16 +262,24 @@ export function ReorderView() {
         </div>
       )}
 
-      {/* ── Sticky action bar ── */}
+      {/* ── Floating action bar — sits ABOVE the tab bar as its own pill so its
+             (white in dark / black in light) CTA never bleeds through the glass
+             tab bar. Outer is transparent + non-interactive so it doesn't block
+             taps on the list; the inner pill floats 12px above the 64px tab bar
+             (which itself sits max(14px, safe-area) up). Desktop has no floating
+             tab bar, so the padding resets there. ── */}
       {canWrite && toOrder.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 lg:left-60 z-30 px-4 pt-3"
+        <div className="fixed bottom-0 left-0 right-0 lg:left-60 z-30 px-4 pointer-events-none lg:!pb-4"
           style={{
-            paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
-            background: "color-mix(in srgb, var(--background) 85%, transparent)",
-            backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)",
-            borderTop: "0.5px solid var(--glass-border-lo)",
+            paddingBottom: "calc(max(14px, env(safe-area-inset-bottom, 0px)) + 76px)",
           }}>
-          <div className="max-w-4xl mx-auto flex items-center gap-3">
+          <div className="max-w-4xl mx-auto flex items-center gap-3 rounded-2xl px-4 py-2.5 pointer-events-auto"
+            style={{
+              background: "color-mix(in srgb, var(--background) 88%, transparent)",
+              backdropFilter: "var(--glass-blur)", WebkitBackdropFilter: "var(--glass-blur)",
+              border: "0.5px solid var(--glass-border-lo)",
+              boxShadow: "var(--glass-shadow-lg)",
+            }}>
             <p className="ios-subhead flex-1" style={{ color: "var(--muted-foreground)" }}>
               <span className="font-semibold text-foreground">{pickedLines.length}</span> product{pickedLines.length !== 1 ? "s" : ""} ·{" "}
               <span className="font-semibold text-foreground">{pickedLines.reduce((a, l) => a + l.qty_cartons, 0)}</span> cartons

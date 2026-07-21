@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import { Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
@@ -91,6 +91,23 @@ export function CustomersManager() {
     }
     return [...map.entries()]; // insertion order = sorted order
   }, [filtered]);
+
+  // ── iOS-style A–Z index rail: tap a letter, or drag down it, to jump to a
+  // section — so a long directory doesn't mean scrolling all the way down. ──
+  const AZ_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").concat("#");
+  const presentLetters = useMemo(() => new Set(grouped.map(([l]) => l)), [grouped]);
+  const showRail = !q.trim() && grouped.length > 1;
+  const secId = (l: string) => `cust-sec-${l === "#" ? "hash" : l}`;
+  const jumpToLetter = (l: string, smooth = true) => {
+    if (!presentLetters.has(l)) return;
+    document.getElementById(secId(l))?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+  };
+  const railTouch = (e: ReactTouchEvent<HTMLDivElement>) => {
+    const t = e.touches[0]; if (!t) return;
+    const holder = (document.elementFromPoint(t.clientX, t.clientY) as HTMLElement | null)?.closest?.("[data-letter]") as HTMLElement | null;
+    const l = holder?.getAttribute("data-letter");
+    if (l && presentLetters.has(l)) { e.preventDefault(); jumpToLetter(l, false); }
+  };
 
   // Stats
   const topChannel = useMemo(() => {
@@ -213,9 +230,9 @@ export function CustomersManager() {
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6" style={{ paddingRight: showRail ? 22 : 0 }}>
           {grouped.map(([letter, group]) => (
-            <div key={letter} className="space-y-3">
+            <div key={letter} id={secId(letter)} className="space-y-3" style={{ scrollMarginTop: "calc(64px + env(safe-area-inset-top, 0px))" }}>
               {/* Sticky A–Z section header — offset by the fixed topbar height */}
               <div
                 className="sticky z-10 flex items-center gap-3 px-1 py-1"
@@ -346,6 +363,38 @@ export function CustomersManager() {
           catch (e) { haptic("error"); toast.error((e as Error).message); }
         }}
       />
+
+      {/* iOS A–Z index rail — mobile only; sits on the right edge above the
+          list (which gets right padding so cards never slide under it). */}
+      {showRail && (
+        <div
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-30 lg:hidden flex flex-col items-center py-2"
+          style={{ paddingRight: 3, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
+          onTouchStart={railTouch}
+          onTouchMove={railTouch}
+          aria-hidden="true"
+        >
+          {AZ_LETTERS.map((l) => {
+            const on = presentLetters.has(l);
+            return (
+              <button
+                key={l}
+                data-letter={l}
+                tabIndex={-1}
+                onClick={() => { if (on) { jumpToLetter(l); haptic("light"); } }}
+                className="flex items-center justify-center"
+                style={{
+                  width: 18, height: 14, fontSize: 10.5, fontWeight: 700, lineHeight: 1,
+                  color: on ? "var(--snm-brand-text)" : "var(--muted-foreground)",
+                  opacity: on ? 0.9 : 0.26, background: "transparent", border: "none", padding: 0,
+                }}
+              >
+                {l}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
