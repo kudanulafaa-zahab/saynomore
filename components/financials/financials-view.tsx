@@ -414,14 +414,14 @@ export function FinancialsView() {
                   {revDelta >= 0 ? "▲" : "▼"} {Math.abs(revDelta).toFixed(1)}% vs last month
                 </span>
               )}
-              <p style={{ color: "var(--foreground)", fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalRevenue)}</p>
+              <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalRevenue)}</p>
             </div>
           </div>
 
           {/* Landed cost row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Landed Cost (COGS)</p>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalLandedCost)}</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalLandedCost)}</p>
           </div>
 
           {/* Gross profit divider */}
@@ -444,13 +444,13 @@ export function FinancialsView() {
           {/* Marketing spend row — prorated to this month by get_pnl */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Marketing Spend</p>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(marketingSpend)}</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(marketingSpend)}</p>
           </div>
 
           {/* Operating expenses — rent, salaries, utilities… by category */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: opexBreakdown.length ? 4 : 6 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Operating Expenses</p>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(otherOpex)}</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(otherOpex)}</p>
           </div>
           {opexBreakdown.map((c) => (
             <div key={c.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2, paddingLeft: 14 }}>
