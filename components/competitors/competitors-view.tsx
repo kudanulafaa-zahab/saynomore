@@ -28,6 +28,8 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { Sheet } from "@/components/ui/sheet";
 import { listSkusFlat, updateSku, getCurrentUserRole, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listReorderAlerts } from "@/lib/queries/inventory";
+import { getPriceBook, type PriceBookRow, type PriceBookFlag } from "@/lib/queries/pricing";
+import Link from "next/link";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
@@ -56,6 +58,173 @@ const BASIS_LABEL: Record<PriceBasis, string> = {
 
 function fmt2(n: number) { return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtInt(n: number) { return Math.ceil(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+function fmt0(n: number) { return Math.round(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+
+/* ── Price Book tab ──────────────────────────────────────────────────────
+   Every active product's landed cost, your price, PROFIT (rufiyaa) and live
+   margin, plus the competitor gap where a rival is logged. Collapsible by
+   model so it never becomes a wall; each size opens into a profit-led card
+   modelled on the Competitors comparison Ali liked. All money comes from
+   get_price_book() (Postgres); this only renders + layers the rival gap. */
+function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, loading }: {
+  rows: PriceBookRow[];
+  rivalPieceBySkuId: Map<string, { piece: number; name: string }>;
+  open: Set<string>;
+  setOpen: (s: Set<string>) => void;
+  loading: boolean;
+}) {
+  const priced    = rows.filter((r) => r.price_mvr != null && r.landed_cost_mvr != null);
+  const belowCost = rows.filter((r) => r.flag === "loss").length;
+  const thin      = rows.filter((r) => r.flag === "thin").length;
+  const margins   = priced.map((r) => r.margin_pct).filter((m): m is number => m != null);
+  const avgMargin = margins.length ? Math.round(margins.reduce((a, b) => a + b, 0) / margins.length) : null;
+
+  const groups = useMemo(() => {
+    const byModel = new Map<string, PriceBookRow[]>();
+    for (const r of rows) {
+      const k = `${r.brand_name}|${r.model_name}`;
+      const arr = byModel.get(k) ?? []; arr.push(r); byModel.set(k, arr);
+    }
+    const list = Array.from(byModel.values()).map((rs) =>
+      [...rs].sort((a, b) => compareSkusForDisplay(a as unknown as SkuFullRow, b as unknown as SkuFullRow)),
+    );
+    list.sort((a, b) => compareSkusForDisplay(a[0] as unknown as SkuFullRow, b[0] as unknown as SkuFullRow));
+    return list;
+  }, [rows]);
+
+  function toggle(key: string) {
+    const next = new Set(open);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    setOpen(next);
+  }
+  // Rival gap at this SKU's trade unit: + = we're cheaper, − = we're pricier.
+  function rivalFor(r: PriceBookRow): { delta: number; name: string } | null {
+    const rp = rivalPieceBySkuId.get(r.sku_id);
+    if (!rp || r.price_mvr == null) return null;
+    const pcs = r.trade_unit === "carton" ? r.pcs_per_pack * r.packs_per_carton : r.trade_unit === "pack" ? r.pcs_per_pack : 1;
+    return { delta: rp.piece * pcs - r.price_mvr, name: rp.name };
+  }
+
+  if (loading && rows.length === 0) {
+    return <div className="rounded-2xl p-10 text-center" style={CARD}><Loader2 className="h-5 w-5 animate-spin mx-auto" style={{ color: "var(--muted-foreground)" }} /></div>;
+  }
+  if (rows.length === 0) {
+    return <div className="rounded-2xl p-8 text-center" style={CARD}><p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>No priced products yet.</p></div>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Health strip — the state of your pricing before any detail */}
+      <div className="flex gap-2 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        {[
+          { k: String(priced.length),                 l: "priced",       c: "var(--foreground)" },
+          { k: String(belowCost),                     l: "below cost",   c: belowCost ? "var(--snm-error)"   : "var(--muted-foreground)" },
+          { k: String(thin),                          l: "thin margin",  c: thin ? "var(--snm-warning)"      : "var(--muted-foreground)" },
+          { k: avgMargin != null ? `${avgMargin}%` : "—", l: "avg margin", c: "var(--snm-success)" },
+        ].map((s) => (
+          <div key={s.l} className="rounded-2xl px-4 py-2.5 shrink-0" style={{ ...CARD, minWidth: 98 }}>
+            <p className="snm-num" style={{ fontSize: 20, fontWeight: 750, letterSpacing: "-0.02em", color: s.c }}>{s.k}</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{s.l}</p>
+          </div>
+        ))}
+      </div>
+
+      {groups.map((rs) => {
+        const first  = rs[0];
+        const key    = `${first.brand_name}|${first.model_name}`;
+        const isOpen = open.has(key);
+        const profits = rs.map((r) => r.profit_mvr).filter((p): p is number => p != null);
+        const lo = profits.length ? Math.min(...profits) : null;
+        const hi = profits.length ? Math.max(...profits) : null;
+        const losers = rs.filter((r) => r.flag === "loss").length;
+        const thins  = rs.filter((r) => r.flag === "thin").length;
+        return (
+          <div key={key} className="rounded-2xl overflow-hidden" style={CARD}>
+            <button onClick={() => toggle(key)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:opacity-80 transition">
+              <div className="flex-1 min-w-0">
+                <p className="label-caps text-[11px]" style={{ color: "var(--muted-foreground)" }}>{first.brand_name} · {first.category_name}</p>
+                <p className="text-[15px] font-bold text-foreground leading-snug">{first.model_name}</p>
+                <p className="ios-footnote mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+                  {rs.length} size{rs.length !== 1 ? "s" : ""}
+                  {losers > 0 && <> · <span style={{ color: "var(--snm-error)", fontWeight: 600 }}>{losers} below cost</span></>}
+                  {losers === 0 && thins > 0 && <> · <span style={{ color: "var(--snm-warning)", fontWeight: 600 }}>{thins} thin</span></>}
+                  {lo != null && hi != null && <> · profit <span style={{ color: "var(--snm-success)", fontWeight: 600 }}>MVR {lo === hi ? fmt0(hi) : `${fmt0(lo)}–${fmt0(hi)}`}</span></>}
+                </p>
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform" style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(180deg)" : "none" }} />
+            </button>
+
+            {isOpen && (
+              <div className="px-3 pb-3 space-y-2">
+                {rs.map((r) => {
+                  const fc    = r.flag === "loss" ? "var(--snm-error)" : r.flag === "thin" ? "var(--snm-warning)" : "var(--snm-success)";
+                  const unit  = r.trade_unit === "carton" ? "carton" : r.trade_unit === "pack" ? "pack" : "piece";
+                  const rival = rivalFor(r);
+                  const hasMoney = r.price_mvr != null && r.landed_cost_mvr != null && r.profit_mvr != null;
+                  return (
+                    <Link key={r.sku_id} href={`/products?editSku=${r.sku_id}`}
+                      className="block rounded-xl p-3.5 active:scale-[0.99] transition"
+                      style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                      <div className="flex items-center justify-between gap-2 mb-2.5">
+                        <p className="text-[14px] font-semibold text-foreground truncate">{r.variant_display ?? r.internal_code}</p>
+                        <p className="text-[11px] shrink-0" style={{ color: "var(--muted-foreground)" }}>per {unit}</p>
+                      </div>
+
+                      {hasMoney ? (
+                        <>
+                          {/* Profit-led verdict — the one thing to notice */}
+                          <div className="rounded-lg px-3.5 py-2.5 mb-2.5 flex items-baseline justify-between gap-3"
+                            style={{ background: `color-mix(in srgb, ${fc} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${fc} 22%, transparent)` }}>
+                            <p className="snm-num" style={{ fontSize: 19, fontWeight: 750, letterSpacing: "-0.02em", color: fc }}>
+                              {r.profit_mvr! >= 0 ? "+" : "−"}MVR {fmt2(Math.abs(r.profit_mvr!))}
+                            </p>
+                            <p className="ios-footnote font-semibold shrink-0" style={{ color: fc }}>
+                              {r.flag === "loss" ? "loss" : r.flag === "thin" ? `${r.margin_pct}% · thin` : `${r.margin_pct}% margin`}
+                            </p>
+                          </div>
+                          {/* Landed · your price · vs rival */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>Landed</p>
+                              <p className="snm-num text-[14px] font-semibold" style={{ color: "var(--muted-foreground)" }}>{fmt2(r.landed_cost_mvr!)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>Your price</p>
+                              <p className="snm-num text-[14px] font-semibold text-foreground">{fmt2(r.price_mvr!)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>vs Rival</p>
+                              {rival ? (
+                                <p className="snm-num text-[14px] font-bold" style={{ color: rival.delta >= 0 ? "var(--snm-success)" : "var(--snm-warning)" }}>
+                                  {rival.delta >= 0 ? "▼" : "▲"}{fmt2(Math.abs(rival.delta))}
+                                </p>
+                              ) : (
+                                <p className="text-[13px]" style={{ color: "var(--muted-foreground)", opacity: 0.55 }}>—</p>
+                              )}
+                            </div>
+                          </div>
+                          {rival && (
+                            <p className="text-[11px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                              {rival.delta >= 0 ? "cheaper" : "pricier"} than {rival.name}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                          {r.flag === "no_cost" ? "No landed cost yet — receive a shipment to price it." : "No selling price set — tap to set one."}
+                        </p>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // This screen (nav label "Market") used to be one ~1000px-of-content scroll
 // mixing six different jobs: promo alerts, campaign logging, a price-gap
@@ -64,12 +233,12 @@ function fmtInt(n: number) { return Math.ceil(n).toLocaleString(undefined, { max
 // tabs so each visit lands on the one job it's for, instead of scrolling
 // past five others to reach it. Deep-linkable via ?tab= — morning-briefing's
 // existing bare /competitors link still lands on Overview by default.
-type MarketTab = "overview" | "pricing" | "competitors";
+type MarketTab = "overview" | "pricebook" | "pricing" | "competitors";
 
 export function CompetitorsView() {
   const searchParams = useSearchParams();
   const tabParam     = searchParams.get("tab");
-  const initialTab: MarketTab = tabParam === "pricing" ? "pricing" : tabParam === "competitors" ? "competitors" : "overview";
+  const initialTab: MarketTab = tabParam === "pricebook" ? "pricebook" : tabParam === "pricing" ? "pricing" : tabParam === "competitors" ? "competitors" : "overview";
   const [tab, setTab] = useState<MarketTab>(initialTab);
 
   const [competitors, setCompetitors] = useState<CompetitorRow[]>([]);
@@ -97,6 +266,8 @@ export function CompetitorsView() {
   const [alertThreshold, setAlertThreshold] = useState(10);
   const [canWrite, setCanWrite]     = useState(false);
   const [priceGaps, setPriceGaps]   = useState<CompetitorPriceGap[]>([]);
+  const [priceBook, setPriceBook]   = useState<PriceBookRow[]>([]);
+  const [pbOpen, setPbOpen]         = useState<Set<string>>(new Set());
   const [gapsExpanded, setGapsExpanded] = useState(false);
   // Price Comparison table: collapsed by default beyond the cheapest logged
   // competitor per SKU — a group with 4-5 competitors was rendering 4-5
@@ -145,6 +316,9 @@ export function CompetitorsView() {
       .then(setPriceGaps)
       .catch(() => setPriceGaps([]));
   }, [alertThreshold]);
+
+  // Price Book rows (own request so a missing RPC never breaks the rest of Market).
+  useEffect(() => { getPriceBook().then(setPriceBook).catch(() => setPriceBook([])); }, []);
 
   // Fetch active price list entries for all 4 tiers for the selected SKU
   useEffect(() => {
@@ -259,6 +433,17 @@ export function CompetitorsView() {
     return groups.sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
   }, [prices, skus, competitors]);
 
+  // sku_id → cheapest logged competitor price per PIECE (+ name), so the Price
+  // Book's "vs Rivals" lens can show the gap at each product's trade unit.
+  const rivalPieceBySkuId = useMemo(() => {
+    const m = new Map<string, { piece: number; name: string }>();
+    for (const g of perPieceComparison) {
+      const cheapest = g.normalized[0];
+      if (cheapest?.pricePiece != null) m.set(g.sku.id, { piece: cheapest.pricePiece, name: cheapest.competitor?.name ?? "rival" });
+    }
+    return m;
+  }, [perPieceComparison]);
+
   const pricesByComp = useMemo(() => {
     const map = new Map<string, CompetitorPriceRow[]>();
     for (const p of prices) { const arr = map.get(p.competitor_id) ?? []; arr.push(p); map.set(p.competitor_id, arr); }
@@ -334,16 +519,27 @@ export function CompetitorsView() {
       <div className="glass-panel" style={{ display: "flex", gap: 6, padding: 4, borderRadius: 14 }}>
         {([
           { key: "overview",    label: "Overview" },
+          { key: "pricebook",   label: "Price Book" },
           { key: "pricing",     label: "Pricing Tool" },
           { key: "competitors", label: "Competitors" },
         ] as const).map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, transition: "all 0.15s",
+            style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 11.5, fontWeight: 600, whiteSpace: "nowrap", transition: "all 0.15s",
               background: tab === t.key ? "var(--glass-accent)" : "transparent",
               color:      tab === t.key ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
           >{t.label}</button>
         ))}
       </div>
+
+      {tab === "pricebook" && (
+        <PriceBookTab
+          rows={priceBook}
+          rivalPieceBySkuId={rivalPieceBySkuId}
+          open={pbOpen}
+          setOpen={setPbOpen}
+          loading={loading}
+        />
+      )}
 
       {tab === "overview" && (
       <>
