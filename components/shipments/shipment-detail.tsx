@@ -26,6 +26,7 @@ import {
   type ContainerSizeHint,
 } from "@/lib/queries/shipments";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { BodyPortal } from "@/components/ui/body-portal";
 import { notifyAdmins } from "@/lib/push";
 import { getPricingHealth } from "@/lib/queries/pricing";
 import { SkuIdentity } from "@/components/ui/sku-identity";
@@ -198,6 +199,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
   useBodyScrollLock(open);
   if (!open) return null;
   return (
+    <BodyPortal>
     <div className="fixed inset-0 z-60 flex items-end snm-scrim-in" style={{ background: "var(--scrim-bg)" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
@@ -214,6 +216,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
         {children}
       </div>
     </div>
+    </BodyPortal>
   );
 }
 
@@ -1827,6 +1830,7 @@ function LineDialog({
   };
 
   return (
+    <BodyPortal>
     <div className="fixed inset-0 z-60 flex items-end snm-scrim-in" style={{ background: "var(--scrim-bg)", touchAction: "none" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
@@ -2039,5 +2043,6 @@ function LineDialog({
         />
       )}
     </div>
+    </BodyPortal>
   );
 }

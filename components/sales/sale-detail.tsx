@@ -36,6 +36,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { haptic } from "@/lib/haptics";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { BodyPortal } from "@/components/ui/body-portal";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
@@ -1122,6 +1123,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
   useBodyScrollLock(open);
   if (!open) return null;
   return (
+    <BodyPortal>
     <div style={{ position: "fixed", inset: 0, background: "var(--scrim-bg)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
@@ -1141,6 +1143,7 @@ function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void
         {children}
       </div>
     </div>
+    </BodyPortal>
   );
 }
 
@@ -1452,6 +1455,7 @@ function LineDialog({
   };
 
   return (
+    <BodyPortal>
     <div style={{ position: "fixed", inset: 0, background: "var(--scrim-bg)", zIndex: 60, display: "flex", alignItems: "flex-end" }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
@@ -1673,5 +1677,6 @@ function LineDialog({
         </div>
       </div>
     </div>
+    </BodyPortal>
   );
 }

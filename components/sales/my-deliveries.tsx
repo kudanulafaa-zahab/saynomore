@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { notifyDelivered } from "@/lib/push";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
@@ -86,7 +87,7 @@ function BottomSheet({ open, onClose, title, children }: {
   if (!open) return null;
 
   return (
-    <>
+    <BodyPortal>
       <div onClick={onClose} style={{
         position: "fixed", inset: 0, zIndex: 60,
         background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)",
@@ -115,7 +116,7 @@ function BottomSheet({ open, onClose, title, children }: {
           {children}
         </div>
       </div>
-    </>
+    </BodyPortal>
   );
 }
 

@@ -26,6 +26,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import { BodyPortal } from "@/components/ui/body-portal";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -390,6 +391,7 @@ export function SpendSheet({ editing, skus, onClose, onDone }: {
   // ONE inner scroll region. Tapping the dimmed backdrop closes it and no drag
   // reaches the page behind, so it feels docked/native, not like a webpage.
   return (
+    <BodyPortal>
     <div
       className="fixed inset-0 z-60 flex items-end snm-scrim-in"
       style={{ background: "var(--scrim-bg)", touchAction: "none" }}
@@ -560,5 +562,6 @@ export function SpendSheet({ editing, skus, onClose, onDone }: {
         </div>
       </div>
     </div>
+    </BodyPortal>
   );
 }
