@@ -2665,7 +2665,11 @@ function MixedCartonSheet({
               <div key={s.id} className="rounded-2xl p-4 flex items-center justify-between gap-3"
                 style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", opacity: outOfStock ? 0.5 : 1 }}>
                 <div className="min-w-0 flex-1">
-                  <p className="ios-subhead font-semibold text-foreground truncate">{s.variant_display}</p>
+                  {/* Colour first — the team picks Sosoft by colour, not scent.
+                      model_name is the colour (Blue/Pink/…); variant_display is
+                      the scent. Lead with colour, scent as the sub-line. */}
+                  <p className="ios-subhead font-semibold text-foreground truncate">{s.model_name}</p>
+                  <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
                   <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
                     {outOfStock ? "Out of stock" : `${stock} bottle${stock === 1 ? "" : "s"} in stock`}
                   </p>
