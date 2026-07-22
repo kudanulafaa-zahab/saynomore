@@ -251,15 +251,12 @@ export function CompetitorsView() {
         : null;
       return { vid, sku, normalized, gapPct };
     }).filter(Boolean) as { vid: string; sku: SkuFullRow; normalized: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null }[]; gapPct: number | null }[];
-    // Worst gap (most overpriced vs. the competition) leads — the most
-    // actionable comparison first, not insertion order. Groups with no
-    // comparable price (no competitor logged, or our price unset) sink
-    // to the bottom since there's nothing to act on yet.
-    return groups.sort((a, b) => {
-      if (a.gapPct == null) return 1;
-      if (b.gapPct == null) return -1;
-      return b.gapPct - a.gapPct;
-    });
+    // Catalogue order — brand → model → natural size rank (NB/S, S, M, L, XL…)
+    // — the same order every other list uses. A comparison table is scanned by
+    // product, so sizes must read in order; sorting by gap% scattered L before
+    // M and made the page hard to read (Ali). Worst-gap triage lives in the
+    // "priced above competitors" alert strip, not here.
+    return groups.sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
   }, [prices, skus, competitors]);
 
   const pricesByComp = useMemo(() => {
@@ -974,7 +971,7 @@ export function CompetitorsView() {
         <div className="rounded-xl overflow-hidden" style={CARD}>
           <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
             <h2 className="text-[17px] font-semibold text-foreground">Price Comparison</h2>
-            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>Your price vs the cheapest competitor · worst gap first</p>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>Your price vs the cheapest competitor · in catalogue order</p>
           </div>
           <div className="divide-y divide-border">
             {perPieceComparison.map(({ vid, sku, normalized, gapPct }) => {
