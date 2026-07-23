@@ -81,6 +81,12 @@ export interface CampaignRoiRow {
   new_customers: number;        // first-ever order within the window, bought an attached SKU
   enough_data: boolean;
   verdict: CampaignVerdict;
+  /** An attached SKU hit zero stock during the window — demand was throttled by
+   *  supply, not the promo, so the lift is understated (0091). */
+  confounded_stockout: boolean;
+  /** Average unit price shifted ≥8% vs the baseline — the before/after mixes a
+   *  price move in with the promo effect (0091). */
+  confounded_price: boolean;
 }
 
 /** Per-campaign VERDICT: profit lift (not just revenue) net of spend, vs a

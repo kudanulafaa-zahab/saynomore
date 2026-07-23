@@ -86,26 +86,42 @@ export function CampaignsCard() {
                   const m = roi.get(r.id);
                   if (!m) return null;
                   const nc = m.new_customers > 0 ? ` · ${m.new_customers} new customer${m.new_customers === 1 ? "" : "s"}` : "";
+                  // Confounder caveat — when the before/after comparison can't
+                  // cleanly separate cause. Neutral (a measurement caveat, not a
+                  // money signal). Suppressed when there's too little data anyway.
+                  const caveat = (m.verdict !== "insufficient" && (m.confounded_stockout || m.confounded_price))
+                    ? (m.confounded_stockout && m.confounded_price
+                        ? "Read with caution — you ran out of stock and changed price during this, so before/after isn't a clean comparison."
+                        : m.confounded_stockout
+                          ? "Read with caution — an item ran out of stock during this, so the true lift is likely higher."
+                          : "Read with caution — the price changed vs the weeks before, so this mixes the price move in with the boost.")
+                    : null;
+                  const CaveatLine = caveat ? (
+                    <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>{caveat}</p>
+                  ) : null;
                   if (m.verdict === "worked") {
-                    return (
+                    return (<>
                       <p className="ios-footnote font-semibold snm-num" style={{ color: "var(--snm-success)" }}>
                         Worked · +MVR {fmt(m.net_after_spend)} profit after spend{nc}
                       </p>
-                    );
+                      {CaveatLine}
+                    </>);
                   }
                   if (m.verdict === "marginal") {
-                    return (
+                    return (<>
                       <p className="ios-footnote font-semibold snm-num" style={{ color: "var(--snm-warning)" }}>
                         Lifted sales but didn&apos;t cover the spend · +MVR {fmt(m.profit_lift)} profit vs MVR {fmt(m.spend_mvr)} spent{nc}
                       </p>
-                    );
+                      {CaveatLine}
+                    </>);
                   }
                   if (m.verdict === "no_effect") {
-                    return (
+                    return (<>
                       <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
                         No clear lift vs your recent weeks — try a different product or offer next time
                       </p>
-                    );
+                      {CaveatLine}
+                    </>);
                   }
                   return (
                     <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
