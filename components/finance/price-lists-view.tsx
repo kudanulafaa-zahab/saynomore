@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import { BodyPortal } from "@/components/ui/body-portal";
 import { toast } from "sonner";
 import {
   Loader2, Tag, Plus, Trash2, Pencil, ChevronRight, X,
@@ -317,6 +318,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
   }
 
   return (
+    <BodyPortal>
     <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Fixed header */}
       <div className="snm-overlay-header px-4">
@@ -497,6 +499,7 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
         confirmLabel="Remove"
       />
     </div>
+    </BodyPortal>
   );
 }
 
@@ -535,6 +538,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onDone }: {
   }, [skus, setSkuIds, search]);
 
   return (
+    <BodyPortal>
     <div className="fixed inset-0 flex flex-col" style={{ background: "var(--background)", zIndex: 200 }}>
       {/* Header */}
       <div className="snm-overlay-header px-5">
@@ -776,6 +780,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onDone }: {
         }}
       />
     </div>
+    </BodyPortal>
   );
 }
 

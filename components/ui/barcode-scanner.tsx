@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { NotFoundException } from "@zxing/library";
 import { X, Camera } from "lucide-react";
+import { BodyPortal } from "@/components/ui/body-portal";
 
 interface BarcodeScannerProps {
   onResult: (code: string) => void;
@@ -102,7 +103,7 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
   }
 
   return (
-    <>
+    <BodyPortal>
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[70]"
@@ -267,6 +268,6 @@ export function BarcodeScanner({ onResult, onClose, hint }: BarcodeScannerProps)
           100% { transform: translateY(60px); opacity: 0; }
         }
       `}</style>
-    </>
+    </BodyPortal>
   );
 }

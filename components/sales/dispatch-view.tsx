@@ -23,6 +23,7 @@ import {
 } from "@/lib/queries/masters";
 import { supabase } from "@/lib/supabase";
 import { haptic } from "@/lib/haptics";
+import { BodyPortal } from "@/components/ui/body-portal";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -539,14 +540,14 @@ export function DispatchView() {
 
       {/* ── Confirm delivery sheet ── */}
       {confirmDelivery && (
-        <>
+        <BodyPortal>
           <div
-            className="fixed inset-0 z-50 snm-scrim-in"
+            className="fixed inset-0 z-[55] snm-scrim-in"
             style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
             onClick={() => setConfirmDelivery(null)}
           />
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[28px] snm-sheet-in"
+            className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-[28px] snm-sheet-in"
             style={{
               background: "var(--glass-bg-2)",
               backdropFilter: "var(--glass-blur-lg)",
@@ -586,7 +587,7 @@ export function DispatchView() {
               </div>
             </div>
           </div>
-        </>
+        </BodyPortal>
       )}
     </div>
   );

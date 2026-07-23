@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { BodyPortal } from "@/components/ui/body-portal";
 
 interface ConfirmSheetProps {
   open: boolean;
@@ -30,7 +31,7 @@ export function ConfirmSheet({
   if (!open) return null;
 
   return (
-    <>
+    <BodyPortal>
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[200] snm-scrim-in"
@@ -91,6 +92,6 @@ export function ConfirmSheet({
           </div>
         </div>
       </div>
-    </>
+    </BodyPortal>
   );
 }
