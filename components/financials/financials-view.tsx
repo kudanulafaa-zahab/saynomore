@@ -13,6 +13,7 @@ import { getPnl, type PnlRow } from "@/lib/queries/expenses";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
 import { MarginWatch } from "./margin-watch";
 import { ReceivablesView } from "./receivables-view";
+import { CashFlowView } from "./cash-flow-view";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
@@ -253,8 +254,8 @@ export function FinancialsView() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const tabParam     = searchParams.get("tab");
-  const initialTab   = tabParam === "cod" ? "cod" : tabParam === "owed" ? "owed" : "profit";
-  const [tab, setTab] = useState<"profit" | "cod" | "owed">(initialTab);
+  const initialTab   = tabParam === "cod" ? "cod" : tabParam === "owed" ? "owed" : tabParam === "cash" ? "cash" : "profit";
+  const [tab, setTab] = useState<"profit" | "cod" | "owed" | "cash">(initialTab);
 
   const [rows, setRows]         = useState<ReportRow[]>([]);
   const [pnl, setPnl]           = useState<PnlRow | null>(null);
@@ -374,6 +375,7 @@ export function FinancialsView() {
       <div className="glass-panel" style={{ display: "flex", gap: 6, marginBottom: 20, padding: 4, borderRadius: 14 }}>
         {([
           { key: "profit", label: "P&L" },
+          { key: "cash",   label: "Cash Flow" },
           { key: "owed",   label: "Owed" },
           { key: "cod",    label: "COD Cash" },
         ] as const).map((t) => (
@@ -384,6 +386,9 @@ export function FinancialsView() {
           >{t.label}</button>
         ))}
       </div>
+
+      {/* ── Cash-flow forecast ── */}
+      {tab === "cash" && <CashFlowView />}
 
       {/* ── COD tab ── */}
       {tab === "cod" && <CodView />}

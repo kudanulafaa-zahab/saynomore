@@ -15,7 +15,7 @@ laws), which load automatically.
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
 - **Supabase:** project id `smhdwkrmiytvpsgqezsl` (Postgres 17). Migrations in
   `supabase/migrations/`, applied live via the Supabase MCP in the same work unit.
-  Latest applied: **0088**.
+  Latest applied: **0089**.
 - **Vercel:** project `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`, team
   `team_qyYXhgTXNYb5dCxNgfIMmQxk`. Prod aliases: `saynomore-beta.vercel.app`,
   `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
@@ -80,6 +80,16 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 5. Built this session (recent → older highlights)
 
+- **0089 cash-flow / runway forecast** (`get_cash_forecast` + `_meta`, `set_cash_balance`,
+  new `cash_snapshots` table): Financials → **Cash Flow** tab. Answers "will I have cash for
+  the next shipment?" — a 13-week running-balance timeline (sales run-rate + outstanding
+  receivables IN; operating run-rate + open-shipment payables OUT), anchored on a user-entered
+  **cash-on-hand** snapshot (append-only, audit-logged). Every assumption is a returned number
+  shown in the UI so the forecast is honest; open shipments with no arrival date are surfaced
+  as an off-timeline warning. All math in Postgres; anon revoked; advisor clean.
+- **Editable expense date:** Expenses Quick Log now has a date field (default today, capped at
+  today) so a cost can be back-dated/corrected — feeds the correct P&L month. UI-only; the
+  query layer already accepted `expense_date`.
 - **0088 campaign verdict** (`get_campaign_roi`): boosts now JUDGED — profit lift
   (contribution vs snapshot COGS), net of spend, 3-window smoothed baseline, units +
   new customers, verdict (worked/marginal/no_effect/insufficient). Card shows it in
@@ -104,18 +114,19 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 6. Open / next tasks (priority order)
 
-1. **Editable date on the business-expense Quick Log.** `business_expenses.expense_date`
-   exists and drives the P&L, but the Quick Log card stamps `CURRENT_DATE` only — no way to
-   back-date or correct. Add a date field (default today, editable). Small, high value.
-2. **Cash-flow / runway forecast** for imports — the real blind spot: "will I have cash to
-   pay the next shipment?" Build from the ledger (receivables in, payables/shipments out).
-3. **Seasonality** in the reorder engine — velocity is a flat 90-day average; add trend/season.
-4. **Campaign confounder flags** — auto-caveat a boost verdict when it overlapped a stockout
+_Done this session: #1 editable expense date, #2 cash-flow/runway forecast (0089). The
+forecast's inflow model has a known, labelled minor overlap (ongoing sales run-rate + current
+receivables both counted) — deliberately transparent, not hidden; revisit if Ali wants it more
+conservative. Supplier payments are timed to expected arrival date (a visible assumption);
+per-shipment payment terms could refine it later._
+
+1. **Seasonality** in the reorder engine — velocity is a flat 90-day average; add trend/season.
+2. **Campaign confounder flags** — auto-caveat a boost verdict when it overlapped a stockout
    or a price change (before/after can't otherwise separate cause).
-5. **Price Book UX polish** — tappable KPI-stat filters, in-page search + sort, clearer
+3. **Price Book UX polish** — tappable KPI-stat filters, in-page search + sort, clearer
    labels on secondary numbers. (A codebase-aware prompt for this was drafted in chat;
    keep healthy=quiet, don't add green "healthy" badges, preserve the desktop table.)
-6. **Customer storefront** (deferred, Ali-approved direction): separate installable PWA
+4. **Customer storefront** (deferred, Ali-approved direction): separate installable PWA
    sharing the same Supabase; `place_customer_order` server-side pricing + atomic stock;
    web orders tag `order_source='web'` into Dispatch. Phase 1 = COD/transfer; cards later
    (needs BML merchant account). Sosoft sold by carton of 6, mix or single colour.
