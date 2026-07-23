@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { PromoAdvisor } from "./promo-advisor";
@@ -87,25 +87,60 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
   const margins   = priced.map((r) => r.margin_pct).filter((m): m is number => m != null);
   const avgMargin = margins.length ? Math.round(margins.reduce((a, b) => a + b, 0) / margins.length) : null;
 
+  // In-page filter/sort state (polish): a stat tile or the search box narrows to
+  // a flat result list; the sort control reorders every list. Kept local — none
+  // of it needs to survive a tab switch.
+  const [stat, setStat] = useState<"loss" | "thin" | "healthy" | null>(null);
+  const [q, setQ]       = useState("");
+  const [sort, setSort] = useState<"cat" | "worst" | "best">("cat");
+  const query = q.trim().toLowerCase();
+
+  const sortRows = useCallback((rs: PriceBookRow[]) => {
+    const rank = (r: PriceBookRow) => r.flag === "loss" ? 0 : r.flag === "thin" ? 1 : 2;
+    const arr = [...rs];
+    if (sort === "worst") return arr.sort((a, b) => rank(a) - rank(b) || (a.margin_pct ?? 9e9) - (b.margin_pct ?? 9e9));
+    if (sort === "best")  return arr.sort((a, b) => (b.margin_pct ?? -9e9) - (a.margin_pct ?? -9e9));
+    return arr.sort((a, b) => compareSkusForDisplay(a as unknown as SkuFullRow, b as unknown as SkuFullRow));
+  }, [sort]);
+
+  // A stat tile or a search term collapses everything into one flat, sorted list.
+  const quickActive = stat != null || query !== "";
+
   const sections = useMemo(() => {
-    const srt = (rs: PriceBookRow[]) => [...rs].sort((a, b) => compareSkusForDisplay(a as unknown as SkuFullRow, b as unknown as SkuFullRow));
+    if (quickActive) {
+      const matches = rows.filter((r) => {
+        if (stat === "loss"    && r.flag !== "loss") return false;
+        if (stat === "thin"    && r.flag !== "thin") return false;
+        if (stat === "healthy" && !(r.price_mvr != null && r.landed_cost_mvr != null && r.flag !== "loss" && r.flag !== "thin")) return false;
+        if (query) {
+          const hay = `${r.brand_name} ${r.model_name} ${r.variant_display ?? ""} ${r.internal_code}`.toLowerCase();
+          if (!hay.includes(query)) return false;
+        }
+        return true;
+      });
+      const label = stat === "loss" ? "Losing money" : stat === "thin" ? "Thin margin" : stat === "healthy" ? "Healthy" : "Results";
+      return [{ key: "results", label: `${label} · ${matches.length}`, note: "", noteFlag: "", rows: sortRows(matches) }];
+    }
     if (view === "attention") {
-      const flagged = rows.filter((r) => r.flag === "loss" || r.flag === "thin")
-        .sort((a, b) => (a.flag === "loss" ? 0 : 1) - (b.flag === "loss" ? 0 : 1) || (a.margin_pct ?? 0) - (b.margin_pct ?? 0));
+      const flagged = sortRows(rows.filter((r) => r.flag === "loss" || r.flag === "thin"));
       return [{ key: "att", label: "Needs attention", note: `${belowCost} loss · ${thin} thin`, noteFlag: belowCost ? "loss" : thin ? "thin" : "", rows: flagged }];
     }
     const keyOf = (r: PriceBookRow) => view === "brand" ? r.brand_name : `${r.brand_name}|${r.model_name}`;
     const map = new Map<string, PriceBookRow[]>();
     for (const r of rows) { const k = keyOf(r); const a = map.get(k) ?? []; a.push(r); map.set(k, a); }
     const list = Array.from(map.values()).map((rs) => {
-      const s = srt(rs);
+      const s = sortRows(rs);
       const gl = s.filter((r) => r.flag === "loss").length, gt = s.filter((r) => r.flag === "thin").length;
       return { key: keyOf(s[0]), label: view === "brand" ? `${s[0].brand_name} · ${s[0].category_name}` : `${s[0].brand_name} · ${s[0].model_name}`,
         note: gl ? `${gl} loss` : gt ? `${gt} thin` : "ok", noteFlag: gl ? "loss" : gt ? "thin" : "", rows: s };
     });
     list.sort((a, b) => compareSkusForDisplay(a.rows[0] as unknown as SkuFullRow, b.rows[0] as unknown as SkuFullRow));
     return list;
-  }, [rows, view, belowCost, thin]);
+  }, [rows, view, belowCost, thin, quickActive, stat, query, sortRows]);
+
+  // Switching the main view is a clean slate; quick filters reset.
+  const pickView = (v: PbView) => { setStat(null); setQ(""); setView(v); };
+  const toggleStat = (s: "loss" | "thin" | "healthy") => { setQ(""); setStat((cur) => cur === s ? null : s); };
 
   function toggle(id: string) { const next = new Set(open); if (next.has(id)) next.delete(id); else next.add(id); setOpen(next); }
   function rivalFor(r: PriceBookRow): { delta: number; name: string } | null {
@@ -127,26 +162,57 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
 
   return (
     <div className="space-y-3">
-      {/* Health tape — quiet when clean, glowing on problems */}
+      {/* Health tape — quiet when clean, glowing on problems. The three count
+          tiles are tappable filters; avg margin is a readout, not a filter. */}
       <div className="flex gap-2 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
-        {[
-          { k: String(belowCost),                     l: "losing money", c: belowCost ? "var(--snm-error)"   : "var(--muted-foreground)" },
-          { k: String(thin),                          l: "thin margin",  c: thin ? "var(--snm-warning)"      : "var(--muted-foreground)" },
-          { k: String(healthy),                       l: "healthy",      c: "var(--foreground)" },
-          { k: avgMargin != null ? `${avgMargin}%` : "—", l: "avg margin", c: "var(--foreground)" },
-        ].map((s) => (
-          <div key={s.l} className="rounded-2xl px-4 py-2.5 shrink-0" style={{ ...CARD, minWidth: 104 }}>
-            <p className="snm-num" style={{ fontSize: 21, fontWeight: 750, letterSpacing: "-0.02em", color: s.c }}>{s.k}</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{s.l}</p>
-          </div>
-        ))}
+        {([
+          { key: "loss"    as const, k: String(belowCost),  l: "losing money", c: belowCost ? "var(--snm-error)"   : "var(--muted-foreground)" },
+          { key: "thin"    as const, k: String(thin),       l: "thin margin",  c: thin ? "var(--snm-warning)"      : "var(--muted-foreground)" },
+          { key: "healthy" as const, k: String(healthy),    l: "healthy",      c: "var(--foreground)" },
+        ]).map((s) => {
+          const active = stat === s.key;
+          const disabled = s.k === "0";
+          return (
+            <button key={s.l} onClick={() => !disabled && toggleStat(s.key)} disabled={disabled}
+              className="snm-pressable rounded-2xl px-4 py-2.5 shrink-0 text-left transition disabled:opacity-100"
+              style={{ ...CARD, minWidth: 104, cursor: disabled ? "default" : "pointer",
+                outline: active ? "1.5px solid var(--foreground)" : "none", outlineOffset: -1.5,
+                opacity: disabled && !active ? 0.55 : 1 }}
+              aria-pressed={active}>
+              <p className="snm-num" style={{ fontSize: 21, fontWeight: 750, letterSpacing: "-0.02em", color: s.c }}>{s.k}</p>
+              <p className="text-[11px]" style={{ color: active ? "var(--foreground)" : "var(--muted-foreground)" }}>{s.l}{active ? " ·" : ""}</p>
+            </button>
+          );
+        })}
+        <div className="rounded-2xl px-4 py-2.5 shrink-0" style={{ ...CARD, minWidth: 104 }}>
+          <p className="snm-num" style={{ fontSize: 21, fontWeight: 750, letterSpacing: "-0.02em", color: "var(--foreground)" }}>{avgMargin != null ? `${avgMargin}%` : "—"}</p>
+          <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>avg margin</p>
+        </div>
       </div>
 
-      {/* View */}
-      <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4 }}>
+      {/* Search + sort */}
+      <div className="flex gap-2 items-center">
+        <input
+          value={q} onChange={(e) => { setStat(null); setQ(e.target.value); }}
+          placeholder="Search product…"
+          className="flex-1 min-w-0 h-10 px-3 rounded-xl text-[13px] outline-none"
+          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+        />
+        <div className="flex gap-0.5 shrink-0" style={{ background: "var(--glass-bg-1)", borderRadius: 11, padding: 3 }}>
+          {([["cat", "A–Z"], ["worst", "Worst"], ["best", "Best"]] as const).map(([s, label]) => (
+            <button key={s} onClick={() => setSort(s)} className="rounded-[8px] px-2.5 py-1.5 text-[12px] font-semibold transition"
+              style={{ background: sort === s ? "var(--glass-accent)" : "transparent", color: sort === s ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* View — dimmed while a quick filter (stat tile / search) is overriding it */}
+      <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4, opacity: quickActive ? 0.5 : 1 }}>
         {([["attention", "Needs attention"], ["all", "All prices"], ["brand", "By brand"]] as const).map(([v, label]) => (
-          <button key={v} onClick={() => setView(v)} className="flex-1 rounded-[9px] py-2 text-[12.5px] font-semibold transition"
-            style={{ background: view === v ? "var(--glass-accent)" : "transparent", color: view === v ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}>
+          <button key={v} onClick={() => pickView(v)} className="flex-1 rounded-[9px] py-2 text-[12.5px] font-semibold transition"
+            style={{ background: !quickActive && view === v ? "var(--glass-accent)" : "transparent", color: !quickActive && view === v ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}>
             {label}
           </button>
         ))}
@@ -168,14 +234,16 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
               <span className="text-[10.5px] font-semibold uppercase" style={{ color: sec.noteFlag === "loss" ? "var(--snm-error)" : sec.noteFlag === "thin" ? "var(--snm-warning)" : "var(--muted-foreground)" }}>{sec.note}</span>
             </div>
             {sec.rows.length === 0 && (
-              <p className="px-5 py-5 ios-subhead text-center" style={{ color: "var(--muted-foreground)" }}>Every price is healthy right now.</p>
+              <p className="px-5 py-5 ios-subhead text-center" style={{ color: "var(--muted-foreground)" }}>
+                {query ? "No products match your search." : stat != null ? "Nothing in this bucket." : "Every price is healthy right now."}
+              </p>
             )}
             {sec.rows.map((r) => {
               const rival     = rivalFor(r);
               const isOpen    = open.has(r.sku_id);
               const hasMoney  = r.price_mvr != null && r.landed_cost_mvr != null && r.profit_mvr != null;
               const mTxt      = r.margin_pct != null ? `${r.margin_pct < 0 ? "−" : ""}${Math.abs(r.margin_pct).toFixed(1)}%` : "—";
-              const pTxt      = r.profit_mvr != null ? `${r.profit_mvr >= 0 ? "+" : "−"}${fmt0(Math.abs(r.profit_mvr))}` : "";
+              const pTxt      = r.profit_mvr != null ? `${r.profit_mvr >= 0 ? "+" : "−"}MVR ${fmt0(Math.abs(r.profit_mvr))}` : "";
               const rivalWord = rival ? (rival.delta >= 0 ? "cheaper" : "pricier") : null;
               const rivalCol  = rival ? (rival.delta >= 0 ? "var(--snm-success)" : "var(--snm-warning)") : "var(--muted-foreground)";
               return (
@@ -190,8 +258,8 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
                     </div>
                     {hasMoney && (
                       <div className="text-right shrink-0">
-                        <p className="snm-num leading-none" style={{ fontSize: 18, fontWeight: 720, letterSpacing: "-0.02em", color: ink(r.flag) }}>{mTxt}</p>
-                        <p className="text-[11px] snm-num mt-1" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{pTxt}</p>
+                        <p className="snm-num leading-none" style={{ fontSize: 18, fontWeight: 720, letterSpacing: "-0.02em", color: ink(r.flag) }}>{mTxt}<span className="text-[10px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>margin</span></p>
+                        <p className="text-[11px] snm-num mt-1" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{pTxt ? `${pTxt} profit / ${r.trade_unit}` : ""}</p>
                       </div>
                     )}
                   </button>
