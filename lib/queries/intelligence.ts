@@ -61,16 +61,30 @@ export async function getMorningBriefing(): Promise<MorningBriefing> {
   return data as MorningBriefing;
 }
 
+export type CampaignVerdict = "worked" | "marginal" | "no_effect" | "insufficient";
+
 export interface CampaignRoiRow {
   spend_id: string;
+  window_days: number;
+  spend_mvr: number;
   revenue_during: number;
-  revenue_before: number;
-  lift_mvr: number;
-  roi_multiple: number | null;
+  /** Contribution (revenue − snapshot COGS) of attached SKUs during the window. */
+  profit_during: number;
+  /** Smoothed baseline: the same SKUs' average contribution for an equal window,
+   *  averaged over the 3 windows before the campaign. */
+  profit_before: number;
+  profit_lift: number;          // during − before
+  net_after_spend: number;      // profit_lift − spend  (the real "did it pay off")
+  units_during: number;
+  units_before: number;
+  orders_during: number;
+  new_customers: number;        // first-ever order within the window, bought an attached SKU
+  enough_data: boolean;
+  verdict: CampaignVerdict;
 }
 
-/** Per-campaign sales lift: attached SKUs' revenue during the campaign window
- *  vs an equal window immediately before. Measured, not just recorded. */
+/** Per-campaign VERDICT: profit lift (not just revenue) net of spend, vs a
+ *  noise-smoothed baseline, plus units + new customers. Judges, not records. */
 export async function getCampaignRoi(): Promise<CampaignRoiRow[]> {
   const { data, error } = await supabase.rpc("get_campaign_roi");
   if (error) throw error;

@@ -81,26 +81,37 @@ export function CampaignsCard() {
                   {" · "}MVR {fmt(Number(r.amount_mvr))}
                 </p>
                 {(() => {
-                  // Measured, not just recorded: sales lift of the attached
-                  // SKUs during the campaign vs the window before it.
+                  // The VERDICT: profit lift net of spend vs a smoothed baseline,
+                  // plus new customers — judges the boost, doesn't just record it.
                   const m = roi.get(r.id);
                   if (!m) return null;
-                  const lift = Number(m.lift_mvr);
-                  if (m.roi_multiple != null && lift > 0) {
+                  const nc = m.new_customers > 0 ? ` · ${m.new_customers} new customer${m.new_customers === 1 ? "" : "s"}` : "";
+                  if (m.verdict === "worked") {
                     return (
                       <p className="ios-footnote font-semibold snm-num" style={{ color: "var(--snm-success)" }}>
-                        Earned back MVR {m.roi_multiple} for every MVR 1 spent · +MVR {fmt(lift)} extra sales — worth repeating
+                        Worked · +MVR {fmt(m.net_after_spend)} profit after spend{nc}
                       </p>
                     );
                   }
-                  if (lift < 0) {
+                  if (m.verdict === "marginal") {
+                    return (
+                      <p className="ios-footnote font-semibold snm-num" style={{ color: "var(--snm-warning)" }}>
+                        Lifted sales but didn&apos;t cover the spend · +MVR {fmt(m.profit_lift)} profit vs MVR {fmt(m.spend_mvr)} spent{nc}
+                      </p>
+                    );
+                  }
+                  if (m.verdict === "no_effect") {
                     return (
                       <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
-                        No sales lift (−MVR {fmt(Math.abs(lift))} vs the weeks before) — try a different product or offer next time
+                        No clear lift vs your recent weeks — try a different product or offer next time
                       </p>
                     );
                   }
-                  return null;
+                  return (
+                    <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                      Too few sales yet to judge ({m.orders_during} order{m.orders_during === 1 ? "" : "s"}) — check back after more sell-through
+                    </p>
+                  );
                 })()}
               </div>
               {canWrite && (
