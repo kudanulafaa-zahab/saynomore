@@ -49,7 +49,9 @@ export function ExpensesView() {
   const [deleteBizTarget, setDeleteBizTarget] = useState<BusinessExpenseRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const today = new Date().toISOString().slice(0, 10);
   const [quickAmount, setQuickAmount] = useState("");
+  const [quickDate, setQuickDate] = useState(today);
   const [loggingQuick, setLoggingQuick] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
   const [quickAmountError, setQuickAmountError] = useState(false);
@@ -113,7 +115,9 @@ export function ExpensesView() {
     const payload = {
       category_id: quickCategoryId,
       amount_mvr: amt,
-      expense_date: new Date().toISOString().slice(0, 10),
+      // Date defaults to today but is editable so a cost can be back-dated or
+      // corrected — it drives which month the P&L books the expense in.
+      expense_date: quickDate || today,
       // For "Other", the typed label IS the description so the row is meaningful.
       description: quickIsOther ? quickOther.trim() : null,
     };
@@ -125,6 +129,7 @@ export function ExpensesView() {
       haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Expense logged");
       setQuickAmount("");
+      setQuickDate(today);
       setQuickOther("");
       setQuickOtherError(false);
       if (!queued) load();
@@ -191,7 +196,7 @@ export function ExpensesView() {
         <p className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 px-1">
           Quick log — business expense
         </p>
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-[120px]">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 ios-subhead text-muted-foreground pointer-events-none">MVR</span>
             <input
@@ -215,6 +220,17 @@ export function ExpensesView() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+        </div>
+        {/* Date + Log — date defaults to today, capped at today so a cost can
+            be back-dated or corrected but not accidentally booked in the future. */}
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="date" value={quickDate} max={today}
+            onChange={(e) => setQuickDate(e.target.value)}
+            aria-label="Expense date"
+            className="flex-1 min-w-0 h-11 px-3 rounded-xl ios-subhead bg-secondary text-foreground outline-none"
+            style={{ border: "1px solid var(--border)" }}
+          />
           <button
             onClick={handleQuickLog}
             disabled={loggingQuick || !quickAmount || (quickIsOther && !quickOther.trim())}
