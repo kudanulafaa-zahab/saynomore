@@ -190,6 +190,14 @@ export function ReorderView() {
                         <span className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                           {r.stock_cartons} ctn in stock · ~{r.daily_avg_pieces.toFixed(0)} pcs/day
                         </span>
+                        {/* Trend is metadata, not money → neutral gray chip (color
+                            always means money on this app). Steady shows nothing. */}
+                        {r.trend !== "steady" && (
+                          <span className="ios-footnote font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ color: "var(--muted-foreground)", background: "var(--glass-bg-2)" }}>
+                            {r.trend === "rising" ? "▲ picking up" : "▼ slowing"}
+                          </span>
+                        )}
                       </div>
                     </div>
 

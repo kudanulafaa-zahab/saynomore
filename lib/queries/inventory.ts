@@ -90,6 +90,10 @@ export interface ReorderSuggestion {
   /** Place the order by this day so stock lands before running out; clamped
    *  to today ("already late" shows as today). Null = no sales velocity. */
   order_by_date: string | null;
+  /** Demand direction: recent 30-day pace vs this SKU's own baseline (0090).
+   *  Informational metadata (neutral, not a money signal) — the forward
+   *  velocity already carries a capped buffer when 'rising'. */
+  trend: "rising" | "steady" | "falling";
 }
 
 export async function listReorderSuggestions(
