@@ -80,6 +80,20 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 5. Built this session (recent → older highlights)
 
+- **0091 campaign confounder flags** (`get_campaign_roi`): a boost verdict now carries a
+  neutral "Read with caution" caveat when its window overlapped a **stockout** (an attached
+  SKU's running on-hand hit ≤0 — demand throttled by supply) or a **price change** (avg unit
+  price shifted ≥8% vs baseline). Verdict unchanged; we flag, don't rewrite. Caveat is neutral
+  (a measurement note, not money).
+- **0090 trend-aware reorder velocity** (`get_sku_reorder_alerts` + `get_reorder_suggestions`):
+  forward velocity = recent 30-day rate + an upward-only, capped (+40%) buffer when demand is
+  accelerating above the SKU's own fair baseline (units ÷ actual selling days, ≤90). Steady/
+  falling keep the recent rate, so orders never regress below the old engine. A neutral
+  "▲ picking up / ▼ slowing" chip rides through to the reorder list. Calendar seasonality is
+  deliberately deferred (needs multi-year history; would mislead now).
+- **Price Book UX polish:** tappable stat-tile filters (loss/thin/healthy), in-page search +
+  sort (A–Z / worst / best margin), clearer secondary labels ("+MVR X profit / carton"). Kept
+  quiet-healthy (no green badge) and the desktop table.
 - **0089 cash-flow / runway forecast** (`get_cash_forecast` + `_meta`, `set_cash_balance`,
   new `cash_snapshots` table): Financials → **Cash Flow** tab. Answers "will I have cash for
   the next shipment?" — a 13-week running-balance timeline (sales run-rate + outstanding
@@ -114,22 +128,22 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 6. Open / next tasks (priority order)
 
-_Done this session: #1 editable expense date, #2 cash-flow/runway forecast (0089). The
-forecast's inflow model has a known, labelled minor overlap (ongoing sales run-rate + current
-receivables both counted) — deliberately transparent, not hidden; revisit if Ali wants it more
-conservative. Supplier payments are timed to expected arrival date (a visible assumption);
-per-shipment payment terms could refine it later._
+_Done this session: #1 editable expense date, #2 cash-flow/runway forecast (0089),
+#3 trend-aware reorder velocity (0090), #4 campaign confounder flags (0091), #5 Price Book
+UX polish. Notes carried forward: the cash forecast's inflow model has a known, labelled
+minor overlap (ongoing sales run-rate + current receivables both counted) — transparent, not
+hidden; supplier payments timed to expected arrival (a visible assumption). The reorder trend
+is upward-only (never orders less than before); true calendar seasonality is deferred until
+there's multi-year history._
 
-1. **Seasonality** in the reorder engine — velocity is a flat 90-day average; add trend/season.
-2. **Campaign confounder flags** — auto-caveat a boost verdict when it overlapped a stockout
-   or a price change (before/after can't otherwise separate cause).
-3. **Price Book UX polish** — tappable KPI-stat filters, in-page search + sort, clearer
-   labels on secondary numbers. (A codebase-aware prompt for this was drafted in chat;
-   keep healthy=quiet, don't add green "healthy" badges, preserve the desktop table.)
-4. **Customer storefront** (deferred, Ali-approved direction): separate installable PWA
-   sharing the same Supabase; `place_customer_order` server-side pricing + atomic stock;
-   web orders tag `order_source='web'` into Dispatch. Phase 1 = COD/transfer; cards later
-   (needs BML merchant account). Sosoft sold by carton of 6, mix or single colour.
+1. **Customer storefront** (deferred, Ali-approved direction) — **now scoped in
+   `docs/STOREFRONT_PLAN.md`.** Separate installable PWA sharing the same Supabase;
+   `place_customer_order` server-side pricing + atomic order, `order_source='web'` into
+   Dispatch (column already live; all rows currently `walk-in`). Phase 1 = COD/transfer;
+   cards later (needs BML merchant account). Sosoft sold by carton of 6, mix or single colour.
+   **Blocked on 5 product decisions** (guest vs accounts, web price, fulfilment godown,
+   reserve-at-placement vs confirm, payment) — see the plan. Backend-first when greenlit;
+   the customer-money path must not ship on guesses.
 
 ---
 
