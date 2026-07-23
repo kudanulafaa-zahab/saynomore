@@ -136,8 +136,9 @@ hidden; supplier payments timed to expected arrival (a visible assumption). The 
 is upward-only (never orders less than before); true calendar seasonality is deferred until
 there's multi-year history._
 
-1. **Customer storefront** (deferred, Ali-approved direction) — **now scoped in
-   `docs/STOREFRONT_PLAN.md`.** Separate installable PWA sharing the same Supabase;
+1. **Customer storefront** — **ON HOLD (Ali, 2026-07-23): do not start; Ali will decide
+   if/when he wants it.** Scoped in `docs/STOREFRONT_PLAN.md` for whenever that happens.
+   Separate installable PWA sharing the same Supabase;
    `place_customer_order` server-side pricing + atomic order, `order_source='web'` into
    Dispatch (column already live; all rows currently `walk-in`). Phase 1 = COD/transfer;
    cards later (needs BML merchant account). Sosoft sold by carton of 6, mix or single colour.
