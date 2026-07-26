@@ -151,7 +151,7 @@ function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
   );
 }
 
-const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false }: { row: SkuStock; searchActive: boolean; showBrand?: boolean }) {
+const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hideModel = false }: { row: SkuStock; searchActive: boolean; showBrand?: boolean; hideModel?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
@@ -202,11 +202,15 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false }: 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[15px] font-semibold text-foreground leading-snug truncate">
-              {(searchActive || showBrand) && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
-              {sku.model_name}
-              {sku.variant_display
-                ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
-                : null}
+              {hideModel
+                ? (sku.variant_display ?? sku.internal_code)
+                : <>
+                    {(searchActive || showBrand) && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
+                    {sku.model_name}
+                    {sku.variant_display
+                      ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
+                      : null}
+                  </>}
             </p>
             <DirBadge alert={alert} />
           </div>
@@ -526,15 +530,26 @@ export function InventoryView() {
     });
   }, [filtered, sortMode]);
 
-  // "Stock" is a magnitude ranking, which only reads correctly as a flat list
-  // across brands (not buried inside per-brand groups) — the professional
-  // pattern for a sortable quantity column. Ranked by cartons on hand (the
-  // number shown on each card), in the chosen direction.
-  const flatStock = useMemo(() => {
+  // "Stock" ranks by quantity on hand, but ranking must stay WITHIN a product
+  // line — a global flat list interleaves unrelated products (detergent between
+  // diapers) and reads as noise. So group by product (brand · model), sort the
+  // sizes inside each group by cartons on hand (chosen direction), and keep the
+  // product groups themselves in familiar catalogue order with clear separation.
+  const stockGroups = useMemo(() => {
     if (sortMode !== "stock") return [];
     const ctns = (r: SkuStock) => r.totalPieces / Math.max(1, r.sku.pcs_per_pack * r.sku.packs_per_carton);
     const mul = sortDir === "asc" ? 1 : -1;
-    return [...filtered].sort((a, b) => (ctns(a) - ctns(b)) * mul || compareSkusForDisplay(a.sku, b.sku));
+    const map = new Map<string, SkuStock[]>();
+    for (const r of filtered) {
+      const k = `${r.sku.brand_name}|${r.sku.model_name}`;
+      const a = map.get(k) ?? []; a.push(r); map.set(k, a);
+    }
+    const groups = Array.from(map.values()).map((skus) => {
+      const sorted = [...skus].sort((a, b) => (ctns(a) - ctns(b)) * mul || compareSkusForDisplay(a.sku, b.sku));
+      return { key: `${sorted[0].sku.brand_name}|${sorted[0].sku.model_name}`, brand: sorted[0].sku.brand_name, model: sorted[0].sku.model_name, skus: sorted };
+    });
+    groups.sort((a, b) => compareSkusForDisplay(a.skus[0].sku, b.skus[0].sku));
+    return groups;
   }, [filtered, sortMode, sortDir]);
 
   const totalValue      = stockList.reduce((s, r) => s + r.totalValue, 0);
@@ -748,11 +763,24 @@ export function InventoryView() {
           )}
         </div>
       ) : sortMode === "stock" ? (
-        // Flat quantity ranking — one card per SKU across all brands, brand
-        // shown inline so each row is identifiable without a group header.
-        <div className="space-y-2">
-          {flatStock.map((row) => (
-            <SkuCard key={row.sku.id} row={row} searchActive={searchActive} showBrand />
+        // Quantity ranking, grouped by product line so nothing unrelated
+        // interleaves. Each product is its own section (BRAND · MODEL) with its
+        // sizes ranked by stock on hand.
+        <div className="space-y-5">
+          {stockGroups.map((g) => (
+            <div key={g.key}>
+              <div className="flex items-center gap-2 px-1 py-2 mb-2" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                <p className="ios-subhead font-bold uppercase tracking-wider text-foreground truncate">{g.brand} · {g.model}</p>
+                <p className="ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                  {g.skus.length} size{g.skus.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="space-y-2">
+                {g.skus.map((row) => (
+                  <SkuCard key={row.sku.id} row={row} searchActive={searchActive} hideModel />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : (
