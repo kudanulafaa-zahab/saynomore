@@ -89,20 +89,34 @@ export function ReorderView() {
     return m;
   }, [skus]);
 
+  // Sales are counted and shown in the unit the product actually sells in —
+  // cartons/packs, never loose pieces (diapers are always sold by pack/carton).
+  const cartonsSold = (r: ReorderSuggestion) => (r.pcs_per_carton > 0 ? r.sold_90d / r.pcs_per_carton : r.sold_90d);
+  const soldLabel = (r: ReorderSuggestion): string => {
+    if (r.sold_90d <= 0) return "";
+    const ppc = r.pcs_per_carton || 0;
+    const pk = packFor.get(r.sku_id)?.pk ?? 0;
+    if (ppc > 0 && r.sold_90d >= ppc) return `${Math.round(r.sold_90d / ppc)} ctn`;
+    if (pk > 0) return `${Math.max(1, Math.round(r.sold_90d / pk))} pk`;
+    return `${r.sold_90d} pcs`;
+  };
+
   // "What sells" signal for ordering decisions — classify each SKU against the
-  // whole catalogue by real 90-day units sold, so an out-of-stock top seller is
-  // obvious (restock heavily) vs a slow mover (don't). Quartile-based, relative
-  // to this business's own range.
+  // whole catalogue by real 90-day sales (in CARTONS), so an out-of-stock top
+  // seller is obvious (restock heavily) vs a slow mover (don't). Quartile-based,
+  // relative to this business's own range.
   const mover = useMemo(() => {
-    const sold = rows.map((r) => r.sold_90d).filter((v) => v > 0).sort((a, b) => a - b);
+    const sold = rows.map(cartonsSold).filter((v) => v > 0).sort((a, b) => a - b);
     const pct = (p: number) => (sold.length ? sold[Math.min(sold.length - 1, Math.floor(sold.length * p))] : 0);
     const hi = pct(0.75), lo = pct(0.25);
     return (r: ReorderSuggestion): { label: string; strong: boolean } => {
-      if (r.sold_90d <= 0) return { label: "No recent sales", strong: false };
-      if (r.sold_90d >= hi) return { label: "Top seller", strong: true };
-      if (r.sold_90d <= lo) return { label: "Slow mover", strong: false };
+      const c = cartonsSold(r);
+      if (c <= 0) return { label: "No recent sales", strong: false };
+      if (c >= hi) return { label: "Top seller", strong: true };
+      if (c <= lo) return { label: "Slow mover", strong: false };
       return { label: "Steady seller", strong: false };
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
 
   // Split into what to act on vs the rest.
@@ -225,7 +239,7 @@ export function ReorderView() {
                           return (
                             <span className="ios-footnote px-1.5 py-0.5 rounded-md"
                               style={{ color: m.strong ? "var(--foreground)" : "var(--muted-foreground)", fontWeight: m.strong ? 700 : 500, background: "var(--glass-bg-2)" }}>
-                              {m.label}{r.sold_90d > 0 ? ` · ${r.sold_90d} sold/90d` : ""}
+                              {m.label}{r.sold_90d > 0 ? ` · ${soldLabel(r)} sold/90d` : ""}
                             </span>
                           );
                         })()}
