@@ -94,6 +94,9 @@ export interface ReorderSuggestion {
    *  Informational metadata (neutral, not a money signal) — the forward
    *  velocity already carries a capped buffer when 'rising'. */
   trend: "rising" | "steady" | "falling";
+  /** Real units sold in the last 90 days (0095) — the "what actually sells"
+   *  signal for ordering decisions. */
+  sold_90d: number;
 }
 
 export async function listReorderSuggestions(

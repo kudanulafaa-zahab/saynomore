@@ -89,6 +89,22 @@ export function ReorderView() {
     return m;
   }, [skus]);
 
+  // "What sells" signal for ordering decisions — classify each SKU against the
+  // whole catalogue by real 90-day units sold, so an out-of-stock top seller is
+  // obvious (restock heavily) vs a slow mover (don't). Quartile-based, relative
+  // to this business's own range.
+  const mover = useMemo(() => {
+    const sold = rows.map((r) => r.sold_90d).filter((v) => v > 0).sort((a, b) => a - b);
+    const pct = (p: number) => (sold.length ? sold[Math.min(sold.length - 1, Math.floor(sold.length * p))] : 0);
+    const hi = pct(0.75), lo = pct(0.25);
+    return (r: ReorderSuggestion): { label: string; strong: boolean } => {
+      if (r.sold_90d <= 0) return { label: "No recent sales", strong: false };
+      if (r.sold_90d >= hi) return { label: "Top seller", strong: true };
+      if (r.sold_90d <= lo) return { label: "Slow mover", strong: false };
+      return { label: "Steady seller", strong: false };
+    };
+  }, [rows]);
+
   // Split into what to act on vs the rest.
   const toOrder   = rows.filter((r) => r.status === "out" || r.status === "critical" || r.status === "low");
   const overstock = rows.filter((r) => r.status === "overstock");
@@ -199,10 +215,20 @@ export function ReorderView() {
                         <span className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                           {r.stock_cartons} ctn in stock
                           {(() => { const p = packFor.get(r.sku_id); return p ? ` · ${p.pk}/pk × ${p.ppc}/ctn` : ""; })()}
-                          {" · "}~{r.daily_avg_pieces.toFixed(0)} pcs/day
                         </span>
-                        {/* Trend is metadata, not money → neutral gray chip (color
-                            always means money on this app). Steady shows nothing. */}
+                        {/* What sells — the ordering decision signal. Sold-in-90-days
+                            is the real evidence; the mover tag is the glance. Both
+                            neutral (info, not money → no hue); "Top seller" leans on
+                            weight, not colour. */}
+                        {(() => {
+                          const m = mover(r);
+                          return (
+                            <span className="ios-footnote px-1.5 py-0.5 rounded-md"
+                              style={{ color: m.strong ? "var(--foreground)" : "var(--muted-foreground)", fontWeight: m.strong ? 700 : 500, background: "var(--glass-bg-2)" }}>
+                              {m.label}{r.sold_90d > 0 ? ` · ${r.sold_90d} sold/90d` : ""}
+                            </span>
+                          );
+                        })()}
                         {r.trend !== "steady" && (
                           <span className="ios-footnote font-medium px-1.5 py-0.5 rounded-md"
                             style={{ color: "var(--muted-foreground)", background: "var(--glass-bg-2)" }}>
