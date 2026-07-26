@@ -80,6 +80,16 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 5. Built this session (recent → older highlights)
 
+- **0093 stock write-off** (`write_off_stock` + `get_pnl`): the proper ERP handling for
+  damaged/expired/lost stock — Stock Ops → **Write-off** tab (reason-coded, FIFO, admin/manager,
+  confirm, returns the MVR loss). Removes stock via `damage_out` movements valued at each batch's
+  locked landed cost, audit-logged. `get_pnl` gained a **stock_writeoff_mvr** line and subtracts
+  it from net, shown as "Damaged & write-offs" in Financials — so damage is recognised as a loss
+  instead of silently overstating profit. (Schema already had `damage_out`/`damage`; nothing used
+  it and the P&L ignored it.)
+- **0092 Price Book last-known cost** + inventory case/pack display + money-first Price Book +
+  reorder pcs/pack + inventory quantity sort (grouped by product): see git log for the batch of
+  screenshot-driven fixes.
 - **0091 campaign confounder flags** (`get_campaign_roi`): a boost verdict now carries a
   neutral "Read with caution" caveat when its window overlapped a **stockout** (an attached
   SKU's running on-hand hit ≤0 — demand throttled by supply) or a **price change** (avg unit

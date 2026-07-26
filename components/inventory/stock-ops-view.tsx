@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Search, MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight,
-  Check, AlertTriangle, Loader2, History,
+  Check, AlertTriangle, Loader2, History, PackageX,
 } from "lucide-react";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
@@ -13,7 +13,9 @@ import {
   listStockLevels, type StockLevel,
   recordStockTransfer, recordVerification,
   listVerificationHistory, type VerificationSession,
+  writeOffStock, type WriteOffReason,
 } from "@/lib/queries/inventory";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { haptic } from "@/lib/haptics";
 import { toPieces, type SaleUom } from "@/lib/queries/sales";
 
@@ -77,7 +79,7 @@ function UnitToggle({ sku, value, onChange }: { sku: SkuFullRow; value: SaleUom;
   );
 }
 
-type Tab = "verify" | "transfer";
+type Tab = "verify" | "transfer" | "writeoff";
 
 /* ════════════════════════════════════════════════════════════════════════ */
 
@@ -86,7 +88,8 @@ export function StockOpsView() {
   // Deep link support: /stock-ops?tab=transfer lands directly on the
   // Transfer tab (used by shortcut links from Inventory/Godowns), while
   // plain /stock-ops still defaults to Verify Count.
-  const initialTab: Tab = searchParams.get("tab") === "transfer" ? "transfer" : "verify";
+  const initialTab: Tab = searchParams.get("tab") === "transfer" ? "transfer"
+    : searchParams.get("tab") === "writeoff" ? "writeoff" : "verify";
   const [tab, setTab] = useState<Tab>(initialTab);
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [godowns, setGodowns] = useState<GodownRow[]>([]);
@@ -141,11 +144,12 @@ export function StockOpsView() {
         {([
           { id: "verify", label: "Verify Count", icon: ClipboardCheck },
           { id: "transfer", label: "Transfer", icon: ArrowLeftRight },
+          { id: "writeoff", label: "Write-off", icon: PackageX },
         ] as { id: Tab; label: string; icon: typeof Check }[]).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-[14px] font-semibold transition active:opacity-70"
+            className="flex-1 flex items-center justify-center gap-1.5 h-11 rounded-xl text-[13px] font-semibold transition active:opacity-70"
             style={{
               background: tab === id ? "var(--foreground)" : "transparent",
               color: tab === id ? "var(--background)" : "var(--muted-foreground)",
@@ -159,8 +163,10 @@ export function StockOpsView() {
 
       {tab === "verify" ? (
         <VerifyTab skus={skus} godowns={godowns} levels={levels} onDone={reloadLevels} />
-      ) : (
+      ) : tab === "transfer" ? (
         <TransferTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} />
+      ) : (
+        <WriteOffTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} />
       )}
     </div>
   );
@@ -686,6 +692,202 @@ function TransferTab({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════ */
+/* Write-off (damaged / expired / lost) — reason-coded shrinkage              */
+/* ════════════════════════════════════════════════════════════════════════ */
+
+function WriteOffTab({
+  godowns, levels, skuMap, onDone,
+}: {
+  godowns: GodownRow[]; levels: StockLevel[];
+  skuMap: Map<string, SkuFullRow>; onDone: () => Promise<void>;
+}) {
+  const [godownId, setGodownId] = useState<string>(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");
+  const [skuId, setSkuId] = useState<string>("");
+  const [q, setQ] = useState("");
+  const [qty, setQty] = useState("");
+  const [unit, setUnit] = useState<SaleUom>("piece");
+  const [reason, setReason] = useState<WriteOffReason>("damaged");
+  const [notes, setNotes] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const available = useMemo(() => {
+    const inG = levels.filter((l) => l.godown_id === godownId && l.qty_pieces > 0);
+    const list = inG
+      .map((l) => { const s = skuMap.get(l.sku_id); return s ? { sku: s, avail: l.qty_pieces } : null; })
+      .filter((x): x is { sku: SkuFullRow; avail: number } => x !== null);
+    const term = q.trim().toLowerCase();
+    const filtered = term
+      ? list.filter((r) => skuLabel(r.sku).toLowerCase().includes(term) || (r.sku.internal_code ?? "").toLowerCase().includes(term))
+      : list;
+    return filtered.sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
+  }, [levels, godownId, skuMap, q]);
+
+  const selected = skuId ? skuMap.get(skuId) : undefined;
+  const availForSelected = skuId ? (levels.find((l) => l.godown_id === godownId && l.sku_id === skuId)?.qty_pieces ?? 0) : 0;
+  const qtyEnteredNum = Math.max(0, Math.floor(Number(qty) || 0));
+  const qtyNum = selected ? toPieces(unit, qtyEnteredNum, selected.pcs_per_pack, selected.packs_per_carton) : 0;
+  const overAvailable = qtyNum > availForSelected;
+  const canSubmit = !!skuId && qtyEnteredNum > 0 && !overAvailable && !saving;
+
+  function pickSku(id: string) {
+    if (id === skuId) { setSkuId(""); setQty(""); return; }
+    setSkuId(id); setQty("");
+    const sku = skuMap.get(id); if (sku) setUnit(defaultUnitFor(sku));
+  }
+
+  async function submit() {
+    if (!canSubmit || !selected) return;
+    setSaving(true);
+    try {
+      const loss = await writeOffStock({ sku_id: skuId, godown_id: godownId, qty_pieces: qtyNum, reason, notes });
+      await onDone();
+      setSkuId(""); setQty(""); setQ(""); setNotes(""); setConfirming(false);
+      haptic("success");
+      toast.success(`Written off — MVR ${loss.toLocaleString(undefined, { maximumFractionDigits: 2 })} recorded as a loss.`);
+    } catch (e) {
+      haptic("error");
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const reasons: { v: WriteOffReason; l: string }[] = [
+    { v: "damaged", l: "Damaged" },
+    { v: "expired", l: "Expired" },
+    { v: "lost", l: "Lost / missing" },
+    { v: "other", l: "Other" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <GodownPicker godowns={godowns} value={godownId} onChange={(v) => { setGodownId(v); setSkuId(""); }} label="Warehouse" />
+      <p className="ios-footnote px-1" style={{ color: "var(--muted-foreground)" }}>
+        Removes unsellable stock and records its landed cost as a loss in your P&amp;L. Admin/manager only.
+      </p>
+
+      <div
+        className="flex items-center gap-2.5 px-4 rounded-2xl"
+        style={{ background: "var(--glass-1)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
+      >
+        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Find the damaged item…"
+          aria-label="Search items to write off"
+          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+
+      {selected && (() => {
+        const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
+        return (
+          <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-1)", border: "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)" }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
+                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{selected.pcs_per_pack}/pk × {selected.packs_per_carton}/ctn</p>
+              </div>
+              <p className="snm-num ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} on hand
+              </p>
+            </div>
+
+            {/* Reason code — reason-coded shrinkage is the standard */}
+            <div className="flex flex-wrap gap-1.5">
+              {reasons.map((r) => (
+                <button key={r.v} onClick={() => setReason(r.v)}
+                  className="px-3 py-1.5 rounded-full ios-subhead font-semibold transition"
+                  style={{ background: reason === r.v ? "var(--foreground)" : "var(--glass-bg-2)", color: reason === r.v ? "var(--background)" : "var(--muted-foreground)", border: reason === r.v ? "none" : "0.5px solid var(--glass-border-lo)" }}>
+                  {r.l}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>Qty to write off</p>
+              <UnitToggle sku={selected} value={unit} onChange={(u) => setUnit(u)} />
+            </div>
+            <input
+              type="number" inputMode="numeric"
+              placeholder={`${UOM_LABEL[unit]} damaged`}
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+              onFocus={(e) => e.target.select()}
+              className="w-full h-12 rounded-xl px-4 text-[16px] font-semibold text-foreground outline-none"
+              style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: `1px solid ${overAvailable ? "color-mix(in srgb, var(--snm-error) 45%, transparent)" : "var(--glass-border-lo)"}` }}
+            />
+            {qtyEnteredNum > 0 && unit !== "piece" && (
+              <p className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>= {qtyNum.toLocaleString()} pcs</p>
+            )}
+            {overAvailable && (
+              <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} on hand here.</p>
+            )}
+
+            <input
+              value={notes} onChange={(e) => setNotes(e.target.value)}
+              placeholder="Note (optional) — e.g. torn in transit"
+              className="w-full h-11 rounded-xl px-3 ios-subhead text-foreground outline-none"
+              style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
+            />
+
+            <button
+              onClick={() => setConfirming(true)}
+              disabled={!canSubmit}
+              className="w-full rounded-2xl flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-80 disabled:opacity-50"
+              style={{ background: "var(--snm-error)", color: "#fff", height: 52 }}
+            >
+              <PackageX className="h-4.5 w-4.5" /> Write off stock
+            </button>
+          </div>
+        );
+      })()}
+
+      {available.length === 0 ? (
+        <EmptyState text="No stock in this warehouse to write off." />
+      ) : (
+        <div className="space-y-2 max-h-[42vh] overflow-y-auto overscroll-contain">
+          {available.map((r) => {
+            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
+            const active = skuId === r.sku.id;
+            return (
+              <button
+                key={r.sku.id}
+                onClick={() => pickSku(r.sku.id)}
+                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
+                style={{ background: "var(--glass-1)", border: active ? "1px solid color-mix(in srgb, var(--snm-error) 45%, transparent)" : "0.5px solid var(--glass-border-lo)" }}
+              >
+                <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center" style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--snm-error)" : "transparent" }}>
+                  {active && <Check className="h-3 w-3" style={{ color: "#fff" }} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} on hand
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <ConfirmSheet
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={submit}
+        loading={saving}
+        title="Write off this stock?"
+        message={selected ? `${qtyEnteredNum} ${UOM_LABEL[unit].toLowerCase()} of ${skuLabel(selected)} (${reason}) will be removed and its cost booked as a loss in your P&L. This can't be undone here.` : ""}
+        confirmLabel="Write off"
+      />
     </div>
   );
 }

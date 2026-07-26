@@ -135,6 +135,7 @@ export interface PnlRow {
   gross_profit_mvr: number;
   marketing_mvr: number;      // prorated by day-overlap with the period
   other_opex_mvr: number;
+  stock_writeoff_mvr: number; // landed cost of damaged/expired/lost stock (0093)
   net_profit_mvr: number;
   gross_margin_pct: number | null;
   net_margin_pct: number | null;

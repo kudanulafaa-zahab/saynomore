@@ -147,6 +147,33 @@ export async function recordAdjustment(input: AdjustInput) {
   invalidate("stock:");
 }
 
+// ── Stock write-off (damaged / expired / lost) — 0093 ─────────────────────
+// The proper handling for unsellable stock: removes it FIFO and books its
+// landed cost as a loss in the P&L (audit-logged). Returns the MVR loss.
+
+export type WriteOffReason = "damaged" | "expired" | "lost" | "other";
+
+export interface WriteOffInput {
+  sku_id: string;
+  godown_id: string;
+  qty_pieces: number;   // positive
+  reason: WriteOffReason;
+  notes?: string | null;
+}
+
+export async function writeOffStock(input: WriteOffInput): Promise<number> {
+  const { data, error } = await supabase.rpc("write_off_stock", {
+    p_sku_id: input.sku_id,
+    p_godown_id: input.godown_id,
+    p_qty_pieces: input.qty_pieces,
+    p_reason: input.reason,
+    p_notes: input.notes ?? null,
+  });
+  if (error) throw error;
+  invalidate("stock:");
+  return Number(data); // total landed cost written off
+}
+
 // ── Stock transfer (godown → godown, FIFO cost-preserving) ────────────────
 // Backed by record_stock_transfer (migration 0059). Admin/manager only; all the
 // FIFO batch depletion + cost preservation happens in Postgres. Returns the

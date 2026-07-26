@@ -304,6 +304,7 @@ export function FinancialsView() {
   const grossProfit     = Number(pnl?.gross_profit_mvr ?? 0);
   const marketingSpend  = Number(pnl?.marketing_mvr ?? 0);
   const otherOpex       = Number(pnl?.other_opex_mvr ?? 0);
+  const stockWriteoff   = Number(pnl?.stock_writeoff_mvr ?? 0);
   const netProfit       = Number(pnl?.net_profit_mvr ?? 0);
   const grossMarginPct  = Number(pnl?.gross_margin_pct ?? 0);
   const netMarginPct    = Number(pnl?.net_margin_pct ?? 0);
@@ -469,6 +470,15 @@ export function FinancialsView() {
             </p>
           )}
 
+          {/* Damaged & write-offs — landed cost of stock removed as unsellable.
+              Only shown when there's something to show (quiet when zero). */}
+          {stockWriteoff > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Damaged &amp; write-offs</p>
+              <p className="snm-num" style={{ color: "var(--snm-error)", fontSize: 16, fontWeight: 500 }}>MVR {fmtShort(stockWriteoff)}</p>
+            </div>
+          )}
+
           {/* Net profit divider */}
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -482,7 +492,7 @@ export function FinancialsView() {
                   {netMarginPct >= 0 ? "+" : ""}{netMarginPct.toFixed(1)}% net margin
                 </span>
               </div>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>Revenue − COGS − Marketing − Expenses</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>Revenue − COGS − Marketing − Expenses{stockWriteoff > 0 ? " − Write-offs" : ""}</p>
             </div>
             <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
               MVR {fmtShort(netProfit)}
