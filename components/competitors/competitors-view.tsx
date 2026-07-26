@@ -227,7 +227,7 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
       <div className="rounded-2xl overflow-hidden" style={CARD}>
         {/* Desktop column header */}
         <div className="hidden lg:grid gap-3 px-5 py-2.5" style={{ gridTemplateColumns: PB_COLS, borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-          {["Product", "Cost", "Price", "Margin", "vs Rival"].map((h, i) => (
+          {["Product", "Cost", "Price", "Profit", "vs Rival"].map((h, i) => (
             <span key={h} className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--muted-foreground)", textAlign: i === 0 ? "left" : "right" }}>{h}</span>
           ))}
         </div>
@@ -248,7 +248,10 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
               const isOpen    = open.has(r.sku_id);
               const hasMoney  = r.price_mvr != null && r.landed_cost_mvr != null && r.profit_mvr != null;
               const mTxt      = r.margin_pct != null ? `${r.margin_pct < 0 ? "−" : ""}${Math.abs(r.margin_pct).toFixed(1)}%` : "—";
-              const pTxt      = r.profit_mvr != null ? `${r.profit_mvr >= 0 ? "+" : "−"}MVR ${fmt0(Math.abs(r.profit_mvr))}` : "";
+              // Money first (Ali + the app's rule): profit in rufiyaa is the lead
+              // number, margin % the supporting line under it.
+              const profitMain = r.profit_mvr != null ? `${r.profit_mvr >= 0 ? "+" : "−"}MVR ${fmt0(Math.abs(r.profit_mvr))}` : "";
+              const packTxt   = `${r.pcs_per_pack}/pk`;
               const rivalWord = rival ? (rival.delta >= 0 ? "cheaper" : "pricier") : null;
               const rivalCol  = rival ? (rival.delta >= 0 ? "var(--snm-success)" : "var(--snm-warning)") : "var(--muted-foreground)";
               return (
@@ -258,13 +261,18 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-semibold text-foreground truncate">{sec.showModel ? `${r.model_name} · ${r.variant_display ?? r.internal_code}` : (r.variant_display ?? r.internal_code)}</p>
                       <p className="text-[12px] snm-num mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                        {hasMoney ? `MVR ${fmt2(r.price_mvr!)} · per ${r.trade_unit}` : r.flag === "no_cost" ? "No landed cost yet" : "No price set"}
+                        {hasMoney
+                          ? `MVR ${fmt2(r.price_mvr!)} · per ${r.trade_unit}`
+                          : r.landed_cost_mvr != null
+                            ? `Cost MVR ${fmt2(r.landed_cost_mvr)} · set a price`
+                            : "No landed cost yet"}
+                        {` · ${packTxt}`}
                       </p>
                     </div>
                     {hasMoney && (
                       <div className="text-right shrink-0">
-                        <p className="snm-num leading-none" style={{ fontSize: 18, fontWeight: 720, letterSpacing: "-0.02em", color: ink(r.flag) }}>{mTxt}<span className="text-[10px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>margin</span></p>
-                        <p className="text-[11px] snm-num mt-1" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{pTxt ? `${pTxt} profit / ${r.trade_unit}` : ""}</p>
+                        <p className="snm-num leading-none" style={{ fontSize: 18, fontWeight: 720, letterSpacing: "-0.02em", color: ink(r.flag) }}>{profitMain}<span className="text-[10px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>/ {r.trade_unit}</span></p>
+                        <p className="text-[11px] snm-num mt-1" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{mTxt} margin</p>
                       </div>
                     )}
                   </button>
@@ -277,10 +285,10 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
                   )}
                   {/* DESKTOP — the same row as a table line */}
                   <Link href={`/products?editSku=${r.sku_id}`} className="hidden lg:grid gap-3 items-center px-5 py-2.5" style={{ gridTemplateColumns: PB_COLS }}>
-                    <span className="text-[14px] font-semibold text-foreground truncate">{sec.showModel ? `${r.model_name} · ${r.variant_display ?? r.internal_code}` : (r.variant_display ?? r.internal_code)}<span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>per {r.trade_unit}</span></span>
+                    <span className="text-[14px] font-semibold text-foreground truncate">{sec.showModel ? `${r.model_name} · ${r.variant_display ?? r.internal_code}` : (r.variant_display ?? r.internal_code)}<span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>per {r.trade_unit} · {packTxt}</span></span>
                     <span className="snm-num text-[13.5px] text-right" style={{ color: "var(--muted-foreground)" }}>{hasMoney ? fmt2(r.landed_cost_mvr!) : "—"}</span>
                     <span className="snm-num text-[13.5px] text-right font-semibold text-foreground">{hasMoney ? fmt2(r.price_mvr!) : "—"}</span>
-                    <span className="snm-num text-[14px] text-right font-bold" style={{ color: ink(r.flag) }}>{mTxt}{pTxt && <span className="text-[11px] font-medium ml-1.5" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{pTxt}</span>}</span>
+                    <span className="snm-num text-[14px] text-right font-bold" style={{ color: ink(r.flag) }}>{hasMoney ? profitMain : "—"}{hasMoney && <span className="text-[11px] font-medium ml-1.5" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{mTxt}</span>}</span>
                     <span className="snm-num text-[12.5px] text-right" style={{ color: rivalCol }}>{rival ? `${fmt2(Math.abs(rival.delta))} ${rivalWord}` : "—"}</span>
                   </Link>
                 </div>

@@ -80,6 +80,15 @@ export function ReorderView() {
     return m;
   }, [skus]);
 
+  // Pack configuration per SKU — surfaced on each row because two SKUs can share
+  // a size but pack differently (e.g. 30/pk vs 60/pk), which changes what a
+  // carton means.
+  const packFor = useMemo(() => {
+    const m = new Map<string, { pk: number; ppc: number }>();
+    for (const s of skus) m.set(s.id, { pk: Number(s.pcs_per_pack), ppc: Number(s.packs_per_carton) });
+    return m;
+  }, [skus]);
+
   // Split into what to act on vs the rest.
   const toOrder   = rows.filter((r) => r.status === "out" || r.status === "critical" || r.status === "low");
   const overstock = rows.filter((r) => r.status === "overstock");
@@ -188,7 +197,9 @@ export function ReorderView() {
                           {r.dir != null ? `${Math.round(r.dir)}d left` : "no sales data"} · {st.label}
                         </span>
                         <span className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                          {r.stock_cartons} ctn in stock · ~{r.daily_avg_pieces.toFixed(0)} pcs/day
+                          {r.stock_cartons} ctn in stock
+                          {(() => { const p = packFor.get(r.sku_id); return p ? ` · ${p.pk}/pk × ${p.ppc}/ctn` : ""; })()}
+                          {" · "}~{r.daily_avg_pieces.toFixed(0)} pcs/day
                         </span>
                         {/* Trend is metadata, not money → neutral gray chip (color
                             always means money on this app). Steady shows nothing. */}

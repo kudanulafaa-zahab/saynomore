@@ -3,13 +3,14 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Search, AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, PackageX, ArrowUpDown, ArrowLeftRight } from "lucide-react";
+import { Search, AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, PackageX, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 
-type SortMode = "urgency" | "out" | "overstock" | "value" | "az";
+type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
+type SortDir  = "desc" | "asc";
 
 /* ── Helpers ── */
 
@@ -150,7 +151,7 @@ function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
   );
 }
 
-const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; searchActive: boolean }) {
+const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false }: { row: SkuStock; searchActive: boolean; showBrand?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
@@ -201,7 +202,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive }: { row: SkuStock; se
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[15px] font-semibold text-foreground leading-snug truncate">
-              {searchActive && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
+              {(searchActive || showBrand) && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
               {sku.model_name}
               {sku.variant_display
                 ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
@@ -397,6 +398,8 @@ export function InventoryView() {
     : searchParams.get("filter") === "out" ? "out"
     : "az",
   );
+  // Direction for the quantity ("Stock") ranking — most-first by default.
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
     // Guard against a fast tab-switch away from Inventory before this
@@ -522,6 +525,17 @@ export function InventoryView() {
       return b.totalValue - a.totalValue;
     });
   }, [filtered, sortMode]);
+
+  // "Stock" is a magnitude ranking, which only reads correctly as a flat list
+  // across brands (not buried inside per-brand groups) — the professional
+  // pattern for a sortable quantity column. Ranked by cartons on hand (the
+  // number shown on each card), in the chosen direction.
+  const flatStock = useMemo(() => {
+    if (sortMode !== "stock") return [];
+    const ctns = (r: SkuStock) => r.totalPieces / Math.max(1, r.sku.pcs_per_pack * r.sku.packs_per_carton);
+    const mul = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => (ctns(a) - ctns(b)) * mul || compareSkusForDisplay(a.sku, b.sku));
+  }, [filtered, sortMode, sortDir]);
 
   const totalValue      = stockList.reduce((s, r) => s + r.totalValue, 0);
   const totalCartons    = stockList.reduce((s, r) => s + toCtns(r.totalPieces, r.sku.pcs_per_pack * r.sku.packs_per_carton), 0);
@@ -650,12 +664,15 @@ export function InventoryView() {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
           {([
             // Default mode leads the row — the selected chip must never load
             // half-clipped off the edge of the scrollable chip strip.
             { mode: "az", label: "Catalog" },
             { mode: "urgency", label: "Urgency" },
+            // Tappable quantity ranking: tap to sort by stock on hand, tap the
+            // active chip again to flip direction (most-first ⇄ least-first) —
+            // the standard sortable-column pattern, made explicit for one tap.
+            { mode: "stock", label: sortMode === "stock" ? (sortDir === "desc" ? "Stock · most first" : "Stock · least first") : "Stock" },
             // "Out of stock" lens only appears when something's actually out
             // (or it's the active view) — never a permanently-empty chip.
             ...((outCount > 0 || sortMode === "out")
@@ -663,20 +680,30 @@ export function InventoryView() {
               : []),
             { mode: "overstock", label: "Overstock" },
             { mode: "value", label: "Value" },
-          ] as { mode: SortMode; label: string }[]).map(({ mode, label }) => (
-            <button
-              key={mode}
-              onClick={() => setSortMode(mode)}
-              className="shrink-0 ios-subhead font-semibold px-3 py-1.5 rounded-full transition active:opacity-70"
-              style={{
-                background: sortMode === mode ? "var(--foreground)" : "var(--glass-1)",
-                color: sortMode === mode ? "var(--background)" : "var(--muted-foreground)",
-                border: sortMode === mode ? "none" : "0.5px solid var(--glass-border-lo)",
-              }}
-            >
-              {label}
-            </button>
-          ))}
+          ] as { mode: SortMode; label: string }[]).map(({ mode, label }) => {
+            const active = sortMode === mode;
+            return (
+              <button
+                key={mode}
+                onClick={() => {
+                  if (mode === "stock" && active) { setSortDir((d) => d === "desc" ? "asc" : "desc"); return; }
+                  if (mode === "stock") setSortDir("desc");
+                  setSortMode(mode);
+                }}
+                className="shrink-0 ios-subhead font-semibold px-3 py-1.5 rounded-full transition active:opacity-70 inline-flex items-center gap-1"
+                style={{
+                  background: active ? "var(--foreground)" : "var(--glass-1)",
+                  color: active ? "var(--background)" : "var(--muted-foreground)",
+                  border: active ? "none" : "0.5px solid var(--glass-border-lo)",
+                }}
+              >
+                {mode === "stock" && active && (
+                  <ChevronDown className="h-3.5 w-3.5" style={{ transform: sortDir === "asc" ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                )}
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -719,6 +746,14 @@ export function InventoryView() {
               Go to Shipments
             </Link>
           )}
+        </div>
+      ) : sortMode === "stock" ? (
+        // Flat quantity ranking — one card per SKU across all brands, brand
+        // shown inline so each row is identifiable without a group header.
+        <div className="space-y-2">
+          {flatStock.map((row) => (
+            <SkuCard key={row.sku.id} row={row} searchActive={searchActive} showBrand />
+          ))}
         </div>
       ) : (
         <div className="space-y-5">
