@@ -86,7 +86,7 @@ export function ConfirmSheet({
                 className="flex-1 rounded-2xl py-3.5 text-[14px] font-semibold transition-all active:scale-[0.97]"
                 style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)", opacity: loading ? 0.6 : 1 }}
               >
-                {loading ? "Deleting…" : confirmLabel}
+                {loading ? `${confirmLabel}…` : confirmLabel}
               </button>
             </div>
           </div>
