@@ -119,11 +119,13 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
         return true;
       });
       const label = stat === "loss" ? "Losing money" : stat === "thin" ? "Thin margin" : stat === "healthy" ? "Healthy" : "Results";
-      return [{ key: "results", label: `${label} · ${matches.length}`, note: "", noteFlag: "", rows: sortRows(matches) }];
+      // Flat list — the header carries no model, so each row must name its model.
+      return [{ key: "results", label: `${label} · ${matches.length}`, note: "", noteFlag: "", rows: sortRows(matches), showModel: true }];
     }
     if (view === "attention") {
       const flagged = sortRows(rows.filter((r) => r.flag === "loss" || r.flag === "thin"));
-      return [{ key: "att", label: "Needs attention", note: `${belowCost} loss · ${thin} thin`, noteFlag: belowCost ? "loss" : thin ? "thin" : "", rows: flagged }];
+      // Flat, cross-model list — rows must name their model to be identifiable.
+      return [{ key: "att", label: "Needs attention", note: `${belowCost} loss · ${thin} thin`, noteFlag: belowCost ? "loss" : thin ? "thin" : "", rows: flagged, showModel: true }];
     }
     const keyOf = (r: PriceBookRow) => view === "brand" ? r.brand_name : `${r.brand_name}|${r.model_name}`;
     const map = new Map<string, PriceBookRow[]>();
@@ -131,8 +133,11 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
     const list = Array.from(map.values()).map((rs) => {
       const s = sortRows(rs);
       const gl = s.filter((r) => r.flag === "loss").length, gt = s.filter((r) => r.flag === "thin").length;
+      // "By brand" groups by brand only (header is brand · category), so its rows
+      // must show the model. "All prices" groups by brand · model, so the model
+      // is already in the header and the row just shows the size.
       return { key: keyOf(s[0]), label: view === "brand" ? `${s[0].brand_name} · ${s[0].category_name}` : `${s[0].brand_name} · ${s[0].model_name}`,
-        note: gl ? `${gl} loss` : gt ? `${gt} thin` : "ok", noteFlag: gl ? "loss" : gt ? "thin" : "", rows: s };
+        note: gl ? `${gl} loss` : gt ? `${gt} thin` : "ok", noteFlag: gl ? "loss" : gt ? "thin" : "", rows: s, showModel: view === "brand" };
     });
     list.sort((a, b) => compareSkusForDisplay(a.rows[0] as unknown as SkuFullRow, b.rows[0] as unknown as SkuFullRow));
     return list;
@@ -251,7 +256,7 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
                   {/* MOBILE — prioritized list row, tap to reveal the rest */}
                   <button onClick={() => toggle(r.sku_id)} className="lg:hidden w-full flex items-center gap-3 px-4 py-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-semibold text-foreground truncate">{r.variant_display ?? r.internal_code}</p>
+                      <p className="text-[14px] font-semibold text-foreground truncate">{sec.showModel ? `${r.model_name} · ${r.variant_display ?? r.internal_code}` : (r.variant_display ?? r.internal_code)}</p>
                       <p className="text-[12px] snm-num mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                         {hasMoney ? `MVR ${fmt2(r.price_mvr!)} · per ${r.trade_unit}` : r.flag === "no_cost" ? "No landed cost yet" : "No price set"}
                       </p>
@@ -272,7 +277,7 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
                   )}
                   {/* DESKTOP — the same row as a table line */}
                   <Link href={`/products?editSku=${r.sku_id}`} className="hidden lg:grid gap-3 items-center px-5 py-2.5" style={{ gridTemplateColumns: PB_COLS }}>
-                    <span className="text-[14px] font-semibold text-foreground truncate">{r.variant_display ?? r.internal_code}<span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>per {r.trade_unit}</span></span>
+                    <span className="text-[14px] font-semibold text-foreground truncate">{sec.showModel ? `${r.model_name} · ${r.variant_display ?? r.internal_code}` : (r.variant_display ?? r.internal_code)}<span className="text-[11px] ml-2" style={{ color: "var(--muted-foreground)" }}>per {r.trade_unit}</span></span>
                     <span className="snm-num text-[13.5px] text-right" style={{ color: "var(--muted-foreground)" }}>{hasMoney ? fmt2(r.landed_cost_mvr!) : "—"}</span>
                     <span className="snm-num text-[13.5px] text-right font-semibold text-foreground">{hasMoney ? fmt2(r.price_mvr!) : "—"}</span>
                     <span className="snm-num text-[14px] text-right font-bold" style={{ color: ink(r.flag) }}>{mTxt}{pTxt && <span className="text-[11px] font-medium ml-1.5" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{pTxt}</span>}</span>
