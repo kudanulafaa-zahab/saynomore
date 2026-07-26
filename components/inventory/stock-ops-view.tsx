@@ -817,7 +817,7 @@ function WriteOffTab({
             </div>
             <input
               type="number" inputMode="numeric"
-              placeholder={`${UOM_LABEL[unit]} damaged`}
+              placeholder={`How many ${unit === "carton" ? "cartons" : unit === "pack" ? "packs" : "pieces"}?`}
               value={qty}
               onChange={(e) => setQty(e.target.value)}
               onFocus={(e) => e.target.select()}
