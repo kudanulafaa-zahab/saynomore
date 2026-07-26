@@ -103,8 +103,11 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
     return arr.sort((a, b) => compareSkusForDisplay(a as unknown as SkuFullRow, b as unknown as SkuFullRow));
   }, [sort]);
 
-  // A stat tile or a search term collapses everything into one flat, sorted list.
-  const quickActive = stat != null || query !== "";
+  // A stat tile, a search term, OR a margin sort collapses everything into one
+  // flat ranked list — because "lowest/highest margin" is only meaningful across
+  // ALL products, not re-ordered inside each little group (where sizes often
+  // share the same margin and nothing visibly moves).
+  const quickActive = stat != null || query !== "" || sort !== "cat";
 
   const sections = useMemo(() => {
     if (quickActive) {
@@ -118,7 +121,13 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
         }
         return true;
       });
-      const label = stat === "loss" ? "Losing money" : stat === "thin" ? "Thin margin" : stat === "healthy" ? "Healthy" : "Results";
+      const label = stat === "loss" ? "Losing money"
+        : stat === "thin" ? "Thin margin"
+        : stat === "healthy" ? "Healthy"
+        : query ? "Search results"
+        : sort === "worst" ? "Lowest margin first"
+        : sort === "best" ? "Highest margin first"
+        : "Results";
       // Flat list — the header carries no model, so each row must name its model.
       return [{ key: "results", label: `${label} · ${matches.length}`, note: "", noteFlag: "", rows: sortRows(matches), showModel: true }];
     }
@@ -141,10 +150,12 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
     });
     list.sort((a, b) => compareSkusForDisplay(a.rows[0] as unknown as SkuFullRow, b.rows[0] as unknown as SkuFullRow));
     return list;
-  }, [rows, view, belowCost, thin, quickActive, stat, query, sortRows]);
+  }, [rows, view, belowCost, thin, quickActive, stat, query, sort, sortRows]);
 
-  // Switching the main view is a clean slate; quick filters reset.
-  const pickView = (v: PbView) => { setStat(null); setQ(""); setView(v); };
+  // Switching the main view is a clean slate; quick filters and the margin sort
+  // reset (a view is a grouped lens; a margin sort is a flat ranking — the two
+  // are mutually exclusive, so choosing one clears the other).
+  const pickView = (v: PbView) => { setStat(null); setQ(""); setSort("cat"); setView(v); };
   const toggleStat = (s: "loss" | "thin" | "healthy") => { setQ(""); setStat((cur) => cur === s ? null : s); };
 
   function toggle(id: string) { const next = new Set(open); if (next.has(id)) next.delete(id); else next.add(id); setOpen(next); }
@@ -195,17 +206,19 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
         </div>
       </div>
 
-      {/* Search + sort */}
-      <div className="flex gap-2 items-center">
-        <input
-          value={q} onChange={(e) => { setStat(null); setQ(e.target.value); }}
-          placeholder="Search product…"
-          className="flex-1 min-w-0 h-10 px-3 rounded-xl text-[13px] outline-none"
-          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
-        />
-        <div className="flex gap-0.5 shrink-0" style={{ background: "var(--glass-bg-1)", borderRadius: 11, padding: 3 }}>
-          {([["cat", "A–Z"], ["worst", "Worst"], ["best", "Best"]] as const).map(([s, label]) => (
-            <button key={s} onClick={() => setSort(s)} className="rounded-[8px] px-2.5 py-1.5 text-[12px] font-semibold transition"
+      {/* Search */}
+      <input
+        value={q} onChange={(e) => { setStat(null); setQ(e.target.value); }}
+        placeholder="Search product…"
+        className="w-full h-10 px-3 rounded-xl text-[13px] outline-none"
+        style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+      />
+      {/* Sort — plain labels; the margin sorts rank every product, worst/best first */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide shrink-0" style={{ color: "var(--muted-foreground)" }}>Sort</span>
+        <div className="flex gap-0.5 flex-1" style={{ background: "var(--glass-bg-1)", borderRadius: 11, padding: 3 }}>
+          {([["cat", "A–Z"], ["worst", "Low margin"], ["best", "High margin"]] as const).map(([s, label]) => (
+            <button key={s} onClick={() => setSort(s)} className="flex-1 rounded-[8px] px-2 py-1.5 text-[12px] font-semibold transition"
               style={{ background: sort === s ? "var(--glass-accent)" : "transparent", color: sort === s ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}>
               {label}
             </button>
@@ -259,20 +272,26 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
                   {/* MOBILE — prioritized list row, tap to reveal the rest */}
                   <button onClick={() => toggle(r.sku_id)} className="lg:hidden w-full flex items-center gap-3 px-4 py-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-semibold text-foreground truncate">{sec.showModel ? `${r.model_name} · ${r.variant_display ?? r.internal_code}` : (r.variant_display ?? r.internal_code)}</p>
+                      {/* Identity carries the pack config so two same-size SKUs
+                          (e.g. XXXL 22/pk vs 32/pk) are told apart at a glance. */}
+                      <p className="text-[14px] font-semibold text-foreground truncate">
+                        {sec.showModel ? `${r.model_name} · ${r.variant_display ?? r.internal_code}` : (r.variant_display ?? r.internal_code)}
+                        <span className="font-normal text-[12px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>· {packTxt}</span>
+                      </p>
+                      {/* Every money figure gets a plain-English label. */}
                       <p className="text-[12px] snm-num mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                         {hasMoney
-                          ? `MVR ${fmt2(r.price_mvr!)} · per ${r.trade_unit}`
+                          ? `Sells MVR ${fmt2(r.price_mvr!)} / ${r.trade_unit}`
                           : r.landed_cost_mvr != null
-                            ? `Cost MVR ${fmt2(r.landed_cost_mvr)} · set a price`
+                            ? `Cost MVR ${fmt2(r.landed_cost_mvr)} · no price set`
                             : "No landed cost yet"}
-                        {` · ${packTxt}`}
                       </p>
                     </div>
                     {hasMoney && (
                       <div className="text-right shrink-0">
-                        <p className="snm-num leading-none" style={{ fontSize: 18, fontWeight: 720, letterSpacing: "-0.02em", color: ink(r.flag) }}>{profitMain}<span className="text-[10px] font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>/ {r.trade_unit}</span></p>
-                        <p className="text-[11px] snm-num mt-1" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{mTxt} margin</p>
+                        <p className="snm-num leading-none" style={{ fontSize: 18, fontWeight: 720, letterSpacing: "-0.02em", color: ink(r.flag) }}>{profitMain}</p>
+                        <p className="text-[10.5px] mt-1" style={{ color: "var(--muted-foreground)" }}>profit / {r.trade_unit}</p>
+                        <p className="text-[11px] snm-num mt-0.5" style={{ color: r.flag === "ok" ? "var(--muted-foreground)" : ink(r.flag) }}>{mTxt} margin</p>
                       </div>
                     )}
                   </button>
