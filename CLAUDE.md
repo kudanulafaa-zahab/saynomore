@@ -23,6 +23,11 @@ Next.js 15 App Router · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Su
 - Cards: `background: var(--glass-1)` with `backdropFilter: blur(20px)`
 - Responsive grids: Tailwind classes (`grid-cols-1 sm:grid-cols-3`) not inline `gridTemplateColumns`
 - No decorative watermark icons behind content
+- **Product lists stay grouped by product — always (Ali's standing rule).** Any list
+  of SKUs (Inventory, Price Book, …) must keep its product structure: each product
+  (brand · model) is its own section; a detergent must never appear between two diaper
+  SKUs. Sorting/ranking reorders the **sections** (and the sizes within a section),
+  **never** the SKUs flattened across the whole catalogue. No flat cross-product list.
 
 ### Scroll ownership (one scroll container per screen)
 - The **page scrolls**, not inner panes. The app shell (`app/(app)/layout.tsx`) already scrolls the document (`min-h-dvh`, normal-flow `<main>`). In-page lists/grids must just flow — **never** wrap in-page content in `height: calc(100vh…)` + `overflow-y-auto`. That creates nested double-scroll (a list that scrolls inside a page that also scrolls).

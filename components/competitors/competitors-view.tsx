@@ -103,59 +103,57 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
     return arr.sort((a, b) => compareSkusForDisplay(a as unknown as SkuFullRow, b as unknown as SkuFullRow));
   }, [sort]);
 
-  // A stat tile, a search term, OR a margin sort collapses everything into one
-  // flat ranked list — because "lowest/highest margin" is only meaningful across
-  // ALL products, not re-ordered inside each little group (where sizes often
-  // share the same margin and nothing visibly moves).
-  const quickActive = stat != null || query !== "" || sort !== "cat";
-
+  // The list is ALWAYS grouped by product — a detergent must never appear
+  // between two diaper SKUs (Ali's standing rule: keep the product structure).
+  // The stat tiles, search and view only decide WHICH rows show; the sort only
+  // reorders the product SECTIONS (and the sizes inside them), never the SKUs
+  // across the whole catalogue.
   const sections = useMemo(() => {
-    if (quickActive) {
-      const matches = rows.filter((r) => {
-        if (stat === "loss"    && r.flag !== "loss") return false;
-        if (stat === "thin"    && r.flag !== "thin") return false;
-        if (stat === "healthy" && !(r.price_mvr != null && r.landed_cost_mvr != null && r.flag !== "loss" && r.flag !== "thin")) return false;
-        if (query) {
-          const hay = `${r.brand_name} ${r.model_name} ${r.variant_display ?? ""} ${r.internal_code}`.toLowerCase();
-          if (!hay.includes(query)) return false;
-        }
-        return true;
-      });
-      const label = stat === "loss" ? "Losing money"
-        : stat === "thin" ? "Thin margin"
-        : stat === "healthy" ? "Healthy"
-        : query ? "Search results"
-        : sort === "worst" ? "Lowest margin first"
-        : sort === "best" ? "Highest margin first"
-        : "Results";
-      // Flat list — the header carries no model, so each row must name its model.
-      return [{ key: "results", label: `${label} · ${matches.length}`, note: "", noteFlag: "", rows: sortRows(matches), showModel: true }];
-    }
-    if (view === "attention") {
-      const flagged = sortRows(rows.filter((r) => r.flag === "loss" || r.flag === "thin"));
-      // Flat, cross-model list — rows must name their model to be identifiable.
-      return [{ key: "att", label: "Needs attention", note: `${belowCost} loss · ${thin} thin`, noteFlag: belowCost ? "loss" : thin ? "thin" : "", rows: flagged, showModel: true }];
-    }
-    const keyOf = (r: PriceBookRow) => view === "brand" ? r.brand_name : `${r.brand_name}|${r.model_name}`;
-    const map = new Map<string, PriceBookRow[]>();
-    for (const r of rows) { const k = keyOf(r); const a = map.get(k) ?? []; a.push(r); map.set(k, a); }
-    const list = Array.from(map.values()).map((rs) => {
-      const s = sortRows(rs);
-      const gl = s.filter((r) => r.flag === "loss").length, gt = s.filter((r) => r.flag === "thin").length;
-      // "By brand" groups by brand only (header is brand · category), so its rows
-      // must show the model. "All prices" groups by brand · model, so the model
-      // is already in the header and the row just shows the size.
-      return { key: keyOf(s[0]), label: view === "brand" ? `${s[0].brand_name} · ${s[0].category_name}` : `${s[0].brand_name} · ${s[0].model_name}`,
-        note: gl ? `${gl} loss` : gt ? `${gt} thin` : "ok", noteFlag: gl ? "loss" : gt ? "thin" : "", rows: s, showModel: view === "brand" };
+    const included = rows.filter((r) => {
+      if (view === "attention" && !(r.flag === "loss" || r.flag === "thin")) return false;
+      if (stat === "loss"    && r.flag !== "loss") return false;
+      if (stat === "thin"    && r.flag !== "thin") return false;
+      if (stat === "healthy" && !(r.price_mvr != null && r.landed_cost_mvr != null && r.flag !== "loss" && r.flag !== "thin")) return false;
+      if (query) {
+        const hay = `${r.brand_name} ${r.model_name} ${r.variant_display ?? ""} ${r.internal_code}`.toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
     });
-    list.sort((a, b) => compareSkusForDisplay(a.rows[0] as unknown as SkuFullRow, b.rows[0] as unknown as SkuFullRow));
-    return list;
-  }, [rows, view, belowCost, thin, quickActive, stat, query, sort, sortRows]);
 
-  // Switching the main view is a clean slate; quick filters and the margin sort
-  // reset (a view is a grouped lens; a margin sort is a flat ranking — the two
-  // are mutually exclusive, so choosing one clears the other).
-  const pickView = (v: PbView) => { setStat(null); setQ(""); setSort("cat"); setView(v); };
+    const brandOnly = view === "brand";
+    const keyOf = (r: PriceBookRow) => brandOnly ? r.brand_name : `${r.brand_name}|${r.model_name}`;
+    const map = new Map<string, PriceBookRow[]>();
+    for (const r of included) { const k = keyOf(r); const a = map.get(k) ?? []; a.push(r); map.set(k, a); }
+
+    const groups = Array.from(map.values()).map((rs) => {
+      const s = sortRows(rs); // sizes within a product ordered by the chosen sort
+      const gl = s.filter((r) => r.flag === "loss").length, gt = s.filter((r) => r.flag === "thin").length;
+      const ms = s.map((r) => r.margin_pct).filter((m): m is number => m != null);
+      return {
+        key: keyOf(s[0]),
+        label: brandOnly ? `${s[0].brand_name} · ${s[0].category_name}` : `${s[0].brand_name} · ${s[0].model_name}`,
+        note: gl ? `${gl} loss` : gt ? `${gt} thin` : "ok",
+        noteFlag: gl ? "loss" : gt ? "thin" : "",
+        rows: s, showModel: brandOnly,
+        minMargin: ms.length ? Math.min(...ms) : Infinity,
+        maxMargin: ms.length ? Math.max(...ms) : -Infinity,
+      };
+    });
+
+    // Order the SECTIONS (not the SKUs) — worst-/best-margin products surface
+    // as whole sections, so structure is preserved and the sort still means
+    // something even when every size in a product shares one margin.
+    if (sort === "worst")      groups.sort((a, b) => a.minMargin - b.minMargin);
+    else if (sort === "best")  groups.sort((a, b) => b.maxMargin - a.maxMargin);
+    else groups.sort((a, b) => compareSkusForDisplay(a.rows[0] as unknown as SkuFullRow, b.rows[0] as unknown as SkuFullRow));
+
+    return groups;
+  }, [rows, view, stat, query, sort, sortRows]);
+
+  // Picking a view is a clean slate for the row filters; the sort (an ordering
+  // preference) carries over.
+  const pickView = (v: PbView) => { setStat(null); setQ(""); setView(v); };
   const toggleStat = (s: "loss" | "thin" | "healthy") => { setQ(""); setStat((cur) => cur === s ? null : s); };
 
   function toggle(id: string) { const next = new Set(open); if (next.has(id)) next.delete(id); else next.add(id); setOpen(next); }
@@ -226,11 +224,11 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
         </div>
       </div>
 
-      {/* View — dimmed while a quick filter (stat tile / search) is overriding it */}
-      <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4, opacity: quickActive ? 0.5 : 1 }}>
+      {/* View */}
+      <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4 }}>
         {([["attention", "Needs attention"], ["all", "All prices"], ["brand", "By brand"]] as const).map(([v, label]) => (
           <button key={v} onClick={() => pickView(v)} className="flex-1 rounded-[9px] py-2 text-[12.5px] font-semibold transition"
-            style={{ background: !quickActive && view === v ? "var(--glass-accent)" : "transparent", color: !quickActive && view === v ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}>
+            style={{ background: view === v ? "var(--glass-accent)" : "transparent", color: view === v ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}>
             {label}
           </button>
         ))}
@@ -245,17 +243,20 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
           ))}
         </div>
 
+        {sections.length === 0 && (
+          <p className="px-5 py-6 ios-subhead text-center" style={{ color: "var(--muted-foreground)" }}>
+            {query ? "No products match your search."
+              : view === "attention" ? "Every price is healthy right now."
+              : stat != null ? "Nothing in this bucket."
+              : "No priced products yet."}
+          </p>
+        )}
         {sections.map((sec) => (
           <div key={sec.key}>
             <div className="flex items-center justify-between gap-2 px-5 py-2" style={{ background: "var(--glass-bg-1)", borderTop: "0.5px solid var(--glass-border-lo)" }}>
               <span className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>{sec.label}</span>
               <span className="text-[10.5px] font-semibold uppercase" style={{ color: sec.noteFlag === "loss" ? "var(--snm-error)" : sec.noteFlag === "thin" ? "var(--snm-warning)" : "var(--muted-foreground)" }}>{sec.note}</span>
             </div>
-            {sec.rows.length === 0 && (
-              <p className="px-5 py-5 ios-subhead text-center" style={{ color: "var(--muted-foreground)" }}>
-                {query ? "No products match your search." : stat != null ? "Nothing in this bucket." : "Every price is healthy right now."}
-              </p>
-            )}
             {sec.rows.map((r) => {
               const rival     = rivalFor(r);
               const isOpen    = open.has(r.sku_id);
