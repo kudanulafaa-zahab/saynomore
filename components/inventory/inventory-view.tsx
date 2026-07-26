@@ -156,10 +156,22 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
   const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
   const totalCtns       = toCtns(totalPieces, pcsPerCtn);
+  const totalPacks      = remPacks(totalPieces, sku.pcs_per_pack, pcsPerCtn);
   const landedPerPack   = fifoLandedPerPiece * sku.pcs_per_pack;
   const landedPerCarton = landedPerPack * sku.packs_per_carton;
   const isCritical      = alert?.status === "critical";
   const sortedGodowns   = [...byGodown].sort((a, b) => b.pieces - a.pieces);
+
+  // On-hand shown as a case/pack breakdown (the FMCG standard): the largest
+  // non-zero unit leads, so sub-carton stock reads "2 pk" instead of a
+  // misleading "0 ctn". Pack config disambiguates same-size SKUs that pack
+  // differently (e.g. 22/pk vs 32/pk).
+  const packDesc = `${sku.pcs_per_pack}/pk × ${sku.packs_per_carton}/ctn`;
+  const primaryQty  = totalPieces <= 0 ? { n: 0, u: "ctn" }
+    : totalCtns  > 0 ? { n: totalCtns,  u: "ctn" }
+    : totalPacks > 0 ? { n: totalPacks, u: "pk" }
+    : { n: totalPieces, u: "pcs" };
+  const remainderQty = (totalCtns > 0 && totalPacks > 0) ? { n: totalPacks, u: "pk" } : null;
 
   const accent = (isOut || isCritical) ? "var(--snm-error)"
     : isLow ? "var(--snm-warning)"
@@ -173,8 +185,10 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
     ? "Out of stock — reorder now"
     : sortedGodowns.length === 0 ? "No stock on hand"
     : sortedGodowns.length === 1 ? sortedGodowns[0].godown.name
-    : sortedGodowns.map((g) => `${g.godown.name} ${toCtns(g.pieces, pcsPerCtn)}`).join(" · ");
-  const metaLine = searchActive ? `${sku.internal_code} · ${godownLine}` : godownLine;
+    : sortedGodowns.map((g) => `${g.godown.name} ${fmtQty(g.pieces, sku.pcs_per_pack, pcsPerCtn)}`).join(" · ");
+  // Pack config always visible so two same-size SKUs that pack differently are
+  // never indistinguishable; godown/status follows.
+  const metaLine = `${packDesc} · ${godownLine}`;
 
   return (
     <div
@@ -223,10 +237,12 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
             className="text-[19px] font-bold leading-none tracking-tight snm-num"
             style={{ color: (isOut || isLow) ? "var(--snm-error)" : "var(--foreground)" }}
           >
-            {totalCtns}
-            <span className="ios-subhead font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>ctn</span>
+            {primaryQty.n}
+            <span className="ios-subhead font-medium ml-1" style={{ color: "var(--muted-foreground)" }}>{primaryQty.u}</span>
           </p>
-          <p className="ios-footnote mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
+          <p className="ios-footnote mt-1 snm-num" style={{ color: "var(--muted-foreground)" }}>
+            {remainderQty ? `+${remainderQty.n} ${remainderQty.u} · ` : ""}MVR {fmtMvr(totalValue)}
+          </p>
         </div>
         <ChevronDown
           className="h-4 w-4 shrink-0 transition-transform duration-200"
@@ -772,7 +788,7 @@ export function InventoryView() {
               <div className="flex items-center gap-2 px-1 py-2 mb-2" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
                 <p className="ios-subhead font-bold uppercase tracking-wider text-foreground truncate">{g.brand} · {g.model}</p>
                 <p className="ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
-                  {g.skus.length} size{g.skus.length !== 1 ? "s" : ""}
+                  {g.skus.length} item{g.skus.length !== 1 ? "s" : ""}
                 </p>
               </div>
               <div className="space-y-2">
