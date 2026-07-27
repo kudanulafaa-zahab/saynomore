@@ -177,6 +177,28 @@ export async function writeOffStock(input: WriteOffInput): Promise<number> {
   return Number(data); // total landed cost written off
 }
 
+// Recent write-offs — makes the P&L "Damaged & write-offs" loss explainable
+// (what, how much, why, when). All from Postgres (0096).
+export interface WriteoffRow {
+  id: string;
+  created_at: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string | null;
+  qty_pieces: number;
+  pcs_per_pack: number;
+  pcs_per_carton: number;
+  reason: string | null;   // "<reason>[: <free text>]"
+  cost_mvr: number;
+  godown_name: string | null;
+}
+
+export async function listRecentWriteoffs(limit = 50): Promise<WriteoffRow[]> {
+  const { data, error } = await supabase.rpc("get_recent_writeoffs", { p_limit: limit });
+  if (error) throw error;
+  return (data ?? []) as WriteoffRow[];
+}
+
 // ── Stock transfer (godown → godown, FIFO cost-preserving) ────────────────
 // Backed by record_stock_transfer (migration 0059). Admin/manager only; all the
 // FIFO batch depletion + cost preservation happens in Postgres. Returns the

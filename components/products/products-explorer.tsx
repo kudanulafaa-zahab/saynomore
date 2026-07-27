@@ -993,7 +993,11 @@ export function ProductsExplorer() {
               sku={selectedSku}
               isAdmin={isAdmin}
               canWrite={canWrite}
-              onEdit={() => setEditSku(selectedSku)}
+              // Close the detail sheet as we open the edit dialog — otherwise the
+              // sheet (z-60, own scroll-lock) stays on top of the edit form,
+              // freezing it, and two overlays' scroll-locks fight and leave the
+              // page stuck after save. One overlay at a time (native behaviour).
+              onEdit={() => { const s = selectedSku; setSelectedSku(null); setEditSku(s); }}
               onDelete={() => setCascadeTarget({ kind: "sku", id: selectedSku.id, label: selectedSku.internal_code })}
               onToggle={async () => {
                 try { await toggleSkuActive(selectedSku.id, !selectedSku.is_active); await loadAll(); }

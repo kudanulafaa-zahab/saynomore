@@ -14,6 +14,7 @@ import {
   recordStockTransfer, recordVerification,
   listVerificationHistory, type VerificationSession,
   writeOffStock, type WriteOffReason,
+  listRecentWriteoffs, type WriteoffRow,
 } from "@/lib/queries/inventory";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { haptic } from "@/lib/haptics";
@@ -715,6 +716,10 @@ function WriteOffTab({
   const [notes, setNotes] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [history, setHistory] = useState<WriteoffRow[]>([]);
+
+  function loadHistory() { listRecentWriteoffs(30).then(setHistory).catch(() => {}); }
+  useEffect(() => { loadHistory(); }, []);
 
   const available = useMemo(() => {
     const inG = levels.filter((l) => l.godown_id === godownId && l.qty_pieces > 0);
@@ -747,6 +752,7 @@ function WriteOffTab({
     try {
       const loss = await writeOffStock({ sku_id: skuId, godown_id: godownId, qty_pieces: qtyNum, reason, notes });
       await onDone();
+      loadHistory();
       setSkuId(""); setQty(""); setQ(""); setNotes(""); setConfirming(false);
       haptic("success");
       toast.success(`Written off — MVR ${loss.toLocaleString(undefined, { maximumFractionDigits: 2 })} recorded as a loss.`);
@@ -876,6 +882,41 @@ function WriteOffTab({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Recent write-offs — makes the P&L "Damaged & write-offs" loss
+          explainable: what, how much, why, when. Quantities in packs/cartons. */}
+      {history.length > 0 && (
+        <div className="pt-2">
+          <p className="label-caps text-[12px] mb-2 px-1" style={{ color: "var(--muted-foreground)" }}>Recent write-offs</p>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+            {history.map((w, i) => {
+              const ppc = w.pcs_per_carton || 0;
+              const qtyLabel = ppc > 0 && w.qty_pieces >= ppc
+                ? `${Math.round(w.qty_pieces / ppc)} ctn`
+                : w.pcs_per_pack > 0 ? `${Math.max(1, Math.round(w.qty_pieces / w.pcs_per_pack))} pk` : `${w.qty_pieces} pcs`;
+              const rawReason = (w.reason ?? "").trim();
+              const reasonWord = rawReason.split(":")[0] || "written off";
+              const note = rawReason.includes(":") ? rawReason.slice(rawReason.indexOf(":") + 1).trim() : "";
+              return (
+                <div key={w.id} className="flex items-center justify-between gap-3 px-4 py-3"
+                  style={{ borderTop: i > 0 ? "0.5px solid var(--glass-border-lo)" : undefined }}>
+                  <div className="min-w-0">
+                    <p className="ios-subhead font-semibold text-foreground truncate">
+                      {[w.brand_name, w.model_name, w.variant_display].filter(Boolean).join(" · ")}
+                    </p>
+                    <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                      {qtyLabel} · {reasonWord}{note ? ` — ${note}` : ""} · {new Date(w.created_at).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                  <p className="snm-num ios-subhead font-semibold shrink-0" style={{ color: "var(--snm-error)" }}>
+                    −MVR {Number(w.cost_mvr).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

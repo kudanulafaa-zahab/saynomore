@@ -473,10 +473,15 @@ export function FinancialsView() {
           {/* Damaged & write-offs — landed cost of stock removed as unsellable.
               Only shown when there's something to show (quiet when zero). */}
           {stockWriteoff > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Damaged &amp; write-offs</p>
+            <button
+              onClick={() => router.push("/stock-ops?tab=writeoff")}
+              style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
+            >
+              <p style={{ color: "var(--muted-foreground)", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}>
+                − Damaged &amp; write-offs <ArrowRight style={{ width: 12, height: 12, opacity: 0.6 }} />
+              </p>
               <p className="snm-num" style={{ color: "var(--snm-error)", fontSize: 16, fontWeight: 500 }}>MVR {fmtShort(stockWriteoff)}</p>
-            </div>
+            </button>
           )}
 
           {/* Net profit divider */}
