@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Loader2, ClipboardList, AlertTriangle, TrendingDown, PackageCheck, Ship, Check,
+  Plus, ChevronDown, Search,
 } from "lucide-react";
 import {
   listReorderSuggestions, type ReorderSuggestion,
 } from "@/lib/queries/inventory";
 import {
-  listSkusFlat, getCurrentUserRole, type SkuFullRow,
+  listSkusFlat, getCurrentUserRole, compareSkusForDisplay, type SkuFullRow,
 } from "@/lib/queries/products";
 import {
-  createDraftPoFromSuggestions, type DraftPoLine,
+  createDraftPoFromSuggestions, CONTAINER_CAPACITY_CBM, type DraftPoLine,
 } from "@/lib/queries/shipments";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 
 const CARD: React.CSSProperties = {
@@ -116,8 +118,55 @@ export function ReorderView() {
       if (c <= lo) return { label: "Slow mover", strong: false };
       return { label: "Steady seller", strong: false };
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
+
+  // ── Browse the FULL catalogue ────────────────────────────────────────────
+  // Container imports are consolidated, not just replenished: freight is charged
+  // per container/CBM, so shipping only the urgent items means paying to move a
+  // half-empty box. Every serious purchasing module lets you add ANY product to
+  // a PO — the suggestions are a starting point, not the whole order.
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [browseQ, setBrowseQ]       = useState("");
+  const [browseSort, setBrowseSort] = useState<"cat" | "low" | "high">("cat");
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  const suggestionById = useMemo(() => {
+    const m = new Map<string, ReorderSuggestion>();
+    for (const r of rows) m.set(r.sku_id, r);
+    return m;
+  }, [rows]);
+
+  const stockCtnFor = useCallback((skuId: string) => {
+    const r = suggestionById.get(skuId);
+    return r ? Number(r.stock_cartons) : 0;
+  }, [suggestionById]);
+
+  // Grouped by product — a detergent never sits between two diaper SKUs.
+  const browseGroups = useMemo(() => {
+    const term = browseQ.trim().toLowerCase();
+    const active = skus.filter((s) => s.is_active).filter((s) =>
+      !term || [s.brand_name, s.model_name, s.variant_display ?? "", s.internal_code ?? ""]
+        .join(" ").toLowerCase().includes(term));
+    const map = new Map<string, SkuFullRow[]>();
+    for (const s of active) {
+      const k = `${s.brand_name}|${s.model_name}`;
+      const a = map.get(k) ?? []; a.push(s); map.set(k, a);
+    }
+    const groups = Array.from(map.values()).map((list) => {
+      const sorted = [...list].sort((a, b) =>
+        browseSort === "low"  ? stockCtnFor(a.id) - stockCtnFor(b.id) || compareSkusForDisplay(a, b) :
+        browseSort === "high" ? stockCtnFor(b.id) - stockCtnFor(a.id) || compareSkusForDisplay(a, b) :
+        compareSkusForDisplay(a, b));
+      return { key: `${sorted[0].brand_name}|${sorted[0].model_name}`, brand: sorted[0].brand_name, model: sorted[0].model_name, skus: sorted };
+    });
+    // Sorting reorders the SECTIONS, never the SKUs across the catalogue.
+    const groupStock = (g: { skus: SkuFullRow[] }) => g.skus.reduce((a, s) => a + stockCtnFor(s.id), 0);
+    groups.sort((a, b) =>
+      browseSort === "low"  ? groupStock(a) - groupStock(b) :
+      browseSort === "high" ? groupStock(b) - groupStock(a) :
+      compareSkusForDisplay(a.skus[0], b.skus[0]));
+    return groups;
+  }, [skus, browseQ, browseSort, stockCtnFor]);
 
   // Split into what to act on vs the rest.
   const toOrder   = rows.filter((r) => r.status === "out" || r.status === "critical" || r.status === "low");
@@ -127,6 +176,8 @@ export function ReorderView() {
   const pickedLines: DraftPoLine[] = [...picked]
     .map((id) => ({ sku_id: id, qty_cartons: qty[id] ?? 0, cbm_per_carton: cbmFor.get(id) ?? 0 }))
     .filter((l) => l.qty_cartons > 0);
+
+  const pickedCbm = pickedLines.reduce((a, l) => a + l.qty_cartons * (l.cbm_per_carton || 0), 0);
 
   async function createDraft() {
     if (pickedLines.length === 0) { toast.error("Tick at least one product to order"); return; }
@@ -288,6 +339,108 @@ export function ReorderView() {
         </div>
       )}
 
+      {/* ── Add other products — the full catalogue, grouped by product ──
+             Container freight is charged per CBM, so a PO is consolidated, not
+             just replenished: you top up with non-urgent lines to fill the box.
+             Collapsed by default so the screen stays exception-first. */}
+      <div>
+        <button
+          onClick={() => setBrowseOpen((v) => !v)}
+          className="w-full flex items-center gap-2 px-1 py-2"
+        >
+          <Plus className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
+          <p className="ios-subhead font-semibold text-foreground">Add other products</p>
+          <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>· top up the container</span>
+          <ChevronDown
+            className="h-4 w-4 ml-auto transition-transform"
+            style={{ color: "var(--muted-foreground)", transform: browseOpen ? "rotate(180deg)" : "none" }}
+          />
+        </button>
+
+        {browseOpen && (
+          <div className="space-y-2">
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2 px-3 rounded-xl flex-1 min-w-0"
+                style={{ background: "var(--glass-bg-1)", height: 40, border: "0.5px solid var(--glass-border-lo)" }}>
+                <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                <input
+                  value={browseQ} onChange={(e) => setBrowseQ(e.target.value)}
+                  placeholder="Search product…"
+                  className="flex-1 min-w-0 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+              <div className="flex gap-0.5 shrink-0" style={{ background: "var(--glass-bg-1)", borderRadius: 11, padding: 3 }}>
+                {([["cat", "A–Z"], ["low", "Low stock"], ["high", "Most stock"]] as const).map(([s, label]) => (
+                  <button key={s} onClick={() => setBrowseSort(s)}
+                    className="rounded-[8px] px-2.5 py-1.5 text-[12px] font-semibold transition"
+                    style={{ background: browseSort === s ? "var(--foreground)" : "transparent",
+                             color: browseSort === s ? "var(--background)" : "var(--muted-foreground)" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {browseGroups.length === 0 ? (
+              <p className="ios-subhead px-1 py-3" style={{ color: "var(--muted-foreground)" }}>No products match.</p>
+            ) : browseGroups.map((g) => (
+              <div key={g.key}>
+                <div className="flex items-center gap-2 px-1 py-1.5" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wide truncate" style={{ color: "var(--muted-foreground)" }}>
+                    {g.brand} · {g.model}
+                  </p>
+                </div>
+                <div className="rounded-2xl overflow-hidden mt-1" style={CARD}>
+                  {g.skus.map((s) => {
+                    const on = picked.has(s.id);
+                    const ctn = stockCtnFor(s.id);
+                    return (
+                      <div key={s.id} className="px-4 py-2.5 flex items-center gap-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                        <button
+                          onClick={() => { if (!canWrite) return; if (!on && !(qty[s.id] > 0)) setQ(s.id, 1); toggle(s.id); }}
+                          disabled={!canWrite}
+                          className="h-11 w-11 -m-2.5 flex items-center justify-center shrink-0 disabled:opacity-40"
+                        >
+                          <span className="h-6 w-6 rounded-md flex items-center justify-center"
+                            style={{ background: on ? "var(--snm-brand)" : "transparent", border: on ? "none" : "1.5px solid var(--glass-border)" }}>
+                            {on && <Check className="h-3.5 w-3.5" style={{ color: "var(--snm-brand-on)" }} />}
+                          </span>
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-semibold text-foreground truncate">{s.variant_display ?? s.internal_code}</p>
+                          <p className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                            {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · {ctn} ctn in stock
+                          </p>
+                        </div>
+                        {on && (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <button onClick={() => setQ(s.id, (qty[s.id] ?? 0) - 1)} className="h-11 w-9 -m-1 flex items-center justify-center">
+                              <span className="h-7 w-7 rounded-lg text-[15px] font-bold flex items-center justify-center"
+                                style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>−</span>
+                            </button>
+                            <input
+                              type="number" inputMode="numeric" value={qty[s.id] ?? 0}
+                              onChange={(e) => setQ(s.id, parseInt(e.target.value || "0", 10))}
+                              onFocus={(e) => e.target.select()}
+                              className="snm-num w-11 h-10 text-center text-[14px] font-bold text-foreground rounded-lg outline-none"
+                              style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", MozAppearance: "textfield" } as React.CSSProperties}
+                            />
+                            <button onClick={() => setQ(s.id, (qty[s.id] ?? 0) + 1)} className="h-11 w-9 -m-1 flex items-center justify-center">
+                              <span className="h-7 w-7 rounded-lg text-[15px] font-bold flex items-center justify-center"
+                                style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}>+</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ── Overstock ── */}
       {overstock.length > 0 && (
         <div>
@@ -344,16 +497,92 @@ export function ReorderView() {
               <span className="font-semibold text-foreground">{pickedLines.reduce((a, l) => a + l.qty_cartons, 0)}</span> cartons
             </p>
             <button
-              onClick={createDraft}
+              onClick={() => setReviewOpen(true)}
               disabled={creating || pickedLines.length === 0}
               className="h-12 px-5 rounded-xl text-sm font-bold flex items-center gap-2 transition active:scale-95 disabled:opacity-40"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ship className="h-4 w-4" />}
-              Create draft PO
+              Review order
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Review before creating the PO ──────────────────────────────────
+             Not an "Are you sure?" nag — creating a draft is reversible, and
+             confirmation dialogs on routine reversible actions just train you to
+             tap through them. This is a REVIEW step: it prevents the accidental
+             tap (the bar sits in the thumb zone with lines pre-ticked) AND shows
+             what you're actually committing to, including the CBM/container fill
+             that decides whether the order is worth shipping yet. */}
+      {reviewOpen && (
+        <BodyPortal>
+          <div className="fixed inset-0 z-[200] snm-scrim-in" style={{ background: "var(--scrim-bg)" }} onClick={() => setReviewOpen(false)} />
+          <div className="fixed bottom-0 left-0 right-0 z-[201] snm-sheet-in" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
+            <div className="mx-2 mb-2 rounded-3xl overflow-hidden flex flex-col"
+              style={{ background: "var(--background)", boxShadow: "var(--glass-shadow-lg)", border: "0.5px solid var(--glass-border-lo)", maxHeight: "82dvh" }}>
+              <div className="shrink-0 px-5 pt-3">
+                <div className="w-9 h-[3px] rounded-full mx-auto mb-3" style={{ background: "var(--muted-foreground)", opacity: 0.3 }} />
+                <h2 className="text-[17px] font-semibold text-foreground">Review this order</h2>
+                <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
+                  Creates a draft PO — you still add supplier prices before it&apos;s real.
+                </p>
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5">
+                <div className="rounded-2xl overflow-hidden" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                  {pickedLines.map((l) => {
+                    const s = skus.find((x) => x.id === l.sku_id);
+                    return (
+                      <div key={l.sku_id} className="flex items-center justify-between gap-3 px-4 py-2.5"
+                        style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+                        <p className="ios-subhead text-foreground truncate">
+                          {s ? `${s.brand_name} · ${s.model_name} · ${s.variant_display ?? ""}` : l.sku_id}
+                        </p>
+                        <p className="snm-num ios-subhead font-semibold text-foreground shrink-0">{l.qty_cartons} ctn</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Container fill — the number that says "ship now, or add more?" */}
+                <div className="rounded-2xl px-4 py-3 mt-3" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                  <div className="flex items-center justify-between">
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Total</p>
+                    <p className="snm-num ios-subhead font-semibold text-foreground">
+                      {pickedLines.length} product{pickedLines.length !== 1 ? "s" : ""} · {pickedLines.reduce((a, l) => a + l.qty_cartons, 0)} ctn
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Volume</p>
+                    <p className="snm-num ios-subhead font-semibold text-foreground">{pickedCbm.toFixed(2)} CBM</p>
+                  </div>
+                  {pickedCbm > 0 && (
+                    <p className="ios-footnote mt-2" style={{ color: "var(--muted-foreground)" }}>
+                      ≈ {Math.round((pickedCbm / CONTAINER_CAPACITY_CBM["20ft"]) * 100)}% of a 20ft ·{" "}
+                      {Math.round((pickedCbm / CONTAINER_CAPACITY_CBM["40hq"]) * 100)}% of a 40ft HQ container
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="shrink-0 flex gap-2.5 px-5 pt-3 pb-3">
+                <button onClick={() => setReviewOpen(false)}
+                  className="flex-1 h-12 rounded-2xl ios-subhead font-semibold"
+                  style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}>
+                  Back
+                </button>
+                <button onClick={() => { setReviewOpen(false); createDraft(); }} disabled={creating}
+                  className="flex-1 h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                  {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ship className="h-4 w-4" />}
+                  Create draft PO
+                </button>
+              </div>
+            </div>
+          </div>
+        </BodyPortal>
       )}
     </div>
   );
