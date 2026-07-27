@@ -136,6 +136,9 @@ export interface PnlRow {
   marketing_mvr: number;      // prorated by day-overlap with the period
   other_opex_mvr: number;
   stock_writeoff_mvr: number; // landed cost of damaged/expired/lost stock (0093)
+  /** Net cost of customer returns (0098): revenue given back minus the cost of
+   *  goods actually back on the shelf — the true margin lost. */
+  returns_net_mvr: number;
   net_profit_mvr: number;
   gross_margin_pct: number | null;
   net_margin_pct: number | null;

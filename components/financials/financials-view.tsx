@@ -11,7 +11,7 @@ import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueR
 import { groupByBrand } from "@/lib/group-by-brand";
 import { getPnl, type PnlRow } from "@/lib/queries/expenses";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
-import { listRecentWriteoffs, writeoffLabel, type WriteoffRow } from "@/lib/queries/inventory";
+import { listRecentWriteoffs, writeoffLabel, type WriteoffRow, listReturns, returnLabel, type ReturnRow } from "@/lib/queries/inventory";
 import { MarginWatch } from "./margin-watch";
 import { ReceivablesView } from "./receivables-view";
 import { CashFlowView } from "./cash-flow-view";
@@ -263,6 +263,7 @@ export function FinancialsView() {
   const [lastPnl, setLastPnl]   = useState<PnlRow | null>(null);
   const [monthly, setMonthly]   = useState<MonthlyRevenueRow[]>([]);
   const [writeoffs, setWriteoffs] = useState<WriteoffRow[]>([]);
+  const [returns, setReturns] = useState<ReturnRow[]>([]);
   const [loading, setLoading]   = useState(true);
 
   const today          = new Date();
@@ -289,14 +290,16 @@ export function FinancialsView() {
       // Same period as the P&L, so the write-off sub-lines always add up to
       // the total shown on the "Damaged & write-offs" line.
       listRecentWriteoffs(50, firstOfMonth, tomorrow).catch(() => [] as WriteoffRow[]),
+      listReturns(50, firstOfMonth, tomorrow).catch(() => [] as ReturnRow[]),
     ])
-      .then(([p, lp, r, m, w]) => {
+      .then(([p, lp, r, m, w, rt]) => {
         if (cancelled) return;
         setPnl(p);
         setLastPnl(lp);
         setRows(r);
         setMonthly(m);
         setWriteoffs(w);
+        setReturns(rt);
       })
       .catch((e) => { if (!cancelled) toast.error((e as Error).message); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -311,6 +314,7 @@ export function FinancialsView() {
   const marketingSpend  = Number(pnl?.marketing_mvr ?? 0);
   const otherOpex       = Number(pnl?.other_opex_mvr ?? 0);
   const stockWriteoff   = Number(pnl?.stock_writeoff_mvr ?? 0);
+  const returnsNet      = Number(pnl?.returns_net_mvr ?? 0);
   const netProfit       = Number(pnl?.net_profit_mvr ?? 0);
   const grossMarginPct  = Number(pnl?.gross_margin_pct ?? 0);
   const netMarginPct    = Number(pnl?.net_margin_pct ?? 0);
@@ -501,6 +505,28 @@ export function FinancialsView() {
             </>
           )}
 
+          {/* Returns & refunds — same self-explaining pattern: the net cost
+              (money back minus the goods that came back), then what they were. */}
+          {returnsNet !== 0 && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: returns.length ? 4 : 6 }}>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Returns &amp; refunds</p>
+                <p className="snm-num" style={{ color: "var(--snm-error)", fontSize: 16, fontWeight: 500 }}>MVR {fmtShort(returnsNet)}</p>
+              </div>
+              {returns.slice(0, 6).map((r) => (
+                <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 2, paddingLeft: 14 }}>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{returnLabel(r)}</p>
+                  <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13, flexShrink: 0 }}>MVR {fmt(Number(r.net_loss_mvr))}</p>
+                </div>
+              ))}
+              {returns.length > 6 && (
+                <p style={{ color: "var(--muted-foreground)", fontSize: 12, paddingLeft: 14, marginBottom: 4 }}>
+                  +{returns.length - 6} more this month
+                </p>
+              )}
+            </>
+          )}
+
           {/* Net profit divider */}
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -514,7 +540,7 @@ export function FinancialsView() {
                   {netMarginPct >= 0 ? "+" : ""}{netMarginPct.toFixed(1)}% net margin
                 </span>
               </div>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>Revenue − COGS − Marketing − Expenses{stockWriteoff > 0 ? " − Write-offs" : ""}</p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>Revenue − COGS − Marketing − Expenses{stockWriteoff > 0 ? " − Write-offs" : ""}{returnsNet !== 0 ? " − Returns" : ""}</p>
             </div>
             <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
               MVR {fmtShort(netProfit)}

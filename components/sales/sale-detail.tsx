@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer, AlertTriangle, Plus, RotateCcw, Warehouse } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2, User, Truck, CheckCircle2, Banknote, Smartphone, Landmark, Printer, AlertTriangle, Plus, RotateCcw, Warehouse, Undo2 } from "lucide-react";
 import {
   getOrder,
   listOrderLines,
@@ -37,6 +37,7 @@ import { haptic } from "@/lib/haptics";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
+import { recordCustomerReturn, type ReturnReason, type ReturnSettlement } from "@/lib/queries/inventory";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
@@ -116,7 +117,17 @@ export function SaleDetail({ id }: { id: string }) {
   const [deletingPayment, setDeletingPayment] = useState(false);
 
   // inline dialogs (sheet-style bottom panels)
-  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "void" | "deleteLine" | "addLine" | "printLabels" | "recordPayment" | "deletePayment" | null>(null);
+  const [panel, setPanel] = useState<"dispatch" | "deliver" | "deposit" | "delete" | "void" | "deleteLine" | "addLine" | "printLabels" | "recordPayment" | "deletePayment" | "return" | null>(null);
+  // Customer return — reverses the sale properly (goods back at the original
+  // landed cost, revenue reversed, then refund OR less owed, chosen per return).
+  const [retSkuId, setRetSkuId]         = useState("");
+  const [retQty, setRetQty]             = useState("");
+  const [retUnit, setRetUnit]           = useState<"carton" | "pack" | "piece">("pack");
+  const [retReason, setRetReason]       = useState<ReturnReason>("unwanted");
+  const [retSettle, setRetSettle]       = useState<ReturnSettlement>("credit");
+  const [retRestock, setRetRestock]     = useState(true);
+  const [retNotes, setRetNotes]         = useState("");
+  const [retSaving, setRetSaving]       = useState(false);
   const [pendingDeleteLine, setPendingDeleteLine] = useState<SalesOrderLineRow | null>(null);
   const [editingLine, setEditingLine]             = useState<SalesOrderLineRow | undefined>(undefined);
   const [deletingLine, setDeletingLine]           = useState(false);
@@ -400,6 +411,35 @@ export function SaleDetail({ id }: { id: string }) {
         <Link href="/sales" style={{ color: "var(--foreground)", fontSize: 14, marginTop: 12, display: "block" }}>← Back to sales</Link>
       </div>
     );
+  }
+
+  async function submitReturn() {
+    const line = lines.find((l) => l.sku_id === retSkuId);
+    const sku  = skus.find((s) => s.id === retSkuId);
+    if (!line || !sku) { toast.error("Pick the product being returned"); return; }
+    const n = Math.max(0, Math.floor(Number(retQty) || 0));
+    if (n <= 0) { toast.error("Enter how many are coming back"); return; }
+    const pieces = retUnit === "carton" ? n * sku.pcs_per_pack * sku.packs_per_carton
+                 : retUnit === "pack"   ? n * sku.pcs_per_pack
+                 : n;
+    setRetSaving(true);
+    try {
+      const res = await recordCustomerReturn({
+        order_id: id, sku_id: retSkuId, qty_pieces: pieces,
+        reason: retReason, settlement: retSettle, restock: retRestock, notes: retNotes,
+      });
+      haptic("success");
+      toast.success(
+        res.settlement === "refund"
+          ? `Return recorded — MVR ${Number(res.refund_mvr).toLocaleString()} to refund.`
+          : `Return recorded — MVR ${Number(res.refund_mvr).toLocaleString()} off what they owe.`,
+      );
+      setPanel(null); setRetSkuId(""); setRetQty(""); setRetNotes("");
+      load();
+    } catch (e) {
+      haptic("error");
+      toast.error((e as Error).message);
+    } finally { setRetSaving(false); }
   }
 
   const currentStep = stepIndex(order.status);
@@ -837,6 +877,18 @@ export function SaleDetail({ id }: { id: string }) {
           )}
 
           <LineList lines={lines} skus={skus} editable={false} />
+
+          {/* Customer return — the correct path for goods coming back (voiding
+              the order would erase the whole sale). Admin/manager only. */}
+          {isAdminOrManager && lines.length > 0 && (
+            <button
+              onClick={() => { setRetSkuId(lines[0].sku_id); setRetQty(""); setPanel("return"); }}
+              style={{ width: "100%", marginTop: 14, background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            >
+              <Undo2 style={{ width: 16, height: 16 }} />
+              Record a return
+            </button>
+          )}
         </div>
       )}
 
@@ -1085,6 +1137,116 @@ export function SaleDetail({ id }: { id: string }) {
             );
           })}
         </div>
+      </Sheet>
+
+      {/* Record a return */}
+      <Sheet open={panel === "return"} onClose={() => setPanel(null)}>
+        <h2 style={{ color: "var(--foreground)", fontSize: 20, fontWeight: 600, marginBottom: 6 }}>Record a return</h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 13, marginBottom: 18 }}>
+          Puts the goods back in stock at their original cost and reverses the sale in your P&amp;L.
+        </p>
+
+        {(() => {
+          const sku = skus.find((s) => s.id === retSkuId);
+          const pcsPerPack = sku?.pcs_per_pack ?? 1;
+          const pcsPerCtn  = (sku?.pcs_per_pack ?? 1) * (sku?.packs_per_carton ?? 1);
+          const n = Math.max(0, Math.floor(Number(retQty) || 0));
+          const pieces = retUnit === "carton" ? n * pcsPerCtn : retUnit === "pack" ? n * pcsPerPack : n;
+          const line = lines.find((l) => l.sku_id === retSkuId);
+          const pricePc = line && line.qty_pieces > 0 ? Number(line.line_total_mvr) / line.qty_pieces : 0;
+          const value = pieces * pricePc;
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Which product?</label>
+                <select value={retSkuId} onChange={(e) => { setRetSkuId(e.target.value); setRetQty(""); }}
+                  style={{ width: "100%", height: 46, borderRadius: 12, padding: "0 12px", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", fontSize: 14 }}>
+                  {lines.map((l) => {
+                    const s2 = skus.find((x) => x.id === l.sku_id);
+                    return <option key={l.id} value={l.sku_id}>{s2 ? `${s2.model_name} · ${s2.variant_display}` : l.sku_id}</option>;
+                  })}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>How many are coming back?</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input type="number" inputMode="numeric" value={retQty} onChange={(e) => setRetQty(e.target.value)}
+                    placeholder={`How many ${retUnit === "carton" ? "cartons" : retUnit === "pack" ? "packs" : "pieces"}?`}
+                    style={{ flex: 1, minWidth: 0, height: 46, borderRadius: 12, padding: "0 12px", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", fontSize: 15, fontWeight: 600 }} />
+                  <div style={{ display: "flex", gap: 3, background: "var(--glass-bg-1)", borderRadius: 12, padding: 3 }}>
+                    {(["carton", "pack", "piece"] as const).map((u) => (
+                      <button key={u} onClick={() => setRetUnit(u)}
+                        style={{ padding: "0 10px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                          background: retUnit === u ? "var(--foreground)" : "transparent",
+                          color: retUnit === u ? "var(--background)" : "var(--muted-foreground)" }}>
+                        {u === "carton" ? "ctn" : u === "pack" ? "pk" : "pcs"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {value > 0 && (
+                  <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 6 }}>
+                    Worth MVR {fmt(value)} at the price they paid
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Why?</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {([["unwanted","Not wanted"],["wrong_item","Wrong item"],["defective","Faulty"],["other","Other"]] as const).map(([v, l]) => (
+                    <button key={v} onClick={() => { setRetReason(v); if (v === "defective") setRetRestock(false); }}
+                      style={{ padding: "8px 14px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                        background: retReason === v ? "var(--foreground)" : "var(--glass-bg-1)",
+                        color: retReason === v ? "var(--background)" : "var(--muted-foreground)",
+                        border: retReason === v ? "none" : "0.5px solid var(--glass-border-lo)" }}>{l}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Settle it how?</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {([["credit","Less to pay"],["refund","Money back"]] as const).map(([v, l]) => (
+                    <button key={v} onClick={() => setRetSettle(v)}
+                      style={{ flex: 1, padding: "12px", borderRadius: 12, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                        background: retSettle === v ? "var(--foreground)" : "var(--glass-bg-1)",
+                        color: retSettle === v ? "var(--background)" : "var(--muted-foreground)",
+                        border: retSettle === v ? "none" : "0.5px solid var(--glass-border-lo)" }}>{l}</button>
+                  ))}
+                </div>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 6 }}>
+                  {retSettle === "credit"
+                    ? "Reduces what this customer still owes on this order."
+                    : "You hand the money back — recorded as a refund."}
+                </p>
+              </div>
+
+              <button onClick={() => setRetRestock((v) => !v)}
+                style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, padding: "12px 14px", cursor: "pointer", textAlign: "left" }}>
+                <span style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                  background: retRestock ? "var(--snm-success)" : "transparent", border: retRestock ? "none" : "1.5px solid var(--glass-border-lo)" }}>
+                  {retRestock && <CheckCircle2 style={{ width: 14, height: 14, color: "#fff" }} />}
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, display: "block" }}>Good to sell again</span>
+                  <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
+                    {retRestock ? "Goes back into stock" : "Stays out of stock — full cost is a loss"}
+                  </span>
+                </span>
+              </button>
+
+              <input value={retNotes} onChange={(e) => setRetNotes(e.target.value)} placeholder="Note (optional)"
+                style={{ width: "100%", height: 44, borderRadius: 12, padding: "0 12px", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", fontSize: 14 }} />
+
+              <button onClick={submitReturn} disabled={retSaving || !retSkuId || !(Number(retQty) > 0)}
+                style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", opacity: retSaving || !retSkuId || !(Number(retQty) > 0) ? 0.5 : 1 }}>
+                {retSaving ? "Saving…" : "Record return"}
+              </button>
+            </div>
+          );
+        })()}
       </Sheet>
 
       {/* Add / edit line */}

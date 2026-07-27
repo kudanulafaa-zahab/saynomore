@@ -3,7 +3,7 @@
 
 > **Continuing in a new chat?** Read `docs/HANDOFF.md` first — it carries the
 > project/access IDs, the light+dark design system, what's built (migrations to
-> 0093), and the open task list so nothing is lost between sessions.
+> 0098), and the open task list so nothing is lost between sessions.
 
 ## Behaviour
 - Plain English. One recommendation. Lead with the answer.

@@ -209,6 +209,80 @@ export async function listRecentWriteoffs(
   return (data ?? []) as WriteoffRow[];
 }
 
+// ── Customer returns (0098) ───────────────────────────────────────────────
+// Reverses the sale properly: goods back to the ORIGINAL batch at the original
+// landed cost, revenue reversed in the P&L, and either money back (refund) or
+// less owed (credit) — chosen per return.
+
+export type ReturnReason     = "unwanted" | "wrong_item" | "defective" | "other";
+export type ReturnSettlement = "refund" | "credit";
+
+export interface ReturnResult {
+  id: string;
+  refund_mvr: number;
+  cost_recovered_mvr: number;
+  restocked: boolean;
+  settlement: ReturnSettlement;
+}
+
+export async function recordCustomerReturn(input: {
+  order_id: string; sku_id: string; qty_pieces: number;
+  reason: ReturnReason; settlement: ReturnSettlement;
+  restock: boolean; notes?: string | null;
+}): Promise<ReturnResult> {
+  const { data, error } = await supabase.rpc("record_customer_return", {
+    p_order_id: input.order_id,
+    p_sku_id: input.sku_id,
+    p_qty_pieces: input.qty_pieces,
+    p_reason: input.reason,
+    p_settlement: input.settlement,
+    p_restock: input.restock,
+    p_notes: input.notes ?? null,
+  });
+  if (error) throw error;
+  invalidate("stock:");
+  return data as ReturnResult;
+}
+
+export interface ReturnRow {
+  id: string;
+  created_at: string;
+  order_number: string;
+  customer_name: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string | null;
+  qty_pieces: number;
+  pcs_per_pack: number;
+  pcs_per_carton: number;
+  refund_amount_mvr: number;
+  cost_recovered_mvr: number;
+  net_loss_mvr: number;
+  restocked: boolean;
+  reason: ReturnReason;
+  settlement: ReturnSettlement;
+  notes: string | null;
+}
+
+export async function listReturns(limit = 50, from?: string | null, to?: string | null): Promise<ReturnRow[]> {
+  const { data, error } = await supabase.rpc("get_returns", {
+    p_from: from ?? null, p_to: to ?? null, p_limit: limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as ReturnRow[];
+}
+
+/** "Xtra Kering NB/S · 1 pk (unwanted)" — same shape as the write-off label. */
+export function returnLabel(r: ReturnRow): string {
+  const ppc = r.pcs_per_carton || 0;
+  const qty = ppc > 0 && r.qty_pieces >= ppc
+    ? `${Math.round(r.qty_pieces / ppc)} ctn`
+    : r.pcs_per_pack > 0 ? `${Math.max(1, Math.round(r.qty_pieces / r.pcs_per_pack))} pk`
+    : `${r.qty_pieces} pcs`;
+  const why = r.reason.replace("_", " ");
+  return `${[r.model_name, r.variant_display].filter(Boolean).join(" · ")} · ${qty} (${why})`;
+}
+
 /** One readable line per write-off: "Xtra Kering NB/S · 1 pk (damaged)". */
 export function writeoffLabel(w: WriteoffRow): string {
   const ppc = w.pcs_per_carton || 0;
