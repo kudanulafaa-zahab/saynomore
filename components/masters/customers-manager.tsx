@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
 import {
@@ -14,6 +15,7 @@ import {
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { CustomerForm } from "@/components/masters/customer-form";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { getCustomerInsights, type CustomerInsight } from "@/lib/queries/customer-insights";
 import { haptic } from "@/lib/haptics";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
@@ -60,6 +62,10 @@ export function CustomersManager() {
   const [dialog, setDialog] = useState<{ open: boolean; editing?: CustomerRow }>({ open: false });
   const [role, setRole] = useState<string | null>(null);
   const [confirmCustomer, setConfirmCustomer] = useState<{ id: string; name: string } | null>(null);
+  // Value ranking (0099). Ranked by PROFIT, not revenue — margins vary by SKU,
+  // so equal spend is not equal worth. Loaded alongside the directory.
+  const [insights, setInsights] = useState<CustomerInsight[]>([]);
+  const [segment, setSegment] = useState<"az" | "top" | "risk" | "owes">("az");
 
   async function load() {
     try { setRows(await listCustomers()); }
@@ -67,6 +73,7 @@ export function CustomersManager() {
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => { getCustomerInsights().then(setInsights).catch(() => {}); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const canWrite = role !== "viewer" && role !== null;
 
@@ -78,6 +85,30 @@ export function CustomersManager() {
         .join(" ").toLowerCase().includes(term),
     );
   }, [rows, q]);
+
+  const insightById = useMemo(() => {
+    const m = new Map<string, CustomerInsight>();
+    for (const i of insights) m.set(i.customer_id, i);
+    return m;
+  }, [insights]);
+
+  // Segments are LENSES over the same directory — never a second list.
+  // A-Z keeps the Contacts-style grouping; the value segments rank the whole
+  // set and so render flat (ranking only reads correctly across everyone).
+  const ranked = useMemo(() => {
+    if (segment === "az") return [];
+    const withData = filtered
+      .map((c) => ({ c, i: insightById.get(c.id) }))
+      .filter((x): x is { c: CustomerRow; i: CustomerInsight } => !!x.i);
+    if (segment === "top")  return [...withData].sort((a, b) => Number(b.i.profit_mvr) - Number(a.i.profit_mvr));
+    if (segment === "risk") return withData.filter((x) => x.i.at_risk)
+      .sort((a, b) => (b.i.days_since_last ?? 0) - (a.i.days_since_last ?? 0));
+    return withData.filter((x) => Number(x.i.outstanding_mvr) > 0)
+      .sort((a, b) => Number(b.i.outstanding_mvr) - Number(a.i.outstanding_mvr));
+  }, [segment, filtered, insightById]);
+
+  const riskCount = useMemo(() => insights.filter((i) => i.at_risk).length, [insights]);
+  const owesCount = useMemo(() => insights.filter((i) => Number(i.outstanding_mvr) > 0).length, [insights]);
 
   // Group alphabetically by first letter (iOS Contacts pattern) with sticky
   // headers, so the directory stays scannable at 100+ customers. Names sort
@@ -224,8 +255,68 @@ export function CustomersManager() {
         </div>
       </div>
 
+      {/* Segments — lenses over the same directory. A-Z is the Contacts
+          view; the value lenses rank everyone, so they render flat. */}
+      <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4 }}>
+        {([
+          ["az", "A–Z"],
+          ["top", "Top customers"],
+          ["risk", riskCount ? `At risk · ${riskCount}` : "At risk"],
+          ["owes", owesCount ? `Owes · ${owesCount}` : "Owes"],
+        ] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setSegment(v)}
+            className="flex-1 rounded-[9px] py-2 text-[12px] font-semibold transition"
+            style={{ background: segment === v ? "var(--foreground)" : "transparent",
+                     color: segment === v ? "var(--background)" : "var(--muted-foreground)" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Value lenses — ranked flat list, profit first */}
+      {segment !== "az" && (
+        ranked.length === 0 ? (
+          <p className="ios-subhead px-1 py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
+            {segment === "risk" ? "Nobody is overdue to order."
+              : segment === "owes" ? "Nobody owes you money."
+              : "No sales history yet."}
+          </p>
+        ) : (
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+            {ranked.map(({ c, i }, idx) => (
+              <Link key={c.id} href={`/customers/${c.id}`}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+                style={{ borderTop: idx > 0 ? "0.5px solid var(--glass-border-lo)" : undefined }}>
+                <div className="min-w-0">
+                  <p className="ios-subhead font-semibold text-foreground truncate">{c.name}</p>
+                  <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                    {i.orders_count} order{i.orders_count !== 1 ? "s" : ""}
+                    {i.days_since_last != null ? ` · last ${i.days_since_last === 0 ? "today" : `${i.days_since_last}d ago`}` : ""}
+                    {i.usual_gap_days != null ? ` · usually every ${i.usual_gap_days}d` : ""}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  {segment === "owes" ? (
+                    <p className="snm-num ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>
+                      MVR {Number(i.outstanding_mvr).toLocaleString("en-MV", { maximumFractionDigits: 0 })}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="snm-num ios-subhead font-semibold text-foreground">
+                        +MVR {Number(i.profit_mvr).toLocaleString("en-MV", { maximumFractionDigits: 0 })}
+                      </p>
+                      <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>profit</p>
+                    </>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )
+      )}
+
       {/* Customer list */}
-      {filtered.length === 0 ? (
+      {segment === "az" && (filtered.length === 0 ? (
         <div
           className="rounded-3xl p-12 text-center space-y-4"
           style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
@@ -360,7 +451,7 @@ export function CustomersManager() {
             </div>
           ))}
         </div>
-      )}
+      ))}
 
       <CustomerDialog
         open={dialog.open}
