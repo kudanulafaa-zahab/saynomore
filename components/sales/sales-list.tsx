@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,10 +21,13 @@ const BarcodeScanner = dynamic(
   { ssr: false },
 );
 import {
-  listOrders, createOrder, nextOrderNumber, createOrderLine, postSale,
+  listOrdersPage, countOrders, listOrderCustomersPage, peekNextOrderNumber,
+  createOrder, createOrderLine, postSale,
   getTierPricesForSkus, getLastOrderForCustomer,
+  ORDER_PAGE_SIZE,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
-  type LastOrderSummary,
+  type LastOrderSummary, type OrderCursor, type OrderPageFilters,
+  type OrderCustomerGroup, type CustomerCursor,
 } from "@/lib/queries/sales";
 import {
   listCustomers, listGodowns,
@@ -305,65 +308,166 @@ export function SalesList() {
     }).catch(() => {});
   }, []);
 
-  async function load() {
-    setLoading(true);
-    try {
-      const [o, c, sk, g, lvl] = await Promise.all([
-        listOrders(), listCustomers(), listSkusFlat(), listGodowns(), listStockLevels(),
-      ]);
-      setRows(o); setCustomers(c); setSkus(sk); setGodowns(g); setStockLevels(lvl);
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setLoading(false); }
+  // ── Paging state ─────────────────────────────────────────────────────────
+  // Orders arrive one page at a time, newest first, filtered and searched in
+  // Postgres. See listOrdersPage() for why it's a keyset cursor rather than
+  // page numbers. `rows` therefore holds only what's been scrolled to — never
+  // the whole ledger.
+  const [cursor, setCursor]         = useState<OrderCursor | null>(null);
+  const [hasMore, setHasMore]       = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [matchCount, setMatchCount] = useState(0);
+
+  // Grouped-by-customer view — rolled up in Postgres for the same reason.
+  const [custGroups, setCustGroups]   = useState<OrderCustomerGroup[]>([]);
+  const [custCursor, setCustCursor]   = useState<CustomerCursor | null>(null);
+  const [custHasMore, setCustHasMore] = useState(false);
+  // Orders for whichever customer groups are expanded, fetched on demand.
+  const [groupOrders, setGroupOrders] = useState<Map<string, SalesOrderRow[]>>(new Map());
+
+  // Debounced search — one query per pause in typing, not per keystroke.
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const filters: OrderPageFilters = useMemo(
+    () => ({ status: statusFilter, search: debouncedQ, unpaid: unpaidMode }),
+    [statusFilter, debouncedQ, unpaidMode],
+  );
+
+  /** Catalogue data — customers, SKUs, godowns, stock. All bounded lists that
+   *  the New Sale wizard needs in full, so they stay a single load. */
+  async function loadSupporting() {
+    const [c, sk, g, lvl] = await Promise.all([
+      listCustomers(), listSkusFlat(), listGodowns(), listStockLevels(),
+    ]);
+    setCustomers(c); setSkus(sk); setGodowns(g); setStockLevels(lvl);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    loadSupporting().catch((e) => toast.error((e as Error).message));
+  }, []);
+
+  /** First page for the current filters. Also runs on refresh after a save,
+   *  which is why it swaps rows in place rather than clearing them first —
+   *  no skeleton flash on an existing list. */
+  const loadFirstPage = useCallback(async () => {
+    try {
+      if (groupBy === "orders") {
+        const [page, count] = await Promise.all([
+          listOrdersPage(filters, null),
+          countOrders(filters),
+        ]);
+        setRows(page.rows);
+        setCursor(page.nextCursor);
+        setHasMore(page.hasMore);
+        setMatchCount(count);
+      } else {
+        const [page, count] = await Promise.all([
+          listOrderCustomersPage(filters, null),
+          countOrders(filters),
+        ]);
+        setCustGroups(page.rows);
+        setCustCursor(page.nextCursor);
+        setCustHasMore(page.hasMore);
+        setMatchCount(count);
+        setGroupOrders(new Map());
+        setExpandedCustomers(new Set());
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }, [filters, groupBy]);
+
+  // Refetch whenever the filter set or the view changes. The cursor resets
+  // implicitly because loadFirstPage always starts from null.
+  useEffect(() => {
+    let cancelled = false;
+    loadFirstPage().finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [loadFirstPage]);
+
+  /** Refresh after a mutation — keeps the current filters and view. */
+  const load = loadFirstPage;
+
+  async function loadMore() {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      if (groupBy === "orders") {
+        if (!cursor) return;
+        const page = await listOrdersPage(filters, cursor);
+        setRows((prev) => [...prev, ...page.rows]);
+        setCursor(page.nextCursor);
+        setHasMore(page.hasMore);
+      } else {
+        if (!custCursor) return;
+        const page = await listOrderCustomersPage(filters, custCursor);
+        setCustGroups((prev) => [...prev, ...page.rows]);
+        setCustCursor(page.nextCursor);
+        setCustHasMore(page.hasMore);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  // Auto-load as the sentinel scrolls into view — the next page is already
+  // arriving by the time the last row is on screen, so it reads as one
+  // continuous list. The button below it stays as the visible, tappable
+  // fallback (and the only control that works with reduced motion / when the
+  // observer never fires).
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    const more = groupBy === "orders" ? hasMore : custHasMore;
+    if (!el || !more || loadingMore) return;
+    const io = new IntersectionObserver(
+      (entries) => { if (entries[0]?.isIntersecting) loadMore(); },
+      { rootMargin: "400px" },   // start fetching before it's actually visible
+    );
+    io.observe(el);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupBy, hasMore, custHasMore, loadingMore, cursor, custCursor, filters]);
 
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
 
-  const filtered = useMemo(() => {
-    let r = rows;
-    if (statusFilter !== "all") r = r.filter((x) => x.status === statusFilter);
-    // Unpaid mode: every live order still owing money — same set as
-    // get_receivables_aging (active, i.e. not draft/cancelled, and payment not
-    // settled). Deliberately spans confirmed → out_for_delivery → delivered so
-    // the count here matches the dashboard tile that linked in.
-    if (unpaidMode) r = r.filter((x) =>
-      !["draft", "cancelled"].includes(x.status) && ["pending", "partial"].includes(x.payment_status));
-    const term = q.trim().toLowerCase();
-    if (term) r = r.filter((x) => {
-      const cust = customerById.get(x.customer_id ?? "");
-      return [x.order_number, cust?.name ?? "", cust?.phone ?? ""].join(" ").toLowerCase().includes(term);
+  /** True when anything is narrowing the list — used to tell "no sales yet"
+   *  apart from "no matches". */
+  const filtersActive = statusFilter !== "all" || debouncedQ !== "" || unpaidMode;
+
+  // Server already filtered, searched and ordered these.
+  const visibleOrders = rows;
+
+  /** Expand/collapse a customer group, fetching that customer's orders the
+   *  first time it opens (one small query, not the whole ledger up front). */
+  async function toggleCustomer(key: string, customerId: string | null) {
+    const isOpen = expandedCustomers.has(key);
+    setExpandedCustomers((prev) => {
+      const next = new Set(prev);
+      if (isOpen) next.delete(key); else next.add(key);
+      return next;
     });
-    return r;
-  }, [rows, q, statusFilter, unpaidMode, customerById]);
-
-  // Render cap for the flat list — at 100+ orders, rendering every row at
-  // once is both a performance problem and a wall of near-identical cards to
-  // scroll past. Search/filter already narrow `filtered` directly, so typing
-  // a name always shows every match regardless of this cap; it only limits
-  // the default unfiltered browse view. Resets to 20 whenever the filter set
-  // changes so switching tabs/search never leaves a stale "Load more" state.
-  const [visibleCount, setVisibleCount] = useState(20);
-  useEffect(() => { setVisibleCount(20); }, [q, statusFilter, groupBy]);
-  const visibleOrders = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
-
-  // Group by customer — collapse all orders per customer into one expandable row.
-  // Walk-in orders are grouped under a single "Walk-in" bucket.
-  const grouped = useMemo(() => {
-    const map = new Map<string, { customer: CustomerRow | null; orders: SalesOrderRow[] }>();
-    for (const o of filtered) {
-      const key = o.customer_id ?? "__walkin__";
-      const cust = o.customer_id ? customerById.get(o.customer_id) ?? null : null;
-      if (!map.has(key)) map.set(key, { customer: cust, orders: [] });
-      map.get(key)!.orders.push(o);
+    if (isOpen || groupOrders.has(key)) return;
+    try {
+      const page = await listOrdersPage(
+        { ...filters, customerId: customerId ?? undefined },
+        null,
+        100,
+      );
+      // Walk-in orders have no customer_id, so the server can't filter to
+      // them — narrow client-side for that one bucket.
+      const rowsForKey = customerId ? page.rows : page.rows.filter((o) => !o.customer_id);
+      setGroupOrders((prev) => new Map(prev).set(key, rowsForKey));
+    } catch (e) {
+      toast.error((e as Error).message);
     }
-    // Sort buckets: most recent order first
-    return Array.from(map.values()).sort((a, b) => {
-      const aDate = a.orders[0]?.created_at ?? "";
-      const bDate = b.orders[0]?.created_at ?? "";
-      return bDate.localeCompare(aDate);
-    });
-  }, [filtered, customerById]);
+  }
 
   if (loading) return (
     <div className="space-y-4 animate-pulse">
@@ -431,7 +535,7 @@ export function SalesList() {
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--snm-error)" }} />
             <p className="ios-subhead font-semibold text-foreground">
-              Showing {filtered.length} order{filtered.length !== 1 ? "s" : ""} awaiting payment
+              Showing {matchCount} order{matchCount !== 1 ? "s" : ""} awaiting payment
             </p>
           </div>
           <button
@@ -499,16 +603,16 @@ export function SalesList() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {matchCount === 0 ? (
         <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>
           <div className="h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "var(--glass-bg-2)" }}>
             <ShoppingCart className="h-6 w-6 text-foreground" />
           </div>
-          <h3 className="text-base font-semibold text-foreground">{rows.length === 0 ? "No sales yet" : "No matches"}</h3>
+          <h3 className="text-base font-semibold text-foreground">{filtersActive ? "No matches" : "No sales yet"}</h3>
           <p className="ios-subhead max-w-sm" style={{ color: "var(--muted-foreground)" }}>
-            {unpaidMode ? "Every order has been paid. Nothing outstanding." : rows.length === 0 ? "Record a sale when a customer messages you on WhatsApp, Viber, or other channels." : "Try a different filter."}
+            {unpaidMode ? "Every order has been paid. Nothing outstanding." : !filtersActive ? "Record a sale when a customer messages you on WhatsApp, Viber, or other channels." : "Try a different filter."}
           </p>
-          {rows.length === 0 && (
+          {!filtersActive && (
             <button onClick={() => setNewDialog(true)} className="mt-2 h-11 px-6 rounded-2xl ios-subhead font-semibold"
               style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
               Record first sale
@@ -538,38 +642,48 @@ export function SalesList() {
               </div>
             );
           })}
-          {filtered.length > visibleOrders.length && (
+          {/* Sentinel: the next page starts loading 400px before this is on
+              screen, so scrolling feels continuous. */}
+          {hasMore && <div ref={sentinelRef} aria-hidden className="h-px" />}
+          {hasMore && (
             <button
-              onClick={() => setVisibleCount((n) => n + 20)}
-              className="w-full h-12 rounded-2xl ios-subhead font-semibold transition active:scale-[0.99]"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full h-12 rounded-2xl ios-subhead font-semibold transition active:scale-[0.99] flex items-center justify-center gap-2"
               style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
             >
-              Load more ({filtered.length - visibleOrders.length} more)
+              {loadingMore
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Loading…</>
+                : `Load more (${Math.max(0, matchCount - rows.length)} more)`}
             </button>
+          )}
+          {!hasMore && rows.length >= ORDER_PAGE_SIZE && (
+            <p className="ios-footnote text-center pt-2" style={{ color: "var(--muted-foreground)" }}>
+              All {matchCount} orders shown
+            </p>
           )}
         </div>
 
       ) : (
         /* ── Grouped by customer ── */
         <div className="space-y-2">
-          {grouped.map(({ customer, orders }) => {
-            const key = customer?.id ?? "__walkin__";
+          {custGroups.map((g) => {
+            const key = g.customer_id ?? "__walkin__";
             const isOpen = expandedCustomers.has(key);
-            const toggle = () => setExpandedCustomers((prev) => {
-              const next = new Set(prev);
-              if (isOpen) next.delete(key); else next.add(key);
-              return next;
-            });
-            const name = customer?.name ?? "Walk-in";
+            const toggle = () => toggleCustomer(key, g.customer_id);
+            const name = g.name ?? "Walk-in";
             const initials = name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
-            // Count by status for the summary badge row
-            const active = orders.filter((o) => !["delivered", "cancelled"].includes(o.status));
-            const delivered = orders.filter((o) => o.status === "delivered").length;
+            // Counts come from Postgres — they cover ALL of this customer's
+            // matching orders, not just the ones downloaded so far.
+            const active    = g.active_count;
+            const delivered = g.delivered_count;
+            const orders    = groupOrders.get(key) ?? [];
 
             return (
               <div key={key} className="rounded-2xl overflow-hidden" style={CARD}>
                 {/* Customer header row — always visible */}
-                <button onClick={toggle} className="w-full flex items-center gap-3 px-4 py-3.5 text-left snm-pressable">
+                <button onClick={toggle} aria-expanded={isOpen}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left snm-pressable">
                   <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
                     style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}>
                     {initials}
@@ -578,22 +692,22 @@ export function SalesList() {
                     <p className="text-[14px] font-semibold text-foreground">{name}</p>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                        {orders.length} order{orders.length !== 1 ? "s" : ""}
+                        {g.orders_count} order{g.orders_count !== 1 ? "s" : ""}
                       </span>
-                      {active.length > 0 && (
+                      {active > 0 && (
                         <span className="ios-subhead font-bold px-1.5 py-0.5 rounded-md"
                           style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }}>
-                          {active.length} active
+                          {active} active
                         </span>
                       )}
-                      {customer?.island && (
-                        <span className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>{customer.island}</span>
+                      {g.island && (
+                        <span className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>{g.island}</span>
                       )}
                     </div>
                   </div>
                   <div className="text-right shrink-0 mr-1">
                     <p className="ios-subhead font-semibold text-foreground">{delivered} done</p>
-                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>of {orders.length}</p>
+                    <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>of {g.orders_count}</p>
                   </div>
                   <ChevronDown
                     className="h-4 w-4 shrink-0 transition-transform"
@@ -604,6 +718,12 @@ export function SalesList() {
                 {/* Expanded order rows */}
                 {isOpen && (
                   <div style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                    {!groupOrders.has(key) && (
+                      <div className="flex items-center justify-center gap-2 px-4 py-4 ios-subhead"
+                        style={{ color: "var(--muted-foreground)" }}>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading orders…
+                      </div>
+                    )}
                     {orders.map((o) => {
                       const Icon = STATUS_ICON[o.status];
                       const colors = STATUS_COLOR[o.status];
@@ -638,13 +758,27 @@ export function SalesList() {
               </div>
             );
           })}
+
+          {custHasMore && <div ref={sentinelRef} aria-hidden className="h-px" />}
+          {custHasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full h-12 rounded-2xl ios-subhead font-semibold transition active:scale-[0.99] flex items-center justify-center gap-2"
+              style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+            >
+              {loadingMore
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Loading…</>
+                : "Load more customers"}
+            </button>
+          )}
         </div>
       )}
 
       {newDialog && canWrite && (
         <NewSaleSheet
           customers={customers} skus={skus} godowns={godowns}
-          stockLevels={stockLevels} existingOrders={rows}
+          stockLevels={stockLevels}
           onClose={() => setNewDialog(false)}
           onCreated={(id) => { setNewDialog(false); load(); if (id !== "reload") router.push(`/sales/${id}`); }}
           onCustomerCreated={(c) => setCustomers((prev) => [c, ...prev])}
@@ -660,10 +794,10 @@ export function SalesList() {
 type Step = 1 | 2 | 3;
 
 function NewSaleSheet({
-  customers, skus, godowns, stockLevels, existingOrders, onClose, onCreated, onCustomerCreated,
+  customers, skus, godowns, stockLevels, onClose, onCreated, onCustomerCreated,
 }: {
   customers: CustomerRow[]; skus: SkuFullRow[]; godowns: GodownRow[];
-  stockLevels: StockLevel[]; existingOrders: SalesOrderRow[];
+  stockLevels: StockLevel[];
   onClose: () => void; onCreated: (id: string) => void;
   onCustomerCreated: (c: CustomerRow) => void;
 }) {
@@ -688,7 +822,23 @@ function NewSaleSheet({
   useEffect(() => { setPortalReady(true); }, []);
 
   const [step, setStep] = useState<Step>(1);
-  const [orderNumber] = useState(nextOrderNumber(existingOrders));
+  // Preview only — assign_sales_order_number assigns the real one atomically
+  // on insert. Read from the live counter rather than guessed from whichever
+  // orders happened to be downloaded (the list is paged now, so guessing from
+  // memory would show a number already in use). Blank until it arrives, and
+  // stays blank offline rather than showing a confident wrong number.
+  const [orderNumber, setOrderNumber] = useState("");
+  // Offline queue key. Independent of the preview above: offline is exactly
+  // when the preview can't be read, and two orders keyed "offline-" would
+  // collide in the queue.
+  const [offlineKey] = useState(() => `offline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  useEffect(() => {
+    let cancelled = false;
+    peekNextOrderNumber()
+      .then((n) => { if (!cancelled) setOrderNumber(n); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [channel, setChannel] = useState<OrderChannel>("whatsapp");
 
   // Step 1 — customer
@@ -1156,7 +1306,7 @@ function NewSaleSheet({
           table: "sales_orders",
           action: "insert",
           payload: { order: orderPayload, lines: linePayloads },
-          tempId: `offline-${orderNumber}`,
+          tempId: offlineKey,
         },
       );
 
@@ -1203,7 +1353,9 @@ function NewSaleSheet({
             <button onClick={onClose} className="text-foreground opacity-60 active:opacity-100 text-xl">✕</button>
             <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
           </div>
-          <span className="snm-num ios-subhead font-mono" style={{ color: "var(--muted-foreground)" }}>{orderNumber}</span>
+          <span className="snm-num ios-subhead font-mono" style={{ color: "var(--muted-foreground)" }}>
+            {orderNumber || "Assigned on save"}
+          </span>
         </div>
       </header>
 

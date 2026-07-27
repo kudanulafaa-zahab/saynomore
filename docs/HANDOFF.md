@@ -80,6 +80,30 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 5. Built this session (recent → older highlights)
 
+- **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
+  parent delete sequential-scanned `audit_log`, `sales_orders`, `order_payments`,
+  `shipments`, `stock_movements`. And the app had **zero** error boundaries: any render
+  error unmounted the tree, which on the installed PWA is a blank page with no browser
+  chrome to reload from. Added `app/(app)/error.tsx` (tab bar survives, one Try again) and
+  `app/global-error.tsx` (self-contained, for root-layout failures).
+
+- **0101 Sales list is server-paged.** `listOrders()` downloaded EVERY order with every line
+  joined, then rendered 20 — the render was capped, the download was not (~890 bytes/order,
+  so ~4.4 MB at 5,000 orders, on every open). Now **keyset pagination**: `get_sales_orders`
+  takes a `(created_at, id)` cursor and seeks straight to it, so page 500 costs the same as
+  page 1 — OFFSET would walk and discard 500 rows first. The `id` is in the cursor because
+  timestamps aren't unique; without it rows at a page boundary duplicate or vanish.
+  **Verified by paging the whole table in 7s: 8 pages, 53 rows, 0 duplicates, 0 missing.**
+  Status/search/unpaid filtering moved into Postgres (with one page in memory, filtering the
+  client array would only search what's downloaded), the order total is now summed in
+  Postgres (hard rule #1 — it was a TypeScript `.reduce()`), and the Customers grouping is
+  rolled up by `get_sales_order_customers` for the same reason. Infinite scroll via an
+  IntersectionObserver sentinel (400px rootMargin) with a Load-more button as the fallback.
+  **These three are SECURITY INVOKER on purpose** — `sales_orders` RLS gives a staff driver
+  only their own runs, and a DEFINER function would hand them everything.
+  `peek_next_order_number()` (DEFINER, since `order_number_counters` has RLS with no
+  policies) replaces the client-side guess in the New Sale dialog.
+
 - **0099 customer insights** (`get_customer_insights` / `_products` / `_orders`): answers "who
   are my top customers and what did they buy?", which had no answer anywhere before —
   `/customers` was a contact list and Sales → Customers only groups on-screen orders. Built on

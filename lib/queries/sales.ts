@@ -87,16 +87,145 @@ export interface SalesOrderLineInput {
 
 // ── Reads ────────────────────────────────────────────────────────────────
 
-export async function listOrders(): Promise<SalesOrderRow[]> {
-  const { data, error } = await supabase
-    .from("sales_orders")
-    .select("*, sales_order_lines(line_total_mvr)")
-    .order("created_at", { ascending: false });
+// ── Paged order list (migration 0101) ────────────────────────────────────
+// The Sales screen used to download EVERY order ever, with every line joined,
+// and then render 20. Now it asks for one page at a time.
+//
+// Keyset (cursor) pagination, not page numbers: the cursor is the last row's
+// (created_at, id). Postgres seeks straight to that point in the index, so
+// page 500 costs the same as page 1 — where OFFSET 500 would have to walk and
+// throw away 500 rows first. The id is in the cursor because two orders can
+// share a timestamp; without it rows near a boundary get shown twice or
+// skipped. Filtering and search run in Postgres for the same reason: with only
+// one page in memory, filtering the client's array would only ever search the
+// rows already downloaded.
+
+/** Cursor for the next page. Opaque to callers — just hand it back. */
+export interface OrderCursor {
+  created_at: string;
+  id: string;
+}
+
+export interface OrderPageFilters {
+  /** Status chip. "all" or omitted = any status. */
+  status?: OrderStatus | "all";
+  /** Free text — matched against order number, customer name and phone. */
+  search?: string;
+  /** Live orders still owing money (matches the dashboard's Owed tile). */
+  unpaid?: boolean;
+  /** Restrict to one customer (used when expanding a customer group). */
+  customerId?: string;
+}
+
+export interface OrderPage {
+  rows: SalesOrderRow[];
+  /** Cursor to pass as `after` for the next page; null when the list is done. */
+  nextCursor: OrderCursor | null;
+  /** False once a short page comes back — nothing more to load. */
+  hasMore: boolean;
+}
+
+export const ORDER_PAGE_SIZE = 30;
+
+export async function listOrdersPage(
+  filters: OrderPageFilters = {},
+  after: OrderCursor | null = null,
+  limit: number = ORDER_PAGE_SIZE,
+): Promise<OrderPage> {
+  const { data, error } = await supabase.rpc("get_sales_orders", {
+    p_status:            filters.status && filters.status !== "all" ? filters.status : null,
+    p_search:            filters.search?.trim() || null,
+    p_unpaid:            filters.unpaid ?? false,
+    p_customer_id:       filters.customerId ?? null,
+    p_cursor_created_at: after?.created_at ?? null,
+    p_cursor_id:         after?.id ?? null,
+    p_limit:             limit,
+  });
   if (error) throw error;
-  return ((data ?? []) as (SalesOrderRow & { sales_order_lines: { line_total_mvr: number }[] })[]).map((row) => ({
-    ...row,
-    order_total_mvr: row.sales_order_lines.reduce((s, l) => s + Number(l.line_total_mvr), 0),
+
+  const rows = (data ?? []) as SalesOrderRow[];
+  const last = rows[rows.length - 1];
+  // A short page means we've reached the end — no extra count query needed.
+  const hasMore = rows.length === limit;
+  return {
+    rows,
+    hasMore,
+    nextCursor: hasMore && last ? { created_at: last.created_at, id: last.id } : null,
+  };
+}
+
+/** How many orders match the current filters. For the banner only — paging
+ *  never needs it, which is the point of keyset. */
+export async function countOrders(filters: OrderPageFilters = {}): Promise<number> {
+  const { data, error } = await supabase.rpc("get_sales_orders_count", {
+    p_status:      filters.status && filters.status !== "all" ? filters.status : null,
+    p_search:      filters.search?.trim() || null,
+    p_unpaid:      filters.unpaid ?? false,
+    p_customer_id: filters.customerId ?? null,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+// ── Customers view of the same list ──────────────────────────────────────
+// Grouping orders by customer client-side needs every order in memory — the
+// exact thing we stopped downloading — so the roll-up happens in Postgres.
+
+export interface OrderCustomerGroup {
+  customer_id: string | null;
+  name: string | null;
+  phone: string | null;
+  island: string | null;
+  orders_count: number;
+  active_count: number;
+  delivered_count: number;
+  last_order_at: string;
+}
+
+export interface CustomerCursor {
+  last_order_at: string;
+  customer_id: string | null;
+}
+
+export interface OrderCustomerPage {
+  rows: OrderCustomerGroup[];
+  nextCursor: CustomerCursor | null;
+  hasMore: boolean;
+}
+
+export const CUSTOMER_PAGE_SIZE = 20;
+
+export async function listOrderCustomersPage(
+  filters: OrderPageFilters = {},
+  after: CustomerCursor | null = null,
+  limit: number = CUSTOMER_PAGE_SIZE,
+): Promise<OrderCustomerPage> {
+  const { data, error } = await supabase.rpc("get_sales_order_customers", {
+    p_search:               filters.search?.trim() || null,
+    p_status:               filters.status && filters.status !== "all" ? filters.status : null,
+    p_unpaid:               filters.unpaid ?? false,
+    p_cursor_last_order_at: after?.last_order_at ?? null,
+    p_cursor_customer_id:   after?.customer_id ?? null,
+    p_limit:                limit,
+  });
+  if (error) throw error;
+
+  const raw = (data ?? []) as OrderCustomerGroup[];
+  const rows = raw.map((r) => ({
+    ...r,
+    orders_count:    Number(r.orders_count),
+    active_count:    Number(r.active_count),
+    delivered_count: Number(r.delivered_count),
   }));
+  const last = rows[rows.length - 1];
+  const hasMore = rows.length === limit;
+  return {
+    rows,
+    hasMore,
+    nextCursor: hasMore && last
+      ? { last_order_at: last.last_order_at, customer_id: last.customer_id }
+      : null,
+  };
 }
 
 export async function getOrder(id: string): Promise<SalesOrderRow | null> {
@@ -290,16 +419,22 @@ export async function editOrderLine(
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-export function nextOrderNumber(existing: SalesOrderRow[]): string {
-  const year = new Date().getFullYear();
-  const prefix = `SO-${year}-`;
-  const max = existing
-    .map((o) => o.order_number)
-    .filter((r) => r.startsWith(prefix))
-    .map((r) => parseInt(r.replace(prefix, ""), 10))
-    .filter((n) => !isNaN(n))
-    .reduce((a, b) => Math.max(a, b), 0);
-  return `${prefix}${String(max + 1).padStart(3, "0")}`;
+/**
+ * Preview of the number the next order will get.
+ *
+ * The real number is assigned by the assign_sales_order_number trigger from an
+ * atomic counter, so this is only ever a preview — but it now reads that same
+ * counter instead of guessing from whichever orders the client had downloaded.
+ * (The old version scanned the in-memory list; once the list is paged that
+ * would have guessed from one page and shown a number already in use.)
+ *
+ * Falls back to a blank so the dialog degrades to "assigned on save" rather
+ * than showing a confident wrong number if the read fails offline.
+ */
+export async function peekNextOrderNumber(): Promise<string> {
+  const { data, error } = await supabase.rpc("peek_next_order_number");
+  if (error) return "";
+  return (data as string | null) ?? "";
 }
 
 // ── COD Reconciliation ───────────────────────────────────────────────────
