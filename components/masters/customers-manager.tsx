@@ -359,8 +359,8 @@ export function CustomersManager() {
               style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)" }}
             >
               <div className="flex items-center justify-between gap-4">
-                {/* Avatar + name */}
-                <div className="flex items-center gap-4 min-w-0">
+                {/* Avatar + name — opens the customer's history & value */}
+                <Link href={`/customers/${c.id}`} className="flex items-center gap-4 min-w-0 flex-1">
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold"
                     style={{ background: "var(--glass-bg-2)", color: "var(--foreground)" }}
@@ -407,8 +407,23 @@ export function CustomersManager() {
                         </span>
                       )}
                     </div>
+                    {/* Their value at a glance — so the directory answers
+                        "is this a good customer?" without a tap. Quiet when
+                        there's no history yet. */}
+                    {(() => {
+                      const i = insightById.get(c.id);
+                      if (!i) return null;
+                      return (
+                        <p className="ios-footnote snm-num mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                          {i.orders_count} order{i.orders_count !== 1 ? "s" : ""} · +MVR{" "}
+                          {Number(i.profit_mvr).toLocaleString("en-MV", { maximumFractionDigits: 0 })} profit
+                          {i.days_since_last != null ? ` · last ${i.days_since_last === 0 ? "today" : `${i.days_since_last}d ago`}` : ""}
+                          {i.at_risk ? " · overdue to order" : ""}
+                        </p>
+                      );
+                    })()}
                   </div>
-                </div>
+                </Link>
 
                 {/* Actions */}
                 {canWrite && (
