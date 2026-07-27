@@ -270,8 +270,6 @@ function VerifyTab({
     }
   }
 
-  const godown = godowns.find((g) => g.id === godownId);
-
   return (
     <div className="space-y-3">
       {/* Godown selector */}

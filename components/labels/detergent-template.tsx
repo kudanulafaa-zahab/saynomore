@@ -41,6 +41,7 @@ export function DetergentTemplate({ data, boatName, boatJetty, boatDate, boatTim
           image — next/image's lazy-loading/srcset/layout-shift machinery has
           nothing to optimize here and risks disturbing the exact absolute
           positioning the SVG text overlay below is aligned against. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- print label, see above */}
       <img
         src="/sosoft-label-design.png"
         alt=""

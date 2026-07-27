@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useMounted } from "@/lib/use-mounted";
 
 /**
  * Renders children into <body>, escaping any ancestor stacking context.
@@ -18,8 +18,7 @@ import { createPortal } from "react-dom";
  * The mounted guard keeps SSR safe (document exists only on the client).
  */
 export function BodyPortal({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
   if (!mounted) return null;
   return createPortal(children, document.body);
 }

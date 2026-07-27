@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { useMounted } from "@/lib/use-mounted";
 import {
   Dialog, DialogContent, DialogTitle,
 } from "@/components/ui/dialog";
@@ -61,8 +62,7 @@ function packLabel(sku: SkuFullRow): string {
 function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   const [dragY, setDragY] = useState(0);
   const startY = useRef<number | null>(null);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   // Lock the background page while the sheet is open (iOS-correct).
   useBodyScrollLock(true);

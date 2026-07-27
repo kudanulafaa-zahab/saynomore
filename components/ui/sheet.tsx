@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { useMounted } from "@/lib/use-mounted";
 
 /**
  * The ONE modal/sheet surface for the whole app.
@@ -85,11 +86,10 @@ export function Sheet({
   // no matter its own z-index — footers/headers get visually buried under
   // the floating nav. Portalling escapes the shell's stacking context
   // entirely instead of fighting it from inside, same fix already proven
-  // for NewSaleSheet/price-explain/MixedCartonSheet. Gated on a state flag
-  // flipped inside useEffect (not a bare typeof check) so createPortal
-  // never runs before document.body exists during hydration.
-  const [portalReady, setPortalReady] = useState(false);
-  useEffect(() => { setPortalReady(true); }, []);
+  // for NewSaleSheet/price-explain/MixedCartonSheet. Gated on a mounted flag
+  // (not a bare typeof check) so createPortal never runs before document.body
+  // exists during hydration.
+  const portalReady = useMounted();
 
   if (!open || !portalReady) return null;
 

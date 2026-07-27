@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { PromoAdvisor } from "./promo-advisor";
 import { CampaignsCard } from "./campaigns-card";
 import {
-  Loader2, Plus, Search, Store, Pencil, Trash2, AlertTriangle,
+  Loader2, Search, Store, Pencil, Trash2, AlertTriangle,
   ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2,
 } from "lucide-react";
 import {
@@ -28,7 +28,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { Sheet } from "@/components/ui/sheet";
 import { listSkusFlat, updateSku, getCurrentUserRole, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listReorderAlerts } from "@/lib/queries/inventory";
-import { getPriceBook, type PriceBookRow, type PriceBookFlag } from "@/lib/queries/pricing";
+import { getPriceBook, type PriceBookRow } from "@/lib/queries/pricing";
 import Link from "next/link";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";

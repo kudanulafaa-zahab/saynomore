@@ -253,6 +253,12 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
 
 // ── SalesList ─────────────────────────────────────────────────────────────────
 
+// Monotonic key source for cart lines. Replaces Date.now() in the repeat-order
+// builder: a counter can't collide inside the same millisecond, and it's pure
+// (Date.now() is not, which the React Compiler flags).
+let cartLineSeq = 0;
+const nextCartLineKey = (skuId: string) => `${skuId}-r${++cartLineSeq}`;
+
 export function SalesList() {
   const router       = useRouter();
   const searchParams = useSearchParams();
@@ -864,7 +870,7 @@ function NewSaleSheet({
       const perPiece = price / toPieces(uom, 1, sku.pcs_per_pack, sku.packs_per_carton);
       if (sku.landed_per_piece_mvr != null && perPiece < Number(sku.landed_per_piece_mvr)) { skipped++; continue; }
       added.push({
-        key: `${sku.id}-${Date.now()}-${added.length}`,
+        key: nextCartLineKey(sku.id),
         sku, uom, qty,
         qty_pieces: line.qty_pieces,
         unit_price_mvr: price,
