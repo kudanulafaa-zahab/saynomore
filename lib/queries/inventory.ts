@@ -193,10 +193,33 @@ export interface WriteoffRow {
   godown_name: string | null;
 }
 
-export async function listRecentWriteoffs(limit = 50): Promise<WriteoffRow[]> {
-  const { data, error } = await supabase.rpc("get_recent_writeoffs", { p_limit: limit });
+/** Write-offs, optionally limited to a period (from/to as ISO dates). The P&L
+ *  passes its own period so the breakdown always adds up to the shown total. */
+export async function listRecentWriteoffs(
+  limit = 50,
+  from?: string | null,
+  to?: string | null,
+): Promise<WriteoffRow[]> {
+  const { data, error } = await supabase.rpc("get_recent_writeoffs", {
+    p_from: from ?? null,
+    p_to: to ?? null,
+    p_limit: limit,
+  });
   if (error) throw error;
   return (data ?? []) as WriteoffRow[];
+}
+
+/** One readable line per write-off: "Xtra Kering NB/S · 1 pk (damaged)". */
+export function writeoffLabel(w: WriteoffRow): string {
+  const ppc = w.pcs_per_carton || 0;
+  const qty = ppc > 0 && w.qty_pieces >= ppc
+    ? `${Math.round(w.qty_pieces / ppc)} ctn`
+    : w.pcs_per_pack > 0 ? `${Math.max(1, Math.round(w.qty_pieces / w.pcs_per_pack))} pk`
+    : `${w.qty_pieces} pcs`;
+  const raw = (w.reason ?? "").trim();
+  const why = (raw.split(":")[0] || "").trim();
+  const name = [w.model_name, w.variant_display].filter(Boolean).join(" · ");
+  return `${name} · ${qty}${why ? ` (${why})` : ""}`;
 }
 
 // ── Stock transfer (godown → godown, FIFO cost-preserving) ────────────────

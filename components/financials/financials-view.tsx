@@ -11,6 +11,7 @@ import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueR
 import { groupByBrand } from "@/lib/group-by-brand";
 import { getPnl, type PnlRow } from "@/lib/queries/expenses";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
+import { listRecentWriteoffs, writeoffLabel, type WriteoffRow } from "@/lib/queries/inventory";
 import { MarginWatch } from "./margin-watch";
 import { ReceivablesView } from "./receivables-view";
 import { CashFlowView } from "./cash-flow-view";
@@ -261,6 +262,7 @@ export function FinancialsView() {
   const [pnl, setPnl]           = useState<PnlRow | null>(null);
   const [lastPnl, setLastPnl]   = useState<PnlRow | null>(null);
   const [monthly, setMonthly]   = useState<MonthlyRevenueRow[]>([]);
+  const [writeoffs, setWriteoffs] = useState<WriteoffRow[]>([]);
   const [loading, setLoading]   = useState(true);
 
   const today          = new Date();
@@ -284,13 +286,17 @@ export function FinancialsView() {
       getPnl(lastMonthStart, lastMonthEnd),
       getReportsData(firstOfMonth, tomorrow),
       getMonthlyRevenue(6),
+      // Same period as the P&L, so the write-off sub-lines always add up to
+      // the total shown on the "Damaged & write-offs" line.
+      listRecentWriteoffs(50, firstOfMonth, tomorrow).catch(() => [] as WriteoffRow[]),
     ])
-      .then(([p, lp, r, m]) => {
+      .then(([p, lp, r, m, w]) => {
         if (cancelled) return;
         setPnl(p);
         setLastPnl(lp);
         setRows(r);
         setMonthly(m);
+        setWriteoffs(w);
       })
       .catch((e) => { if (!cancelled) toast.error((e as Error).message); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -472,16 +478,27 @@ export function FinancialsView() {
 
           {/* Damaged & write-offs — landed cost of stock removed as unsellable.
               Only shown when there's something to show (quiet when zero). */}
+          {/* Damaged & write-offs — explains itself right here, exactly like the
+              Operating Expenses categories above: the total, then one indented
+              line per write-off (product · qty · reason). No navigation. */}
           {stockWriteoff > 0 && (
-            <button
-              onClick={() => router.push("/stock-ops?tab=writeoff")}
-              style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
-            >
-              <p style={{ color: "var(--muted-foreground)", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}>
-                − Damaged &amp; write-offs <ArrowRight style={{ width: 12, height: 12, opacity: 0.6 }} />
-              </p>
-              <p className="snm-num" style={{ color: "var(--snm-error)", fontSize: 16, fontWeight: 500 }}>MVR {fmtShort(stockWriteoff)}</p>
-            </button>
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: writeoffs.length ? 4 : 6 }}>
+                <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Damaged &amp; write-offs</p>
+                <p className="snm-num" style={{ color: "var(--snm-error)", fontSize: 16, fontWeight: 500 }}>MVR {fmtShort(stockWriteoff)}</p>
+              </div>
+              {writeoffs.slice(0, 6).map((w) => (
+                <div key={w.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 2, paddingLeft: 14 }}>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{writeoffLabel(w)}</p>
+                  <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13, flexShrink: 0 }}>MVR {fmt(Number(w.cost_mvr))}</p>
+                </div>
+              ))}
+              {writeoffs.length > 6 && (
+                <p style={{ color: "var(--muted-foreground)", fontSize: 12, paddingLeft: 14, marginBottom: 4 }}>
+                  +{writeoffs.length - 6} more this month
+                </p>
+              )}
+            </>
           )}
 
           {/* Net profit divider */}

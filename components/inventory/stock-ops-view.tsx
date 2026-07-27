@@ -856,35 +856,6 @@ function WriteOffTab({
         );
       })()}
 
-      {available.length === 0 ? (
-        <EmptyState text="No stock in this warehouse to write off." />
-      ) : (
-        <div className="space-y-2 max-h-[42vh] overflow-y-auto overscroll-contain">
-          {available.map((r) => {
-            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
-            const active = skuId === r.sku.id;
-            return (
-              <button
-                key={r.sku.id}
-                onClick={() => pickSku(r.sku.id)}
-                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
-                style={{ background: "var(--glass-1)", border: active ? "1px solid color-mix(in srgb, var(--snm-error) 45%, transparent)" : "0.5px solid var(--glass-border-lo)" }}
-              >
-                <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center" style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--snm-error)" : "transparent" }}>
-                  {active && <Check className="h-3 w-3" style={{ color: "#fff" }} />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
-                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} on hand
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Recent write-offs — makes the P&L "Damaged & write-offs" loss
           explainable: what, how much, why, when. Quantities in packs/cartons. */}
       {history.length > 0 && (
@@ -917,6 +888,35 @@ function WriteOffTab({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {available.length === 0 ? (
+        <EmptyState text="No stock in this warehouse to write off." />
+      ) : (
+        <div className="space-y-2 max-h-[42vh] overflow-y-auto overscroll-contain">
+          {available.map((r) => {
+            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
+            const active = skuId === r.sku.id;
+            return (
+              <button
+                key={r.sku.id}
+                onClick={() => pickSku(r.sku.id)}
+                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
+                style={{ background: "var(--glass-1)", border: active ? "1px solid color-mix(in srgb, var(--snm-error) 45%, transparent)" : "0.5px solid var(--glass-border-lo)" }}
+              >
+                <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center" style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--snm-error)" : "transparent" }}>
+                  {active && <Check className="h-3 w-3" style={{ color: "#fff" }} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn)} on hand
+                  </p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
