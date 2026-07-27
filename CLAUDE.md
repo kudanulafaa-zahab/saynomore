@@ -15,7 +15,7 @@
   say briefly what standard you applied.
 
 ## Stack (locked)
-Next.js 15 App Router · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres) · Vercel · Lucide icons
+Next.js 16 App Router (Turbopack) · React 19 (React Compiler ON) · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres) · Vercel · Lucide icons
 
 ## Design
 - Light/dark adaptive: use CSS vars (`var(--foreground)`, `var(--background)`, `var(--glass-1)`, `var(--glass-2)`, `var(--muted-foreground)`, `var(--glass-border)`) — never hardcode hex colours
