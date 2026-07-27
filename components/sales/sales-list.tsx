@@ -253,6 +253,22 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
 
 // ── SalesList ─────────────────────────────────────────────────────────────────
 
+/** "Today" / "Yesterday" / "24 Jul" — the heading the order list groups under,
+ *  so the newest-first sort is visible instead of looking arbitrary. */
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOf(today) - startOf(d)) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  return d.toLocaleDateString("en-MV", {
+    day: "numeric",
+    month: "short",
+    ...(d.getFullYear() !== today.getFullYear() ? { year: "numeric" } : {}),
+  });
+}
+
 // Monotonic key source for cart lines. Replaces Date.now() in the repeat-order
 // builder: a counter can't collide inside the same millisecond, and it's pure
 // (Date.now() is not, which the React Compiler flags).
@@ -501,11 +517,27 @@ export function SalesList() {
         </div>
 
       ) : groupBy === "orders" ? (
-        /* ── Flat order list ── */
+        /* ── Order list, newest first, under day headings ──────────────────
+           The list is sorted by order date (newest first) — status is NOT a
+           sort key, so a confirmed order sits above an older delivered one.
+           That's the standard for an order log, but with no date on the rows
+           the ordering looked arbitrary. Day headings make the sort visible. */
         <div className="space-y-1.5">
-          {visibleOrders.map((o) => (
-            <OrderRow key={o.id} order={o} customer={customerById.get(o.customer_id ?? "")} />
-          ))}
+          {visibleOrders.map((o, i) => {
+            const day = dayLabel(o.created_at);
+            const showHeading = i === 0 || dayLabel(visibleOrders[i - 1].created_at) !== day;
+            return (
+              <div key={o.id} className={showHeading && i > 0 ? "pt-3" : undefined}>
+                {showHeading && (
+                  <p className="text-[11px] font-bold uppercase tracking-wide px-1 pb-1.5"
+                    style={{ color: "var(--muted-foreground)" }}>
+                    {day}
+                  </p>
+                )}
+                <OrderRow order={o} customer={customerById.get(o.customer_id ?? "")} />
+              </div>
+            );
+          })}
           {filtered.length > visibleOrders.length && (
             <button
               onClick={() => setVisibleCount((n) => n + 20)}
