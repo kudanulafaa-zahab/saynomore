@@ -80,6 +80,38 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 5. Built this session (recent → older highlights)
 
+- **0098 customer returns** (`record_customer_return`, `get_returns`, new `sales_returns`):
+  the last "designed but not built" gap. **"Record a return"** on a delivered order — product,
+  qty in ctn/pk/pcs (shows the value at the price they paid), reason, a **per-return settlement
+  choice** ("Less to pay" = credit, "Money back" = refund), and a "good to sell again" toggle.
+  Reverses the sale as reversing entries the existing engines already read, so they can't drift:
+  stock `return_in` back to the **original batch at the original landed cost**; `get_pnl` gains a
+  **returns_net_mvr** line (refund − cost recovered = true margin lost); `get_receivables_aging`
+  nets off returns (dashboard follows via 0080); a refund also writes a **negative
+  `order_payments`** row (`is_reversal`). Over-returning blocked; credit refused with a clear
+  message when nothing is owed. **Verified live in rolled-back transactions:** refund → stock
+  0→44, returns line 56.34, net profit −56.33, owed unchanged; credit → owed 220→0. ✓
+- **0096/0097 write-off traceability:** the P&L "Damaged & write-offs" figure now **explains
+  itself in place** — indented sub-lines beneath it (product · qty · reason · MVR), the same
+  pattern as the Operating Expenses categories. `get_recent_writeoffs(from,to,limit)` is
+  period-scoped so the sub-lines always total the line exactly (verified 93.66 = 93.66). A
+  "Recent write-offs" log also sits at the top of Stock Ops → Write-off.
+  **Lesson recorded:** don't navigate away to explain a number; explain it where it's read.
+- **0095 what-sells on the reorder screen:** `sold_90d` (real units sold, 90d) surfaced with a
+  catalogue-relative **Top seller / Steady / Slow mover** tag, shown in **cartons/packs — never
+  loose pieces** (diapers sell by pack/carton). Decision support at the point of decision, no
+  new screen.
+- **0094 audit_log allows `write_off`:** write-offs were failing on
+  `audit_log_action_check` (only insert/update/delete allowed) → the audit insert failed and the
+  whole write-off rolled back, so the sheet hung on an error. Constraint widened.
+- **Dialog structure (shared `components/ui/dialog.tsx`):** the sheet is ONE scrolling card —
+  the title is plain content at the top and the Save/Cancel sit at the END of the content
+  (scroll down to reach them). **No sticky/floating chrome** — a pinned header + translucent
+  (`bg-muted/50`) sticky footer let form text run above, behind and through the action bar.
+  Actions are side-by-side (Cancel | Save), not stacked. Affects every dialog.
+- **SKU edit freeze fixed:** on mobile, "Edit SKU" opened the edit dialog *without* closing the
+  detail sheet, so the sheet (z-60, own scroll-lock) sat on top of the frozen form and the two
+  scroll-locks jammed the page after save. One overlay at a time now.
 - **0093 stock write-off** (`write_off_stock` + `get_pnl`): the proper ERP handling for
   damaged/expired/lost stock — Stock Ops → **Write-off** tab (reason-coded, FIFO, admin/manager,
   confirm, returns the MVR loss). Removes stock via `damage_out` movements valued at each batch's
@@ -138,13 +170,28 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 6. Open / next tasks (priority order)
 
-_Done this session: #1 editable expense date, #2 cash-flow/runway forecast (0089),
-#3 trend-aware reorder velocity (0090), #4 campaign confounder flags (0091), #5 Price Book
-UX polish. Notes carried forward: the cash forecast's inflow model has a known, labelled
-minor overlap (ongoing sales run-rate + current receivables both counted) — transparent, not
-hidden; supplier payments timed to expected arrival (a visible assumption). The reorder trend
-is upward-only (never orders less than before); true calendar seasonality is deferred until
-there's multi-year history._
+_Done this session: editable expense date, cash-flow/runway forecast (0089), trend-aware
+reorder velocity (0090), campaign confounder flags (0091), Price Book UX polish + last-known
+cost (0092), stock write-off (0093/0094), what-sells on reorder (0095), write-off
+traceability (0096/0097), customer returns (0098), plus the dialog/SKU-edit fixes above._
+
+_Notes carried forward: the cash forecast's inflow model has a known, labelled minor overlap
+(ongoing sales run-rate + current receivables both counted) — transparent, not hidden;
+supplier payments timed to expected arrival (a visible assumption). The reorder trend is
+upward-only (never orders less than before); true calendar seasonality is deferred until
+there's multi-year history. Returns/write-offs show as their own P&L deduction lines
+(Gross Sales − deductions), so gross revenue elsewhere (Reports, charts, dashboard) is
+intentionally GROSS — the deductions are itemised on the P&L rather than silently shrinking
+revenue._
+
+### Still designed-but-unused in the schema (audited 2026-07-27, nothing broken)
+Available whenever Ali wants them, no work needed to "unlock" — they're just unused:
+**wholesale/VIP price tiers** (full price-list system is wired into order pricing; 0 price
+lists exist, so every sale uses the standard price) · **expiry/FEFO alerts** (capture at GRN +
+≤120d view + ≤60d briefing all built; 0 expiry dates entered, so it's dark) · **card
+payments** (allowed; waiting on the storefront/BML phase) · **per-100ml/100g competitor
+pricing** (detergent categories are set up for it; no rival prices logged that way) ·
+**extra supplier currencies** (MYR/THB/CNY/EUR).
 
 1. **Customer storefront** — **ON HOLD (Ali, 2026-07-23): do not start; Ali will decide
    if/when he wants it.** Scoped in `docs/STOREFRONT_PLAN.md` for whenever that happens.
