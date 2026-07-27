@@ -104,7 +104,8 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                // z-20 keeps it above the now-sticky header (z-10).
+                className="absolute top-2 right-2 z-20"
                 size="icon-sm"
               />
             }
@@ -118,11 +119,23 @@ function DialogContent({
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+/** --popover is 96% opaque; compositing it over the solid base makes a bar
+ *  FULLY opaque, so nothing ghosts through as content scrolls beneath it. */
+const SHEET_BAR_BG = "linear-gradient(var(--popover), var(--popover)), var(--background)";
+
+function DialogHeader({ className, style, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn(
+        // Pinned to the top of the scroll body with an OPAQUE background, so the
+        // title never scrolls up and gets clipped by the sheet edge, and nothing
+        // bleeds through behind it. Bleeds to the padded parent's edges.
+        "sticky top-0 z-10 -mx-4 -mt-2 px-4 pt-2 pb-2",
+        "flex flex-col gap-2",
+        className,
+      )}
+      style={{ background: SHEET_BAR_BG, ...style }}
       {...props}
     />
   )
@@ -132,6 +145,7 @@ function DialogFooter({
   className,
   showCloseButton = false,
   children,
+  style,
   ...props
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean
@@ -143,9 +157,15 @@ function DialogFooter({
         // Sticks to the bottom of the scroll body; negative insets bleed the
         // bar to the padded parent's edges. mt-auto pins it down when content
         // is short; sticky keeps it visible while the body scrolls.
-        "sticky bottom-0 mt-auto -mx-4 -mb-[max(1rem,env(safe-area-inset-bottom))] sm:-mb-4 flex flex-col-reverse gap-2 border-t bg-muted/50 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom),var(--kb-inset))] sm:pb-4 sm:flex-row sm:justify-end",
+        "sticky bottom-0 mt-auto -mx-4 -mb-[max(1rem,env(safe-area-inset-bottom))] sm:-mb-4 border-t px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom),var(--kb-inset))] sm:pb-4",
+        // Side-by-side actions (Cancel | Save), matching every hand-built sheet
+        // in the app. flex-col-reverse stacked them, which read as broken.
+        "flex flex-row gap-2.5 [&>button]:flex-1 sm:[&>button]:flex-none sm:justify-end",
         className
       )}
+      // OPAQUE — bg-muted/50 was translucent, so scrolling text showed straight
+      // through the Save button and the bar read as "floating".
+      style={{ background: SHEET_BAR_BG, ...style }}
       {...props}
     >
       {children}
