@@ -80,6 +80,50 @@ already built and refined over many sessions, and it must be preserved.
 
 ## 5. Built this session (recent → older highlights)
 
+- **0099 customer insights** (`get_customer_insights` / `_products` / `_orders`): answers "who
+  are my top customers and what did they buy?", which had no answer anywhere before —
+  `/customers` was a contact list and Sales → Customers only groups on-screen orders. Built on
+  **RFM** but ranked by **PROFIT, not revenue** (margins run 24–43% by SKU, so equal spend ≠
+  equal worth), **net of returns**, plus **% share of all sales** (concentration risk),
+  **at-risk** (the 0078 rhythm signal, previously buried in the morning briefing) and
+  outstanding balance. `/customers` gained lenses (A–Z · Top customers · At risk · Owes) and a
+  value line per row; **new `/customers/[id]`** shows profit/orders/avg/rhythm, then full
+  **order history** (tap → the order) and **what they buy** grouped by product in ctn/pk.
+  _Note: at_risk deliberately needs 3+ distinct order DAYS — one gap is not a rhythm._
+  Follow-up fix: the A–Z cards were `<div cursor-pointer>` with no link, so the detail was
+  unreachable from the directory — now a Link scoped to the avatar/name so Edit/Delete still work.
+- **Toolchain to latest (verified, with reasons where "latest" was wrong):** Next 16.2.12 ·
+  React 19.2.8 · Tailwind 4.3.3 · Supabase JS 2.110.8 / SSR 0.12.3 · TypeScript **6.0.3**
+  (7.x installs but `next build` rejects it — "does not provide the compiler API required by
+  Next.js"; needs an experimental flag, not worth it here) · ESLint stays **9.39.5** (10 CRASHES
+  eslint-config-next's bundled eslint-plugin-react) · `@types/node` **22** not 26 (must match the
+  Node 22 runtime or code type-checks against APIs that don't exist at runtime) ·
+  `@zxing/library` 0.23.0 (newer than its stale "latest" tag). **Do not run `npm audit fix
+  --force`** — every remedy it proposes is a DOWNGRADE (next→9.3.3, eslint-config-next→0.2.4).
+- **middleware.ts → proxy.ts** (Next 16 convention; deprecation warning gone, route still
+  registers as Proxy so it IS wired). Auth logic untouched.
+- **Lint: 0 errors** (was 59). Real fixes: `useMounted()` via `useSyncExternalStore` (BodyPortal,
+  Sheet, mobile SKU sheet), `Date.now()` → pure counter for cart-line keys, unused bindings, and
+  documented `<img>` exceptions in the PRINT label templates. The remaining 55 are one advisory
+  rule (`react-hooks/set-state-in-effect`) on the deliberate loader/form-sync patterns — set to
+  **warn** with the full rationale in `eslint.config.mjs`. Verified empirically that skills.md's
+  own loader convention does NOT clear it (the rule traces into any called function), so
+  clearing it would mean restructuring every money screen untested. Don't blind-refactor.
+- **Sales list: day headings** (Today / Yesterday / date). The sort was always correct —
+  newest-first by order date, status is a badge not a sort key — but with no date on the rows it
+  looked random. Headings make the sort visible; nothing about the sort changed.
+- **Reorder rebuilt as ONE grouped list** — the urgent SKUs used to appear in a "Suggested
+  orders" card AND again in the browse list (same row twice). Now: grouped by product, urgency
+  highlighted in place (coloured edge + status + order-by date), a lens ("Needs ordering · N" /
+  "All products") that FILTERS rather than duplicating, search + stock sort. Plus **any product
+  can be added to a PO** (container freight is per CBM — you consolidate, not just replenish),
+  and the bar now opens a **review sheet** (lines, cartons, CBM, ≈% of a 20ft/40HQ) instead of
+  creating the PO on tap. Deliberately a review, not an "Are you sure?" — draft POs are
+  reversible and nag-confirms cause fatigue.
+- **Dialogs (shared component):** one scrolling card — title at the top of the content, Save/
+  Cancel at the END (scroll down to reach), no sticky/floating chrome, actions side-by-side.
+  Also fixed the SKU-edit freeze (detail sheet stayed open under the edit dialog; two
+  scroll-locks jammed the page after save).
 - **0098 customer returns** (`record_customer_return`, `get_returns`, new `sales_returns`):
   the last "designed but not built" gap. **"Record a return"** on a delivered order — product,
   qty in ctn/pk/pcs (shows the value at the price they paid), reason, a **per-return settlement
