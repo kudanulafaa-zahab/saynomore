@@ -627,6 +627,16 @@ export function SalesList() {
            That's the standard for an order log, but with no date on the rows
            the ordering looked arbitrary. Day headings make the sort visible. */
         <div className="space-y-1.5">
+          {/* Make the paging visible. The list loads 30 at a time and pulls
+              more only as you scroll, but with a small order book that is
+              invisible — everything fits in a page or two, so it looks like
+              the whole ledger downloaded (Ali asked exactly this). Saying
+              "showing 30 of 53" states the bound outright. */}
+          {hasMore && (
+            <p className="ios-footnote px-1 pb-0.5" style={{ color: "var(--muted-foreground)" }}>
+              Showing {rows.length} of {matchCount} · more load as you scroll
+            </p>
+          )}
           {visibleOrders.map((o, i) => {
             const day = dayLabel(o.created_at);
             const showHeading = i === 0 || dayLabel(visibleOrders[i - 1].created_at) !== day;
