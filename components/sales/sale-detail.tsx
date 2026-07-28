@@ -22,6 +22,9 @@ import {
   deleteOrderPayment,
   voidOrder,
   editOrderLine,
+  getOrderAudit,
+  parseVoidReason,
+  parseVoidReversedCount,
   type SalesOrderRow,
   type SalesOrderLineRow,
   type OrderStatus,
@@ -31,6 +34,7 @@ import {
   type OrderPaymentRow,
   type OrderBalanceRow,
   type PaymentMethod,
+  type OrderAuditRow,
 } from "@/lib/queries/sales";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { haptic } from "@/lib/haptics";
@@ -108,6 +112,8 @@ export function SaleDetail({ id }: { id: string }) {
 
   // payment ledger (partial payments)
   const [payments, setPayments]         = useState<OrderPaymentRow[]>([]);
+  // Document history — who voided/edited this order, when and why.
+  const [audit, setAudit]               = useState<OrderAuditRow[]>([]);
   const [balance, setBalance]           = useState<OrderBalanceRow | null>(null);
   const [payAmount, setPayAmount]       = useState("");
   const [payMethod, setPayMethod]       = useState<PaymentMethod>("transfer");
@@ -137,7 +143,7 @@ export function SaleDetail({ id }: { id: string }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [o, ls, sk, c, g, lvl, dr, pays, bal] = await Promise.all([
+      const [o, ls, sk, c, g, lvl, dr, pays, bal, aud] = await Promise.all([
         getOrder(id),
         listOrderLines(id),
         listSkusFlat(),
@@ -151,6 +157,7 @@ export function SaleDetail({ id }: { id: string }) {
           .order("full_name"),
         listOrderPayments(id),
         getOrderBalance(id),
+        getOrderAudit(id),
       ]);
       setOrder(o);
       setLines(ls);
@@ -161,6 +168,7 @@ export function SaleDetail({ id }: { id: string }) {
       setDrivers((dr.data ?? []) as DriverOption[]);
       setPayments(pays);
       setBalance(bal);
+      setAudit(aud);
     } catch (e) { toast.error((e as Error).message); }
     finally { setLoading(false); }
   }, [id]);
@@ -532,11 +540,48 @@ export function SaleDetail({ id }: { id: string }) {
         </div>
       )}
 
-      {isCancelled && (
-        <div style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", borderRadius: 12, padding: "12px 16px", marginBottom: 12, border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}>
-          <p style={{ color: "var(--snm-error)", fontSize: 13, fontWeight: 600 }}>Order cancelled</p>
-        </div>
-      )}
+      {isCancelled && (() => {
+        // A voided document stays fully readable — that is the entire point of
+        // voiding instead of deleting. Show WHY, WHO, WHEN and what it
+        // reversed, not just a red strip. (Ali's screenshot: this screen used
+        // to end here, with no items, no money and no reason.)
+        const voidEntry  = audit.find((a) => (a.reason ?? "").toLowerCase().includes("voided"))
+                        ?? audit[0];
+        const why        = parseVoidReason(voidEntry?.reason);
+        const reversed   = parseVoidReversedCount(voidEntry?.reason);
+        return (
+          <div style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", borderRadius: 12, padding: "14px 16px", marginBottom: 12, border: "1px solid color-mix(in srgb, var(--snm-error) 25%, transparent)" }}>
+            <p style={{ color: "var(--snm-error)", fontSize: 13, fontWeight: 700 }}>Order cancelled</p>
+
+            {why && (
+              <p style={{ color: "var(--foreground)", fontSize: 14, marginTop: 6, lineHeight: 1.45 }}>
+                {why}
+              </p>
+            )}
+
+            {voidEntry && (
+              <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 6 }}>
+                By {voidEntry.changed_by_name} · {new Date(voidEntry.created_at).toLocaleString("en-MV", {
+                  day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+                })}
+              </p>
+            )}
+
+            <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 8, lineHeight: 1.45 }}>
+              {reversed && reversed > 0
+                ? `Stock was returned to inventory (${reversed} movement${reversed === 1 ? "" : "s"} reversed).`
+                : "No stock had been taken, so nothing needed returning."}
+              {" "}This order is not counted in sales or profit.
+            </p>
+
+            {!voidEntry && (
+              <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 6 }}>
+                No reason was recorded for this cancellation.
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Customer card ─────────────────────────────────────────────────── */}
       {customer && (
@@ -624,6 +669,44 @@ export function SaleDetail({ id }: { id: string }) {
                   {savingAddress ? "Saving…" : "Save"}
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── STAGE: Cancelled — the voided document, still readable ────────
+          Every other stage below renders the items and the money inside its
+          own block, so a cancelled order fell through all of them and showed
+          nothing at all. A voided order is kept precisely so it can still be
+          read: what was ordered, for how much, and what was paid. Read-only —
+          no edit, no dispatch, no payment actions. */}
+      {isCancelled && (
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 12 }}>
+            What was ordered
+          </p>
+
+          <LineList lines={lines} skus={skus} editable={false} />
+
+          {totals.count > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", paddingTop: 12, marginTop: 8, borderTop: "0.5px solid var(--glass-border-lo)" }}>
+              <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
+              <span className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 18, fontWeight: 700, textDecoration: "line-through" }}>
+                MVR {fmt(totals.mvr)}
+              </span>
+            </div>
+          )}
+
+          {/* Money actually received against a cancelled order is a refund
+              waiting to happen — surface it rather than hiding it. */}
+          {payments.length > 0 && (
+            <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 10, background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
+              <p style={{ color: "var(--snm-warning)", fontSize: 13, fontWeight: 700 }}>
+                MVR {fmt(payments.reduce((a, p) => a + Number(p.amount_mvr), 0))} was paid on this order
+              </p>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
+                The order was cancelled after payment — check whether this is owed back to the customer.
+              </p>
             </div>
           )}
         </div>

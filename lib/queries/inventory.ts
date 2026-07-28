@@ -35,9 +35,26 @@ export interface BatchStock {
   qty_pieces_remaining: number;
 }
 
+/**
+ * Batches that still hold stock.
+ *
+ * v_batch_stock keeps a row for every batch ever received, including ones sold
+ * down to zero — so the payload grew with every GRN and never shrank (~790 kB
+ * at five years of receiving, downloaded on Inventory and Godowns).
+ *
+ * Filtering here is behaviour-identical, not a behaviour change: BOTH consumers
+ * already dropped these rows on arrival (`if (b.qty_pieces_remaining <= 0)
+ * continue` in inventory-view and godowns-view) before counting stock, valuing
+ * inventory or picking the FIFO landed cost. They were downloaded and thrown
+ * away. The filter is applied HERE rather than in the view so nothing else that
+ * reads v_batch_stock — including the FIFO depletion path — is affected.
+ */
 export async function listBatchStock(): Promise<BatchStock[]> {
   return swrFetch("stock:batches", STOCK_TTL, async () => {
-    const { data, error } = await supabase.from("v_batch_stock").select("*");
+    const { data, error } = await supabase
+      .from("v_batch_stock")
+      .select("*")
+      .gt("qty_pieces_remaining", 0);
     if (error) throw error;
     return (data ?? []) as BatchStock[];
   });

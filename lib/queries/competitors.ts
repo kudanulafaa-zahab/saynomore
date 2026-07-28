@@ -59,11 +59,40 @@ export async function deleteCompetitor(id: string) {
   if (error) throw error;
 }
 
+/**
+ * What rivals charge TODAY — the latest observation per competitor, per
+ * variant, per pack size (migration 0102).
+ *
+ * Was: the entire price log, every time Market opened. Two problems, one
+ * cause. It only ever grew (~470 kB at five years of price checking), and
+ * "cheapest logged competitor" — which drives the gap %, the priced-above
+ * alert and the Price Book "vs Rivals" lens — was a minimum across ALL
+ * history. Given a few years of logging, a price nobody charges any more
+ * would still be scored as today's cheapest rival and pull Ali's prices down
+ * to match it.
+ *
+ * Comparing against current shelf prices is the point of competitor
+ * monitoring; older readings are history. The full log is retained and
+ * untouched in competitor_prices — use listCompetitorPriceHistory() for it.
+ */
 export async function listCompetitorPrices(): Promise<CompetitorPriceRow[]> {
+  const { data, error } = await supabase
+    .from("v_competitor_prices_current")
+    .select("*")
+    .order("observed_date", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Every observation ever recorded for one variant — the price trail behind
+ *  the current figure. Scoped to a variant so it can never grow unbounded. */
+export async function listCompetitorPriceHistory(variantId: string): Promise<CompetitorPriceRow[]> {
   const { data, error } = await supabase
     .from("competitor_prices")
     .select("*")
-    .order("observed_date", { ascending: false });
+    .eq("variant_id", variantId)
+    .order("observed_date", { ascending: false })
+    .limit(100);
   if (error) throw error;
   return data ?? [];
 }

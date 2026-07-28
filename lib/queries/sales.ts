@@ -382,6 +382,43 @@ export async function postSale(orderId: string) {
  * back to the exact batches they were drawn from. Blocked once payment is
  * settled (paid/deposited) or cash was collected on delivery — those need a
  * credit note, not a silent void. Requires a reason (shown in the audit log). */
+// ── Document history (migration 0103) ────────────────────────────────────
+// Voiding never deletes — the order stays on record, stamped cancelled, with
+// who did it, when and why. This reads that trail back so the order screen can
+// actually show it.
+
+export interface OrderAuditRow {
+  id: string;
+  action: string;
+  field_name: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  reason: string | null;
+  changed_by: string | null;
+  changed_by_name: string;
+  created_at: string;
+}
+
+export async function getOrderAudit(orderId: string): Promise<OrderAuditRow[]> {
+  const { data, error } = await supabase.rpc("get_order_audit", { p_order_id: orderId });
+  if (error) throw error;
+  return (data ?? []) as OrderAuditRow[];
+}
+
+/** The void entry's free-text reason, without the machine prefix.
+ *  Stored as "voided — N stock movement(s) reversed. Reason: <what Ali typed>". */
+export function parseVoidReason(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  const m = reason.match(/Reason:\s*(.+)$/i);
+  return (m?.[1] ?? "").trim() || null;
+}
+
+/** How many stock movements the void reversed, if the entry says so. */
+export function parseVoidReversedCount(reason: string | null | undefined): number | null {
+  const m = reason?.match(/(\d+)\s+stock movement/i);
+  return m ? Number(m[1]) : null;
+}
+
 export async function voidOrder(orderId: string, reason: string) {
   const { error } = await supabase.rpc("void_sales_order", { p_order_id: orderId, p_reason: reason });
   if (error) throw error;
