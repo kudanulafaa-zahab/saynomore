@@ -134,3 +134,55 @@ export async function listCompetitorPriceGaps(thresholdPct = 10): Promise<Compet
   if (error) throw error;
   return (data ?? []) as CompetitorPriceGap[];
 }
+
+// ── Price-check cadence (migration 0104) ─────────────────────────────────
+// When is a rival's price due for a fresh look?
+//
+// Price-intelligence vendors say check daily. That assumes a scraper. Ali
+// walks into shops in Malé, so the practice that actually transfers from
+// manual retail price audits is a rotating cycle weighted by importance —
+// A items every 30 days, B every 60, C every 90, with ABC coming from real
+// 90-day sales — plus event triggers, because a calendar alone misses the
+// moment that matters: a shipment landing at a new cost, when the margin has
+// just moved and the repricing decision is live.
+
+export type PriceCheckReason = "never" | "overdue" | "cost_changed" | "ok";
+
+export interface CompetitorPriceFreshness {
+  sku_id: string;
+  variant_id: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string | null;
+  abc_class: "A" | "B" | "C";
+  cadence_days: number;
+  last_checked: string | null;
+  days_since_check: number | null;
+  cost_changed_at: string | null;
+  cost_moved_since_check: boolean;
+  due: boolean;
+  days_overdue: number;
+  due_reason: PriceCheckReason;
+}
+
+export async function listPriceCheckFreshness(): Promise<CompetitorPriceFreshness[]> {
+  const { data, error } = await supabase.rpc("get_competitor_price_freshness");
+  if (error) throw error;
+  return (data ?? []) as CompetitorPriceFreshness[];
+}
+
+/** Plain-English why-now for a due row. */
+export function priceCheckReasonLabel(r: CompetitorPriceFreshness): string {
+  switch (r.due_reason) {
+    case "cost_changed":
+      return "New shipment landed at a different cost — margin has moved";
+    case "never":
+      return `Never checked · ${r.abc_class}-item`;
+    case "overdue":
+      return r.days_overdue > 0
+        ? `${r.days_since_check} days old · ${r.days_overdue} past the ${r.cadence_days}-day cycle`
+        : `${r.days_since_check} days old`;
+    default:
+      return r.days_since_check != null ? `Checked ${r.days_since_check} days ago` : "Checked";
+  }
+}

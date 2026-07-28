@@ -49,6 +49,10 @@ export interface MorningBriefing {
   overdue_mvr: number;
   slow_movers: number;
   expiring_value_mvr: number;
+  /** Rival prices past their check cycle, or never taken on an A/B item. */
+  price_checks_due: number;
+  /** The urgent subset — a shipment landed at a new cost, so margin moved. */
+  price_checks_cost_changed: number;
   /** Repeat customers past 1.5× their own median ordering gap (0078) —
    *  empty when everyone's on rhythm. */
   overdue_customers: { name: string; phone: string | null; usual_gap_days: number; days_since_last: number }[];

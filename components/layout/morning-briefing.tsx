@@ -37,6 +37,17 @@ export function MorningBriefing() {
     text: `${oc.name} usually orders every ${oc.usual_gap_days} days — it's been ${oc.days_since_last}. Worth a call${oc.phone ? ` (${oc.phone})` : ""}`,
     href: "/customers", tone: "var(--snm-warning)",
   });
+  // Price checks. The urgent case leads: a shipment just landed at a new cost,
+  // so the margin has moved and the reprice decision is live — that's when a
+  // rival's price needs to be current, not when a timer happens to expire.
+  if ((b.price_checks_cost_changed ?? 0) > 0) watch.push({
+    text: `${b.price_checks_cost_changed} product${b.price_checks_cost_changed === 1 ? "" : "s"} landed at a new cost — check what rivals charge before you reprice`,
+    href: "/competitors?tab=competitors", tone: "var(--snm-warning)",
+  });
+  else if ((b.price_checks_due ?? 0) > 0) watch.push({
+    text: `${b.price_checks_due} rival price${b.price_checks_due === 1 ? " is" : "s are"} due a check — best-sellers every 30 days`,
+    href: "/competitors?tab=competitors", tone: "var(--muted-foreground)",
+  });
   if (b.slow_movers > 0) watch.push({
     text: `${b.slow_movers} slow mover${b.slow_movers === 1 ? "" : "s"} tying up cash — a promo could turn ${b.slow_movers === 1 ? "it" : "them"} back into money`,
     href: "/competitors", tone: "var(--snm-warning)",

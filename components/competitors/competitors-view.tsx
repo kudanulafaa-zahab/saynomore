@@ -12,6 +12,9 @@ import {
 import {
   listCompetitors,
   listCompetitorPrices,
+  listPriceCheckFreshness,
+  priceCheckReasonLabel,
+  type CompetitorPriceFreshness,
   createCompetitor,
   updateCompetitor,
   deleteCompetitor,
@@ -383,15 +386,19 @@ export function CompetitorsView() {
   const [tierCoverage, setTierCoverage] = useState<TierCoverage[]>([]);
   // sku_id → recent pieces/day, powering the "at current sales speed" preview
   const [velocityMap, setVelocityMap] = useState<Map<string, number>>(new Map());
+  // Which rival prices are due a fresh look (migration 0104).
+  const [freshness, setFreshness] = useState<CompetitorPriceFreshness[]>([]);
 
   async function load() {
     try {
-      const [c, p, s, alerts] = await Promise.all([
+      const [c, p, s, alerts, fresh] = await Promise.all([
         listCompetitors(), listCompetitorPrices(), listSkusFlat(), listReorderAlerts(),
+        listPriceCheckFreshness(),
       ]);
       setCompetitors(c);
       setPrices(p);
       setSkus(s);
+      setFreshness(fresh);
       // sku_id → recent pieces sold per day, for the price-change impact preview
       setVelocityMap(new Map(alerts.map((a) => [a.sku_id, Number(a.daily_avg_pieces) || 0])));
       const first = s.find((sk) => sk.is_active && sk.landed_per_piece_mvr != null);
@@ -1239,6 +1246,81 @@ export function CompetitorsView() {
           underneath the calculator. */}
       {tab === "competitors" && (
       <>
+      {/* ── Price checks due ──
+           Rival prices were logged once and trusted forever; nothing ever
+           asked Ali to look again. Price-intelligence vendors say check
+           daily, but that assumes a scraper — Ali walks into shops. The
+           practice that transfers from manual retail price audits is a
+           rotating cycle weighted by importance (A every 30 days, B 60,
+           C 90, off real 90-day sales) plus event triggers, because the
+           moment that matters isn't a timer: it's a shipment landing at a
+           new cost, when the margin just moved and the pricing decision is
+           live. Silent when nothing is due — a watch list that always has
+           something in it becomes wallpaper. */}
+      {(() => {
+        const due = freshness.filter((f) => f.due);
+        if (due.length === 0) return null;
+        // Grouped by product — a detergent never sits between two diaper
+        // SKUs (standing rule). Sections keep the RPC's worst-first order.
+        const groups: { key: string; label: string; rows: CompetitorPriceFreshness[] }[] = [];
+        const index = new Map<string, number>();
+        for (const f of due) {
+          const key = `${f.brand_name}|${f.model_name}`;
+          const at = index.get(key);
+          if (at === undefined) {
+            index.set(key, groups.length);
+            groups.push({ key, label: `${f.brand_name} · ${f.model_name}`, rows: [f] });
+          } else {
+            groups[at].rows.push(f);
+          }
+        }
+        const costMoved = due.filter((f) => f.due_reason === "cost_changed").length;
+        return (
+          <div className="rounded-xl overflow-hidden mb-3" style={CARD}>
+            <div className="px-5 py-4" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
+              <h2 className="text-[17px] font-semibold text-foreground">
+                Price checks due · {due.length}
+              </h2>
+              <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                {costMoved > 0
+                  ? `${costMoved} because a shipment just landed at a new cost — check these before you reprice`
+                  : "Best-sellers every 30 days, mid every 60, slow every 90"}
+              </p>
+            </div>
+            <div className="divide-y divide-border">
+              {groups.map((g) => (
+                <div key={g.key} className="px-5 py-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wide pb-1.5"
+                    style={{ color: "var(--muted-foreground)" }}>
+                    {g.label}
+                  </p>
+                  <div className="space-y-1.5">
+                    {g.rows.map((f) => (
+                      <div key={f.sku_id} className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="ios-subhead font-semibold text-foreground truncate">
+                            {f.variant_display ?? "—"}
+                          </p>
+                          <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                            {priceCheckReasonLabel(f)}
+                          </p>
+                        </div>
+                        <span className="ios-footnote font-bold px-2 py-0.5 rounded-md shrink-0"
+                          style={f.due_reason === "cost_changed"
+                            ? { background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--snm-warning)" }
+                            : { background: "var(--glass-bg-2)", color: "var(--muted-foreground)" }}>
+                          {f.due_reason === "cost_changed" ? "NEW COST" : f.abc_class}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Price Comparison ──
            Redesign (2026-07-17, Ali's screenshot): the old layout stacked
            two full-weight cards — competitor price, then "Our Selling
