@@ -166,37 +166,51 @@ function WarehouseSelect({ value, onChange, godowns }: {
   value: string; onChange: (v: string) => void; godowns: GodownRow[];
 }) {
   const selected = godowns.find((g) => g.id === value);
+  // Nothing chosen yet = the reminder state. Ali asked to be prompted on every
+  // order, so the field starts empty and asks, rather than quietly pre-filling
+  // the default and hoping he notices. Warning-toned so it reads as an
+  // outstanding decision, not decoration.
+  const unset = !selected;
   return (
     <div
       className="relative rounded-2xl px-4 py-3.5 flex items-center gap-3.5"
-      style={{
-        background: "var(--snm-brand-muted)",
-        border: "1.5px solid var(--snm-brand-border)",
-      }}
+      style={unset
+        ? {
+            background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)",
+            border: "1.5px solid color-mix(in srgb, var(--snm-warning) 45%, transparent)",
+          }
+        : {
+            background: "var(--snm-brand-muted)",
+            border: "1.5px solid var(--snm-brand-border)",
+          }}
     >
       <div
         className="shrink-0 flex items-center justify-center rounded-xl"
-        style={{ width: 44, height: 44, background: "var(--snm-brand)" }}
+        style={{ width: 44, height: 44, background: unset ? "var(--snm-warning)" : "var(--snm-brand)" }}
       >
-        <Warehouse className="h-6 w-6" style={{ color: "var(--snm-brand-on)" }} strokeWidth={2} />
+        <Warehouse className="h-6 w-6" style={{ color: unset ? "var(--background)" : "var(--snm-brand-on)" }} strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] uppercase tracking-widest font-semibold" style={{ color: "var(--snm-brand-text)" }}>
-          Ship from warehouse
+        <p className="text-[12px] uppercase tracking-widest font-semibold"
+          style={{ color: unset ? "var(--snm-warning)" : "var(--snm-brand-text)" }}>
+          {unset ? "Choose warehouse first" : "Ship from warehouse"}
         </p>
         <p className="ios-body font-bold text-foreground truncate">
-          {selected ? `${selected.name}${selected.is_default ? " (default)" : ""}` : "Tap to choose warehouse"}
+          {selected ? `${selected.name}${selected.is_default ? " (usual)" : ""}` : "Tap to choose"}
         </p>
       </div>
-      <ChevronDown className="h-5 w-5 shrink-0" style={{ color: "var(--snm-brand-text)" }} />
+      <ChevronDown className="h-5 w-5 shrink-0" style={{ color: unset ? "var(--snm-warning)" : "var(--snm-brand-text)" }} />
       {/* Transparent native select covers the card so the whole thing is tappable */}
       <select
         value={value} onChange={(e) => onChange(e.target.value)}
         aria-label="Ship from warehouse"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
       >
+        {/* Placeholder keeps the picker genuinely unset on open, so the wheel
+            doesn't land on a warehouse he never actually chose. */}
+        <option value="" disabled>Choose warehouse…</option>
         {godowns.map((g) => (
-          <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</option>
+          <option key={g.id} value={g.id}>{g.name}{g.is_default ? " (usual)" : ""}</option>
         ))}
       </select>
     </div>
@@ -868,7 +882,14 @@ function NewSaleSheet({
   const [lineQty, setLineQty] = useState("");
   const [linePrice, setLinePrice] = useState("");
   const [mixedCarton, setMixedCarton] = useState(false);
-  const [godownId, setGodownId] = useState(() => (godowns.find((g) => g.is_default) ?? godowns[0])?.id ?? "");
+  // Deliberately NOT pre-filled with the default warehouse. Ali asked to be
+  // reminded on every order which godown ships it, and the reason he was
+  // "forgetting to choose" is that it was already chosen for him — so he was
+  // really forgetting to CHANGE it on the ~7% of orders that ship from the
+  // other warehouse, and a wrong pick only surfaced later at a stock count.
+  // Starting empty makes it one deliberate tap every time. That is the
+  // reminder: unmissable, and impossible to swipe away.
+  const [godownId, setGodownId] = useState("");
 
   // Step 3 — payment
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
@@ -1402,10 +1423,20 @@ function NewSaleSheet({
         </div>
       </header>
 
-      {/* Content — takes all remaining space; touch-action auto re-enables scrolling inside */}
+      {/* Content — takes all remaining space; touch-action auto re-enables scrolling inside.
+          overscroll-behavior is CONTAIN, never none. Both stop the scroll
+          chaining to the page underneath this full-screen sheet, but `none`
+          also kills the rubber-band bounce, which is the iOS signature and a
+          standing rule here (see globals.css) — with it set, this sheet felt
+          dead against every other screen in the app. `contain` keeps the
+          bounce and still traps the scroll. */}
       <div
         className="flex-1 min-h-0 overflow-y-auto px-5 space-y-5 pb-6"
-        style={{ touchAction: "pan-y", overscrollBehavior: "none" } as React.CSSProperties}
+        style={{
+          touchAction: "pan-y",
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch",
+        } as React.CSSProperties}
       >
 
         {/* Step indicator */}
@@ -1621,6 +1652,18 @@ function NewSaleSheet({
           <div className="space-y-4">
             <WarehouseSelect value={godownId} onChange={setGodownId} godowns={godowns} />
 
+            {/* Everything below needs the warehouse settled first: it decides
+                which stock is checked, which stock gets deducted, and whether
+                a product reads as in stock at all. Gating here rather than
+                nagging later means the choice is made once, before any of
+                those answers can be computed from the wrong place. */}
+            {!godownId ? (
+              <p className="ios-subhead px-1" style={{ color: "var(--muted-foreground)" }}>
+                Pick the warehouse this order ships from — stock and availability are
+                counted from there.
+              </p>
+            ) : (
+            <>
             {/* Repeat last order — the fastest possible order entry for a
                 repeat customer. Shown only while the cart is still empty so
                 it never competes with an in-progress basket. */}
@@ -2555,6 +2598,8 @@ function NewSaleSheet({
                   <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </div>
               </div>
+            )}
+            </>
             )}
           </div>
         )}
