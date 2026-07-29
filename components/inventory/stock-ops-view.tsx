@@ -7,12 +7,13 @@ import {
   Search, MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight,
   Check, AlertTriangle, Loader2, History, PackageX,
 } from "lucide-react";
-import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
+import { listSkusFlat, compareSkusForDisplay, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import {
   listStockLevels, type StockLevel,
   recordStockTransfer, recordVerification,
-  listVerificationHistory, type VerificationSession,
+  getStockCountSummary, listStockCountSessions, listStockCountVariance,
+  type StockCountSummary, type StockCountSession, type StockCountVariance,
   writeOffStock, type WriteOffReason,
   listRecentWriteoffs, type WriteoffRow,
 } from "@/lib/queries/inventory";
@@ -96,6 +97,15 @@ export function StockOpsView() {
   const [godowns, setGodowns] = useState<GodownRow[]>([]);
   const [levels, setLevels] = useState<StockLevel[]>([]);
   const [loading, setLoading] = useState(true);
+  // Stock Ops is all writes — transfers, counts, write-offs. A viewer is
+  // read-only, and the database rejects all three, so showing the forms would
+  // only hand them buttons that fail. The history panels below stay visible:
+  // seeing what was moved, counted and written off is exactly what a viewer
+  // is for.
+  const [role, setRole] = useState<string | null>(null);
+  const canWrite = role !== "viewer" && role !== null;
+
+  useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
 
   async function reloadLevels() {
     setLevels(await listStockLevels());
@@ -162,12 +172,23 @@ export function StockOpsView() {
         ))}
       </div>
 
+      {!canWrite && role !== null && (
+        <div className="rounded-2xl px-4 py-3 flex items-start gap-2.5"
+          style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <ClipboardCheck className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--muted-foreground)" }} />
+          <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
+            You have <b>view-only access</b>. You can see stock, counts and write-offs
+            here, but not record them.
+          </p>
+        </div>
+      )}
+
       {tab === "verify" ? (
-        <VerifyTab skus={skus} godowns={godowns} levels={levels} onDone={reloadLevels} />
+        <VerifyTab skus={skus} godowns={godowns} levels={levels} onDone={reloadLevels} canWrite={canWrite} />
       ) : tab === "transfer" ? (
-        <TransferTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} />
+        <TransferTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
       ) : (
-        <WriteOffTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} />
+        <WriteOffTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
       )}
     </div>
   );
@@ -178,9 +199,10 @@ export function StockOpsView() {
 /* ════════════════════════════════════════════════════════════════════════ */
 
 function VerifyTab({
-  skus, godowns, levels, onDone,
+  skus, godowns, levels, onDone, canWrite,
 }: {
   skus: SkuFullRow[]; godowns: GodownRow[]; levels: StockLevel[]; onDone: () => Promise<void>;
+  canWrite: boolean;
 }) {
   const [godownId, setGodownId] = useState<string>(
     godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "",
@@ -439,7 +461,7 @@ function VerifyTab({
         style={{ color: "var(--muted-foreground)" }}
       >
         <History className="h-3.5 w-3.5" />
-        {showHistory ? "Hide past counts" : "Past counts"}
+        {showHistory ? "Hide count results" : "Count results"}
       </button>
       {showHistory && <VerificationHistory />}
 
@@ -452,7 +474,7 @@ function VerifyTab({
           <div className="max-w-2xl mx-auto">
             <button
               onClick={submit}
-              disabled={saving}
+              disabled={saving || !canWrite}
               className="w-full h-13 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-80 disabled:opacity-60"
               style={{ background: "var(--foreground)", color: "var(--background)", height: 52, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}
             >
@@ -471,10 +493,11 @@ function VerifyTab({
 /* ════════════════════════════════════════════════════════════════════════ */
 
 function TransferTab({
-  godowns, levels, skuMap, onDone,
+  godowns, levels, skuMap, onDone, canWrite,
 }: {
   godowns: GodownRow[]; levels: StockLevel[];
   skuMap: Map<string, SkuFullRow>; onDone: () => Promise<void>;
+  canWrite: boolean;
 }) {
   const [fromId, setFromId] = useState<string>(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");
   const [toId, setToId] = useState<string>(godowns.find((g) => !g.is_default)?.id ?? godowns[1]?.id ?? "");
@@ -640,7 +663,7 @@ function TransferTab({
           )}
           <button
             onClick={submit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || !canWrite}
             className="w-full h-13 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-80 disabled:opacity-50"
             style={{ background: "var(--foreground)", color: "var(--background)", height: 52 }}
           >
@@ -700,10 +723,11 @@ function TransferTab({
 /* ════════════════════════════════════════════════════════════════════════ */
 
 function WriteOffTab({
-  godowns, levels, skuMap, onDone,
+  godowns, levels, skuMap, onDone, canWrite,
 }: {
   godowns: GodownRow[]; levels: StockLevel[];
   skuMap: Map<string, SkuFullRow>; onDone: () => Promise<void>;
+  canWrite: boolean;
 }) {
   const [godownId, setGodownId] = useState<string>(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");
   const [skuId, setSkuId] = useState<string>("");
@@ -844,7 +868,7 @@ function WriteOffTab({
 
             <button
               onClick={() => setConfirming(true)}
-              disabled={!canSubmit}
+              disabled={!canSubmit || !canWrite}
               className="w-full rounded-2xl flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-80 disabled:opacity-50"
               style={{ background: "var(--snm-error)", color: "#fff", height: 52 }}
             >
@@ -970,53 +994,195 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════════ */
+/* COUNT RESULTS — what the counting actually told us.                        */
+/*                                                                            */
+/* The old panel listed date, godown, items counted, net pieces. Three things  */
+/* were missing, and they are the reasons you count at all:                    */
+/*   · the variance in MONEY — "net -152 pcs" is not a number anyone can act on */
+/*   · ABSOLUTE variance next to net, because netting is how error hides: one   */
+/*     session had -152 on one SKU and +126 on another, so the net read like a  */
+/*     tidy -26 while BOTH records were wrong                                   */
+/*   · accuracy — lines right / lines counted — the standard cycle-count KPI,   */
+/*     and the one number that says whether the stock records can be trusted    */
+/* Plus the question a per-session list can never answer: which products keep   */
+/* drifting. A SKU wrong count after count is a process problem, not a counting */
+/* problem.                                                                     */
+/* ════════════════════════════════════════════════════════════════════════ */
+
+function fmtMoney(n: number) {
+  return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
+}
+
 function VerificationHistory() {
-  const [sessions, setSessions] = useState<VerificationSession[] | null>(null);
+  const [summary, setSummary]   = useState<StockCountSummary | null>(null);
+  const [sessions, setSessions] = useState<StockCountSession[] | null>(null);
+  const [variance, setVariance] = useState<StockCountVariance[]>([]);
+  const [view, setView]         = useState<"products" | "counts">("products");
+
   useEffect(() => {
     let cancelled = false;
-    listVerificationHistory()
-      .then((s) => { if (!cancelled) setSessions(s); })
+    Promise.all([getStockCountSummary(), listStockCountSessions(), listStockCountVariance()])
+      .then(([sum, sess, va]) => {
+        if (cancelled) return;
+        setSummary(sum); setSessions(sess); setVariance(va);
+      })
       .catch((e) => { if (!cancelled) toast.error((e as Error).message); });
     return () => { cancelled = true; };
   }, []);
-  if (sessions === null) {
+
+  if (sessions === null || summary === null) {
     return <div className="h-12 rounded-2xl animate-pulse" style={{ background: "var(--glass-1)" }} />;
   }
   if (sessions.length === 0) {
-    return <EmptyState text="No verifications recorded yet." />;
+    return <EmptyState text="No counts recorded yet." />;
   }
+
+  const acc = summary.accuracy_pct;
+  const accColor = acc == null ? "var(--muted-foreground)"
+    : acc >= 95 ? "var(--snm-success)"
+    : acc >= 80 ? "var(--snm-warning)"
+    : "var(--snm-error)";
+
   return (
-    <div className="space-y-2">
-      {sessions.map((s) => {
-        const clean = s.lines_discrepant === 0;
-        const date = new Date(s.verified_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
-        return (
-          <div
-            key={s.session_id}
-            className="rounded-2xl px-4 py-3 flex items-center justify-between"
-            style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}
-          >
-            <div className="min-w-0">
-              <p className="ios-subhead font-semibold text-foreground">{s.godown_name}</p>
-              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                {date} · {s.lines_total} item{s.lines_total !== 1 ? "s" : ""} counted
-              </p>
-            </div>
-            <div className="text-right shrink-0 ml-3">
-              {clean ? (
-                <span className="ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>All matched</span>
-              ) : (
-                <>
-                  <p className="ios-subhead font-semibold" style={{ color: s.net_delta_pieces < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
-                    {s.net_delta_pieces > 0 ? "+" : ""}{s.net_delta_pieces} pcs
-                  </p>
-                  <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{s.lines_discrepant} corrected</p>
-                </>
-              )}
-            </div>
+    <div className="space-y-3">
+      {/* Headline — accuracy leads, money second, in rufiyaa not percentages */}
+      <div className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+          Stock record accuracy
+        </p>
+        <p className="snm-num" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", color: accColor }}>
+          {acc == null ? "—" : `${acc}%`}
+        </p>
+        <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+          {summary.lines_counted - summary.lines_wrong} of {summary.lines_counted} counted item
+          {summary.lines_counted !== 1 ? "s" : ""} matched the books · {summary.sessions} count
+          {summary.sessions !== 1 ? "s" : ""}
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 mt-4 pt-4" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+              Net effect
+            </p>
+            <p className="snm-num ios-subhead font-semibold mt-0.5"
+              style={{ color: summary.net_value_mvr < 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
+              {summary.net_value_mvr < 0 ? "−" : "+"}MVR {fmtMoney(Math.abs(summary.net_value_mvr))}
+            </p>
           </div>
-        );
-      })}
+          <div>
+            <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>
+              Total error
+            </p>
+            <p className="snm-num ios-subhead font-semibold mt-0.5 text-foreground">
+              MVR {fmtMoney(summary.abs_value_mvr)}
+            </p>
+          </div>
+        </div>
+        {summary.abs_value_mvr > Math.abs(summary.net_value_mvr) * 1.5 && (
+          <p className="ios-footnote mt-2.5" style={{ color: "var(--muted-foreground)", lineHeight: 1.45 }}>
+            Losses and gains partly cancel out. The books were wrong by MVR{" "}
+            {fmtMoney(summary.abs_value_mvr)} in total, even though the net comes to MVR{" "}
+            {fmtMoney(Math.abs(summary.net_value_mvr))}.
+          </p>
+        )}
+      </div>
+
+      {/* Toggle */}
+      <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4 }}>
+        {([["products", "Keeps drifting"], ["counts", "Each count"]] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setView(v)}
+            className="flex-1 rounded-[9px] py-2 text-[12.5px] font-semibold transition"
+            style={{ background: view === v ? "var(--foreground)" : "transparent",
+                     color: view === v ? "var(--background)" : "var(--muted-foreground)" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === "products" ? (
+        variance.length === 0 ? (
+          <EmptyState text="Every counted item matched the books." />
+        ) : (
+          <div className="space-y-2">
+            {variance.map((r) => {
+              const repeat = r.times_wrong > 1;
+              return (
+                <div key={r.sku_id} className="rounded-2xl px-4 py-3"
+                  style={{
+                    background: "var(--glass-1)",
+                    border: repeat
+                      ? "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)"
+                      : "0.5px solid var(--glass-border-lo)",
+                  }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="ios-subhead font-semibold text-foreground truncate">
+                        {r.brand_name} · {r.model_name}
+                        <span className="font-normal" style={{ color: "var(--muted-foreground)" }}>
+                          {" "}· {r.variant_display ?? "—"}
+                        </span>
+                      </p>
+                      <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                        Wrong {r.times_wrong} of {r.times_counted} count{r.times_counted !== 1 ? "s" : ""}
+                        {repeat ? " · keeps drifting" : ""}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="snm-num ios-subhead font-semibold"
+                        style={{ color: r.net_value_mvr < 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
+                        {r.net_value_mvr < 0 ? "−" : "+"}MVR {fmtMoney(Math.abs(r.net_value_mvr))}
+                      </p>
+                      <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                        MVR {fmtMoney(r.abs_value_mvr)} error
+                      </p>
+                    </div>
+                  </div>
+                  {repeat && (
+                    <p className="ios-footnote mt-2" style={{ color: "var(--snm-error)" }}>
+                      Wrong every time it&apos;s counted — worth checking how it&apos;s picked and recorded,
+                      not just recounting it.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <div className="space-y-2">
+          {sessions.map((s) => {
+            const clean = s.lines_discrepant === 0;
+            const date = new Date(s.verified_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
+            return (
+              <div key={s.session_id} className="rounded-2xl px-4 py-3 flex items-center justify-between"
+                style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                <div className="min-w-0">
+                  <p className="ios-subhead font-semibold text-foreground">{s.godown_name}</p>
+                  <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                    {date} · {s.lines_total} item{s.lines_total !== 1 ? "s" : ""} · {s.counted_by}
+                  </p>
+                </div>
+                <div className="text-right shrink-0 ml-3">
+                  {clean ? (
+                    <span className="ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>All matched</span>
+                  ) : (
+                    <>
+                      <p className="snm-num ios-subhead font-semibold"
+                        style={{ color: s.net_value_mvr < 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
+                        {s.net_value_mvr < 0 ? "−" : "+"}MVR {fmtMoney(Math.abs(s.net_value_mvr))}
+                      </p>
+                      <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                        {s.lines_discrepant} of {s.lines_total} corrected
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

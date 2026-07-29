@@ -388,3 +388,86 @@ export async function listVerificationHistory(): Promise<VerificationSession[]> 
   if (error) throw error;
   return (data ?? []) as VerificationSession[];
 }
+
+// ── Stock count results (migration 0107) ─────────────────────────────────
+// Counting only pays for itself if the results are read back. Three things
+// the old history list didn't say:
+//   · the variance in MONEY (net -152 pieces is not actionable)
+//   · ABSOLUTE variance as well as net — netting is how count error hides
+//     (one session had -152 and +126 on two SKUs; both records were wrong,
+//      but the net looked like a tidy -26)
+//   · Inventory Record Accuracy — lines right / lines counted — the standard
+//     cycle-count KPI, and the one number that says whether stock records can
+//     be trusted at all.
+
+export interface StockCountSummary {
+  sessions: number;
+  lines_counted: number;
+  lines_wrong: number;
+  /** Inventory Record Accuracy %. Null when nothing has been counted. */
+  accuracy_pct: number | null;
+  /** The P&L effect — gains and losses netted off. */
+  net_value_mvr: number;
+  /** How wrong the books were, ignoring offsetting errors. */
+  abs_value_mvr: number;
+  last_counted_at: string | null;
+}
+
+export interface StockCountSession {
+  session_id: string;
+  verified_at: string;
+  godown_id: string;
+  godown_name: string;
+  counted_by: string;
+  lines_total: number;
+  lines_discrepant: number;
+  accuracy_pct: number | null;
+  net_delta_pieces: number;
+  abs_delta_pieces: number;
+  net_value_mvr: number;
+  abs_value_mvr: number;
+  notes: string | null;
+}
+
+export interface StockCountVariance {
+  sku_id: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string | null;
+  pcs_per_pack: number;
+  packs_per_carton: number;
+  times_counted: number;
+  times_wrong: number;
+  net_delta_pieces: number;
+  abs_delta_pieces: number;
+  net_value_mvr: number;
+  abs_value_mvr: number;
+  last_counted_at: string;
+}
+
+export async function getStockCountSummary(from?: string, to?: string): Promise<StockCountSummary> {
+  const { data, error } = await supabase.rpc("get_stock_count_summary", {
+    p_from: from ?? null, p_to: to ?? null,
+  });
+  if (error) throw error;
+  return data as StockCountSummary;
+}
+
+export async function listStockCountSessions(from?: string, to?: string): Promise<StockCountSession[]> {
+  const { data, error } = await supabase.rpc("get_stock_count_sessions", {
+    p_from: from ?? null, p_to: to ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as StockCountSession[];
+}
+
+/** Products that keep drifting — ranked by absolute money impact, so a SKU
+ *  whose errors cancel out still rises to the top. A product wrong in count
+ *  after count is a process problem, not a counting problem. */
+export async function listStockCountVariance(from?: string, to?: string): Promise<StockCountVariance[]> {
+  const { data, error } = await supabase.rpc("get_stock_count_variance", {
+    p_from: from ?? null, p_to: to ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as StockCountVariance[];
+}
