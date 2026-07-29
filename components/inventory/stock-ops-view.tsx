@@ -216,6 +216,11 @@ function VerifyTab({
   const [counted, setCounted] = useState<Record<string, { ctn: string; pk: string }>>({});
   const [saving, setSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // Did the counter go through the whole sheet, or just fix a couple of items?
+  // Only the counter knows, and only they can say — assuming it would record
+  // verification that never happened. This is the denominator that makes
+  // record accuracy measurable at all (migration 0108).
+  const [checkedEverything, setCheckedEverything] = useState(false);
 
   // The full count sheet: EVERY active product, pre-filled with the system
   // count for this godown (0 if the system thinks it's empty here). Showing
@@ -277,13 +282,21 @@ function VerifyTab({
       await recordVerification(
         godownId,
         edits.map((e) => ({ sku_id: e.sku.id, counted_pieces: e.countedVal, reason: "Physical count" })),
+        null,
+        // Scope = everything shown on the sheet, but only if they say so.
+        checkedEverything ? rows.length : undefined,
       );
       await onDone();
       setCounted({});
+      setCheckedEverything(false);
       haptic("success");
       const short = edits.filter((e) => e.delta < 0).length;
       const over = edits.filter((e) => e.delta > 0).length;
-      toast.success(`Count saved — ${edits.length} corrected (${short} short, ${over} extra).`);
+      toast.success(
+        checkedEverything
+          ? `Count saved — ${rows.length} items checked, ${edits.length} corrected (${short} short, ${over} extra).`
+          : `Correction saved — ${edits.length} item${edits.length !== 1 ? "s" : ""} fixed (${short} short, ${over} extra).`,
+      );
     } catch (e) {
       haptic("error");
       toast.error((e as Error).message);
@@ -471,7 +484,41 @@ function VerifyTab({
           className="fixed left-0 right-0 z-30 px-4"
           style={{ bottom: "calc(env(safe-area-inset-bottom) + 76px)" }}
         >
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto space-y-2">
+            {/* Asked, never assumed. Ticking this is what turns a correction
+                into a measurable count — it records that all {rows.length}
+                items on the sheet were actually looked at, including the ones
+                that were already right. */}
+            <button
+              onClick={() => setCheckedEverything((v) => !v)}
+              className="w-full flex items-center gap-2.5 rounded-2xl px-4 py-3 text-left"
+              style={{
+                background: "var(--glass-1)",
+                border: checkedEverything
+                  ? "1px solid color-mix(in srgb, var(--snm-success) 45%, transparent)"
+                  : "0.5px solid var(--glass-border-lo)",
+                boxShadow: "var(--glass-shadow), var(--glass-inner)",
+              }}
+            >
+              <span className="w-5 h-5 rounded-md shrink-0 flex items-center justify-center"
+                style={{
+                  background: checkedEverything ? "var(--snm-success)" : "transparent",
+                  border: checkedEverything ? "none" : "1.5px solid var(--muted-foreground)",
+                }}>
+                {checkedEverything && <Check className="h-3.5 w-3.5" style={{ color: "var(--background)" }} />}
+              </span>
+              <span className="min-w-0">
+                <span className="block ios-subhead font-semibold text-foreground">
+                  I checked every item ({rows.length})
+                </span>
+                <span className="block ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+                  {checkedEverything
+                    ? "Counts as a full count — your record accuracy gets measured"
+                    : "Leave unticked if you only fixed specific items"}
+                </span>
+              </span>
+            </button>
+
             <button
               onClick={submit}
               disabled={saving || !canWrite}
@@ -479,7 +526,9 @@ function VerifyTab({
               style={{ background: "var(--foreground)", color: "var(--background)", height: 52, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}
             >
               {saving ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Check className="h-4.5 w-4.5" />}
-              Save count — {edits.length} correction{edits.length !== 1 ? "s" : ""}
+              {checkedEverything
+                ? `Save count — ${rows.length} checked, ${edits.length} corrected`
+                : `Save correction${edits.length !== 1 ? "s" : ""} — ${edits.length} item${edits.length !== 1 ? "s" : ""}`}
             </button>
           </div>
         </div>
@@ -1046,19 +1095,45 @@ function VerificationHistory() {
 
   return (
     <div className="space-y-3">
-      {/* Headline — accuracy leads, money second, in rufiyaa not percentages */}
+      {/* Headline.
+          Accuracy is shown ONLY when it is real. The count sheet submits just
+          the rows that were CHANGED, so a session that corrects one item
+          stores one line, and that line is by definition wrong — computing
+          accuracy from it forces a permanent 0%, which is what shipped in
+          0107 and told Ali his records were perfectly wrong while measuring
+          nothing. Until a session records how many items were actually
+          checked, this says so plainly instead of inventing a number. The
+          money figures below are exact either way — they come from real
+          differences valued at landed cost. */}
       <div className="rounded-2xl p-4" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
-        <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
-          Stock record accuracy
-        </p>
-        <p className="snm-num" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", color: accColor }}>
-          {acc == null ? "—" : `${acc}%`}
-        </p>
-        <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-          {summary.lines_counted - summary.lines_wrong} of {summary.lines_counted} counted item
-          {summary.lines_counted !== 1 ? "s" : ""} matched the books · {summary.sessions} count
-          {summary.sessions !== 1 ? "s" : ""}
-        </p>
+        {acc != null ? (
+          <>
+            <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+              Stock record accuracy
+            </p>
+            <p className="snm-num" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", color: accColor }}>
+              {acc}%
+            </p>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              {summary.items_checked - summary.lines_adjusted} of {summary.items_checked} checked item
+              {summary.items_checked !== 1 ? "s" : ""} matched the books · {summary.full_counts} full count
+              {summary.full_counts !== 1 ? "s" : ""}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+              Stock corrections
+            </p>
+            <p className="snm-num" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
+              {summary.lines_adjusted}
+            </p>
+            <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              across {summary.sessions} session{summary.sessions !== 1 ? "s" : ""} — each one fixed a
+              specific item rather than counting the whole warehouse
+            </p>
+          </>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mt-4 pt-4" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <div>
@@ -1067,7 +1142,7 @@ function VerificationHistory() {
             </p>
             <p className="snm-num ios-subhead font-semibold mt-0.5"
               style={{ color: summary.net_value_mvr < 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
-              {summary.net_value_mvr < 0 ? "−" : "+"}MVR {fmtMoney(Math.abs(summary.net_value_mvr))}
+              {summary.net_value_mvr < 0 ? "\u2212" : "+"}MVR {fmtMoney(Math.abs(summary.net_value_mvr))}
             </p>
           </div>
           <div>
@@ -1084,6 +1159,14 @@ function VerificationHistory() {
             Losses and gains partly cancel out. The books were wrong by MVR{" "}
             {fmtMoney(summary.abs_value_mvr)} in total, even though the net comes to MVR{" "}
             {fmtMoney(Math.abs(summary.net_value_mvr))}.
+          </p>
+        )}
+        {acc == null && (
+          <p className="ios-footnote mt-2.5" style={{ color: "var(--muted-foreground)", lineHeight: 1.45 }}>
+            How accurate your stock records are can&rsquo;t be worked out from these —
+            only the items you corrected were recorded, so there is nothing to compare
+            them against. Tick <b>&ldquo;I checked every item&rdquo;</b> on your next count
+            and it starts being measured.
           </p>
         )}
       </div>

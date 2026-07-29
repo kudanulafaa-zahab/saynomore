@@ -351,15 +351,31 @@ export interface VerificationCount {
   reason?: string | null;
 }
 
+/**
+ * Record a stock verification.
+ *
+ * `scopeLines` is how many items were ACTUALLY checked, including the ones
+ * that turned out correct — the denominator for record accuracy. Pass it only
+ * when the counter confirms they went through the whole sheet; leave it
+ * undefined for a targeted correction of one or two items.
+ *
+ * Why it has to be asked for rather than assumed: only changed rows are
+ * submitted, so without this the app can only ever see corrections, and any
+ * accuracy figure computed from them is forced to 0% (see migration 0108).
+ * Assuming every untouched row was "counted and correct" would be worse — it
+ * would invent verification that never happened.
+ */
 export async function recordVerification(
   godownId: string,
   counts: VerificationCount[],
   notes?: string | null,
+  scopeLines?: number,
 ): Promise<string> {
   const { data, error } = await supabase.rpc("record_verification", {
     p_godown_id: godownId,
     p_counts: counts,
     p_notes: notes ?? null,
+    p_scope_lines: scopeLines ?? null,
   });
   if (error) throw error;
   invalidate("stock:");
@@ -402,9 +418,15 @@ export async function listVerificationHistory(): Promise<VerificationSession[]> 
 
 export interface StockCountSummary {
   sessions: number;
-  lines_counted: number;
-  lines_wrong: number;
-  /** Inventory Record Accuracy %. Null when nothing has been counted. */
+  /** Sessions where the counter confirmed how many items they checked. */
+  full_counts: number;
+  /** Sessions that only corrected specific items — accuracy not computable. */
+  corrections: number;
+  /** Items actually verified across full counts (the accuracy denominator). */
+  items_checked: number;
+  lines_adjusted: number;
+  /** Record accuracy %. NULL until at least one full count has been recorded —
+   *  deliberately not faked from correction-only sessions. */
   accuracy_pct: number | null;
   /** The P&L effect — gains and losses netted off. */
   net_value_mvr: number;
@@ -421,6 +443,8 @@ export interface StockCountSession {
   counted_by: string;
   lines_total: number;
   lines_discrepant: number;
+  scope_lines: number | null;
+  is_full_count: boolean;
   accuracy_pct: number | null;
   net_delta_pieces: number;
   abs_delta_pieces: number;
