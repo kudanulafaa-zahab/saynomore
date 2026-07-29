@@ -65,3 +65,59 @@ must not ship on assumptions — a storefront that misprices or oversells is wor
 than no storefront. Tasks #1–#5 were self-contained and shipped to production
 this session; #6 is a genuine product, scoped here and ready to build the moment
 the decisions land.
+
+## Progress update (2026-07-29)
+
+The 5 decisions above are locked in and the backend they unblock is **built,
+verified, and live** — see `/root/.claude/plans/iridescent-jingling-mitten.md`
+for the full architecture (separate Next.js project decided over a route
+group) and migrations `0112`–`0117` for the implementation:
+`get_storefront_catalogue()` (public catalogue read), `place_customer_order()`
+(the one public write, no price parameter — server prices every line),
+`godowns.is_web_fulfilment`, `variants.image_url` + `product-images` bucket,
+and `order_source`/Web badges surfaced in Sales and Dispatch.
+
+Photo upload is live: staff attach a photo to any variant from Products →
+Edit Variant → Upload photo (see `EditVariantDialog` in
+`components/products/edit-dialogs.tsx`). No admin tool for images is needed
+beyond this.
+
+**Product decisions confirmed by Ali, for when the storefront UI is built:**
+- MamyPoko "X-tra Dry" = the existing "Xtra Kering" model under newer
+  packaging, not a separate model — new images attach to the existing model's
+  variants.
+- Sosoft colour → scent mapping (confirmed 2026-07-29): Blue = Rose &
+  Waterlily, Purple = Freesia & Pear, Red = Sakura Blossom, Pink = Sweet
+  Peony, Green = Floral Lily (no photo yet). The catalogue currently also
+  carries a near-duplicate "Fresia &Pear" variant under Purple and misplaced
+  "Peony Bottle 700ml" entries under both Purple and Red — Ali wants to review
+  the Products screen himself before anything is cleaned up; **do not delete
+  without his go-ahead**.
+- **Browse structure**: category-first (Diapers, Detergent — matches
+  `product_categories.sort_order`), brand-grouped within each category
+  (MamyPoko/Merries/etc. under Diapers; Sosoft under Detergent), sizes/scents
+  nested under each brand — the same grouping rule already mandated
+  everywhere else in this app (CLAUDE.md: "product lists stay grouped by
+  product"). This is also standard mobile FMCG-storefront practice (category
+  tabs, brand sections within).
+- **Brand descriptions**: yes, short ones per brand, written from real public
+  brand facts (not copied marketing copy) — draft copy below, ready to drop
+  into the storefront when it's built:
+  - **Merries (Kao, Japan)** — Japan's No.1 diaper brand. 3-Layer Air-Through
+    System vents heat and moisture while locking liquid away; the wavy inner
+    sheet cuts skin contact by half. Dermatologically tested, fragrance-free.
+  - **MamyPoko (Unicharm)** — X-tra Kering's X-shaped absorbent core pulls
+    wetness away fast for up to 10 hours dry; the gel core expands 40x, and a
+    colour-change wetness line takes the guesswork out of change time.
+  - **Sosoft (Wings, Indonesia)** — a 2-in-1 plant-based detergent and fabric
+    softener, first in Indonesia to soften with real aloe vera. BotaniBlend
+    keeps up to 90% plant-based actives, in five scents shoppers can mix and
+    match into one carton.
+- **Image quality**: every photo must read crisp on a Retina phone screen —
+  source images processed at 1200×1200 (enough headroom for a ~400px CSS
+  product card at 3x); the storefront build will additionally use
+  `next/image` with proper `sizes`/srcset rather than a single fixed-width
+  `<img>`, so the browser picks the right resolution per device.
+
+Storefront UI build (Task #3, `saynomore-shop` Next.js project) is still on
+hold at Ali's request — not started.
