@@ -88,11 +88,13 @@ beyond this.
   variants.
 - Sosoft colour → scent mapping (confirmed 2026-07-29): Blue = Rose &
   Waterlily, Purple = Freesia & Pear, Red = Sakura Blossom, Pink = Sweet
-  Peony, Green = Floral Lily (no photo yet). The catalogue currently also
-  carries a near-duplicate "Fresia &Pear" variant under Purple and misplaced
-  "Peony Bottle 700ml" entries under both Purple and Red — Ali wants to review
-  the Products screen himself before anything is cleaned up; **do not delete
-  without his go-ahead**.
+  Peony, Green = Floral Lily (no photo yet). **Cleaned up 2026-07-29**: the
+  catalogue had 4 orphan variant rows alongside the real ones (Purple/Peony,
+  Red/Peony, Blue/Mint, and a duplicate spelling of Purple/Fresia&Pear) —
+  verified each had zero SKU, stock, or order history before deleting (audit
+  logged), and fixed the typo on the live Purple variant in place
+  ("Fresia &Pear" → "Fresia & Pear"). Sosoft now has exactly 5 variants, one
+  per model, matching the list above 1:1.
 - **Browse structure**: category-first (Diapers, Detergent — matches
   `product_categories.sort_order`), brand-grouped within each category
   (MamyPoko/Merries/etc. under Diapers; Sosoft under Detergent), sizes/scents
