@@ -1173,7 +1173,7 @@ function VerificationHistory() {
 
       {/* Toggle */}
       <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4 }}>
-        {([["products", "Keeps drifting"], ["counts", "Each count"]] as const).map(([v, label]) => (
+        {([["products", "By product"], ["counts", "Each count"]] as const).map(([v, label]) => (
           <button key={v} onClick={() => setView(v)}
             className="flex-1 rounded-[9px] py-2 text-[12.5px] font-semibold transition"
             style={{ background: view === v ? "var(--foreground)" : "transparent",
