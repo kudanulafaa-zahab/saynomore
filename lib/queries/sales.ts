@@ -6,7 +6,7 @@ import { invalidate } from "@/lib/swr-lite";
 // ── Types ────────────────────────────────────────────────────────────────
 
 export type OrderStatus = "draft" | "confirmed" | "picked" | "out_for_delivery" | "delivered" | "cancelled";
-export type OrderChannel = "whatsapp" | "viber" | "messenger" | "instagram" | "tiktok" | "facebook" | "walkin" | "phone" | "other";
+export type OrderChannel = "whatsapp" | "viber" | "messenger" | "instagram" | "tiktok" | "facebook" | "walkin" | "phone" | "other" | "web";
 export type PaymentStatus = "pending" | "partial" | "paid" | "cod" | "deposited";
 export type SaleUom = "carton" | "pack" | "piece";
 
@@ -33,6 +33,9 @@ export interface SalesOrderRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  /** 'walk-in' (staff-entered, WhatsApp/phone/etc.) or 'web' (the customer
+   *  storefront, migration 0112). Drives the Web badge in the order lists. */
+  order_source: string;
   order_total_mvr?: number;
 }
 
