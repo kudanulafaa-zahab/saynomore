@@ -181,8 +181,12 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
   // One-line location summary keeps godowns distinguishable (Ali's law) without
   // the stacked block that made every card tall. One godown → just the name
   // (the carton count is already the big number); many → per-godown cartons.
+  // Never say the same thing twice in one row. The badge beside this already
+  // reads OUT OF STOCK, and the card is outlined red with a red dot and a red
+  // 0 — repeating the words here just cost the space that the actual
+  // instruction ("reorder now") needed, and got truncated for its trouble.
   const godownLine = isOut
-    ? "Out of stock — reorder now"
+    ? "Reorder now"
     : sortedGodowns.length === 0 ? "No stock on hand"
     : sortedGodowns.length === 1 ? sortedGodowns[0].godown.name
     : sortedGodowns.map((g) => `${g.godown.name} ${fmtQty(g.pieces, sku.pcs_per_pack, pcsPerCtn)}`).join(" · ");
@@ -214,23 +218,45 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
       >
         <div className="w-2 h-2 rounded-full shrink-0" style={{ background: accent }} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          {/* Line 1 is IDENTITY, and nothing is allowed to squeeze it.
+              The status badge used to sit here with shrink-0, so a long
+              "⛔ OUT OF STOCK" ate the width and truncation chewed off the
+              end of the name — which is the SIZE, the one thing that tells
+              two rows of the same product apart. Ali's screenshot: three
+              "Xtra Kering · …" rows, all out of stock, none identifiable.
+              The identifier now owns the full line; status moved down. */}
+          {hideModel ? (
             <p className="text-[15px] font-semibold text-foreground leading-snug truncate">
-              {hideModel
-                ? (sku.variant_display ?? sku.internal_code)
-                : <>
-                    {(searchActive || showBrand) && <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>}
-                    {sku.model_name}
-                    {sku.variant_display
-                      ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
-                      : null}
-                  </>}
+              {sku.variant_display ?? sku.internal_code}
             </p>
+          ) : (
+            /* The SIZE is what separates siblings, so it is the one part that
+               must never be clipped. Brand and model are given the flexible,
+               truncating half; the size sits in its own shrink-0 span. Truncate
+               on the <p> alone would clip the tail — and the size IS the tail. */
+            <div className="flex items-baseline gap-0 min-w-0 text-[15px] font-semibold leading-snug">
+              <span className="truncate text-foreground">
+                {(searchActive || showBrand) && (
+                  <span style={{ color: "var(--muted-foreground)" }}>{sku.brand_name} · </span>
+                )}
+                {sku.model_name}
+              </span>
+              {sku.variant_display && (
+                <span className="font-normal shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                  &nbsp;· {sku.variant_display}
+                </span>
+              )}
+            </div>
+          )}
+          {/* Line 2 carries status then detail. Here the badge SHOULD win the
+              space fight — a clipped godown list still tells you what you need,
+              a clipped status does not. */}
+          <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
             <DirBadge alert={alert} />
+            <p className="ios-subhead truncate" style={{ color: isOut ? "var(--snm-error)" : "var(--muted-foreground)" }}>
+              {metaLine}
+            </p>
           </div>
-          <p className="ios-subhead mt-0.5 truncate" style={{ color: isOut ? "var(--snm-error)" : "var(--muted-foreground)" }}>
-            {metaLine}
-          </p>
         </div>
         <div className="text-right shrink-0">
           <p
@@ -744,8 +770,13 @@ export function InventoryView() {
           <p className="label-caps text-[12px] px-1" style={{ color: "var(--snm-error)" }}>
             Needs attention
           </p>
+          {/* These rows are lifted OUT of their product section, so they have
+              to carry their own full identity — brand included. Without it a
+              pinned row read "Xtra Kering · XL" with no brand, three times
+              over. A flattened list must name what the grouping was saying
+              for it. */}
           {attentionRows.map((row) => (
-            <SkuCard key={`att-${row.sku.id}`} row={row} searchActive={false} />
+            <SkuCard key={`att-${row.sku.id}`} row={row} searchActive={false} showBrand />
           ))}
         </div>
       )}

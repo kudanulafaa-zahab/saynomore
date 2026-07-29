@@ -1238,6 +1238,39 @@ function NewSaleSheet({
   const insufficient = stockHere !== null && lineQtyPieces > stockHere;
   const grandTotal = useMemo(() => draftLines.reduce((s, l) => s + l.line_total_mvr, 0), [draftLines]);
 
+  /**
+   * Is the chosen warehouse actually the right one for this basket?
+   *
+   * 93% of orders ship from the default, so a "did you pick a warehouse?"
+   * prompt on every order would be dismissed reflexively within a week — and
+   * then ignored on the 7% that matter. So this stays silent unless the
+   * basket itself says the choice is wrong: a line the chosen warehouse
+   * cannot cover, where the other one can.
+   */
+  const godownCheck = useMemo(() => {
+    if (!godownId || draftLines.length === 0) return null;
+    const need = new Map<string, number>();
+    for (const l of draftLines) need.set(l.sku.id, (need.get(l.sku.id) ?? 0) + l.qty_pieces);
+
+    const qtyIn = (skuId: string, gid: string) =>
+      stockLevels.find((s) => s.sku_id === skuId && s.godown_id === gid)?.qty_pieces ?? 0;
+
+    const short = [...need.entries()].filter(([skuId, pieces]) => qtyIn(skuId, godownId) < pieces);
+    if (short.length === 0) return null;
+
+    // Would another warehouse cover the WHOLE basket? Only then is a
+    // one-tap switch honest advice rather than a different problem.
+    const better = godowns.find((g) =>
+      g.id !== godownId && [...need.entries()].every(([skuId, pieces]) => qtyIn(skuId, g.id) >= pieces));
+
+    const names = short
+      .map(([skuId]) => draftLines.find((l) => l.sku.id === skuId)?.sku)
+      .filter(Boolean)
+      .map((s) => `${s!.model_name} ${s!.variant_display ?? ""}`.trim());
+
+    return { shortCount: short.length, names, better: better ?? null };
+  }, [godownId, draftLines, stockLevels, godowns]);
+
 
   function handleScanResult(code: string) {
     setShowScanner(false);
@@ -2565,6 +2598,44 @@ function NewSaleSheet({
                   </div>
                 );
               })}
+            </div>
+
+            {/* ── Ship from ──
+                The warehouse decides which stock gets deducted, and it was
+                chosen back on step 2 and never shown again — so a wrong pick
+                sailed through to Place Order unseen, and only surfaced at a
+                stock count. Restating a consequential choice on the review
+                step is the cheapest catch there is: no extra taps if it's
+                right, one tap to fix if it isn't. */}
+            <div className="space-y-2">
+              <p className="text-[12px] uppercase tracking-widest font-medium" style={{ color: "var(--muted-foreground)" }}>Ship from</p>
+              <WarehouseSelect value={godownId} onChange={setGodownId} godowns={godowns} />
+
+              {godownCheck && (
+                <div className="rounded-xl p-3.5"
+                  style={{
+                    background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)",
+                  }}>
+                  <p className="ios-subhead font-semibold" style={{ color: "var(--snm-warning)" }}>
+                    {godownCheck.shortCount === 1 ? "1 item isn't" : `${godownCheck.shortCount} items aren't`} in{" "}
+                    {godowns.find((g) => g.id === godownId)?.name ?? "this warehouse"}
+                  </p>
+                  <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
+                    {godownCheck.names.slice(0, 3).join(", ")}
+                    {godownCheck.names.length > 3 ? ` +${godownCheck.names.length - 3} more` : ""}
+                  </p>
+                  {godownCheck.better && (
+                    <button
+                      onClick={() => setGodownId(godownCheck.better!.id)}
+                      className="mt-2.5 h-11 px-4 rounded-xl ios-subhead font-semibold w-full active:scale-[0.99]"
+                      style={{ background: "var(--foreground)", color: "var(--background)" }}
+                    >
+                      Ship from {godownCheck.better.name} instead
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Payment method */}
