@@ -382,28 +382,12 @@ export async function recordVerification(
   return data as string;
 }
 
-// ── Verification history (audit list) ─────────────────────────────────────
-
-export interface VerificationSession {
-  session_id: string;
-  godown_id: string;
-  godown_name: string;
-  verified_at: string;
-  verified_by: string | null;
-  notes: string | null;
-  lines_total: number;
-  lines_discrepant: number;
-  net_delta_pieces: number;
-}
-
-export async function listVerificationHistory(): Promise<VerificationSession[]> {
-  const { data, error } = await supabase
-    .from("v_verification_history")
-    .select("*")
-    .limit(50);
-  if (error) throw error;
-  return (data ?? []) as VerificationSession[];
-}
+// Verification history used to be read here via v_verification_history. It is
+// gone on purpose: that view does NOT exclude sessions whose stock adjustments
+// were later deleted (see migration 0109 — a force-voided GRN wipes the
+// movements but leaves the session behind), so anything wired to it would
+// silently reintroduce the bug where deleted corrections are reported as real.
+// Use listStockCountSessions() below, which reads v_stock_count_lines_live.
 
 // ── Stock count results (migration 0107) ─────────────────────────────────
 // Counting only pays for itself if the results are read back. Three things
