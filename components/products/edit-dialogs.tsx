@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, ImageOff, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ import {
   updateModel,
   updateVariant,
   updateSku,
+  uploadVariantImage,
   adminDeleteBrandCascade,
   adminDeleteModelCascade,
   adminDeleteVariantCascade,
@@ -225,7 +226,10 @@ export function EditVariantDialog({
 }) {
   const [attrs, setAttrs] = useState<Record<string, string>>({});
   const [display, setDisplay] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const schema: AttrKey[] = useMemo(
     () => (category?.variant_attributes ?? []) as AttrKey[],
@@ -238,8 +242,29 @@ export function EditVariantDialog({
       Object.entries(variant.attributes).forEach(([k, v]) => { fromDb[k] = String(v); });
       setAttrs(fromDb);
       setDisplay(variant.display_name);
+      setImageUrl(variant.image_url);
     }
   }, [open, variant]);
+
+  async function handlePickImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !variant) return;
+    setUploading(true);
+    try {
+      const url = await uploadVariantImage(variant.id, file);
+      // Persist immediately — a photo is useful the moment it's uploaded,
+      // independent of whether the rest of the form gets saved.
+      await updateVariant(variant.id, { image_url: url });
+      setImageUrl(`${url}?t=${Date.now()}`); // bust cache: same path, new content
+      toast.success("Photo uploaded");
+      onSaved();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function save() {
     if (!variant || !display.trim()) return;
@@ -272,6 +297,48 @@ export function EditVariantDialog({
           {category && <DialogDescription>Category: {category.name}</DialogDescription>}
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Photo</Label>
+            <div className="flex items-center gap-3">
+              <div
+                className="h-20 w-20 shrink-0 rounded-lg overflow-hidden flex items-center justify-center"
+                style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border)" }}
+              >
+                {imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imageUrl} alt={display || "Variant"} className="h-full w-full object-cover" />
+                ) : (
+                  <ImageOff className="h-6 w-6" style={{ color: "var(--muted-foreground)" }} />
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePickImage}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  {imageUrl ? "Replace photo" : "Upload photo"}
+                </Button>
+                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                  Shown on the web shop. One photo per size/scent.
+                </p>
+              </div>
+            </div>
+          </div>
           {keys.length > 0 && (
             <div className="grid grid-cols-2 gap-3">
               {keys.map((k) => (

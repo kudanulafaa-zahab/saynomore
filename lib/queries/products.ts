@@ -58,6 +58,9 @@ export interface VariantRow {
   model_id: string;
   attributes: Record<string, string | number>;
   display_name: string;
+  // Storefront product photo — one per variant (a size/scent, not per pack
+  // config). Nullable: most variants launch with none.
+  image_url: string | null;
 }
 
 export interface SkuRow {
@@ -350,11 +353,29 @@ export async function updateModel(
 }
 export async function updateVariant(
   id: string,
-  patch: { display_name?: string; attributes?: Record<string, string | number> },
+  patch: {
+    display_name?: string;
+    attributes?: Record<string, string | number>;
+    image_url?: string | null;
+  },
 ) {
   const { error } = await supabase.from("variants").update(patch).eq("id", id);
   if (error) throw error;
   invalidate("skus:");
+}
+
+/** Upload a product photo for a variant to the public product-images bucket
+ *  and return its public URL. Keyed by variant id (not original filename) so
+ *  re-uploading replaces the same object instead of accumulating orphans. */
+export async function uploadVariantImage(variantId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `variants/${variantId}.${ext}`;
+  const { error: uploadError } = await supabase.storage
+    .from("product-images")
+    .upload(path, file, { upsert: true, cacheControl: "3600" });
+  if (uploadError) throw uploadError;
+  const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+  return data.publicUrl;
 }
 export async function updateSku(
   id: string,
