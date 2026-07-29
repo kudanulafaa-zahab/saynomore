@@ -1,0 +1,1837 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-3xl: calc(var(--radius) * 2.5);
+
+  /* Brand accent — GRAPHITE MONOCHROME. Ali rejected systemBlue (three
+     times) and then systemIndigo (2026-07-12): the pattern is that ANY
+     hue-based accent reads as decoration to him. The accent is therefore
+     the foreground itself — black in light, white in dark — matching the
+     primary buttons he has always liked. The payoff for a money app:
+     green/red/orange are now the ONLY hues on screen, so color always
+     means money. Contrast is maximal by construction (foreground on
+     background). Defined once; adapts to both modes automatically. */
+  --snm-brand: var(--foreground);
+  --snm-brand-muted: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --snm-brand-border: color-mix(in srgb, var(--foreground) 22%, transparent);
+  --snm-brand-on: var(--background);
+
+  /* Foreground that sits ON any saturated semantic fill (success/error/
+     warning/info buttons and pills). White in both modes — every Apple
+     system colour used as a fill is dark enough for white to pass AA. */
+  --snm-on-fill: #ffffff;
+
+  /* Brand text = foreground (monochrome): links/interactive text signal
+     through weight, not hue. Contrast maximal in both modes. */
+  --snm-brand-text: var(--foreground);
+
+  /* Fonts (Apple HIG 2026). --font-sys = SF Pro system stack for ALL UI text
+     (real SF Pro on iOS/macOS, Inter/system-ui fallback elsewhere).
+     --font-wordmark = Plus Jakarta, used ONLY by the "saynomore" wordmark. */
+  --font-sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Inter", "Segoe UI", system-ui, Roboto, sans-serif;
+
+  /* ── Apple HIG iOS type scale (SF/Dynamic Type @ Large) ────────────────────
+     Source: Apple HIG → Typography → iOS point sizes, leading, tracking.
+     We map each style to a token so components can match the system exactly.
+     Tracking values are Apple's published tracking at the default size.        */
+  --ios-large-title: 34px;  --ios-large-title-lh: 41px;  --ios-large-title-ls: 0.374px;
+  --ios-title1:      28px;  --ios-title1-lh:      34px;  --ios-title1-ls:      0.364px;
+  --ios-title2:      22px;  --ios-title2-lh:      28px;  --ios-title2-ls:      0.352px;
+  --ios-title3:      20px;  --ios-title3-lh:      25px;  --ios-title3-ls:      0.38px;
+  --ios-headline:    17px;  --ios-headline-lh:    22px;  --ios-headline-ls:   -0.408px;
+  --ios-body:        17px;  --ios-body-lh:        22px;  --ios-body-ls:       -0.408px;
+  --ios-callout:     16px;  --ios-callout-lh:     21px;  --ios-callout-ls:    -0.32px;
+  --ios-subhead:     15px;  --ios-subhead-lh:     20px;  --ios-subhead-ls:    -0.24px;
+  --ios-footnote:    13px;  --ios-footnote-lh:    18px;  --ios-footnote-ls:   -0.078px;
+  --ios-caption1:    12px;  --ios-caption1-lh:    16px;  --ios-caption1-ls:    0px;
+  --ios-caption2:    11px;  --ios-caption2-lh:    13px;  --ios-caption2-ls:    0.066px;
+
+  /* Semantic tokens — Apple system colours (dark defaults, light in :root).
+     Red/green carry meaning only (destructive/loss · success/good money). */
+  --snm-error: #FF453A;   /* systemRed (dark) */
+  --snm-success: #30D158; /* systemGreen (dark) */
+  /* "Attention/pending" — systemOrange (Apple HIG's actual semantic warning
+     colour; every native iOS surface — Settings, Health, Wallet, low-battery —
+     uses orange/yellow for caution, never teal/cyan). A prior revision moved
+     this to systemTeal to avoid clashing with the blue-dominant palette, but
+     that was the wrong fix: cyan is a perceptually "cool/recessive" hue, so
+     even at a passing WCAG ratio it read as dim (Ali flagged real-device
+     legibility, 2026-07-11). Orange's warmth is what makes a warning color
+     work — it's SUPPOSED to visually interrupt a cool palette, not blend in.
+     Reverted to Apple's own systemOrange. */
+  --snm-warning: #FF9F0A; /* systemOrange (dark) */
+  --snm-info: #0A84FF;    /* systemBlue (dark) */
+  --snm-promo: #BF5AF2;   /* systemPurple (dark) */
+
+  /* ── Motion tokens — one spring language app-wide ─────────────────────────
+     --snm-spring: overshoot spring for press/appear (tap states, sheet pops).
+     --snm-ease-out: settling curve for everything else (hover, colour, fade).
+     Components must reference these instead of hardcoding cubic-beziers so a
+     single edit retunes the whole app's physicality.                        */
+  --snm-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --snm-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --snm-dur-press: 0.1s;
+  --snm-dur-fast:  0.15s;
+  --snm-dur-med:   0.3s;
+
+  /* ── Scrim — the ONE backdrop recipe for every modal/sheet/overlay ────────
+     Always dark in both themes (iOS dims with black regardless of mode).   */
+  --scrim-bg:   rgba(0, 0, 0, 0.50);
+  --scrim-blur: blur(8px);
+
+  /* Categorical TAG colours — for peer labels with no status meaning (e.g. a
+     customer price tier: Retail/Wholesale/VIP/Promo). These must NEVER reuse
+     the semantic tokens above — borrowing --snm-brand/warning/success for a
+     plain category label falsely implies "primary action" / "needs attention"
+     / "good money" where none applies. Dark defaults; light overrides below. */
+  --snm-tag-violet: #A87DE8;
+  --snm-tag-slate:  #9AAABC;
+  --snm-tag-sage:   #5FC17E;
+}
+
+/* ── LIGHT MODE ─────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light dark;
+
+  /* Keyboard height published by useKeyboardInset; 0 when no keyboard/unsupported.
+     Bottom sheets lift their footer with max(safe-area, var(--kb-inset)). */
+  --kb-inset: 0px;
+
+  /* ── Liquid Glass master dial (2026-07-20, Ali) ─────────────────────────
+     ONE user scalar drives the whole material, Apple-style: 0 = clear glass
+     (thin fill, faint hairlines, subtle rim light, light blur — colour
+     bleeds through), 1 = heavy frost. 0.5 reproduces the app's hand-tuned
+     look EXACTLY (both derived factors equal 1.0 there), so the default is
+     a no-op. Set pre-paint from localStorage (snm-frost) by the init script
+     in lib/palette.ts; the Settings slider updates it live. Every glass
+     alpha below multiplies by a frost factor, every blur radius by --frost-b —
+     fills, hairline borders, specular rim lighting and blur move in
+     lockstep, which is what makes the material read as one substance. */
+  --glass-frost: 0.5;
+  /* Four derived factors; ALL equal exactly ×1 at the 50% default.
+     - fills go to TRUE zero at 0% (fully transparent panes)…
+     - …but edges never do: clear glass is still a glass OBJECT, defined by
+       its hairline + specular rim (Apple's clear material keeps the lensing
+       edge). Edge floor ×0.85 at 0%.
+     - blur keeps a floor too (×0.3): clear glass still refracts a little —
+       that residual frost over the moving wallpaper IS the glassmorphism
+       read at the clear end.
+     - the floating tab bar runs 10 percentage points frostier than the
+       user's choice (Ali: it must stay visible at any transparency). */
+  --frost-fill: calc(2 * var(--glass-frost));                      /* ×0 … ×2 */
+  --frost-edge: calc(0.85 + 0.3 * var(--glass-frost));             /* ×0.85 … ×1.15 */
+  --frost-b:    calc(0.3 + 1.4 * var(--glass-frost));              /* ×0.3 … ×1.7 */
+  --frost-fill-tab: calc(2 * (var(--glass-frost) + 0.1));
+  --frost-edge-tab: calc(0.85 + 0.3 * (var(--glass-frost) + 0.1));
+
+  /* Apple system colours, LIGHT. systemRed #FF3B30 passes as text/fill. Green/
+     orange are deepened from Apple's bright systemGreen(#34C759)/systemOrange
+     (#FF9500) because those fail 4.5:1 as small text on the light background
+     (~2.9:1) in daylight — this app's real operating condition. Deepened values
+     verified >=4.5:1 vs --background and white cards; used for coloured text +
+     icons. Bright Apple hues still fine as large fills. */
+  /* Deep emerald. The prior #248A3D measured only 3.94:1 vs the light
+     background — genuinely under the 4.5:1 text minimum, which is why light
+     mode green kept reading weak/pale (Ali flagged it repeatedly). #0E6E33
+     measures 5.71:1 vs bg and 6.37:1 vs white cards, and its 10-15% tints
+     read as considered surfaces instead of washed mint. Dark mode untouched
+     (Ali approved it). */
+  --snm-success: #0E6E33;
+  --snm-error:   #FF3B30;   /* systemRed (light) */
+  /* Deepened systemOrange (5.57:1 vs background, 6.21:1 vs white cards) —
+     same deepening technique as --snm-success above. See dark-mode note for
+     why this reverted from systemTeal back to Apple's actual warning colour. */
+  --snm-warning: #9A4B00;   /* deepened systemOrange for light-mode text */
+  --snm-info:    #007AFF;   /* systemBlue (light) */
+  --snm-promo:   #8944D6;   /* deepened systemPurple */
+
+  /* Categorical TAG colours, LIGHT — see dark-mode definition for the rule
+     (never reuse semantic tokens for a plain category label). Deepened for
+     AA text contrast on the light background. */
+  --snm-tag-violet: #6D3FCB;
+  --snm-tag-slate:  #5B6B7F;
+  --snm-tag-sage:   #3F7A52;
+
+
+  --background:   #f2f2f7;
+  --foreground:   #1c1c1e;
+
+  --card:             rgba(255, 255, 255, 0.72);
+  --card-foreground:  #1c1c1e;
+
+  --popover:            rgba(255, 255, 255, 0.96);
+  --popover-foreground: #1c1c1e;
+
+  --primary:            #1c1c1e;
+  --primary-foreground: #ffffff;
+
+  --secondary:            rgba(0, 0, 0, 0.06);
+  --secondary-foreground: #1c1c1e;
+
+  --muted:            rgba(0, 0, 0, 0.04);
+  --muted-foreground: #6c6c70;
+
+  --accent:            rgba(0, 0, 0, 0.05);
+  --accent-foreground: #1c1c1e;
+
+  --destructive: #ff3b30;
+
+  --border: rgba(0, 0, 0, 0.09);
+  --input:  rgba(0, 0, 0, 0.06);
+  --ring:   rgba(0, 0, 0, 0.20);
+
+  --radius: 0.75rem;
+
+  --sidebar:                    rgba(242, 242, 247, 0.88);
+  --sidebar-foreground:         #1c1c1e;
+  --sidebar-primary:            #1c1c1e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent:             rgba(0, 0, 0, 0.05);
+  --sidebar-accent-foreground:  #1c1c1e;
+  --sidebar-border:             rgba(0, 0, 0, 0.07);
+  --sidebar-ring:               rgba(0, 0, 0, 0.15);
+
+  /* ── Real glass tokens (light) ────────────────────────────────────────
+     Apple uses ~72% white fill + strong highlight + crisp specular edge.
+     backdrop-filter: blur(28px) saturate(180%) — matches iOS Control Centre.
+     bg-1 nudged 0.68 → 0.62 (2026-07-13) so the atmospheric --app-bg peeks
+     through and cards read as glass, not solid white — still a solid-enough
+     layer for body text. Tune HERE + the [data-theme="light"] block only. */
+  --glass-bg-1:      rgba(255, 255, 255, calc(0.62 * var(--frost-fill)));
+  --glass-bg-2:      rgba(255, 255, 255, calc(0.84 * var(--frost-fill)));
+  --glass-bg-3:      rgba(255, 255, 255, calc(0.96 * var(--frost-fill)));
+  --glass-border:    rgba(255, 255, 255, calc(0.90 * var(--frost-edge)));
+  --glass-border-lo: rgba(0, 0, 0, calc(0.08 * var(--frost-edge)));
+  /* Floating tab bar only (2026-07-14, strengthened 2026-07-16): the shared
+     card tokens blend into the page — first found true against the flat
+     #f2f2f7 page, and true again against the new jewel-tone wallpaper's
+     near-white highlight (Ali, screenshot: "same color as background").
+     This is the one piece of chrome that must always read as elevated
+     regardless of what's behind it, so it stays its own dedicated, more
+     opaque fill + a firmer hairline rather than tuning the shared glass
+     tokens (correct as-is for content cards, which are meant to blend). */
+  --tabbar-bg:       rgba(255, 255, 255, calc(0.97 * var(--frost-fill-tab)));
+  --tabbar-border:   rgba(0, 0, 0, calc(0.16 * var(--frost-edge-tab)));
+  --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-edge)));
+  --glass-blur:      blur(calc(28px * var(--frost-b))) saturate(180%);
+  --glass-blur-lg:   blur(calc(48px * var(--frost-b))) saturate(200%);
+
+  /* ── Atmospheric depth (light) ────────────────────────────────────────
+     One fixed page-background gradient sits behind every translucent card,
+     so the surfaces read as real glass without per-card backdrop blur (the
+     blur that once caused scroll jank). Neutral luminance only — no hue, so
+     green/red/orange stay the only meaningful colours on screen. */
+  --app-bg:
+    radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
+    linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
+  /* Specular sheen laid over the card fill — a soft top-down highlight that
+     gives the surface material "curvature", the way light catches real glass.
+     Top stop 0.55 → 0.68 (2026-07-13) to keep the card top reading crisp now
+     that the fill is more translucent. */
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.68 * var(--frost-edge))) 0%, rgba(255,255,255, calc(0.16 * var(--frost-edge))) 32%, rgba(255,255,255, calc(0 * var(--frost-edge))) 62%);
+
+  /* Legacy aliases (components reference these directly) */
+  --glass-1: var(--glass-bg-1);
+  --glass-2: var(--glass-bg-2);
+
+  --surface:            #f2f2f7;
+  --on-surface:         #1c1c1e;
+  --on-surface-variant: #6c6c70;
+  --outline:            #aeaeb2;
+  --outline-variant:    #d1d1d6;
+
+  /* ═══ LIQUID GLASS — theme-only surface tokens (2026-07-15) ═══
+     Supersedes the graphite-monochrome accent rule that governed this file
+     until now — see tag `pre-liquid-glass-2026-07-15` to restore the prior
+     state if needed. These glass-fill/blur/radius tokens depend ONLY on
+     light/dark, identical across all 3 palettes (2026-07-16) — see the
+     PALETTE block below (scoped by [data-palette]) for wallpaper/accent/
+     status colors, which DO vary per palette. */
+  --glass-fill-top:          rgba(255, 255, 255, calc(0.6 * var(--frost-fill)));
+  --glass-fill-bottom:       rgba(255, 255, 255, calc(0.3 * var(--frost-fill)));
+  --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.65 * var(--frost-fill)));
+  --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.35 * var(--frost-fill)));
+  --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.55 * var(--frost-fill)));
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.28 * var(--frost-fill)));
+  --glass-saturate:          155%;
+  --glass-saturate-strong:   160%;
+  --glass-specular:          rgba(255, 255, 255, calc(0.9 * var(--frost-edge)));
+  --glass-specular-strong:   rgba(255, 255, 255, calc(0.95 * var(--frost-edge)));
+  --glass-divider:           rgba(36, 35, 31, calc(0.08 * var(--frost-edge)));
+  --glass-radius-sm:   10px;
+  --glass-radius-md:   14px;
+  --glass-radius-lg:   18px;
+  --glass-radius-xl:   20px;
+  --glass-radius-pill: 999px;
+  --glass-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --wallpaper-blur: 90px;
+
+  --glass-selected-bg:      #24231f;
+  --glass-selected-text:    #ffffff;
+  --glass-unselected-bg:    rgba(255, 255, 255, calc(0.5 * var(--frost-fill)));
+  --glass-unselected-border:rgba(255, 255, 255, calc(0.6 * var(--frost-edge)));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PALETTE TOKENS — 3-theme system (2026-07-16): Sunrise / Aurora / Ember,
+   each with its own light + dark mode (6 combinations total). Selected via
+   [data-palette] on <html>, combined with the EXISTING .light/.dark classes
+   (next-themes, attribute="class" — unchanged). Wallpaper base, 4 bokeh
+   fields plus per-field opacity, accent color, and the derived snm-brand
+   and status-color tokens all live here; glass-fill/blur/radius above stay
+   theme-only (identical across all 3 palettes) per the source spec.
+   Falls back to Sunrise if [data-palette] hasn't been applied yet (first
+   paint before the inline script runs) — see app/layout.tsx.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ---- SUNRISE (default fallback + explicit) ----
+   Light: warm gold/rose PLUS a pale sky-blue note (field-3) — that blue note
+   is what keeps this from reading identical to Ember, which stays warm-only
+   in light mode. Dark: true midnight navy/indigo (2026-07-17 refinement —
+   the previous dark Sunrise was brown/rose and read too close to Ember's
+   dark mode; pure blue family now, no brown/violet/magenta). */
+:root:not([data-palette]),
+[data-palette="sunrise"] {
+  --wallpaper-field-1: #ffd9a0;
+  --wallpaper-field-2: #ffc4c9;
+  --wallpaper-field-3: #bcd9f5;
+  --wallpaper-field-4: #fff8ec;
+  --wallpaper-opacity-1: 0.42;
+  --wallpaper-opacity-2: 0.32;
+  --wallpaper-opacity-3: 0.3;
+  --wallpaper-opacity-4: 0.4;
+}
+:root:not([data-palette]),
+.light[data-palette="sunrise"], [data-palette="sunrise"]:not(.dark) {
+  --wallpaper-base: #f6f2ea;
+  --glass-accent: #d97a3a;
+}
+.dark[data-palette="sunrise"] {
+  --wallpaper-base: #03060f;
+  --wallpaper-field-1: #16264d;
+  --wallpaper-field-2: #22336e;
+  --wallpaper-field-3: #2c4478;
+  --wallpaper-field-4: #aac6f2;
+  --wallpaper-opacity-1: 0.42;
+  --wallpaper-opacity-2: 0.36;
+  --wallpaper-opacity-3: 0.32;
+  --wallpaper-opacity-4: 0.16;
+  --glass-accent: #7ba3e8;
+}
+
+/* ---- AURORA ---- */
+[data-palette="aurora"]:not(.dark) {
+  --wallpaper-base: #eef3f4;
+  --wallpaper-field-1: #9fe3d0;
+  --wallpaper-field-2: #9cc7f0;
+  --wallpaper-field-3: #c0b0f0;
+  --wallpaper-field-4: #ffffff;
+  --wallpaper-opacity-1: 0.42;
+  --wallpaper-opacity-2: 0.38;
+  --wallpaper-opacity-3: 0.34;
+  --wallpaper-opacity-4: 0.46;
+  --glass-accent: #0f9488;
+}
+.dark[data-palette="aurora"] {
+  --wallpaper-base: #020709;
+  --wallpaper-field-1: #0d5c52;
+  --wallpaper-field-2: #163f78;
+  --wallpaper-field-3: #3a2a6e;
+  --wallpaper-field-4: #a8e8dc;
+  --wallpaper-opacity-1: 0.36;
+  --wallpaper-opacity-2: 0.36;
+  --wallpaper-opacity-3: 0.32;
+  --wallpaper-opacity-4: 0.16;
+  --glass-accent: #5eead4;
+}
+
+/* ---- EMBER ---- */
+[data-palette="ember"]:not(.dark) {
+  --wallpaper-base: #f8ede8;
+  --wallpaper-field-1: #ff8a4d;
+  --wallpaper-field-2: #e0568f;
+  --wallpaper-field-3: #ffbe4d;
+  --wallpaper-field-4: #fff0e0;
+  --wallpaper-opacity-1: 0.46;
+  --wallpaper-opacity-2: 0.38;
+  --wallpaper-opacity-3: 0.36;
+  --wallpaper-opacity-4: 0.32;
+  --glass-accent: #d6337a;
+}
+.dark[data-palette="ember"] {
+  --wallpaper-base: #06031a;
+  --wallpaper-field-1: #4a2d94;
+  --wallpaper-field-2: #6a2ba8;
+  --wallpaper-field-3: #1c3f8f;
+  --wallpaper-field-4: #c1a8ff;
+  --wallpaper-opacity-1: 0.4;
+  --wallpaper-opacity-2: 0.34;
+  --wallpaper-opacity-3: 0.38;
+  --wallpaper-opacity-4: 0.2;
+  --glass-accent: #a78bfa;
+}
+
+/* ---- MONOCHROME (2026-07-17) — "color carries meaning, not decoration."
+   The wallpaper itself is built entirely from grays (barely-there warm-
+   neutral in light, cool-neutral in dark) — the ONLY saturated color
+   anywhere on screen in this palette is --snm-success/warning/error
+   (reorder alerts, margin deltas), which stay fully saturated via the
+   shared status-color block below (it doesn't key off --glass-accent for
+   those, only for --snm-info). --glass-accent here is a neutral slate,
+   used only for selection state (active tab, chosen swatch), never as
+   page decoration. */
+[data-palette="monochrome"]:not(.dark) {
+  --wallpaper-base: #f4f4f2;
+  --wallpaper-field-1: #e2e2de;
+  --wallpaper-field-2: #d8d8d4;
+  --wallpaper-field-3: #ececea;
+  --wallpaper-field-4: #ffffff;
+  --wallpaper-opacity-1: 0.5;
+  --wallpaper-opacity-2: 0.4;
+  --wallpaper-opacity-3: 0.45;
+  --wallpaper-opacity-4: 0.35;
+  --glass-accent: #4b4b52;
+}
+.dark[data-palette="monochrome"] {
+  --wallpaper-base: #0a0a0b;
+  --wallpaper-field-1: #1c1c1f;
+  --wallpaper-field-2: #262629;
+  --wallpaper-field-3: #141416;
+  --wallpaper-field-4: #3a3a40;
+  --wallpaper-opacity-1: 0.55;
+  --wallpaper-opacity-2: 0.45;
+  --wallpaper-opacity-3: 0.5;
+  --wallpaper-opacity-4: 0.4;
+  --glass-accent: #b5b5bd;
+}
+
+/* ---- Brand/status tokens derived from the palette accent — same for
+   every palette, just riding whatever --glass-accent the palette above
+   set. Scoped broadly ([data-palette], any theme) so one rule covers all
+   6 combinations instead of repeating per-palette. ---- */
+[data-palette] {
+  --snm-brand:        var(--glass-accent);
+  --snm-brand-muted:  color-mix(in srgb, var(--glass-accent) 12%, transparent);
+  --snm-brand-border: color-mix(in srgb, var(--glass-accent) 30%, transparent);
+  --snm-brand-text:   var(--glass-accent);
+}
+[data-palette]:not(.dark) { --snm-brand-on: #ffffff; }
+.dark[data-palette]       { --snm-brand-on: #050308; }
+
+/* Status colors — light values (any palette, not dark) */
+[data-palette]:not(.dark) {
+  --snm-success: #2b8a3e;
+  --snm-error:   #c92a2a;
+  --snm-warning: #e8590c;
+  --snm-info:    var(--glass-accent);
+  --status-success: var(--snm-success); --status-success-bg: rgba(43, 138, 62, 0.14);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(232, 89, 12, 0.14);
+  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
+  --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 14%, transparent);
+}
+/* Status colors — dark values (any palette) */
+.dark[data-palette] {
+  --snm-success: #69db7c;
+  --snm-error:   #ff8787;
+  --snm-warning: #ffa94d;
+  --snm-info:    var(--glass-accent);
+  --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
+  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
+  --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 16%, transparent);
+}
+
+/* ── DARK MODE — Void & Vapor ───────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --snm-success: #30D158;
+    --snm-error:   #FF453A;
+    --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal, see note above */
+    --snm-info:  #0A84FF;
+    --snm-promo: #BF5AF2;
+
+    --background: #000000;
+    --foreground: #e5e2e1;
+
+    --card:            rgba(255, 255, 255, 0.05);
+    --card-foreground: #e5e2e1;
+
+    --popover:            rgba(22, 22, 26, 0.94);
+    --popover-foreground: #e5e2e1;
+
+    --primary:            #ffffff;
+    --primary-foreground: #1c1c1e;
+
+    --secondary:            rgba(255, 255, 255, 0.08);
+    --secondary-foreground: #e5e2e1;
+
+    --muted:            rgba(255, 255, 255, 0.05);
+    --muted-foreground: #8e9192;
+
+    --accent:            rgba(255, 255, 255, 0.06);
+    --accent-foreground: #e5e2e1;
+
+    --destructive: #ffb4ab;
+
+    --border: rgba(255, 255, 255, 0.08);
+    --input:  rgba(255, 255, 255, 0.07);
+    --ring:   rgba(255, 255, 255, 0.30);
+
+    --sidebar:                    rgba(0, 0, 0, 0.60);
+    --sidebar-foreground:         #e5e2e1;
+    --sidebar-primary:            #ffffff;
+    --sidebar-primary-foreground: #1c1c1e;
+    --sidebar-accent:             rgba(255, 255, 255, 0.06);
+    --sidebar-accent-foreground:  #e5e2e1;
+    --sidebar-border:             rgba(255, 255, 255, 0.07);
+    --sidebar-ring:               rgba(255, 255, 255, 0.20);
+
+    /* ── Real glass tokens (dark) ────────────────────────────────────────
+       Dark glass = visible frosted lift above pure black OLED background.
+       bg-1 at 0.09 gives enough contrast for cards to read as surfaces.
+       border-lo at 0.20 makes hairlines visible at 0.5px on Retina.       */
+    --glass-bg-1:      rgba(255, 255, 255, calc(0.09 * var(--frost-fill)));
+    --glass-bg-2:      rgba(255, 255, 255, calc(0.13 * var(--frost-fill)));
+    --glass-bg-3:      rgba(255, 255, 255, calc(0.18 * var(--frost-fill)));
+    --glass-border:    rgba(255, 255, 255, calc(0.22 * var(--frost-edge)));
+    --glass-border-lo: rgba(255, 255, 255, calc(0.20 * var(--frost-edge)));
+    /* Floating tab bar only (2026-07-14): on the near-black dark page a dark
+       drop-shadow can't separate the pill, and --glass-bg-2 at 13% white read
+       as barely-there. A brighter fill + a real light hairline lifts it off
+       the page instead — see the light-mode note above for the full story. */
+    --tabbar-bg:       rgba(255, 255, 255, calc(0.16 * var(--frost-fill-tab)));
+    --tabbar-border:   rgba(255, 255, 255, calc(0.32 * var(--frost-edge-tab)));
+    --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
+    --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
+    --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(0.18 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.20 * var(--frost-edge)));
+    --glass-blur:      blur(calc(32px * var(--frost-b))) saturate(160%);
+    --glass-blur-lg:   blur(calc(56px * var(--frost-b))) saturate(180%);
+
+    /* ── Atmospheric depth (dark) ──────────────────────────────────────
+       Neutral graphite glow near the top fading to pure OLED black — gives
+       the void real depth for translucent cards to float above. */
+    --app-bg:
+      radial-gradient(1000px 780px at 50% -16%, rgba(72,74,84,0.40), rgba(72,74,84,0) 58%),
+      radial-gradient(760px 620px at 100% 6%, rgba(48,50,60,0.28), rgba(48,50,60,0) 55%),
+      linear-gradient(180deg, #070708 0%, #000000 60%);
+    --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.10 * var(--frost-edge))) 0%, rgba(255,255,255, calc(0.03 * var(--frost-edge))) 32%, rgba(255,255,255, calc(0 * var(--frost-edge))) 62%);
+
+    /* Legacy aliases */
+    --glass-1: var(--glass-bg-1);
+    --glass-2: var(--glass-bg-2);
+
+    --surface:            #0a0a0a;
+    --on-surface:         #e5e2e1;
+    --on-surface-variant: #c4c7c8;
+    --outline:            #8e9192;
+    --outline-variant:    #444748;
+
+    /* ═══ LIQUID GLASS — theme-only tokens, dark (2026-07-15) ═══
+       This block is a pre-hydration fallback for OS-dark/no explicit class
+       yet (next-themes normally applies the .dark class itself, even in
+       "system" mode — see the [data-palette] rules below and in
+       app/globals.css's palette section for the actual wallpaper/accent/
+       status colors, which depend on data-palette + .dark together). */
+    --glass-fill-top:          rgba(255, 255, 255, calc(0.09 * var(--frost-fill)));
+    --glass-fill-bottom:       rgba(255, 255, 255, calc(0.03 * var(--frost-fill)));
+    --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.1 * var(--frost-fill)));
+    --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.03 * var(--frost-fill)));
+    --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.08 * var(--frost-fill)));
+    --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.02 * var(--frost-fill)));
+    --glass-saturate:          120%;
+    --glass-saturate-strong:   130%;
+    --glass-specular:          rgba(255, 255, 255, calc(0.13 * var(--frost-edge)));
+    --glass-specular-strong:   rgba(255, 255, 255, calc(0.15 * var(--frost-edge)));
+    --glass-divider:           rgba(255, 255, 255, calc(0.08 * var(--frost-edge)));
+    --glass-selected-bg:      #edebe4;
+    --glass-selected-text:    #050308;
+    --glass-unselected-bg:    rgba(255, 255, 255, calc(0.07 * var(--frost-fill)));
+    --glass-unselected-border:rgba(255, 255, 255, calc(0.12 * var(--frost-edge)));
+  }
+
+  /* Palette rules for the OS-dark/no-explicit-class window — mirrors the
+     .dark[data-palette] rules below without requiring the literal class.
+     Extremely short-lived in practice (next-themes applies .dark almost
+     immediately), but keeps this fallback path palette-correct too.
+     MUST exclude :not(.light) — otherwise, whenever the OS itself is in
+     dark mode, this media query fires unconditionally and its dark
+     wallpaper values beat an explicit .light override at equal CSS
+     specificity purely by later source order (a real bug caught live:
+     forcing Light in the UI while the OS was dark still showed the dark
+     Sunrise wallpaper). */
+  :root[data-palette="sunrise"]:not(.light) {
+    --wallpaper-base: #03060f;
+    --wallpaper-field-1: #16264d; --wallpaper-field-2: #22336e;
+    --wallpaper-field-3: #2c4478; --wallpaper-field-4: #aac6f2;
+    --wallpaper-opacity-1: 0.42; --wallpaper-opacity-2: 0.36;
+    --wallpaper-opacity-3: 0.32; --wallpaper-opacity-4: 0.16;
+    --glass-accent: #7ba3e8;
+  }
+  :root[data-palette="aurora"]:not(.light) {
+    --wallpaper-base: #020709;
+    --wallpaper-field-1: #0d5c52; --wallpaper-field-2: #163f78;
+    --wallpaper-field-3: #3a2a6e; --wallpaper-field-4: #a8e8dc;
+    --wallpaper-opacity-1: 0.36; --wallpaper-opacity-2: 0.36;
+    --wallpaper-opacity-3: 0.32; --wallpaper-opacity-4: 0.16;
+    --glass-accent: #5eead4;
+  }
+  :root[data-palette="ember"]:not(.light) {
+    --wallpaper-base: #06031a;
+    --wallpaper-field-1: #4a2d94; --wallpaper-field-2: #6a2ba8;
+    --wallpaper-field-3: #1c3f8f; --wallpaper-field-4: #c1a8ff;
+    --wallpaper-opacity-1: 0.4; --wallpaper-opacity-2: 0.34;
+    --wallpaper-opacity-3: 0.38; --wallpaper-opacity-4: 0.2;
+    --glass-accent: #a78bfa;
+  }
+  :root[data-palette="monochrome"]:not(.light) {
+    --wallpaper-base: #0a0a0b;
+    --wallpaper-field-1: #1c1c1f; --wallpaper-field-2: #262629;
+    --wallpaper-field-3: #141416; --wallpaper-field-4: #3a3a40;
+    --wallpaper-opacity-1: 0.55; --wallpaper-opacity-2: 0.45;
+    --wallpaper-opacity-3: 0.5; --wallpaper-opacity-4: 0.4;
+    --glass-accent: #b5b5bd;
+  }
+  :root[data-palette]:not(.light) {
+    --snm-brand-on: #050308;
+    --snm-success: #69db7c; --snm-error: #ff8787; --snm-warning: #ffa94d;
+    --snm-info: var(--glass-accent);
+    --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
+    --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
+    --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
+    --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 16%, transparent);
+  }
+}
+
+/* ── Manual .light override ─────────────────────────────────────────────── */
+.light {
+  color-scheme: light;
+  /* Kept in sync with :root's light-mode values above -- see contrast note there. */
+  --snm-success: #0E6E33;
+  --snm-error:   #FF3B30;
+  --snm-warning: #9A4B00; /* deepened systemOrange for light text — reverted from systemTeal */
+  --snm-info:    #007AFF;
+  --snm-promo:   #8944D6;
+  --snm-tag-violet: #6D3FCB;
+  --snm-tag-slate:  #5B6B7F;
+  --snm-tag-sage:   #3F7A52;
+  --background:   #f2f2f7;
+  --foreground:   #1c1c1e;
+  --card:             rgba(255, 255, 255, 0.72);
+  --card-foreground:  #1c1c1e;
+  --popover:            rgba(255, 255, 255, 0.96);
+  --popover-foreground: #1c1c1e;
+  --primary:            #1c1c1e;
+  --primary-foreground: #ffffff;
+  --secondary:            rgba(0, 0, 0, 0.06);
+  --secondary-foreground: #1c1c1e;
+  --muted:            rgba(0, 0, 0, 0.04);
+  --muted-foreground: #6c6c70;
+  --accent:            rgba(0, 0, 0, 0.05);
+  --accent-foreground: #1c1c1e;
+  --destructive: #ff3b30;
+  --border: rgba(0, 0, 0, 0.09);
+  --input:  rgba(0, 0, 0, 0.06);
+  --ring:   rgba(0, 0, 0, 0.20);
+  --sidebar:                    rgba(242, 242, 247, 0.88);
+  --sidebar-foreground:         #1c1c1e;
+  --sidebar-primary:            #1c1c1e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent:             rgba(0, 0, 0, 0.05);
+  --sidebar-accent-foreground:  #1c1c1e;
+  --sidebar-border:             rgba(0, 0, 0, 0.07);
+  --sidebar-ring:               rgba(0, 0, 0, 0.15);
+  --glass-bg-1:      rgba(255, 255, 255, calc(0.62 * var(--frost-fill))); /* 0.68 → 0.62, see base light block */
+  --glass-bg-2:      rgba(255, 255, 255, calc(0.84 * var(--frost-fill)));
+  --glass-bg-3:      rgba(255, 255, 255, calc(0.96 * var(--frost-fill)));
+  --glass-border:    rgba(255, 255, 255, calc(0.90 * var(--frost-edge)));
+  --glass-border-lo: rgba(0, 0, 0, calc(0.08 * var(--frost-edge)));
+  --tabbar-bg:       rgba(255, 255, 255, calc(0.97 * var(--frost-fill-tab)));
+  --tabbar-border:   rgba(0, 0, 0, calc(0.16 * var(--frost-edge-tab)));
+  --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-edge)));
+  --glass-blur:      blur(calc(28px * var(--frost-b))) saturate(180%);
+  --glass-blur-lg:   blur(calc(48px * var(--frost-b))) saturate(200%);
+  --app-bg:
+    radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
+    linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.68 * var(--frost-edge))) 0%, rgba(255,255,255, calc(0.16 * var(--frost-edge))) 32%, rgba(255,255,255, calc(0 * var(--frost-edge))) 62%);
+  --glass-1: var(--glass-bg-1);
+  --glass-2: var(--glass-bg-2);
+  --surface:            #f2f2f7;
+  --on-surface:         #1c1c1e;
+  --on-surface-variant: #6c6c70;
+  --outline:            #aeaeb2;
+  --outline-variant:    #d1d1d6;
+
+  /* ═══ LIQUID GLASS — theme-only tokens, light manual toggle (2026-07-15) ═══
+     Palette-specific wallpaper/accent/status colors live in the
+     [data-palette] section near the top of this file (2026-07-16) — they
+     combine with this .light class the same way they combine with .dark. */
+  --glass-fill-top:          rgba(255, 255, 255, calc(0.6 * var(--frost-fill)));
+  --glass-fill-bottom:       rgba(255, 255, 255, calc(0.3 * var(--frost-fill)));
+  --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.65 * var(--frost-fill)));
+  --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.35 * var(--frost-fill)));
+  --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.55 * var(--frost-fill)));
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.28 * var(--frost-fill)));
+  --glass-saturate:          155%;
+  --glass-saturate-strong:   160%;
+  --glass-specular:          rgba(255, 255, 255, calc(0.9 * var(--frost-edge)));
+  --glass-specular-strong:   rgba(255, 255, 255, calc(0.95 * var(--frost-edge)));
+  --glass-divider:           rgba(36, 35, 31, calc(0.08 * var(--frost-edge)));
+  --glass-selected-bg:      #24231f;
+  --glass-selected-text:    #ffffff;
+  --glass-unselected-bg:    rgba(255, 255, 255, calc(0.5 * var(--frost-fill)));
+  --glass-unselected-border:rgba(255, 255, 255, calc(0.6 * var(--frost-edge)));
+}
+
+/* ── Manual .dark override ──────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+  --snm-success: #30D158;
+  --snm-error:   #FF453A;
+  --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal */
+  --snm-info:  #0A84FF;
+  --snm-promo: #BF5AF2;
+  --snm-tag-violet: #A87DE8;
+  --snm-tag-slate:  #9AAABC;
+  --snm-tag-sage:   #5FC17E;
+  --background: #000000;
+  --foreground: #e5e2e1;
+  --card:            rgba(255, 255, 255, 0.05);
+  --card-foreground: #e5e2e1;
+  --popover:            rgba(22, 22, 26, 0.94);
+  --popover-foreground: #e5e2e1;
+  --primary:            #ffffff;
+  --primary-foreground: #1c1c1e;
+  --secondary:            rgba(255, 255, 255, 0.08);
+  --secondary-foreground: #e5e2e1;
+  --muted:            rgba(255, 255, 255, 0.05);
+  --muted-foreground: #8e9192;
+  --accent:            rgba(255, 255, 255, 0.06);
+  --accent-foreground: #e5e2e1;
+  --destructive: #ffb4ab;
+  --border: rgba(255, 255, 255, 0.08);
+  --input:  rgba(255, 255, 255, 0.07);
+  --ring:   rgba(255, 255, 255, 0.30);
+  --sidebar:                    rgba(0, 0, 0, 0.60);
+  --sidebar-foreground:         #e5e2e1;
+  --sidebar-primary:            #ffffff;
+  --sidebar-primary-foreground: #1c1c1e;
+  --sidebar-accent:             rgba(255, 255, 255, 0.06);
+  --sidebar-accent-foreground:  #e5e2e1;
+  --sidebar-border:             rgba(255, 255, 255, 0.07);
+  --sidebar-ring:               rgba(255, 255, 255, 0.20);
+  --glass-bg-1:      rgba(255, 255, 255, calc(0.09 * var(--frost-fill)));
+  --glass-bg-2:      rgba(255, 255, 255, calc(0.13 * var(--frost-fill)));
+  --glass-bg-3:      rgba(255, 255, 255, calc(0.18 * var(--frost-fill)));
+  --glass-border:    rgba(255, 255, 255, calc(0.22 * var(--frost-edge)));
+  --glass-border-lo: rgba(255, 255, 255, calc(0.20 * var(--frost-edge)));
+  --tabbar-bg:       rgba(255, 255, 255, calc(0.16 * var(--frost-fill-tab)));
+  --tabbar-border:   rgba(255, 255, 255, calc(0.32 * var(--frost-edge-tab)));
+  --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
+  --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
+  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(0.18 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.20 * var(--frost-edge)));
+  --glass-blur:      blur(calc(32px * var(--frost-b))) saturate(160%);
+  --glass-blur-lg:   blur(calc(56px * var(--frost-b))) saturate(180%);
+  --app-bg:
+    radial-gradient(1000px 780px at 50% -16%, rgba(72,74,84,0.40), rgba(72,74,84,0) 58%),
+    radial-gradient(760px 620px at 100% 6%, rgba(48,50,60,0.28), rgba(48,50,60,0) 55%),
+    linear-gradient(180deg, #070708 0%, #000000 60%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.10 * var(--frost-edge))) 0%, rgba(255,255,255, calc(0.03 * var(--frost-edge))) 32%, rgba(255,255,255, calc(0 * var(--frost-edge))) 62%);
+  --glass-1: var(--glass-bg-1);
+  --glass-2: var(--glass-bg-2);
+  --surface:            #0a0a0a;
+  --on-surface:         #e5e2e1;
+  --on-surface-variant: #c4c7c8;
+  --outline:            #8e9192;
+  --outline-variant:    #444748;
+
+  /* ═══ LIQUID GLASS — theme-only tokens, dark manual toggle (2026-07-15) ═══
+     This is the block that fires when the user picks Dark (next-themes
+     sets .dark on <html>) — see tag `pre-liquid-glass-2026-07-15` to
+     restore the prior graphite state. Palette-specific wallpaper/accent/
+     status colors live in the [data-palette] section near the top of this
+     file (2026-07-16), combined with .dark via `.dark[data-palette="…"]`. */
+  --glass-fill-top:          rgba(255, 255, 255, calc(0.09 * var(--frost-fill)));
+  --glass-fill-bottom:       rgba(255, 255, 255, calc(0.03 * var(--frost-fill)));
+  --glass-fill-top-strong:   rgba(255, 255, 255, calc(0.1 * var(--frost-fill)));
+  --glass-fill-bottom-strong:rgba(255, 255, 255, calc(0.03 * var(--frost-fill)));
+  --glass-fill-top-subtle:   rgba(255, 255, 255, calc(0.08 * var(--frost-fill)));
+  --glass-fill-bottom-subtle:rgba(255, 255, 255, calc(0.02 * var(--frost-fill)));
+  --glass-saturate:          120%;
+  --glass-saturate-strong:   130%;
+  --glass-specular:          rgba(255, 255, 255, calc(0.13 * var(--frost-edge)));
+  --glass-specular-strong:   rgba(255, 255, 255, calc(0.15 * var(--frost-edge)));
+  --glass-divider:           rgba(255, 255, 255, calc(0.08 * var(--frost-edge)));
+  --glass-selected-bg:      #edebe4;
+  --glass-selected-text:    #050308;
+  --glass-unselected-bg:    rgba(255, 255, 255, calc(0.07 * var(--frost-fill)));
+  --glass-unselected-border:rgba(255, 255, 255, calc(0.12 * var(--frost-edge)));
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+
+  /* ── Block pinch-zoom & browser text selection globally (native app feel) */
+  html {
+    touch-action: pan-x pan-y;
+    -ms-touch-action: pan-x pan-y;
+    /* Kill the grey iOS tap-flash on EVERY tappable element (not just
+       .snm-pressable) — buttons/links get clean press feedback, native feel. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sys);
+    min-height: 100dvh;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    padding-left:  env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* iOS momentum scrolling for the whole document */
+    -webkit-overflow-scrolling: touch;
+    /* Rubber-band bounce stays ON — it's the iOS signature. A 8 Jul commit
+       set overscroll-behavior:none believing bounce was "web feel"; that's
+       backwards (every native app bounces) and it made scrolling feel dead. */
+    /* Block pinch-zoom at CSS level */
+    touch-action: pan-x pan-y;
+    /* Prevent long-press text selection (native app feel) */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* ── Atmospheric page background ──────────────────────────────────────────
+     A single fixed gradient layer behind all content. Because it never
+     scrolls, translucent cards above it reveal a subtly shifting backdrop as
+     the page moves — the "glass peeking onto depth" effect — at the cost of
+     exactly one GPU layer (not one per card). Sits at z-index -1 under the
+     app shell. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--app-bg);
+    pointer-events: none;
+  }
+
+  /* Re-enable text selection only where users actually need to select text */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* All scrollable containers get momentum scrolling */
+  [data-scroll], .overflow-y-auto, .overflow-x-auto, .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Native-app scroll indicators ──────────────────────────────────────────
+     iOS never paints a persistent scrollbar — the indicator only flashes during
+     an active scroll gesture. Hide the bar everywhere (document + every scroll
+     container) so the app doesn't read as a web page. Scrolling still works;
+     on touch devices iOS draws its own transient indicator on top.            */
+  html, body,
+  [data-scroll], .overflow-y-auto, .overflow-x-auto, .overflow-auto {
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* legacy Edge/IE */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  [data-scroll]::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar {
+    display: none;                  /* WebKit / Blink (Safari, Chrome) */
+  }
+
+  /* Snap tapping — removes 300ms delay on iOS */
+  a, button, [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+/* ── Glass utility classes ────────────────────────────────────────────────
+   Real glassmorphism requires four ingredients working together:
+   1. backdrop-filter: blur + saturate (pulls ambient colour through)
+   2. Semi-transparent fill (low on dark, moderate on light)
+   3. Specular top-edge highlight (inset 0 1px 0 — simulates light hitting
+      the top rim of the glass panel, the same technique Apple uses in iOS)
+   4. Subtle outer shadow for depth separation from the layer below          */
+
+@layer components {
+
+  /* ── Primary surface — cards, list rows, panels ── */
+  .glass {
+    /* Content surface — REAL backdrop blur (Ali overruled the no-blur-on-
+       content law 2026-07-20: the July stutter traced to load-time paint
+       bursts, not card blur). Content blurs LIGHTER (14px) than floating
+       chrome (22-28px) — native iOS layering — and scales with the frost
+       dial like every other glass ingredient. */
+    background-color: var(--glass-bg-1);
+    background-image: var(--glass-sheen);
+    backdrop-filter:         blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: var(--radius-xl);
+    box-shadow:    var(--glass-shadow), var(--glass-inner);
+  }
+
+  /* ── Secondary surface — modals, sheets, popovers ── */
+  .glass-modal {
+    background:            var(--glass-bg-2);
+    backdrop-filter:       var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border:        0.5px solid var(--glass-border-lo);
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
+  }
+
+  /* ── Tertiary surface — elevated dialogs, context menus ── */
+  .glass-elevated {
+    background:            var(--glass-bg-3);
+    backdrop-filter:       var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border:        0.5px solid var(--glass-border-lo);
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
+  }
+
+  /* ── Flat — subtle grouping dividers with no blur (perf saving) ── */
+  .glass-flat {
+    background:    var(--muted);
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: var(--radius-lg);
+  }
+
+  /* ── Sidebar ── */
+  .glass-sidebar {
+    background:            var(--sidebar);
+    backdrop-filter:       var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 0.5px solid var(--glass-border-lo);
+  }
+
+  /* ── Bottom nav ── */
+  .glass-bottom-nav {
+    background:            color-mix(in srgb, var(--background) 75%, transparent);
+    backdrop-filter:       var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border-top: 0.5px solid var(--glass-border-lo);
+  }
+
+  /* ── Input fields ── */
+  .glass-input {
+    background:            var(--glass-bg-1);
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: calc(var(--radius) * 1.25);
+    box-shadow:    var(--glass-inner);
+    color: var(--foreground);
+    height: 2.75rem; /* 44pt Apple HIG minimum */
+  }
+
+  /* ── snm-card aliases — components use these directly ── */
+  .snm-card {
+    /* Content surface — real backdrop blur, see .glass note (Ali's
+       2026-07-20 overrule). Light 14px card blur under chrome's 22-28px. */
+    background-color: var(--glass-bg-1);
+    background-image: var(--glass-sheen);
+    backdrop-filter:         blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: 16px;
+    box-shadow:    var(--glass-shadow), var(--glass-inner);
+  }
+
+  .snm-card-l2 {
+    background:            var(--glass-bg-2);
+    backdrop-filter:       var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: 16px;
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
+  }
+
+  /* ── Topbar / nav adaptive ── */
+  .snm-topbar {
+    background:            color-mix(in srgb, var(--background) 65%, transparent);
+    backdrop-filter:       var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border-bottom: 0.5px solid var(--glass-border-lo);
+  }
+  .snm-bottom-nav {
+    /* Legacy docked bar (kept for compat). The live tab bar is
+       .snm-tabbar-float below. */
+    background:  color-mix(in srgb, var(--background) 94%, transparent);
+    border-top: 0.5px solid var(--glass-border-lo);
+  }
+
+  /* ── Floating tab bar — iOS 26 Liquid Glass signature ─────────────────────
+     A capsule inset from the screen edges, floating above content on glass.
+     Blur here is safe: content cards no longer carry backdrop-filter, so
+     this is the single live blur layer during scroll (the 8 Jul jank was
+     caused by TWO stacked blur layers, not by the bar itself).
+     Uses --tabbar-bg/--tabbar-border, NOT the shared --glass-bg-2/
+     --glass-border-lo (2026-07-14, Ali screenshot both themes): this is the
+     one piece of chrome that must always read as elevated above a same-tone
+     page, unlike in-page cards which are meant to blend gently. A drop-
+     shadow alone can't separate same-luminance surfaces (dark shadow on a
+     near-black page, pale fill on a near-white page), so the hairline does
+     the real work here. */
+  .snm-tabbar-float {
+    background:              var(--tabbar-bg);
+    backdrop-filter:         var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border:        1px solid var(--tabbar-border);
+    border-radius: 9999px;
+    box-shadow:    var(--glass-shadow-lg), var(--glass-inner);
+  }
+
+  /* ── Desktop sidebar link — hover/active handled in CSS so the cursor
+     always signals affordance (skills.md seat 1, desktop half). ── */
+  .snm-navlink { transition: background-color var(--snm-dur-fast) var(--snm-ease-out), color var(--snm-dur-fast) var(--snm-ease-out); }
+  @media (hover: hover) {
+    .snm-navlink:hover:not(.snm-navlink-active) { background: var(--muted); color: var(--foreground); }
+  }
+  .snm-navlink-active { background: var(--snm-brand); color: var(--snm-brand-on); }
+
+  /* ── Full-screen overlay header — safe-area aware ──────────────────────────
+     Apply to the header of any fixed inset-0 overlay (sales, pricelists, etc).
+     Adds a frosted background + pushes content below the Dynamic Island/notch.
+     The visible content area starts below env(safe-area-inset-top).
+
+     Usage: <header class="snm-overlay-header px-5 gap-3">
+       Content here sits below the notch, never inside it.
+     </header>
+                                                                                */
+  .snm-overlay-header {
+    /* Frosted glass — same recipe as main topbar */
+    background:              color-mix(in srgb, var(--background) 82%, transparent);
+    backdrop-filter:         var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border-bottom:           0.5px solid var(--glass-border-lo);
+    /* Push ALL content below the notch/Dynamic Island */
+    padding-top:             env(safe-area-inset-top, 0px);
+    /* Shrink-to-fit: natural height, so multi-row headers work too */
+    flex-shrink:             0;
+  }
+
+  /* ── Full-screen overlay footer — safe-area aware ── */
+  .snm-overlay-footer {
+    background:              color-mix(in srgb, var(--background) 82%, transparent);
+    backdrop-filter:         var(--glass-blur-lg);
+    -webkit-backdrop-filter: var(--glass-blur-lg);
+    border-top:              0.5px solid var(--glass-border-lo);
+    /* Push content above the home bar indicator */
+    padding-bottom:          env(safe-area-inset-bottom, 0px);
+    /* Never collapse — always visible above keyboard */
+    flex-shrink:             0;
+    display:                 flex;
+    align-items:             center;
+    /* Ensure footer doesn't compress when keyboard is open */
+    min-height:              72px;
+  }
+
+  /* ── Modal / sheet safe-area wrapper ───────────────────────────────────────
+     Use on the fixed backdrop div of any sheet/modal that sits at the bottom
+     of the screen on mobile. Adds home-bar clearance below the card.         */
+  .snm-modal-wrap {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  }
+
+  /* Card inside a modal: cap height so it never exceeds usable screen space  */
+  .snm-modal-card {
+    max-height: calc(100dvh - env(safe-area-inset-top, 44px) - 32px);
+    overflow-y: auto;
+  }
+
+  /* ── Typography ── */
+  .label-caps {
+    /* Uppercase tracked captions read visually smaller than their point size,
+       and this class labels real content (section headers, "PICK UP FROM",
+       nav). Bumped 11→12px for comfortable Retina reading; tracking slightly
+       reduced so the wider glyphs don't overflow tight rows. */
+    font-size:      12px;
+    font-weight:    700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .label-md {
+    font-size:      12px;
+    font-weight:    500;
+    letter-spacing: 0.05em;
+  }
+  .currency-display {
+    font-size:      32px;
+    font-weight:    300;
+    line-height:    40px;
+    letter-spacing: -0.03em;
+  }
+  /* Wordmark — matches the brand SVG (snmname.svg): lowercase "saynomore" set in
+     a geometric double-story face (the app already ships Plus Jakarta Sans,
+     whose "a" matches the Gellix reference), SemiBold with slight negative
+     tracking so it reads as one solid logotype, not body text. */
+  .snm-wordmark {
+    font-family:    var(--font-wordmark), -apple-system, system-ui, sans-serif;
+    font-weight:    600;
+    letter-spacing: -0.02em;
+    text-transform: lowercase;
+  }
+
+  /* ── Status pills ── */
+  .pill-critical {
+    background: color-mix(in srgb, var(--snm-error) 12%, transparent);
+    color:      var(--snm-error);
+    border:     1px solid color-mix(in srgb, var(--snm-error) 22%, transparent);
+  }
+  .pill-success {
+    background: color-mix(in srgb, var(--snm-success) 12%, transparent);
+    color:      var(--snm-success);
+    border:     1px solid color-mix(in srgb, var(--snm-success) 22%, transparent);
+  }
+  /* Active/enabled toggle pill — used on SKU active state, any on/off badge */
+  .snm-active-pill {
+    background: color-mix(in srgb, var(--snm-success) 12%, transparent);
+    color:      var(--snm-success);
+  }
+  .pill-warning {
+    background: color-mix(in srgb, var(--snm-warning) 12%, transparent);
+    color:      var(--snm-warning);
+    border:     1px solid color-mix(in srgb, var(--snm-warning) 22%, transparent);
+  }
+  .pill-neutral {
+    background: var(--muted);
+    color:      var(--muted-foreground);
+    border:     0.5px solid var(--glass-border-lo);
+  }
+  .pill-brand {
+    background: var(--snm-brand-muted);
+    color:      var(--snm-brand);
+    border:     1px solid var(--snm-brand-border);
+  }
+
+  /* ── Touch-safe interactive elements ── */
+  /* Minimum 44px hit target for all interactive controls (Apple HIG) */
+  .snm-btn {
+    min-height: 44px;
+    display:    inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--snm-dur-fast) var(--snm-ease-out),
+                transform var(--snm-dur-press) var(--snm-spring);
+  }
+  .snm-btn:active { transform: scale(0.97); }
+  .snm-btn-primary {
+    background: var(--foreground);
+    color:      var(--background);
+  }
+  .snm-btn-ghost {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    color:      var(--muted-foreground);
+  }
+
+  /* ── Consistent form input height ── */
+  .snm-input {
+    height:     48px;
+    border-radius: 12px;
+    padding:    0 16px;
+    font-size:  14px;
+    width:      100%;
+    outline:    none;
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+    border:     0.5px solid var(--glass-border-lo);
+    color:      var(--foreground);
+    transition: border-color 0.15s;
+  }
+  .snm-input:focus { border-color: var(--foreground); }
+  .snm-input::placeholder { color: var(--muted-foreground); }
+  .snm-input:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── Text colour helpers ── */
+  .snm-text-primary   { color: var(--foreground); }
+  .snm-text-secondary { color: var(--muted-foreground); }
+  .snm-text-muted     { color: var(--on-surface-variant, var(--muted-foreground)); }
+
+  /* ── Scrollbar ── */
+  .custom-scroll::-webkit-scrollbar        { width: 4px; height: 4px; }
+  .custom-scroll::-webkit-scrollbar-track  { background: transparent; }
+  .custom-scroll::-webkit-scrollbar-thumb  { background: var(--outline-variant); border-radius: 10px; }
+  .no-scrollbar::-webkit-scrollbar         { display: none; }
+  .no-scrollbar                            { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ── Hide browser spin arrows on number inputs app-wide ──
+     Steppers are handled by our own +/- buttons; native arrows look broken
+     on mobile and clash with the glass design system.                     */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+
+  /* ── POLISH 1: Reusable press physics ─────────────────────────────────────
+     Native iOS tap feedback for any tappable element (rows, cards, chips).
+     Additive only — apply by adding the class; changes nothing on its own.
+     Frog Design: every tap must convey cause and effect.                    */
+  .snm-pressable {
+    transition: transform var(--snm-dur-press) var(--snm-spring),
+                background-color var(--snm-dur-fast) var(--snm-ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .snm-pressable:active { transform: scale(0.97); }
+
+  /* ── POLISH 2: Tabular numbers ────────────────────────────────────────────
+     Money & quantities align on the decimal and don't jiggle when updating.
+     NNG: data tables must be scannable in 2 seconds.                         */
+  .snm-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* ── POLISH 3: Accessible focus ring ──────────────────────────────────────
+     Visible only for keyboard / switch-control users (not on touch tap).
+     NNG: visibility of system status; accessibility requirement.            */
+  .snm-input:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--foreground) 45%, transparent);
+    outline-offset: 2px;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     LIQUID GLASS (Apple iOS 26 HIG) — additive utilities
+     Reference: developer.apple.com/design/human-interface-guidelines/materials
+     + Adopting Liquid Glass. Glass belongs to the navigation layer that floats
+     above content; content itself stays flat. These classes encode Apple's
+     concentric geometry, capsule controls, dimming, and type scale.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* ── Concentric corner radius ──────────────────────────────────────────────
+     Apple: child shapes echo the container corner so everything nests. We can't
+     read the hardware corner from CSS, but we standardise on Apple's nesting
+     ratio: outer container 20px, inner element = outer − padding. Use these
+     three steps for harmonious nesting instead of arbitrary radii.            */
+  .snm-radius-container { border-radius: 20px; }   /* outermost cards/sheets */
+  .snm-radius-inner     { border-radius: 14px; }   /* element inside a card  */
+  .snm-radius-tight     { border-radius: 10px; }   /* element inside inner   */
+
+  /* ── Capsule control — Apple's default button shape in Liquid Glass ────────*/
+  .snm-capsule { border-radius: 9999px; }
+
+  /* ── Glass button (translucent) — .buttonStyle(.glass) equivalent ──────────*/
+  .snm-glass-btn {
+    background:              var(--glass-bg-2);
+    backdrop-filter:         var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border:        0.5px solid var(--glass-border-lo);
+    border-radius: 9999px;
+    box-shadow:    var(--glass-inner);
+    color:         var(--foreground);
+    min-height:    44px;
+    display:       inline-flex;
+    align-items:   center;
+    justify-content: center;
+    padding:       0 20px;
+    font-size:     17px;
+    font-weight:   600;
+    letter-spacing: -0.408px;
+  }
+
+  /* ── Glass prominent button — .buttonStyle(.glassProminent) (opaque) ───────*/
+  .snm-glass-btn-prominent {
+    background:    var(--foreground);
+    color:         var(--background);
+    border-radius: 9999px;
+    min-height:    44px;
+    display:       inline-flex;
+    align-items:   center;
+    justify-content: center;
+    padding:       0 20px;
+    font-size:     17px;
+    font-weight:   600;
+    letter-spacing: -0.408px;
+  }
+
+  /* ── Dimming layer ─────────────────────────────────────────────────────────
+     Apple: when glass sits over bright content, lay a 35% dark scrim beneath
+     the glass so foreground controls stay legible. Put this on a layer behind
+     the glass nav element when the page background can be bright.             */
+  .snm-glass-dim::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* ── Apple HIG type scale — apply to match the system exactly ──────────────*/
+  .ios-large-title { font-size: var(--ios-large-title); line-height: var(--ios-large-title-lh); letter-spacing: var(--ios-large-title-ls); font-weight: 700; }
+  .ios-title1      { font-size: var(--ios-title1);      line-height: var(--ios-title1-lh);      letter-spacing: var(--ios-title1-ls);      font-weight: 700; }
+  .ios-title2      { font-size: var(--ios-title2);      line-height: var(--ios-title2-lh);      letter-spacing: var(--ios-title2-ls);      font-weight: 700; }
+  .ios-title3      { font-size: var(--ios-title3);      line-height: var(--ios-title3-lh);      letter-spacing: var(--ios-title3-ls);      font-weight: 600; }
+  .ios-headline    { font-size: var(--ios-headline);    line-height: var(--ios-headline-lh);    letter-spacing: var(--ios-headline-ls);    font-weight: 600; }
+  .ios-body        { font-size: var(--ios-body);        line-height: var(--ios-body-lh);        letter-spacing: var(--ios-body-ls);        font-weight: 400; }
+  .ios-callout     { font-size: var(--ios-callout);     line-height: var(--ios-callout-lh);     letter-spacing: var(--ios-callout-ls);     font-weight: 400; }
+  .ios-subhead     { font-size: var(--ios-subhead);     line-height: var(--ios-subhead-lh);     letter-spacing: var(--ios-subhead-ls);     font-weight: 400; }
+  .ios-footnote    { font-size: var(--ios-footnote);    line-height: var(--ios-footnote-lh);    letter-spacing: var(--ios-footnote-ls);    font-weight: 400; }
+  .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--ios-caption1-lh);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
+  .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--ios-caption2-lh);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
+
+  /* ── Canonical page title — Apple Title1, bold. One look for every screen. ──
+     Every page heading uses this instead of ad-hoc text-[26/28/32px]. Gives
+     the app a single, consistent large-title style matching iOS navigation.  */
+  .ios-page-title {
+    /* Apple Large Title — the anchor of every screen's hierarchy. Was
+       Title1 (28px); true large titles are what make iOS screens read as
+       "places" rather than web pages. */
+    font-size:      var(--ios-large-title);     /* 34px */
+    line-height:    var(--ios-large-title-lh);  /* 41px */
+    letter-spacing: var(--ios-large-title-ls);
+    font-weight:    700;
+    color:          var(--foreground);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LIQUID GLASS COMPONENTS (2026-07-15, Ali's explicit adoption)
+     Ported from glass-components.css, remapped onto this app's existing
+     --foreground/--muted-foreground text tokens instead of forking a
+     parallel --text-primary system. Every rule reads the palette added
+     above — nothing here is a literal color/blur/opacity.
+     See tag `pre-liquid-glass-2026-07-15` for the prior state.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /* ---- Base wallpaper (apply to the app shell / root screen container) ----
+     Replaced 2026-07-16 with the 3-palette bokeh recipe from Ali's updated
+     glass-components.css: 4 discrete blurred light fields (not large radial
+     gradients) using --wallpaper-field-1..4 + --wallpaper-opacity-1..4 (set
+     per-palette, see the [data-palette] tokens near the top of this file). */
+  .glass-wallpaper {
+    position: relative;
+    background: var(--wallpaper-base);
+    transition: background var(--glass-transition);
+    overflow: hidden; /* keeps the blurred, oversized ::before from spilling past rounded corners */
+    isolation: isolate; /* scopes blur/blend compositing to this element */
+  }
+
+  .glass-wallpaper::before {
+    content: "";
+    /* position: FIXED — this is the whole trick to real Liquid Glass, and
+       getting it wrong is why the effect kept dying. The colour layer must
+       stay PINNED to the screen while the glass cards scroll OVER it, so each
+       translucent card acts like a lens: the colour visible through it shifts
+       as the card travels up the viewport. That relative motion IS the
+       shimmer. When this layer was position: absolute instead, it scrolled at
+       the SAME rate as the cards, so the colour was glued to each card and
+       travelled with it — Ali, twice: "the background is in the card… the same
+       bokeh moves with the card as if the card also has this background
+       attached." Fixed kills that: cards move, colour stays.
+       The earlier fixed attempt still felt dead only because the fields were
+       sparse (clustered at the edges, flat middle) — nothing to shimmer over.
+       The fix is fixed + a RICH field spread across the whole viewport
+       (below), so wherever a card is, there's varied colour behind it that
+       changes as it scrolls.
+
+       PARALLAX (2026-07-18, Ali): the layer is now ~32vh TALLER than the
+       viewport (inset -16vh top/bottom) and drifts slowly against scroll via
+       a scroll-driven animation (see the @supports block after this rule) —
+       content moves at 1×, the light field at a fraction, the exact layered
+       depth native iOS uses. Because the timeline is the ROOT scroll, the
+       drift maps intelligently onto the page: a short page drifts a little,
+       a long page spreads the same full sweep of the composition across its
+       entire scroll — the field always spans the whole journey and no edge
+       is ever exposed. Compositor-thread only (transform, no JS, no scroll
+       listener) so it can't jank or cost battery; engines without
+       scroll-driven animations simply keep today's pinned behaviour. */
+    position: fixed;
+    inset: -16vh 0;
+    z-index: 0;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    /* Four soft fields spread to fill the viewport — top-left, top-right,
+       bottom-left, and a centre highlight — so the vertical span a card
+       travels through has distinct colour zones (warm top → highlight centre →
+       cooler bottom). No filter:blur (a prior filter:blur(90px) on this
+       full-viewport canvas stalled rendering outright); the gradients' own
+       long fade to transparent is the softness.
+
+       ULTRA-SMOOTH / NO BANDING: each field is a THREE-stop radial (full →
+       ~45% alpha at mid → transparent). A plain two-stop (solid → transparent)
+       fade steps visibly on 8-bit OLED in the dark palettes; the mid stop
+       bends the alpha curve so the falloff is perceptually even instead of a
+       hard linear ramp. The dither layer in ::after finishes the job on any
+       residual quantising. (Deliberately NOT using `in oklab` gradient
+       interpolation — if an engine can't parse it the WHOLE background-image
+       is dropped and the bokeh vanishes; the 3-stop + dither is smooth enough
+       without that risk.)
+
+       DYNAMIC SIZING: sizes are in vmax, not px — the fields scale with the
+       device, so the composition looks identically full on a small phone, a
+       large phone, or a desktop pane instead of a fixed px blob that reads
+       cramped or sparse depending on screen. (Because the layer is fixed, it
+       already fills any page length — a long page never runs it out or bands
+       it; vmax makes it fill any screen SIZE the same way.) */
+    background-image:
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-1) calc(var(--wallpaper-opacity-1) * 60%), transparent) 34%,
+        transparent 74%),
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-2) calc(var(--wallpaper-opacity-2) * 58%), transparent) 32%,
+        transparent 70%),
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-3) calc(var(--wallpaper-opacity-3) * 58%), transparent) 33%,
+        transparent 72%),
+      radial-gradient(circle,
+        color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 100%), transparent) 0%,
+        color-mix(in srgb, var(--wallpaper-field-4) calc(var(--wallpaper-opacity-4) * 45%), transparent) 30%,
+        transparent 68%);
+    background-size: 118vmax 118vmax, 100vmax 100vmax, 110vmax 110vmax, 88vmax 88vmax;
+    background-position:
+      -12% -8%,                             /* field 1 — top-left */
+      108% 4%,                              /* field 2 — top-right */
+      -8% 104%,                             /* field 3 — bottom-left */
+      58% 48%;                              /* field 4 — centre highlight */
+    /* Own compositor layer (cheap: no filter to rasterize) so this fixed
+       layer's paint never forces a repaint of the scrolling content above. */
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* ── Parallax drift — scroll-driven, compositor-thread only ──────────────
+     The oversized (-16vh inset) layer starts shifted down 16vh at page top
+     and ends shifted up 16vh at page bottom: content scrolls at 1×, the light
+     field drifts against it, and the full composition maps onto the page's
+     entire scroll range regardless of its length. scroll(root) = document
+     scroll; inside fixed full-screen takeovers (New Sale wizard) the page
+     doesn't scroll, so the layer correctly holds still there. */
+  @keyframes snm-wallpaper-parallax {
+    from { transform: translate3d(0, 16vh, 0); }
+    to   { transform: translate3d(0, -16vh, 0); }
+  }
+  /* Ambient "breathing" — the light field slowly wanders and swells even
+     with the phone at rest, so the glass overlays always have LIVE colour
+     moving behind their blur (Ali: background must feel dynamic, work with
+     the glass). Slow enough (48s to-and-fro) to read as atmosphere, never
+     as an effect. The scale floor (1.06) keeps the oversized layer covering
+     the viewport through the ±2.5vw/±2vh wander, so no edge ever peeks. */
+  @keyframes snm-wallpaper-breathe {
+    from { transform: translate3d(-5vw, -3.5vh, 0) scale(1.11); }
+    to   { transform: translate3d(5vw, 3.5vh, 0) scale(1.22); }
+  }
+  @supports (animation-timeline: scroll()) {
+    .glass-wallpaper::before {
+      /* Duration pitfall: the `animation` shorthand defaults duration to 0s
+         even when a scroll timeline drives the timing — a 0-duration
+         animation has no range to interpolate, i.e. it never moves. `auto`
+         is the CSS Animations L2 value for "the scroll timeline's own
+         range". Longhands, so this can't silently regress.
+         The TWO animations stack on transform via animation-composition:
+         the scroll parallax replaces, the time-driven breathe ADDS on top —
+         both purely compositor-thread. */
+      animation-name: snm-wallpaper-parallax, snm-wallpaper-breathe;
+      animation-timeline: scroll(root), auto;
+      animation-duration: auto, 24s;
+      animation-timing-function: linear, ease-in-out;
+      animation-iteration-count: 1, infinite;
+      animation-direction: normal, alternate;
+      animation-fill-mode: both, none;
+      animation-composition: replace, add;
+    }
+  }
+  /* Engines without scroll-driven animations still get the ambient life —
+     breathe alone, no parallax. */
+  @supports not (animation-timeline: scroll()) {
+    .glass-wallpaper::before {
+      animation: snm-wallpaper-breathe 24s ease-in-out infinite alternate;
+    }
+  }
+  /* Scroll-driven animations ignore duration overrides, so the global
+     reduced-motion rule can't flatten these — opt out explicitly.
+     The wallpaper falls back to its pinned (motionless) behaviour. */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-wallpaper::before { animation: none; }
+  }
+
+  /* Fallback for engines without color-mix() support (older Android
+     WebViews) — falls back to full-opacity fields rather than a broken
+     wallpaper. The opacity token is simply unused in this path. */
+  @supports not (background: color-mix(in srgb, red 50%, transparent)) {
+    .glass-wallpaper::before {
+      background-image:
+        radial-gradient(circle, var(--wallpaper-field-1) 0%, transparent 74%),
+        radial-gradient(circle, var(--wallpaper-field-2) 0%, transparent 70%),
+        radial-gradient(circle, var(--wallpaper-field-3) 0%, transparent 72%),
+        radial-gradient(circle, var(--wallpaper-field-4) 0%, transparent 68%);
+    }
+  }
+
+  /* Large soft gradients can quantize into visible steps ("banding") on
+     8-bit OLED displays. A faint procedural noise texture, blended with
+     mix-blend-mode: overlay, breaks up the smooth channel transitions
+     without being visible as "noise" itself — this is the dither that makes
+     the fade read as truly continuous. 0.035 → 0.05: the dark palettes band
+     more (deep near-black gradients have fewer code values to step through),
+     so they need slightly more dither than the light ones did. */
+  .glass-wallpaper::after {
+    content: "";
+    /* Fixed to match the colour layer above — the anti-banding noise belongs
+       to the same stationary backdrop plane, not to the scrolling content. */
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-repeat: repeat;
+  }
+
+  /* ---- Calm wallpaper (data-entry screens: forms, wizards) ----
+     Same bokeh, same base colour — just muted, so dense lists of thin rows
+     (a customer picker, not a dashboard of large cards) stay easy to read
+     instead of the gradient reading as a wash across the whole screen. */
+  .glass-wallpaper--calm::before {
+    opacity: 0.35;
+  }
+
+  /* ---- Core glass panel (cards, sheets, modals) ---- */
+  .glass-panel {
+    position: relative;
+    z-index: 1;
+    border-radius: var(--glass-radius-xl);
+    padding: 14px 16px;
+    background: linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom));
+    backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
+    box-shadow: inset 0 1px 1px var(--glass-specular), 0 4px 14px rgba(0,0,0,0.08);
+    transition: background var(--glass-transition), border-color var(--glass-transition);
+  }
+  .glass-panel--sm {
+    border-radius: var(--glass-radius-lg);
+    padding: 12px 14px;
+    backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+  }
+  .glass-panel--strong {
+    background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
+    backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+  }
+
+  /* ---- Pill button ---- */
+  .glass-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: var(--glass-radius-md);
+    background: linear-gradient(180deg, var(--glass-fill-top-strong), var(--glass-fill-bottom-strong));
+    backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.75));
+    box-shadow: inset 0 1px 1px var(--glass-specular-strong);
+    color: var(--foreground);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* ---- Stat strip (equal-weight metrics in one unified panel) ---- */
+  .glass-stat-strip { display: flex; }
+  .glass-stat-strip__item { flex: 1; text-align: center; padding: 0 6px; }
+  .glass-stat-strip__value { font-size: 17px; font-weight: 500; color: var(--foreground); }
+  .glass-stat-strip__label { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+  .glass-stat-strip__divider { width: 1px; background: var(--glass-divider); }
+
+  /* ---- Status tile (icon + value + caption) ---- */
+  .glass-status-tile { display: flex; align-items: center; gap: 10px; }
+  .glass-status-tile__icon {
+    width: 30px; height: 30px; border-radius: var(--glass-radius-sm);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .glass-status-tile__icon--success { background: var(--status-success-bg); color: var(--status-success); }
+  .glass-status-tile__icon--warning { background: var(--status-warning-bg); color: var(--status-warning); }
+  .glass-status-tile__icon--danger  { background: var(--status-danger-bg);  color: var(--status-danger); }
+  .glass-status-tile__value { font-size: 15px; font-weight: 500; color: var(--foreground); }
+  .glass-status-tile__caption { font-size: 11px; color: var(--muted-foreground); }
+
+  /* ---- Search field ---- */
+  .glass-search {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px; border-radius: var(--glass-radius-lg);
+    background: linear-gradient(180deg, var(--glass-fill-top-subtle), var(--glass-fill-bottom-subtle));
+    backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(18px * var(--frost-b))) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
+    box-shadow: inset 0 1px 1px var(--glass-specular);
+  }
+  .glass-search input { border: none; background: none; outline: none; font-size: 13px; color: var(--foreground); width: 100%; }
+  .glass-search input::placeholder { color: var(--muted-foreground); }
+  .glass-search svg, .glass-search i { color: var(--muted-foreground); }
+
+  /* ---- Filter chips ---- */
+  .glass-chip {
+    padding: 6px 12px; border-radius: var(--glass-radius-md);
+    font-size: 13px; font-weight: 500; white-space: nowrap;
+    background: var(--glass-unselected-bg);
+    border: 1px solid var(--glass-unselected-border);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: background var(--glass-transition), color var(--glass-transition);
+  }
+  .glass-chip[aria-selected="true"], .glass-chip--selected {
+    background: var(--glass-selected-bg);
+    color: var(--glass-selected-text);
+    border-color: transparent;
+  }
+
+  /* ---- Bottom tab bar ────────────────────────────────────────────────────
+     Uses the DEDICATED --tabbar-bg/--tabbar-border tokens, not the generic
+     glass-fill-*-strong recipe every other panel shares. The tab bar is the
+     one piece of chrome that must always read as visibly elevated above a
+     same-tone page — floating over the jewel-tone wallpaper made the shared
+     glass-panel recipe blend right into the background in light mode (Ali,
+     screenshot). --tabbar-bg/-border are tuned per-theme specifically for
+     that contrast; see their definitions for the fuller history. */
+  .glass-tabbar {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 9px 6px 6px;
+    background: var(--tabbar-bg);
+    backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    -webkit-backdrop-filter: blur(calc(28px * var(--frost-b))) saturate(var(--glass-saturate-strong));
+    /* Own compositor layer, promoted once and left alone: on iOS Safari a
+       `position: fixed` + backdrop-filter element re-samples the blur from
+       whatever is painting underneath it, so a long list rendering many rows
+       at once made the tab bar visibly judder until the page settled (Ali:
+       "vibrating up and down... happens most in long lists"). Forcing GPU
+       compositing here means the blur is computed from a stable snapshot
+       instead of live-resampling during the paint burst. */
+    will-change: transform;
+    transform: translateZ(0);
+    border: 1px solid var(--tabbar-border);
+    box-shadow: inset 0 1px 1px var(--glass-specular-strong);
+  }
+  .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted-foreground); }
+  .glass-tab--active { color: var(--glass-accent); font-weight: 500; }
+
+  /* ---- Divider used inside panels ---- */
+  .glass-divider { height: 1px; background: var(--glass-divider); border: none; }
+
+  /* ---- Status badge ---- */
+  .glass-badge { display: inline-flex; padding: 3px 9px; border-radius: var(--glass-radius-sm); font-size: 11px; font-weight: 500; }
+  .glass-badge--warning { background: var(--status-warning-bg); color: var(--status-warning); }
+  .glass-badge--success { background: var(--status-success-bg); color: var(--status-success); }
+  .glass-badge--danger  { background: var(--status-danger-bg);  color: var(--status-danger); }
+
+  /* Respect reduced-motion (the app already has a global rule further below;
+     this scopes it explicitly to the new classes too, matching the source). */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-panel, .glass-chip, .glass-wallpaper { transition: none; }
+  }
+
+  /* Fallback for WebViews without backdrop-filter support */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-panel, .glass-panel--sm, .glass-panel--strong,
+    .glass-pill, .glass-search, .glass-tabbar {
+      background: var(--wallpaper-base);
+      opacity: 0.98;
+    }
+  }
+}
+
+/* ── Display P3 wide gamut (2026 doctrine · Retina/OLED) ─────────────────────
+   Every iPhone since 7 renders Display P3 — ~25% more colour volume than
+   sRGB. Native iOS accents use it; sRGB-only web apps look subtly duller
+   than the OS around them. Re-express the ACCENT FILLS in P3 so buttons,
+   pills and active states get the true system-colour vibrancy on capable
+   screens, with the sRGB hex values above as the automatic fallback.
+   Deliberately NOT converted: the deepened *-text variants (light mode) and
+   --snm-brand-text — their WCAG ratios were verified in sRGB on device;
+   fills only carry a 3:1 large-element bar and keep white foregrounds. */
+@media (color-gamut: p3) {
+  @supports (color: color(display-p3 1 1 1)) {
+    /* Light (default + manual override) */
+    :root, .light {
+      --snm-info:  color(display-p3 0 0.478 1);
+      --snm-error: color(display-p3 1 0.231 0.188);
+    }
+    /* Dark — Apple's own dark-mode accents, P3-native */
+    .dark {
+      --snm-info:    color(display-p3 0.039 0.518 1);
+      --snm-error:   color(display-p3 1 0.271 0.227);
+      --snm-success: color(display-p3 0.188 0.82 0.345);
+      --snm-warning: color(display-p3 1 0.624 0.039);
+      --snm-promo:   color(display-p3 0.749 0.353 0.949);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --snm-info:    color(display-p3 0.039 0.518 1);
+        --snm-error:   color(display-p3 1 0.271 0.227);
+        --snm-success: color(display-p3 0.188 0.82 0.345);
+        --snm-warning: color(display-p3 1 0.624 0.039);
+        --snm-promo:   color(display-p3 0.749 0.353 0.949);
+      }
+      /* System-dark but user forced light — keep light P3 values */
+      :root.light, .light {
+        --snm-info:  color(display-p3 0 0.478 1);
+        --snm-error: color(display-p3 1 0.231 0.188);
+      }
+    }
+  }
+}
+
+/* ── Reduced Transparency (Apple accessibility) ──────────────────────────────
+   iOS "Reduce Transparency" swaps every glass material for a solid surface.
+   Honour prefers-reduced-transparency the same way: opaque fills, no blur.
+   Borders/shadows stay so surfaces keep their depth hierarchy.              */
+@media (prefers-reduced-transparency: reduce) {
+  /* Elevated surfaces become the solid popover colour so they still read as
+     raised cards against the page background. */
+  .glass, .snm-card, .snm-card-l2, .snm-glass-btn,
+  .glass-modal, .glass-elevated, .glass-input {
+    background: var(--popover) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* Navigation chrome becomes the solid page colour (matches iOS, where bars
+     turn opaque under Reduce Transparency). */
+  .glass-sidebar, .glass-bottom-nav, .snm-topbar, .snm-bottom-nav,
+  .snm-tabbar-float,
+  .snm-overlay-header, .snm-overlay-footer {
+    background: var(--background) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ── Increased Contrast (Apple accessibility) ────────────────────────────────
+   Apple: under Increased Contrast, glass becomes near-opaque with stark borders.
+   Honour prefers-contrast: more so the app matches iOS behaviour.            */
+@media (prefers-contrast: more) {
+  .glass, .snm-card, .snm-card-l2, .snm-glass-btn,
+  .glass-modal, .glass-elevated, .glass-input {
+    background: var(--background) !important;
+    border-color: var(--foreground) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ── POLISH 4: Sunlight-legible currency display ──────────────────────────
+   Was weight 300 (thin type vanishes in Maldivian sunlight — the brief's
+   exact warning). Bump to 600 + tabular figures so the hero number holds.
+   IDEO: must read under real field conditions, not just on a Figma canvas. */
+.currency-display {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ── POLISH 5: Honor reduced-motion ───────────────────────────────────────
+   Hard accessibility requirement from the AUDIT_BRIEF. Users who set
+   "Reduce Motion" in iOS get near-instant, transform-free transitions.     */
+/* Route-loading skeleton shimmer — used by loading.tsx placeholders so a
+   tapped screen appears instantly with a content-shaped shimmer instead of a
+   blank flash. Subtle, theme-aware, GPU-cheap (background-position only). */
+.snm-skel {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+.snm-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--foreground) 6%, transparent),
+    transparent
+  );
+  animation: snm-shimmer 1.25s ease-in-out infinite;
+}
+@keyframes snm-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* ── Native sheet motion ─────────────────────────────────────────────────
+   Bottom sheets slide up with a spring; scrims fade. Apply .snm-sheet-in to
+   the panel and .snm-scrim-in to the backdrop. GPU-only (transform/opacity);
+   the global reduced-motion rule flattens both automatically. */
+@keyframes snm-sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes snm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.snm-sheet-in { animation: snm-sheet-up 0.38s var(--snm-spring); }
+.snm-scrim-in { animation: snm-fade-in 0.25s var(--snm-ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .snm-skel::after { display: none; } /* no shimmer when motion is reduced */
+  .snm-pressable:active,
+  .snm-btn:active { transform: none !important; }
+}

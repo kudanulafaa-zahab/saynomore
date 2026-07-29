@@ -1,6 +1,9 @@
 # Customer Storefront — Phase 1 plan (handoff task #6)
 
-**Status: scoped, not built.** This is a *separate installable PWA* that touches
+**Status: backend built + verified (0112–0118); storefront UI built + verified
+in-browser, not yet deployed.** See "Phase 1 UI build" at the bottom of this
+doc for what exists in `shop/` and what's still needed before it's live at a
+real URL. This is a *separate installable PWA* that touches
 customer money and live stock — the highest-risk surface in the system. It's
 also the one open task with real product decisions only Ali can make. This doc
 pins the plan and those decisions so the build is fast and safe once greenlit,
@@ -121,5 +124,65 @@ beyond this.
   `next/image` with proper `sizes`/srcset rather than a single fixed-width
   `<img>`, so the browser picks the right resolution per device.
 
-Storefront UI build (Task #3, `saynomore-shop` Next.js project) is still on
-hold at Ali's request — not started.
+## Phase 1 UI build (2026-07-29)
+
+Built as `shop/` — a sibling Next.js 16 app inside this same repo (its own
+`package.json`/lockfile/config, not a workspace of the root app), matching
+the plan's "separate project, same Supabase" decision without needing a
+second GitHub repo. Ships: category-tabbed browse (Diapers/Liquid
+Detergent/Dishwashing — grouped by brand → model → variant, never a flat
+list), product detail with unit picker, cart (localStorage, guest — no
+accounts), checkout (COD/bank transfer), order confirmation, and the install
+tutorial (Android `beforeinstallprompt` button; iOS Share→Add to Home
+Screen walkthrough; detects Instagram/Facebook/TikTok's in-app browser and
+tells people to open in Safari first, since Add to Home Screen silently
+doesn't work there). Design tokens copied wholesale from `app/globals.css`
+(it's pure design-system CSS, no business logic entangled) so it looks like
+the same product family.
+
+**Caught while building, fixed same session (migration 0118)**: the
+catalogue read had no concept of an age-restricted category. A `Tobacco`
+category exists in this database (0 active SKUs today, so nothing was
+actually exposed) but nothing stopped it from appearing in the guest
+self-serve shop the moment a tobacco SKU went active — no age gate exists
+or could exist in a no-account checkout. Added
+`product_categories.storefront_visible` (default true, false for Tobacco)
+and filtered on it in `get_storefront_catalogue()`. A future restricted
+category is a one-row flip, not a new migration.
+
+**Scope cut, not a bug**: Sosoft SKUs' `sellable_units` is `['carton']`
+only (no `piece`) — `place_customer_order` validates `uom` against that
+list, so a shopper buys a whole carton (6 bottles) of ONE scent per line.
+The internal app's "mix your own carton" (different scents in one carton)
+is a per-piece-across-SKUs concept the current RPC signature can't express
+without a real change to its qty/pricing logic — deferred rather than
+half-built. Flagged to Ali; not yet decided whether Phase 1 ships without
+it or waits for the RPC extension.
+
+**Verified**: `npx tsc --noEmit`, `npm run build`, and `eslint` all clean
+(one pre-existing-pattern warning, matching the main app's own parked
+`react-hooks/set-state-in-effect` call). Full flow exercised in a real
+browser (Playwright, iPhone viewport) against this sandbox's dev server:
+browse → category switch → product page → add to cart (install sheet
+fires, iOS walkthrough content correct) → cart (pricing correct) →
+checkout (payment method toggle, bank-transfer instructions) → order
+placed → confirmation page (order number shown, second install-sheet
+chance fires). The `place_customer_order` payload the app actually sent was
+captured and matches the RPC's real signature exactly, with no price field.
+Note: this sandbox's outbound proxy resets Chromium's connections to
+`supabase.co` specifically (confirmed via `curl` through the same proxy
+with the same anon key — that returns real data fine, so it's a headless-
+browser-in-this-sandbox quirk, not an app bug); the catalogue fetch itself
+was verified for real via curl, and the full click-through flow was
+verified by intercepting that one request with the real captured response
+so the rest of the app's own code — parsing, grouping, cart math, checkout
+wiring — was still genuinely exercised end to end.
+
+**Not done yet**: no Vercel project exists for `shop/` (needs its own
+deployment pointed at that subdirectory, plus the two public env vars —
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — same values
+the main app uses); no real domain; product photos are still mostly
+missing (placeholder gradient tiles render in their place, by design); the
+mixed-carton decision above; and real device testing of the Android install
+banner and iOS Safari walkthrough (simulators/sandboxes aren't reliable for
+either, per the original verification plan).
