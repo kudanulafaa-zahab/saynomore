@@ -23,7 +23,9 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ or
       <h1 className="ios-title1 font-bold">Order placed!</h1>
       <p className="ios-headline font-semibold snm-num">{orderNumber}</p>
       <p className="ios-subhead max-w-xs" style={{ color: "var(--muted-foreground)" }}>
-        We&apos;ll be in touch shortly to confirm and arrange delivery.
+        Your order lands as a secure draft. A real person will quickly
+        confirm your details by phone or WhatsApp before anything is
+        finalised.
       </p>
       <Link
         href="/"

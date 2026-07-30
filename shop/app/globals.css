@@ -4,17 +4,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* NOTE ON THIS FILE'S SIZE: the staff app's app/globals.css (which this was
-   copied from) is ~1800 lines — a full 3-palette Liquid Glass design system
-   with dozens of component classes the storefront doesn't use yet (palette
-   switcher, glass-wallpaper parallax, pill/badge/stat-strip components,
-   P3 wide-gamut, reduce-transparency/increase-contrast overrides). This is
-   a trimmed subset containing only the tokens and classes this app's own
-   components actually reference (verified via
-   `grep -rohE "var\(--[a-zA-Z0-9-]+|className=..." app components lib`),
-   so a future contributor adding a new class from the staff app's palette
-   should copy the FULL file back in rather than hand-add pieces here.
-   Same variable names/values as the source — this is a subset, not a fork. */
+/* SHOP-ONLY PALETTE (2026-07-30 redesign): the customer storefront is a
+   distinct consumer-facing brand from the internal staff app — Ali approved
+   it diverging visually. This file started as a trimmed subset of the staff
+   app's Liquid Glass tokens (same class names: .snm-card, .ios-*, .glass-*)
+   but the actual colour VALUES below are now a warm, premium off-white/
+   near-black palette (not the staff app's cool #f2f2f7), closer to Apple
+   marketing pages than an internal ops tool. Keep the class names stable
+   (components depend on them); the values are free to keep evolving here
+   without touching the staff app's real globals.css. */
 
 @theme inline {
   --color-background: var(--background);
@@ -114,59 +112,64 @@
   --snm-info:    #007AFF;
   --snm-promo:   #8944D6;
 
-  --background:   #f2f2f7;
-  --foreground:   #1c1c1e;
-  --card:             rgba(255, 255, 255, 0.72);
-  --card-foreground:  #1c1c1e;
-  --popover:            rgba(255, 255, 255, 0.96);
-  --popover-foreground: #1c1c1e;
-  --primary:            #1c1c1e;
-  --primary-foreground: #ffffff;
-  --secondary:            rgba(0, 0, 0, 0.06);
-  --secondary-foreground: #1c1c1e;
-  --muted:            rgba(0, 0, 0, 0.04);
-  --muted-foreground: #6c6c70;
-  --accent:            rgba(0, 0, 0, 0.05);
-  --accent-foreground: #1c1c1e;
+  /* Warm premium palette — off-white paper background (not the staff app's
+     cool #f2f2f7), near-black ink foreground. Chosen from the "Luxury/
+     Premium Brand" direction (ui-ux-pro-max --domain color): warm neutrals
+     read richer than cool greys at the same lightness, and pair better with
+     real product photography. Still monochrome accent — no decorative hue. */
+  --background:   #faf8f5;
+  --foreground:   #1a1715;
+  --card:             rgba(255, 253, 250, 0.74);
+  --card-foreground:  #1a1715;
+  --popover:            rgba(255, 253, 250, 0.97);
+  --popover-foreground: #1a1715;
+  --primary:            #1a1715;
+  --primary-foreground: #fffdfa;
+  --secondary:            rgba(26, 23, 21, 0.06);
+  --secondary-foreground: #1a1715;
+  --muted:            rgba(26, 23, 21, 0.045);
+  --muted-foreground: #756e66;
+  --accent:            rgba(26, 23, 21, 0.05);
+  --accent-foreground: #1a1715;
   --destructive: #ff3b30;
-  --border: rgba(0, 0, 0, 0.09);
-  --input:  rgba(0, 0, 0, 0.06);
-  --ring:   rgba(0, 0, 0, 0.20);
-  --radius: 0.75rem;
+  --border: rgba(26, 23, 21, 0.09);
+  --input:  rgba(26, 23, 21, 0.06);
+  --ring:   rgba(26, 23, 21, 0.22);
+  --radius: 1rem;
 
-  --sidebar:                    rgba(242, 242, 247, 0.88);
-  --sidebar-foreground:         #1c1c1e;
-  --sidebar-primary:            #1c1c1e;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent:             rgba(0, 0, 0, 0.05);
-  --sidebar-accent-foreground:  #1c1c1e;
-  --sidebar-border:             rgba(0, 0, 0, 0.07);
-  --sidebar-ring:               rgba(0, 0, 0, 0.15);
+  --sidebar:                    rgba(250, 248, 245, 0.88);
+  --sidebar-foreground:         #1a1715;
+  --sidebar-primary:            #1a1715;
+  --sidebar-primary-foreground: #fffdfa;
+  --sidebar-accent:             rgba(26, 23, 21, 0.05);
+  --sidebar-accent-foreground:  #1a1715;
+  --sidebar-border:             rgba(26, 23, 21, 0.07);
+  --sidebar-ring:               rgba(26, 23, 21, 0.15);
 
-  /* Real glass tokens (light) */
-  --glass-bg-1:      rgba(255, 255, 255, calc(0.62 * var(--frost-fill)));
-  --glass-bg-2:      rgba(255, 255, 255, calc(0.84 * var(--frost-fill)));
-  --glass-bg-3:      rgba(255, 255, 255, calc(0.96 * var(--frost-fill)));
-  --glass-border:    rgba(255, 255, 255, calc(0.90 * var(--frost-edge)));
-  --glass-border-lo: rgba(0, 0, 0, calc(0.08 * var(--frost-edge)));
-  --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
-  --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
-  --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-edge)));
+  /* Real glass tokens (light) — warm-tinted instead of pure white */
+  --glass-bg-1:      rgba(255, 253, 250, calc(0.68 * var(--frost-fill)));
+  --glass-bg-2:      rgba(255, 253, 250, calc(0.87 * var(--frost-fill)));
+  --glass-bg-3:      rgba(255, 253, 250, calc(0.97 * var(--frost-fill)));
+  --glass-border:    rgba(255, 253, 250, calc(0.90 * var(--frost-edge)));
+  --glass-border-lo: rgba(26, 23, 21, calc(0.08 * var(--frost-edge)));
+  --glass-shadow:    0 2px 16px rgba(26, 20, 14, 0.09), 0 1px 3px rgba(26, 20, 14, 0.05);
+  --glass-shadow-lg: 0 8px 40px rgba(26, 20, 14, 0.13), 0 2px 8px rgba(26, 20, 14, 0.05);
+  --glass-inner:     inset 0 1px 0 rgba(255, 253, 250, calc(1 * var(--frost-edge))), inset 0 -1px 0 rgba(26, 23, 21, calc(0.04 * var(--frost-edge)));
   --glass-blur:      blur(calc(28px * var(--frost-b))) saturate(180%);
   --glass-blur-lg:   blur(calc(48px * var(--frost-b))) saturate(200%);
 
   /* Atmospheric depth (light) — the fixed page-background gradient behind
-     every translucent card. Neutral luminance only, no hue. */
+     every translucent card. Warm neutral luminance only, no hue. */
   --app-bg:
-    radial-gradient(1100px 820px at 50% -18%, rgba(255,255,255,0.92), rgba(255,255,255,0) 58%),
-    linear-gradient(180deg, #f6f6fa 0%, #eaeaee 100%);
-  --glass-sheen: linear-gradient(180deg, rgba(255,255,255, calc(0.68 * var(--frost-edge))) 0%, rgba(255,255,255, calc(0.16 * var(--frost-edge))) 32%, rgba(255,255,255, calc(0 * var(--frost-edge))) 62%);
+    radial-gradient(1100px 820px at 50% -18%, rgba(255,253,248,0.95), rgba(255,253,248,0) 58%),
+    linear-gradient(180deg, #fbf9f6 0%, #f0ece5 100%);
+  --glass-sheen: linear-gradient(180deg, rgba(255,253,250, calc(0.68 * var(--frost-edge))) 0%, rgba(255,253,250, calc(0.16 * var(--frost-edge))) 32%, rgba(255,253,250, calc(0 * var(--frost-edge))) 62%);
 
   --glass-1: var(--glass-bg-1);
   --glass-2: var(--glass-bg-2);
 
-  --on-surface-variant: #6c6c70;
-  --outline-variant:    #d1d1d6;
+  --on-surface-variant: #756e66;
+  --outline-variant:    #ded7cd;
 }
 
 /* ── DARK MODE ────────────────────────────────────────────────────────── */
@@ -180,20 +183,20 @@
     --snm-info:  #0A84FF;
     --snm-promo: #BF5AF2;
 
-    --background: #000000;
-    --foreground: #e5e2e1;
-    --card:            rgba(255, 255, 255, 0.05);
-    --card-foreground: #e5e2e1;
-    --popover:            rgba(22, 22, 26, 0.94);
-    --popover-foreground: #e5e2e1;
-    --primary:            #ffffff;
-    --primary-foreground: #1c1c1e;
-    --secondary:            rgba(255, 255, 255, 0.08);
-    --secondary-foreground: #e5e2e1;
-    --muted:            rgba(255, 255, 255, 0.05);
-    --muted-foreground: #8e9192;
-    --accent:            rgba(255, 255, 255, 0.06);
-    --accent-foreground: #e5e2e1;
+    --background: #0a0908;
+    --foreground: #ede9e4;
+    --card:            rgba(255, 250, 244, 0.05);
+    --card-foreground: #ede9e4;
+    --popover:            rgba(24, 22, 20, 0.94);
+    --popover-foreground: #ede9e4;
+    --primary:            #fffdfa;
+    --primary-foreground: #1a1715;
+    --secondary:            rgba(255, 250, 244, 0.08);
+    --secondary-foreground: #ede9e4;
+    --muted:            rgba(255, 250, 244, 0.05);
+    --muted-foreground: #96908a;
+    --accent:            rgba(255, 250, 244, 0.06);
+    --accent-foreground: #ede9e4;
     --destructive: #ffb4ab;
     --border: rgba(255, 255, 255, 0.08);
     --input:  rgba(255, 255, 255, 0.07);
