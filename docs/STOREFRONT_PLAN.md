@@ -280,7 +280,9 @@ agreed for most of it, but **zero code written yet**. Pick up here:
    stock lands), whether stock exists yet or this is a "coming soon"
    listing, pack/carton config (loose bottles vs packs), and photos (ships
    with the placeholder tile if none yet, same as everything else).
-6. **Homepage copy — drafted, not yet confirmed or placed on the page**:
+6. **Homepage copy — drafted, not yet confirmed or placed on the page.**
+   Full text now lives in **`docs/STOREFRONT_COPY.md`** — read that file
+   directly rather than re-deriving copy here. Short summary:
    three tone options were given for the "why we're cheaper" section
    (recommended: warm/community option for the hero, punchier option as a
    pull-quote elsewhere) — Ali hadn't picked one as of the chat-migration
