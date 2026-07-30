@@ -123,7 +123,11 @@ it's more current and more detailed than this file for that one topic. The short
   scoped in the plan doc), The Body Shop seasonal lotion listing (blocked on real
   facts from Ali — scent names, price, stock, photos), and a full set of drafted
   homepage/brand copy not yet placed on any page. **All of this is written up in
-  detail in `docs/STOREFRONT_PLAN.md`'s final two sections — start there.**
+  detail in `docs/STOREFRONT_PLAN.md`'s final two sections — start there.** The
+  actual copy text (hero, brand story, MamyPoko colour explainer, price-comparison
+  table with real numbers, delivery/trust copy, the 3 affordability-section drafts)
+  is in **`docs/STOREFRONT_COPY.md`** — read that file directly rather than
+  re-writing copy from scratch.
 
 ---
 
