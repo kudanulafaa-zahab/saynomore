@@ -78,6 +78,16 @@ export default function ProductPage({ params }: { params: Promise<{ variantId: s
             {row.brand_name} · {row.model_name}
           </p>
           <h1 className="ios-title2 font-bold mt-0.5">{row.variant_display}</h1>
+          {row.sellable_units.includes("pack") && (
+            <p className="ios-footnote mt-1" style={{ color: "var(--muted-foreground)" }}>
+              {row.pcs_per_pack} pcs/pack
+            </p>
+          )}
+          {row.category_name === "Liquid Detergent" && (
+            <p className="ios-footnote mt-1" style={{ color: "var(--muted-foreground)" }}>
+              1 carton = {row.pcs_per_carton} bottles
+            </p>
+          )}
         </div>
 
         {!row.is_orderable && (

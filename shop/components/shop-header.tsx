@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { Instrument_Sans } from "next/font/google";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  weight: ["600"],
+});
 
 export function ShopHeader() {
   const { totalItems } = useCart();
@@ -18,8 +25,11 @@ export function ShopHeader() {
         borderBottom: "0.5px solid var(--glass-border-lo)",
       }}
     >
-      <Link href="/" className="ios-headline font-bold tracking-tight">
-        saynomore
+      <Link href="/" className="flex items-center gap-2">
+        <Image src="/saynomore-logo.png" alt="" width={28} height={28} priority className="h-7 w-7" />
+        <span className={`${instrumentSans.className} text-[17px] font-semibold tracking-tight`}>
+          Say No More
+        </span>
       </Link>
       <Link
         href="/cart"

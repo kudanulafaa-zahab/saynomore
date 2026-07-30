@@ -5,18 +5,42 @@ import { useCatalogue } from "@/components/catalogue-provider";
 import { ShopHeader } from "@/components/shop-header";
 import { VariantCard } from "@/components/catalogue/variant-card";
 import { BRAND_COPY } from "@/lib/brand-copy";
+import { groupSeasonal, type BrandGroup, type CategoryGroup } from "@/lib/queries/catalogue";
+
+const SEASONAL_TAB_ID = "__seasonal__";
+
+// Display-only renames for the storefront — the underlying category name in
+// Products/get_storefront_catalogue() stays what staff already know it as.
+const CATEGORY_DISPLAY_NAME: Record<string, string> = {
+  "Liquid Detergent": "Washing Detergent",
+};
 
 export default function HomePage() {
-  const { categories, loading, error } = useCatalogue();
-  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const { rows, categories, loading, error } = useCatalogue();
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+
+  const seasonalBrands = groupSeasonal(rows);
+
+  // Diapers first, then the synthesized Seasonal tab (if there's anything in
+  // it), then every other real category in its normal sort order.
+  const tabs: { id: string; label: string }[] = [];
+  const diapers = categories.find((c) => c.category_name === "Diapers");
+  const restCategories = categories.filter((c) => c.category_name !== "Diapers");
+  if (diapers) tabs.push({ id: diapers.category_id, label: diapers.category_name });
+  if (seasonalBrands.length > 0) tabs.push({ id: SEASONAL_TAB_ID, label: "Seasonal" });
+  for (const c of restCategories) {
+    tabs.push({ id: c.category_id, label: CATEGORY_DISPLAY_NAME[c.category_name] ?? c.category_name });
+  }
 
   useEffect(() => {
-    if (!activeCategoryId && categories.length > 0) {
-      setActiveCategoryId(categories[0].category_id);
+    if (!activeTabId && tabs.length > 0) {
+      setActiveTabId(tabs[0].id);
     }
-  }, [categories, activeCategoryId]);
+  }, [tabs, activeTabId]);
 
-  const activeCategory = categories.find((c) => c.category_id === activeCategoryId) ?? categories[0];
+  const activeCategory: CategoryGroup | undefined = categories.find((c) => c.category_id === activeTabId);
+  const isSeasonalActive = activeTabId === SEASONAL_TAB_ID;
+  const activeBrands: BrandGroup[] = isSeasonalActive ? seasonalBrands : (activeCategory?.brands ?? []);
 
   return (
     <main className="min-h-dvh">
@@ -40,26 +64,26 @@ export default function HomePage() {
         </p>
       )}
 
-      {!loading && !error && categories.length > 0 && (
+      {!loading && !error && tabs.length > 0 && (
         <>
           <div className="flex gap-2 px-5 py-3 overflow-x-auto">
-            {categories.map((c) => (
+            {tabs.map((t) => (
               <button
-                key={c.category_id}
-                onClick={() => setActiveCategoryId(c.category_id)}
+                key={t.id}
+                onClick={() => setActiveTabId(t.id)}
                 className="snm-pressable shrink-0 ios-subhead font-semibold px-4 py-2 rounded-full"
                 style={{
-                  background: c.category_id === activeCategory?.category_id ? "var(--foreground)" : "var(--glass-1)",
-                  color: c.category_id === activeCategory?.category_id ? "var(--background)" : "var(--foreground)",
+                  background: t.id === activeTabId ? "var(--foreground)" : "var(--glass-1)",
+                  color: t.id === activeTabId ? "var(--background)" : "var(--foreground)",
                 }}
               >
-                {c.category_name}
+                {t.label}
               </button>
             ))}
           </div>
 
           <div className="px-5 pb-16 space-y-10">
-            {activeCategory?.brands.map((brand) => (
+            {activeBrands.map((brand) => (
               <section key={brand.brand_id}>
                 <h2 className="ios-title2 font-bold">{brand.brand_name}</h2>
                 {BRAND_COPY[brand.brand_name] && (

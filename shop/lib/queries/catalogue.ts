@@ -25,6 +25,8 @@ export interface CatalogueRow {
   pcs_per_carton: number;
   sellable_units: SellUnit[];
   mixed_carton_pieces: number | null;
+  is_seasonal: boolean;
+  is_on_sale: boolean;
   selling_price_per_piece_mvr: number | null;
   selling_price_per_pack_mvr: number | null;
   selling_price_per_carton_mvr: number | null;
@@ -67,6 +69,8 @@ export interface ModelGroup {
   model_id: string;
   model_name: string;
   mixed_carton_pieces: number | null;
+  is_seasonal: boolean;
+  is_on_sale: boolean;
   variants: CatalogueRow[];
 }
 
@@ -104,6 +108,8 @@ export function groupCatalogue(rows: CatalogueRow[]): CategoryGroup[] {
         model_id: row.model_id,
         model_name: row.model_name,
         mixed_carton_pieces: row.mixed_carton_pieces,
+        is_seasonal: row.is_seasonal,
+        is_on_sale: row.is_on_sale,
         variants: [],
       };
       brand.models.push(model);
@@ -115,4 +121,40 @@ export function groupCatalogue(rows: CatalogueRow[]): CategoryGroup[] {
   return Array.from(categories.values()).sort(
     (a, b) => a.category_sort_order - b.category_sort_order,
   );
+}
+
+// Seasonal is not a real category — it's a synthesized cross-cut that pulls
+// every is_seasonal model out of whatever category/brand it actually lives
+// in (e.g. The Body Shop under Body Care). A model can be seasonal from any
+// category, so this scans all rows, not one category's rows. Models still
+// appear in their real category too — Seasonal is an additional lens, not a
+// move.
+export function groupSeasonal(rows: CatalogueRow[]): BrandGroup[] {
+  const seasonalRows = rows.filter((r) => r.is_seasonal);
+  const brands = new Map<string, BrandGroup>();
+
+  for (const row of seasonalRows) {
+    let brand = brands.get(row.brand_id);
+    if (!brand) {
+      brand = { brand_id: row.brand_id, brand_name: row.brand_name, models: [] };
+      brands.set(row.brand_id, brand);
+    }
+
+    let model = brand.models.find((m) => m.model_id === row.model_id);
+    if (!model) {
+      model = {
+        model_id: row.model_id,
+        model_name: row.model_name,
+        mixed_carton_pieces: row.mixed_carton_pieces,
+        is_seasonal: row.is_seasonal,
+        is_on_sale: row.is_on_sale,
+        variants: [],
+      };
+      brand.models.push(model);
+    }
+
+    model.variants.push(row);
+  }
+
+  return Array.from(brands.values());
 }

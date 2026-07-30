@@ -19,6 +19,16 @@ export function VariantCard({ row }: { row: CatalogueRow }) {
       />
       <div className="p-3">
         <p className="ios-subhead font-semibold truncate">{row.variant_display}</p>
+        {row.sellable_units.includes("pack") && (
+          <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+            {row.pcs_per_pack} pcs/pack
+          </p>
+        )}
+        {row.category_name === "Liquid Detergent" && (
+          <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+            1 carton = {row.pcs_per_carton} bottles
+          </p>
+        )}
         {row.is_orderable ? (
           <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
             from {formatMvr(price)}
