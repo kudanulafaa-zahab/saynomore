@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // shop/ is a separate Next.js project (its own tsconfig/eslint config) —
+    // never lint it as part of this app.
+    "shop/**",
   ]),
   {
     rules: {
