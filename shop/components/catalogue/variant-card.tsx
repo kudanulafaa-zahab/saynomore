@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ProductImage } from "@/components/catalogue/product-image";
 import { fromPrice, type CatalogueRow } from "@/lib/queries/catalogue";
 import { formatMvr } from "@/lib/format";
+import { BRAND_FALLBACK_IMAGE } from "@/lib/brand-copy";
 
 export function VariantCard({ row }: { row: CatalogueRow }) {
   const price = fromPrice(row);
+  const imageSrc = row.image_url ?? BRAND_FALLBACK_IMAGE[row.brand_name] ?? null;
 
   return (
     <Link
@@ -12,7 +14,7 @@ export function VariantCard({ row }: { row: CatalogueRow }) {
       className="snm-card snm-pressable flex flex-col overflow-hidden"
     >
       <ProductImage
-        src={row.image_url}
+        src={imageSrc}
         alt={row.variant_display}
         categoryName={row.category_name}
         className="aspect-square w-full"

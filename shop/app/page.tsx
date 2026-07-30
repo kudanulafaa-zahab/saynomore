@@ -5,7 +5,16 @@ import { useCatalogue } from "@/components/catalogue-provider";
 import { ShopHeader } from "@/components/shop-header";
 import { VariantCard } from "@/components/catalogue/variant-card";
 import { BRAND_COPY } from "@/lib/brand-copy";
-import { groupSeasonal, type BrandGroup, type CategoryGroup } from "@/lib/queries/catalogue";
+import { curateBrands, groupSeasonal, type BrandGroup, type CategoryGroup } from "@/lib/queries/catalogue";
+import {
+  Hero,
+  MamypokoColourExplainer,
+  PriceComparison,
+  BrandStory,
+  DeliveryTrust,
+  WhyCheaper,
+  WhyCheaperPullquote,
+} from "@/components/home-sections";
 
 const SEASONAL_TAB_ID = "__seasonal__";
 
@@ -40,18 +49,15 @@ export default function HomePage() {
 
   const activeCategory: CategoryGroup | undefined = categories.find((c) => c.category_id === activeTabId);
   const isSeasonalActive = activeTabId === SEASONAL_TAB_ID;
-  const activeBrands: BrandGroup[] = isSeasonalActive ? seasonalBrands : (activeCategory?.brands ?? []);
+  const activeBrands: BrandGroup[] = curateBrands(
+    isSeasonalActive ? seasonalBrands : (activeCategory?.brands ?? []),
+  );
 
   return (
     <main className="min-h-dvh">
       <ShopHeader />
 
-      <div className="px-5 pt-5 pb-2">
-        <h1 className="ios-large-title font-bold">Diapers &amp; detergent,</h1>
-        <p className="ios-large-title font-bold" style={{ color: "var(--muted-foreground)" }}>
-          delivered.
-        </p>
-      </div>
+      <Hero />
 
       {loading && (
         <p className="px-5 py-10 text-center ios-subhead" style={{ color: "var(--muted-foreground)" }}>
@@ -91,23 +97,58 @@ export default function HomePage() {
                     {BRAND_COPY[brand.brand_name]}
                   </p>
                 )}
-                <div className="space-y-6">
-                  {brand.models.map((model) => (
-                    <div key={model.model_id}>
-                      {brand.models.length > 1 && (
-                        <h3 className="ios-headline font-semibold mb-2">{model.model_name}</h3>
-                      )}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {model.variants.map((row) => (
-                          <VariantCard key={row.sku_id} row={row} />
-                        ))}
+                {brand.brand_name === "Sosoft" ? (
+                  // Sosoft's "models" are colour/scent variants of one product
+                  // line, not distinct products — one shared grid, not a
+                  // separate grid per colour (unlike Mamypoko/Merries, where
+                  // each model is a genuinely different product).
+                  <>
+                    <div
+                      className="snm-card p-4 mb-4 flex items-start gap-3"
+                      style={{ borderWidth: "1.5px", borderColor: "var(--foreground)" }}
+                    >
+                      <span className="ios-title3" aria-hidden>🧺</span>
+                      <div>
+                        <p className="ios-subhead font-bold">Mix your own carton</p>
+                        <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                          1 carton = 6 bottles — pick any combination of
+                          scents below, or stick to one. Either way it&rsquo;s
+                          still one carton.
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {brand.models.flatMap((model) => model.variants).map((row) => (
+                        <VariantCard key={row.sku_id} row={row} />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    {brand.models.map((model) => (
+                      <div key={model.model_id}>
+                        {brand.models.length > 1 && (
+                          <h3 className="ios-headline font-semibold mb-2">{model.model_name}</h3>
+                        )}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {model.variants.map((row) => (
+                            <VariantCard key={row.sku_id} row={row} />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {brand.brand_name === "Mamypoko" && <MamypokoColourExplainer />}
               </section>
             ))}
           </div>
+
+          <BrandStory />
+          <PriceComparison />
+          <WhyCheaper />
+          <WhyCheaperPullquote />
+          <DeliveryTrust />
         </>
       )}
     </main>

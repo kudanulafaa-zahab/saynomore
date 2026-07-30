@@ -158,3 +158,56 @@ export function groupSeasonal(rows: CatalogueRow[]): BrandGroup[] {
 
   return Array.from(brands.values());
 }
+
+// ── Storefront curation — display-only, no data changes ──
+//
+// The underlying brands/product_models/product_categories names stay exactly
+// as staff already know them in Products; this layer only reorders/filters/
+// relabels what the storefront shows. Any brand/model not listed here still
+// renders (in catalogue order, real name) — curation is opt-in per brand,
+// not a hide-everything-else allowlist, so a newly added brand never
+// silently disappears from the shop.
+
+const BRAND_ORDER = ["Mamypoko", "Merries", "Sosoft"];
+
+// Per curated brand: which models to show, in this exact order, with an
+// optional display-name override. A brand not in this map is shown as-is
+// (all its models, catalogue order, real names).
+const BRAND_MODEL_CURATION: Record<string, { name: string; displayName?: string }[]> = {
+  Mamypoko: [
+    { name: "Xtra Kering", displayName: "Xtra Care" },
+    { name: "Skin Comfort" },
+    { name: "Royal Soft" },
+    { name: "Royal Soft Boy" },
+    { name: "Royal Soft Girl" },
+  ],
+  Merries: [{ name: "Good skin", displayName: "Good Skin" }],
+};
+
+export function curateBrands(brands: BrandGroup[]): BrandGroup[] {
+  const curated = brands.map((brand) => {
+    const rule = BRAND_MODEL_CURATION[brand.brand_name];
+    if (!rule) return brand;
+
+    const models = rule
+      .map(({ name, displayName }) => {
+        const model = brand.models.find((m) => m.model_name === name);
+        if (!model) return null;
+        return displayName ? { ...model, model_name: displayName } : model;
+      })
+      .filter((m): m is ModelGroup => m !== null);
+
+    return { ...brand, models };
+  });
+
+  return curated
+    .filter((brand) => brand.models.length > 0)
+    .sort((a, b) => {
+      const ai = BRAND_ORDER.indexOf(a.brand_name);
+      const bi = BRAND_ORDER.indexOf(b.brand_name);
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+}

@@ -10,3 +10,15 @@ export const BRAND_COPY: Record<string, string> = {
   Sosoft:
     "A 2-in-1 plant-based detergent and fabric softener — first in Indonesia to soften with real aloe vera. Five scents to mix and match into one carton.",
 };
+
+// Display-only fallback: one representative pack photo per brand, shown for
+// any size/variant that doesn't have its own photo yet (most sizes, at
+// launch — only one photographed size exists per brand today). Real per-
+// size photos should replace this over time; this just avoids showing a
+// placeholder tile for a product a customer would recognise from the box.
+export const BRAND_FALLBACK_IMAGE: Record<string, string> = {
+  Mamypoko:
+    "https://smhdwkrmiytvpsgqezsl.supabase.co/storage/v1/object/public/product-images/mamypoko/xtrakering-m.png",
+  Merries:
+    "https://smhdwkrmiytvpsgqezsl.supabase.co/storage/v1/object/public/product-images/merries/goodskin-l.png",
+};
