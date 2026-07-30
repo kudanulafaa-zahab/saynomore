@@ -2,11 +2,11 @@ import Link from "next/link";
 import { ProductImage } from "@/components/catalogue/product-image";
 import { fromPrice, type CatalogueRow } from "@/lib/queries/catalogue";
 import { formatMvr } from "@/lib/format";
-import { BRAND_FALLBACK_IMAGE } from "@/lib/brand-copy";
+import { resolveImage } from "@/lib/brand-copy";
 
 export function VariantCard({ row }: { row: CatalogueRow }) {
   const price = fromPrice(row);
-  const imageSrc = row.image_url ?? BRAND_FALLBACK_IMAGE[row.brand_name] ?? null;
+  const imageSrc = resolveImage(row);
 
   return (
     <Link

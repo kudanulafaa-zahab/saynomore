@@ -10,7 +10,7 @@ import { ProductImage } from "@/components/catalogue/product-image";
 import { InstallSheet } from "@/components/install/install-sheet";
 import { useInstallTrigger } from "@/components/install/use-install-trigger";
 import { formatMvr } from "@/lib/format";
-import { BRAND_FALLBACK_IMAGE } from "@/lib/brand-copy";
+import { resolveImage } from "@/lib/brand-copy";
 import type { SellUnit } from "@/lib/queries/catalogue";
 
 const UOM_LABEL: Record<SellUnit, string> = { piece: "Piece", pack: "Pack", carton: "Carton" };
@@ -66,7 +66,7 @@ export default function ProductPage({ params }: { params: Promise<{ variantId: s
       </div>
 
       <ProductImage
-        src={row.image_url ?? BRAND_FALLBACK_IMAGE[row.brand_name] ?? null}
+        src={resolveImage(row)}
         alt={row.variant_display}
         categoryName={row.category_name}
         className="w-full aspect-square"
