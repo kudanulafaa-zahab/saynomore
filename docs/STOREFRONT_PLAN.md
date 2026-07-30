@@ -178,11 +178,123 @@ verified by intercepting that one request with the real captured response
 so the rest of the app's own code — parsing, grouping, cart math, checkout
 wiring — was still genuinely exercised end to end.
 
-**Not done yet**: no Vercel project exists for `shop/` (needs its own
-deployment pointed at that subdirectory, plus the two public env vars —
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — same values
-the main app uses); no real domain; product photos are still mostly
+**Not done yet** (as of the deploy below): product photos are still mostly
 missing (placeholder gradient tiles render in their place, by design); the
-mixed-carton decision above; and real device testing of the Android install
+mixed-carton decision above; real device testing of the Android install
 banner and iOS Safari walkthrough (simulators/sandboxes aren't reliable for
-either, per the original verification plan).
+either); no real domain (see deploy section).
+
+## Deployed (2026-07-30)
+
+Live in production: **https://saynomore-shop.vercel.app**
+
+- Vercel project `saynomore-shop`, id `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG`, same
+  team as the main app (`team_qyYXhgTXNYb5dCxNgfIMmQxk`).
+- **Not git-linked** — this session's Vercel MCP access only exposes a
+  file-upload deploy tool (`deploy_to_vercel`), not "create project from
+  GitHub repo with a custom root directory." So pushes to `shop/**` on
+  `main` do **not** auto-deploy the shop, unlike the main app. Two ways to
+  fix, either works: (a) in the Vercel dashboard, connect the
+  `saynomore-shop` project to this GitHub repo and set **Root Directory**
+  to `shop` (one-time, a few clicks, needs a human with dashboard access —
+  not something this session's tools can do), or (b) keep redeploying via
+  `deploy_to_vercel` with the current `shop/` file contents after each
+  change (what this session did — works, just manual).
+- **No env vars configured in Vercel's dashboard for this project** — same
+  root cause as above (no API access to set them). Worked around instead:
+  `shop/next.config.ts`'s `env` block bakes in
+  `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` as fallback
+  defaults. This is safe (anon/publishable key, not a secret — RLS +
+  the SECURITY DEFINER functions are the actual gate) but means: if the
+  Supabase anon key is ever rotated, it must be updated in this file too,
+  not just the dashboard.
+- `shop/app/globals.css` is a **hand-trimmed subset** of the main app's
+  file (~350 lines vs ~1800) — same token names/values, just the ones
+  `shop/`'s own components actually reference (verified by grep before
+  trimming). This was a bootstrap-payload-size decision, not a design
+  decision — see the file's own header comment. If a future shop page
+  needs a class/token that only exists in the full staff-app file (e.g.
+  the palette switcher, `.glass-panel`, `.pill-*`), copy it back in from
+  `app/globals.css` rather than reinventing it.
+- Domain: **not purchased** (Ali said hold). Checked and available:
+  `saynomoreshop.com` for $11.25/yr via Vercel's registrar. `saynomore.shop`
+  is taken. `.mv` isn't supported by Vercel's registrar — would need a
+  Maldivian registrar directly, outside this session's tools.
+
+## Next session: in-flight requirements, none built yet
+
+Ali gave a large batch of real requirements in chat (2026-07-30) — plan
+agreed for most of it, but **zero code written yet**. Pick up here:
+
+1. **Curated hierarchy** (display-only, no data changes): default/first
+   tab = Diapers, Mamypoko brand rendered before Merries within it.
+   Mamypoko shows only 3 of its models — **Xtra Kering displayed as "Xtra
+   Care"**, **Skin Comfort**, **Royal Soft** (Royal Soft/Royal Soft Boy/
+   Royal Soft Girl — Ali said leave as-is, don't merge, just don't
+   specially curate them either). Merries shows only **Good Skin** (not
+   "Extra Care"). Mamypoko's plain "Diaper" (NB) model excluded too.
+   Category label "Liquid Detergent" displays as **"Washing Detergent"**.
+   All of this is a client-side display/curation layer in `shop/` — the
+   underlying `brands`/`product_models`/`product_categories` names stay
+   exactly as your team already knows them in Products; nothing in
+   `get_storefront_catalogue()` needs to change for this part.
+2. **Phasing out Royal Soft / Skin Comfort**: no new engineering — told
+   Ali to just flip `is_active` off on those SKUs from Products once
+   stock depletes. `get_storefront_catalogue()` already filters
+   `WHERE s.is_active`, so they vanish from the shop immediately, for
+   free. Nothing to build.
+3. **Seasonal products, general mechanism**: add
+   `product_models.is_seasonal boolean not null default false` (new
+   migration; propagate through `get_storefront_catalogue()`'s return
+   columns). Any model, any brand, any category can be marked seasonal
+   from Products (needs a toggle added to `EditModelDialog` in
+   `components/products/edit-dialogs.tsx`, same pattern as other
+   booleans there). Storefront: a **second tab, right after Diapers**
+   (before Washing Detergent), synthesized client-side by pulling every
+   `is_seasonal` model out of whatever category/brand it's actually in —
+   it is NOT a fixed category. Confirmed with Ali: Mamypoko is the most
+   prominent thing on the shop (first tab, first brand); Seasonal is
+   next-most prominent (second tab), not above Mamypoko.
+4. **Mixed-carton-of-6 for guests** (Sosoft, and any future
+   `mixed_carton_pieces` brand): real backend change, not just UI —
+   `place_customer_order` currently rejects `uom='piece'` for these SKUs
+   because `sellable_units` only contains `'carton'`. Design agreed:
+   inside the function, when a line's `uom='piece'` AND the SKU's brand
+   has `mixed_carton_pieces` set, allow it (bypass the strict
+   `sellable_units` check for this one case only), price it at
+   `selling_price_per_carton_mvr / pcs_per_carton` per piece, then AFTER
+   the line loop, group all such piece-lines by brand and reject the
+   whole order if any brand's total piece qty isn't an exact positive
+   multiple of that brand's `mixed_carton_pieces` — mirrors exactly what
+   the internal `MixedCartonSheet` already does for staff, just opened up
+   to guests. Storefront UI: on the Washing Detergent tab, **"Mix your own
+   carton" is the first/default option**, ahead of single-colour cartons;
+   the picker must block submission until the 6 pieces are chosen.
+5. **The Body Shop lotion (seasonal)**: nothing created yet — new brand
+   ("The Body Shop"), new category (lotion doesn't fit any existing
+   category's `unit_uom`/`cost_basis`; recommended a new "Body Care"
+   category, `cost_basis='piece'` like Diapers, `variant_attributes:
+   ['scent']` like Sosoft), one model with `is_seasonal=true`, 4 scent
+   variants. **Blocked on real facts from Ali, do not invent them**: the
+   4 scent names, selling price (or target margin + landed cost once
+   stock lands), whether stock exists yet or this is a "coming soon"
+   listing, pack/carton config (loose bottles vs packs), and photos (ships
+   with the placeholder tile if none yet, same as everything else).
+6. **Homepage copy — drafted, not yet confirmed or placed on the page**:
+   three tone options were given for the "why we're cheaper" section
+   (recommended: warm/community option for the hero, punchier option as a
+   pull-quote elsewhere) — Ali hadn't picked one as of the chat-migration
+   request. Also drafted and pending placement: hero headline options,
+   "Why SayNoMore" brand story, the MamyPoko colour-market explainer
+   (dark blue = India-market packaging; ours is yellow = genuine
+   Malaysia/Indonesia-market packaging — deliberately worded to explain,
+   never to accuse other sellers of anything, for legal safety), category
+   intros, a real price-comparison table for MamyPoko Xtra Kering built
+   from Ali's own logged competitor data (26–48% cheaper per piece
+   depending on size — per-piece, not per-pack, since pack counts differ
+   between sellers) with a recommendation to **never name the competitor
+   publicly** (logged internally as "VB"), delivery/trust copy, and a
+   short list of suggested additions (a real trust stat if Ali has one, a
+   "how it works" strip, a confirmation-screen expectation-setting line,
+   a brand-logo trust strip). All of this text exists only in chat so
+   far — nothing has been written into `shop/` yet.

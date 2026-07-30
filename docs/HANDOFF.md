@@ -13,18 +13,34 @@ laws), which load automatically.
 - **Business:** SayNoMore — FMCG import & distribution, Maldives (rufiyaa / MVR).
 - **Repo:** `kudanulafaa-zahab/saynomore` (public). Develop and deploy on **`main`** →
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
-- **Supabase:** project id `smhdwkrmiytvpsgqezsl` (Postgres 17). Migrations in
-  `supabase/migrations/`, applied live via the Supabase MCP in the same work unit.
-  Latest applied: **0089**.
-- **Vercel:** project `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`, team
-  `team_qyYXhgTXNYb5dCxNgfIMmQxk`. Prod aliases: `saynomore-beta.vercel.app`,
-  `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
+- **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
+  region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
+  live via the Supabase MCP in the same work unit. **Latest applied: 0118.**
+- **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
+  **Two projects on it now:**
+  - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
+    `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
+    Git-linked — pushes to `main` auto-deploy.
+  - `saynomore-shop` (customer storefront, new this session), id
+    `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG`. Live at **saynomore-shop.vercel.app**.
+    **NOT git-linked** (this session's tools can only file-upload deploy, not create
+    a git-linked project with a custom root directory) — pushes to `shop/**` do
+    **not** auto-deploy; see `docs/STOREFRONT_PLAN.md` → "Deployed" for how to
+    redeploy or fix this properly. No domain purchased yet (Ali: hold off;
+    `saynomoreshop.com` is available for $11.25/yr when he's ready).
 
 **Access carries over automatically — no passwords are stored here (public repo).**
 GitHub, Supabase and Vercel are reached through the session's MCP connectors, which
-reconnect on their own in a new chat under the same account. Real secrets (API keys,
-service-role keys, DB passwords) live in the Vercel/Supabase project settings and the
-environment — never commit them here.
+reconnect on their own in a new chat under the same account — a new session gets the
+exact same tool access this one had, nothing to re-authenticate. Real secrets
+(service-role keys, DB passwords) live in the Vercel/Supabase project settings and
+were never used or stored by this session. The **public** anon/publishable Supabase
+keys (safe to expose client-side, gated by RLS — not secrets) are already baked into
+`shop/next.config.ts`'s `env` block as a fallback default (no `.env` file is
+committed anywhere in this repo, matching the main app's own convention — Vercel
+project env vars are the normal source, `next.config.ts`'s fallback exists only
+because this session's tools can't set Vercel project env vars via API). Project
+URL: `https://smhdwkrmiytvpsgqezsl.supabase.co`.
 
 ---
 
@@ -78,7 +94,40 @@ already built and refined over many sessions, and it must be preserved.
 
 ---
 
-## 5. Built this session (recent → older highlights)
+## 5. Customer storefront (`shop/`) — built and LIVE this session
+
+**No longer "on hold."** Ali greenlit it, backend + UI are built and deployed to
+production: **https://saynomore-shop.vercel.app**. Full detail, migration-by-migration,
+and the exact in-flight requirements to pick up next all live in
+**`docs/STOREFRONT_PLAN.md`** — read it before touching anything storefront-related,
+it's more current and more detailed than this file for that one topic. The short version:
+
+- Separate Next.js app at `shop/` (own `package.json`/config, sibling to the root app
+  in the same repo — NOT a workspace). Guest checkout, no accounts, no staff auth.
+  Every read goes through `get_storefront_catalogue()`, the only write is
+  `place_customer_order()` — both SECURITY DEFINER, anon-granted, both documented at
+  length in migrations `0115`/`0116` including why they're functions and not views.
+- Migrations `0112`–`0118` cover: `order_source`/`web` channel, the web-fulfilment
+  godown flag, `variants.image_url` + a public `product-images` storage bucket, the
+  catalogue read, the order-placement write, `order_source` surfaced in Sales/Dispatch
+  (a gray "Web" badge), and `product_categories.storefront_visible` (Tobacco is
+  excluded from the guest shop by default — a real gap caught and closed, not
+  hypothetical).
+- Root `tsconfig.json`/`eslint.config.mjs` explicitly **exclude `shop/`** — this was a
+  real production outage caught and fixed live: the first push broke the STAFF app's
+  Vercel build because its TypeScript pass started resolving `shop/`'s files against
+  the wrong `@/*` alias. Don't remove that exclusion.
+- **Not built yet, real requirements Ali gave, nothing coded**: curated brand/model
+  hierarchy with display-only renames, a general "seasonal product" mechanism, a
+  mixed-carton-of-6 guest checkout flow (needs a real `place_customer_order` change,
+  scoped in the plan doc), The Body Shop seasonal lotion listing (blocked on real
+  facts from Ali — scent names, price, stock, photos), and a full set of drafted
+  homepage/brand copy not yet placed on any page. **All of this is written up in
+  detail in `docs/STOREFRONT_PLAN.md`'s final two sections — start there.**
+
+---
+
+## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
   parent delete sequential-scanned `audit_log`, `sales_orders`, `order_payments`,
@@ -236,7 +285,7 @@ already built and refined over many sessions, and it must be preserved.
 
 ---
 
-## 6. Open / next tasks (priority order)
+## 7. Open / next tasks (priority order)
 
 _Done this session: editable expense date, cash-flow/runway forecast (0089), trend-aware
 reorder velocity (0090), campaign confounder flags (0091), Price Book UX polish + last-known
@@ -261,19 +310,17 @@ payments** (allowed; waiting on the storefront/BML phase) · **per-100ml/100g co
 pricing** (detergent categories are set up for it; no rival prices logged that way) ·
 **extra supplier currencies** (MYR/THB/CNY/EUR).
 
-1. **Customer storefront** — **ON HOLD (Ali, 2026-07-23): do not start; Ali will decide
-   if/when he wants it.** Scoped in `docs/STOREFRONT_PLAN.md` for whenever that happens.
-   Separate installable PWA sharing the same Supabase;
-   `place_customer_order` server-side pricing + atomic order, `order_source='web'` into
-   Dispatch (column already live; all rows currently `walk-in`). Phase 1 = COD/transfer;
-   cards later (needs BML merchant account). Sosoft sold by carton of 6, mix or single colour.
-   **Blocked on 5 product decisions** (guest vs accounts, web price, fulfilment godown,
-   reserve-at-placement vs confirm, payment) — see the plan. Backend-first when greenlit;
-   the customer-money path must not ship on guesses.
+1. **Customer storefront** — greenlit, built, and LIVE (see section 5 above). The
+   5 original product decisions are all resolved. What's left is a fresh batch of
+   real requirements from Ali (hierarchy curation, seasonal products, mixed-carton
+   guest checkout, The Body Shop listing, homepage copy) — none of it coded yet.
+   Full detail and exact next steps are in `docs/STOREFRONT_PLAN.md`'s final two
+   sections ("Deployed" and "Next session: in-flight requirements, none built yet").
+   Start there, not from scratch.
 
 ---
 
-## 7. Working with Ali
+## 8. Working with Ali
 
 Plain English, lead with the answer, ONE recommendation, money-first (rufiyaa before %).
 Use genuine expert judgement — do NOT just agree; push back with reasons when warranted;
