@@ -10,10 +10,13 @@
 -- is_seasonal/is_on_sale — every object dropped below is empty scaffolding,
 -- not business data.
 --
--- Explicitly KEPT, on purpose, because it predates and is independent of the
--- storefront: variants.image_url, the product-images storage bucket, and the
--- photo-upload UI in the internal Edit Variant dialog (migration 0114) — 7
--- real staff-uploaded product photos already exist through this path.
+-- Explicitly KEPT, on purpose: variants.image_url, the product-images storage
+-- bucket, and the photo-upload UI in the internal Edit Variant dialog
+-- (migration 0114). These were built FOR the storefront (to populate
+-- get_storefront_catalogue()'s image_url column) but the feature itself is
+-- staff-facing, not customer-facing, and has no dependency on anything else
+-- being dropped here — 7 real staff-uploaded product photos already exist
+-- through this path and would otherwise be lost for no reason.
 --
 -- sales_orders.order_source itself is also kept (not dropped back to
 -- untracked/nullable): it predates this work live in the database and is
