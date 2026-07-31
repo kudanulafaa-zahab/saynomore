@@ -241,9 +241,9 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-foreground truncate flex items-center gap-1.5">
-            <span className="truncate">{cust?.name ?? "Walk-in"}</span>
-            <span className="ios-subhead snm-num shrink-0" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+          <p className="text-[14px] font-semibold text-foreground truncate">
+            {cust?.name ?? "Walk-in"}
+            <span className="ios-subhead ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
           </p>
           <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
             via {o.channel}{cust?.island && <> · {cust.island}</>}
