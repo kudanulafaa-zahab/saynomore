@@ -355,12 +355,6 @@ export function DispatchView() {
                         <p className="text-[14px] font-semibold text-foreground">
                           {item.customer?.name ?? "Walk-in"}
                         </p>
-                        {item.order.order_source === "web" && (
-                          <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-                            Web
-                          </span>
-                        )}
                         {hasIssue && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                             style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>

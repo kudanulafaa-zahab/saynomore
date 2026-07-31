@@ -15,32 +15,29 @@ laws), which load automatically.
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
 - **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
   region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
-  live via the Supabase MCP in the same work unit. **Latest applied: 0118.**
+  live via the Supabase MCP in the same work unit. **Latest applied: 0120** (the
+  storefront rollback — see section 5).
 - **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
-  **Two projects on it now:**
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
     `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
     Git-linked — pushes to `main` auto-deploy.
-  - `saynomore-shop` (customer storefront, new this session), id
-    `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG`. Live at **saynomore-shop.vercel.app**.
-    **NOT git-linked** (this session's tools can only file-upload deploy, not create
-    a git-linked project with a custom root directory) — pushes to `shop/**` do
-    **not** auto-deploy; see `docs/STOREFRONT_PLAN.md` → "Deployed" for how to
-    redeploy or fix this properly. No domain purchased yet (Ali: hold off;
-    `saynomoreshop.com` is available for $11.25/yr when he's ready).
+  - `saynomore-shop` (the rolled-back customer storefront) still exists as a Vercel
+    project, id `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG`, and its last deploy is still
+    reachable at `saynomore-shop.vercel.app` — it was **never git-linked** (this
+    session's tooling could only file-upload deploy it), so removing `shop/` from
+    the repo does not take it down automatically. It was left in place rather than
+    deleted via API, since deleting a live Vercel project is hard to reverse and
+    wasn't explicitly asked for — **delete it from the Vercel dashboard** (or ask a
+    future session to) whenever a stale build at that URL stops being acceptable.
+    No domain was ever purchased.
 
 **Access carries over automatically — no passwords are stored here (public repo).**
 GitHub, Supabase and Vercel are reached through the session's MCP connectors, which
 reconnect on their own in a new chat under the same account — a new session gets the
 exact same tool access this one had, nothing to re-authenticate. Real secrets
 (service-role keys, DB passwords) live in the Vercel/Supabase project settings and
-were never used or stored by this session. The **public** anon/publishable Supabase
-keys (safe to expose client-side, gated by RLS — not secrets) are already baked into
-`shop/next.config.ts`'s `env` block as a fallback default (no `.env` file is
-committed anywhere in this repo, matching the main app's own convention — Vercel
-project env vars are the normal source, `next.config.ts`'s fallback exists only
-because this session's tools can't set Vercel project env vars via API). Project
-URL: `https://smhdwkrmiytvpsgqezsl.supabase.co`.
+were never used or stored by this session (no `.env` file is committed anywhere in
+this repo). Project URL: `https://smhdwkrmiytvpsgqezsl.supabase.co`.
 
 ---
 
@@ -94,40 +91,51 @@ already built and refined over many sessions, and it must be preserved.
 
 ---
 
-## 5. Customer storefront (`shop/`) — built and LIVE this session
+## 5. Customer storefront — built, then ROLLED BACK (2026-07-31)
 
-**No longer "on hold."** Ali greenlit it, backend + UI are built and deployed to
-production: **https://saynomore-shop.vercel.app**. Full detail, migration-by-migration,
-and the exact in-flight requirements to pick up next all live in
-**`docs/STOREFRONT_PLAN.md`** — read it before touching anything storefront-related,
-it's more current and more detailed than this file for that one topic. The short version:
+A full customer-facing web shop (`shop/`, guest checkout, PWA install tutorial) was
+built and deployed to production across several sessions. Ali reviewed the finished
+result end-to-end and found it unsatisfactory, and asked for a **full rollback to
+exactly before the storefront work started**, to redesign it fresh later — not an
+incremental fix.
 
-- Separate Next.js app at `shop/` (own `package.json`/config, sibling to the root app
-  in the same repo — NOT a workspace). Guest checkout, no accounts, no staff auth.
-  Every read goes through `get_storefront_catalogue()`, the only write is
-  `place_customer_order()` — both SECURITY DEFINER, anon-granted, both documented at
-  length in migrations `0115`/`0116` including why they're functions and not views.
-- Migrations `0112`–`0118` cover: `order_source`/`web` channel, the web-fulfilment
-  godown flag, `variants.image_url` + a public `product-images` storage bucket, the
-  catalogue read, the order-placement write, `order_source` surfaced in Sales/Dispatch
-  (a gray "Web" badge), and `product_categories.storefront_visible` (Tobacco is
-  excluded from the guest shop by default — a real gap caught and closed, not
-  hypothetical).
-- Root `tsconfig.json`/`eslint.config.mjs` explicitly **exclude `shop/`** — this was a
-  real production outage caught and fixed live: the first push broke the STAFF app's
-  Vercel build because its TypeScript pass started resolving `shop/`'s files against
-  the wrong `@/*` alias. Don't remove that exclusion.
-- **Not built yet, real requirements Ali gave, nothing coded**: curated brand/model
-  hierarchy with display-only renames, a general "seasonal product" mechanism, a
-  mixed-carton-of-6 guest checkout flow (needs a real `place_customer_order` change,
-  scoped in the plan doc), The Body Shop seasonal lotion listing (blocked on real
-  facts from Ali — scent names, price, stock, photos), and a full set of drafted
-  homepage/brand copy not yet placed on any page. **All of this is written up in
-  detail in `docs/STOREFRONT_PLAN.md`'s final two sections — start there.** The
-  actual copy text (hero, brand story, MamyPoko colour explainer, price-comparison
-  table with real numbers, delivery/trust copy, the 3 affordability-section drafts)
-  is in **`docs/STOREFRONT_COPY.md`** — read that file directly rather than
-  re-writing copy from scratch.
+**What was rolled back, migration `0120_rollback_storefront.sql`:**
+- Dropped `place_customer_order()`, `storefront_order_attempts`,
+  `get_storefront_catalogue()`, `get_web_fulfilment_godown_id()`.
+- Dropped the empty `Body Care` product category and the unused
+  `product_models.is_seasonal`/`is_on_sale`, `product_categories.storefront_visible`,
+  `godowns.is_web_fulfilment` columns.
+- Restored `get_sales_orders`/`get_sales_orders_count` to their exact pre-storefront
+  (migration `0101`) 7-arg/4-arg signatures — no `order_source` filter, no Web badge
+  wiring — and removed `lib/queries/sales.ts` / `sales-list.tsx` / `dispatch-view.tsx`
+  Web-badge code.
+- Removed `'web'` from `sales_orders`' `channel`/`order_source` check constraints, so
+  no new web order can be recorded.
+- Deleted the entire `shop/` directory and its `tsconfig.json`/`eslint.config.mjs`
+  exclusions.
+- Verified, immediately before dropping anything: **zero** real web orders, **zero**
+  customers with `channel='web'`, **zero** products under Body Care, **zero**
+  seasonal/on-sale-flagged models — every object removed was empty scaffolding, not
+  business data.
+
+**Explicitly KEPT** — genuinely independent of the storefront: `variants.image_url`,
+the public `product-images` storage bucket, and the photo-upload field in the
+internal Edit Variant dialog (migration `0114`). 7 real staff-uploaded product
+photos already exist through this path (Mamypoko Xtra Kering M; Sosoft Red/Purple/
+Blue/Pink/Green; Merries Good Skin L) and were left untouched.
+
+**Still needs attention, not done by this rollback:**
+- The `saynomore-shop` Vercel project (never git-linked) still exists and its last
+  build is still reachable at `saynomore-shop.vercel.app` — see section 1. Delete it
+  from the Vercel dashboard when a stale build at that URL is no longer acceptable.
+- `docs/STOREFRONT_PLAN.md` and `docs/STOREFRONT_COPY.md` are kept as **archived
+  reference only** — the plan doc's "Deployed"/"Next steps" sections describe a
+  build that no longer exists; the copy doc's drafted hero/brand-story/price-
+  comparison text is still likely reusable for a future fresh attempt, but nothing
+  in either file describes the live app anymore. Don't treat either as current.
+- If/when Ali wants to try the storefront again, treat it as a fresh design from
+  scratch (new plan, new UI), not a resurrection of the rolled-back code — that's
+  the explicit reason for the rollback.
 
 ---
 
@@ -314,13 +322,12 @@ payments** (allowed; waiting on the storefront/BML phase) · **per-100ml/100g co
 pricing** (detergent categories are set up for it; no rival prices logged that way) ·
 **extra supplier currencies** (MYR/THB/CNY/EUR).
 
-1. **Customer storefront** — greenlit, built, and LIVE (see section 5 above). The
-   5 original product decisions are all resolved. What's left is a fresh batch of
-   real requirements from Ali (hierarchy curation, seasonal products, mixed-carton
-   guest checkout, The Body Shop listing, homepage copy) — none of it coded yet.
-   Full detail and exact next steps are in `docs/STOREFRONT_PLAN.md`'s final two
-   sections ("Deployed" and "Next session: in-flight requirements, none built yet").
-   Start there, not from scratch.
+1. **Customer storefront — rolled back, next attempt not started.** Built, deployed,
+   reviewed by Ali, and fully rolled back (see section 5 above). Nothing storefront-
+   related is live or coded right now. When Ali is ready to try again, start a fresh
+   design conversation rather than reviving `docs/STOREFRONT_PLAN.md`'s old build —
+   the archived copy in `docs/STOREFRONT_COPY.md` may still be a useful starting
+   point for tone/content, but confirm with Ali before assuming any of it still fits.
 
 ---
 

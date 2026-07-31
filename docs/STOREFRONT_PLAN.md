@@ -1,6 +1,14 @@
 # Customer Storefront — Phase 1 plan (handoff task #6)
 
-**Status: backend built + verified (0112–0118); storefront UI built + verified
+> **ARCHIVED, 2026-07-31 — the storefront this doc describes was built,
+> deployed, reviewed by Ali, and fully ROLLED BACK.** `shop/` no longer exists
+> in the repo; migrations 0112–0119 were reversed by `0120_rollback_storefront.sql`.
+> See `docs/HANDOFF.md` section 5 for the rollback record. Nothing below
+> describes anything currently live or coded — keep this file only as
+> historical reference for what was tried, not as a plan to resume. A future
+> storefront attempt should start as a fresh design, not a revival of this one.
+
+**Status (historical, pre-rollback): backend built + verified (0112–0118); storefront UI built + verified
 in-browser, not yet deployed.** See "Phase 1 UI build" at the bottom of this
 doc for what exists in `shop/` and what's still needed before it's live at a
 real URL. This is a *separate installable PWA* that touches

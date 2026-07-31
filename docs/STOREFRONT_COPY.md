@@ -1,5 +1,11 @@
 # Storefront copy — everything drafted so far
 
+> **Note, 2026-07-31 — the storefront this copy was written for was built,
+> then fully rolled back** (see `docs/HANDOFF.md` section 5). Kept here as
+> archived reference only, likely still useful tone/content for a future
+> fresh attempt — confirm with Ali before reusing rather than assuming it
+> still fits.
+
 **Status: drafted in chat, none of it placed into `shop/` yet, none of it
 finalized by Ali.** This file exists purely so nothing gets lost or
 re-invented across chats. Where Ali hasn't picked between options, that's

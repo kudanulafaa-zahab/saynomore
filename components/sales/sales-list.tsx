@@ -244,16 +244,6 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
           <p className="text-[14px] font-semibold text-foreground truncate flex items-center gap-1.5">
             <span className="truncate">{cust?.name ?? "Walk-in"}</span>
             <span className="ios-subhead snm-num shrink-0" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
-            {/* Origin, not status — gray/neutral per the design law (color
-                means status; WEB is metadata, same footing as MIXED CTN). No
-                staff member entered this order, so it's worth a glance more
-                scrutiny than a phoned-in one. */}
-            {o.order_source === "web" && (
-              <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
-                style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-                Web
-              </span>
-            )}
           </p>
           <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
             via {o.channel}{cust?.island && <> · {cust.island}</>}
