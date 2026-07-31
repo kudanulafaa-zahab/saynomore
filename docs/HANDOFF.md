@@ -21,15 +21,22 @@ laws), which load automatically.
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
     `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
     Git-linked — pushes to `main` auto-deploy.
-  - `saynomore-shop` (the rolled-back customer storefront) still exists as a Vercel
-    project, id `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG`, and its last deploy is still
-    reachable at `saynomore-shop.vercel.app` — it was **never git-linked** (this
-    session's tooling could only file-upload deploy it), so removing `shop/` from
-    the repo does not take it down automatically. It was left in place rather than
-    deleted via API, since deleting a live Vercel project is hard to reverse and
-    wasn't explicitly asked for — **delete it from the Vercel dashboard** (or ask a
-    future session to) whenever a stale build at that URL stops being acceptable.
-    No domain was ever purchased.
+  - `saynomore-shop` (the rolled-back customer storefront), id
+    `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG` — was **never git-linked** (only file-upload
+    deployable), so deleting `shop/` from the repo didn't take the old build down.
+    Ali flagged that the real storefront was still publicly reachable at
+    `saynomore-shop.vercel.app` after the rollback. Neither password protection nor
+    Vercel Authentication is available on this team's plan for production
+    deployments (both attempts were rejected by the API — "Advanced Deployment
+    Protection is not enabled" / "not available on your plan"), and no
+    delete-project tool exists in this session's Vercel MCP tools. Fix applied:
+    **file-upload-deployed a plain static placeholder** ("This page is temporarily
+    unavailable") over the production deployment — verified with an unauthenticated
+    curl that `saynomore-shop.vercel.app` now serves the placeholder, not the shop.
+    The Vercel *project* still technically exists (nothing to delete it with) but
+    nothing customer-facing is live there anymore. Delete the project outright from
+    the Vercel dashboard if you want it gone completely. No domain was ever
+    purchased.
 
 **Access carries over automatically — no passwords are stored here (public repo).**
 GitHub, Supabase and Vercel are reached through the session's MCP connectors, which
@@ -127,9 +134,11 @@ photos already exist through this path (Mamypoko Xtra Kering M; Sosoft Red/Purpl
 Blue/Pink/Green; Merries Good Skin L) and were left untouched.
 
 **Still needs attention, not done by this rollback:**
-- The `saynomore-shop` Vercel project (never git-linked) still exists and its last
-  build is still reachable at `saynomore-shop.vercel.app` — see section 1. Delete it
-  from the Vercel dashboard when a stale build at that URL is no longer acceptable.
+- The `saynomore-shop` Vercel *project* still exists (see section 1 for why — no
+  delete-project tool available, and password/SSO protection both rejected by the
+  plan). Its production deployment now serves a plain placeholder, not the shop,
+  so nothing customer-facing is publicly reachable — but delete the project outright
+  from the Vercel dashboard if you want it gone completely rather than parked.
 - `docs/STOREFRONT_PLAN.md` and `docs/STOREFRONT_COPY.md` are kept as **archived
   reference only** — the plan doc's "Deployed"/"Next steps" sections describe a
   build that no longer exists; the copy doc's drafted hero/brand-story/price-
