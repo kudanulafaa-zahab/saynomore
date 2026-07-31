@@ -118,9 +118,11 @@ incremental fix.
   seasonal/on-sale-flagged models — every object removed was empty scaffolding, not
   business data.
 
-**Explicitly KEPT** — genuinely independent of the storefront: `variants.image_url`,
-the public `product-images` storage bucket, and the photo-upload field in the
-internal Edit Variant dialog (migration `0114`). 7 real staff-uploaded product
+**Explicitly KEPT**: `variants.image_url`, the public `product-images` storage
+bucket, and the photo-upload field in the internal Edit Variant dialog
+(migration `0114`). These were built *for* the storefront, but the feature is
+staff-facing (not customer-facing) and nothing else this rollback drops depends
+on it, so there was no reason to lose it. 7 real staff-uploaded product
 photos already exist through this path (Mamypoko Xtra Kering M; Sosoft Red/Purple/
 Blue/Pink/Green; Merries Good Skin L) and were left untouched.
 
