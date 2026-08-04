@@ -14,6 +14,7 @@ import {
   createOrderLine,
   updateOrderLine,
   deleteOrderLine,
+  postSale,
   toPieces,
   getTierPricesForSkus,
   listOrderPayments,
@@ -93,6 +94,7 @@ export function SaleDetail({ id }: { id: string }) {
   const [completing, setCompleting]   = useState(false);
   const [deleting, setDeleting]       = useState(false);
   const [depositing, setDepositing]   = useState(false);
+  const [posting, setPosting]         = useState(false);
 
   // local driver / cash state for action panels
   const [selectedDriver, setSelectedDriver] = useState("");
@@ -185,15 +187,22 @@ export function SaleDetail({ id }: { id: string }) {
     count: lines.length,
   }), [lines]);
 
-  const isConfirmed  = order?.status === "confirmed" || order?.status === "picked" || order?.status === "draft";
+  // True drafts have no stock posted yet (rare in practice — the create flow
+  // auto-posts immediately via postSale(), but a network error mid-flight can
+  // leave an order+lines created with post_sale() never having run — SO-2026-076
+  // was exactly this, discovered 2026-08-04: it reached "delivered" with zero
+  // stock_movements because isConfirmed used to lump 'draft' in with
+  // 'confirmed'/'picked', so this screen showed the normal dispatch-ready UI
+  // for a draft order and let it be walked all the way to delivered without
+  // stock ever being deducted or cost ever being recorded). A draft must NEVER
+  // be treated as confirmed — it needs its own explicit "confirm & post" action
+  // (below) so staff can complete it safely, or delete it.
+  const isTrueDraft  = order?.status === "draft";
+  const isConfirmed  = order?.status === "confirmed" || order?.status === "picked";
   const isDispatched = order?.status === "out_for_delivery";
   const isDelivered  = order?.status === "delivered";
   const isCancelled  = order?.status === "cancelled";
   const isCOD        = order?.payment_method === "cod";
-  // True drafts have no stock posted yet (rare in practice — the create flow
-  // auto-posts immediately), so they're plain-deletable. Anything else must
-  // go through voidOrder(), which reverses the FIFO stock movements first.
-  const isTrueDraft  = order?.status === "draft";
   // Lines can only be safely edited (via editOrderLine, which re-runs FIFO)
   // while the order is confirmed/picked — once dispatched, the driver already
   // has the physical goods, and once delivered, the sale is settled.
@@ -210,6 +219,24 @@ export function SaleDetail({ id }: { id: string }) {
       setEditingRef(false);
     } catch (e) { toast.error((e as Error).message); }
     finally { setSavingRef(false); }
+  }
+
+  // Confirms a stuck true draft — deducts FIFO stock and snapshots cost via
+  // the same post_sale() RPC the New Sale dialog calls automatically. Needed
+  // as an explicit action because that automatic call can fail to complete
+  // (e.g. a network error after the order+lines were already created), which
+  // used to leave the order stuck as an invisible draft with no safe way to
+  // finish it — see the isTrueDraft comment above.
+  async function handlePostSale() {
+    if (!order) return;
+    setPosting(true);
+    try {
+      await postSale(order.id);
+      haptic("success");
+      toast.success("Sale confirmed — stock deducted");
+      load();
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
+    finally { setPosting(false); }
   }
 
   async function handleDispatch() {
@@ -709,6 +736,27 @@ export function SaleDetail({ id }: { id: string }) {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── STAGE: True draft — stock not yet deducted, needs confirming ──── */}
+      {isTrueDraft && (
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <AlertTriangle style={{ color: "var(--snm-warning)", width: 20, height: 20 }} />
+            <p style={{ color: "var(--snm-warning)", fontSize: 15, fontWeight: 700 }}>Not confirmed yet</p>
+          </div>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+            This order was created but never confirmed — no stock has been deducted and it isn&apos;t counted as a real sale yet. Confirm it to deduct stock and record the sale, or delete it if it was a mistake.
+          </p>
+          <button
+            onClick={handlePostSale}
+            disabled={posting}
+            className="snm-pressable"
+            style={{ width: "100%", height: 48, borderRadius: 12, background: "var(--foreground)", color: "var(--background)", border: "none", fontSize: 14, fontWeight: 700, opacity: posting ? 0.6 : 1, cursor: "pointer" }}
+          >
+            {posting ? "Confirming…" : "Confirm Sale"}
+          </button>
         </div>
       )}
 

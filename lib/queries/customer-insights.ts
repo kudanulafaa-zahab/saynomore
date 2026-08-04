@@ -50,6 +50,7 @@ export interface CustomerOrder {
   channel: string | null;
   total_mvr: number;
   paid_mvr: number;
+  balance_mvr: number;
   items: number;
 }
 

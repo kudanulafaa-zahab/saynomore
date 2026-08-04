@@ -15,8 +15,8 @@ laws), which load automatically.
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
 - **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
   region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
-  live via the Supabase MCP in the same work unit. **Latest applied: 0120** (the
-  storefront rollback — see section 5).
+  live via the Supabase MCP in the same work unit. **Latest applied: 0126** (the
+  full money-math audit — see section 5b).
 - **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
     `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
@@ -147,6 +147,100 @@ Blue/Pink/Green; Merries Good Skin L) and were left untouched.
 - If/when Ali wants to try the storefront again, treat it as a fresh design from
   scratch (new plan, new UI), not a resurrection of the rolled-back code — that's
   the explicit reason for the rollback.
+
+---
+
+## 5b. Full money-math audit (2026-08-04) — migrations 0121-0126
+
+Ali caught the dashboard and Sales screen disagreeing on "unpaid orders" and,
+having lost trust, asked for a full, no-stone-unturned audit of every money/
+stock calculation in the app. Three background agents covered financial
+reporting, pricing/margin, and inventory/GRN; the order-lifecycle/payments
+area and a cross-cutting bypass sweep were done directly. Every finding below
+was verified against live data before being trusted, and every fix was
+verified again after applying it. Full detail is in the migration file
+headers (0121-0126) — this is the summary.
+
+**The headline bug, found while chasing a smaller one down:** Sale Detail's
+`isConfirmed` flag (`components/sales/sale-detail.tsx`) used to lump
+`status='draft'` in with `'confirmed'`/`'picked'`, so a draft order — one
+whose `post_sale()` call never completed (a real gap: the New Sale flow's
+`postSale()` runs *after* the order+lines already exist, inside the same
+`withOfflineFallback`, so a network error in that narrow window leaves a
+real order stuck in draft with no stock deducted) — showed the exact same
+"ready to dispatch" screen as a real confirmed order. SO-2026-076 (MVR 220,
+delivered 2026-08-03) was walked all the way to delivered this way: real
+revenue recognized, zero stock ever deducted, zero cost ever recorded.
+Fixed: `isConfirmed` no longer includes draft; a proper "Not confirmed yet
+— Confirm Sale" action (calls `postSale()`) was added for the true-draft
+state, which previously had no way to complete itself, only delete. The
+broken order itself was retroactively corrected (migration 0122 — FIFO
+stock deducted, cost/margin snapshotted, exactly what `post_sale()` would
+have done, audit-logged as a correction). The upstream network-race gap in
+`withOfflineFallback`/`handleSubmit` is **not** closed — flagged, not fixed
+— but is now safely contained: a stuck draft is visible and fixable instead
+of silently reachable as if confirmed.
+
+**Other confirmed, fixed issues:**
+- Every date-bucketed reporting function (`get_pnl`, `get_reports_data`,
+  `get_contribution_margin`, `get_abc_analysis`, `get_daily_revenue`,
+  `get_monthly_revenue`, `get_dashboard_metrics`, `get_campaign_roi`,
+  `get_customer_insights`) bucketed by the database session's UTC instead of
+  Maldives local time — a sale placed 19:00-23:59 UTC (00:00-04:59 Malé)
+  landed under the wrong calendar day, and near month-end the wrong month.
+  All now use `AT TIME ZONE 'Indian/Maldives'` consistently (migrations
+  0123, 0126).
+- `get_dashboard_metrics` and `get_pnl` disagreed on gross profit (different
+  COGS sourcing) — resolved once SO-2026-076 was corrected (the gap turned
+  out to be entirely that one order); the `GREATEST(...,0)` floor that hid
+  real losses on the dashboard was also removed.
+- Returns weren't netted into "how much is still owed on this order" in
+  `v_order_balances` (Sale Detail's Outstanding + Record Payment sheet),
+  `record_order_payment`'s overpayment guard, `sync_order_payment_status`
+  (paid/partial/pending), and `get_customer_orders` (Customer detail's
+  "unpaid" flag) — only `get_receivables_aging` had it right. Latent (zero
+  credit-settlement returns exist yet) but would show a wrong balance and
+  let staff overpay the moment that return type is used. All four now use
+  the same `total - paid - returned` formula (migration 0124; helper
+  `recalculate_order_payment_status()` also invoked from
+  `record_customer_return` for the credit path, which nothing previously
+  re-synced).
+- `get_tier_price_for_sku` ignored per-UOM fixed prices, silently
+  under/overcharging on the Competitor Price Gaps screen only (not real
+  sales) — now delegates to the already-correct `get_tier_prices_for_skus`.
+- `admin_force_void_grn` deleted `sales_orders` (cascading to
+  `order_payments`) for any order that used the voided GRN's stock, with no
+  payment check — a real "corrections must be reversing entries" violation.
+  Called 3 times historically (2026-07-03/05/08); whether real payments were
+  destroyed can't be reconstructed (the function never logged what it
+  deleted). Now blocks if any affected order has a payment recorded.
+- A stale RLS policy from the original schema (predating `post_sale()`)
+  let a `staff`-role session insert raw stock movements directly, bypassing
+  FIFO/audit entirely. Unused by any current code path — dropped.
+- `v_batch_stock`/`v_stock_levels` reimplemented `stock_signed_delta`'s sign
+  logic inline instead of calling it — today they agreed, but it's the same
+  "two definitions can drift" pattern — collapsed to call the one function.
+- Self-caught regression: the `v_batch_stock`/`v_stock_levels`/
+  `v_order_balances` fix above used a bare `CREATE OR REPLACE VIEW`, which
+  silently dropped their `security_invoker=true` setting (from migrations
+  0053 and 0058). Caught by re-running the security advisor immediately
+  after and fixed same-session (migration 0125) — worth remembering:
+  `CREATE OR REPLACE VIEW` does not preserve `reloptions` unless restated.
+
+**Verified clean after real scrutiny** (not padding — actually checked):
+margin formula convention, division-by-zero guards, the "never
+auto-overwrite a fixed price" rule, `block_grn_rate_changes`/
+`block_batch_cost_changes`, landed-cost-lock immutability, `confirm_grn`'s
+zero-CBM block, `post_sale`'s FIFO correctness and double-post guard,
+`void_sales_order`/`delete_sales_order`'s payment guards, `stock_signed_delta`
+coverage of every movement type, every function's anon-EXECUTE revocation
+(only `keepalive` is anon-callable, by design).
+
+**Every fix was verified against live data** (not just read as correct):
+before/after query proofs for the timezone shift, the tier-price gap, the
+dashboard/P&L convergence, the returns-netting formula (via a rolled-back
+`begin;...rollback;` payment test), and stock totals before/after the view
+collapse (20,260 pieces, unchanged).
 
 ---
 
