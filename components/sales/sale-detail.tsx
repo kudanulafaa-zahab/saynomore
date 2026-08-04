@@ -918,6 +918,18 @@ export function SaleDetail({ id }: { id: string }) {
           {/* Payment action — context-aware */}
           {isCOD ? (
             order.payment_status !== "deposited" ? (
+              order.cash_collected_mvr == null ? (
+                // No amount on record — can't deposit money nobody logged.
+                // (SO-2026-072 got here with no cash figure at all, and the
+                // dashboard/Finance Owed panel then had no way to know it was
+                // ever settled. The delivery flows now require the amount
+                // up front; this is the fallback for anything that still
+                // slips through.)
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", borderRadius: 12, marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-warning) 18%, transparent)" }}>
+                  <Landmark style={{ color: "var(--snm-warning)", width: 18, height: 18 }} />
+                  <p style={{ color: "var(--snm-warning)", fontSize: 13, fontWeight: 600 }}>No cash amount on record yet — record what was collected before depositing.</p>
+                </div>
+              ) : (
               <button
                 onClick={() => setPanel("deposit")}
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 16 }}
@@ -925,6 +937,7 @@ export function SaleDetail({ id }: { id: string }) {
                 <Landmark style={{ width: 18, height: 18 }} />
                 Mark Cash Deposited to Bank
               </button>
+              )
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>
                 <CheckCircle2 style={{ color: "var(--snm-success)", width: 18, height: 18 }} />
