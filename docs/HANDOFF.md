@@ -98,55 +98,40 @@ already built and refined over many sessions, and it must be preserved.
 
 ---
 
-## 5. Customer storefront — built, then ROLLED BACK (2026-07-31)
+## 5. Customer storefront — built, then FULLY REMOVED (2026-07-31 → 2026-08-04)
 
-A full customer-facing web shop (`shop/`, guest checkout, PWA install tutorial) was
-built and deployed to production across several sessions. Ali reviewed the finished
-result end-to-end and found it unsatisfactory, and asked for a **full rollback to
-exactly before the storefront work started**, to redesign it fresh later — not an
-incremental fix.
+A customer-facing web shop was built and deployed, Ali reviewed it, found it
+unsatisfactory, and asked for it to be removed completely. It is gone. Do not
+try to resurrect it — if a storefront is ever wanted again it starts as a
+fresh design, not from this history.
 
-**What was rolled back, migration `0120_rollback_storefront.sql`:**
-- Dropped `place_customer_order()`, `storefront_order_attempts`,
-  `get_storefront_catalogue()`, `get_web_fulfilment_godown_id()`.
-- Dropped the empty `Body Care` product category and the unused
-  `product_models.is_seasonal`/`is_on_sale`, `product_categories.storefront_visible`,
-  `godowns.is_web_fulfilment` columns.
-- Restored `get_sales_orders`/`get_sales_orders_count` to their exact pre-storefront
-  (migration `0101`) 7-arg/4-arg signatures — no `order_source` filter, no Web badge
-  wiring — and removed `lib/queries/sales.ts` / `sales-list.tsx` / `dispatch-view.tsx`
-  Web-badge code.
-- Removed `'web'` from `sales_orders`' `channel`/`order_source` check constraints, so
-  no new web order can be recorded.
-- Deleted the entire `shop/` directory and its `tsconfig.json`/`eslint.config.mjs`
-  exclusions.
-- Verified, immediately before dropping anything: **zero** real web orders, **zero**
-  customers with `channel='web'`, **zero** products under Body Care, **zero**
-  seasonal/on-sale-flagged models — every object removed was empty scaffolding, not
-  business data.
+**Removed:** the `shop/` Next.js project; its Vercel deployment content
+(replaced with a placeholder — see section 1 for why the Vercel *project*
+itself needs a manual dashboard delete); all storefront database objects
+(`place_customer_order`, `get_storefront_catalogue`,
+`get_web_fulfilment_godown_id`, `storefront_order_attempts`, the `Body Care`
+category, and the `is_web_fulfilment` / `storefront_visible` / `is_seasonal`
+/ `is_on_sale` columns) via migration `0120`; the `'web'` channel and
+order-source values; the Web badge wiring in Sales and Dispatch; and the
+`STOREFRONT_PLAN.md` / `STOREFRONT_COPY.md` docs.
 
-**Explicitly KEPT**: `variants.image_url`, the public `product-images` storage
-bucket, and the photo-upload field in the internal Edit Variant dialog
-(migration `0114`). These were built *for* the storefront, but the feature is
-staff-facing (not customer-facing) and nothing else this rollback drops depends
-on it, so there was no reason to lose it. 7 real staff-uploaded product
-photos already exist through this path (Mamypoko Xtra Kering M; Sosoft Red/Purple/
-Blue/Pink/Green; Merries Good Skin L) and were left untouched.
+**Verified clean (2026-08-04):** zero storefront functions, tables or columns
+remain; zero orders with `channel='web'`; zero customers with `channel='web'`;
+zero storefront references anywhere in `lib/`, `components/`, `app/`.
 
-**Still needs attention, not done by this rollback:**
-- The `saynomore-shop` Vercel *project* still exists (see section 1 for why — no
-  delete-project tool available, and password/SSO protection both rejected by the
-  plan). Its production deployment now serves a plain placeholder, not the shop,
-  so nothing customer-facing is publicly reachable — but delete the project outright
-  from the Vercel dashboard if you want it gone completely rather than parked.
-- `docs/STOREFRONT_PLAN.md` and `docs/STOREFRONT_COPY.md` are kept as **archived
-  reference only** — the plan doc's "Deployed"/"Next steps" sections describe a
-  build that no longer exists; the copy doc's drafted hero/brand-story/price-
-  comparison text is still likely reusable for a future fresh attempt, but nothing
-  in either file describes the live app anymore. Don't treat either as current.
-- If/when Ali wants to try the storefront again, treat it as a fresh design from
-  scratch (new plan, new UI), not a resurrection of the rolled-back code — that's
-  the explicit reason for the rollback.
+**Two things were deliberately KEPT, and why:**
+- `variants.image_url`, the `product-images` storage bucket, and the photo
+  upload in the Edit Variant dialog. Built for the storefront, but it is now
+  a **staff-facing Products feature** holding 7 real product photos. Deleting
+  it would destroy real data and break a working internal screen. Removable
+  in one step if Ali ever wants it gone.
+- `sales_orders.order_source`. This column **predates** the storefront (it
+  existed live, untracked, before any of that work) and is now constrained to
+  a single value, `'walk-in'`. Harmless, and not mine to drop.
+
+Migrations `0112`–`0119` are kept as an immutable historical ledger — they are
+fully reversed by `0120`, and deleting them would make the migration chain
+incoherent for anyone replaying it from scratch.
 
 ---
 
@@ -523,12 +508,10 @@ payments** (allowed; waiting on the storefront/BML phase) · **per-100ml/100g co
 pricing** (detergent categories are set up for it; no rival prices logged that way) ·
 **extra supplier currencies** (MYR/THB/CNY/EUR).
 
-1. **Customer storefront — rolled back, next attempt not started.** Built, deployed,
-   reviewed by Ali, and fully rolled back (see section 5 above). Nothing storefront-
-   related is live or coded right now. When Ali is ready to try again, start a fresh
-   design conversation rather than reviving `docs/STOREFRONT_PLAN.md`'s old build —
-   the archived copy in `docs/STOREFRONT_COPY.md` may still be a useful starting
-   point for tone/content, but confirm with Ali before assuming any of it still fits.
+1. **Customer storefront — fully removed, nothing pending.** See section 5. All of
+   its code, data and planning docs are deleted; nothing storefront-related exists.
+   If Ali ever wants one again it starts as a brand-new design conversation — there
+   is deliberately nothing left to resume from.
 
 ---
 

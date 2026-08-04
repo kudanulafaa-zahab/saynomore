@@ -58,8 +58,8 @@ export interface VariantRow {
   model_id: string;
   attributes: Record<string, string | number>;
   display_name: string;
-  // Storefront product photo — one per variant (a size/scent, not per pack
-  // config). Nullable: most variants launch with none.
+  // Product photo — one per variant (a size/scent, not per pack config),
+  // uploaded by staff from the Products screen. Nullable: most have none.
   image_url: string | null;
 }
 
