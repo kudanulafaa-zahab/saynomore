@@ -5,7 +5,7 @@
 -- no hits), and zero Storage buckets exist. This is genuinely new, not reuse.
 --
 -- The column lives on VARIANTS, not skus: a diaper "size" (variant) is what a
--- shopper visually distinguishes and buys. Two skus can differ only in pack/
+-- customer visually distinguishes and buys. Two skus can differ only in pack/
 -- carton configuration (e.g. 3-pack vs 6-pack of the same size) and share the
 -- same photo, so keying the photo one level up avoids duplicate uploads for
 -- what is visually the same product.
@@ -21,7 +21,7 @@ alter table public.variants
 comment on column public.variants.image_url is
   'Public marketing photo for this variant (one photo per visually distinct '
   'size/scent/colour). Nullable — most variants will launch without one; the '
-  'storefront must render a clean placeholder, not a broken-image icon.';
+  'the UI must render a clean placeholder, not a broken-image icon.';
 
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)

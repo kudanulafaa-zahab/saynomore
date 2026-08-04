@@ -304,8 +304,12 @@ export function SaleDetail({ id }: { id: string }) {
   // Open the record-payment sheet, defaulting the amount to the outstanding
   // balance (the common case: customer clears what they owe).
   function openRecordPayment() {
-    const outstanding = balance?.balance_mvr ?? totals.mvr;
-    setPayAmount(outstanding > 0 ? outstanding.toFixed(2).replace(/\.00$/, "") : "");
+    // Only ever prefill from the server-computed balance. Falling back to the
+    // gross order total would ignore payments already made and any returned
+    // goods, so one tap could over-collect; leaving it blank is the safe
+    // failure, and the server-side overpayment guard is the backstop.
+    const outstanding = balance?.balance_mvr;
+    setPayAmount(outstanding != null && outstanding > 0 ? outstanding.toFixed(2).replace(/\.00$/, "") : "");
     setPayMethod(isCOD ? "cod" : "transfer");
     setPayRef("");
     setPanel("recordPayment");
@@ -925,7 +929,14 @@ export function SaleDetail({ id }: { id: string }) {
           </div>
           {canWrite && (
             <button
-              onClick={() => { setCashCollected(isCOD ? String(totals.mvr.toFixed(0)) : ""); setPanel("deliver"); }}
+              onClick={() => {
+                // Prefill what is actually still owed, to the cent — the old
+                // `totals.mvr.toFixed(0)` used the gross total (ignoring any
+                // payment already taken) and rounded MVR 776.50 down to 776.
+                const due = balance?.balance_mvr;
+                setCashCollected(isCOD && due != null && due > 0 ? String(due) : "");
+                setPanel("deliver");
+              }}
               style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
             >
               Mark as Delivered →

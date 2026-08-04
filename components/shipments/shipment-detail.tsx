@@ -513,7 +513,14 @@ export function ShipmentDetail({ id }: { id: string }) {
     const usd = shipment.rate_usd_to_mvr ?? 0;
     if (lines.length === 0) return null;
 
-    const totalCbm = lines.reduce((acc, l) => acc + l.qty_cartons * l.cbm_per_carton, 0);
+    // Cartons ACTUALLY received, falling back to ordered when nothing was
+    // counted yet — exactly what confirm_grn() uses (migration 0079). The
+    // preview used ordered cartons throughout, so on a short-received
+    // shipment every figure below — including the grand total shown on the
+    // confirm sheet at the moment landed cost is locked forever — was wrong.
+    const qty = (l: typeof lines[number]) => l.qty_cartons_actual ?? l.qty_cartons;
+
+    const totalCbm = lines.reduce((acc, l) => acc + qty(l) * l.cbm_per_carton, 0);
     if (totalCbm <= 0) return null;
 
     const freightMvr = (shipment.my_freight_share_usd ?? 0) * (usd || 0);
@@ -534,19 +541,19 @@ export function ShipmentDetail({ id }: { id: string }) {
     const rawLines = lines.map((l) => {
       const sku = skus.find((s) => s.id === l.sku_id);
       const fxToMvr = l.fob_currency === "IDR" ? idr : l.fob_currency === "USD" ? usd : 1;
-      const fobMvr = ratesSet ? l.qty_cartons * l.fob_per_carton * fxToMvr : 0;
+      const fobMvr = ratesSet ? qty(l) * l.fob_per_carton * fxToMvr : 0;
       const dutyRatePct = sku?.duty_rate_pct ?? 0;
       return { l, sku, fxToMvr, fobMvr, dutyWeight: fobMvr * dutyRatePct };
     });
     const totalDutyWeight = rawLines.reduce((acc, r) => acc + r.dutyWeight, 0);
 
     const linesPreview = rawLines.map(({ l, sku, fobMvr, dutyWeight }) => {
-      const cbmShare = totalCbm > 0 ? (l.qty_cartons * l.cbm_per_carton) / totalCbm : 0;
+      const cbmShare = totalCbm > 0 ? (qty(l) * l.cbm_per_carton) / totalCbm : 0;
       const apportionedOther = cbmShare * poolMvr;
       const apportionedDuty  = totalDutyWeight > 0 ? (dutyWeight / totalDutyWeight) * dutyMvr : cbmShare * dutyMvr;
       const apportioned = apportionedOther + apportionedDuty;
       const lineTotal   = fobMvr + apportioned;
-      const perCarton   = l.qty_cartons > 0 ? lineTotal / l.qty_cartons : 0;
+      const perCarton   = qty(l) > 0 ? lineTotal / qty(l) : 0;
       const perPack     = sku && sku.packs_per_carton > 0 ? perCarton / sku.packs_per_carton : 0;
       const perPiece    = sku && sku.pcs_per_pack > 0 ? perPack / sku.pcs_per_pack : 0;
       return { line: l, sku, fobMvr, apportioned, apportionedDuty, lineTotal, perCarton, perPack, perPiece, ratesSet };
@@ -570,7 +577,10 @@ export function ShipmentDetail({ id }: { id: string }) {
       const dutyRatePct = sku?.duty_rate_pct ?? 0;
       if (dutyRatePct <= 0) return acc;
       const fxToMvr = l.fob_currency === "IDR" ? idr : l.fob_currency === "USD" ? usd : 1;
-      const fobMvr = l.qty_cartons * l.fob_per_carton * fxToMvr;
+      // Cartons actually received, matching confirm_grn — suggesting duty on
+      // cartons that never arrived would inflate a figure that gets saved and
+      // then baked into permanent landed cost.
+      const fobMvr = (l.qty_cartons_actual ?? l.qty_cartons) * l.fob_per_carton * fxToMvr;
       return acc + fobMvr * (dutyRatePct / 100);
     }, 0);
     return total > 0 ? total : null;

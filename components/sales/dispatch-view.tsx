@@ -12,6 +12,7 @@ import {
   listAllDispatchOrders,
   listOrderLinesForOrders,
   updateOrder,
+  getOrderBalance,
   type SalesOrderRow,
   type SalesOrderLineRow,
 } from "@/lib/queries/sales";
@@ -160,10 +161,23 @@ export function DispatchView() {
       if (cash < 0)    { toast.error("Cash collected can't be negative"); return; }
     }
     setSaving(true);
+    // Whether this counts as fully paid is decided against what is actually
+    // still owed (Postgres, net of payments and returns) — not against the
+    // gross order total, and never assumed. Writing 'paid' unconditionally
+    // made a short collection look settled and quietly dropped the shortfall
+    // out of receivables.
+    let codStatus: "paid" | "partial" = "paid";
+    if (isCOD) {
+      try {
+        const bal = await getOrderBalance(confirmDelivery.id);
+        const due = bal?.balance_mvr ?? 0;
+        if (due > 0 && cash < due - 0.005) codStatus = "partial";
+      } catch { /* fall back to 'paid'; the amount itself is still recorded */ }
+    }
     const patch = {
       status: "delivered" as const,
       delivered_at: new Date().toISOString(),
-      ...(isCOD ? { payment_status: "paid" as const, cash_collected_mvr: cash } : {}),
+      ...(isCOD ? { payment_status: codStatus, cash_collected_mvr: cash } : {}),
     };
     try {
       const { queued } = await withOfflineFallback(

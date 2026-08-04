@@ -15,28 +15,19 @@ laws), which load automatically.
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
 - **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
   region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
-  live via the Supabase MCP in the same work unit. **Latest applied: 0129** (the
-  full money-math audit — see sections 5b and 5c).
+  live via the Supabase MCP in the same work unit. **Latest applied: 0130** (the
+  full money-math audit — see sections 5b, 5c and 5d).
 - **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
     `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
     Git-linked — pushes to `main` auto-deploy.
-  - `saynomore-shop` (the rolled-back customer storefront), id
-    `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG` — was **never git-linked** (only file-upload
-    deployable), so deleting `shop/` from the repo didn't take the old build down.
-    Ali flagged that the real storefront was still publicly reachable at
-    `saynomore-shop.vercel.app` after the rollback. Neither password protection nor
-    Vercel Authentication is available on this team's plan for production
-    deployments (both attempts were rejected by the API — "Advanced Deployment
-    Protection is not enabled" / "not available on your plan"), and no
-    delete-project tool exists in this session's Vercel MCP tools. Fix applied:
-    **file-upload-deployed a plain static placeholder** ("This page is temporarily
-    unavailable") over the production deployment — verified with an unauthenticated
-    curl that `saynomore-shop.vercel.app` now serves the placeholder, not the shop.
-    The Vercel *project* still technically exists (nothing to delete it with) but
-    nothing customer-facing is live there anymore. Delete the project outright from
-    the Vercel dashboard if you want it gone completely. No domain was ever
-    purchased.
+  - A second, leftover Vercel project from the removed web shop. It is **not**
+    git-linked, serves a blank placeholder, and has nothing to do with the
+    staff app. **Ali should delete it:** vercel.com → that project → Settings →
+    Delete Project. Take care to pick the leftover one, NOT `saynomore`, which
+    is the live staff app. There is no delete-project capability in this
+    session's tooling — the project was created as a side effect of the deploy
+    tool, which has no inverse.
 
 **Access carries over automatically — no passwords are stored here (public repo).**
 GitHub, Supabase and Vercel are reached through the session's MCP connectors, which
@@ -98,40 +89,27 @@ already built and refined over many sessions, and it must be preserved.
 
 ---
 
-## 5. Customer storefront — built, then FULLY REMOVED (2026-07-31 → 2026-08-04)
+## 5. Customer storefront — removed, do not resurrect
 
-A customer-facing web shop was built and deployed, Ali reviewed it, found it
-unsatisfactory, and asked for it to be removed completely. It is gone. Do not
-try to resurrect it — if a storefront is ever wanted again it starts as a
-fresh design, not from this history.
+A customer web shop was built, Ali reviewed it, and asked for it to be
+removed completely. Every trace is gone: the code, the database objects, the
+planning docs, and the migrations that created them. **Verified 2026-08-04:**
+zero related functions, tables, columns or data anywhere; zero references in
+`lib/`, `components/` or `app/`.
 
-**Removed:** the `shop/` Next.js project; its Vercel deployment content
-(replaced with a placeholder — see section 1 for why the Vercel *project*
-itself needs a manual dashboard delete); all storefront database objects
-(`place_customer_order`, `get_storefront_catalogue`,
-`get_web_fulfilment_godown_id`, `storefront_order_attempts`, the `Body Care`
-category, and the `is_web_fulfilment` / `storefront_visible` / `is_seasonal`
-/ `is_on_sale` columns) via migration `0120`; the `'web'` channel and
-order-source values; the Web badge wiring in Sales and Dispatch; and the
-`STOREFRONT_PLAN.md` / `STOREFRONT_COPY.md` docs.
+If a storefront is ever wanted again it starts as a brand-new design — there
+is deliberately nothing left to resume from, and nothing here should be
+treated as a starting point.
 
-**Verified clean (2026-08-04):** zero storefront functions, tables or columns
-remain; zero orders with `channel='web'`; zero customers with `channel='web'`;
-zero storefront references anywhere in `lib/`, `components/`, `app/`.
+One leftover Ali needs to action himself: the old Vercel project shell (see
+section 1). It serves a blank placeholder, not a shop.
 
-**Two things were deliberately KEPT, and why:**
-- `variants.image_url`, the `product-images` storage bucket, and the photo
-  upload in the Edit Variant dialog. Built for the storefront, but it is now
-  a **staff-facing Products feature** holding 7 real product photos. Deleting
-  it would destroy real data and break a working internal screen. Removable
-  in one step if Ali ever wants it gone.
-- `sales_orders.order_source`. This column **predates** the storefront (it
-  existed live, untracked, before any of that work) and is now constrained to
-  a single value, `'walk-in'`. Harmless, and not mine to drop.
-
-Migrations `0112`–`0119` are kept as an immutable historical ledger — they are
-fully reversed by `0120`, and deleting them would make the migration chain
-incoherent for anyone replaying it from scratch.
+Two things were kept on purpose, and are **not** storefront features:
+`variants.image_url` + the `product-images` bucket + the Edit Variant photo
+upload (a staff Products feature holding 7 real photos — deleting it would
+destroy real data and break a working screen), and
+`sales_orders.order_source`, a column that predates all of that work and is
+now constrained to `'walk-in'`.
 
 ---
 
@@ -325,6 +303,54 @@ real human decision.
 
 ---
 
+## 5d. Audit pass 3 (2026-08-04) — migration 0130, everything in 5c closed
+
+Ali asked for every remaining known defect to be fixed. All of them were,
+and the "known and NOT fixed" list in 5c is now empty:
+
+- **Timezone sweep finished (0130).** `get_returns`, `get_recent_writeoffs`,
+  `get_customer_products` and `get_competitor_price_freshness` were still
+  bucketing by UTC. Proven fixed on real data: the one write-off in the
+  database (21:14 UTC on 26 Jul) now correctly reports under **27 Jul**
+  Maldives time instead of 26 Jul.
+- **Driver COD cash is now the real balance, not a gross sum.** Both
+  `my-deliveries.tsx` and `dispatch-view.tsx` took the amount to collect from
+  a browser-side sum of gross line totals, ignoring payments already recorded
+  and returned goods — so a part-paid COD order told the driver to collect the
+  full amount and flagged a correct collection as short. Both now read
+  `v_order_balances.balance_mvr` (new `getOrderBalances()` helper for the
+  list, `getOrderBalance()` at confirm time).
+- **A short collection no longer closes an order as fully paid.** Both screens
+  wrote `payment_status: 'paid'` unconditionally; they now write `'partial'`
+  when the cash is less than what was owed, so the shortfall stays in
+  receivables instead of silently vanishing.
+- **Sale Detail prefills fixed.** The payment sheet fell back to the gross
+  order total when the balance hadn't loaded (one tap could over-collect — it
+  now leaves the field blank, with the server-side overpayment guard as the
+  backstop), and the cash-collected field used `totals.mvr.toFixed(0)`, which
+  both ignored prior payments and rounded MVR 776.50 down to 776.
+- **GRN preview and suggested duty now use cartons ACTUALLY received.** Both
+  used ordered cartons while `confirm_grn` uses
+  `coalesce(qty_cartons_actual, qty_cartons)` — so on a short-received
+  shipment the landed-cost preview Ali confirms against was wrong, and the
+  suggested customs-duty figure (which is saved, and feeds permanent landed
+  cost) was inflated.
+- **Dashboard no longer calls Supabase directly** (hard rule 4). It is a React
+  Server Component, so it could not use `lib/queries/` — every module there is
+  `"use client"`. New `lib/queries/dashboard-server.ts` is the missing
+  server-side half of the query layer.
+
+**Still open, deliberately:** the margin/price simulator computes a saved
+selling price in TypeScript and is duplicated in `sales-list.tsx` and
+`competitors-view.tsx`. Both copies are currently identical and the number is
+Ali's own decision, so there is no wrong figure today — the risk is future
+drift between the two. Worth unifying into one helper (or an RPC) next.
+
+**Not device-verified:** the offline sync paths and the COD screens need a
+real phone (airplane mode → record → reconnect) to confirm end to end.
+
+---
+
 ## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
@@ -504,14 +530,12 @@ Available whenever Ali wants them, no work needed to "unlock" — they're just u
 **wholesale/VIP price tiers** (full price-list system is wired into order pricing; 0 price
 lists exist, so every sale uses the standard price) · **expiry/FEFO alerts** (capture at GRN +
 ≤120d view + ≤60d briefing all built; 0 expiry dates entered, so it's dark) · **card
-payments** (allowed; waiting on the storefront/BML phase) · **per-100ml/100g competitor
+payments** (allowed; waiting on a BML merchant account) · **per-100ml/100g competitor
 pricing** (detergent categories are set up for it; no rival prices logged that way) ·
 **extra supplier currencies** (MYR/THB/CNY/EUR).
 
-1. **Customer storefront — fully removed, nothing pending.** See section 5. All of
-   its code, data and planning docs are deleted; nothing storefront-related exists.
-   If Ali ever wants one again it starts as a brand-new design conversation — there
-   is deliberately nothing left to resume from.
+1. **Nothing pending from the removed web shop.** See section 5 — it is fully
+   gone. The only open item is Ali deleting the leftover Vercel project shell.
 
 ---
 

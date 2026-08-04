@@ -704,6 +704,29 @@ export async function listOrderPayments(orderId: string): Promise<OrderPaymentRo
   return (data ?? []) as OrderPaymentRow[];
 }
 
+/**
+ * Outstanding balance for many orders at once, keyed by order id.
+ *
+ * Use this — never a client-side sum of line totals — anywhere the app asks
+ * "how much is still owed on this order?". A gross line-total sum ignores
+ * payments already recorded and any returned goods, which is how the driver
+ * screen used to tell someone to collect the full amount on an order that
+ * had already been part-paid.
+ */
+export async function getOrderBalances(orderIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (orderIds.length === 0) return out;
+  const { data, error } = await supabase
+    .from("v_order_balances")
+    .select("order_id, balance_mvr")
+    .in("order_id", orderIds);
+  if (error) throw error;
+  for (const r of (data ?? []) as { order_id: string; balance_mvr: number }[]) {
+    out.set(r.order_id, Number(r.balance_mvr));
+  }
+  return out;
+}
+
 /** Derived balance for one order (total / paid / outstanding / status). */
 export async function getOrderBalance(orderId: string): Promise<OrderBalanceRow | null> {
   const { data, error } = await supabase
