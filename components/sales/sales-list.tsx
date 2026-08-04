@@ -243,10 +243,9 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
         <div className="min-w-0">
           <p className="text-[14px] font-semibold text-foreground truncate">
             {cust?.name ?? "Walk-in"}
-            <span className="ios-subhead ml-2 snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
           </p>
           <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
-            via {o.channel}{cust?.island && <> · {cust.island}</>}
+            <span className="snm-num">{o.order_number}</span> · via {o.channel}{cust?.island && <> · {cust.island}</>}
           </p>
         </div>
       </div>
