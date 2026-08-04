@@ -22,7 +22,7 @@ const BarcodeScanner = dynamic(
 );
 import {
   listOrdersPage, countOrders, listOrderCustomersPage, peekNextOrderNumber,
-  createOrder, createOrderLine, postSale,
+  createOrderLine, createAndPostSale,
   getTierPricesForSkus, getLastOrderForCustomer,
   ORDER_PAGE_SIZE,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
@@ -1352,29 +1352,42 @@ function NewSaleSheet({
         payment_status: "pending" as const,
         notes: orderNotes.trim() || null,
       };
+      // qty_pieces and line_total_mvr are deliberately NOT sent — Postgres
+      // derives both from the SKU's own pack/carton configuration, so the
+      // stored numbers can't drift from the price and quantity actually
+      // agreed (hard rule 1: money math lives in Postgres).
       const linePayloads = draftLines.map((l) => ({
         sku_id: l.sku.id, uom: l.uom, qty: l.qty,
-        qty_pieces: l.qty_pieces, unit_price_mvr: l.unit_price_mvr,
-        line_total_mvr: l.line_total_mvr, is_mixed_carton_fill: l.is_mixed_carton_fill,
+        unit_price_mvr: l.unit_price_mvr,
+        is_mixed_carton_fill: l.is_mixed_carton_fill,
       }));
 
+      // One RPC = one transaction: the order, its lines and the FIFO stock
+      // deduction all commit together or not at all. The old three-step
+      // client sequence could leave the order and lines saved with stock
+      // never deducted if the connection dropped in between — that is
+      // exactly how SO-2026-076 ended up delivered with no stock movement.
+      // offlineKey makes a retry idempotent rather than a duplicate sale.
       const { queued } = await withOfflineFallback(
-        async () => {
-          const created = await createOrder(orderPayload);
-          await Promise.all(linePayloads.map((l) => createOrderLine({ order_id: created.id, ...l })));
-          await postSale(created.id);
-          return created;
-        },
+        () => createAndPostSale(orderPayload, linePayloads, offlineKey),
         {
           table: "sales_orders",
-          action: "insert",
-          payload: { order: orderPayload, lines: linePayloads },
+          action: "rpc",
+          rpcName: "create_and_post_sale",
+          payload: {
+            p_order: orderPayload,
+            p_lines: linePayloads,
+            p_offline_key: offlineKey,
+          },
           tempId: offlineKey,
         },
       );
 
       if (queued) {
-        toast.success("Saved offline — will sync when connected", { duration: 4000 });
+        toast.warning(
+          "You're offline — this sale is saved on this phone and will be sent when you reconnect. Stock is not deducted yet.",
+          { duration: 6000 },
+        );
         onClose();
       } else {
         toast.success("Order placed — stock deducted");

@@ -372,6 +372,45 @@ export async function postSale(orderId: string) {
   return data;
 }
 
+/**
+ * Creates the order, its lines and the FIFO stock deduction in ONE Postgres
+ * transaction (migration 0128). Replaces the old three-step client sequence
+ * (createOrder → createOrderLine × n → postSale), where an interruption
+ * after the lines were saved but before post_sale ran left a real order with
+ * revenue but no stock deducted — that is what happened to SO-2026-076.
+ *
+ * `offlineKey` is an idempotency key: replaying the same key returns the
+ * order that was already created instead of creating a second one, so a
+ * queued write can be retried safely.
+ *
+ * qty_pieces and line_total_mvr are deliberately NOT sent — Postgres derives
+ * them from the SKU's own pack/carton configuration (hard rule 1). The unit
+ * price IS sent, because it is a real human decision, not a derived figure.
+ */
+export interface NewSaleLineInput {
+  sku_id: string;
+  uom: SaleUom;
+  qty: number;
+  unit_price_mvr: number;
+  is_mixed_carton_fill?: boolean;
+}
+
+export async function createAndPostSale(
+  order: Record<string, unknown>,
+  lines: NewSaleLineInput[],
+  offlineKey?: string | null,
+): Promise<{ order_id: string; order_number: string }> {
+  const { data, error } = await supabase.rpc("create_and_post_sale", {
+    p_order: order,
+    p_lines: lines,
+    p_offline_key: offlineKey ?? null,
+  });
+  if (error) throw error;
+  invalidate("stock:");
+  const row = Array.isArray(data) ? data[0] : data;
+  return row as { order_id: string; order_number: string };
+}
+
 // ── void_sales_order / edit_sales_order_line RPCs ────────────────────────
 // Safe corrections for confirmed/picked orders: both reverse the exact FIFO
 // stock_movements they created and (for edits) re-deplete for the new

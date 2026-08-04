@@ -15,8 +15,8 @@ laws), which load automatically.
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
 - **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
   region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
-  live via the Supabase MCP in the same work unit. **Latest applied: 0126** (the
-  full money-math audit — see section 5b).
+  live via the Supabase MCP in the same work unit. **Latest applied: 0129** (the
+  full money-math audit — see sections 5b and 5c).
 - **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
     `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
@@ -232,15 +232,111 @@ margin formula convention, division-by-zero guards, the "never
 auto-overwrite a fixed price" rule, `block_grn_rate_changes`/
 `block_batch_cost_changes`, landed-cost-lock immutability, `confirm_grn`'s
 zero-CBM block, `post_sale`'s FIFO correctness and double-post guard,
-`void_sales_order`/`delete_sales_order`'s payment guards, `stock_signed_delta`
+`void_sales_order`'s payment guards, `stock_signed_delta`
 coverage of every movement type, every function's anon-EXECUTE revocation
 (only `keepalive` is anon-callable, by design).
+
+> **Correction (second pass, 2026-08-04).** The line above originally also
+> claimed `delete_sales_order`'s payment guards were verified clean. They
+> were not — I never read that function in the first pass and should not
+> have listed it. The second pass found it genuinely defective (it could
+> cascade-delete customer payments; fixed in migration 0129, section 5c).
+> Recorded here rather than quietly edited, because an audit that overstates
+> its own coverage is worse than one that admits a gap.
 
 **Every fix was verified against live data** (not just read as correct):
 before/after query proofs for the timezone shift, the tier-price gap, the
 dashboard/P&L convergence, the returns-netting formula (via a rolled-back
 `begin;...rollback;` payment test), and stock totals before/after the view
 collapse (20,260 pieces, unchanged).
+
+---
+
+## 5c. Audit — second pass (2026-08-04), migrations 0128–0129
+
+Ali asked whether the first pass really covered the *whole* app. It did not —
+it covered ~55 of ~85 database functions and none of the app's own write
+paths. This pass closed the rest: the order void/delete/edit paths, the admin
+cascade-deletes, access-control helpers, the remaining reporting functions,
+all 8 views, plus two things the first pass never looked at at all — the
+**frontend money math** and the **offline write queue**. Findings were
+verified against live data before any fix, and after.
+
+**The worst bug in the app was here, not in the SQL: offline writes were
+silently destroyed.** `drainQueue` replayed every queued write using the
+**anon key** as the Bearer token (`lib/use-network-status.ts`), not the
+signed-in user's JWT. Confirmed at the database level: `anon` holds
+table-level INSERT/UPDATE on `sales_orders`, gated only by RLS — so the
+requests really did reach Postgres and really were filtered to nothing.
+Consequences, both verified in the code:
+- INSERTs came back 4xx, and the old code **deleted 4xx entries from the
+  queue** and moved on;
+- PATCHes matched zero rows under RLS and returned **204 No Content**, which
+  the old code counted as **success** and removed.
+
+So a driver could record MVR 8,000 of collected cash in a dead zone, see
+"Saved offline", later see "All changes synced", and nothing ever reached
+the database. Fixed: replay now uses the real session token; refuses to
+drain at all without one; never deletes an entry that didn't verifiably
+apply (`Prefer: return=representation`, and a PATCH matching zero rows is a
+failure, not a success); stops at the first failure so a later write can't
+overtake the earlier one it depends on; and the banner now shows a red
+"couldn't sync — Retry" state instead of a green success it hadn't earned.
+The New Sale offline toast no longer implies the sale is complete.
+
+**Root cause of SO-2026-076 is now closed properly (migration 0128).** New
+`create_and_post_sale(p_order, p_lines, p_offline_key)` does the order, its
+lines and the FIFO stock deduction in ONE transaction, replacing three
+sequential client writes. Proven by test: forcing a mid-flight failure
+(insufficient stock) rolled everything back — zero orphan orders, and the
+app-wide check "orders with revenue but no stock movements" is now **0**.
+`p_offline_key` (unique) makes a replay idempotent instead of a duplicate
+sale. `qty_pieces` and `line_total_mvr` are now computed in Postgres from
+the SKU's own pack/carton configuration instead of being sent from the
+browser (hard rule 1); the unit price is still an input, because that is a
+real human decision.
+
+**Also fixed (migration 0129):**
+- `delete_sales_order` could **cascade-delete customer payments**. It only
+  checked the header fields `payment_status IN ('paid','deposited')` and
+  `cash_collected_mvr > 0`, but `'partial'` and `'cod'` are legal values —
+  a part-paid order passed both guards and `order_payments` rows cascaded
+  away with no trace. Same bug class as `admin_force_void_grn` (fixed in
+  0124). Now sums the payments ledger, like `void_sales_order` already did.
+  **Behaviour change:** a *delivered* order can no longer be deleted at all
+  — voiding is the correct action (it reverses stock and keeps the record).
+- `get_tier_prices_for_skus` — the live pricing path — returned **no piece
+  or pack price at all** for a SKU priced only per carton (e.g. Sosoft Blue
+  700ml at MVR 220/carton), because it derived prices upward from the piece
+  price but never downward from the carton. Now derives both directions.
+  Verified: 0 active SKUs now return a null price, and 0 SKUs were in the
+  state where the new fallback could change an existing price.
+- `v_verification_history` carried a stray `SELECT` grant to `anon`.
+- Role guards that used `IF NOT is_admin_or_manager()` evaluated to NULL
+  (not false) when `auth.uid()` is null, so the guard silently passed. Only
+  reachable as postgres/service_role, never anon — but a guard that can be
+  NULL is not a guard. Now `coalesce(..., false)`.
+
+**Known and NOT yet fixed** (deliberately listed rather than buried):
+- Four functions still bucket dates by UTC instead of Maldives time:
+  `get_returns`, `get_recent_writeoffs`, `get_customer_products`,
+  `get_competitor_price_freshness`. Proven off-by-one on the one real
+  write-off in the database. Same one-line fix as migrations 0123/0126.
+- The COD cash figures shown to drivers (`my-deliveries.tsx`,
+  `dispatch-view.tsx`) and the payment/cash prefills in `sale-detail.tsx`
+  are summed in TypeScript from gross line totals — they don't subtract
+  payments already made or returns, so a part-paid COD order tells the
+  driver to collect the full amount. `my-deliveries.tsx` also writes
+  `payment_status: 'paid'` unconditionally, even when the driver records a
+  short collection.
+- The GRN screen's landed-cost preview and its suggested customs-duty
+  figure use **ordered** cartons while `confirm_grn` uses **actual received**
+  cartons — so on a short-received shipment the preview Ali confirms against
+  is wrong. The duty figure is saved and feeds permanent landed cost.
+- The margin/price simulator computes a saved selling price in TypeScript,
+  duplicated in two files (`sales-list.tsx`, `competitors-view.tsx`).
+- `app/(app)/dashboard/page.tsx` calls Supabase directly instead of going
+  through `lib/queries/` (hard rule 4).
 
 ---
 
