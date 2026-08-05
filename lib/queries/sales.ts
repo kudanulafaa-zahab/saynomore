@@ -550,6 +550,10 @@ export interface SalesOrderDeleteImpact {
   balance_mvr: number;
   line_count: number;
   pieces_restored: number;
+  /** The same stock spoken in cartons and packs, per product — what the
+   *  confirmation actually prints. `pieces_restored` stays only as the
+   *  "is there any stock at all" test. */
+  stock_restored_summary: string | null;
   blocked_reason: string | null;
 }
 

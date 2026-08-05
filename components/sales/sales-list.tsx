@@ -43,7 +43,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { SwipeActions, type SwipeAction } from "@/components/ui/swipe-actions";
-import { formatQtyInTradeUnits, priceForMargin } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, priceForMargin, sellableTiers, sellUnitLabel, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -139,6 +139,17 @@ function defaultUom(sku: SkuFullRow): SaleUom {
   if (su.includes("carton")) return "carton";
   if (su.includes("pack")) return "pack";
   return "carton";
+}
+
+// Adapter to the shared trade-unit helpers, so every quantity and per-unit
+// cost on this screen is spoken in packs/cartons/bottles by one implementation.
+function tradeCfg(sku: SkuFullRow): TradeUnitConfig {
+  return {
+    pcsPerPack: sku.pcs_per_pack,
+    packsPerCarton: sku.packs_per_carton,
+    unitUom: sku.unit_uom,
+    sellableUnits: sku.sellable_units,
+  };
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
@@ -1982,7 +1993,9 @@ function NewSaleSheet({
                         const pll = packLabel(s).toLowerCase();
                         return p > 0 ? `${p} ${pll}s` : `< 1 ${pll}`;
                       }
-                      return `${pcs} pcs`;
+                      // No pack config to convert with — still never a bare
+                      // piece count on screen; the shared helper decides.
+                      return formatQtyInTradeUnits(pcs, tradeCfg(s));
                     };
                     // Availability line: in-stock here / none here but elsewhere / out everywhere.
                     const stockLabel = stock == null ? null
@@ -2087,7 +2100,9 @@ function NewSaleSheet({
               // Price shows read-only; tap the pencil to edit it inline.
               // Keyboard only appears when user explicitly taps a field.
               const pl = packLabel(selectedSku);
-              const uomLabel = lineUom === "carton" ? "Carton" : lineUom === "piece" ? "Piece" : pl;
+              const uomWordHere = sellUnitLabel(lineUom, tradeCfg(selectedSku));
+              const uomLabel = lineUom === "carton" ? "Carton" : lineUom === "pack" ? pl
+                : uomWordHere.charAt(0).toUpperCase() + uomWordHere.slice(1);
               const qtyNum = parseFloat(lineQty) || 0;
               const hasNoPrice = !linePrice && selectedSku.landed_per_piece_mvr != null;
 
@@ -2195,21 +2210,18 @@ function NewSaleSheet({
                     )}
                   </div>
 
-                  {/* ── UOM segmented control — only the tiers this SKU sells in.
-                      sellable_units drives it: carton-only products show just
-                      Carton; pack-sellable products also allow loose pieces. ── */}
+                  {/* ── UOM segmented control — exactly the tiers this SKU sells
+                      in, no more. `sellable_units` is the only input: it used
+                      to also synthesise a "Piece" button for any pack-selling
+                      SKU, which put "sell one loose diaper" in front of Ali on
+                      every product. Nobody in this trade sells diapers loose,
+                      and no SKU lists `piece`. See lib/trade-units. ── */}
                   <div className="rounded-2xl p-1 flex gap-1" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
-                    {((): SaleUom[] => {
-                      const su = selectedSku.sellable_units ?? ["pack", "carton"];
-                      const opts: SaleUom[] = [];
-                      if (su.includes("carton")) opts.push("carton");
-                      if (su.includes("pack")) opts.push("pack");
-                      // Loose pieces allowed when the SKU sells pieces, or packs
-                      // (breaking a pack open is a real over-the-counter sale).
-                      if (su.includes("piece") || su.includes("pack")) opts.push("piece");
-                      return opts.length ? opts : ["carton"];
-                    })().map((u) => {
-                      const label = u === "carton" ? `Carton (${selectedSku.packs_per_carton} ${pl}s)` : u === "pack" ? pl : `Piece (${selectedSku.pcs_per_pack}/${pl})`;
+                    {sellableTiers(selectedSku.sellable_units).map((u) => {
+                      const one = sellUnitLabel(u, tradeCfg(selectedSku));
+                      const label = u === "carton" ? `Carton (${selectedSku.packs_per_carton} ${pl}s)`
+                        : u === "pack" ? pl
+                        : one.charAt(0).toUpperCase() + one.slice(1);
                       return (
                         <button key={u} onClick={() => setLineUom(u)}
                           className="flex-1 py-2.5 rounded-xl ios-subhead font-semibold transition active:scale-95"
@@ -2243,7 +2255,7 @@ function NewSaleSheet({
                         </p>
                         <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                           {mixedCarton
-                            ? `Charging carton rate ÷ ${selectedSku.pcs_per_pack * selectedSku.packs_per_carton} pcs`
+                            ? `Charging carton rate ÷ ${selectedSku.pcs_per_pack * selectedSku.packs_per_carton} ${sellUnitLabel("piece", tradeCfg(selectedSku))}s`
                             : "Customer assembles their own mixed carton"}
                         </p>
                       </div>
@@ -2436,7 +2448,10 @@ function NewSaleSheet({
                             )}
                             {editorProvenance.source === "margin" && (
                               <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
-                                This price is <strong>calculated automatically</strong>: landed cost {landed != null ? `(MVR ${landed.toFixed(2)}/pc)` : ""} plus a target margin of <strong>{selectedSku?.target_margin_pct ?? Math.round(editorProvenance.marginPct ?? 0)}%</strong>.
+                                This price is <strong>calculated automatically</strong>: landed cost{landed != null && selectedSku ? (() => {
+                                  const c = costPerTradeUnit(landed, tradeCfg(selectedSku));
+                                  return ` (MVR ${c.value.toFixed(2)}/${c.unitLabel === "ctn" ? "carton" : c.unitLabel})`;
+                                })() : ""} plus a target margin of <strong>{selectedSku?.target_margin_pct ?? Math.round(editorProvenance.marginPct ?? 0)}%</strong>.
                               </p>
                             )}
                             {editorProvenance.source === "price_list" && (
@@ -2444,11 +2459,18 @@ function NewSaleSheet({
                                 This price comes from a <strong>customer price list</strong>{editorProvenance.detail ? ` — ${editorProvenance.detail}` : ""}.
                               </p>
                             )}
-                            {landed != null && (
-                              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                                What this product costs you landed: <strong style={{ color: "var(--foreground)" }}>MVR {landed.toFixed(2)} / piece</strong>.
-                              </p>
-                            )}
+                            {landed != null && selectedSku && (() => {
+                              // Landed cost is stored per piece because that is
+                              // what the stock ledger and the GRN divide down
+                              // to. It is never SHOWN per piece: quote it in
+                              // the unit Ali actually buys and sells.
+                              const c = costPerTradeUnit(landed, tradeCfg(selectedSku));
+                              return (
+                                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                                  What this product costs you landed: <strong style={{ color: "var(--foreground)" }}>MVR {c.value.toFixed(2)} / {c.unitLabel === "ctn" ? "carton" : c.unitLabel}</strong>.
+                                </p>
+                              );
+                            })()}
                             {margin != null && (
                               <p className="ios-subhead" style={{ color: margin < 0 ? "var(--snm-error)" : "var(--foreground)" }}>
                                 At the price shown, you&apos;re making <strong>{margin.toFixed(1)}% margin</strong>{margin < 0 ? " — you are losing money on this sale." : "."}
@@ -2600,7 +2622,12 @@ function NewSaleSheet({
                                 setLinePrice(String(Math.round(displayNewPrice)));
                                 setPriceManuallyEdited(false);
                                 setAutoPriceSource(mode === "fixed" ? "sku_default" : "margin");
-                                toast.success(mode === "fixed" ? `Fixed price saved — MVR ${piecePrice.toFixed(2)}/pc` : `${impliedMarginPct}% margin saved`);
+                                // Stored per piece (that is the column), but
+                                // confirmed back in the unit it will be sold in.
+                                const shown = costPerTradeUnit(piecePrice, tradeCfg(selectedSku));
+                                toast.success(mode === "fixed"
+                                  ? `Fixed price saved — MVR ${shown.value.toFixed(2)}/${shown.unitLabel === "ctn" ? "carton" : shown.unitLabel}`
+                                  : `${impliedMarginPct}% margin saved`);
                                 setEditingPrice(false);
                                 setShowPriceExplain(false);
                               } catch (e) {
@@ -2687,8 +2714,7 @@ function NewSaleSheet({
                   Order items · {draftLines.length}
                 </p>
                 {draftLines.map((l) => {
-                  const pl = packLabel(l.sku);
-                  const uomWord = l.uom === "carton" ? "carton" : l.uom === "piece" ? "pc" : pl.toLowerCase();
+                  const uomWord = sellUnitLabel(l.uom, tradeCfg(l.sku));
                   return (
                   <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 ios-subhead" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                     <div className="min-w-0 flex-1">
@@ -2742,8 +2768,7 @@ function NewSaleSheet({
             {/* Line items */}
             <div className="rounded-xl overflow-hidden" style={CARD}>
               {draftLines.map((l, i) => {
-                const pl = packLabel(l.sku);
-                const uomWord = l.uom === "carton" ? "carton" : l.uom === "piece" ? "pc" : pl.toLowerCase();
+                const uomWord = sellUnitLabel(l.uom, tradeCfg(l.sku));
                 return (
                   <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 ios-subhead" style={{ borderBottom: i < draftLines.length - 1 ? "0.5px solid var(--glass-border-lo)" : "none" }}>
                     <div className="min-w-0 flex-1">
@@ -2920,7 +2945,7 @@ function NewSaleSheet({
                      : belowCostAdd.uom === "pack" ? s.pcs_per_pack : 1;
           const cost = (s.landed_per_piece_mvr ?? 0) * mult;
           const loss = cost - belowCostAdd.price;
-          const u = belowCostAdd.uom === "pack" ? packLabel(s).toLowerCase() : belowCostAdd.uom;
+          const u = sellUnitLabel(belowCostAdd.uom, tradeCfg(s));
           return (
             <ConfirmSheet
               open
@@ -2948,7 +2973,7 @@ function NewSaleSheet({
           const qty = parseFloat(lineQty) || 0;
           const lossEach = cost - price;
           const lossTotal = lossEach * qty;
-          const u = lineUom === "pack" ? packLabel(s).toLowerCase() : lineUom;
+          const u = sellUnitLabel(lineUom, tradeCfg(s));
           return (
             <ConfirmSheet
               open

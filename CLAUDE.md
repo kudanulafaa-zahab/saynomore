@@ -48,7 +48,27 @@ This is permanent. Ali has had to say it three times.
 - **Never show a piece count to the user.** Not "192 pcs", not "= 128 pieces
   total", not "64 pcs in stock". Say "1 carton (4 packs of 48)" or "2 packs of
   34". Use `formatQtyInTradeUnits` in `lib/trade-units.ts` — it already exists,
-  do not write a second one.
+  do not write a second one. Postgres has the twin: `qty_in_trade_units` /
+  `unit_noun` (migration 0143), used by `sales_order_item_summary` and
+  `get_sales_order_delete_impact`.
+- **Never offer a selling unit the SKU doesn't sell.** `skus.sellable_units` is
+  the only input — `sellableTiers()` in `lib/trade-units.ts`. Screens used to
+  *synthesise* a third "Piece" button for any pack-selling SKU, so every diaper
+  invited a loose-piece sale; the add-item and returns sheets went further and
+  hardcoded all three tiers, so a carton-only Sosoft could be sold by the pack
+  in one place and not the other. Checked against every line ever sold: all 51
+  `uom='piece'` lines are Sosoft bottles in a mixed carton, never a diaper.
+  Same guard, every door.
+- **Money is quoted in the unit sold, too.** Landed cost lives per piece in the
+  DB; on screen it is per pack or per carton (`costPerTradeUnit`). Shipment
+  lines lead with the carton. Price Lists takes a pack price and a carton price
+  and *derives* the per-piece column — Ali is never asked to price a loose
+  diaper.
+- **One exception, deliberate: Market (competitors).** Rivals sell 30s/34s/48s,
+  so per-piece is the only comparable unit. Per-piece figures there are correct
+  and must stay. Stock Ops keeps a loose tier as well, because a write-off or a
+  count adjustment is a *ledger* event (a torn pack is real) — but it is named
+  after the product ("btl"), never blanket "pcs".
 - **Pack SIZE is kept** ("4 packs of 48") because that is how a diaper variant
   is identified — a 48s and a 34s are different products.
 - **Pieces stay in the DATABASE**, for four reasons and no others: the stock

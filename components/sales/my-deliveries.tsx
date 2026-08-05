@@ -20,6 +20,7 @@ import { notifyDelivered } from "@/lib/push";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
+import { sellUnitLabel, type SellUnit } from "@/lib/trade-units";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -58,10 +59,16 @@ const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
 
 /* ─── delivery helpers ──────────────────────────────────────────────────── */
 
-// Full unit word so the driver never mistakes a carton for a pack at the door.
-const UOM_WORD: Record<string, string> = { carton: "carton", pack: "pack", piece: "piece" };
-function uomWord(uom: string, qty: number): string {
-  const w = UOM_WORD[uom] ?? uom;
+// Full unit word so the driver never mistakes a carton for a pack at the door
+// — and named after the product, so a Sosoft line reads "6 BOTTLES" rather
+// than the "6 PIECES" a driver would have to translate at the doorstep.
+function uomWord(uom: string, qty: number, sku?: SkuFullRow): string {
+  const w = sku
+    ? sellUnitLabel(uom as SellUnit, {
+        pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton,
+        unitUom: sku.unit_uom, sellableUnits: sku.sellable_units,
+      })
+    : uom;
   return qty === 1 ? w : `${w}s`;
 }
 
@@ -376,7 +383,7 @@ function ItemsBlock({ lines, skus }: { lines: SalesOrderLineRow[]; skus: SkuFull
                   {l.qty}
                 </span>
                 <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--snm-brand-text)", textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 2 }}>
-                  {uomWord(l.uom, l.qty)}
+                  {uomWord(l.uom, l.qty, sku)}
                 </span>
               </div>
             </div>

@@ -27,13 +27,20 @@ function fmtMvr(n: number) {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
 }
-function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
+/** Compact chip word for one pack-level unit: a Sosoft 500ml is a bottle. */
+function packAbbr(unitUom: string | null | undefined) {
+  return unitUom === "ml" ? "btl" : unitUom === "g" ? "pch" : "pk";
+}
+function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number, unitUom?: string | null) {
   const ctns  = toCtns(pcs, pcsPerCtn);
   const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);
-  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} pk`;
+  const pk    = packAbbr(unitUom);
+  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} ${pk}`;
   if (ctns > 0) return `${ctns} ctn`;
-  if (packs > 0) return `${packs} pk`;
-  return `${pcs} pcs`;
+  if (packs > 0) return `${packs} ${pk}`;
+  // Never a bare piece count on screen (CLAUDE.md, Ali x3). A remainder too
+  // small to be one pack is said as a fraction of the unit he trades in.
+  return pcs > 0 ? `< 1 ${pk}` : "0";
 }
 
 /* ── Types ── */
@@ -80,10 +87,10 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
   );
 }
 
-function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn }: {
-  batch: BatchStock; idx: number; pcsPerPack: number; pcsPerCtn: number;
+function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn, unitUom }: {
+  batch: BatchStock; idx: number; pcsPerPack: number; pcsPerCtn: number; unitUom?: string | null;
 }) {
-  const qty  = fmtQty(batch.qty_pieces_remaining, pcsPerPack, pcsPerCtn);
+  const qty  = fmtQty(batch.qty_pieces_remaining, pcsPerPack, pcsPerCtn, unitUom);
   const date = new Date(batch.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
   return (
     <div
@@ -168,11 +175,11 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
   // misleading "0 ctn". Pack config disambiguates same-size SKUs that pack
   // differently (e.g. 22/pk vs 32/pk).
   const packDesc = `${sku.pcs_per_pack}/pk × ${sku.packs_per_carton}/ctn`;
+  const pkAbbr = packAbbr(sku.unit_uom);
   const primaryQty  = totalPieces <= 0 ? { n: 0, u: "ctn" }
     : totalCtns  > 0 ? { n: totalCtns,  u: "ctn" }
-    : totalPacks > 0 ? { n: totalPacks, u: "pk" }
-    : { n: totalPieces, u: "pcs" };
-  const remainderQty = (totalCtns > 0 && totalPacks > 0) ? { n: totalPacks, u: "pk" } : null;
+    : { n: totalPacks, u: pkAbbr };
+  const remainderQty = (totalCtns > 0 && totalPacks > 0) ? { n: totalPacks, u: pkAbbr } : null;
 
   const accent = (isOut || isCritical) ? "var(--snm-error)"
     : isLow ? "var(--snm-warning)"
@@ -190,7 +197,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
     ? "Reorder now"
     : sortedGodowns.length === 0 ? "No stock on hand"
     : sortedGodowns.length === 1 ? sortedGodowns[0].godown.name
-    : sortedGodowns.map((g) => `${g.godown.name} ${fmtQty(g.pieces, sku.pcs_per_pack, pcsPerCtn)}`).join(" · ");
+    : sortedGodowns.map((g) => `${g.godown.name} ${fmtQty(g.pieces, sku.pcs_per_pack, pcsPerCtn, sku.unit_uom)}`).join(" · ");
   // Pack config always visible so two same-size SKUs that pack differently are
   // never indistinguishable; godown/status follows.
   const metaLine = `${packDesc} · ${godownLine}`;
@@ -357,14 +364,14 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
                   <p className="ios-subhead font-semibold text-foreground">{godown.name}</p>
                 </div>
                 <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                  {fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn)} · {pieces.toLocaleString()} pcs
+                  {fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn, sku.unit_uom)}
                 </p>
               </div>
               <div className="space-y-1">
                 {[...batches]
                   .sort((a, b) => a.received_at.localeCompare(b.received_at))
                   .map((batch, i) => (
-                    <BatchRow key={batch.batch_id} batch={batch} idx={i} pcsPerPack={sku.pcs_per_pack} pcsPerCtn={pcsPerCtn} />
+                    <BatchRow key={batch.batch_id} batch={batch} idx={i} pcsPerPack={sku.pcs_per_pack} pcsPerCtn={pcsPerCtn} unitUom={sku.unit_uom} />
                   ))}
               </div>
             </div>

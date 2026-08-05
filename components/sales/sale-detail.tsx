@@ -47,7 +47,7 @@ import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
-import { formatQtyInTradeUnits } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, sellableTiers, sellUnitLabel, type TradeUnitConfig } from "@/lib/trade-units";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { recordCustomerReturn, type ReturnReason, type ReturnSettlement } from "@/lib/queries/inventory";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
@@ -55,6 +55,15 @@ import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { notifyAdmins } from "@/lib/push";
+
+/** Keeps the chosen selling unit on a tier the SKU is actually sold in.
+ *  Switching from a diaper (pack + carton) to a carton-only Sosoft must not
+ *  leave "Pack" selected — `sellable_units` is the rule on both screens. */
+function pickUom(sku: SkuFullRow, current: SaleUom): SaleUom {
+  const tiers = sellableTiers(sku.sellable_units);
+  if (tiers.includes(current)) return current;
+  return tiers.includes("pack") ? "pack" : tiers[0];
+}
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /*  Constants                                                                  */
@@ -429,7 +438,7 @@ export function SaleDetail({ id }: { id: string }) {
     ? [
         { label: "Order value", value: `MVR ${fmt(delImpact.total_mvr)}`, money: true },
         ...(delImpact.pieces_restored > 0
-          ? [{ label: "Stock returned to inventory", value: `${delImpact.pieces_restored.toLocaleString()} pcs` }]
+          ? [{ label: "Stock returned to inventory", value: delImpact.stock_restored_summary ?? "—" }]
           : []),
         { label: "Product lines", value: `${delImpact.line_count}` },
       ]
@@ -1404,6 +1413,15 @@ export function SaleDetail({ id }: { id: string }) {
 
         {(() => {
           const sku = skus.find((s) => s.id === retSkuId);
+          // Goods come back in the unit they went out in. The tier list used to
+          // be hardcoded ctn/pk/pcs, so a carton-only Sosoft offered a "pk" and
+          // every diaper offered "pcs".
+          const retCfg: TradeUnitConfig = {
+            pcsPerPack: sku?.pcs_per_pack ?? 1, packsPerCarton: sku?.packs_per_carton ?? 1,
+            unitUom: sku?.unit_uom, sellableUnits: sku?.sellable_units,
+          };
+          const retTiers = sellableTiers(sku?.sellable_units);
+          const retWord = (u: SaleUom) => sellUnitLabel(u, retCfg);
           const pcsPerPack = sku?.pcs_per_pack ?? 1;
           const pcsPerCtn  = (sku?.pcs_per_pack ?? 1) * (sku?.packs_per_carton ?? 1);
           const n = Math.max(0, Math.floor(Number(retQty) || 0));
@@ -1415,7 +1433,11 @@ export function SaleDetail({ id }: { id: string }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <label style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Which product?</label>
-                <select value={retSkuId} onChange={(e) => { setRetSkuId(e.target.value); setRetQty(""); }}
+                <select value={retSkuId} onChange={(e) => {
+                    setRetSkuId(e.target.value); setRetQty("");
+                    const next = skus.find((x) => x.id === e.target.value);
+                    if (next) setRetUnit(pickUom(next, retUnit));
+                  }}
                   style={{ width: "100%", height: 46, borderRadius: 12, padding: "0 12px", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", fontSize: 14 }}>
                   {lines.map((l) => {
                     const s2 = skus.find((x) => x.id === l.sku_id);
@@ -1428,15 +1450,15 @@ export function SaleDetail({ id }: { id: string }) {
                 <label style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>How many are coming back?</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input type="number" inputMode="numeric" value={retQty} onChange={(e) => setRetQty(e.target.value)}
-                    placeholder={`How many ${retUnit === "carton" ? "cartons" : retUnit === "pack" ? "packs" : "pieces"}?`}
+                    placeholder={`How many ${retWord(retUnit)}s?`}
                     style={{ flex: 1, minWidth: 0, height: 46, borderRadius: 12, padding: "0 12px", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", fontSize: 15, fontWeight: 600 }} />
                   <div style={{ display: "flex", gap: 3, background: "var(--glass-bg-1)", borderRadius: 12, padding: 3 }}>
-                    {(["carton", "pack", "piece"] as const).map((u) => (
+                    {retTiers.map((u) => (
                       <button key={u} onClick={() => setRetUnit(u)}
                         style={{ padding: "0 10px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
                           background: retUnit === u ? "var(--foreground)" : "transparent",
                           color: retUnit === u ? "var(--background)" : "var(--muted-foreground)" }}>
-                        {u === "carton" ? "ctn" : u === "pack" ? "pk" : "pcs"}
+                        {retWord(u)}
                       </button>
                     ))}
                   </div>
@@ -1911,7 +1933,7 @@ function LineDialog({
                     ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === sourceGodownId)?.qty_pieces ?? 0
                     : null;
                   return (
-                    <button key={s.id} onClick={() => setSkuId(s.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "0.5px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                    <button key={s.id} onClick={() => { setSkuId(s.id); setUom(pickUom(s, uom)); }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "0.5px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                       <SkuIdentity
                         brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
                         pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
@@ -1943,16 +1965,32 @@ function LineDialog({
           ) : null}
         </div>
 
-        {/* UOM selector — 3 big tap targets, carton first */}
-        {skuId && sku && (
+        {/* UOM selector — big tap targets, carton first */}
+        {skuId && sku && (() => {
+          const addCfg: TradeUnitConfig = {
+            pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton,
+            unitUom: sku.unit_uom, sellableUnits: sku.sellable_units,
+          };
+          const addTiers = sellableTiers(sku.sellable_units);
+          return (
           <div style={{ marginBottom: 16 }}>
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Selling unit *</p>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                { value: "carton" as SaleUom, label: "Carton", sub: `${sku.pcs_per_pack * sku.packs_per_carton} pcs` },
-                { value: "pack"   as SaleUom, label: "Pack",   sub: `${sku.pcs_per_pack} pcs` },
-                { value: "piece"  as SaleUom, label: "Piece",  sub: "1 pc" },
-              ] as { value: SaleUom; label: string; sub: string }[]).map((opt) => {
+            {/* Only the tiers this SKU is actually sold in. This sheet used to
+                hardcode all three — so a carton-only Sosoft could be added by
+                the pack here while New Sale correctly refused, and every diaper
+                offered a loose "Piece". Same guard, every door. */}
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${addTiers.length}, minmax(0, 1fr))` }}>
+              {addTiers.map((u) => {
+                const one = sellUnitLabel(u, addCfg);
+                const opt = {
+                  value: u,
+                  label: u === "carton" ? "Carton" : one.charAt(0).toUpperCase() + one.slice(1),
+                  sub: u === "carton"
+                    ? `${sku.packs_per_carton} × ${sellUnitLabel("pack", addCfg)}`
+                    : u === "pack"
+                      ? (sku.pcs_per_pack > 1 ? `${sku.pcs_per_pack} per ${one}` : `1 ${one}`)
+                      : `1 ${one}`,
+                };
                 const active = uom === opt.value;
                 return (
                   <button
@@ -1974,7 +2012,8 @@ function LineDialog({
               })}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Qty + Price — side by side */}
         <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -1991,7 +2030,7 @@ function LineDialog({
           </div>
           <div>
             <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 500, marginBottom: 6 }}>
-              Price / {uom} (MVR) *
+              Price / {sku ? sellUnitLabel(uom, { pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom, sellableUnits: sku.sellable_units }) : uom} (MVR) *
             </p>
             {!priceOverride && autoPrice != null ? (
               <div
@@ -2046,7 +2085,7 @@ function LineDialog({
                 ? packPrice - effectivePerPack : null;
               return effectivePerPack != null ? (
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingBottom: 6, borderBottom: "0.5px solid var(--glass-border-lo)" }}>
-                  <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Effective / pack</span>
+                  <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Effective / {sellUnitLabel("pack", { pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom, sellableUnits: sku.sellable_units })}</span>
                   <span style={{ fontSize: 12 }}>
                     <span style={{ color: "var(--foreground)", fontWeight: 600 }}>MVR {effectivePerPack.toFixed(2)}</span>
                     {saving != null && saving > 0.005 && (
@@ -2064,8 +2103,8 @@ function LineDialog({
               ) : null;
             })()}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Pieces</span>
-              <span style={{ color: "var(--foreground)", fontSize: 12 }}>{qtyPieces.toLocaleString()}</span>
+              <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Quantity</span>
+              <span style={{ color: "var(--foreground)", fontSize: 12 }}>{formatQtyInTradeUnits(qtyPieces, { pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom, sellableUnits: sku.sellable_units })}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Line total</span>
