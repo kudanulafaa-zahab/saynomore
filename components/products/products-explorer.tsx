@@ -660,7 +660,7 @@ function SkuRow({
       <div className="text-right shrink-0">
         {sku.selling_price_per_carton_mvr != null ? (
           <>
-            <p className="ios-subhead font-semibold text-foreground">
+            <p className="snm-num ios-subhead font-semibold text-foreground">
               MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
             </p>
             <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>per ctn</p>

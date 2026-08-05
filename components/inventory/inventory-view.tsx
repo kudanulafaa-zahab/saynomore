@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Search, AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, PackageX, ArrowLeftRight } from "lucide-react";
@@ -8,6 +8,7 @@ import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
+import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
 type SortDir  = "desc" | "asc";
@@ -447,6 +448,15 @@ export function InventoryView() {
   // Direction for the quantity ("Stock") ranking — most-first by default.
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
+  // Swaps data in place, so a pull-to-refresh never flashes the skeleton over
+  // a list that is already on screen.
+  const reload = useCallback(async () => {
+    const [s, g, b, a] = await Promise.all([
+      listSkusFlat(), listGodowns(), listBatchStock(), listReorderSuggestions(),
+    ]);
+    setSkus(s); setGodowns(g); setBatches(b); setAlerts(a);
+  }, []);
+
   useEffect(() => {
     // Guard against a fast tab-switch away from Inventory before this
     // resolves: on iOS Safari a page-navigation-cancelled fetch rejects as
@@ -463,6 +473,8 @@ export function InventoryView() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+  useRefreshHandler(reload);
 
   const alertMap = useMemo(() => {
     const m = new Map<string, ReorderSuggestion>();
@@ -856,7 +868,7 @@ export function InventoryView() {
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                       {brandData.totalCartons.toLocaleString()} ctn
                     </p>
-                    <p className="ios-subhead font-semibold text-foreground">MVR {fmtMvr(brandData.totalValue)}</p>
+                    <p className="snm-num ios-subhead font-semibold text-foreground">MVR {fmtMvr(brandData.totalValue)}</p>
                     {!searchActive && (
                       <ChevronDown
                         className="h-3.5 w-3.5 transition-transform duration-200"

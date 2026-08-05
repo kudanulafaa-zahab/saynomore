@@ -9,7 +9,7 @@ import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
   Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
-  Warehouse, TrendingUp, RotateCcw,
+  Warehouse, TrendingUp, RotateCcw, Phone, MessageCircle,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -41,6 +41,8 @@ import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { toPieces, describePriceSource } from "@/lib/queries/sales";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
+import { SwipeActions, type SwipeAction } from "@/components/ui/swipe-actions";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -234,7 +236,38 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
   const owed = o.balance_mvr ?? 0;
   const isOwed = o.status !== "cancelled" && o.status !== "draft" && owed > 0.005;
 
+  // Swipe left for the two things actually done from this list: ring the
+  // customer, or message them. Deliberately no money action here — recording
+  // a payment needs the amount and method, which is a sheet, not a swipe.
+  const phone = cust?.phone?.replace(/[^\d+]/g, "") ?? "";
+  const swipeActions: SwipeAction[] = phone
+    ? [
+        {
+          label: "Call",
+          icon: <Phone className="h-4 w-4" />,
+          background: "var(--snm-info)",
+          onSelect: () => { window.location.href = `tel:${phone}`; },
+        },
+        {
+          label: "WhatsApp",
+          icon: <MessageCircle className="h-4 w-4" />,
+          background: "var(--snm-success)",
+          onSelect: () => {
+            const digits = phone.replace(/\D/g, "");
+            // Maldives numbers are stored locally (7 digits); wa.me needs the
+            // country code or it silently opens an empty chat.
+            const intl = digits.length <= 7 ? `960${digits}` : digits;
+            const msg = isOwed
+              ? `Hello${cust?.name ? ` ${cust.name}` : ""}, about order ${o.order_number} — MVR ${owed.toLocaleString(undefined, { maximumFractionDigits: 2 })} is still outstanding.`
+              : `Hello${cust?.name ? ` ${cust.name}` : ""}, about your order ${o.order_number}.`;
+            window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+          },
+        },
+      ]
+    : [];
+
   return (
+    <SwipeActions actions={swipeActions}>
     <Link href={`/sales/${o.id}`}
       className="flex items-start gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
       style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
@@ -299,6 +332,7 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
 
       <ChevronRight className="h-4 w-4 shrink-0 mt-2" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
     </Link>
+    </SwipeActions>
   );
 });
 
@@ -439,6 +473,10 @@ export function SalesList() {
 
   /** Refresh after a mutation — keeps the current filters and view. */
   const load = loadFirstPage;
+
+  // Pull down at the top of the list to reload it. loadFirstPage swaps rows in
+  // place, so there is no skeleton flash behind the spinner.
+  useRefreshHandler(loadFirstPage);
 
   async function loadMore() {
     if (loadingMore) return;
@@ -2703,7 +2741,7 @@ function NewSaleSheet({
                       </div>
                       <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
                     </div>
-                    <span className="text-foreground font-semibold ios-subhead shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    <span className="snm-num text-foreground font-semibold ios-subhead shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   </div>
                 );
               })}

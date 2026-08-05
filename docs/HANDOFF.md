@@ -415,6 +415,84 @@ right under a thumb — needs Ali on the real phone.
 
 ---
 
+## 5f. Costing sandbox + native iOS gestures (2026-08-05), migration 0135
+
+**Costing sandbox** (`/costing`). Ali asked for a way to try FOB prices,
+container freight share and fixed freight against his SKUs without touching
+real costing.
+
+The design decision that shapes it: **you cannot honestly cost one SKU alone.**
+Freight, duty, MPL, agent and last-mile are shared container costs —
+`confirm_grn` splits freight/local by each line's share of total CBM and duty
+by each line's FOB×duty-rate. Change one line's cartons and every other line's
+cost moves. A per-SKU "container share" box would produce numbers that never
+add up to a real container. So it models a whole shipment: list the SKUs, give
+the shipment costs once, and every line is apportioned exactly as the real GRN
+will apportion it.
+
+`simulate_landed_costs(jsonb, jsonb)` is a **pure** function — STABLE, SECURITY
+INVOKER, and containing no write statement of any kind, so it cannot touch real
+costing even by accident. **It is a line-for-line mirror of `confirm_grn`'s
+apportionment. If that changes, this must change with it or the sandbox starts
+lying.**
+
+Proved by replaying SH-2026-001's own inputs through it: **30 of 31 lines
+reproduce the locked GRN cost to 4 decimal places.**
+
+The 31st is the known `MAMY-XTRA-XXXL-34x3` discrepancy, found independently
+by the simulator. The GRN booked 1 carton as **128 pieces**; the SKU record now
+says 34 × 3 = **102**. So the config was changed after the GRN. Consequences:
+the batch's locked cost (4.2509/pc) was computed on 128, the simulator says
+5.3345/pc on 102, and about **MVR 69** of stock value is understated on the 64
+pieces still on hand. The forward problem is bigger than the money: **every
+future carton of this SKU will be booked 26 pieces short.** Still Ali's call
+which number is right — do not guess it.
+
+Also: only **1 of 31 SKUs** has an explicit `target_margin_pct`, so
+"price for target" falls back to the margin the SKU earns today and reports
+which basis it used via `price_basis` ('target' | 'current'). The screen must
+not claim a target that was never set.
+
+`costing_scenarios` is a standalone RLS'd table feeding nothing — deleting
+every row in it cannot affect a single landed cost.
+
+**Pull-to-refresh** (`lib/use-pull-to-refresh.ts` +
+`components/layout/pull-to-refresh.tsx`). Rides iOS's own rubber-band rather
+than replacing it: **every listener is passive and nothing calls
+preventDefault**, because the standing rule is that the bounce stays on. iOS
+reports a negative document scrollTop while overscrolling, so the pull distance
+is read off the scroll the browser is already animating. Engines that clamp at
+0 fall back to touch delta. The indicator is `position: fixed`, which on iOS
+does not travel with the bounce — content pulls away and reveals it, which is
+why it looks native for free. Screens opt in with `useRefreshHandler(load)`;
+`router.refresh()` runs always so server-rendered screens (Dashboard) refresh
+too.
+
+**Swipe actions** (`components/ui/swipe-actions.tsx`), on Sales rows.
+Three constraints that make it work rather than fight the browser: **left
+swipe only** (a right swipe collides with iOS Safari's edge-swipe-back, which
+the user cannot disable and which wins); **`touch-action: pan-y`** so the
+browser keeps vertical scrolling and the bounce; and an **axis lock** where
+vertical wins ties, so a fast vertical flick that drifts sideways doesn't snag
+a row. Actions are Call and WhatsApp — deliberately no money action, because
+recording a payment needs an amount and a method, which is a sheet, not a
+swipe.
+
+**Typography.** Money that stacks in a column now carries tabular figures
+(products-explorer, inventory brand totals, sale-detail line totals,
+sales-list line rows, competitor prices, financials revenue rows). Prose was
+deliberately left proportional — San Francisco reads better that way in a
+sentence, and tabular only earns its keep when digits must line up between
+rows. Two places below Apple's 11pt Caption 2 floor (a 9pt badge in
+sale-detail, 9.5pt labels in competitors-view) were lifted to 11pt. A scan for
+hierarchy inversions — a label set larger than the value beneath it, the exact
+defect that made the Sales card unreadable — now returns **zero**.
+
+**Not device-verified:** the pull-to-refresh gesture and the swipe threshold.
+Both depend on iOS touch behaviour that cannot be reproduced here.
+
+---
+
 ## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a

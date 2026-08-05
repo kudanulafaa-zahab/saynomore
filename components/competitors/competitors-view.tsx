@@ -301,8 +301,8 @@ function PriceBookTab({ rows, rivalPieceBySkuId, open, setOpen, view, setView, l
                   </button>
                   {isOpen && hasMoney && (
                     <div className="lg:hidden px-4 pb-3 flex gap-5 flex-wrap items-end" style={{ borderTop: "1px dashed var(--glass-border-lo)" }}>
-                      <div className="pt-2.5"><p className="text-[9.5px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>Landed cost</p><p className="snm-num text-[13.5px] font-semibold" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(r.landed_cost_mvr!)}</p></div>
-                      <div className="pt-2.5"><p className="text-[9.5px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>vs cheapest rival</p><p className="snm-num text-[13.5px] font-semibold" style={{ color: rivalCol }}>{rival ? `MVR ${fmt2(Math.abs(rival.delta))} ${rivalWord}` : "no rival logged"}</p></div>
+                      <div className="pt-2.5"><p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>Landed cost</p><p className="snm-num text-[13.5px] font-semibold" style={{ color: "var(--muted-foreground)" }}>MVR {fmt2(r.landed_cost_mvr!)}</p></div>
+                      <div className="pt-2.5"><p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>vs cheapest rival</p><p className="snm-num text-[13.5px] font-semibold" style={{ color: rivalCol }}>{rival ? `MVR ${fmt2(Math.abs(rival.delta))} ${rivalWord}` : "no rival logged"}</p></div>
                       <Link href={`/products?editSku=${r.sku_id}`} className="ml-auto text-[12px] font-semibold rounded-lg px-3 py-1.5" style={{ border: "1px solid var(--glass-border)", color: "var(--foreground)" }}>Edit price</Link>
                     </div>
                   )}
@@ -1635,7 +1635,7 @@ export function CompetitorsView() {
                                   {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown"}
                                 </p>
                                 <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                                  <span className="text-foreground font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
+                                  <span className="snm-num text-foreground font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
                                   {" "}{BASIS_LABEL[p.price_basis]}
                                   {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/${p.price_basis === "per_carton" ? "ctn" : "pk"}` : ""}
                                   {" · "}{new Date(p.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
