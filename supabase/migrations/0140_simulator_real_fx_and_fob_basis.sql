@@ -1,0 +1,33 @@
+-- 0140 — The simulator must ask for the numbers Ali actually has.
+--
+-- Two errors in 0135, both reported by Ali, both careless on my part.
+--
+-- 1. FX FORMAT. The sandbox asked for "IDR → MVR" — a number he never sees.
+--    His shipment form takes USD→MVR and USD→IDR (SH-2026-001: 20.50 and
+--    16,000) and `shipments.rate_idr_to_mvr` is DERIVED from them
+--    (20.50 / 16,000 = 0.00128125, matching the stored value exactly). The
+--    sandbox now takes the same two rates the real form takes and derives the
+--    third, so a simulation cannot be set up differently from the shipment it
+--    models. Verified after: replaying SH-2026-001 through the new signature
+--    still reproduces 30 of 31 locked GRN costs to 4 decimal places.
+--
+-- 2. FOB BASIS. Suppliers quote diapers per pack as often as per carton, but
+--    the sandbox only accepted `fob_per_carton`. A line may now carry either
+--    `fob_per_pack` or `fob_per_carton`; a pack quote is multiplied up by
+--    packs_per_carton. Proven equal: the same line entered both ways returns
+--    an identical landed cost. The carton figure stays the BASIS for the
+--    maths, because that is what `shipment_lines` stores and what confirm_grn
+--    uses — the choice is an input convenience, never a second costing path.
+--
+-- Also here: outputs are now per PACK and per CARTON, and margin is measured
+-- against the unit actually sold (pack when packs are sold), matching 0139.
+-- The per-piece landed cost survives in the payload for one purpose only —
+-- comparing this scenario's cost against the last shipment's, which is the
+-- only figure comparable across different pack configurations. It is never
+-- rendered on its own; the screen converts it to a per-pack change.
+--
+-- `get_costing_defaults` pre-fills the screen from the most recent real
+-- shipment's rates and charges, so a what-if starts from what happened.
+--
+-- Applied live via MCP; this file is the tracked copy. See remote migrations
+-- `simulator_real_fx_and_fob_basis` and `costing_seed_returns_real_rates`.
