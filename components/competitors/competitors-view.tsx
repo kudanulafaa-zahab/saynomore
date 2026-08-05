@@ -577,10 +577,10 @@ export function CompetitorsView() {
       const cleared = { fixed_selling_price_mvr: null, fixed_price_per_pack_mvr: null, fixed_price_per_carton_mvr: null, target_margin_pct: null };
       if (mode === "fixed") {
         await updateSku(simSku.id, { ...cleared, fixed_selling_price_mvr: piecePrice });
-        toast.success(`Fixed price saved — MVR ${fmt2(piecePrice)}/pc`);
+        toast.success(`Fixed price saved — MVR ${fmt2(packPrice)}/${simSku.unit_uom === "ml" ? "bottle" : simSku.unit_uom === "g" ? "pouch" : "pack"}`);
       } else {
         await updateSku(simSku.id, { ...cleared, target_margin_pct: impliedMarginPct });
-        toast.success(`${impliedMarginPct}% margin saved — MVR ${fmt2(piecePrice)}/pc`);
+        toast.success(`${impliedMarginPct}% margin saved — MVR ${fmt2(packPrice)}/${simSku.unit_uom === "ml" ? "bottle" : simSku.unit_uom === "g" ? "pouch" : "pack"}`);
       }
       await load();
     } catch (e) { toast.error((e as Error).message); }
