@@ -47,6 +47,7 @@ import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
+import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { formatQtyInTradeUnits, sellableTiers, sellUnitLabel, type TradeUnitConfig } from "@/lib/trade-units";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { recordCustomerReturn, type ReturnReason, type ReturnSettlement } from "@/lib/queries/inventory";
@@ -1785,6 +1786,7 @@ function LineDialog({
   const [qty, setQty]             = useState(editing ? String(editing.qty) : "");
   const [unitPrice, setUnitPrice] = useState(editing ? String(editing.unit_price_mvr) : "");
   const [priceOverride, setPriceOverride] = useState(!!editing);
+  const [belowCostConfirm, setBelowCostConfirm] = useState(false);
   const [tierPriceMap, setTierPriceMap]   = useState<Map<string, TierPrice>>(new Map());
   const [saving, setSaving]       = useState(false);
 
@@ -1874,8 +1876,35 @@ function LineDialog({
 
   const insufficient = stockHere !== null && qtyPieces > stockHere;
 
-  async function save() {
+  // Losing money is a decision, never an accident — and this was the one door
+  // without a lock. New Sale stops on a below-cost line and makes you tap a red
+  // "Add at a loss"; this sheet, which is how a line gets added to an order that
+  // already exists, had only the target-margin hint below — and 30 of 31 SKUs
+  // have no target margin on file, so for almost every product it said nothing
+  // at all and just saved. Cost is compared against the unit actually sold
+  // (migration 0139's lesson), never a per-piece price nobody is charged.
+  const belowCost = useMemo(() => {
+    if (!sku || sku.landed_per_piece_mvr == null) return null;
+    const price = parseFloat(unitPrice);
+    const q = parseFloat(qty);
+    if (isNaN(price) || price <= 0) return null;
+    const perUom = uom === "carton" ? sku.pcs_per_pack * sku.packs_per_carton
+      : uom === "pack" ? sku.pcs_per_pack : 1;
+    const cost = sku.landed_per_piece_mvr * perUom;
+    if (price >= cost) return null;
+    const word = sellUnitLabel(uom, {
+      pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton,
+      unitUom: sku.unit_uom, sellableUnits: sku.sellable_units,
+    });
+    const lossEach = cost - price;
+    return { cost, price, lossEach, lossTotal: lossEach * (isNaN(q) ? 0 : q), qty: isNaN(q) ? 0 : q, word };
+  }, [sku, unitPrice, qty, uom]);
+
+  async function save(acceptLoss = false) {
     if (!skuId || !qty || !unitPrice || qtyPieces <= 0 || !sku) return;
+    // The guard is bypassed by an explicit argument, not by reading state a
+    // render later — the decision travels with the call that follows it.
+    if (belowCost && !acceptLoss) { setBelowCostConfirm(true); return; }
     setSaving(true);
     try {
       if (editing) {
@@ -2136,14 +2165,39 @@ function LineDialog({
           </div>
         )}
 
+        {belowCost && (
+          <div style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}>
+            <p className="snm-num" style={{ color: "var(--snm-error)", fontSize: 12, fontWeight: 600 }}>
+              ⚠ Below cost — this {belowCost.word} costs you MVR {belowCost.cost.toFixed(0)}
+            </p>
+            <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>
+              You lose MVR {belowCost.lossEach.toFixed(belowCost.lossEach >= 10 ? 0 : 2)} per {belowCost.word}
+              {belowCost.qty > 1 ? ` — MVR ${belowCost.lossTotal.toFixed(0)} on this line` : ""}.
+            </p>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 12 }}>
           <button onClick={onClose} style={ghostBtn}>Cancel</button>
-          <button onClick={save} disabled={saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient} style={{ ...primaryBtn, opacity: saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient ? 0.5 : 1, cursor: saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient ? "not-allowed" : "pointer" }}>
+          <button onClick={() => void save()} disabled={saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient} style={{ ...primaryBtn, opacity: saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient ? 0.5 : 1, cursor: saving || !skuId || !qty || !unitPrice || qtyPieces <= 0 || insufficient ? "not-allowed" : "pointer" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : editing ? "Save" : "Add item"}
           </button>
         </div>
       </div>
+
     </div>
+
+    {belowCost && (
+        <ConfirmSheet
+          open={belowCostConfirm}
+          title="This sells below cost"
+          message={`${sku ? `${sku.brand_name} ${sku.variant_display}` : "This product"} costs you MVR ${belowCost.cost.toFixed(0)}/${belowCost.word} right now — at MVR ${belowCost.price.toFixed(0)} you lose about MVR ${belowCost.lossEach.toFixed(belowCost.lossEach >= 10 ? 0 : 2)} per ${belowCost.word}${belowCost.qty > 1 ? ` (MVR ${belowCost.lossTotal.toFixed(0)} on this line)` : ""}. Go back to adjust the price, or ${editing ? "save" : "add"} it anyway.`}
+          confirmLabel={editing ? "Save at a loss" : "Add at a loss"}
+          loading={saving}
+          onConfirm={() => { setBelowCostConfirm(false); void save(true); }}
+          onClose={() => setBelowCostConfirm(false)}
+        />
+    )}
     </BodyPortal>
   );
 }
