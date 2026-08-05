@@ -351,6 +351,70 @@ real phone (airplane mode → record → reconnect) to confirm end to end.
 
 ---
 
+## 5e. Destructive-action safety (2026-08-05), migrations 0133–0134
+
+Started as UI work on confirmation buttons; turned up a stock-integrity bug.
+
+**The bug (0134).** "Remove item" on a sales order is only offered while the
+order is `confirmed` or `picked` — exactly when `post_sale` has already
+deducted the stock. But the app removed the line with a plain table delete
+(`from("sales_order_lines").delete()`), leaving the `out` stock_movements
+behind. The goods ended up in neither place: off the order and out of
+inventory, permanently, with no audit row. Its sibling `edit_sales_order_line`
+had always reversed movements correctly; the delete path never did.
+Verified before writing the fix: **zero** orders in production had orphaned
+movements, so nothing needed repairing. New RPC `delete_sales_order_line`
+reverses the line's FIFO movements, refuses on any status other than
+confirmed/picked, refuses to empty an order down to zero lines, and writes an
+audit row. `lib/queries/sales.ts` now exposes `removeOrderLine` (RPC) beside
+`deleteOrderLine` (draft-only, still a safe table delete) — do not collapse
+these two back into one.
+
+**Impact previews (0133).** `get_shipment_void_impact` and
+`get_sales_order_delete_impact` return what a destructive action would
+actually destroy — pieces on hand, orders deleted, MVR erased — plus a
+`blocked_reason` string that mirrors, phrase for phrase, the RAISEs in
+`admin_force_void_grn` / `delete_sales_order`. **If those guards change, these
+strings change with them.** The sheets show the reason up front instead of
+letting someone commit to a press-and-hold and then eat an error toast.
+Both are SECURITY DEFINER with `is_admin_or_manager()` inside and anon
+revoked — the preview is exactly as privileged as the action it previews.
+
+Live figures at the time of writing, which are the argument for the feature:
+`SH-2026-001` carries **20,254 pieces on hand and 70 orders worth MVR
+35,929**. One tap used to target all of it, with the red button drawn at twice
+the width of Cancel.
+
+**The three tiers, and why not more friction.** Hold-to-confirm (1.2s,
+`components/ui/hold-to-confirm.tsx`) goes on exactly two buttons: delete a
+received shipment, and delete a non-draft sales order. Everything else keeps a
+plain tap. This is deliberate — friction only works while it is rare; a hold
+on every delete trains the thumb to hold and then protects nothing. Do not
+extend it without a reason.
+
+**Button weight is now inverted for destructive rows** (`dangerQuietBtn` in
+`sale-detail.tsx`, and the same treatment inline in `shipment-detail.tsx`):
+the safe action takes the wide solid `primaryBtn` slot, the destructive action
+is a narrow outlined red button. This deliberately breaks the app's usual
+"primary action is wider" rule — which is how the bug arose in the first
+place, that rule having been applied to buttons whose primary action is
+destruction.
+
+**Also fixed:** Delete Purchase Order had no in-flight flag at all, so two
+quick taps sent two delete requests. And "GRN" is gone from the destructive
+copy — anything tapped under pressure now says "shipment".
+
+**iOS constraint worth remembering:** `navigator.vibrate` is a no-op in Safari,
+so the hold has *no* haptic on Ali's phone. The fill bar is the entire
+feedback channel, which is why it is the button's own background at full
+opacity rather than a hairline progress track.
+
+**Not device-verified:** the hold gesture itself. Pointer-event capture and
+`touch-action: none` are correct in principle but the feel — whether 1.2s is
+right under a thumb — needs Ali on the real phone.
+
+---
+
 ## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
@@ -546,3 +610,11 @@ Use genuine expert judgement — do NOT just agree; push back with reasons when 
 research to current standards, don't hand-wave. His screenshots are the QA channel. Never
 claim a mobile fix works without verifying, and say plainly when device verification wasn't
 possible and what would unlock it.
+
+**No mockups (2026-08-05).** Ali briefly asked to see mockups before changes,
+then reversed it the same day: *"I can't view mockup on iPhone. You need to
+always upload production. Skip creating mockups from now on."* He runs the
+business from an installed iOS PWA and cannot open preview links or hosted
+artifacts. Build the change, verify it (tsc + build + live SQL against real
+rows), publish to production, and describe it in words. Do not spend a turn
+producing a mockup he cannot open.

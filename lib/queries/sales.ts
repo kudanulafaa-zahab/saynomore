@@ -364,9 +364,25 @@ export async function updateOrderLine(id: string, patch: Partial<SalesOrderLineI
 /** RLS only allows this on true draft orders (no stock posted yet). A line on a
  * confirmed/picked order can only be adjusted via editOrderLine(), never removed
  * outright — to remove a wrongly-added product entirely, void the whole order. */
+/** Draft-only line delete. Safe as a plain table delete because a draft has
+ *  never been posted, so no stock movements exist to reverse. For a confirmed
+ *  or picked order use removeOrderLine() — see the note there. */
 export async function deleteOrderLine(id: string) {
   const { error } = await supabase.from("sales_order_lines").delete().eq("id", id);
   if (error) throw error;
+}
+
+/** Removes a line from a CONFIRMED or PICKED order and gives its stock back
+ *  (migration 0134).
+ *
+ *  This must never go back to being a table delete. On a confirmed order the
+ *  stock is already deducted, so deleting only the line strands the goods:
+ *  off the order and out of inventory at the same time. The RPC reverses the
+ *  line's FIFO movements first, and writes an audit row. */
+export async function removeOrderLine(id: string) {
+  const { error } = await supabase.rpc("delete_sales_order_line", { p_line_id: id });
+  if (error) throw error;
+  invalidate("stock:");
 }
 
 // ── post_sale RPC (FIFO depletion) ───────────────────────────────────────
@@ -479,6 +495,31 @@ export async function voidOrder(orderId: string, reason: string) {
 export async function deleteSalesOrder(orderId: string, reason?: string) {
   const { error } = await supabase.rpc("delete_sales_order", { p_order_id: orderId, p_reason: reason ?? null });
   if (error) throw error;
+}
+
+/** What deleting this order would destroy — stock, money and line count —
+ *  plus the reason the delete would be refused, if it would be (migration
+ *  0133). Read before showing the confirmation so the sheet states the real
+ *  cost and can block up front rather than after the fact. `blocked_reason`
+ *  mirrors the guards in delete_sales_order; both change together. */
+export interface SalesOrderDeleteImpact {
+  order_number: string;
+  customer_name: string | null;
+  status: string;
+  total_mvr: number;
+  paid_mvr: number;
+  balance_mvr: number;
+  line_count: number;
+  pieces_restored: number;
+  blocked_reason: string | null;
+}
+
+export async function getSalesOrderDeleteImpact(orderId: string): Promise<SalesOrderDeleteImpact> {
+  const { data, error } = await supabase
+    .rpc("get_sales_order_delete_impact", { p_order_id: orderId })
+    .single();
+  if (error) throw error;
+  return data as SalesOrderDeleteImpact;
 }
 
 /** Edits qty/price on a line of a confirmed/picked order. Reverses the line's
