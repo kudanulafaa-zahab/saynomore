@@ -1131,7 +1131,7 @@ const PILL_ON: React.CSSProperties = {
   background: "var(--foreground)", color: "var(--background)", border: "none",
 };
 const PILL_OFF: React.CSSProperties = {
-  background: "transparent", color: "var(--muted-foreground)",
+  background: "var(--glass-bg-1)", color: "var(--foreground)",
   border: "0.5px solid var(--glass-border-lo)",
 };
 
@@ -1162,18 +1162,40 @@ function Pills<T extends string>({ options, value, onChange }: {
 
 function Caps({ children }: { children: React.ReactNode }) {
   return (
-    <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>
+    <p className="label-caps text-[12px] mb-2" style={{ color: "var(--foreground)", opacity: 0.7 }}>
       {children}
     </p>
   );
 }
 
-/** Grey helper line under a field. Muted foreground on the sheet's own
- *  background — the contrast pair the rest of the app uses. */
+/** The name of a single field, above the box. It used to live in the
+ *  placeholder — which is --muted-foreground by definition, so on an empty
+ *  form every field name was unreadable. Products puts the label above and
+ *  keeps the placeholder for the format only; so does this now. */
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block ios-subhead mb-1" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+      {children}
+    </span>
+  );
+}
+
+/** One short line under a field.
+ *
+ *  This is where the sheet went wrong the first time. --muted-foreground is
+ *  #8e9192; the sheet is --glass-2, 13% white over the page gradient. That
+ *  pairing measures roughly 2.6:1 — under the 4.5:1 readable floor — and I had
+ *  put EVERY word on the screen in it: the section captions, the field names
+ *  (as placeholders), four multi-line paragraphs, and eight unselected pills.
+ *  Other screens get away with the same token because the muted text there is
+ *  one short caption beside real --foreground content; here there was no
+ *  --foreground content at all, so the whole sheet read as one grey wash.
+ *
+ *  Rule for this sheet: if it must be read, it is --foreground. */
 function Hint({ children, tone }: { children: React.ReactNode; tone?: "good" }) {
   return (
     <p className="ios-subhead mt-1.5"
-      style={{ color: tone === "good" ? "var(--snm-success)" : "var(--muted-foreground)" }}>
+      style={{ color: tone === "good" ? "var(--snm-success)" : "var(--foreground)", opacity: tone === "good" ? 1 : 0.75 }}>
       {children}
     </p>
   );
@@ -1232,9 +1254,8 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
           <div className="shrink-0 px-6 pt-3">
             <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--glass-border)" }} />
             <h2 className="text-[20px] font-semibold text-foreground mb-1">A product you don&apos;t stock yet</h2>
-            <p className="ios-subhead mb-5" style={{ color: "var(--muted-foreground)" }}>
-              Copy it off the supplier&apos;s quote and measure the sample carton.
-              Nothing here touches your real products.
+            <p className="ios-subhead mb-5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+              From the supplier&apos;s quote. Nothing here touches your real products.
             </p>
           </div>
 
@@ -1245,32 +1266,44 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
             {/* Identity */}
             <div className="mb-4">
               <Caps>PRODUCT *</Caps>
-              <input value={t.name} onChange={(e) => set({ name: e.target.value })}
-                placeholder="Brand and model, e.g. Merries Good Skin"
-                className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none mb-2"
-                style={inputSty} />
-              <input value={t.variant} onChange={(e) => set({ variant: e.target.value })}
-                placeholder="Size, e.g. XL"
-                className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
-                style={inputSty} />
+              <label className="block mb-2">
+                <FieldLabel>Brand and model</FieldLabel>
+                <input value={t.name} onChange={(e) => set({ name: e.target.value })}
+                  placeholder="Merries Good Skin"
+                  className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                  style={inputSty} />
+              </label>
+              <label className="block">
+                <FieldLabel>Size</FieldLabel>
+                <input value={t.variant} onChange={(e) => set({ variant: e.target.value })}
+                  placeholder="XL"
+                  className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                  style={inputSty} />
+              </label>
             </div>
 
             {/* Pack configuration */}
             <div className="mb-4">
               <Caps>HOW IT&apos;S PACKED *</Caps>
               <div className="grid grid-cols-2 gap-2">
-                <input type="number" inputMode="numeric" min="1" value={t.pcsPerPack}
-                  onChange={(e) => set({ pcsPerPack: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  placeholder={`Pieces per ${noun}`}
-                  className="h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
-                  style={inputSty} />
-                <input type="number" inputMode="numeric" min="1" value={t.packsPerCarton}
-                  onChange={(e) => set({ packsPerCarton: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  placeholder={`${Noun}s per carton`}
-                  className="h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
-                  style={inputSty} />
+                <label className="block">
+                  <FieldLabel>Pieces in one {noun}</FieldLabel>
+                  <input type="number" inputMode="numeric" min="1" value={t.pcsPerPack}
+                    onChange={(e) => set({ pcsPerPack: e.target.value })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="48"
+                    className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                    style={inputSty} />
+                </label>
+                <label className="block">
+                  <FieldLabel>{Noun}s in one carton</FieldLabel>
+                  <input type="number" inputMode="numeric" min="1" value={t.packsPerCarton}
+                    onChange={(e) => set({ packsPerCarton: e.target.value })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="4"
+                    className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                    style={inputSty} />
+                </label>
               </div>
               {num(t.pcsPerPack) > 0 && ppc > 0 && (
                 <Hint>One carton = {ppc} {noun}s of {num(t.pcsPerPack)}.</Hint>
@@ -1308,7 +1341,7 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
                   });
                 }}
               />
-              <Hint>This decides which units you&apos;re asked to price it in.</Hint>
+              <Hint>Decides which units you&apos;re asked to price it in.</Hint>
             </div>
 
             {/* Carton dimensions — entered, not guessed. Same as Products. */}
@@ -1326,14 +1359,11 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
               </div>
               {cbm > 0
                 ? <Hint tone="good">→ {cbm.toFixed(5)} CBM per carton</Hint>
-                : <Hint>Measure the sample carton. This is what decides your freight share.</Hint>}
+                : <Hint>Measure the sample carton — this decides your freight.</Hint>}
 
               {boxes.length > 0 && (
                 <div className="mt-3">
-                  <p className="ios-subhead mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-                    Don&apos;t have the box yet? Start from one you already ship — then
-                    replace it with the real measurements before you commit.
-                  </p>
+                  <FieldLabel>No box yet? Start from one you already ship</FieldLabel>
                   <div className="flex flex-wrap gap-2">
                     {boxes.map((b) => {
                       const on = Math.abs(cbm - b.cbm_per_carton) < 0.00005;
@@ -1364,7 +1394,7 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
               <input type="number" inputMode="numeric" min="1" value={t.qty}
                 onChange={(e) => set({ qty: e.target.value })}
                 onFocus={(e) => e.target.select()}
-                placeholder="How many cartons would you order?"
+                placeholder="100"
                 className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                 style={inputSty} />
               {qtyN > 0 && ppc > 0 && (
@@ -1378,7 +1408,7 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
             {/* Supplier price — copied field-for-field from Shipments */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2 gap-2">
-                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="label-caps text-[12px]" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   SUPPLIER PRICE *
                 </p>
                 <Pills options={unitOptions} value={t.fobBasis} onChange={(v) => set({ fobBasis: v })} />
@@ -1419,29 +1449,32 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
             {/* The decision inputs */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2 gap-2">
-                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <p className="label-caps text-[12px]" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   WHAT YOU&apos;D SELL IT FOR
                 </p>
                 <Pills options={unitOptions} value={t.sellUnit} onChange={(v) => set({ sellUnit: v })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input type="number" inputMode="decimal" value={t.sellPrice}
-                  onChange={(e) => set({ sellPrice: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  placeholder={`MVR per ${t.sellUnit === "pack" ? noun : "carton"}`}
-                  className="h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
-                  style={inputSty} />
-                <input type="number" inputMode="decimal" step="0.5" value={t.targetMargin}
-                  onChange={(e) => set({ targetMargin: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  placeholder="Margin you want %"
-                  className="h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
-                  style={inputSty} />
+                <label className="block">
+                  <FieldLabel>MVR per {t.sellUnit === "pack" ? noun : "carton"}</FieldLabel>
+                  <input type="number" inputMode="decimal" value={t.sellPrice}
+                    onChange={(e) => set({ sellPrice: e.target.value })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="185"
+                    className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                    style={inputSty} />
+                </label>
+                <label className="block">
+                  <FieldLabel>Margin you want %</FieldLabel>
+                  <input type="number" inputMode="decimal" step="0.5" value={t.targetMargin}
+                    onChange={(e) => set({ targetMargin: e.target.value })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="30"
+                    className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                    style={inputSty} />
+                </label>
               </div>
-              <Hint>
-                These two turn a cost into a decision — they give you the margin, and
-                the most you could pay per carton and still get it.
-              </Hint>
+              <Hint>Gives you the margin, and the most you could pay per carton.</Hint>
             </div>
 
             {/* Duty */}
@@ -1454,7 +1487,7 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
                 onFocus={(e) => e.target.select()}
                 className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                 style={inputSty} />
-              <Hint>Diapers and detergents are 0% in the Maldives. Leave it at 0 unless you know otherwise.</Hint>
+              <Hint>Diapers and detergents are 0% in the Maldives.</Hint>
             </div>
           </div>
 
