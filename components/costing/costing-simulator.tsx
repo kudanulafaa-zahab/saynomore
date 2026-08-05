@@ -17,14 +17,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Play, Save, Trash2, ChevronDown, Search, RotateCcw, Ship, Check,
+  Plus, FlaskConical, X,
 } from "lucide-react";
 import {
   getCostingSeed, getCostingDefaults, simulateLandedCosts, listScenarios,
-  saveScenario, deleteScenario,
+  saveScenario, deleteScenario, getCartonSizeReference,
   type CostingSeedRow, type CostingResultRow, type CostingShipmentInput,
   type CostingLineInput, type CostingScenario, type FobCurrency, type FobBasis,
+  type CartonSizeReference,
 } from "@/lib/queries/costing";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 import { containerLabel } from "@/lib/trade-units";
 import { CONTAINER_CAPACITY_CBM, type ContainerSizeHint } from "@/lib/queries/shipments";
@@ -46,6 +49,39 @@ interface Row extends CostingSeedRow {
    *  both ways; Postgres multiplies a pack quote up by packs_per_carton. */
   fobBasis: FobBasis;
   currency: FobCurrency;
+}
+
+/** A product Ali is thinking about but does not stock. Everything here is off
+ *  a supplier quote — there is no SKU row to read anything from, which is
+ *  exactly why the simulator could not touch these before. */
+interface Trial {
+  key: string;
+  name: string;
+  variant: string;
+  category: string;
+  pcsPerPack: string;
+  packsPerCarton: string;
+  cbm: string;
+  /** Which reference box the CBM was borrowed from, so the screen can say the
+   *  number is an estimate and where it came from. Null once typed by hand. */
+  boxFrom: string | null;
+  qty: string;
+  fob: string;
+  fobBasis: FobBasis;
+  currency: FobCurrency;
+  sellPerPack: string;
+  targetMargin: string;
+  dutyPct: string;
+}
+
+function emptyTrial(): Trial {
+  return {
+    key: `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: "", variant: "", category: "Diapers",
+    pcsPerPack: "", packsPerCarton: "", cbm: "", boxFrom: null,
+    qty: "", fob: "", fobBasis: "carton", currency: "USD",
+    sellPerPack: "", targetMargin: "", dutyPct: "0",
+  };
 }
 
 const EMPTY_SHIPMENT: CostingShipmentInput = {
@@ -92,6 +128,9 @@ function toRow(s: CostingSeedRow): Row {
 export function CostingSimulator() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
+  const [trials, setTrials] = useState<Trial[]>([]);
+  const [boxes, setBoxes] = useState<CartonSizeReference[]>([]);
+  const [trialDraft, setTrialDraft] = useState<Trial | null>(null);
   const [ship, setShip] = useState<CostingShipmentInput>(EMPTY_SHIPMENT);
   const [results, setResults] = useState<CostingResultRow[] | null>(null);
   const [running, setRunning] = useState(false);
@@ -108,12 +147,14 @@ export function CostingSimulator() {
 
   const load = useCallback(async () => {
     try {
-      const [seed, saved, defaults] = await Promise.all([
+      const [seed, saved, defaults, ref] = await Promise.all([
         getCostingSeed(),
         listScenarios().catch(() => []),
         getCostingDefaults().catch(() => null),
+        getCartonSizeReference().catch(() => []),
       ]);
       setRows(seed.map(toRow));
+      setBoxes(ref);
       setScenarios(saved);
       // Open on the real numbers: the most recent shipment's FX rates and
       // charges. A saved scenario, if there is one, wins over them.
@@ -152,9 +193,19 @@ export function CostingSimulator() {
     [rows],
   );
 
+  // A trial only counts once it can actually be costed: a quantity, a box
+  // size and a price. Half-filled ones sit in the list without distorting the
+  // container.
+  const includedTrials = useMemo(
+    () => trials.filter((t) => num(t.qty) > 0 && num(t.cbm) > 0 && num(t.fob) > 0
+                            && num(t.pcsPerPack) > 0 && num(t.packsPerCarton) > 0),
+    [trials],
+  );
+
   const totalCbm = useMemo(
-    () => included.reduce((a, r) => a + num(r.qty) * num(r.cbm), 0),
-    [included],
+    () => included.reduce((a, r) => a + num(r.qty) * num(r.cbm), 0)
+        + includedTrials.reduce((a, t) => a + num(t.qty) * num(t.cbm), 0),
+    [included, includedTrials],
   );
 
   const visible = useMemo(() => {
@@ -180,8 +231,15 @@ export function CostingSimulator() {
     if (!results) return [];
     const m = new Map<string, { title: string; rows: CostingResultRow[] }>();
     for (const r of results) {
-      const key = `${r.brand_name}|${r.model_name}`;
-      if (!m.has(key)) m.set(key, { title: `${r.brand_name} · ${r.model_name}`, rows: [] });
+      const key = `${r.brand_name ?? ""}|${r.model_name}`;
+      // A prospective product has no brand on file, so the section is just its
+      // name — never the literal "null · Trial Brand".
+      if (!m.has(key)) {
+        m.set(key, {
+          title: r.brand_name ? `${r.brand_name} · ${r.model_name}` : (r.model_name ?? "New product"),
+          rows: [],
+        });
+      }
       m.get(key)!.rows.push(r);
     }
     return [...m.values()];
@@ -209,6 +267,7 @@ export function CostingSimulator() {
 
   function currentPayload() {
     const lines: CostingLineInput[] = included.map((r) => ({
+      key: r.sku_id,
       sku_id: r.sku_id,
       qty_cartons: num(r.qty),
       cbm_per_carton: num(r.cbm),
@@ -219,13 +278,38 @@ export function CostingSimulator() {
         : { fob_per_carton: num(r.fob) }),
       fob_currency: r.currency,
     }));
+    // Prospective products ride in the SAME array, so they take their share of
+    // freight from the same pot as everything else. That is the whole point:
+    // adding a new product to a shared container raises the freight bill for
+    // the products already in it, and only a joint simulation shows that.
+    for (const t of includedTrials) {
+      lines.push({
+        key: t.key,
+        new_product: {
+          name: t.name.trim() || "New product",
+          variant_display: t.variant.trim() || undefined,
+          category_name: t.category.trim() || undefined,
+          pcs_per_pack: num(t.pcsPerPack),
+          packs_per_carton: num(t.packsPerCarton),
+          duty_rate_pct: num(t.dutyPct),
+          target_price_per_pack_mvr: num(t.sellPerPack) || undefined,
+          target_margin_pct: num(t.targetMargin) || undefined,
+        },
+        qty_cartons: num(t.qty),
+        cbm_per_carton: num(t.cbm),
+        ...(t.fobBasis === "pack"
+          ? { fob_per_pack: num(t.fob) }
+          : { fob_per_carton: num(t.fob) }),
+        fob_currency: t.currency,
+      });
+    }
     return { shipment: ship, lines };
   }
 
   async function run() {
     const { shipment, lines } = currentPayload();
     if (lines.length === 0) {
-      toast.error("Tick the products in this container first.");
+      toast.error("Tick the products in this container, or add one to try.");
       return;
     }
     if (shipment.rate_usd_to_mvr <= 0 && lines.some((l) => l.fob_currency === "USD")) {
@@ -490,6 +574,70 @@ export function CostingSimulator() {
         </div>
       </section>
 
+      {/* ── Products he does NOT stock yet ──────────────────────────────
+          The decision that actually costs money is bringing something in for
+          the first time. These ride in the same simulation as the catalogue
+          lines, so a trial product takes its share of freight from the same
+          pot — which is the only way to see that adding it makes everything
+          else in the container more expensive too. ── */}
+      <section className="snm-card rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-[17px] font-semibold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+              <FlaskConical className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
+              Thinking about a new product
+            </h2>
+            <p className="text-[12.5px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              Cost it before you buy it. All you need is the supplier&apos;s quote.
+            </p>
+          </div>
+          <button
+            onClick={() => setTrialDraft(emptyTrial())}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[13px] font-semibold shrink-0 snm-pressable"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}
+          >
+            <Plus className="h-3.5 w-3.5" /> Add
+          </button>
+        </div>
+
+        {trials.length === 0 ? (
+          <p className="text-[13.5px] py-2" style={{ color: "var(--muted-foreground)" }}>
+            Nothing being trialled. Add one and it joins the container above —
+            you&apos;ll see what it lands at, and the most you could pay for it.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {trials.map((t) => {
+              const ready = includedTrials.some((x) => x.key === t.key);
+              return (
+                <div key={t.key}
+                  className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5"
+                  style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                  <button onClick={() => setTrialDraft(t)} className="min-w-0 flex-1 text-left snm-pressable">
+                    <p className="text-[15px] font-medium truncate" style={{ color: "var(--foreground)" }}>
+                      {t.name.trim() || "Untitled product"}{t.variant.trim() ? ` · ${t.variant.trim()}` : ""}
+                    </p>
+                    <p className="snm-num text-[12.5px]" style={{ color: ready ? "var(--muted-foreground)" : "var(--snm-warning)" }}>
+                      {ready
+                        ? `${num(t.qty)} cartons · ${num(t.packsPerCarton)} packs of ${num(t.pcsPerPack)} · ${t.currency} ${t.fob}/${t.fobBasis}`
+                        : "Tap to finish — needs quantity, box size and price"}
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => { setTrials((xs) => xs.filter((x) => x.key !== t.key)); setResults(null); }}
+                    aria-label="Remove"
+                    className="shrink-0 snm-pressable p-1.5 rounded-lg"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* ── Run ────────────────────────────────────────────────────────── */}
       <button
         onClick={run}
@@ -609,6 +757,21 @@ export function CostingSimulator() {
         message={`“${pendingDelete?.name ?? ""}” is only a saved what-if — none of your real costs are affected.`}
         confirmLabel="Delete"
       />
+
+      {trialDraft && (
+        <TrialSheet
+          draft={trialDraft}
+          boxes={boxes}
+          onClose={() => setTrialDraft(null)}
+          onSave={(t) => {
+            setTrials((xs) => xs.some((x) => x.key === t.key)
+              ? xs.map((x) => (x.key === t.key ? t : x))
+              : [...xs, t]);
+            setTrialDraft(null);
+            setResults(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -789,19 +952,19 @@ function LineEditor({ row, onPatch }: { row: Row; onPatch: (id: string, p: Parti
   );
 }
 
-function MiniField({ label, value, on, step = "0.01" }: { label: string; value: string; on: (v: string) => void; step?: string }) {
+function MiniField({ label, value, on, step = "0.01", text = false }: { label: string; value: string; on: (v: string) => void; step?: string; text?: boolean }) {
   return (
     <label className="block">
       <span className="block text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</span>
       <input
-        type="number"
-        inputMode="decimal"
-        step={step}
+        type={text ? "text" : "number"}
+        inputMode={text ? "text" : "decimal"}
+        step={text ? undefined : step}
         value={value}
-        placeholder="0"
+        placeholder={text ? "" : "0"}
         onFocus={(e) => e.target.select()}
         onChange={(e) => on(e.target.value)}
-        className="snm-num w-full h-10 rounded-lg px-2.5 text-[15px] outline-none"
+        className={`${text ? "" : "snm-num "}w-full h-10 rounded-lg px-2.5 text-[15px] outline-none`}
         style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
       />
     </label>
@@ -842,10 +1005,17 @@ function ResultRow({ r, showCosts }: { r: CostingResultRow; showCosts: boolean }
     : "var(--snm-success)";
 
   return (
-    <div className="flex items-start justify-between gap-3 py-1.5">
+    <div className="py-1.5">
+    <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <p className="text-[15px] font-medium truncate" style={{ color: "var(--foreground)" }}>
-          {r.variant_display}
+        <p className="text-[15px] font-medium truncate flex items-center gap-1.5" style={{ color: "var(--foreground)" }}>
+          {r.variant_display || r.model_name}
+          {r.is_new && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
+              style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+              NEW
+            </span>
+          )}
         </p>
         <p className="snm-num text-[12.5px]" style={{ color: "var(--muted-foreground)" }}>
           {showCosts
@@ -883,7 +1053,241 @@ function ResultRow({ r, showCosts }: { r: CostingResultRow; showCosts: boolean }
         )}
       </div>
     </div>
+
+    {/* REVERSE COSTING — the number you take into a negotiation. "It lands at
+        446" is an observation; "don't pay more than USD 13.68 a carton" is a
+        decision. Shown whenever there is a price and a margin to work back
+        from, which for a prospective product is exactly what was entered. */}
+    {r.max_fob_per_carton_usd != null && (
+      <div className="mt-1.5 rounded-lg px-2.5 py-2 flex items-baseline justify-between gap-2"
+        style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+        <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+          Pay at most{r.price_basis === "target" ? " for your target margin" : " to hold this margin"}
+        </span>
+        <span className="text-right shrink-0">
+          <span className="snm-num text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
+            USD {money(r.max_fob_per_carton_usd)}
+          </span>
+          <span className="snm-num text-[11px] ml-1" style={{ color: "var(--muted-foreground)" }}>/carton</span>
+          {r.fob_headroom_pct != null && (
+            <span className="snm-num block text-[11.5px]"
+              style={{ color: r.fob_headroom_pct < 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
+              {r.fob_headroom_pct < 0
+                ? `quote is ${Math.abs(r.fob_headroom_pct).toFixed(0)}% too dear`
+                : `${r.fob_headroom_pct.toFixed(0)}% room on the quote`}
+            </span>
+          )}
+        </span>
+      </div>
+    )}
+    </div>
   );
 }
 
 export { Ship as CostingIcon };
+
+/* ── Entering a product that isn't in the catalogue ──────────────────────── */
+//
+// Deliberately shaped around a supplier's quote rather than around the SKU
+// table: the fields are, in order, what the quote tells you. The one number a
+// quote almost never carries is the carton size — and freight, the only
+// volume-driven cost, depends entirely on it. So rather than demand a
+// measurement Ali doesn't have, the picker offers the five boxes his own
+// catalogue already ships in. Changing the box re-runs the whole simulation,
+// which IS the sensitivity test: if the verdict holds across every box, the
+// measurement doesn't matter; if it flips, ask the supplier before committing.
+
+function TrialSheet({ draft, boxes, onClose, onSave }: {
+  draft: Trial;
+  boxes: CartonSizeReference[];
+  onClose: () => void;
+  onSave: (t: Trial) => void;
+}) {
+  const [t, setT] = useState<Trial>(draft);
+  const set = (p: Partial<Trial>) => setT((x) => ({ ...x, ...p }));
+
+  const perCarton = num(t.pcsPerPack) * num(t.packsPerCarton);
+  const canSave = t.name.trim().length > 0
+    && num(t.pcsPerPack) > 0 && num(t.packsPerCarton) > 0
+    && num(t.qty) > 0 && num(t.cbm) > 0 && num(t.fob) > 0;
+
+  return (
+    <BodyPortal>
+      <div className="fixed inset-0 z-[120] snm-scrim-in"
+        style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
+        onClick={onClose} />
+      <div className="fixed inset-x-0 bottom-0 z-[121] snm-sheet-in">
+        <div className="mx-2 mb-2 rounded-3xl overflow-hidden"
+          style={{ background: "var(--glass-bg-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)", boxShadow: "var(--glass-shadow-lg)", maxHeight: "88dvh" }}>
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-9 h-[3px] rounded-full" style={{ background: "var(--muted-foreground)", opacity: 0.3 }} />
+          </div>
+
+          <div className="px-5 pt-2 pb-5 overflow-y-auto overscroll-contain space-y-4"
+            style={{ maxHeight: "calc(88dvh - 96px)", touchAction: "pan-y" }}>
+            <div>
+              <h3 className="text-[19px] font-semibold" style={{ color: "var(--foreground)" }}>
+                A product you don&apos;t stock yet
+              </h3>
+              <p className="text-[13px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                Copy it off the supplier&apos;s quote. Nothing here touches your real products.
+              </p>
+            </div>
+
+            {/* Identity */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <MiniField label="Product name" value={t.name} on={(v) => set({ name: v })} text />
+              <MiniField label="Size / variant" value={t.variant} on={(v) => set({ variant: v })} text />
+            </div>
+
+            {/* Pack configuration — the quote always states this */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                How it&apos;s packed
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                <MiniField label="Pieces per pack" value={t.pcsPerPack} on={(v) => set({ pcsPerPack: v })} step="1" />
+                <MiniField label="Packs per carton" value={t.packsPerCarton} on={(v) => set({ packsPerCarton: v })} step="1" />
+              </div>
+              {perCarton > 0 && (
+                <p className="snm-num text-[12.5px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                  One carton = {num(t.packsPerCarton)} packs of {num(t.pcsPerPack)}.
+                </p>
+              )}
+            </div>
+
+            {/* The box — the input a quote never gives you */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>
+                What size is the carton?
+              </p>
+              <p className="text-[12.5px] mb-2" style={{ color: "var(--muted-foreground)" }}>
+                This decides the freight, and it&apos;s the one thing the quote won&apos;t
+                tell you. Borrow a box you already ship — then try a bigger one and
+                see whether the answer actually changes.
+              </p>
+              <div className="space-y-1.5">
+                {boxes.map((b) => {
+                  const active = Math.abs(num(t.cbm) - b.cbm_per_carton) < 0.00005;
+                  return (
+                    <button
+                      key={`${b.length_cm}x${b.width_cm}x${b.height_cm}`}
+                      onClick={() => set({ cbm: String(b.cbm_per_carton), boxFrom: b.example })}
+                      className="w-full text-left rounded-xl px-3 py-2.5 snm-pressable"
+                      style={{
+                        background: active ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "var(--glass-bg-1)",
+                        border: active
+                          ? "1px solid color-mix(in srgb, var(--foreground) 30%, transparent)"
+                          : "0.5px solid var(--glass-border-lo)",
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[14.5px] font-medium truncate" style={{ color: "var(--foreground)" }}>
+                          Same box as {b.example}
+                        </span>
+                        <span className="snm-num text-[13px] shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                          {b.cbm_per_carton.toFixed(4)} CBM
+                        </span>
+                      </div>
+                      <p className="snm-num text-[12px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                        {b.length_cm}×{b.width_cm}×{b.height_cm} cm · {b.categories}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-2.5">
+                <MiniField
+                  label="Or the exact CBM, if the supplier gave you dimensions"
+                  value={t.cbm}
+                  on={(v) => set({ cbm: v, boxFrom: null })}
+                  step="0.0001"
+                />
+              </div>
+            </div>
+
+            {/* The quote */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                What they&apos;re asking
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                <MiniField label="Cartons you'd order" value={t.qty} on={(v) => set({ qty: v })} step="1" />
+                <MiniField label="FOB price" value={t.fob} on={(v) => set({ fob: v })} />
+              </div>
+              <div className="grid grid-cols-2 gap-2.5 mt-2.5">
+                <Segment
+                  label="Priced per"
+                  options={[{ v: "carton", l: "Carton" }, { v: "pack", l: "Pack" }]}
+                  value={t.fobBasis}
+                  on={(v) => set({ fobBasis: v as FobBasis })}
+                />
+                <Segment
+                  label="Currency"
+                  options={[{ v: "USD", l: "USD" }, { v: "IDR", l: "IDR" }, { v: "MVR", l: "MVR" }]}
+                  value={t.currency}
+                  on={(v) => set({ currency: v as FobCurrency })}
+                />
+              </div>
+            </div>
+
+            {/* The decision inputs */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>
+                What you&apos;d want out of it
+              </p>
+              <p className="text-[12.5px] mb-2" style={{ color: "var(--muted-foreground)" }}>
+                These two turn a cost into a decision: they give you the margin, and
+                the most you could pay per carton and still get it.
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                <MiniField label="You'd sell a pack at (MVR)" value={t.sellPerPack} on={(v) => set({ sellPerPack: v })} />
+                <MiniField label="Margin you want (%)" value={t.targetMargin} on={(v) => set({ targetMargin: v })} step="0.5" />
+              </div>
+              <div className="mt-2.5">
+                <MiniField label="Import duty on this category (%)" value={t.dutyPct} on={(v) => set({ dutyPct: v })} step="0.5" />
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 pt-1" style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
+              <button onClick={onClose}
+                className="flex-1 h-12 rounded-2xl text-[15px] font-medium snm-pressable"
+                style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}>
+                Cancel
+              </button>
+              <button onClick={() => onSave(t)} disabled={!canSave}
+                className="flex-[2] h-12 rounded-2xl text-[15px] font-bold disabled:opacity-40 snm-pressable"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                Add to the container
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </BodyPortal>
+  );
+}
+
+function Segment({ label, options, value, on }: {
+  label: string;
+  options: { v: string; l: string }[];
+  value: string;
+  on: (v: string) => void;
+}) {
+  return (
+    <div>
+      <span className="block text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</span>
+      <div className="flex gap-1 rounded-lg p-1" style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}>
+        {options.map((o) => (
+          <button key={o.v} onClick={() => on(o.v)}
+            className="flex-1 h-8 rounded-md text-[13px] font-semibold snm-pressable"
+            style={value === o.v
+              ? { background: "var(--foreground)", color: "var(--background)" }
+              : { color: "var(--muted-foreground)" }}>
+            {o.l}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

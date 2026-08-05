@@ -16,7 +16,7 @@ laws), which load automatically.
 - **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
   region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
   live via the Supabase MCP in the same work unit. **Latest applied: 0143** (the
-  packs-and-cartons language sweep — see the 0143 correction in section 5g; the money-math audit that
+  prospective-product costing — see section 5j; the money-math audit that
   ran to 0130 is in sections 5b, 5c and 5d).
 - **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
@@ -705,6 +705,61 @@ against a per-piece price nobody is charged.
 No repair was needed — zero existing lines are below cost
 (`line_total_mvr < landed_cost_per_piece_mvr * qty_pieces` returns nothing).
 This is prevention.
+
+## 5j. The simulator can cost a product he doesn't own, 2026-08-05 — migration 0144
+
+Ali: *"What if I want to test a product I don't currently have? The only thing
+I'll know is the fob price. But I want to simulate everything accurately before
+I make a decision to introduce a new product."*
+
+Every line in `simulate_landed_costs` was `join v_skus on v.id = sku_id`, so a
+product with no SKU row could not be costed at all. That made it a **re-pricing**
+tool, when the decision that actually costs money is the first-time buy.
+
+**A line may now carry a `new_product` object instead of a `sku_id`.** Every
+attribute resolves from either the catalogue row or the payload, and everything
+downstream of that is the *identical* code path — the same CTEs, the same
+apportionment, the same mirror of `confirm_grn`. There is deliberately no second
+costing engine to drift.
+
+**The CBM problem, and the honest answer.** A supplier quote gives the FOB and
+the pack configuration. It almost never gives carton dimensions — and freight is
+the only volume-driven cost, so CBM is the whole game. All 31 SKUs sit in just
+**five** boxes (0.0160 to 0.0589), so `get_carton_size_reference` offers those
+five real boxes ("same box as Xtra Kering L") instead of demanding a measurement.
+Re-picking the box re-runs the simulation, which **is** the sensitivity test.
+Worked example, a trial diaper at USD 10.20/ctn against a 30% target:
+
+| Box | CBM | Landed/pack | Margin | Max FOB |
+|---|---|---|---|---|
+| Mama Lime | 0.0160 | 71.87 | 61.2% | USD 21.44 |
+| Xtra Kering L | 0.0322 | 88.36 | 52.2% | USD 18.23 |
+| Xtra Kering XXXL | 0.0350 | 90.98 | 50.8% | USD 17.72 |
+| Skin Comfort L | 0.0544 | 107.97 | 41.6% | USD 14.40 |
+| Royal Soft Boy L | 0.0589 | 111.67 | 39.6% | USD 13.68 |
+
+Cost swings 55% across the range and the **verdict never changes** — even the
+worst box clears the target. That is the point: it tells him when the
+measurement matters and when it does not.
+
+**`max_fob_per_carton_usd` is reverse (target) costing** — the standard FMCG
+buying number. Given the price he thinks he can charge and the margin he wants,
+the most he may pay per carton. Proven exact by round-trip: feeding USD 13.68
+back in returns a margin of exactly 30.00% and 0.0% headroom. It is an identity
+whenever duty is 0 — which is every category he trades (Diapers, Liquid
+Detergent, Powder Detergent, Dishwashing are all 0%; only Tobacco is 200%) —
+because freight and local charges do not move with FOB at all. With a non-zero
+duty rate it is a close first pass, since the duty pot is itself apportioned by
+FOB.
+
+**Regression proof that 0144 changed nothing for existing SKUs:** replaying
+SH-2026-001 still reproduces **30 of 31** locked GRN costs to 4 decimal places —
+the exact figure migration 0140 recorded before this change. The one outlier is
+the known XXXL-34x3 batch discrepancy already marked do-not-act.
+
+Trial products ride in the same `p_lines` array as catalogue lines, on purpose:
+adding one to a shared container **raises the freight for everything already in
+it**, and only a joint simulation shows that.
 
 ## 6. Built this session (recent → older highlights)
 
