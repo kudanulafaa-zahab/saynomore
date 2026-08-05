@@ -22,7 +22,7 @@ const BarcodeScanner = dynamic(
 );
 import {
   listOrdersPage, countOrders, listOrderCustomersPage, peekNextOrderNumber,
-  createOrder, createOrderLine, postSale,
+  createOrderLine, createAndPostSale,
   getTierPricesForSkus, getLastOrderForCustomer,
   ORDER_PAGE_SIZE,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
@@ -225,55 +225,79 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
   const colors = STATUS_COLOR[o.status];
   const total = o.order_total_mvr ?? 0;
 
-  // Plain tappable row — Void/Delete live on the order detail screen
-  // (one tap away via this link), so no per-row action affordance is
-  // needed here.
+  // Three lines, in the order you actually read them: WHO, WHAT, then the
+  // reference. The order number used to share line one with the customer
+  // name and truncated it to a couple of characters — but you never scan
+  // this list for "SO-2026-080", you scan it for a person. Name now owns
+  // the top line at Body size (17pt, Apple's floor for the primary label);
+  // the reference drops to Footnote underneath.
+  const owed = o.balance_mvr ?? 0;
+  const isOwed = o.status !== "cancelled" && o.status !== "draft" && owed > 0.005;
+
   return (
     <Link href={`/sales/${o.id}`}
-      className="flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
+      className="flex items-start gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
       style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
     >
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        {/* Neutral tile — the pill on the right already states status in
-            color; painting it twice per row was the "light green everywhere"
-            wash Ali flagged. One row, one colored element. */}
-        <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-foreground truncate flex items-center gap-1.5">
-            <span className="truncate">{cust?.name ?? "Walk-in"}</span>
-            <span className="ios-subhead snm-num shrink-0" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
-            {/* Origin, not status — gray/neutral per the design law (color
-                means status; WEB is metadata, same footing as MIXED CTN). No
-                staff member entered this order, so it's worth a glance more
-                scrutiny than a phoned-in one. */}
-            {o.order_source === "web" && (
-              <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
-                style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-                Web
-              </span>
-            )}
-          </p>
-          <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
-            via {o.channel}{cust?.island && <> · {cust.island}</>}
-          </p>
-        </div>
+      {/* Neutral tile — the pill below already states status in color;
+          painting it twice per row was the "light green everywhere" wash
+          Ali flagged. One row, one colored element. */}
+      <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+        <Icon className="h-4 w-4" />
       </div>
-      <div className="flex items-center gap-2.5 shrink-0">
-        <div className="text-right">
+
+      <div className="min-w-0 flex-1">
+        {/* WHO — and what it cost. Tabular figures so the money column
+            stays aligned down the list instead of jittering per row. */}
+        <div className="flex items-baseline gap-2">
+          <p className="text-[17px] font-semibold text-foreground truncate flex-1 min-w-0" style={{ letterSpacing: "-0.012em" }}>
+            {cust?.name ?? "Walk-in"}
+          </p>
           {total > 0 && (
-            <p className="text-[14px] font-semibold text-foreground snm-num">
-              {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              <span className="ios-subhead font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+            <p className="text-[16px] font-bold text-foreground snm-num shrink-0">
+              {total >= 10000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <span className="text-[11px] font-semibold ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
           )}
-          <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
+        </div>
+
+        {/* WHAT — built in Postgres so pack/carton maths never happens here.
+            Two lines max: a mixed carton lists its full scent split. */}
+        {o.items_summary && (
+          <p
+            className="text-[15px] mt-0.5"
+            style={{
+              color: "var(--foreground)",
+              lineHeight: 1.35,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {o.items_summary}
+          </p>
+        )}
+
+        {/* Reference line — never competes with the two above. */}
+        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          <span className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+          <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>·</span>
+          <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{o.channel}</span>
+          <span className="text-[10px] uppercase tracking-wider font-bold rounded-full px-2 py-0.5 shrink-0" style={{ background: colors.bg, color: colors.text }}>
             {STATUS_LABEL[o.status]}
           </span>
+          {/* Money still outstanding is the one thing worth a second colour. */}
+          {isOwed && (
+            <span className="text-[10px] uppercase tracking-wider font-bold rounded-full px-2 py-0.5 shrink-0 snm-num"
+              style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
+              Owes {owed.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          )}
         </div>
-        <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
       </div>
+
+      <ChevronRight className="h-4 w-4 shrink-0 mt-2" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
     </Link>
   );
 });
@@ -1079,6 +1103,8 @@ function NewSaleSheet({
     for (const line of lastOrder.lines) {
       const sku = skus.find((s) => s.id === line.sku_id && s.is_active);
       if (!sku) { skipped++; continue; }
+      // Don't re-add something already on the order — one line per product.
+      if (draftLines.some((l) => l.sku.id === sku.id)) { skipped++; continue; }
       const totalStock = stockLevels
         .filter((l) => l.sku_id === sku.id)
         .reduce((a, l) => a + l.qty_pieces, 0);
@@ -1113,6 +1139,12 @@ function NewSaleSheet({
   }
 
   function pushQuickLine(s: SkuFullRow, uom: ReturnType<typeof defaultUom>, price: number) {
+    // Same one-line-per-product rule as handleAddLine — quick-add must not be
+    // the back door that builds an order the database will reject on save.
+    if (draftLines.some((l) => l.sku.id === s.id)) {
+      toast.error(`${s.brand_name} ${s.variant_display} is already in this order`);
+      return;
+    }
     const pcs = toPieces(uom, 1, s.pcs_per_pack, s.packs_per_carton);
     setDraftLines((prev) => [...prev, {
       key: `${s.id}-${Date.now()}`,
@@ -1336,6 +1368,15 @@ function NewSaleSheet({
 
   function handleAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
+    // One line per product per order — sales_order_lines has a UNIQUE
+    // (order_id, sku_id), and edit_sales_order_line depends on that to scope
+    // its FIFO stock reversal safely. Without this check you could build a
+    // whole order with the same product on two lines and only discover it
+    // when saving failed at the very end.
+    if (draftLines.some((l) => l.sku.id === selectedSku.id)) {
+      toast.error(`${selectedSku.brand_name} ${selectedSku.variant_display} is already in this order — change the quantity on that line instead`);
+      return;
+    }
     const landed = selectedSku.landed_per_piece_mvr;
     const mult = lineUom === "carton" ? selectedSku.pcs_per_pack * selectedSku.packs_per_carton
                : lineUom === "pack" ? selectedSku.pcs_per_pack : 1;
@@ -1363,29 +1404,42 @@ function NewSaleSheet({
         payment_status: "pending" as const,
         notes: orderNotes.trim() || null,
       };
+      // qty_pieces and line_total_mvr are deliberately NOT sent — Postgres
+      // derives both from the SKU's own pack/carton configuration, so the
+      // stored numbers can't drift from the price and quantity actually
+      // agreed (hard rule 1: money math lives in Postgres).
       const linePayloads = draftLines.map((l) => ({
         sku_id: l.sku.id, uom: l.uom, qty: l.qty,
-        qty_pieces: l.qty_pieces, unit_price_mvr: l.unit_price_mvr,
-        line_total_mvr: l.line_total_mvr, is_mixed_carton_fill: l.is_mixed_carton_fill,
+        unit_price_mvr: l.unit_price_mvr,
+        is_mixed_carton_fill: l.is_mixed_carton_fill,
       }));
 
+      // One RPC = one transaction: the order, its lines and the FIFO stock
+      // deduction all commit together or not at all. The old three-step
+      // client sequence could leave the order and lines saved with stock
+      // never deducted if the connection dropped in between — that is
+      // exactly how SO-2026-076 ended up delivered with no stock movement.
+      // offlineKey makes a retry idempotent rather than a duplicate sale.
       const { queued } = await withOfflineFallback(
-        async () => {
-          const created = await createOrder(orderPayload);
-          await Promise.all(linePayloads.map((l) => createOrderLine({ order_id: created.id, ...l })));
-          await postSale(created.id);
-          return created;
-        },
+        () => createAndPostSale(orderPayload, linePayloads, offlineKey),
         {
           table: "sales_orders",
-          action: "insert",
-          payload: { order: orderPayload, lines: linePayloads },
+          action: "rpc",
+          rpcName: "create_and_post_sale",
+          payload: {
+            p_order: orderPayload,
+            p_lines: linePayloads,
+            p_offline_key: offlineKey,
+          },
           tempId: offlineKey,
         },
       );
 
       if (queued) {
-        toast.success("Saved offline — will sync when connected", { duration: 4000 });
+        toast.warning(
+          "You're offline — this sale is saved on this phone and will be sent when you reconnect. Stock is not deducted yet.",
+          { duration: 6000 },
+        );
         onClose();
       } else {
         toast.success("Order placed — stock deducted");
@@ -2865,7 +2919,18 @@ function NewSaleSheet({
           tierPrices={tierPrices}
           onClose={() => setMixedCartonBrandId(null)}
           onAdd={(lines) => {
-            setDraftLines((prev) => [...prev, ...lines]);
+            // A scent may already be on the order from a separate line. One
+            // line per product is a hard database rule, so the freshly built
+            // carton replaces any existing line for the same SKU rather than
+            // creating a duplicate that would fail on save.
+            const incoming = new Set(lines.map((l) => l.sku.id));
+            setDraftLines((prev) => {
+              const kept = prev.filter((l) => !incoming.has(l.sku.id));
+              if (kept.length !== prev.length) {
+                toast.info("Replaced the lines for the products in this carton");
+              }
+              return [...kept, ...lines];
+            });
             setMixedCartonBrandId(null);
           }}
         />,

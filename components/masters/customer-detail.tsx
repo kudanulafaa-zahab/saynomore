@@ -180,7 +180,7 @@ export function CustomerDetail({ id }: { id: string }) {
                   </p>
                   <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
                     {dayLabel(o.created_at)} · {o.items} item{o.items !== 1 ? "s" : ""}
-                    {Number(o.paid_mvr) < Number(o.total_mvr) ? " · unpaid" : ""}
+                    {Number(o.balance_mvr) > 0.005 ? " · unpaid" : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

@@ -146,10 +146,18 @@ export function ReportsView() {
     revenue: rows.reduce((s, r) => s + r.total_revenue_mvr, 0),
     skusSold: rows.filter((r) => r.total_qty_pieces > 0).length,
     lowStock: rows.filter((r) => r.days_of_stock !== null && r.days_of_stock < 14).length,
+    // Revenue-weighted, not a plain average of percentages. Averaging the
+    // percentages let a SKU that sold MVR 20 at 80% count the same as one
+    // that sold MVR 200,000 at 12%, so this could read 44% for a period the
+    // P&L reported at 18% gross margin. Same formula the P&L uses:
+    // total profit / total revenue.
     avgMargin: (() => {
       const withMargin = rows.filter((r) => r.gross_margin_pct !== null);
       if (!withMargin.length) return null;
-      return withMargin.reduce((s, r) => s + (r.gross_margin_pct ?? 0), 0) / withMargin.length;
+      const revenue = withMargin.reduce((s, r) => s + r.total_revenue_mvr, 0);
+      if (revenue <= 0) return null;
+      const cost = withMargin.reduce((s, r) => s + r.total_landed_cost_mvr, 0);
+      return ((revenue - cost) / revenue) * 100;
     })(),
     // Full committed amount for any campaign overlapping the selected period
     // (matches what you actually paid/committed — e.g. Meta Ads Manager totals).

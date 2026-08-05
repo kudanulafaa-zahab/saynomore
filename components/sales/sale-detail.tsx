@@ -14,6 +14,7 @@ import {
   createOrderLine,
   updateOrderLine,
   deleteOrderLine,
+  postSale,
   toPieces,
   getTierPricesForSkus,
   listOrderPayments,
@@ -93,6 +94,7 @@ export function SaleDetail({ id }: { id: string }) {
   const [completing, setCompleting]   = useState(false);
   const [deleting, setDeleting]       = useState(false);
   const [depositing, setDepositing]   = useState(false);
+  const [posting, setPosting]         = useState(false);
 
   // local driver / cash state for action panels
   const [selectedDriver, setSelectedDriver] = useState("");
@@ -185,15 +187,22 @@ export function SaleDetail({ id }: { id: string }) {
     count: lines.length,
   }), [lines]);
 
-  const isConfirmed  = order?.status === "confirmed" || order?.status === "picked" || order?.status === "draft";
+  // True drafts have no stock posted yet (rare in practice — the create flow
+  // auto-posts immediately via postSale(), but a network error mid-flight can
+  // leave an order+lines created with post_sale() never having run — SO-2026-076
+  // was exactly this, discovered 2026-08-04: it reached "delivered" with zero
+  // stock_movements because isConfirmed used to lump 'draft' in with
+  // 'confirmed'/'picked', so this screen showed the normal dispatch-ready UI
+  // for a draft order and let it be walked all the way to delivered without
+  // stock ever being deducted or cost ever being recorded). A draft must NEVER
+  // be treated as confirmed — it needs its own explicit "confirm & post" action
+  // (below) so staff can complete it safely, or delete it.
+  const isTrueDraft  = order?.status === "draft";
+  const isConfirmed  = order?.status === "confirmed" || order?.status === "picked";
   const isDispatched = order?.status === "out_for_delivery";
   const isDelivered  = order?.status === "delivered";
   const isCancelled  = order?.status === "cancelled";
   const isCOD        = order?.payment_method === "cod";
-  // True drafts have no stock posted yet (rare in practice — the create flow
-  // auto-posts immediately), so they're plain-deletable. Anything else must
-  // go through voidOrder(), which reverses the FIFO stock movements first.
-  const isTrueDraft  = order?.status === "draft";
   // Lines can only be safely edited (via editOrderLine, which re-runs FIFO)
   // while the order is confirmed/picked — once dispatched, the driver already
   // has the physical goods, and once delivered, the sale is settled.
@@ -210,6 +219,24 @@ export function SaleDetail({ id }: { id: string }) {
       setEditingRef(false);
     } catch (e) { toast.error((e as Error).message); }
     finally { setSavingRef(false); }
+  }
+
+  // Confirms a stuck true draft — deducts FIFO stock and snapshots cost via
+  // the same post_sale() RPC the New Sale dialog calls automatically. Needed
+  // as an explicit action because that automatic call can fail to complete
+  // (e.g. a network error after the order+lines were already created), which
+  // used to leave the order stuck as an invisible draft with no safe way to
+  // finish it — see the isTrueDraft comment above.
+  async function handlePostSale() {
+    if (!order) return;
+    setPosting(true);
+    try {
+      await postSale(order.id);
+      haptic("success");
+      toast.success("Sale confirmed — stock deducted");
+      load();
+    } catch (e) { haptic("error"); toast.error((e as Error).message); }
+    finally { setPosting(false); }
   }
 
   async function handleDispatch() {
@@ -277,8 +304,12 @@ export function SaleDetail({ id }: { id: string }) {
   // Open the record-payment sheet, defaulting the amount to the outstanding
   // balance (the common case: customer clears what they owe).
   function openRecordPayment() {
-    const outstanding = balance?.balance_mvr ?? totals.mvr;
-    setPayAmount(outstanding > 0 ? outstanding.toFixed(2).replace(/\.00$/, "") : "");
+    // Only ever prefill from the server-computed balance. Falling back to the
+    // gross order total would ignore payments already made and any returned
+    // goods, so one tap could over-collect; leaving it blank is the safe
+    // failure, and the server-side overpayment guard is the backstop.
+    const outstanding = balance?.balance_mvr;
+    setPayAmount(outstanding != null && outstanding > 0 ? outstanding.toFixed(2).replace(/\.00$/, "") : "");
     setPayMethod(isCOD ? "cod" : "transfer");
     setPayRef("");
     setPanel("recordPayment");
@@ -712,6 +743,27 @@ export function SaleDetail({ id }: { id: string }) {
         </div>
       )}
 
+      {/* ── STAGE: True draft — stock not yet deducted, needs confirming ──── */}
+      {isTrueDraft && (
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "1px solid color-mix(in srgb, var(--snm-warning) 25%, transparent)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <AlertTriangle style={{ color: "var(--snm-warning)", width: 20, height: 20 }} />
+            <p style={{ color: "var(--snm-warning)", fontSize: 15, fontWeight: 700 }}>Not confirmed yet</p>
+          </div>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+            This order was created but never confirmed — no stock has been deducted and it isn&apos;t counted as a real sale yet. Confirm it to deduct stock and record the sale, or delete it if it was a mistake.
+          </p>
+          <button
+            onClick={handlePostSale}
+            disabled={posting}
+            className="snm-pressable"
+            style={{ width: "100%", height: 48, borderRadius: 12, background: "var(--foreground)", color: "var(--background)", border: "none", fontSize: 14, fontWeight: 700, opacity: posting ? 0.6 : 1, cursor: "pointer" }}
+          >
+            {posting ? "Confirming…" : "Confirm Sale"}
+          </button>
+        </div>
+      )}
+
       {/* ── STAGE: Confirmed — ready to dispatch ─────────────────────────── */}
       {isConfirmed && (
         <>
@@ -877,7 +929,14 @@ export function SaleDetail({ id }: { id: string }) {
           </div>
           {canWrite && (
             <button
-              onClick={() => { setCashCollected(isCOD ? String(totals.mvr.toFixed(0)) : ""); setPanel("deliver"); }}
+              onClick={() => {
+                // Prefill what is actually still owed, to the cent — the old
+                // `totals.mvr.toFixed(0)` used the gross total (ignoring any
+                // payment already taken) and rounded MVR 776.50 down to 776.
+                const due = balance?.balance_mvr;
+                setCashCollected(isCOD && due != null && due > 0 ? String(due) : "");
+                setPanel("deliver");
+              }}
               style={{ width: "100%", background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 10 }}
             >
               Mark as Delivered →
@@ -918,6 +977,18 @@ export function SaleDetail({ id }: { id: string }) {
           {/* Payment action — context-aware */}
           {isCOD ? (
             order.payment_status !== "deposited" ? (
+              order.cash_collected_mvr == null ? (
+                // No amount on record — can't deposit money nobody logged.
+                // (SO-2026-072 got here with no cash figure at all, and the
+                // dashboard/Finance Owed panel then had no way to know it was
+                // ever settled. The delivery flows now require the amount
+                // up front; this is the fallback for anything that still
+                // slips through.)
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-warning) 10%, transparent)", borderRadius: 12, marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-warning) 18%, transparent)" }}>
+                  <Landmark style={{ color: "var(--snm-warning)", width: 18, height: 18 }} />
+                  <p style={{ color: "var(--snm-warning)", fontSize: 13, fontWeight: 600 }}>No cash amount on record yet — record what was collected before depositing.</p>
+                </div>
+              ) : (
               <button
                 onClick={() => setPanel("deposit")}
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "var(--foreground)", color: "var(--background)", border: "none", borderRadius: 999, padding: "16px", fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer", marginBottom: 16 }}
@@ -925,6 +996,7 @@ export function SaleDetail({ id }: { id: string }) {
                 <Landmark style={{ width: 18, height: 18 }} />
                 Mark Cash Deposited to Bank
               </button>
+              )
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", borderRadius: 12, marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-success) 18%, transparent)" }}>
                 <CheckCircle2 style={{ color: "var(--snm-success)", width: 18, height: 18 }} />

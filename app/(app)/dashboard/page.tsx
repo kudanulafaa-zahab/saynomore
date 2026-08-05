@@ -1,4 +1,9 @@
-import { getSupabaseServer } from "@/lib/supabase-server";
+import {
+  getDashboardMetricsServer,
+  getPnlServer,
+  getDailyRevenueServer,
+  getSignedInFirstName,
+} from "@/lib/queries/dashboard-server";
 import {
   TrendingUp,
   TrendingDown,
@@ -52,41 +57,27 @@ interface Metrics {
 }
 
 export default async function DashboardPage() {
-  const supabase = await getSupabaseServer();
-
   // Month range for the P&L (net profit). get_pnl is the same audited RPC the
   // Financials page uses, so the dashboard net figure always matches it exactly.
   const nowMv          = new Date();
   const firstOfMonth   = new Date(nowMv.getFullYear(), nowMv.getMonth(), 1).toISOString().slice(0, 10);
   const tomorrow       = new Date(nowMv.getFullYear(), nowMv.getMonth(), nowMv.getDate() + 1).toISOString().slice(0, 10);
 
-  const [{ data }, { data: pnlData }, { data: { user } }, { data: dailyRevenueData }] = await Promise.all([
-    supabase.rpc("get_dashboard_metrics"),
-    supabase.rpc("get_pnl", { p_from: firstOfMonth, p_to: tomorrow }),
-    supabase.auth.getUser(),
-    supabase.rpc("get_daily_revenue", { p_days: 7 }),
+  // Every read goes through the server query layer — this page used to call
+  // supabase.rpc(...) inline, against hard rule 4.
+  const [data, pnl, firstName, dailyRevenueData] = await Promise.all([
+    getDashboardMetricsServer(),
+    getPnlServer(firstOfMonth, tomorrow),
+    getSignedInFirstName(),
+    getDailyRevenueServer(7),
   ]);
-
-  // First name for a personalised greeting — works for every user, since it
-  // reads their own profile. Falls back cleanly to no name if unavailable.
-  let firstName = "";
-  if (user) {
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (profile?.full_name) firstName = String(profile.full_name).trim().split(/\s+/)[0];
-  }
-
-  const pnl         = pnlData?.[0] ?? null;
   const netProfit    = Number(pnl?.net_profit_mvr ?? 0);
   const netMargin    = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
   const pnlCogs      = Number(pnl?.cogs_mvr ?? 0);
   const pnlRevenue   = Number(pnl?.revenue_mvr ?? 0);
   const pnlOtherCosts = Number(pnl?.marketing_mvr ?? 0) + Number(pnl?.other_opex_mvr ?? 0);
 
-  const m: Metrics = (data?.[0] ?? {
+  const m: Metrics = ((data as unknown as Metrics | null) ?? {
     revenue_today_mvr:           0,
     revenue_this_month_mvr:      0,
     revenue_last_month_mvr:      0,

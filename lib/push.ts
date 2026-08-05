@@ -88,17 +88,37 @@ export type NotifyCategory = "delivery" | "money" | "stock";
 
 const PUSH_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-push`;
 
-/** Fire-and-forget push to a single user. Never throws — push is non-critical. */
-export function notify(userId: string, payload: NotifyPayload, category: NotifyCategory): void {
+/**
+ * Fire-and-forget push to a single user. Never throws — push is non-critical.
+ *
+ * Sends the signed-in user's OWN access token, not the public anon key. The
+ * anon key ships in the browser bundle, so authenticating with it meant the
+ * send-push endpoint was effectively open to anyone: a stranger could push a
+ * convincing "payment failed, tap here" notification into the installed app.
+ * The endpoint now identifies the caller from this token and refuses
+ * unauthenticated senders.
+ */
+export async function notifyAsync(userId: string, payload: NotifyPayload, category: NotifyCategory): Promise<void> {
   if (!userId) return;
-  fetch(PUSH_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ user_id: userId, category, ...payload }),
-  }).catch(() => {/* non-critical */});
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return; // not signed in — nothing may be sent on their behalf
+    await fetch(PUSH_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ user_id: userId, category, ...payload }),
+    });
+  } catch { /* non-critical */ }
+}
+
+/** Fire-and-forget wrapper kept for the existing synchronous call sites. */
+export function notify(userId: string, payload: NotifyPayload, category: NotifyCategory): void {
+  void notifyAsync(userId, payload, category);
 }
 
 /** Push to every admin/manager — used for office-facing events (delivery done). */

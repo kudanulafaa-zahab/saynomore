@@ -7,7 +7,7 @@ import {
   AlertTriangle, RefreshCw, Warehouse, Navigation,
 } from "lucide-react";
 import {
-  listMyDeliveries, listOrderLinesForOrders, updateOrder,
+  listMyDeliveries, listOrderLinesForOrders, updateOrder, getOrderBalances,
   type SalesOrderRow, type SalesOrderLineRow,
 } from "@/lib/queries/sales";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
@@ -27,6 +27,9 @@ interface OrderWithLines {
   lines: SalesOrderLineRow[];
   customer?: CustomerRow;
   godown?: GodownRow;
+  /** Still owed on this order, from Postgres — net of payments already
+   *  recorded and any returned goods. Never a client-side line-total sum. */
+  balanceMvr?: number;
 }
 
 /* ─── status config ─────────────────────────────────────────────────────── */
@@ -144,9 +147,13 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, delivererId,
     if (!order || !amount) return;
     setSaving(true);
     try {
+      // Only call it paid when the money actually covers what was owed.
+      // This used to write 'paid' unconditionally, so a short collection
+      // still closed the order as settled and the shortfall silently
+      // vanished from receivables.
       const patch = {
         status: "delivered" as const,
-        payment_status: "paid" as const,
+        payment_status: (isShort ? "partial" : "paid") as "partial" | "paid",
         cash_collected_mvr: collected,
         delivered_at: new Date().toISOString(),
       };
@@ -448,7 +455,11 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
 }) {
   const { order, lines, customer, godown } = item;
   const isCod = order.payment_status === "cod";
+  // Order value for display. What to COLLECT is item.balanceMvr (from
+  // Postgres, net of payments and returns) — the two differ on a part-paid
+  // order, and only the balance may drive the cash sheet.
   const totalMvr = lines.reduce((acc, l) => acc + Number(l.line_total_mvr), 0);
+  const dueMvr = item.balanceMvr ?? totalMvr;
   const sc = STATUS_COLOR[order.status] ?? { bg: "var(--glass-bg-2)", text: "var(--muted-foreground)" };
 
   return (
@@ -591,7 +602,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
             {isCod ? (
               /* COD: big green button showing the amount — hardest to miss */
               <button
-                onClick={() => onCash(order, totalMvr, customer?.name)}
+                onClick={() => onCash(order, dueMvr, customer?.name)}
                 style={{
                   width: "100%", height: 72, borderRadius: 18, border: "none",
                   background: "var(--snm-success)", color: "var(--snm-on-fill)", cursor: "pointer",
@@ -599,10 +610,11 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
                 }}
               >
                 <span className="snm-num" style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1 }}>
-                  MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  MVR {dueMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9, display: "flex", alignItems: "center", gap: 4 }}>
-                  <CheckCircle2 size={13} /> Collect &amp; Mark Delivered
+                  <CheckCircle2 size={13} />
+                  {dueMvr < totalMvr - 0.005 ? "Collect balance & Mark Delivered" : "Collect & Mark Delivered"}
                 </span>
               </button>
             ) : (
@@ -683,11 +695,13 @@ export function MyDeliveries() {
       const customerById = new Map(customers.map((c) => [c.id, c]));
       const godownById = new Map(godowns.map((g) => [g.id, g]));
       const linesByOrder = await listOrderLinesForOrders(orders.map((o) => o.id));
+      const balances = await getOrderBalances(orders.map((o) => o.id));
       const enriched: OrderWithLines[] = orders.map((o) => ({
         order: o,
         lines: linesByOrder.get(o.id) ?? [],
         customer: customerById.get(o.customer_id ?? ""),
         godown: godownById.get(o.source_godown_id ?? ""),
+        balanceMvr: balances.get(o.id),
       }));
       // Sort: out_for_delivery → picked → confirmed → delivered
       enriched.sort((a, b) => (STATUS_PRIORITY[a.order.status] ?? 9) - (STATUS_PRIORITY[b.order.status] ?? 9));

@@ -6,7 +6,7 @@ import { invalidate } from "@/lib/swr-lite";
 // ── Types ────────────────────────────────────────────────────────────────
 
 export type OrderStatus = "draft" | "confirmed" | "picked" | "out_for_delivery" | "delivered" | "cancelled";
-export type OrderChannel = "whatsapp" | "viber" | "messenger" | "instagram" | "tiktok" | "facebook" | "walkin" | "phone" | "other" | "web";
+export type OrderChannel = "whatsapp" | "viber" | "messenger" | "instagram" | "tiktok" | "facebook" | "walkin" | "phone" | "other";
 export type PaymentStatus = "pending" | "partial" | "paid" | "cod" | "deposited";
 export type SaleUom = "carton" | "pack" | "piece";
 
@@ -33,10 +33,13 @@ export interface SalesOrderRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  /** 'walk-in' (staff-entered, WhatsApp/phone/etc.) or 'web' (the customer
-   *  storefront, migration 0112). Drives the Web badge in the order lists. */
-  order_source: string;
   order_total_mvr?: number;
+  /** Plain-English contents for the list card, built in Postgres (0132) —
+   *  e.g. "Xtra Kering M — 1 carton (4×48 = 192 pcs)" or
+   *  "Sosoft mixed carton — 6 bottles (Blue 2 · Red 2 · Pink 1 · Purple 1)". */
+  items_summary?: string | null;
+  /** Still owed: total − payments − returns. Never recompute this client-side. */
+  balance_mvr?: number;
 }
 
 export interface SalesOrderLineRow {
@@ -375,6 +378,45 @@ export async function postSale(orderId: string) {
   return data;
 }
 
+/**
+ * Creates the order, its lines and the FIFO stock deduction in ONE Postgres
+ * transaction (migration 0128). Replaces the old three-step client sequence
+ * (createOrder → createOrderLine × n → postSale), where an interruption
+ * after the lines were saved but before post_sale ran left a real order with
+ * revenue but no stock deducted — that is what happened to SO-2026-076.
+ *
+ * `offlineKey` is an idempotency key: replaying the same key returns the
+ * order that was already created instead of creating a second one, so a
+ * queued write can be retried safely.
+ *
+ * qty_pieces and line_total_mvr are deliberately NOT sent — Postgres derives
+ * them from the SKU's own pack/carton configuration (hard rule 1). The unit
+ * price IS sent, because it is a real human decision, not a derived figure.
+ */
+export interface NewSaleLineInput {
+  sku_id: string;
+  uom: SaleUom;
+  qty: number;
+  unit_price_mvr: number;
+  is_mixed_carton_fill?: boolean;
+}
+
+export async function createAndPostSale(
+  order: Record<string, unknown>,
+  lines: NewSaleLineInput[],
+  offlineKey?: string | null,
+): Promise<{ order_id: string; order_number: string }> {
+  const { data, error } = await supabase.rpc("create_and_post_sale", {
+    p_order: order,
+    p_lines: lines,
+    p_offline_key: offlineKey ?? null,
+  });
+  if (error) throw error;
+  invalidate("stock:");
+  const row = Array.isArray(data) ? data[0] : data;
+  return row as { order_id: string; order_number: string };
+}
+
 // ── void_sales_order / edit_sales_order_line RPCs ────────────────────────
 // Safe corrections for confirmed/picked orders: both reverse the exact FIFO
 // stock_movements they created and (for edits) re-deplete for the new
@@ -666,6 +708,29 @@ export async function listOrderPayments(orderId: string): Promise<OrderPaymentRo
     .order("paid_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as OrderPaymentRow[];
+}
+
+/**
+ * Outstanding balance for many orders at once, keyed by order id.
+ *
+ * Use this — never a client-side sum of line totals — anywhere the app asks
+ * "how much is still owed on this order?". A gross line-total sum ignores
+ * payments already recorded and any returned goods, which is how the driver
+ * screen used to tell someone to collect the full amount on an order that
+ * had already been part-paid.
+ */
+export async function getOrderBalances(orderIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (orderIds.length === 0) return out;
+  const { data, error } = await supabase
+    .from("v_order_balances")
+    .select("order_id, balance_mvr")
+    .in("order_id", orderIds);
+  if (error) throw error;
+  for (const r of (data ?? []) as { order_id: string; balance_mvr: number }[]) {
+    out.set(r.order_id, Number(r.balance_mvr));
+  }
+  return out;
 }
 
 /** Derived balance for one order (total / paid / outstanding / status). */

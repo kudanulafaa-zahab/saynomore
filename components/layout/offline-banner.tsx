@@ -1,11 +1,11 @@
 "use client";
 
 import { useNetworkStatus } from "@/lib/use-network-status";
-import { WifiOff, RefreshCw, CheckCircle2 } from "lucide-react";
+import { WifiOff, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function OfflineBanner() {
-  const { isOnline, pendingCount, isSyncing, lastSyncedAt, triggerSync } = useNetworkStatus();
+  const { isOnline, pendingCount, isSyncing, lastSyncedAt, syncError, triggerSync } = useNetworkStatus();
   const [justSynced, setJustSynced] = useState(false);
 
   // Show "synced" flash for 3 seconds after sync completes
@@ -16,6 +16,39 @@ export function OfflineBanner() {
       return () => clearTimeout(t);
     }
   }, [isSyncing, lastSyncedAt]);
+
+  // A change that could not be applied outranks everything else here. The
+  // old banner could show "All changes synced" while writes were being
+  // silently discarded — never let a failure hide behind a success state.
+  if (syncError) {
+    return (
+      <div
+        className="flex items-center justify-between gap-3 px-4 py-2.5 ios-subhead font-medium"
+        style={{
+          background: "color-mix(in srgb, var(--snm-error) 12%, transparent)",
+          color: "var(--snm-error)",
+          borderBottom: "0.5px solid color-mix(in srgb, var(--snm-error) 20%, transparent)",
+        }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <AlertTriangle size={15} className="shrink-0" />
+          <span className="truncate">{syncError}</span>
+        </div>
+        {!isSyncing && isOnline && (
+          <button
+            onClick={triggerSync}
+            className="snm-pressable ios-subhead px-3 py-1 rounded-lg font-semibold shrink-0"
+            style={{
+              background: "color-mix(in srgb, var(--snm-error) 15%, transparent)",
+              color: "var(--snm-error)",
+            }}
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
 
   // Synced flash — only show briefly
   if (justSynced && isOnline && pendingCount === 0) {

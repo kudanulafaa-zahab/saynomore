@@ -2,12 +2,15 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { drainQueue, getPendingCount } from "./offline-queue";
+import { supabase } from "./supabase";
 
 export interface NetworkStatus {
   isOnline: boolean;
   pendingCount: number;
   isSyncing: boolean;
   lastSyncedAt: Date | null;
+  /** Set when the last drain couldn't apply something. Shown in the banner. */
+  syncError: string | null;
   triggerSync: () => Promise<void>;
 }
 
@@ -19,6 +22,7 @@ export function useNetworkStatus(): NetworkStatus {
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const refreshCount = useCallback(async () => {
     const count = await getPendingCount();
@@ -34,10 +38,20 @@ export function useNetworkStatus(): NetworkStatus {
     isSyncingRef.current = true;
     setIsSyncing(true);
     try {
-      const { synced } = await drainQueue(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // The user's own JWT, never the anon key. Replaying as anon meant every
+      // write was rejected by RLS (and then silently dropped) — see the
+      // comment on drainQueue. No session = don't drain at all, so nothing
+      // is lost while the token refreshes.
+      const { data: { session } } = await supabase.auth.getSession();
+      const { synced, error } = await drainQueue(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY,
+        session?.access_token ?? null,
+      );
       if (synced > 0) {
         setLastSyncedAt(new Date());
       }
+      setSyncError(error);
       await refreshCount();
     } finally {
       isSyncingRef.current = false;
@@ -70,5 +84,5 @@ export function useNetworkStatus(): NetworkStatus {
     };
   }, [refreshCount, triggerSync]);
 
-  return { isOnline, pendingCount, isSyncing, lastSyncedAt, triggerSync };
+  return { isOnline, pendingCount, isSyncing, lastSyncedAt, syncError, triggerSync };
 }

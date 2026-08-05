@@ -12,6 +12,7 @@ import {
   listAllDispatchOrders,
   listOrderLinesForOrders,
   updateOrder,
+  getOrderBalance,
   type SalesOrderRow,
   type SalesOrderLineRow,
 } from "@/lib/queries/sales";
@@ -80,6 +81,7 @@ export function DispatchView() {
   const [loading, setLoading]             = useState(true);
   const [expanded, setExpanded]           = useState<string | null>(null);
   const [confirmDelivery, setConfirmDelivery] = useState<SalesOrderRow | null>(null);
+  const [cashCollected, setCashCollected] = useState("");
   const [saving, setSaving]               = useState(false);
   const [assigningId, setAssigningId]     = useState<string | null>(null);
 
@@ -148,8 +150,35 @@ export function DispatchView() {
 
   async function markDelivered() {
     if (!confirmDelivery) return;
+    const isCOD = confirmDelivery.payment_method === "cod";
+    const cash = parseFloat(cashCollected);
+    // Same guard as Sale Detail's own deliver flow (components/sales/sale-detail.tsx):
+    // a COD order marked delivered with no cash amount on record can later be
+    // marked "cash deposited" with nothing to deposit — the exact gap that let
+    // SO-2026-072 sit as a phantom MVR 776 receivable with zero paid trail.
+    if (isCOD) {
+      if (isNaN(cash)) { toast.error("Enter the cash amount the driver collected"); return; }
+      if (cash < 0)    { toast.error("Cash collected can't be negative"); return; }
+    }
     setSaving(true);
-    const patch = { status: "delivered" as const, delivered_at: new Date().toISOString() };
+    // Whether this counts as fully paid is decided against what is actually
+    // still owed (Postgres, net of payments and returns) — not against the
+    // gross order total, and never assumed. Writing 'paid' unconditionally
+    // made a short collection look settled and quietly dropped the shortfall
+    // out of receivables.
+    let codStatus: "paid" | "partial" = "paid";
+    if (isCOD) {
+      try {
+        const bal = await getOrderBalance(confirmDelivery.id);
+        const due = bal?.balance_mvr ?? 0;
+        if (due > 0 && cash < due - 0.005) codStatus = "partial";
+      } catch { /* fall back to 'paid'; the amount itself is still recorded */ }
+    }
+    const patch = {
+      status: "delivered" as const,
+      delivered_at: new Date().toISOString(),
+      ...(isCOD ? { payment_status: codStatus, cash_collected_mvr: cash } : {}),
+    };
     try {
       const { queued } = await withOfflineFallback(
         () => updateOrder(confirmDelivery.id, patch),
@@ -355,12 +384,6 @@ export function DispatchView() {
                         <p className="text-[14px] font-semibold text-foreground">
                           {item.customer?.name ?? "Walk-in"}
                         </p>
-                        {item.order.order_source === "web" && (
-                          <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-                            Web
-                          </span>
-                        )}
                         {hasIssue && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                             style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
@@ -496,7 +519,7 @@ export function DispatchView() {
                       {/* Mark delivered CTA */}
                       {(item.order.status === "out_for_delivery" || (!isAdmin && item.order.status === "picked")) && (
                         <button
-                          onClick={() => setConfirmDelivery(item.order)}
+                          onClick={() => { setConfirmDelivery(item.order); setCashCollected(""); }}
                           className="w-full h-[52px] rounded-2xl text-[14px] font-bold tracking-wide transition active:scale-[0.97]"
                           style={{ background: "var(--snm-success)", color: "var(--snm-on-fill)" }}
                         >
@@ -574,6 +597,25 @@ export function DispatchView() {
                   {confirmDelivery.order_number}
                 </p>
               </div>
+              {confirmDelivery.payment_method === "cod" && (
+                <div>
+                  <p style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+                    Cash collected (MVR)
+                  </p>
+                  <input
+                    type="number" inputMode="decimal" step="0.01" min="0"
+                    value={cashCollected} onChange={(e) => setCashCollected(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0.00"
+                    style={{
+                      width: "100%", height: 56, fontSize: 24, fontWeight: 800,
+                      border: "2px solid var(--glass-border-lo)", borderRadius: 14,
+                      background: "var(--glass-bg-1)", color: "var(--foreground)",
+                      padding: "0 16px", outline: "none", boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              )}
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmDelivery(null)}
@@ -584,9 +626,9 @@ export function DispatchView() {
                 </button>
                 <button
                   onClick={markDelivered}
-                  disabled={saving}
+                  disabled={saving || (confirmDelivery.payment_method === "cod" && isNaN(parseFloat(cashCollected)))}
                   className="flex-[2] h-[52px] rounded-2xl text-[14px] font-bold active:scale-[0.97] transition"
-                  style={{ background: "var(--snm-success)", color: "var(--snm-on-fill)", opacity: saving ? 0.6 : 1 }}
+                  style={{ background: "var(--snm-success)", color: "var(--snm-on-fill)", opacity: (saving || (confirmDelivery.payment_method === "cod" && isNaN(parseFloat(cashCollected)))) ? 0.6 : 1 }}
                 >
                   {saving ? "Saving…" : "Confirm Delivered"}
                 </button>

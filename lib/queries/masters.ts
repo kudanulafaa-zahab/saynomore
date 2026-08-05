@@ -107,6 +107,21 @@ export async function updateCustomer(id: string, patch: Partial<CustomerInput>) 
 }
 
 export async function deleteCustomer(id: string) {
+  // sales_orders.customer_id is ON DELETE SET NULL, so this delete always
+  // "succeeds" and silently detaches every order the customer ever placed —
+  // the money owed survives but collapses into "Walk-in / no customer" with
+  // no name and no phone to chase it with. Refuse when they have history;
+  // an inactive customer should be kept, not erased.
+  const { count, error: countErr } = await supabase
+    .from("sales_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", id);
+  if (countErr) throw countErr;
+  if ((count ?? 0) > 0) {
+    throw new Error(
+      `This customer has ${count} order${count === 1 ? "" : "s"} on record. Deleting them would leave those orders — and anything still owed — with no name or phone number attached.`,
+    );
+  }
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) throw error;
   invalidate("masters:");

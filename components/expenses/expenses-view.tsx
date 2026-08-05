@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { mvtToday } from "@/lib/mvt-date";
 import {
   Loader2, Trash2, X, ChevronRight,
 } from "lucide-react";
@@ -49,7 +50,7 @@ export function ExpensesView() {
   const [deleteBizTarget, setDeleteBizTarget] = useState<BusinessExpenseRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = mvtToday();
   const [quickAmount, setQuickAmount] = useState("");
   const [quickDate, setQuickDate] = useState(today);
   const [loggingQuick, setLoggingQuick] = useState(false);
@@ -324,7 +325,7 @@ export function SpendSheet({ editing, skus, onClose, onDone }: {
   const [channel, setChannel] = useState<SpendChannel>(editing?.channel ?? "meta_boost");
   const [amountMvr, setAmountMvr] = useState(editing ? String(editing.amount_mvr) : "");
   const [campaignName, setCampaignName] = useState(editing?.campaign_name ?? "");
-  const [startDate, setStartDate] = useState(editing?.start_date ?? new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(editing?.start_date ?? mvtToday());
   const [endDate, setEndDate] = useState(editing?.end_date ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [selectedSkuIds, setSelectedSkuIds] = useState<string[]>(editing?.sku_ids ?? []);

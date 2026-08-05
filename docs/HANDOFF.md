@@ -15,32 +15,27 @@ laws), which load automatically.
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
 - **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
   region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
-  live via the Supabase MCP in the same work unit. **Latest applied: 0118.**
+  live via the Supabase MCP in the same work unit. **Latest applied: 0130** (the
+  full money-math audit — see sections 5b, 5c and 5d).
 - **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
-  **Two projects on it now:**
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
     `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
     Git-linked — pushes to `main` auto-deploy.
-  - `saynomore-shop` (customer storefront, new this session), id
-    `prj_oB9tek3qFUxK4qHJFopQhjIMY6aG`. Live at **saynomore-shop.vercel.app**.
-    **NOT git-linked** (this session's tools can only file-upload deploy, not create
-    a git-linked project with a custom root directory) — pushes to `shop/**` do
-    **not** auto-deploy; see `docs/STOREFRONT_PLAN.md` → "Deployed" for how to
-    redeploy or fix this properly. No domain purchased yet (Ali: hold off;
-    `saynomoreshop.com` is available for $11.25/yr when he's ready).
+  - A second, leftover Vercel project from the removed web shop. It is **not**
+    git-linked, serves a blank placeholder, and has nothing to do with the
+    staff app. **Ali should delete it:** vercel.com → that project → Settings →
+    Delete Project. Take care to pick the leftover one, NOT `saynomore`, which
+    is the live staff app. There is no delete-project capability in this
+    session's tooling — the project was created as a side effect of the deploy
+    tool, which has no inverse.
 
 **Access carries over automatically — no passwords are stored here (public repo).**
 GitHub, Supabase and Vercel are reached through the session's MCP connectors, which
 reconnect on their own in a new chat under the same account — a new session gets the
 exact same tool access this one had, nothing to re-authenticate. Real secrets
 (service-role keys, DB passwords) live in the Vercel/Supabase project settings and
-were never used or stored by this session. The **public** anon/publishable Supabase
-keys (safe to expose client-side, gated by RLS — not secrets) are already baked into
-`shop/next.config.ts`'s `env` block as a fallback default (no `.env` file is
-committed anywhere in this repo, matching the main app's own convention — Vercel
-project env vars are the normal source, `next.config.ts`'s fallback exists only
-because this session's tools can't set Vercel project env vars via API). Project
-URL: `https://smhdwkrmiytvpsgqezsl.supabase.co`.
+were never used or stored by this session (no `.env` file is committed anywhere in
+this repo). Project URL: `https://smhdwkrmiytvpsgqezsl.supabase.co`.
 
 ---
 
@@ -94,40 +89,265 @@ already built and refined over many sessions, and it must be preserved.
 
 ---
 
-## 5. Customer storefront (`shop/`) — built and LIVE this session
+## 5. Customer storefront — removed, do not resurrect
 
-**No longer "on hold."** Ali greenlit it, backend + UI are built and deployed to
-production: **https://saynomore-shop.vercel.app**. Full detail, migration-by-migration,
-and the exact in-flight requirements to pick up next all live in
-**`docs/STOREFRONT_PLAN.md`** — read it before touching anything storefront-related,
-it's more current and more detailed than this file for that one topic. The short version:
+A customer web shop was built, Ali reviewed it, and asked for it to be
+removed completely. Every trace is gone: the code, the database objects, the
+planning docs, and the migrations that created them. **Verified 2026-08-04:**
+zero related functions, tables, columns or data anywhere; zero references in
+`lib/`, `components/` or `app/`.
 
-- Separate Next.js app at `shop/` (own `package.json`/config, sibling to the root app
-  in the same repo — NOT a workspace). Guest checkout, no accounts, no staff auth.
-  Every read goes through `get_storefront_catalogue()`, the only write is
-  `place_customer_order()` — both SECURITY DEFINER, anon-granted, both documented at
-  length in migrations `0115`/`0116` including why they're functions and not views.
-- Migrations `0112`–`0118` cover: `order_source`/`web` channel, the web-fulfilment
-  godown flag, `variants.image_url` + a public `product-images` storage bucket, the
-  catalogue read, the order-placement write, `order_source` surfaced in Sales/Dispatch
-  (a gray "Web" badge), and `product_categories.storefront_visible` (Tobacco is
-  excluded from the guest shop by default — a real gap caught and closed, not
-  hypothetical).
-- Root `tsconfig.json`/`eslint.config.mjs` explicitly **exclude `shop/`** — this was a
-  real production outage caught and fixed live: the first push broke the STAFF app's
-  Vercel build because its TypeScript pass started resolving `shop/`'s files against
-  the wrong `@/*` alias. Don't remove that exclusion.
-- **Not built yet, real requirements Ali gave, nothing coded**: curated brand/model
-  hierarchy with display-only renames, a general "seasonal product" mechanism, a
-  mixed-carton-of-6 guest checkout flow (needs a real `place_customer_order` change,
-  scoped in the plan doc), The Body Shop seasonal lotion listing (blocked on real
-  facts from Ali — scent names, price, stock, photos), and a full set of drafted
-  homepage/brand copy not yet placed on any page. **All of this is written up in
-  detail in `docs/STOREFRONT_PLAN.md`'s final two sections — start there.** The
-  actual copy text (hero, brand story, MamyPoko colour explainer, price-comparison
-  table with real numbers, delivery/trust copy, the 3 affordability-section drafts)
-  is in **`docs/STOREFRONT_COPY.md`** — read that file directly rather than
-  re-writing copy from scratch.
+If a storefront is ever wanted again it starts as a brand-new design — there
+is deliberately nothing left to resume from, and nothing here should be
+treated as a starting point.
+
+One leftover Ali needs to action himself: the old Vercel project shell (see
+section 1). It serves a blank placeholder, not a shop.
+
+Two things were kept on purpose, and are **not** storefront features:
+`variants.image_url` + the `product-images` bucket + the Edit Variant photo
+upload (a staff Products feature holding 7 real photos — deleting it would
+destroy real data and break a working screen), and
+`sales_orders.order_source`, a column that predates all of that work and is
+now constrained to `'walk-in'`.
+
+---
+
+## 5b. Full money-math audit (2026-08-04) — migrations 0121-0126
+
+Ali caught the dashboard and Sales screen disagreeing on "unpaid orders" and,
+having lost trust, asked for a full, no-stone-unturned audit of every money/
+stock calculation in the app. Three background agents covered financial
+reporting, pricing/margin, and inventory/GRN; the order-lifecycle/payments
+area and a cross-cutting bypass sweep were done directly. Every finding below
+was verified against live data before being trusted, and every fix was
+verified again after applying it. Full detail is in the migration file
+headers (0121-0126) — this is the summary.
+
+**The headline bug, found while chasing a smaller one down:** Sale Detail's
+`isConfirmed` flag (`components/sales/sale-detail.tsx`) used to lump
+`status='draft'` in with `'confirmed'`/`'picked'`, so a draft order — one
+whose `post_sale()` call never completed (a real gap: the New Sale flow's
+`postSale()` runs *after* the order+lines already exist, inside the same
+`withOfflineFallback`, so a network error in that narrow window leaves a
+real order stuck in draft with no stock deducted) — showed the exact same
+"ready to dispatch" screen as a real confirmed order. SO-2026-076 (MVR 220,
+delivered 2026-08-03) was walked all the way to delivered this way: real
+revenue recognized, zero stock ever deducted, zero cost ever recorded.
+Fixed: `isConfirmed` no longer includes draft; a proper "Not confirmed yet
+— Confirm Sale" action (calls `postSale()`) was added for the true-draft
+state, which previously had no way to complete itself, only delete. The
+broken order itself was retroactively corrected (migration 0122 — FIFO
+stock deducted, cost/margin snapshotted, exactly what `post_sale()` would
+have done, audit-logged as a correction). The upstream network-race gap in
+`withOfflineFallback`/`handleSubmit` is **not** closed — flagged, not fixed
+— but is now safely contained: a stuck draft is visible and fixable instead
+of silently reachable as if confirmed.
+
+**Other confirmed, fixed issues:**
+- Every date-bucketed reporting function (`get_pnl`, `get_reports_data`,
+  `get_contribution_margin`, `get_abc_analysis`, `get_daily_revenue`,
+  `get_monthly_revenue`, `get_dashboard_metrics`, `get_campaign_roi`,
+  `get_customer_insights`) bucketed by the database session's UTC instead of
+  Maldives local time — a sale placed 19:00-23:59 UTC (00:00-04:59 Malé)
+  landed under the wrong calendar day, and near month-end the wrong month.
+  All now use `AT TIME ZONE 'Indian/Maldives'` consistently (migrations
+  0123, 0126).
+- `get_dashboard_metrics` and `get_pnl` disagreed on gross profit (different
+  COGS sourcing) — resolved once SO-2026-076 was corrected (the gap turned
+  out to be entirely that one order); the `GREATEST(...,0)` floor that hid
+  real losses on the dashboard was also removed.
+- Returns weren't netted into "how much is still owed on this order" in
+  `v_order_balances` (Sale Detail's Outstanding + Record Payment sheet),
+  `record_order_payment`'s overpayment guard, `sync_order_payment_status`
+  (paid/partial/pending), and `get_customer_orders` (Customer detail's
+  "unpaid" flag) — only `get_receivables_aging` had it right. Latent (zero
+  credit-settlement returns exist yet) but would show a wrong balance and
+  let staff overpay the moment that return type is used. All four now use
+  the same `total - paid - returned` formula (migration 0124; helper
+  `recalculate_order_payment_status()` also invoked from
+  `record_customer_return` for the credit path, which nothing previously
+  re-synced).
+- `get_tier_price_for_sku` ignored per-UOM fixed prices, silently
+  under/overcharging on the Competitor Price Gaps screen only (not real
+  sales) — now delegates to the already-correct `get_tier_prices_for_skus`.
+- `admin_force_void_grn` deleted `sales_orders` (cascading to
+  `order_payments`) for any order that used the voided GRN's stock, with no
+  payment check — a real "corrections must be reversing entries" violation.
+  Called 3 times historically (2026-07-03/05/08); whether real payments were
+  destroyed can't be reconstructed (the function never logged what it
+  deleted). Now blocks if any affected order has a payment recorded.
+- A stale RLS policy from the original schema (predating `post_sale()`)
+  let a `staff`-role session insert raw stock movements directly, bypassing
+  FIFO/audit entirely. Unused by any current code path — dropped.
+- `v_batch_stock`/`v_stock_levels` reimplemented `stock_signed_delta`'s sign
+  logic inline instead of calling it — today they agreed, but it's the same
+  "two definitions can drift" pattern — collapsed to call the one function.
+- Self-caught regression: the `v_batch_stock`/`v_stock_levels`/
+  `v_order_balances` fix above used a bare `CREATE OR REPLACE VIEW`, which
+  silently dropped their `security_invoker=true` setting (from migrations
+  0053 and 0058). Caught by re-running the security advisor immediately
+  after and fixed same-session (migration 0125) — worth remembering:
+  `CREATE OR REPLACE VIEW` does not preserve `reloptions` unless restated.
+
+**Verified clean after real scrutiny** (not padding — actually checked):
+margin formula convention, division-by-zero guards, the "never
+auto-overwrite a fixed price" rule, `block_grn_rate_changes`/
+`block_batch_cost_changes`, landed-cost-lock immutability, `confirm_grn`'s
+zero-CBM block, `post_sale`'s FIFO correctness and double-post guard,
+`void_sales_order`'s payment guards, `stock_signed_delta`
+coverage of every movement type, every function's anon-EXECUTE revocation
+(only `keepalive` is anon-callable, by design).
+
+> **Correction (second pass, 2026-08-04).** The line above originally also
+> claimed `delete_sales_order`'s payment guards were verified clean. They
+> were not — I never read that function in the first pass and should not
+> have listed it. The second pass found it genuinely defective (it could
+> cascade-delete customer payments; fixed in migration 0129, section 5c).
+> Recorded here rather than quietly edited, because an audit that overstates
+> its own coverage is worse than one that admits a gap.
+
+**Every fix was verified against live data** (not just read as correct):
+before/after query proofs for the timezone shift, the tier-price gap, the
+dashboard/P&L convergence, the returns-netting formula (via a rolled-back
+`begin;...rollback;` payment test), and stock totals before/after the view
+collapse (20,260 pieces, unchanged).
+
+---
+
+## 5c. Audit — second pass (2026-08-04), migrations 0128–0129
+
+Ali asked whether the first pass really covered the *whole* app. It did not —
+it covered ~55 of ~85 database functions and none of the app's own write
+paths. This pass closed the rest: the order void/delete/edit paths, the admin
+cascade-deletes, access-control helpers, the remaining reporting functions,
+all 8 views, plus two things the first pass never looked at at all — the
+**frontend money math** and the **offline write queue**. Findings were
+verified against live data before any fix, and after.
+
+**The worst bug in the app was here, not in the SQL: offline writes were
+silently destroyed.** `drainQueue` replayed every queued write using the
+**anon key** as the Bearer token (`lib/use-network-status.ts`), not the
+signed-in user's JWT. Confirmed at the database level: `anon` holds
+table-level INSERT/UPDATE on `sales_orders`, gated only by RLS — so the
+requests really did reach Postgres and really were filtered to nothing.
+Consequences, both verified in the code:
+- INSERTs came back 4xx, and the old code **deleted 4xx entries from the
+  queue** and moved on;
+- PATCHes matched zero rows under RLS and returned **204 No Content**, which
+  the old code counted as **success** and removed.
+
+So a driver could record MVR 8,000 of collected cash in a dead zone, see
+"Saved offline", later see "All changes synced", and nothing ever reached
+the database. Fixed: replay now uses the real session token; refuses to
+drain at all without one; never deletes an entry that didn't verifiably
+apply (`Prefer: return=representation`, and a PATCH matching zero rows is a
+failure, not a success); stops at the first failure so a later write can't
+overtake the earlier one it depends on; and the banner now shows a red
+"couldn't sync — Retry" state instead of a green success it hadn't earned.
+The New Sale offline toast no longer implies the sale is complete.
+
+**Root cause of SO-2026-076 is now closed properly (migration 0128).** New
+`create_and_post_sale(p_order, p_lines, p_offline_key)` does the order, its
+lines and the FIFO stock deduction in ONE transaction, replacing three
+sequential client writes. Proven by test: forcing a mid-flight failure
+(insufficient stock) rolled everything back — zero orphan orders, and the
+app-wide check "orders with revenue but no stock movements" is now **0**.
+`p_offline_key` (unique) makes a replay idempotent instead of a duplicate
+sale. `qty_pieces` and `line_total_mvr` are now computed in Postgres from
+the SKU's own pack/carton configuration instead of being sent from the
+browser (hard rule 1); the unit price is still an input, because that is a
+real human decision.
+
+**Also fixed (migration 0129):**
+- `delete_sales_order` could **cascade-delete customer payments**. It only
+  checked the header fields `payment_status IN ('paid','deposited')` and
+  `cash_collected_mvr > 0`, but `'partial'` and `'cod'` are legal values —
+  a part-paid order passed both guards and `order_payments` rows cascaded
+  away with no trace. Same bug class as `admin_force_void_grn` (fixed in
+  0124). Now sums the payments ledger, like `void_sales_order` already did.
+  **Behaviour change:** a *delivered* order can no longer be deleted at all
+  — voiding is the correct action (it reverses stock and keeps the record).
+- `get_tier_prices_for_skus` — the live pricing path — returned **no piece
+  or pack price at all** for a SKU priced only per carton (e.g. Sosoft Blue
+  700ml at MVR 220/carton), because it derived prices upward from the piece
+  price but never downward from the carton. Now derives both directions.
+  Verified: 0 active SKUs now return a null price, and 0 SKUs were in the
+  state where the new fallback could change an existing price.
+- `v_verification_history` carried a stray `SELECT` grant to `anon`.
+- Role guards that used `IF NOT is_admin_or_manager()` evaluated to NULL
+  (not false) when `auth.uid()` is null, so the guard silently passed. Only
+  reachable as postgres/service_role, never anon — but a guard that can be
+  NULL is not a guard. Now `coalesce(..., false)`.
+
+**Known and NOT yet fixed** (deliberately listed rather than buried):
+- Four functions still bucket dates by UTC instead of Maldives time:
+  `get_returns`, `get_recent_writeoffs`, `get_customer_products`,
+  `get_competitor_price_freshness`. Proven off-by-one on the one real
+  write-off in the database. Same one-line fix as migrations 0123/0126.
+- The COD cash figures shown to drivers (`my-deliveries.tsx`,
+  `dispatch-view.tsx`) and the payment/cash prefills in `sale-detail.tsx`
+  are summed in TypeScript from gross line totals — they don't subtract
+  payments already made or returns, so a part-paid COD order tells the
+  driver to collect the full amount. `my-deliveries.tsx` also writes
+  `payment_status: 'paid'` unconditionally, even when the driver records a
+  short collection.
+- The GRN screen's landed-cost preview and its suggested customs-duty
+  figure use **ordered** cartons while `confirm_grn` uses **actual received**
+  cartons — so on a short-received shipment the preview Ali confirms against
+  is wrong. The duty figure is saved and feeds permanent landed cost.
+- The margin/price simulator computes a saved selling price in TypeScript,
+  duplicated in two files (`sales-list.tsx`, `competitors-view.tsx`).
+- `app/(app)/dashboard/page.tsx` calls Supabase directly instead of going
+  through `lib/queries/` (hard rule 4).
+
+---
+
+## 5d. Audit pass 3 (2026-08-04) — migration 0130, everything in 5c closed
+
+Ali asked for every remaining known defect to be fixed. All of them were,
+and the "known and NOT fixed" list in 5c is now empty:
+
+- **Timezone sweep finished (0130).** `get_returns`, `get_recent_writeoffs`,
+  `get_customer_products` and `get_competitor_price_freshness` were still
+  bucketing by UTC. Proven fixed on real data: the one write-off in the
+  database (21:14 UTC on 26 Jul) now correctly reports under **27 Jul**
+  Maldives time instead of 26 Jul.
+- **Driver COD cash is now the real balance, not a gross sum.** Both
+  `my-deliveries.tsx` and `dispatch-view.tsx` took the amount to collect from
+  a browser-side sum of gross line totals, ignoring payments already recorded
+  and returned goods — so a part-paid COD order told the driver to collect the
+  full amount and flagged a correct collection as short. Both now read
+  `v_order_balances.balance_mvr` (new `getOrderBalances()` helper for the
+  list, `getOrderBalance()` at confirm time).
+- **A short collection no longer closes an order as fully paid.** Both screens
+  wrote `payment_status: 'paid'` unconditionally; they now write `'partial'`
+  when the cash is less than what was owed, so the shortfall stays in
+  receivables instead of silently vanishing.
+- **Sale Detail prefills fixed.** The payment sheet fell back to the gross
+  order total when the balance hadn't loaded (one tap could over-collect — it
+  now leaves the field blank, with the server-side overpayment guard as the
+  backstop), and the cash-collected field used `totals.mvr.toFixed(0)`, which
+  both ignored prior payments and rounded MVR 776.50 down to 776.
+- **GRN preview and suggested duty now use cartons ACTUALLY received.** Both
+  used ordered cartons while `confirm_grn` uses
+  `coalesce(qty_cartons_actual, qty_cartons)` — so on a short-received
+  shipment the landed-cost preview Ali confirms against was wrong, and the
+  suggested customs-duty figure (which is saved, and feeds permanent landed
+  cost) was inflated.
+- **Dashboard no longer calls Supabase directly** (hard rule 4). It is a React
+  Server Component, so it could not use `lib/queries/` — every module there is
+  `"use client"`. New `lib/queries/dashboard-server.ts` is the missing
+  server-side half of the query layer.
+
+**Still open, deliberately:** the margin/price simulator computes a saved
+selling price in TypeScript and is duplicated in `sales-list.tsx` and
+`competitors-view.tsx`. Both copies are currently identical and the number is
+Ali's own decision, so there is no wrong figure today — the risk is future
+drift between the two. Worth unifying into one helper (or an RPC) next.
+
+**Not device-verified:** the offline sync paths and the COD screens need a
+real phone (airplane mode → record → reconnect) to confirm end to end.
 
 ---
 
@@ -310,17 +530,12 @@ Available whenever Ali wants them, no work needed to "unlock" — they're just u
 **wholesale/VIP price tiers** (full price-list system is wired into order pricing; 0 price
 lists exist, so every sale uses the standard price) · **expiry/FEFO alerts** (capture at GRN +
 ≤120d view + ≤60d briefing all built; 0 expiry dates entered, so it's dark) · **card
-payments** (allowed; waiting on the storefront/BML phase) · **per-100ml/100g competitor
+payments** (allowed; waiting on a BML merchant account) · **per-100ml/100g competitor
 pricing** (detergent categories are set up for it; no rival prices logged that way) ·
 **extra supplier currencies** (MYR/THB/CNY/EUR).
 
-1. **Customer storefront** — greenlit, built, and LIVE (see section 5 above). The
-   5 original product decisions are all resolved. What's left is a fresh batch of
-   real requirements from Ali (hierarchy curation, seasonal products, mixed-carton
-   guest checkout, The Body Shop listing, homepage copy) — none of it coded yet.
-   Full detail and exact next steps are in `docs/STOREFRONT_PLAN.md`'s final two
-   sections ("Deployed" and "Next session: in-flight requirements, none built yet").
-   Start there, not from scratch.
+1. **Nothing pending from the removed web shop.** See section 5 — it is fully
+   gone. The only open item is Ali deleting the leftover Vercel project shell.
 
 ---
 
