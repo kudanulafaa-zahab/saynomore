@@ -38,6 +38,36 @@ Next.js 16 App Router (Turbopack) · React 19 (React Compiler ON) · TypeScript 
 ## Migrations
 Claude is authorized to write and apply new migrations directly via the Supabase MCP against production — no manual dashboard step, no waiting for Ali to run SQL (confirmed by Ali 2026-07-01, after migration 0041).
 
+## Units — diapers are sold in PACKS and CARTONS. Never pieces. (Ali, 2026-08-05)
+
+This is permanent. Ali has had to say it three times.
+
+- **Nobody in this trade sells diapers loose.** The supplier sells packs and
+  cartons; Ali sells packs and cartons. Every SKU's `sellable_units` is
+  `{pack,carton}`, `{carton}` or `{pack}` — **not one SKU sells `piece`.**
+- **Never show a piece count to the user.** Not "192 pcs", not "= 128 pieces
+  total", not "64 pcs in stock". Say "1 carton (4 packs of 48)" or "2 packs of
+  34". Use `formatQtyInTradeUnits` in `lib/trade-units.ts` — it already exists,
+  do not write a second one.
+- **Pack SIZE is kept** ("4 packs of 48") because that is how a diaper variant
+  is identified — a 48s and a 34s are different products.
+- **Pieces stay in the DATABASE**, for four reasons and no others: the stock
+  ledger (what lets a part-opened carton exist), landed cost (a carton divides
+  to a piece before it meets a price), competitor comparison (rivals sell
+  30s/34s/48s, so per-piece is the only comparable unit), and mixed cartons.
+- **Money must be measured against the unit actually sold.** Dividing landed
+  cost by a per-piece price nobody is charged produced margins wrong on 21 of
+  29 SKUs (migration 0139). Margin, promo floors and price suggestions all use
+  the pack/carton price.
+
+### SKU code convention — read it, it tells you the pack config
+`BRAND-MODEL-SIZE-{pcs_per_pack}x{packs_per_carton}`
+
+`MAMY-XTRA-XXXL-34x3` = **34 pieces in a pack, 3 packs in a carton** (102 per
+carton). This holds for every diaper SKU. If a GRN, a batch or a piece count
+disagrees with the code, **the code is right and the other number is the bug** —
+do not ask Ali to arbitrate what the code already states.
+
 ## Hard Rules (never break)
 1. All financial calculations in **Postgres**, never TypeScript
 2. Stock quantity derived from `stock_movements` sum — never stored directly
@@ -46,6 +76,13 @@ Claude is authorized to write and apply new migrations directly via the Supabase
 5. SKU hierarchy = 7 levels: Brand → Category → Variant → Packaging → Unit Size → Units/Pack → Packs/Carton
 6. Push to GitHub after every confirmed working change
 7. Never call Supabase directly in pages — always via `lib/queries/`
+8. **A new page is not done until it appears in the menu.** Nav grouping is
+   DATA (`section` on each item in `components/layout/nav-config.ts`), read by
+   both the mobile More sheet and the desktop sidebar. There was once a second
+   hardcoded list of hrefs in each of those files, so adding a page to
+   nav-config did nothing — the Price Simulator shipped built, routable and
+   invisible. Never reintroduce a local list. After adding a page, open the
+   menu and confirm it is there.
 
 ## Key paths
 - Queries: `lib/queries/` · Pages: `app/(app)/` · Components: `components/`

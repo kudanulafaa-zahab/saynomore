@@ -19,45 +19,61 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/** Menu grouping. This is DATA, not a comment.
+ *
+ *  The More sheet and the desktop sidebar used to each keep their own
+ *  hardcoded list of which hrefs belong to which heading. Adding a page here
+ *  therefore did nothing — /costing shipped, built fine, and was reachable
+ *  only by typing the URL, because neither menu's list mentioned it. A nav
+ *  entry that renders nowhere is worse than no nav entry: it looks done.
+ *
+ *  Both menus now derive their sections from `section` below, so a new page
+ *  cannot be invisible. Never reintroduce a second list of hrefs. */
+export type NavSection = "Core" | "Finance" | "Procurement" | "Catalogue" | "Operations";
+
+/** Heading order in the menus. */
+export const NAV_SECTIONS: NavSection[] = ["Core", "Finance", "Procurement", "Catalogue", "Operations"];
+
 export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  section: NavSection;
   primary?: boolean;
 }
 
 export const FULL_NAV: NavItem[] = [
   // Primary 4 tab-bar items (daily habit loop)
-  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard, primary: true },
-  { href: "/sales",      label: "Sales",      icon: ShoppingCart,    primary: true },
-  { href: "/inventory",  label: "Inventory",  icon: Boxes,           primary: true },
-  { href: "/dispatch",   label: "Dispatch",   icon: MapPin,          primary: true },
+  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard, section: "Core", primary: true },
+  { href: "/sales",      label: "Sales",      icon: ShoppingCart,    section: "Core", primary: true },
+  { href: "/inventory",  label: "Inventory",  icon: Boxes,           section: "Core", primary: true },
+  { href: "/dispatch",   label: "Dispatch",   icon: MapPin,          section: "Core", primary: true },
 
   // Finance & reporting (overflow — deliberate navigation)
-  { href: "/financials", label: "Financials",  icon: BarChart2   },
-  { href: "/reports",    label: "Reports",     icon: LineChart   },
-  { href: "/pricelists", label: "Price Lists", icon: Tags        },
-  { href: "/expenses",   label: "Expenses",    icon: Wallet      },
+  { href: "/financials", label: "Financials",  icon: BarChart2,   section: "Finance" },
+  { href: "/reports",    label: "Reports",     icon: LineChart,   section: "Finance" },
+  { href: "/pricelists", label: "Price Lists", icon: Tags,        section: "Finance" },
+  { href: "/costing",    label: "Price Simulator", icon: Calculator, section: "Finance" },
+  { href: "/expenses",   label: "Expenses",    icon: Wallet,      section: "Finance" },
 
   // Procurement
-  { href: "/reorder",    label: "Reorder",    icon: ClipboardList },
-  { href: "/shipments",  label: "Shipments",  icon: Ship        },
-  { href: "/costing",    label: "Cost Simulator", icon: Calculator  },
-  { href: "/suppliers",  label: "Suppliers",  icon: Building2   },
+  { href: "/reorder",    label: "Reorder",    icon: ClipboardList, section: "Procurement" },
+  { href: "/shipments",  label: "Shipments",  icon: Ship,          section: "Procurement" },
+  { href: "/suppliers",  label: "Suppliers",  icon: Building2,     section: "Procurement" },
 
   // Catalogue
-  { href: "/products",   label: "Products",   icon: Package     },
-  { href: "/godowns",    label: "Godowns",    icon: Warehouse   },
-  { href: "/stock-ops",  label: "Stock Ops",  icon: ArrowLeftRight },
-  { href: "/competitors",label: "Market",     icon: Tag         },
+  { href: "/products",   label: "Products",   icon: Package,       section: "Catalogue" },
+  { href: "/godowns",    label: "Godowns",    icon: Warehouse,     section: "Catalogue" },
+  { href: "/stock-ops",  label: "Stock Ops",  icon: ArrowLeftRight, section: "Catalogue" },
+  { href: "/competitors",label: "Market",     icon: Tag,           section: "Catalogue" },
 
   // Operations
-  { href: "/customers",  label: "Customers",  icon: UserRound   },
+  { href: "/customers",  label: "Customers",  icon: UserRound,     section: "Operations" },
 ];
 
 // Staff (delivery): dedicated driver screen
 export const STAFF_NAV: NavItem[] = [
-  { href: "/deliveries", label: "My Deliveries", icon: MapPin, primary: true },
+  { href: "/deliveries", label: "My Deliveries", icon: MapPin, section: "Core", primary: true },
 ];
 
 // Viewer: full read nav — no dispatch (action-only module with no read value)

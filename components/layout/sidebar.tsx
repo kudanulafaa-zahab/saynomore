@@ -4,16 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
-import { navForRole, type NavItem } from "./nav-config";
+import { navForRole, NAV_SECTIONS, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
 
-const SECTIONS = [
-  { label: "Core",        hrefs: ["/dashboard", "/sales", "/inventory", "/dispatch"] },
-  { label: "Finance",     hrefs: ["/financials", "/reports", "/pricelists", "/expenses"] },
-  { label: "Procurement", hrefs: ["/reorder", "/shipments", "/suppliers"] },
-  { label: "Catalogue",   hrefs: ["/products", "/godowns", "/stock-ops", "/competitors"] },
-  { label: "Operations",  hrefs: ["/customers"] },
-];
+// Headings come from NAV_SECTIONS and each item's own `section` — see the
+// note in nav-config.ts. A local list of hrefs here is how a page ends up
+// built, routable and invisible.
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
@@ -38,7 +34,6 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 export function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const items    = navForRole(role);
-  const itemMap  = new Map(items.map((i) => [i.href, i]));
 
   return (
     <aside
@@ -70,19 +65,17 @@ export function Sidebar({ role }: { role: string }) {
 
       {/* Nav sections */}
       <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-        {SECTIONS.map((section) => {
-          const sectionItems = section.hrefs
-            .map((href) => itemMap.get(href))
-            .filter((i): i is NavItem => i !== undefined);
+        {NAV_SECTIONS.map((section) => {
+          const sectionItems = items.filter((i) => i.section === section);
           if (sectionItems.length === 0) return null;
 
           return (
-            <div key={section.label}>
+            <div key={section}>
               <p
                 className="px-3 mb-1 text-[12px] font-bold uppercase tracking-widest"
                 style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
               >
-                {section.label}
+                {section}
               </p>
               <div className="space-y-0.5">
                 {sectionItems.map((item) => {
