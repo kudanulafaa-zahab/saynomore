@@ -700,11 +700,8 @@ function TransferTab({
               All
             </button>
           </div>
-          {qtyEnteredNum > 0 && unit !== "piece" && (
-            <p className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-              = {qtyNum.toLocaleString()} pcs
-            </p>
-          )}
+          {/* No piece echo: the field above already states the trade unit,
+              and diapers are never counted in pieces on screen. */}
           {overAvailable && (
             <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>
               Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} available to move.
@@ -901,9 +898,7 @@ function WriteOffTab({
               className="w-full h-12 rounded-xl px-4 text-[16px] font-semibold text-foreground outline-none"
               style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: `1px solid ${overAvailable ? "color-mix(in srgb, var(--snm-error) 45%, transparent)" : "var(--glass-border-lo)"}` }}
             />
-            {qtyEnteredNum > 0 && unit !== "piece" && (
-              <p className="snm-num ios-subhead" style={{ color: "var(--muted-foreground)" }}>= {qtyNum.toLocaleString()} pcs</p>
-            )}
+            {/* No piece echo — see the note in the transfer panel above. */}
             {overAvailable && (
               <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn)} on hand here.</p>
             )}

@@ -4,16 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Settings, X, MoreHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { navForRole, type NavItem } from "./nav-config";
+import { navForRole, NAV_SECTIONS, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
-const SHEET_SECTIONS: { label: string; hrefs: string[] }[] = [
-  { label: "Finance",     hrefs: ["/financials", "/reports", "/pricelists", "/expenses"] },
-  { label: "Procurement", hrefs: ["/reorder", "/shipments", "/suppliers"] },
-  { label: "Catalogue",   hrefs: ["/products", "/godowns", "/stock-ops", "/competitors"] },
-  { label: "Operations",  hrefs: ["/customers"] },
-];
+// Headings come from NAV_SECTIONS and each item's own `section`. This used to
+// be a second hardcoded list of hrefs, which meant a page added to nav-config
+// silently never appeared here — that is how the Price Simulator shipped
+// unreachable. Do not reintroduce a local list.
 
 export function BottomNav({ role }: { role: string }) {
   const pathname    = usePathname();
@@ -37,7 +35,6 @@ export function BottomNav({ role }: { role: string }) {
     overflow.some((i) => pathname === i.href || pathname.startsWith(i.href + "/")) ||
     (pathname === "/settings" && role !== "staff");
 
-  const itemMap = new Map(all.map((i) => [i.href, i]));
 
   return (
     <>
@@ -125,19 +122,17 @@ export function BottomNav({ role }: { role: string }) {
 
           {/* Sectioned nav items */}
           <div className="px-2 pb-3 space-y-3">
-            {SHEET_SECTIONS.map((section) => {
-              const sectionItems = section.hrefs
-                .map((href) => itemMap.get(href))
-                .filter((i): i is NavItem => i !== undefined && overflow.includes(i));
+            {NAV_SECTIONS.map((section) => {
+              const sectionItems = overflow.filter((i) => i.section === section);
               if (sectionItems.length === 0) return null;
 
               return (
-                <div key={section.label}>
+                <div key={section}>
                   <p
                     className="px-3 mb-1.5 text-[12px] font-bold uppercase tracking-widest"
                     style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
                   >
-                    {section.label}
+                    {section}
                   </p>
                   <div className="grid grid-cols-2 gap-1.5">
                     {sectionItems.map((item) => {

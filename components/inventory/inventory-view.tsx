@@ -298,7 +298,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
                 <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>Out of stock — 0 in every godown</p>
                 <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   {alert?.daily_avg_pieces != null && alert.daily_avg_pieces > 0
-                    ? `Still selling ~${alert.daily_avg_pieces.toFixed(1)} pcs/day — reorder now`
+                    ? `Still selling ~${(alert.daily_avg_pieces / Math.max(1, row.sku.pcs_per_pack)).toFixed(1)} packs/day — reorder now`
                     : "Reorder to put it back on the shelf"}
                 </p>
               </div>
@@ -385,7 +385,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
                 </p>
                 {alert?.dir != null && (
                   <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    ~{alert.dir} days left · avg {alert.daily_avg_pieces.toFixed(1)} pcs/day
+                    ~{alert.dir} days left · avg {(alert.daily_avg_pieces / Math.max(1, sku.pcs_per_pack)).toFixed(1)} packs/day
                     {alert.suggested_cartons > 0 && ` · suggest ordering ${alert.suggested_cartons} ctn`}
                   </p>
                 )}
