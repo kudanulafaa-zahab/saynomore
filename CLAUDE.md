@@ -72,16 +72,26 @@ Two SKUs can share a size and still be different products: `XXXL-22x4` and
 `XXXL-34x3` are separate retail pack formats. **Never compare their per-piece
 economics and read a difference as evidence of anything.**
 
-### Carton dimensions are NOMINAL — never reason from them
-Ali does not measure cartons. He deliberately enters the same stand-in
-dimensions for most SKUs, so `cbm_per_carton`, length/width/height and weight
-are **not physical measurements**. They exist for one job: apportioning
-freight, which they do roughly per-carton, which is intended and fine.
+### Carton dimensions are REAL and load-bearing — but partly estimated today
+Ali (2026-08-05): *"Cbm figures are not stand in. I use it to calculate actual
+cbm. It is critical for reliable [costing] but I must make sure the
+measurements are accurate. I filled most from a single measurement just for
+rough calculations."*
 
-**Never** use CBM to infer pack contents, product size, or anything about the
-physical goods. A whole confident argument was once built on "the same diaper
-occupies the same space" — against placeholder data. The Cost Simulator's
-accuracy is bounded by the CBM entered, exactly as the real GRN is.
+So: **CBM is meant to be true**, it drives the freight/local apportionment in
+`confirm_grn`, and improving it improves every landed cost. It is currently
+approximate because most SKUs were filled from one measurement, not because it
+is a placeholder. Treat it as real data with known error, not as junk.
+
+- `skus.cbm_per_carton` is a **GENERATED column** = L × W × H ÷ 1 000 000. Only
+  the three dimensions are ever entered. Never write CBM directly.
+- 31 SKUs share only **5 distinct carton sizes**, so accuracy is a
+  five-measurement job. On SH-2026-001 the sizes carry 47.1 / 19.9 / 18.4 /
+  14.3 / 0.4 % of freight — the top three are 85% of it.
+- **Do not infer product facts from CBM.** It is accurate enough to split
+  freight and not accurate enough to deduce what is inside a carton. A
+  confident argument about pack contents was once built on CBM-per-piece and
+  was wrong. Freight apportionment, yes; forensics, no.
 
 ## Hard Rules (never break)
 1. All financial calculations in **Postgres**, never TypeScript

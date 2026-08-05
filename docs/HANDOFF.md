@@ -574,16 +574,16 @@ SKU needed changing, and migration 0138 was deleted unapplied.
 
 **Two mistakes worth not repeating:**
 
-1. **Carton dimensions are deliberately nominal.** Ali: *"I deliberately have
-   wrong dimensions for carton size. I used same dimensions."* He does not
-   measure cartons; he enters a stand-in. I built a confident argument on
-   CBM-per-piece and called it "the hard check … the same diaper occupies the
-   same space", which is worthless against placeholder data. **Never treat
-   `cbm_per_carton` as a physical measurement or use it to infer anything
-   about a product.** It exists only to apportion freight, and it apportions
-   roughly per carton because the figures are near-uniform by design — which
-   is fine and intended. The Cost Simulator inherits this: its output is only
-   as good as the CBM entered, exactly like the real GRN.
+1. **Carton dimensions are REAL, not placeholders — I mis-stated this.** Ali
+   corrected me: *"Cbm figures are not stand in. I use it to calculate actual
+   cbm. It is critical for reliable [costing]... I filled most from a single
+   measurement just for rough calculations."* CBM is meant to be true and it
+   drives freight apportionment in `confirm_grn`; it is currently approximate
+   because most SKUs were filled from one measurement. `cbm_per_carton` is a
+   GENERATED column (L×W×H÷1e6) — only dimensions are entered. What remains
+   true is the narrow point: it is accurate enough to split freight and not
+   accurate enough to deduce what is inside a carton, which is where my
+   original argument went wrong.
 
 2. **The two XXXL SKUs are different products.** `MAMY-XTRA-XXXL-22x4` and
    `MAMY-XTRA-XXXL-34x3` are separate retail pack formats. Do not compare
