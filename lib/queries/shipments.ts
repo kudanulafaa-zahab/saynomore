@@ -267,6 +267,34 @@ export async function forceVoidGrn(shipmentId: string) {
   if (error) throw error;
 }
 
+// ── What a force-void would actually destroy (migration 0133) ────────────
+// Read before showing the confirmation so the sheet can state the real cost
+// in stock, orders and rufiyaa — and refuse up front when the RPC would
+// refuse anyway, instead of letting someone commit to the action and then
+// eat an error toast. `blocked_reason` mirrors the guards in
+// admin_force_void_grn; both change together.
+
+export interface ShipmentVoidImpact {
+  reference: string;
+  status: string;
+  line_count: number;
+  batch_count: number;
+  pieces_received: number;
+  pieces_on_hand: number;
+  orders_affected: number;
+  orders_value_mvr: number;
+  paid_orders: number;
+  blocked_reason: string | null;
+}
+
+export async function getShipmentVoidImpact(shipmentId: string): Promise<ShipmentVoidImpact> {
+  const { data, error } = await supabase
+    .rpc("get_shipment_void_impact", { p_shipment_id: shipmentId })
+    .single();
+  if (error) throw error;
+  return data as ShipmentVoidImpact;
+}
+
 // ── Reopen GRN — admin/manager only. Unlike void, this keeps the shipment
 // and its lines (with computed costs cleared) so it can be edited in place
 // and re-confirmed, rather than deleted and re-entered from scratch.

@@ -13,7 +13,7 @@ import {
   deleteSalesOrder,
   createOrderLine,
   updateOrderLine,
-  deleteOrderLine,
+  removeOrderLine,
   postSale,
   toPieces,
   getTierPricesForSkus,
@@ -24,8 +24,10 @@ import {
   voidOrder,
   editOrderLine,
   getOrderAudit,
+  getSalesOrderDeleteImpact,
   parseVoidReason,
   parseVoidReversedCount,
+  type SalesOrderDeleteImpact,
   type SalesOrderRow,
   type SalesOrderLineRow,
   type OrderStatus,
@@ -42,6 +44,8 @@ import { haptic } from "@/lib/haptics";
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
+import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
+import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { recordCustomerReturn, type ReturnReason, type ReturnSettlement } from "@/lib/queries/inventory";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
@@ -95,6 +99,13 @@ export function SaleDetail({ id }: { id: string }) {
   const [deleting, setDeleting]       = useState(false);
   const [depositing, setDepositing]   = useState(false);
   const [posting, setPosting]         = useState(false);
+
+  // What deleting this order would cost, straight from Postgres (0133).
+  // Fetched when the sheet is opened rather than in an effect: the sheet only
+  // opens on a tap, so there is nothing to synchronise.
+  const [delImpact, setDelImpact] = useState<SalesOrderDeleteImpact | null>(null);
+  const [delImpactFailed, setDelImpactFailed] = useState(false);
+  const delImpactLoading = delImpact === null && !delImpactFailed;
 
   // local driver / cash state for action panels
   const [selectedDriver, setSelectedDriver] = useState("");
@@ -382,6 +393,29 @@ export function SaleDetail({ id }: { id: string }) {
     finally { setSavingAddress(false); }
   }
 
+  // A true draft has never touched stock or money, so its delete stays a
+  // plain tap. Anything past draft gets the hold and the ledger below.
+  function openDeleteSheet() {
+    setDelImpact(null);
+    setDelImpactFailed(false);
+    setPanel("delete");
+    if (order && !isTrueDraft) {
+      getSalesOrderDeleteImpact(order.id)
+        .then(setDelImpact)
+        .catch(() => setDelImpactFailed(true));
+    }
+  }
+
+  const delImpactRows: ImpactRow[] = delImpact
+    ? [
+        { label: "Order value", value: `MVR ${fmt(delImpact.total_mvr)}`, money: true },
+        ...(delImpact.pieces_restored > 0
+          ? [{ label: "Stock returned to inventory", value: `${delImpact.pieces_restored.toLocaleString()} pcs` }]
+          : []),
+        { label: "Product lines", value: `${delImpact.line_count}` },
+      ]
+    : [];
+
   async function handleDeleteOrder() {
     if (!order) return;
     setDeleting(true);
@@ -425,8 +459,13 @@ export function SaleDetail({ id }: { id: string }) {
     if (!pendingDeleteLine) return;
     setDeletingLine(true);
     try {
-      await deleteOrderLine(pendingDeleteLine.id);
-      toast.success("Item removed");
+      // Lines are only removable while the order is confirmed or picked, and
+      // by then post_sale has already deducted the stock — so this goes
+      // through the RPC that reverses the movements. A plain table delete
+      // here used to leave the goods deducted from inventory but absent from
+      // the order (fixed in migration 0134).
+      await removeOrderLine(pendingDeleteLine.id);
+      toast.success("Item removed — stock returned");
       setPendingDeleteLine(null);
       setPanel(null);
       load();
@@ -500,7 +539,7 @@ export function SaleDetail({ id }: { id: string }) {
         </div>
         {canWrite && isTrueDraft && (
           <button
-            onClick={() => setPanel("delete")}
+            onClick={openDeleteSheet}
             className="snm-pressable"
             style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
           >
@@ -517,7 +556,7 @@ export function SaleDetail({ id }: { id: string }) {
               Void
             </button>
             <button
-              onClick={() => setPanel("delete")}
+              onClick={openDeleteSheet}
               aria-label="Delete order"
               className="snm-pressable"
               style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
@@ -528,7 +567,7 @@ export function SaleDetail({ id }: { id: string }) {
         )}
         {isAdminOrManager && isCancelled && (
           <button
-            onClick={() => setPanel("delete")}
+            onClick={openDeleteSheet}
             aria-label="Delete order"
             className="snm-pressable"
             style={{ width: 44, height: 44, borderRadius: 12, background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", border: "none", color: "var(--snm-error)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
@@ -1203,26 +1242,63 @@ export function SaleDetail({ id }: { id: string }) {
           )}
         </p>
         <SheetActions>
-          <button onClick={() => { setPendingDeletePayment(null); setPanel(null); }} style={ghostBtn}>Cancel</button>
-          <button onClick={handleDeletePayment} disabled={deletingPayment} style={{ ...primaryBtn, background: "var(--snm-error)" }}>
+          <button onClick={() => { setPendingDeletePayment(null); setPanel(null); }} style={primaryBtn}>Keep it</button>
+          <button onClick={handleDeletePayment} disabled={deletingPayment} style={dangerQuietBtn}>
             {deletingPayment ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
           </button>
         </SheetActions>
       </Sheet>
 
-      {/* Delete order */}
+      {/* Delete order.
+          A true draft never posted stock and never took money, so deleting it
+          costs nothing and stays a single tap. Everything else destroys a real
+          record, so it shows what it is worth and asks for a press-and-hold. */}
       <Sheet open={panel === "delete"} onClose={() => setPanel(null)}>
-        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Delete Order?</h2>
-        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
-          <strong style={{ color: "var(--foreground)" }}>{order.order_number}</strong> and all its items will be permanently deleted.
-          {!isTrueDraft && !isCancelled ? " Its stock will be returned to inventory." : ""} This cannot be undone.
+        <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
+          Delete {order.order_number}?
+        </h2>
+        <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 16 }}>
+          {isTrueDraft
+            ? "This draft was never confirmed, so no stock or money is affected."
+            : <>This erases the order from your records{!isCancelled ? ", and puts its stock back on the shelf" : ""}. It cannot be undone.</>}
         </p>
-        <SheetActions>
-          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
-          <button onClick={handleDeleteOrder} disabled={deleting} style={{ ...primaryBtn, background: "var(--snm-error)" }}>
-            {deleting ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Delete"}
-          </button>
-        </SheetActions>
+
+        {!isTrueDraft && (
+          <div style={{ marginBottom: 16 }}>
+            <ImpactLedger rows={delImpactRows} loading={delImpactLoading} />
+          </div>
+        )}
+
+        {delImpact?.blocked_reason ? (
+          <>
+            <ImpactBlocked reason={delImpact.blocked_reason} />
+            <button
+              onClick={() => setPanel(null)}
+              style={{ ...primaryBtn, width: "100%", marginTop: 12 }}
+            >
+              Back
+            </button>
+          </>
+        ) : isTrueDraft ? (
+          <SheetActions>
+            <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
+            <button onClick={handleDeleteOrder} disabled={deleting} style={{ ...primaryBtn, background: "var(--snm-error)" }}>
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Delete draft"}
+            </button>
+          </SheetActions>
+        ) : (
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <button onClick={() => setPanel(null)} style={{ ...primaryBtn, flex: 2 }}>Keep order</button>
+            <HoldToConfirm
+              className="flex-1"
+              label="Hold to delete"
+              busyLabel="Deleting…"
+              busy={deleting}
+              disabled={delImpactLoading}
+              onConfirm={handleDeleteOrder}
+            />
+          </div>
+        )}
       </Sheet>
 
       {/* Void order (confirmed/picked/dispatched/delivered — reverses stock) */}
@@ -1240,9 +1316,9 @@ export function SaleDetail({ id }: { id: string }) {
           style={{ width: "100%", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 10, padding: "10px 12px", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 20, resize: "none" }}
         />
         <SheetActions>
-          <button onClick={() => setPanel(null)} style={ghostBtn}>Cancel</button>
-          <button onClick={handleVoidOrder} disabled={voiding || !voidReason.trim()} style={{ ...primaryBtn, background: "var(--snm-error)", opacity: voiding || !voidReason.trim() ? 0.5 : 1 }}>
-            {voiding ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Void Order"}
+          <button onClick={() => setPanel(null)} style={primaryBtn}>Keep order</button>
+          <button onClick={handleVoidOrder} disabled={voiding || !voidReason.trim()} style={{ ...dangerQuietBtn, opacity: voiding || !voidReason.trim() ? 0.4 : 1 }}>
+            {voiding ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Void order"}
           </button>
         </SheetActions>
       </Sheet>
@@ -1251,14 +1327,20 @@ export function SaleDetail({ id }: { id: string }) {
       <Sheet open={panel === "deleteLine"} onClose={() => { setPendingDeleteLine(null); setPanel(null); }}>
         <h2 style={{ color: "var(--snm-error)", fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Remove item?</h2>
         <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 24 }}>
-          {pendingDeleteLine && (() => {
-            const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
-            return sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "This item";
-          })()} will be removed from the order.
+          <strong style={{ color: "var(--foreground)" }}>
+            {pendingDeleteLine && (() => {
+              const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
+              return sku ? `${sku.brand_name} ${sku.model_name} ${sku.variant_display}` : "This item";
+            })()}
+          </strong>{" "}
+          comes off {order.order_number}
+          {pendingDeleteLine?.qty_pieces
+            ? <>, and its <strong style={{ color: "var(--foreground)" }}>{pendingDeleteLine.qty_pieces} pcs</strong> go back into stock</>
+            : null}.
         </p>
         <SheetActions>
-          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} style={ghostBtn}>Cancel</button>
-          <button onClick={handleDeleteLine} disabled={deletingLine} style={{ ...primaryBtn, background: "var(--snm-error)" }}>
+          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} style={primaryBtn}>Keep it</button>
+          <button onClick={handleDeleteLine} disabled={deletingLine} style={dangerQuietBtn}>
             {deletingLine ? <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> : "Remove"}
           </button>
         </SheetActions>
@@ -1434,6 +1516,16 @@ const primaryBtn: React.CSSProperties = {
   flex: 2, background: "var(--foreground)", color: "var(--background)",
   border: "none", borderRadius: 999, padding: "14px", fontSize: 13,
   fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: "pointer",
+};
+// Destructive actions get the QUIET half of the row: outlined, red text,
+// narrow — while the safe action takes primaryBtn's weight. This deliberately
+// inverts the app's usual "the main action is the wide one" rule. When the
+// main action destroys something, emphasis is a hazard: the thumb's resting
+// choice should be the one that keeps your data.
+const dangerQuietBtn: React.CSSProperties = {
+  flex: 1, background: "transparent", color: "var(--snm-error)",
+  border: "1px solid color-mix(in srgb, var(--snm-error) 38%, transparent)",
+  borderRadius: 999, padding: "14px", fontSize: 14, fontWeight: 600, cursor: "pointer",
 };
 
 function Sheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {

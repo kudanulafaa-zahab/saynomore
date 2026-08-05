@@ -22,11 +22,14 @@ import {
   getShipment, listShipmentLines, updateShipment, deleteShipment,
   createShipmentLine, updateShipmentLine, deleteShipmentLine,
   confirmGrn, forceVoidGrn, reopenGrn, CONTAINER_CAPACITY_CBM, getLastConfirmedRates,
+  getShipmentVoidImpact,
   type ShipmentRow, type ShipmentLineRow, type FobCurrency, type ShipmentStatus,
-  type ContainerSizeHint,
+  type ContainerSizeHint, type ShipmentVoidImpact,
 } from "@/lib/queries/shipments";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
+import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
+import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { notifyAdmins } from "@/lib/push";
 import { getPricingHealth } from "@/lib/queries/pricing";
 import { SkuIdentity } from "@/components/ui/sku-identity";
@@ -428,6 +431,18 @@ export function ShipmentDetail({ id }: { id: string }) {
   const [confirming, setConfirming] = useState(false);
   const [voiding, setVoiding]     = useState(false);
   const [reopening, setReopening] = useState(false);
+  // Deleting a PO had no in-flight flag at all, so two quick taps sent two
+  // delete requests. Not a design preference — a defect.
+  const [deletingShipment, setDeletingShipment] = useState(false);
+
+  // What a void/delete would actually destroy. Fetched from Postgres when the
+  // sheet opens (migration 0133) so the warning can name real figures.
+  // Fetched from the tap handler rather than an effect: the sheet only opens
+  // because someone pressed a button, so there is no state to synchronise and
+  // no loader flash to schedule around.
+  const [impact, setImpact] = useState<ShipmentVoidImpact | null>(null);
+  const [impactFailed, setImpactFailed] = useState(false);
+  const impactLoading = impact === null && !impactFailed;
   const [role, setRole]           = useState<string | null>(null);
   const [showMore, setShowMore]   = useState(false);
   const [costsOpen, setCostsOpen] = useState(false);
@@ -448,6 +463,32 @@ export function ShipmentDetail({ id }: { id: string }) {
 
   // Rates from the last confirmed GRN — typo tripwire for the forex fields.
   const [lastRates, setLastRates] = useState<{ rate_usd_to_mvr: number | null; rate_usd_to_idr: number | null } | null>(null);
+
+  /* ── Destructive sheets ────────────────────────────────────────────────── */
+
+  // Opens a destroy sheet and fetches, from Postgres, what it would actually
+  // cost. Both sheets share one query because both ultimately reach the same
+  // rows — a PO with no GRN simply reports zeros.
+  function openDestroySheet(which: "voidGrn" | "deleteShipment") {
+    setImpact(null);
+    setImpactFailed(false);
+    setPanel(which);
+    getShipmentVoidImpact(id)
+      .then(setImpact)
+      .catch(() => setImpactFailed(true));
+  }
+
+  const impactRows: ImpactRow[] = impact
+    ? [
+        { label: "Stock still in the godown", value: `${impact.pieces_on_hand.toLocaleString()} pcs` },
+        ...(impact.orders_affected > 0
+          ? [
+              { label: "Customer orders deleted", value: `${impact.orders_affected}` },
+              { label: "Sales value erased", value: `MVR ${fmt2(impact.orders_value_mvr)}`, money: true },
+            ]
+          : []),
+      ]
+    : [];
 
   /* ── Data loading ──────────────────────────────────────────────────────── */
 
@@ -1493,7 +1534,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         <div className="space-y-2">
           {!locked && isAdmin && (
             <button
-              onClick={() => { setShowMore(false); setPanel("deleteShipment"); }}
+              onClick={() => { setShowMore(false); openDestroySheet("deleteShipment"); }}
               className="w-full flex items-center gap-3 h-12 px-4 rounded-xl text-sm font-medium transition"
               style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}
             >
@@ -1511,11 +1552,11 @@ export function ShipmentDetail({ id }: { id: string }) {
           )}
           {locked && isAdmin && (
             <button
-              onClick={() => { setShowMore(false); setPanel("voidGrn"); }}
+              onClick={() => { setShowMore(false); openDestroySheet("voidGrn"); }}
               className="w-full flex items-center gap-3 h-12 px-4 rounded-xl text-sm font-medium transition"
               style={{ background: "color-mix(in srgb, var(--snm-error) 8%, transparent)", color: "var(--snm-error)" }}
             >
-              <RotateCcw className="h-4 w-4" /> Void GRN &amp; Re-enter
+              <RotateCcw className="h-4 w-4" /> Delete shipment &amp; re-enter
             </button>
           )}
           <button
@@ -1650,55 +1691,111 @@ export function ShipmentDetail({ id }: { id: string }) {
         </div>
       </Sheet>
 
+      {/* Delete a received shipment — the single most destructive button in
+          the app. It takes the goods AND every sale made from them, so it is
+          the one place that earns a press-and-hold. */}
       <Sheet open={panel === "voidGrn"} onClose={() => setPanel(null)}>
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-3">
           <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
             <AlertTriangle className="h-5 w-5" />
           </div>
-          <h2 className="text-[20px] font-semibold" style={{ color: "var(--snm-error)" }}>Void GRN?</h2>
+          <h2 className="text-[20px] font-semibold leading-tight" style={{ color: "var(--snm-error)" }}>
+            Delete shipment {shipment.reference}?
+          </h2>
         </div>
-        <p className="ios-subhead mb-2" style={{ color: "var(--muted-foreground)" }}>
-          <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> — all inventory batches, stock movements, and linked sales orders will be permanently deleted.
+        <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
+          This erases the goods you received and every sale made from them. It cannot be undone.
         </p>
-        <p className="ios-subhead rounded-xl px-3 py-2 mb-5" style={{ background: "color-mix(in srgb, var(--snm-error) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--muted-foreground)" }}>
-          ⚠ If stock from this shipment has already been sold, those sales orders will also be deleted.
-        </p>
-        <div className="flex gap-3">
-          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
-            style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
-          <button
-            onClick={async () => {
-              setVoiding(true);
-              try { await forceVoidGrn(shipment.id); haptic("warning"); toast.success("Shipment voided"); router.push("/shipments"); }
-              catch (e) { haptic("error"); toast.error((e as Error).message); }
-              finally { setVoiding(false); }
-            }}
-            disabled={voiding}
-            className="flex-[2] h-12 rounded-xl text-sm font-bold transition disabled:opacity-40 flex items-center justify-center"
-            style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)" }}>
-            {voiding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Void & Delete"}
-          </button>
+
+        <ImpactLedger rows={impactRows} loading={impactLoading} />
+
+        <div className="mt-4">
+          {impact?.blocked_reason ? (
+            <>
+              <ImpactBlocked reason={impact.blocked_reason} />
+              <button onClick={() => setPanel(null)} className="mt-3 w-full h-[50px] rounded-2xl text-[15px] font-bold"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                Back
+              </button>
+            </>
+          ) : (
+            <div className="flex gap-3 items-start">
+              {/* The safe action carries the visual weight — this button used
+                  to be the narrow one while "Void & Delete" was twice its size. */}
+              <button onClick={() => setPanel(null)} className="flex-[2] h-[50px] rounded-2xl text-[15px] font-bold"
+                style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                Keep shipment
+              </button>
+              <HoldToConfirm
+                className="flex-1"
+                label="Hold to delete"
+                busyLabel="Deleting…"
+                busy={voiding}
+                disabled={impactLoading}
+                onConfirm={async () => {
+                  setVoiding(true);
+                  try {
+                    await forceVoidGrn(shipment.id);
+                    haptic("warning");
+                    toast.success("Shipment deleted");
+                    router.push("/shipments");
+                  } catch (e) {
+                    haptic("error");
+                    toast.error((e as Error).message);
+                    setVoiding(false);
+                  }
+                }}
+              />
+            </div>
+          )}
         </div>
       </Sheet>
 
-      {/* Delete shipment */}
+      {/* Delete an unreceived purchase order — nothing has entered stock, so
+          a plain tap is enough. It just needed an in-flight guard. */}
       <Sheet open={panel === "deleteShipment"} onClose={() => setPanel(null)}>
-        <h2 className="text-[20px] font-semibold mb-2" style={{ color: "var(--snm-error)" }}>Delete Purchase Order?</h2>
-        <p className="ios-subhead mb-5" style={{ color: "var(--muted-foreground)" }}>
-          <strong style={{ color: "var(--foreground)" }}>{shipment.reference}</strong> and all its lines will be permanently removed.
+        <h2 className="text-[20px] font-semibold mb-2" style={{ color: "var(--snm-error)" }}>
+          Delete purchase order {shipment.reference}?
+        </h2>
+        <p className="ios-subhead mb-4" style={{ color: "var(--muted-foreground)" }}>
+          {lines.length === 0
+            ? "This order has no products on it yet."
+            : `Its ${lines.length} product line${lines.length === 1 ? "" : "s"} will be removed with it. No stock has been received, so nothing leaves your inventory.`}
         </p>
+
+        {impact && impact.orders_affected > 0 && (
+          <div className="mb-4"><ImpactLedger rows={impactRows} /></div>
+        )}
+
         <div className="flex gap-3">
-          <button onClick={() => setPanel(null)} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
-            style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={() => setPanel(null)} className="flex-[2] h-[50px] rounded-2xl text-[15px] font-bold"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}>
+            Keep it
+          </button>
           <button
             onClick={async () => {
-              try { await deleteShipment(shipment.id); haptic("warning"); toast.success("Deleted"); router.push("/shipments"); }
-              catch (e) { haptic("error"); toast.error((e as Error).message); }
+              if (deletingShipment) return;
+              setDeletingShipment(true);
+              try {
+                await deleteShipment(shipment.id);
+                haptic("warning");
+                toast.success("Deleted");
+                router.push("/shipments");
+              } catch (e) {
+                haptic("error");
+                toast.error((e as Error).message);
+                setDeletingShipment(false);
+              }
             }}
-            className="flex-[2] h-12 rounded-xl ios-subhead font-bold"
-            style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)" }}>
-            Delete
+            disabled={deletingShipment}
+            className="flex-1 h-[50px] rounded-2xl text-[15px] font-semibold disabled:opacity-40 flex items-center justify-center"
+            style={{
+              background: "transparent",
+              color: "var(--snm-error)",
+              border: "1px solid color-mix(in srgb, var(--snm-error) 38%, transparent)",
+            }}>
+            {deletingShipment ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
           </button>
         </div>
       </Sheet>
@@ -1713,8 +1810,9 @@ export function ShipmentDetail({ id }: { id: string }) {
           })()} will be removed from the PO.
         </p>
         <div className="flex gap-3">
-          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }} className="flex-1 h-12 rounded-xl ios-subhead font-semibold"
-            style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}>Cancel</button>
+          <button onClick={() => { setPendingDeleteLine(null); setPanel(null); }}
+            className="flex-[2] h-[50px] rounded-2xl text-[15px] font-bold"
+            style={{ background: "var(--foreground)", color: "var(--background)" }}>Keep it</button>
           <button
             onClick={async () => {
               if (!pendingDeleteLine) return;
@@ -1724,8 +1822,12 @@ export function ShipmentDetail({ id }: { id: string }) {
                 setPendingDeleteLine(null); setPanel(null); load();
               } catch (e) { toast.error((e as Error).message); }
             }}
-            className="flex-[2] h-12 rounded-xl ios-subhead font-bold"
-            style={{ background: "var(--snm-error)", color: "var(--snm-on-fill)" }}>
+            className="flex-1 h-[50px] rounded-2xl text-[15px] font-semibold"
+            style={{
+              background: "transparent",
+              color: "var(--snm-error)",
+              border: "1px solid color-mix(in srgb, var(--snm-error) 38%, transparent)",
+            }}>
             Remove
           </button>
         </div>
