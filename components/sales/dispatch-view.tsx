@@ -25,6 +25,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { haptic } from "@/lib/haptics";
 import { BodyPortal } from "@/components/ui/body-portal";
+import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -143,6 +144,7 @@ export function DispatchView() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useRefreshHandler(load);
 
   const active    = items.filter((i) => ["confirmed", "picked", "out_for_delivery"].includes(i.order.status));
   const completed = items.filter((i) => i.order.status === "delivered");

@@ -963,7 +963,7 @@ export function SaleDetail({ id }: { id: string }) {
             <LineList lines={lines} skus={skus} editable={false} />
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, marginTop: 8, borderTop: "0.5px solid var(--glass-border-lo)" }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 14 }}>Order Total</span>
-              <span style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
+              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700 }}>MVR {fmt(totals.mvr)}</span>
             </div>
           </div>
           {canWrite && (
@@ -1985,7 +1985,7 @@ function LineDialog({
                     ? "color-mix(in srgb, var(--snm-brand) 18%, transparent)"
                     : "color-mix(in srgb, var(--snm-success) 18%, transparent)",
                   color: autoSource === "price_list" ? "var(--snm-brand)" : "var(--snm-success)",
-                  fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", padding: "2px 5px", borderRadius: 4,
+                  fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", padding: "2px 6px", borderRadius: 4,
                 }}>
                   {autoSource === "price_list" ? customerTier.toUpperCase() : "DEFAULT"} · tap to edit
                 </span>
@@ -2050,7 +2050,7 @@ function LineDialog({
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Line total</span>
-              <span style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         )}

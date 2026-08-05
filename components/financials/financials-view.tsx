@@ -718,7 +718,7 @@ export function FinancialsView() {
                               <p style={{ color: "var(--foreground)", fontSize: 15, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 {s.model_name} · {s.variant_display}
                               </p>
-                              <p style={{ color: "var(--muted-foreground)", fontSize: 13, marginTop: 1 }}>Rev MVR {fmt(s.revenue)}</p>
+                              <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13, marginTop: 1 }}>Rev MVR {fmt(s.revenue)}</p>
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <p style={{ color: (s.marginPct ?? 0) >= 20 ? "var(--snm-success)" : (s.marginPct ?? 0) >= 10 ? "var(--snm-warning)" : "var(--snm-error)", fontSize: 15, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
