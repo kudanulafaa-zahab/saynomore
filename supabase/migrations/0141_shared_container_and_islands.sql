@@ -1,0 +1,58 @@
+-- 0141 — Two things, both because I built without reading what already exists.
+--
+-- A. THE SIMULATOR WAS MISSING THE SHARED CONTAINER (Ali: "very important").
+--
+-- The Shipments cost panel models a SHARED container and derives the freight
+-- share from it:
+--
+--     my freight share = total_container_freight_usd × (my CBM / capacity)
+--     capacity: 20ft = 28 CBM, 40hq = 68 CBM
+--
+-- Verified against SH-2026-001: 8,000 × (7.943 / 68) = 934.43, exactly the
+-- stored my_freight_share_usd. The panel auto-applies it whenever the CBM
+-- changes.
+--
+-- The sandbox asked for a FLAT "my freight share (USD)" instead. That is not
+-- a cosmetic difference — it breaks the main question the tool exists to
+-- answer. In a shared container, adding cartons RAISES your freight bill. A
+-- frozen number cannot show that, so every "what if I order more?" scenario
+-- was understating cost.
+--
+-- simulate_landed_costs now takes shared_container, container_capacity_cbm and
+-- total_container_freight_usd, and computes the share from the scenario's own
+-- CBM — so it moves as lines are added, exactly like the real panel. It also
+-- returns container_cbm_total, container_fill_pct and my_freight_share_usd so
+-- the screen can show the same reassurance the Shipments panel gives.
+--
+-- Capacity is PASSED IN from CONTAINER_CAPACITY_CBM in
+-- lib/queries/shipments.ts rather than redefined in SQL, so the physical
+-- constant keeps exactly one definition in the codebase.
+--
+-- Replaying SH-2026-001 through it returns USD 941.96 against the stored
+-- 934.43. That 7.53 gap is NOT a formula error — the stored value is a
+-- snapshot taken when the container held 7.943 CBM, and the finished shipment
+-- came to 8.007. Worth knowing: a freight share can go stale if lines change
+-- after it was applied.
+--
+-- B. ISLAND NAMES WERE FRAGMENTING EVERY REPORT.
+--
+-- customers.island is free text and had split badly: 26 of 57 customers
+-- between "Male" and "Male’", 5 more across four spellings of Mathiveri.
+-- Any per-island question was answering the wrong thing.
+--
+-- Ali confirmed both merges before anything was written ("Treat Male and Malé
+-- as same spelling or you can autocorrect? Mathiveri a a mathiveri is same if
+-- it's mathiveri"), and the mapping was DRY-RUN first.
+--
+-- normalise_island() is mechanical only: trim, collapse whitespace, drop the
+-- apostrophe, strip a leading atoll code in any observed format, title-case.
+-- It deliberately does NOT merge Hulhumale Phase 1 / Phase 2 — those are real
+-- delivery areas and collapsing them would destroy routing information.
+--
+-- Every rewritten row has an audit_log entry with its previous value, so the
+-- change is reversible. A BEFORE INSERT/UPDATE trigger keeps new entries
+-- canonical so it cannot re-fragment.
+--
+-- Applied live via MCP; this file is the tracked record. See remote migrations
+-- `simulator_shared_container`, `costing_defaults_container_fields`,
+-- `normalise_island_function` and `normalise_customer_islands`.

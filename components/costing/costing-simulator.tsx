@@ -27,6 +27,7 @@ import {
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { haptic } from "@/lib/haptics";
 import { containerLabel } from "@/lib/trade-units";
+import { CONTAINER_CAPACITY_CBM, type ContainerSizeHint } from "@/lib/queries/shipments";
 
 /* ── Formatting ─────────────────────────────────────────────────────────── */
 
@@ -50,6 +51,9 @@ interface Row extends CostingSeedRow {
 const EMPTY_SHIPMENT: CostingShipmentInput = {
   rate_usd_to_mvr: 0,
   rate_usd_to_idr: 0,
+  shared_container: true,
+  container_capacity_cbm: CONTAINER_CAPACITY_CBM["40hq"],
+  total_container_freight_usd: 0,
   freight_share_usd: 0,
   customs_duty_mvr: 0,
   mpl_charges_mvr: 0,
@@ -117,6 +121,10 @@ export function CostingSimulator() {
         setShip({
           rate_usd_to_mvr:   defaults.rate_usd_to_mvr   ?? 0,
           rate_usd_to_idr:   defaults.rate_usd_to_idr   ?? 0,
+          shared_container:  defaults.shared_container ?? true,
+          container_capacity_cbm:
+            CONTAINER_CAPACITY_CBM[(defaults.container_size_hint ?? "40hq") as ContainerSizeHint],
+          total_container_freight_usd: defaults.total_container_freight_usd ?? 0,
           freight_share_usd: defaults.freight_share_usd ?? 0,
           customs_duty_mvr:  defaults.customs_duty_mvr  ?? 0,
           mpl_charges_mvr:   defaults.mpl_charges_mvr   ?? 0,
@@ -232,6 +240,10 @@ export function CostingSimulator() {
       toast.error("Enter the USD → MVR rate — IDR converts through it.");
       return;
     }
+    if (shipment.shared_container && shipment.total_container_freight_usd <= 0) {
+      toast.error("Enter what the whole container's freight costs.");
+      return;
+    }
     setRunning(true);
     try {
       setResults(await simulateLandedCosts(shipment, lines));
@@ -326,9 +338,92 @@ export function CostingSimulator() {
           a={{ label: "USD → MVR", value: ship.rate_usd_to_mvr, on: (v) => setShip({ ...ship, rate_usd_to_mvr: v }), step: "0.01" }}
           b={{ label: "USD → IDR", value: ship.rate_usd_to_idr, on: (v) => setShip({ ...ship, rate_usd_to_idr: v }), step: "1" }}
         />
+        {/* Shared container — the same model as the Shipments cost panel.
+            Your freight is a SHARE of the whole container's bill, worked out
+            from how much of it your goods fill. That is why it moves when you
+            add or remove cartons; a flat number could never show that. */}
+        <div className="rounded-2xl p-3.5 space-y-3"
+             style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <label className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              checked={ship.shared_container}
+              onChange={(e) => setShip({ ...ship, shared_container: e.target.checked })}
+              className="h-5 w-5 shrink-0 accent-current"
+              style={{ color: "var(--foreground)" }}
+            />
+            <span className="text-[15px] font-medium" style={{ color: "var(--foreground)" }}>
+              Sharing the container
+            </span>
+          </label>
+
+          {ship.shared_container ? (
+            <>
+              <div>
+                <span className="block text-[11.5px] font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                  Container size
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["20ft", "40hq"] as ContainerSizeHint[]).map((sz) => {
+                    const on = ship.container_capacity_cbm === CONTAINER_CAPACITY_CBM[sz];
+                    return (
+                      <button
+                        key={sz}
+                        onClick={() => setShip({ ...ship, container_capacity_cbm: CONTAINER_CAPACITY_CBM[sz] })}
+                        className="h-11 rounded-xl text-[13px] font-bold"
+                        style={{
+                          background: on ? "var(--foreground)" : "var(--glass-bg-2)",
+                          color:      on ? "var(--background)" : "var(--muted-foreground)",
+                          border:     on ? "none" : "0.5px solid var(--glass-border-lo)",
+                        }}
+                      >
+                        {sz === "20ft" ? "20 ft" : "40 HQ"}
+                        <span className="ml-1.5 text-[11px] font-semibold opacity-70">
+                          {CONTAINER_CAPACITY_CBM[sz]} CBM
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <NumField
+                label="Whole container freight (USD)"
+                value={ship.total_container_freight_usd}
+                on={(v) => setShip({ ...ship, total_container_freight_usd: v })}
+              />
+
+              {/* Live share, computed the same way the Shipments panel does. */}
+              {ship.total_container_freight_usd > 0 && totalCbm > 0 && (
+                <div className="rounded-xl px-3 py-2.5"
+                     style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
+                  <p className="snm-num text-[13.5px]" style={{ color: "var(--foreground)" }}>
+                    Your share ≈ <strong>USD {money(
+                      ship.total_container_freight_usd * (totalCbm / ship.container_capacity_cbm), 2)}</strong>
+                  </p>
+                  <p className="snm-num text-[11.5px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    {totalCbm.toFixed(3)} of {ship.container_capacity_cbm} CBM —{" "}
+                    {((totalCbm / ship.container_capacity_cbm) * 100).toFixed(1)}% of the container
+                  </p>
+                  {totalCbm > ship.container_capacity_cbm && (
+                    <p className="text-[11.5px] mt-1" style={{ color: "var(--snm-warning)" }}>
+                      That is more than this container holds — check the size.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <NumField
+              label="My freight (USD)"
+              value={ship.freight_share_usd}
+              on={(v) => setShip({ ...ship, freight_share_usd: v })}
+            />
+          )}
+        </div>
+
         <Field2
-          a={{ label: "My freight share (USD)", value: ship.freight_share_usd, on: (v) => setShip({ ...ship, freight_share_usd: v }) }}
-          b={{ label: "Customs duty (MVR)", value: ship.customs_duty_mvr, on: (v) => setShip({ ...ship, customs_duty_mvr: v }) }}
+          a={{ label: "Customs duty (MVR)", value: ship.customs_duty_mvr, on: (v) => setShip({ ...ship, customs_duty_mvr: v }) }}
         />
         <Field2
           a={{ label: "MPL charges (MVR)", value: ship.mpl_charges_mvr, on: (v) => setShip({ ...ship, mpl_charges_mvr: v }) }}

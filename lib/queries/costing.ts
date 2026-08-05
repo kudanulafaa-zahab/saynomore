@@ -23,6 +23,17 @@ export type FobCurrency = "USD" | "IDR" | "MVR";
 export interface CostingShipmentInput {
   rate_usd_to_mvr: number;
   rate_usd_to_idr: number;
+  /** Shared container modelling, mirroring the Shipments cost panel exactly:
+   *  my freight share = total container freight × (my CBM ÷ capacity).
+   *  This is the whole reason freight is modelled rather than typed — in a
+   *  shared container, adding cartons RAISES your freight bill, and a flat
+   *  number cannot show that. */
+  shared_container: boolean;
+  /** From CONTAINER_CAPACITY_CBM in lib/queries/shipments.ts — the physical
+   *  constant has one definition and is passed in, never duplicated in SQL. */
+  container_capacity_cbm: number;
+  total_container_freight_usd: number;
+  /** Used only when the container is NOT shared. */
   freight_share_usd: number;
   customs_duty_mvr: number;
   mpl_charges_mvr: number;
@@ -88,6 +99,11 @@ export interface CostingResultRow {
    *  falls back to the margin the SKU earns today. Only 1 of 31 SKUs has a
    *  target on file, so the screen must not claim a target that isn't set. */
   price_basis: "target" | "current" | null;
+  /** Container-level, identical on every row — returned here so the screen
+   *  needs no second call. */
+  container_cbm_total: number;
+  container_fill_pct: number | null;
+  my_freight_share_usd: number;
 }
 
 /** FX rates and shipment charges from the most recent real shipment. */
@@ -95,6 +111,9 @@ export interface CostingDefaults {
   reference: string;
   rate_usd_to_mvr: number;
   rate_usd_to_idr: number;
+  shared_container: boolean;
+  container_size_hint: "20ft" | "40hq" | null;
+  total_container_freight_usd: number;
   freight_share_usd: number;
   customs_duty_mvr: number;
   mpl_charges_mvr: number;
