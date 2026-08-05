@@ -50,8 +50,36 @@ export interface CostingShipmentInput {
  *  input convenience, never a second costing path. */
 export type FobBasis = "carton" | "pack";
 
+/** A product Ali does not stock, being costed before he commits to buying it.
+ *  Everything here comes off a supplier quote; nothing is looked up, because
+ *  there is no SKU row to look anything up in. Postgres apportions a line like
+ *  this through the identical code path as a catalogue line — there is no
+ *  second costing engine. */
+export interface NewProductInput {
+  name: string;
+  variant_display?: string;
+  brand_name?: string;
+  category_name?: string;
+  pcs_per_pack: number;
+  packs_per_carton: number;
+  duty_rate_pct?: number;
+  sellable_units?: ("pack" | "carton" | "piece")[];
+  /** What he believes he can sell it for — the anchor for margin AND for the
+   *  reverse-costed maximum FOB. */
+  target_price_per_pack_mvr?: number;
+  target_price_per_carton_mvr?: number;
+  /** The margin he wants. Without it there is nothing to work the max FOB
+   *  back from, because a new product has no "current margin" to fall back on. */
+  target_margin_pct?: number;
+}
+
 export interface CostingLineInput {
-  sku_id: string;
+  /** Stable handle so results can be matched back to the row that produced
+   *  them. For a catalogue line this is the sku_id. */
+  key: string;
+  /** Exactly one of `sku_id` or `new_product`. */
+  sku_id?: string;
+  new_product?: NewProductInput;
   qty_cartons: number;
   cbm_per_carton: number;
   /** Send exactly one of these, matching `fob_basis`. */
@@ -60,8 +88,37 @@ export interface CostingLineInput {
   fob_currency: FobCurrency;
 }
 
+/** The distinct carton sizes already in the catalogue. A prospective product's
+ *  CBM is the one input a supplier quote almost never carries, and freight —
+ *  the only volume-driven cost — depends entirely on it. All 31 SKUs sit in
+ *  five boxes, so borrowing a real one beats guessing, and re-picking the box
+ *  re-runs the simulation, which IS the sensitivity check: if the verdict
+ *  survives every box, the measurement doesn't matter; if it doesn't, ask the
+ *  supplier for dimensions before committing. */
+export interface CartonSizeReference {
+  length_cm: number;
+  width_cm: number;
+  height_cm: number;
+  cbm_per_carton: number;
+  sku_count: number;
+  categories: string | null;
+  example: string | null;
+  min_units_per_carton: number | null;
+  max_units_per_carton: number | null;
+}
+
+export async function getCartonSizeReference(): Promise<CartonSizeReference[]> {
+  const { data, error } = await supabase.rpc("get_carton_size_reference");
+  if (error) throw error;
+  return (data ?? []) as CartonSizeReference[];
+}
+
 export interface CostingResultRow {
-  sku_id: string;
+  line_key: string;
+  sku_id: string | null;
+  /** True for a product not in the catalogue — badge it, and expect the
+   *  "vs today" comparisons to be null because there is no history. */
+  is_new: boolean;
   brand_name: string;
   model_name: string;
   variant_display: string;
@@ -82,6 +139,10 @@ export interface CostingResultRow {
   landed_total_mvr: number;
   landed_per_carton_mvr: number | null;
   landed_per_pack_mvr: number | null;
+  /** What it costs to land ONE carton before anything is in it — freight +
+   *  local charges + duty. Independent of the FOB, which is what makes the
+   *  max-FOB inversion below exact. */
+  landing_cost_per_carton_mvr: number | null;
   /** Kept for the cost-per-piece comparison against the previous shipment.
    *  Never rendered on its own — see the units rule in CLAUDE.md. */
   landed_per_piece_mvr: number | null;
@@ -99,6 +160,14 @@ export interface CostingResultRow {
    *  falls back to the margin the SKU earns today. Only 1 of 31 SKUs has a
    *  target on file, so the screen must not claim a target that isn't set. */
   price_basis: "target" | "current" | null;
+  /** Reverse (target) costing — the standard buyer's number. The most he can
+   *  pay per carton and still hit the margin at the assumed selling price.
+   *  Exact whenever duty is 0 (all four of his categories); a close first pass
+   *  otherwise, because the duty pot is itself apportioned by FOB. */
+  max_fob_per_carton_mvr: number | null;
+  max_fob_per_carton_usd: number | null;
+  /** Room left against the quote. Negative = the quote is already too dear. */
+  fob_headroom_pct: number | null;
   /** Container-level, identical on every row — returned here so the screen
    *  needs no second call. */
   container_cbm_total: number;
