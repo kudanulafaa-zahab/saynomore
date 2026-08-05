@@ -522,11 +522,39 @@ database for four reasons and appear on screen for none of them — the stock
 ledger (which is what lets a part-opened carton exist), landed cost (a carton
 divides to a piece before it meets a price), competitor comparison (rivals
 sell 30s/34s/48s, so per-piece is the only comparable unit — Ali's own point),
-and mixed cartons. The Sales card now reads "1 carton (4 packs of 48)" rather
-than "1 carton (4×48 = 192 pcs)"; pack SIZE is kept because it identifies the
-variant. The Sales composer and Sale Detail use the existing
-`lib/trade-units.ts` `formatQtyInTradeUnits` — **that helper already existed
-from July; do not write a second one.**
+and mixed cartons. Pack SIZE is kept because it identifies the variant. The
+Sales composer and Sale Detail use the existing `lib/trade-units.ts`
+`formatQtyInTradeUnits` — **that helper already existed from July; do not write
+a second one.**
+
+**Correction (0143): 0137 did NOT finish this job.** The paragraph above used
+to claim the Sales card already read "1 carton (4 packs of 48)". It didn't —
+`sales_order_item_summary` (0132) was still rendering "2 cartons (3×34 = 102
+pcs)" under every card, and seven other places were still quoting pieces. The
+rule was written down and then not enforced. Migration 0143 and the commit
+"The app still sold diapers by the piece" close it, and this is what to check
+before ever claiming it again:
+
+- **The offer.** `skus.sellable_units` is the only input to any selling-unit
+  picker — `sellableTiers()` in `lib/trade-units.ts`. New Sale *synthesised* a
+  third "Piece" button for any pack-selling SKU; the add-item sheet and the
+  returns sheet each hardcoded ctn/pk/pcs and ignored `sellable_units` outright,
+  so a carton-only Sosoft could be sold by the pack in one screen and not the
+  other. Evidence it was never real: of every sales line ever recorded, the 51
+  with `uom='piece'` are Sosoft bottles in a mixed carton — **zero diapers.**
+- **The words.** `qty_in_trade_units` / `unit_noun` in Postgres are the twins of
+  `formatQtyInTradeUnits` / `containerLabel`. `sales_order_item_summary` and
+  `get_sales_order_delete_impact` (which now returns `stock_restored_summary`)
+  both go through them. Verified: 0 of 77 orders and 0 of 31 SKUs produce a
+  string containing "pcs" or "piece".
+- **The money.** Landed cost is stored per piece and *shown* per pack or carton
+  (`costPerTradeUnit`). Shipment lines lead with the carton. Price Lists takes a
+  pack price and a carton price and derives the per-piece column — that input is
+  gone, along with the bug where entering only a carton price left Save dead.
+- **Deliberate exceptions.** Market compares per piece (rivals sell 30s/34s/48s;
+  Ali's own point). Stock Ops keeps a loose tier because a write-off is a ledger
+  event and a torn pack is real — but named after the product ("btl"), not
+  "pcs". Printed shelf labels keep "48 PCS / PACK": that is pack size.
 
 **Shipment at a glance (0137).** `get_shipment_summary` rolls a shipment up
 category → brand → model in CARTONS, with ordered and received as separate
