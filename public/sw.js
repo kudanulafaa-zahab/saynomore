@@ -191,9 +191,29 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// A notification's `url` decides where tapping it takes you, and it arrives
+// from outside this app. Never navigate anywhere but our own origin: an
+// attacker who can trigger a push must not be able to land Ali on their page
+// ("Payment failed, tap to re-enter your bank details") inside the installed
+// app, where it looks like part of SayNoMore. Anything that isn't a plain
+// in-app path is discarded and we just open the home screen.
+function safeInAppPath(raw) {
+  if (typeof raw !== "string" || raw.length === 0) return "/";
+  try {
+    // Resolving against our origin turns "/sales" into a same-origin URL and
+    // "https://evil.example" into a different one, so the check below catches
+    // absolute URLs, protocol-relative "//evil.com", and "javascript:" alike.
+    const resolved = new URL(raw, self.location.origin);
+    if (resolved.origin !== self.location.origin) return "/";
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch {
+    return "/";
+  }
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/";
+  const url = safeInAppPath(event.notification.data?.url);
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       const match = list.find((c) => c.url.includes(self.location.origin) && "focus" in c);

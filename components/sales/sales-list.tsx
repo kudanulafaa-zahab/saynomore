@@ -1068,6 +1068,8 @@ function NewSaleSheet({
     for (const line of lastOrder.lines) {
       const sku = skus.find((s) => s.id === line.sku_id && s.is_active);
       if (!sku) { skipped++; continue; }
+      // Don't re-add something already on the order — one line per product.
+      if (draftLines.some((l) => l.sku.id === sku.id)) { skipped++; continue; }
       const totalStock = stockLevels
         .filter((l) => l.sku_id === sku.id)
         .reduce((a, l) => a + l.qty_pieces, 0);
@@ -1102,6 +1104,12 @@ function NewSaleSheet({
   }
 
   function pushQuickLine(s: SkuFullRow, uom: ReturnType<typeof defaultUom>, price: number) {
+    // Same one-line-per-product rule as handleAddLine — quick-add must not be
+    // the back door that builds an order the database will reject on save.
+    if (draftLines.some((l) => l.sku.id === s.id)) {
+      toast.error(`${s.brand_name} ${s.variant_display} is already in this order`);
+      return;
+    }
     const pcs = toPieces(uom, 1, s.pcs_per_pack, s.packs_per_carton);
     setDraftLines((prev) => [...prev, {
       key: `${s.id}-${Date.now()}`,
@@ -1325,6 +1333,15 @@ function NewSaleSheet({
 
   function handleAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
+    // One line per product per order — sales_order_lines has a UNIQUE
+    // (order_id, sku_id), and edit_sales_order_line depends on that to scope
+    // its FIFO stock reversal safely. Without this check you could build a
+    // whole order with the same product on two lines and only discover it
+    // when saving failed at the very end.
+    if (draftLines.some((l) => l.sku.id === selectedSku.id)) {
+      toast.error(`${selectedSku.brand_name} ${selectedSku.variant_display} is already in this order — change the quantity on that line instead`);
+      return;
+    }
     const landed = selectedSku.landed_per_piece_mvr;
     const mult = lineUom === "carton" ? selectedSku.pcs_per_pack * selectedSku.packs_per_carton
                : lineUom === "pack" ? selectedSku.pcs_per_pack : 1;
@@ -2867,7 +2884,18 @@ function NewSaleSheet({
           tierPrices={tierPrices}
           onClose={() => setMixedCartonBrandId(null)}
           onAdd={(lines) => {
-            setDraftLines((prev) => [...prev, ...lines]);
+            // A scent may already be on the order from a separate line. One
+            // line per product is a hard database rule, so the freshly built
+            // carton replaces any existing line for the same SKU rather than
+            // creating a duplicate that would fail on save.
+            const incoming = new Set(lines.map((l) => l.sku.id));
+            setDraftLines((prev) => {
+              const kept = prev.filter((l) => !incoming.has(l.sku.id));
+              if (kept.length !== prev.length) {
+                toast.info("Replaced the lines for the products in this carton");
+              }
+              return [...kept, ...lines];
+            });
             setMixedCartonBrandId(null);
           }}
         />,

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { mvtToday, mvtTomorrow, mvtFirstOfMonth, mvtLastMonthRange } from "@/lib/mvt-date";
 import {
   Loader2, TrendingUp, TrendingDown, ArrowRight,
   ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Banknote,
@@ -49,7 +50,9 @@ function statusLabel(s: CodReconRow["recon_status"]) {
 }
 
 function CodView() {
-  const today     = new Date().toISOString().slice(0, 10);
+  // Memoised: reading the clock during render is impure (React Compiler).
+  const today     = useMemo(() => mvtToday(), []);
+  const yesterday = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - 1); return mvtToday(d); }, []);
   const [date, setDate]               = useState(today);
   const [rows, setRows]               = useState<CodReconRow[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -96,7 +99,7 @@ function CodView() {
         <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
           {[
             { label: "Today",     val: today },
-            { label: "Yesterday", val: (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })() },
+            { label: "Yesterday", val: yesterday },
           ].map(({ label, val }) => {
             const active = date === val && !customDate;
             return (
@@ -266,12 +269,26 @@ export function FinancialsView() {
   const [returns, setReturns] = useState<ReturnRow[]>([]);
   const [loading, setLoading]   = useState(true);
 
-  const today          = new Date();
-  const firstOfMonth   = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-  const tomorrow       = new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
-  // Last month range
-  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().slice(0, 10);
-  const lastMonthEnd   = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().slice(0, 10);
+  // Maldives calendar, not the device's. These used to be built from local
+  // midnight and then serialised via toISOString(), which in Malé (UTC+5)
+  // resolves to the PREVIOUS day — so "this month" began on the last day of
+  // last month and quietly absorbed that day's sales, costs and write-offs.
+  // Maldives "now" for month labels — shifting by the offset makes the UTC
+  // getters read as Maldives wall-clock, so the month name and the
+  // current-month highlight can't drift a day either.
+  const { today, firstOfMonth, tomorrow, lastMonthStart, lastMonthEnd } = useMemo(() => {
+    const lm = mvtLastMonthRange();
+    return {
+      // Shifting by the offset makes the UTC getters read as Maldives
+      // wall-clock, so the month name and current-month highlight can't
+      // drift a day either.
+      today: new Date(new Date().getTime() + 5 * 60 * 60 * 1000),
+      firstOfMonth: mvtFirstOfMonth(),
+      tomorrow: mvtTomorrow(),
+      lastMonthStart: lm.start,
+      lastMonthEnd: lm.end,
+    };
+  }, []);
 
   useEffect(() => {
     // Guarded against a fast tab-switch away before this resolves — an
