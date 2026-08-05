@@ -13,6 +13,8 @@ import {
   listOrderLinesForOrders,
   updateOrder,
   getOrderBalance,
+  recordCodCollection,
+  codCollectionArgs,
   type SalesOrderRow,
   type SalesOrderLineRow,
 } from "@/lib/queries/sales";
@@ -163,29 +165,34 @@ export function DispatchView() {
       if (cash < 0)    { toast.error("Cash collected can't be negative"); return; }
     }
     setSaving(true);
-    // Whether this counts as fully paid is decided against what is actually
-    // still owed (Postgres, net of payments and returns) — not against the
-    // gross order total, and never assumed. Writing 'paid' unconditionally
-    // made a short collection look settled and quietly dropped the shortfall
-    // out of receivables.
-    let codStatus: "paid" | "partial" = "paid";
-    if (isCOD) {
-      try {
-        const bal = await getOrderBalance(confirmDelivery.id);
-        const due = bal?.balance_mvr ?? 0;
-        if (due > 0 && cash < due - 0.005) codStatus = "partial";
-      } catch { /* fall back to 'paid'; the amount itself is still recorded */ }
-    }
+    // A COD delivery goes through one RPC that books the cash into the
+    // payments ledger, stamps cash_collected_mvr, and marks the order
+    // delivered together (migration 0136). payment_status is then DERIVED in
+    // Postgres from what the ledger holds, so the browser no longer has to
+    // fetch the balance and guess between 'paid' and 'partial' — and a short
+    // collection can't be written as settled.
+    const codArgs = isCOD
+      ? codCollectionArgs(confirmDelivery.id, cash, { markDelivered: true })
+      : null;
     const patch = {
       status: "delivered" as const,
       delivered_at: new Date().toISOString(),
-      ...(isCOD ? { payment_status: codStatus, cash_collected_mvr: cash } : {}),
     };
     try {
-      const { queued } = await withOfflineFallback(
-        () => updateOrder(confirmDelivery.id, patch),
-        { table: "sales_orders", action: "update", payload: patch, match: { id: confirmDelivery.id } },
-      );
+      const { queued } = codArgs
+        ? await withOfflineFallback(
+            () => recordCodCollection(codArgs),
+            {
+              table: "sales_orders",
+              action: "rpc",
+              rpcName: "record_cod_collection",
+              payload: codArgs as unknown as Record<string, unknown>,
+            },
+          )
+        : await withOfflineFallback(
+            () => updateOrder(confirmDelivery.id, patch),
+            { table: "sales_orders", action: "update", payload: patch, match: { id: confirmDelivery.id } },
+          );
       haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Marked as delivered");
 

@@ -267,6 +267,30 @@ export async function forceVoidGrn(shipmentId: string) {
   if (error) throw error;
 }
 
+// ── "What did I actually order?" — one rolled-up view (migration 0137) ───
+// Counted in CARTONS, the unit the vendor ships and Ali orders in. Ordered and
+// received stay separate columns so a short shipment is impossible to miss.
+
+export interface ShipmentSummaryRow {
+  category_name: string;
+  category_sort_order: number | null;
+  brand_name: string;
+  model_name: string;
+  sku_count: number;
+  cartons_ordered: number;
+  cartons_received: number;
+  loose_packs: number;
+  cbm_total: number;
+  fob_total_mvr: number;
+  landed_total_mvr: number;
+}
+
+export async function getShipmentSummary(shipmentId: string): Promise<ShipmentSummaryRow[]> {
+  const { data, error } = await supabase.rpc("get_shipment_summary", { p_shipment_id: shipmentId });
+  if (error) throw error;
+  return (data ?? []) as ShipmentSummaryRow[];
+}
+
 // ── What a force-void would actually destroy (migration 0133) ────────────
 // Read before showing the confirmation so the sheet can state the real cost
 // in stock, orders and rufiyaa — and refuse up front when the RPC would

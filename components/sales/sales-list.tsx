@@ -43,6 +43,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { SwipeActions, type SwipeAction } from "@/components/ui/swipe-actions";
+import { formatQtyInTradeUnits } from "@/lib/trade-units";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -2147,11 +2148,12 @@ function NewSaleSheet({
                               const ctns = Math.floor(stockHere / (selectedSku.pcs_per_pack * selectedSku.packs_per_carton));
                               return ctns > 0 ? `${ctns} ctn in stock` : "< 1 ctn";
                             }
-                            if (selectedSku.pcs_per_pack > 0) {
-                              const pks = Math.floor(stockHere / selectedSku.pcs_per_pack);
-                              return `${pks} ${packLabel(selectedSku).toLowerCase()}s in stock`;
-                            }
-                            return `${stockHere.toLocaleString()} pcs`;
+                            return `${formatQtyInTradeUnits(stockHere, {
+                              pcsPerPack: selectedSku.pcs_per_pack,
+                              packsPerCarton: selectedSku.packs_per_carton,
+                              unitUom: selectedSku.unit_uom,
+                              sellableUnits: selectedSku.sellable_units,
+                            })} in stock`;
                           })()}
                         </span>
                       )}
@@ -2352,13 +2354,27 @@ function NewSaleSheet({
                   {/* ── Line total — only shown once qty > 0 ── */}
                   {lineQtyPieces > 0 && (
                     <div className="flex items-center justify-between px-1">
-                      <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>= {lineQtyPieces.toLocaleString()} pcs total</span>
+                      <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                        {/* Packs and cartons, never a piece total — nobody
+                            orders diapers by the piece. */}
+                        = {formatQtyInTradeUnits(lineQtyPieces, {
+                            pcsPerPack: selectedSku.pcs_per_pack,
+                            packsPerCarton: selectedSku.packs_per_carton,
+                            unitUom: selectedSku.unit_uom,
+                            sellableUnits: selectedSku.sellable_units,
+                          })} in total
+                      </span>
                       <span className="text-[18px] font-bold text-foreground">MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
                   )}
                   {insufficient && (
                     <p className="ios-subhead font-semibold px-1" style={{ color: "var(--snm-error)" }}>
-                      ⚠ Only {stockHere} pcs available in this warehouse
+                      ⚠ Only {formatQtyInTradeUnits(stockHere, {
+                          pcsPerPack: selectedSku.pcs_per_pack,
+                          packsPerCarton: selectedSku.packs_per_carton,
+                          unitUom: selectedSku.unit_uom,
+                          sellableUnits: selectedSku.sellable_units,
+                        })} available in this warehouse
                     </p>
                   )}
 

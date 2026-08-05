@@ -22,13 +22,14 @@ import {
   getShipment, listShipmentLines, updateShipment, deleteShipment,
   createShipmentLine, updateShipmentLine, deleteShipmentLine,
   confirmGrn, forceVoidGrn, reopenGrn, CONTAINER_CAPACITY_CBM, getLastConfirmedRates,
-  getShipmentVoidImpact,
+  getShipmentVoidImpact, getShipmentSummary,
   type ShipmentRow, type ShipmentLineRow, type FobCurrency, type ShipmentStatus,
-  type ContainerSizeHint, type ShipmentVoidImpact,
+  type ContainerSizeHint, type ShipmentVoidImpact, type ShipmentSummaryRow,
 } from "@/lib/queries/shipments";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
+import { ShipmentSummary } from "@/components/shipments/shipment-summary";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { notifyAdmins } from "@/lib/push";
 import { getPricingHealth } from "@/lib/queries/pricing";
@@ -440,6 +441,8 @@ export function ShipmentDetail({ id }: { id: string }) {
   // Fetched from the tap handler rather than an effect: the sheet only opens
   // because someone pressed a button, so there is no state to synchronise and
   // no loader flash to schedule around.
+  const [summary, setSummary] = useState<ShipmentSummaryRow[]>([]);
+  const [showSummary, setShowSummary] = useState(true);
   const [impact, setImpact] = useState<ShipmentVoidImpact | null>(null);
   const [impactFailed, setImpactFailed] = useState(false);
   const impactLoading = impact === null && !impactFailed;
@@ -495,9 +498,11 @@ export function ShipmentDetail({ id }: { id: string }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, ls, sk, sup, gd, lr] = await Promise.all([
+      const [s, ls, sk, sup, gd, lr, sm] = await Promise.all([
         getShipment(id), listShipmentLines(id), listSkusFlat(), listSuppliers(), listGodowns(),
         getLastConfirmedRates(id).catch(() => null),
+        // Rolled up in Postgres, not here: the totals are stock arithmetic.
+        getShipmentSummary(id).catch(() => []),
       ]);
       setShipment(s);
       setLines(ls);
@@ -505,6 +510,7 @@ export function ShipmentDetail({ id }: { id: string }) {
       setSuppliers(sup);
       setGodowns(gd);
       setLastRates(lr);
+      setSummary(sm);
       // Default the receiving warehouse to any line's existing destination, else
       // the default godown — chosen/changed in the GRN confirm sheet.
       setGrnGodownId((prev) =>
@@ -979,6 +985,30 @@ export function ShipmentDetail({ id }: { id: string }) {
           />
         </Field>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 1b — WHAT'S IN THIS SHIPMENT (rolled up, in cartons)       */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* Answers "how many cases of each brand did I order?" without anyone
+          scrolling the line list and adding up by hand. */}
+
+      {summary.length > 0 && (
+        <div className="rounded-2xl p-5 mb-4" style={CARD}>
+          <SectionHeader
+            label="THE ORDER AT A GLANCE"
+            action={
+              <button
+                onClick={() => setShowSummary((s) => !s)}
+                className="ios-subhead font-semibold"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                {showSummary ? "Hide" : "Show"}
+              </button>
+            }
+          />
+          {showSummary && <ShipmentSummary rows={summary} confirmed={locked} />}
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* SECTION 2 — LINE ITEMS                                            */}
