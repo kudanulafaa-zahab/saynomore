@@ -1,0 +1,36 @@
+-- 0142 — The morning briefing was counting "yesterday" in UTC, and reporting
+--        an expiry warning it had no data to make.
+--
+-- A. TIMEZONE. Migrations 0123 and 0130 moved 13 reporting functions onto
+--    Maldives time. get_morning_briefing was MISSED — and it is the one Ali
+--    actually reads every morning at 07:00 MVT. Four comparisons did
+--    `timestamptz::date = CURRENT_DATE - 1` in a UTC session, so "yesterday"
+--    meant the UTC day. Malé is UTC+5, so an order placed between midnight and
+--    05:00 local lands on the previous UTC date and is attributed to the wrong
+--    day. Yesterday's revenue, order count, deliveries and cash collected were
+--    all affected at the boundary. Now bucketed with
+--    `(x at time zone 'Indian/Maldives')::date`, matching the functions fixed
+--    in 0123/0130.
+--
+-- B. A FALSE ALL-CLEAR ON EXPIRY. The briefing reported expiring_value_mvr
+--    from v_expiring_stock. Not one of the 31 inventory batches has an
+--    expiry_date, so that view is empty and the figure was always 0 — which
+--    reads as "nothing is about to expire" when the truth is "I cannot see".
+--    Expired FMCG stock is a total write-off, and this app's own rule is that
+--    an alert must be actionable or absent, never falsely reassuring.
+--
+--    The briefing now also returns batches_without_expiry and
+--    stock_value_without_expiry_mvr. Live at time of writing: 27 batches
+--    holding MVR 81,577 — effectively the whole inventory — invisible to the
+--    expiry warning. The Dashboard shows this as a watch item whenever there
+--    is no expiring-stock figure to show instead.
+--
+-- Applied live via MCP; this file is the tracked record. See remote migration
+-- `morning_briefing_maldives_time_and_expiry_blindspot`.
+--
+-- STILL UTC, judged immaterial and left alone (recorded so the next audit does
+-- not re-litigate): get_reorder_suggestions and get_sku_reorder_alerts use
+-- CURRENT_DATE only for 90-day velocity windows, where five hours cannot
+-- change a decision; get_cash_forecast/_meta project forward in weeks;
+-- get_cod_reconciliation, get_cod_orders_for_driver and set_cash_balance use
+-- it only as a DEFAULT parameter, and callers pass an explicit date.

@@ -37,6 +37,7 @@ import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
+import { priceForMargin } from "@/lib/trade-units";
 
 // Liquid Glass content surface (2026-07-15) — matches .glass-panel's recipe
 // (fill + specular inset highlight + border) without needing 21 JSX call
@@ -1017,7 +1018,8 @@ export function CompetitorsView() {
                         onChange={(e) => {
                           const pct = parseInt(e.target.value);
                           // Math.round (not ceil) so slider moves freely in both directions
-                          if (landedPerPack > 0) setSimPrice(Math.round(landedPerPack / (1 - pct / 100)));
+                          const p = priceForMargin(landedPerPack, pct);
+                                        if (p != null) setSimPrice(Math.round(p));
                         }}
                         className="snm-slider relative"
                         style={{ touchAction: "none" }}

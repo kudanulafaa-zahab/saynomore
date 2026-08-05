@@ -31,6 +31,13 @@ export function MorningBriefing() {
     text: `MVR ${fmt(b.expiring_value_mvr)} of stock expires within 60 days — move it now or write it off`,
     href: "/inventory", tone: "var(--snm-warning)",
   });
+  // A zero expiry warning is only good news if there is expiry data behind it.
+  // With none recorded, "nothing expiring" is silence, not safety — and
+  // expired stock is a total write-off, so say so plainly.
+  else if ((b.batches_without_expiry ?? 0) > 0) watch.push({
+    text: `No expiry date on MVR ${fmt(b.stock_value_without_expiry_mvr)} of stock (${b.batches_without_expiry} batch${b.batches_without_expiry === 1 ? "" : "es"}) — until these are entered the app cannot warn you before it goes off`,
+    href: "/inventory", tone: "var(--snm-warning)",
+  });
   for (const oc of b.overdue_customers ?? []) watch.push({
     // The app as salesperson: their rhythm broke — call before the order
     // goes to someone else. Deep-links to the customer book.
