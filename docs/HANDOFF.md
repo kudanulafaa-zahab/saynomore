@@ -761,6 +761,38 @@ Trial products ride in the same `p_lines` array as catalogue lines, on purpose:
 adding one to a shared container **raises the freight for everything already in
 it**, and only a joint simulation shows that.
 
+## 5k. The contrast rule, with the numbers — 2026-08-05
+
+Ali, on the new-product sheet, twice: *"The text is almost same color... What
+are you doing differently for this specific card? All other cards in other
+modules looks fine and legible."*
+
+Fair question, and the answer is measurable rather than aesthetic.
+
+`--muted-foreground` is `#8e9192`. A bottom sheet is `--glass-2` = **13% white**
+over the page gradient. That pairing is roughly **2.6:1** — under the 4.5:1
+readable floor. Every other screen uses the same token and looks fine because
+its muted text is one short caption sitting *beside* real `--foreground`
+content. A mostly-empty form has no such content: I had put the section
+captions, the field names (as placeholders), four multi-line helper paragraphs
+AND eight unselected pills all in the muted token, so 90% of the pixels were
+grey-on-grey and there was nothing bright to anchor against.
+
+**Note the trap:** the surfaces were fine. `--glass-bg-1` (9% white) fields on a
+`--glass-2` (13%) sheet is the same stack the Shipments dialog uses. Chasing the
+surfaces would have fixed nothing. It was the text.
+
+Now enforced in CLAUDE.md:
+- If it has to be read, it is `--foreground` (use `opacity: 0.7–0.85` for
+  hierarchy). On a `--glass-2` sheet, prefer not to use `--muted-foreground` at
+  all.
+- **A field's NAME never lives in its placeholder** — placeholders are muted by
+  definition, so on an empty form the name vanishes. Label above; placeholder
+  carries the format only (`48`, not "Pieces per pack").
+- An unselected pill carrying a **choice** is content: `--foreground` on
+  `--glass-bg-1`, never muted-on-transparent.
+- Prose is a contrast problem too. One short line per field.
+
 ## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a

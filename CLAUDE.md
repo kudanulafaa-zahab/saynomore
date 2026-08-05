@@ -43,10 +43,30 @@ only design artifact he can review on a phone.
    + pinned footer. **Never invent a new input primitive.** If a new one seems
    needed, that is the signal to go back to step 1.
 
-**Contrast is not a matter of taste.** An input filled with `--glass-bg-2`
-sitting on a `--glass-bg-2` sheet is invisible, in both themes. Surfaces step:
-page → `--glass-2` sheet → `--glass-bg-1` field. Never place a surface on
-itself.
+**Contrast is not a matter of taste — and the usual failure is TEXT, not
+surfaces.** `--muted-foreground` is `#8e9192`. A bottom sheet is `--glass-2` —
+13% white over the page gradient. That pairing measures about **2.6:1**, under
+the 4.5:1 readable floor. Other screens survive it because their muted text is
+one short caption *beside* real `--foreground` content; a form that is mostly
+empty has no such content, so if the captions, the field names (as
+placeholders), the helper lines and the unselected pills are all muted, the
+whole screen is one grey wash. That is precisely what shipped on the costing
+simulator's new-product sheet.
+
+- **If it has to be read, it is `--foreground`** — optionally at `opacity: 0.7–0.85`
+  for hierarchy. Reserve `--muted-foreground` for text that genuinely does not
+  matter, and on a `--glass-2` sheet, prefer not to use it at all.
+- **A field's NAME never lives in its placeholder.** Placeholders are muted by
+  definition, so on an empty form the name disappears. Label above (like
+  Products → Edit SKU); placeholder carries the FORMAT only (`48`, not
+  "Pieces per pack").
+- **An unselected pill that carries a CHOICE is content, not a hint** — real
+  `--foreground` text on `--glass-bg-1`, never muted-on-transparent.
+- **Prose is a contrast problem too.** One short line per field. Four
+  multi-line grey paragraphs read as an illegible block no matter the token.
+
+Surfaces still step: page → `--glass-2` sheet → `--glass-bg-1` field. Never
+place a surface on itself.
 
 **Derived numbers are never typed.** CBM is `L × W × H ÷ 1 000 000` — a
 generated column in the database, entered as three dimensions in Products and
