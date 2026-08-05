@@ -15,8 +15,9 @@ laws), which load automatically.
   commit + push to `main` triggers a **Vercel production deploy**. No feature branches.
 - **Supabase:** project id / ref `smhdwkrmiytvpsgqezsl` (org `yzyphsswhzbdhjbwqxlq`,
   region ap-southeast-1, Postgres 17). Migrations in `supabase/migrations/`, applied
-  live via the Supabase MCP in the same work unit. **Latest applied: 0130** (the
-  full money-math audit — see sections 5b, 5c and 5d).
+  live via the Supabase MCP in the same work unit. **Latest applied: 0143** (the
+  packs-and-cartons language sweep — see the 0143 correction in section 5g; the money-math audit that
+  ran to 0130 is in sections 5b, 5c and 5d).
 - **Vercel:** team `team_qyYXhgTXNYb5dCxNgfIMmQxk` ("kudanulafaa-zahab's projects").
   - `saynomore` (staff app), id `prj_rlOeqBEzmdNbbQMagyCC2nsuecGk`. Prod aliases:
     `saynomore-beta.vercel.app`, `saynomore-kudanulafaa-zahabs-projects.vercel.app`.
@@ -655,6 +656,55 @@ internal. Verified before reporting rather than after.
   expiry warning in the morning briefing can never fire.
 
 ---
+
+## 5i. Below-cost guards — every money door, 2026-08-05 (migrations: none)
+
+Ali's law, from skills.md: *"Losing money is a decision, never an accident. Any
+path that adds a below-cost line pauses with the real numbers and an explicit
+red 'Add at a loss'. One guard, every door (the quick-add-only guard was a
+caught bug)."* It had been caught once and fixed in two places. Two more doors
+were still open.
+
+**Audited every path that can set a selling price. State after this session:**
+
+| Door | Before | Now |
+|---|---|---|
+| New Sale — quick-add on a product card | guarded (July) | unchanged |
+| New Sale — line editor | guarded (July) | unchanged |
+| **Sale Detail — Add item / Edit item** | **nothing** | red panel + ConfirmSheet |
+| **Price Lists — tier price entry** | colour hint only | red panel + ConfirmSheet |
+| Market — "lock as fixed price" | refuses at `packPrice <= landedPerPack` | unchanged |
+| Mixed-carton sheet | no typed price (carton rate ÷ N) | n/a |
+
+**Why Sale Detail mattered most.** It is how a line gets onto an order that
+already exists, and all it carried was a "below target margin" hint —
+which needs `target_margin_pct`, and **30 of 31 active SKUs have none**. For
+almost every product it said nothing at all and saved.
+
+**Why Price Lists is arguably worse.** A below-cost line loses money once and
+you see it on that order. A below-cost *tier price* loses money on every future
+sale to that tier, silently, forever. It only tinted the margin red under 15% —
+a colour, not a decision, with nothing separating "thin" from "underwater".
+
+**Two implementation traps, both hit and fixed — check for these if you add a
+guard to a fourth door:**
+1. `onClick={save}` passes React's `MouseEvent` into a trailing
+   `acceptLoss = false` parameter. It is truthy, so **every first tap skips the
+   guard** and the whole thing is a silent no-op. Call `save()` explicitly.
+2. A `ConfirmSheet` rendered as a child of a sheet's scrim inherits that scrim's
+   `onClick={onClose}` — React portals bubble through the **React** tree, not
+   the DOM tree — so tapping "Add at a loss" also dismisses the sheet under it.
+   Render it as a sibling.
+
+The bypass must travel as an **argument**, never as state read a render later.
+
+**Cost basis is the unit actually sold** (migration 0139's lesson): cost per
+carton for a carton line, cost per pack for a pack line. Never a per-piece cost
+against a per-piece price nobody is charged.
+
+No repair was needed — zero existing lines are below cost
+(`line_total_mvr < landed_cost_per_piece_mvr * qty_pieces` returns nothing).
+This is prevention.
 
 ## 6. Built this session (recent → older highlights)
 
