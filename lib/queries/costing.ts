@@ -117,6 +117,8 @@ export interface CostingSeedRow {
   variant_display: string;
   category_name: string | null;
   category_sort_order: number | null;
+  /** pcs / ml / g — mapped to a noun ("pack" / "bottle") by lib/trade-units. */
+  unit_uom: "pcs" | "ml" | "g" | null;
   pcs_per_pack: number;
   packs_per_carton: number;
   cbm_per_carton: number | null;
@@ -125,7 +127,8 @@ export interface CostingSeedRow {
   last_qty_cartons: number | null;
   duty_rate_pct: number;
   current_landed_per_piece_mvr: number | null;
-  selling_price_per_piece_mvr: number | null;
+  selling_price_per_pack_mvr: number | null;
+  selling_price_per_carton_mvr: number | null;
   target_margin_pct: number | null;
 }
 

@@ -31,3 +31,12 @@
 --
 -- Applied live via MCP; this file is the tracked copy. See remote migrations
 -- `simulator_real_fx_and_fob_basis` and `costing_seed_returns_real_rates`.
+
+-- Follow-up in the same work unit (remote migration
+-- `costing_seed_adds_unit_uom`): get_costing_seed now returns unit_uom and the
+-- pack/carton selling prices.
+--
+-- unit_uom is what lets the price field say "Bottle" for a 700ml Sosoft and
+-- "Pack" for a diaper. Ali: "For sosoft I must be able to enter vendor price
+-- in per bottle price." The noun is mapped by lib/trade-units.containerLabel —
+-- never hardcoded.
