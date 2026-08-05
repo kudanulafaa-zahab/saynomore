@@ -546,6 +546,74 @@ More overflow, and Ali could not find it. Renamed to **Cost Simulator**.
 
 ---
 
+## 5h. Unprompted expert sweep, 2026-08-05 — migration 0139 (+0138 pending)
+
+Ali: *"I am a complete layman. I want you to do 10 times better because you're
+a full team of top experts. Act like it."* Fair. This section is what that
+produced — findings nobody asked for.
+
+**MARGIN WAS MEASURED AGAINST A PRICE HE NEVER CHARGES (0139, fixed).** The
+biggest find. `v_skus.actual_margin_pct` divided landed cost by
+`fixed_selling_price_mvr` — the per-PIECE price — but **no SKU sells by the
+piece**; all 29 priced SKUs are `{pack,carton}`, `{carton}` or `{pack}`. The
+pack/carton prices he actually charges were ignored. Wrong on **21 of 29
+SKUs, in both directions**. The overstated half is the dangerous one:
+Xtra Kering S showed 47.3% against a real 40.7% (728 pcs sold), Royal Soft
+Boy M 31.8% vs 28.3% (384 pcs), Merries Good L 39.1% vs 35.7% (462 pcs).
+Feeds Margin Watch, Reports, Price Book, Promo Advisor's floor and the Cost
+Simulator — all inherited it. Per-ORDER margins were always correct
+(`post_sale` snapshots the real transacted price); only the catalogue-level
+figure was wrong. **`security_invoker=true` was restated and verified after
+applying** — the 0125 lesson.
+
+**THE XXXL CARTON QUESTION IS ANSWERED: 102, not 128 (0138, WRITTEN BUT NOT
+APPLIED).** This was carried for several sessions as a question for Ali. It
+never needed asking. Two independent proofs: (1) his own pack pricing — MVR
+270 for the 34-pack and MVR 175 for the 22-pack is 7.94 and 7.95 per piece,
+one laari apart, which only holds if the packs really contain 34 and 22;
+(2) carton volume — at 102 the two XXXL SKUs sit at 343 and 366 mm³/piece
+(6% apart, same physical diaper), while 128 would give 273 mm³/piece, barely
+above XXL's 237, impossible for a size two steps up. **Earlier sessions had
+this backwards** (recorded as "future cartons booked 26 short"); the truth is
+the one carton already received was booked 26 pieces OVER. Consequences: 26
+phantom pieces (app says 64 on hand, truly 38) and landed cost divided by 128
+instead of 102, so that batch is valued 21% too cheap.
+**Migration 0138 is written and correct but was BLOCKED by the tooling's
+safety classifier because it adjusts physical stock. It needs a human to
+apply it.** Do not silently skip it.
+
+**NO BACKUPS — the single largest business risk.** The Supabase org is on the
+**free plan**: no automatic backups, no point-in-time recovery. 75 orders,
+57 customers, 179 stock movements and every financial record since 8 July
+2026 sit in one 16 MB database with no restore button. A manual JSON export
+was generated and sent to Ali. The real fix is the Pro plan (~USD 25/month).
+This is not a technical preference; it is the cheapest insurance the business
+can buy.
+
+**Corrected a wrong note in this document.** Section 5c/earlier recorded that
+the 07:00 low-stock cron might be silently failing (pg_net 5s timeout vs 5.6s
+runtime). The edge-function logs disprove it: `daily-low-stock` returns 200 in
+8.1s and `send-push` fires alongside it. It works. The worry was theoretical.
+
+**A false alarm, checked and dropped.** 12 SKUs price a pack higher per piece
+than a single — which looks like penalising bulk buyers, until you check
+`sellable_units` and find **nothing sells as singles**. The per-piece price is
+internal. Verified before reporting rather than after.
+
+**Still open, for Ali:**
+- Apply migration 0138 (26 phantom XXXL pieces).
+- Upgrade Supabase to Pro for backups.
+- **Skin Comfort L**: real margin 23.7% against a family that runs 24–31%.
+  It is the thinnest mover in the line at 168 pcs sold. Nudging the pack from
+  MVR 230 to 234 puts it on the ladder.
+- **Island names are fragmenting**: 26 of 57 customers are split across
+  "Male" and "Male’", and Mathiveri has three spellings. Any per-island
+  analysis is already unreliable.
+- **All 31 batches have no expiry date**, so FEFO cannot run and the ≤60-day
+  expiry warning in the morning briefing can never fire.
+
+---
+
 ## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
