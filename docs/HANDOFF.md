@@ -34,6 +34,21 @@ by line number.
 `app/globals.css` before touching any UI, and `git log --stat` for anything you
 are about to change.**
 
+### Start here
+
+1. **§7 — What is left to do.** Written to be picked up cold. It separates what
+   is Ali's call, what was offered and never answered, what is genuinely open,
+   what is deferred and why, and what looks like a bug but was decided.
+2. **§5L — the complete index of 2026-08-05.** Every merged PR of that day with
+   a pointer to the detail. Use it as the completeness check.
+3. **§2b — every screen in the app.** §3 — the design system, by line number.
+4. Then `CLAUDE.md` and `skills.md`, which load automatically and carry the
+   standing laws.
+
+**Also read the migration headers before changing any money or stock rule.**
+They are not changelogs — each one argues why, names the bug it fixes, and
+records what was verified against live data afterwards.
+
 ---
 
 ## 1. Project & access
@@ -942,6 +957,59 @@ Now enforced in CLAUDE.md:
   `--glass-bg-1`, never muted-on-transparent.
 - Prose is a contrast problem too. One short line per field.
 
+## 5L. COMPLETE index of 2026-08-05 — every change, in order
+
+Ali, at the end of that day: *"I can't remember all important stuff from this
+chat because it's very long. It's your job. I want when I open a new chat for it
+to know these."*
+
+So: every merged PR of 2026-08-05, in order, with where the full reasoning
+lives. The sections above go deep on the big ones; **this table is the
+completeness check** — if something is not here, it did not happen that day.
+`git log --format="%h %s" origin/main` is the authority if this ever disagrees.
+
+| PR | What it did | Detail in |
+|---|---|---|
+| #2 | Storefront removed entirely; full money-math audit (0121–0126); Sales card redesign | §5, §5b |
+| #3 | Stock loss on "Remove item" fixed before it ever happened (0134); destructive confirmations tiered — plain tap / hold-to-confirm / blocked, each showing what it destroys (0133) | §5e |
+| #4 | Costing sandbox built (0135); pull-to-refresh on the main screens; left-swipe row actions; typography sweep (tabular money, HIG sizes) | §5f |
+| #5 | "OWES 776" vs "cash deposited" contradiction fixed — COD cash now writes the payments ledger, `cash_collected_mvr` and delivered status in ONE transaction (0136); packs-and-cartons language; `get_shipment_summary` rolls a shipment up category→brand→model in CARTONS (0137) | §5g |
+| #6 | **Margin was measured against a price he never charges.** `v_skus.actual_margin_pct` divided landed cost by the per-PIECE price; no SKU sells by the piece. Wrong on **21 of 29 SKUs** (0139) | §5h |
+| #7 | Price Simulator was built, routable and **invisible** — the More sheet and the sidebar each kept their own hardcoded href list, so adding it to nav-config did nothing. Nav grouping is now DATA (`section` on each item) and both menus derive from it. Hard rule 8 | `components/layout/nav-config.ts` header |
+| #8 → #10 | I claimed carton dimensions were nominal placeholders and must never be reasoned from. Ali corrected me: *"Cbm figures are not stand in. I use it to calculate actual cbm. It is critical."* #10 rewrote it as **real data with known error** — accurate enough to split freight, not to deduce carton contents | `CLAUDE.md` "Carton dimensions are REAL" |
+| #9 | Simulator asked for IDR→MVR, a rate Ali never has. Now takes **USD→MVR and USD→IDR** like the real shipment form and derives the third. FOB accepted per pack or per carton (0140) | 0140 header |
+| #11 | Simulator's price entry rewritten to **copy the Shipments line dialog** instead of inventing one — pill toggle, unit noun from the category, nothing pre-ticked | 0140 header |
+| #12 | **Shared container modelling** added to the simulator (Ali: "very important") — freight share = total container freight × (my CBM ÷ capacity), so adding cartons RAISES the bill. Island names normalised: 26 strings → 22, `normalise_island()` + trigger (0141) | 0141 header |
+| #13 | `get_morning_briefing` compared `timestamptz::date` to `CURRENT_DATE - 1` in a **UTC** session, so orders placed 00:00–05:00 Malé time landed on the wrong day. Also: `expiring_value_mvr` was always 0 because no batch has an expiry, which read as an all-clear — now reports **27 batches, MVR 81,577 with no expiry date** (0142) | 0142 header |
+| #14 | **The app still sold diapers by the piece** in eight places (0143) | §5g correction |
+| #15 | Handoff correction: 0137 had NOT finished the units job, despite the file claiming it had | §5g |
+| #16 | Below-cost guard was missing from Sale Detail's Add/Edit item — 30 of 31 SKUs have no target margin, so it warned about nothing | §5i |
+| #17 | Below-cost guard added to **Price Lists** — a bad tier price loses money on every future sale, silently | §5i |
+| #18 | Handoff: the money-door audit table | §5i |
+| #19 | Simulator can cost a **product not stocked yet**; reverse costing gives the max FOB per carton (0144) | §5j |
+| #20 | New-product sheet rebuilt on the app's own patterns after Ali rejected it — L/W/H dimensions with derived CBM, unambiguous "price of ONE carton", units never hardcoded | `CLAUDE.md` pre-build gate |
+| #21 | Same sheet: grey text on a grey sheet. Contrast rule with numbers | §5k |
+| #22 | Handoff: design-system map + module map + "this is a map, not the record" | §2b, §3 |
+
+**Migrations applied that day:** 0132–0137, 0139–0144. **There is no 0138** —
+it was written (adjusting XXXL piece counts), then deleted because the argument
+behind it was built on CBM volume and Ali showed it was wrong. Do not
+resurrect it, and **do not raise the XXXL-34x3 128-vs-102 batch discrepancy
+with Ali again** — recorded as do-not-act, do-not-raise.
+
+**Process rules that came out of that day, all now in `CLAUDE.md`:**
+the pre-build gate (name the existing screen before writing any UI), the
+contrast rule with measured ratios, "never offer a selling unit the SKU doesn't
+sell", "money is quoted in the unit sold", and "derived numbers are never
+typed".
+
+**One operational thing worth knowing:** a squash-merge to `main` twice failed
+to trigger a Vercel production deploy that day. The branch preview built fine
+and `main` was correct in git — the webhook was simply missed. An empty commit
+re-fires it. **"Merged" and "live" can come apart; always verify the production
+deployment reaches READY and that the `saynomore-beta.vercel.app` alias points
+at it.**
+
 ## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
@@ -1100,21 +1168,76 @@ Now enforced in CLAUDE.md:
 
 ---
 
-## 7. Open / next tasks (priority order)
+## 7. What is left to do — start here in a new chat
 
-_Done this session: editable expense date, cash-flow/runway forecast (0089), trend-aware
-reorder velocity (0090), campaign confounder flags (0091), Price Book UX polish + last-known
-cost (0092), stock write-off (0093/0094), what-sells on reorder (0095), write-off
-traceability (0096/0097), customer returns (0098), plus the dialog/SKU-edit fixes above._
+**Current as of 2026-08-05, end of session.** Everything above this line is
+done, applied live, and deployed. Nothing is half-finished.
 
-_Notes carried forward: the cash forecast's inflow model has a known, labelled minor overlap
-(ongoing sales run-rate + current receivables both counted) — transparent, not hidden;
-supplier payments timed to expected arrival (a visible assumption). The reorder trend is
-upward-only (never orders less than before); true calendar seasonality is deferred until
-there's multi-year history. Returns/write-offs show as their own P&L deduction lines
-(Gross Sales − deductions), so gross revenue elsewhere (Reports, charts, dashboard) is
-intentionally GROSS — the deductions are itemised on the P&L rather than silently shrinking
-revenue._
+### 7a. Ali's, not mine — do not start these without his word
+
+1. **Backup.** The Supabase project is on the **FREE plan: no backups, no
+   point-in-time recovery.** An export zip was produced and sent. Pro is about
+   **USD 25/month** and is the single biggest risk on the board. He has been
+   told twice; it is his call, not a thing to keep raising.
+2. **Expiry dates.** 27 batches holding **MVR 81,577** have no expiry recorded,
+   so the whole FEFO/expiry engine (built, tested, wired into the briefing) is
+   dark. The dates are printed on the cartons — data entry, not code.
+3. **Two ambiguous island names.** `"Shaniya"` looks like a person's name and
+   `"Phase 2"` is ambiguous. Deliberately left rather than guessed. (Hulhumale
+   Phase 1 / Phase 2 are kept separate on purpose — they are real, distinct
+   delivery areas.)
+4. **Delete the leftover Vercel project shell** from the removed web shop — see
+   section 1. Careful to pick the leftover, NOT `saynomore`.
+
+On 2026-08-05 Ali said of items 1–3: *"Disregard these I will do it."* So do
+not re-raise them; just do not assume they are done either.
+
+### 7b. Offered and never answered — do NOT build unasked
+
+- A **forwarder-billed CBM field**, so the freight-accuracy check becomes
+  routine instead of manual. Offered; no answer. Leave it.
+
+### 7c. Genuinely open engineering, in priority order
+
+1. **Competitor prices into the new-product simulator.** The margin a
+   prospective product shows is only as good as the selling price Ali types in.
+   The tool can say what something costs; it cannot say what the market pays.
+   Feeding the logged competitor prices in would let it *suggest* a realistic
+   price instead of asking him to guess. **This was raised with Ali and he has
+   not answered — ask before building.**
+2. **Improve CBM accuracy.** Only **five distinct carton sizes** cover all 31
+   SKUs, and most were filled from a single measurement. On SH-2026-001 the top
+   three sizes carry **85% of the freight**. A five-measurement job that
+   improves every landed cost in the system. Ali knows; he raised it himself.
+3. **Preventive duplicate-customer constraints.** Zero duplicates exist today,
+   so this is pure prevention. A hard UNIQUE on phone is risky — families share
+   numbers — so it needs thought, not a quick index.
+4. **Extend swipe actions beyond Sales rows.** Low value; only if asked.
+
+### 7d. Deliberately deferred, with the reason
+
+- **FEFO depletion** — the engine is FIFO. The switch is written but waits on
+  real expiry coverage (see 7a.2). Turning it on now would sort by nulls.
+- **Calendar seasonality in reorder** — needs multi-year history. The trend is
+  deliberately upward-only today (never orders less than before).
+- **Card payments** — allowed in the schema, waiting on a BML merchant account.
+- **Price tiers** — the full price-list system is wired into order pricing but
+  **zero price lists exist**, so every sale uses the standard price.
+
+### 7e. Known, labelled, and NOT bugs
+
+Do not "fix" these; they were decided:
+
+- The cash forecast counts ongoing sales run-rate **and** current receivables,
+  a small deliberate overlap that is labelled on screen rather than hidden.
+- Revenue elsewhere (Reports, charts, dashboard) is **GROSS**. Returns and
+  write-offs are itemised as their own P&L deduction lines rather than silently
+  shrinking revenue.
+- Supplier payments are timed to expected arrival — a visible assumption.
+- `sales_orders.order_source` exists but is constrained to `'walk-in'`; it
+  predates the removed web shop and is not a leftover of it.
+- The `react-hooks/set-state-in-effect` eslint warnings (about 20) are
+  pre-existing and parked. Do not blind-refactor money dialogs to clear them.
 
 ### Still designed-but-unused in the schema (audited 2026-07-27, nothing broken)
 Available whenever Ali wants them, no work needed to "unlock" — they're just unused:
