@@ -566,21 +566,35 @@ Simulator — all inherited it. Per-ORDER margins were always correct
 figure was wrong. **`security_invoker=true` was restated and verified after
 applying** — the 0125 lesson.
 
-**THE XXXL CARTON QUESTION IS ANSWERED: 102, not 128 (0138, WRITTEN BUT NOT
-APPLIED).** This was carried for several sessions as a question for Ali. It
-never needed asking. Two independent proofs: (1) his own pack pricing — MVR
-270 for the 34-pack and MVR 175 for the 22-pack is 7.94 and 7.95 per piece,
-one laari apart, which only holds if the packs really contain 34 and 22;
-(2) carton volume — at 102 the two XXXL SKUs sit at 343 and 366 mm³/piece
-(6% apart, same physical diaper), while 128 would give 273 mm³/piece, barely
-above XXL's 237, impossible for a size two steps up. **Earlier sessions had
-this backwards** (recorded as "future cartons booked 26 short"); the truth is
-the one carton already received was booked 26 pieces OVER. Consequences: 26
-phantom pieces (app says 64 on hand, truly 38) and landed cost divided by 128
-instead of 102, so that batch is valued 21% too cheap.
-**Migration 0138 is written and correct but was BLOCKED by the tooling's
-safety classifier because it adjusts physical stock. It needs a human to
-apply it.** Do not silently skip it.
+**THE XXXL "QUESTION" WAS NEVER A QUESTION — AND MY REASONING WAS WRONG.**
+Ali settled it on 2026-08-05: *"MAMY-XTRA-XXXL-34x3 means it's 34pcs in a
+pack. 3 packs in a carton. You should know that for all diapers."* **The SKU
+code states the pack config. Read it.** The catalogue was always correct; no
+SKU needed changing, and migration 0138 was deleted unapplied.
+
+**Two mistakes worth not repeating:**
+
+1. **Carton dimensions are deliberately nominal.** Ali: *"I deliberately have
+   wrong dimensions for carton size. I used same dimensions."* He does not
+   measure cartons; he enters a stand-in. I built a confident argument on
+   CBM-per-piece and called it "the hard check … the same diaper occupies the
+   same space", which is worthless against placeholder data. **Never treat
+   `cbm_per_carton` as a physical measurement or use it to infer anything
+   about a product.** It exists only to apportion freight, and it apportions
+   roughly per carton because the figures are near-uniform by design — which
+   is fine and intended. The Cost Simulator inherits this: its output is only
+   as good as the CBM entered, exactly like the real GRN.
+
+2. **The two XXXL SKUs are different products.** `MAMY-XTRA-XXXL-22x4` and
+   `MAMY-XTRA-XXXL-34x3` are separate retail pack formats. Do not compare
+   their per-piece economics and treat a difference as evidence of anything.
+
+**Left as an observed fact, not a proposal:** the one batch on
+`MAMY-XTRA-XXXL-34x3` records 128 pieces from 1 carton, and 128 is not
+divisible by 34, so it cannot have come from the current (correct) config.
+Recorded here for whoever next reconciles stock. **Do not act on it, and do
+not raise it with Ali again unless he asks** — he has said the SKUs are right
+and that is the end of it.
 
 **NO BACKUPS — the single largest business risk.** The Supabase org is on the
 **free plan**: no automatic backups, no point-in-time recovery. 75 orders,
