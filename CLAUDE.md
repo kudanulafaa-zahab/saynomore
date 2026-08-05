@@ -68,6 +68,21 @@ carton). This holds for every diaper SKU. If a GRN, a batch or a piece count
 disagrees with the code, **the code is right and the other number is the bug** —
 do not ask Ali to arbitrate what the code already states.
 
+Two SKUs can share a size and still be different products: `XXXL-22x4` and
+`XXXL-34x3` are separate retail pack formats. **Never compare their per-piece
+economics and read a difference as evidence of anything.**
+
+### Carton dimensions are NOMINAL — never reason from them
+Ali does not measure cartons. He deliberately enters the same stand-in
+dimensions for most SKUs, so `cbm_per_carton`, length/width/height and weight
+are **not physical measurements**. They exist for one job: apportioning
+freight, which they do roughly per-carton, which is intended and fine.
+
+**Never** use CBM to infer pack contents, product size, or anything about the
+physical goods. A whole confident argument was once built on "the same diaper
+occupies the same space" — against placeholder data. The Cost Simulator's
+accuracy is bounded by the CBM entered, exactly as the real GRN is.
+
 ## Hard Rules (never break)
 1. All financial calculations in **Postgres**, never TypeScript
 2. Stock quantity derived from `stock_movements` sum — never stored directly
