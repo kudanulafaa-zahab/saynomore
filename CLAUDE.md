@@ -1,9 +1,18 @@
 @skills.md
 # SayNoMore — Project Rules
 
-> **Continuing in a new chat?** Read `docs/HANDOFF.md` first — it carries the
-> project/access IDs, the light+dark design system, what's built (migrations to
-> 0101), and the open task list so nothing is lost between sessions.
+> **Continuing in a new chat?** Read `docs/HANDOFF.md` first — project/access
+> IDs, the module map, the design system map, and what's built.
+>
+> **But treat HANDOFF as a MAP, not the record.** The record is
+> `app/globals.css` (every design token with its reasoning and date),
+> `supabase/migrations/*.sql` (every money/stock rule with a why-header),
+> `skills.md`, and `git log`. Those are committed and cannot be lost when a
+> chat ends. A summary can only lose the *pointer*. **Read
+> `app/globals.css` before touching any UI** — it holds four palettes
+> (sunrise/aurora/ember/monochrome, each light+dark), the Liquid Glass frost
+> dial, and the Display P3 wide-gamut tuning for Retina/OLED. None of that is
+> obvious from a component file, and all of it is easy to break by accident.
 
 ## Behaviour
 - Plain English. One recommendation. Lead with the answer.

@@ -1,9 +1,38 @@
 # SayNoMore — Session Handoff / Continuity
 
-**Read this first when continuing in a new chat.** It captures the project,
-access, design system, what's been built, and the open task list so nothing is
-lost between sessions. Pair it with `CLAUDE.md` and `skills.md` (the standing
-laws), which load automatically.
+**Read this first when continuing in a new chat.** Pair it with `CLAUDE.md` and
+`skills.md` (the standing laws), which load automatically.
+
+## What this file is — and what it is NOT
+
+Ali, 2026-08-05: *"There are many things missing from your handoff file… How can
+I trust everything will be there in a new chat?"* Fair, and the honest answer
+matters more than a reassurance:
+
+**This file is a MAP. It is not the record, and it must never be treated as
+one.** The record is:
+
+| The real record | Why it cannot be lost |
+|---|---|
+| `app/globals.css` (1,837 lines) | Every design token, with the reasoning AND the date of each decision in the comments. Four palettes, the frost dial, Display P3, the whole material. |
+| `skills.md` | The design/engineering laws with the incident that created each one. Loads automatically. |
+| `supabase/migrations/*.sql` | Every money and stock rule, with a header explaining WHY. 144 files. Applied live, tracked in git. |
+| `git log` | Every change, with a full commit message explaining the decision. |
+| The code itself | Comments carry the reasoning at the point of use. |
+
+**All of that is committed and survives any chat ending.** A new session with no
+memory of any conversation still has every one of them.
+
+What a *summary* can lose is the **map** — knowing something exists so you go
+and read it. That is what went thin here: section 3 was 22 lines describing
+1,837 lines of design work, and never mentioned the four palettes or the
+Display P3 / Retina tuning at all. A new session would not have known to look.
+Sections 2b and 3 were rewritten on 2026-08-05 to point at the real thing,
+by line number.
+
+**If you are that new session: do not trust this file's completeness. Read
+`app/globals.css` before touching any UI, and `git log --stat` for anything you
+are about to change.**
 
 ---
 
@@ -51,26 +80,146 @@ migrations `supabase/migrations/` · design tokens `app/globals.css`.
 
 ---
 
-## 3. Design system — light **and** dark, themed and deliberate
+## 2b. Every screen in the app — the module map
 
-**This is NOT "just monochrome."** It is a full **light/dark adaptive glass** system,
-already built and refined over many sessions, and it must be preserved.
+`components/layout/nav-config.ts` is the single source of truth; both the mobile
+More sheet and the desktop sidebar derive their sections from the `section`
+field on each item. **A page not listed there is invisible even if it is built
+and routable** (the Price Simulator shipped that way — hard rule 8).
 
-- **Adaptive theming:** every colour is a CSS variable in `app/globals.css`
-  (`--foreground`, `--background`, `--glass-*`, `--muted-foreground`, semantic tokens).
-  Both themes are hand-tuned; the viewer's toggle stamps the theme. **Never hardcode hex.**
-- **Glassmorphism:** translucent glass surfaces, a fixed atmospheric page gradient,
-  specular sheen, hairline inner borders, a user "frost dial", ambient background motion.
-- **Monochrome ACCENT (not monochrome app):** the *accent* is graphite (foreground),
-  no decorative hue — because on a money app, **green/red/orange are reserved to mean
-  money** (good / loss / attention). Interactive emphasis comes from weight, not hue.
-- **iOS-native feel:** Apple HIG type scale (`ios-*`), tabular money (`.snm-num`),
-  44pt targets, safe-area insets on fixed/floating chrome, spring sheets, rubber-band
-  bounce ON, `prefers-reduced-motion` respected.
-- **Management-by-exception (pricing):** healthy state is quiet/colourless; only
-  problems (loss=red, thin=amber) carry colour — so risk can't hide in a "sea of green".
+| Section | Route | What it is |
+|---|---|---|
+| Core | `/dashboard` | Morning briefing + watch list. Silent when healthy. |
+| Core | `/sales` | Order list, New Sale composer, Sale Detail, returns, COD. |
+| Core | `/inventory` | Stock by product and godown, batches, expiry, days-of-stock. |
+| Core | `/dispatch` | Driver assignment board. |
+| Finance | `/financials` | P&L, cash flow, runway, contribution margin. |
+| Finance | `/reports` | Trends, days of stock, campaign ROI. |
+| Finance | `/pricelists` | Customer tier prices (pack + carton; per-piece derived). |
+| Finance | `/costing` | Price Simulator — landed-cost sandbox, incl. products not stocked yet. |
+| Finance | `/expenses` | Pure money-out ledger; campaign spend lands here. |
+| Procurement | `/reorder` | What to buy, from 90-day velocity with trend. |
+| Procurement | `/shipments` | Purchase orders, container costs, GRN. |
+| Procurement | `/suppliers` | Supplier master. |
+| Catalogue | `/products` | 7-level SKU hierarchy, carton dimensions, photos. |
+| Catalogue | `/godowns` | Warehouses. |
+| Catalogue | `/stock-ops` | Transfers, write-offs, stock counts — the ledger door. |
+| Catalogue | `/competitors` | Market: rival prices, Promo Advisor. Per-piece lives here. |
+| Operations | `/customers` | Customer master + insights. |
+| — | `/settings` | Notifications, palette picker, frost dial. |
+| Staff role | `/deliveries` | Driver's own run sheet. |
+
+Roles: `admin`/`manager` see everything, `viewer` sees all but `/dispatch`,
+`staff` (drivers) see only `/deliveries`.
 
 ---
+
+## 3. Design system — READ `app/globals.css` BEFORE TOUCHING ANY UI
+
+**This section is a MAP, not the record.** The record is `app/globals.css`
+(1,837 lines, heavily commented with the reasoning and the date of each
+decision) plus `skills.md` Seat 1, which carries the design laws with the
+incident that created each one. Everything below is a pointer so a new session
+knows what exists and does not damage it by accident. **Nothing here is
+optional polish — it was built and tuned over many sessions on Ali's real
+device.**
+
+### 3a. Four palettes, each with light AND dark — not one theme
+
+`[data-palette]` in `app/globals.css`:
+
+| Palette | Light | Dark |
+|---|---|---|
+| `sunrise` | :345 | :349 / :604 |
+| `aurora` | :363 | :375 / :612 |
+| `ember` | :389 | :401 / :620 |
+| `monochrome` | :423 | :435 / :628 |
+
+Switched from **Settings → `components/settings/palette-section.tsx`**, applied
+pre-paint by the init script in **`lib/palette.ts`** (no flash of the wrong
+theme). Glass fill/blur/radius tokens are **identical across all palettes**
+(:283) — only wallpaper, accent and status colours vary. A change to the glass
+material therefore hits all four at once; a change to an accent must be made in
+four places.
+
+Dark mode has its own name and its own tuning: **"Void & Vapor"** (:484) — a
+neutral graphite glow fading to true OLED black, so translucent cards have real
+depth to float above.
+
+### 3b. Retina / Display P3 wide gamut (:1694)
+
+Every iPhone since the 7 renders Display P3 — about **25% more colour volume
+than sRGB**. Accent FILLS are re-expressed in `color(display-p3 …)` so buttons,
+pills and active states get true system-colour vibrancy on Ali's screen, with
+the sRGB hex above as the automatic fallback.
+
+**Deliberately NOT converted:** the deepened `*-text` variants and
+`--snm-brand-text`. Their WCAG ratios were verified in sRGB **on device, in
+Maldivian daylight**. Fills only carry a 3:1 large-element bar; text does not.
+**Do not "finish the job" by converting the text tokens.**
+
+### 3c. The Liquid Glass master dial — one user scalar (:138)
+
+`--glass-frost` (0–1, default 0.5, persisted as `snm-frost`) drives the whole
+material Apple-style: 0 = clear glass, 1 = heavy frost. **0.5 reproduces the
+hand-tuned look exactly** — both derived factors equal ×1 there, so the default
+is a no-op. Four derived factors move fills, hairlines, specular rim and blur in
+lockstep, which is what makes it read as one substance:
+
+- `--frost-fill` ×0…×2 — fills reach TRUE zero at 0%
+- `--frost-edge` ×0.85…×1.15 — edges never do: clear glass is still a glass
+  *object*, defined by its hairline and rim light
+- `--frost-b` — blur keeps a floor (×0.3); residual refraction over the moving
+  wallpaper IS the glassmorphism read at the clear end
+- the floating tab bar runs **10 points frostier** than the user's choice
+  (Ali: it must stay visible at any transparency)
+
+Every glass alpha in the file multiplies by one of these. **Add a new glass
+surface without them and it will not respond to the dial.**
+
+### 3d. What else is in there, by line
+
+- **Apple HIG iOS type scale** (:71) — the `ios-*` classes, SF/Dynamic Type at
+  Large. `.ios-page-title` is the one canonical page title (:1329).
+- **Motion tokens** (:104) — one spring language app-wide
+  (`--snm-spring`, `--snm-ease-out`). Never hardcode a bezier.
+- **The scrim** (:115) — the ONE backdrop recipe for every modal/sheet/overlay.
+- **Atmospheric depth** (:259 light, :555 dark) — the fixed `--app-bg` gradient
+  painted by `body::before`, which is what translucent surfaces reveal.
+  **Neutral luminance only, no hue** — that is what keeps green/red/orange
+  meaning money.
+- **Glass utility classes** (:900) — primary surface (cards), secondary
+  (modals/sheets), tertiary (elevated dialogs), flat (dividers, no blur for
+  perf), sidebar, bottom nav, inputs.
+- **Floating tab bar — iOS 26 Liquid Glass signature** (:1013). Uses
+  `--tabbar-bg`/`--tabbar-border`, NOT the shared glass tokens, deliberately.
+- **Concentric corner radius** (:1257) and **capsule controls** (:1266) —
+  Apple's default button shape; `.glass` / `.glassProminent` buttons (:1269,
+  :1288) mirror SwiftUI's `buttonStyle`.
+- **Press physics** `.snm-pressable` (:1218), **tabular money** `.snm-num`
+  (:1229), **accessible focus ring** (:1237), `.label-caps` (:1093),
+  `.snm-input` (:1183) — 48px, the app's canonical field.
+- **Parallax drift** (:1451) — scroll-driven, compositor-thread only.
+- **Native-app feel** (:818) — pinch-zoom and text selection blocked globally;
+  native scroll indicators (:875). Rubber-band bounce stays ON.
+- **Accessibility fallbacks that must survive refactors:**
+  `prefers-reduced-motion` (:1502, :1680), `prefers-reduced-transparency`
+  (:1739 — opaque fills, no blur), `prefers-contrast: more` (:1762).
+
+### 3e. The laws (full versions with case history in `skills.md` Seat 1)
+
+- **The accent is graphite monochrome.** Ali rejected systemBlue three times and
+  systemIndigo once. Interactive emphasis comes from WEIGHT, not hue — so
+  green/red/orange are the only hues on screen and colour always means money.
+  **The debate is settled; do not propose a new accent hue.**
+- **Colour communicates affordance.** A static panel painted in accent colour is
+  a bug.
+- **Backdrop-blur on content cards is ON** (Ali overruled the old ban,
+  2026-07-20). In-flow cards ~14px × frost dial; floating chrome 22–28px.
+- **Sheets arrive, they don't appear** — `.snm-sheet-in` spring,
+  `.snm-scrim-in` fade, transform/opacity only.
+- **Contrast is measurable, not taste** — see the rule in `CLAUDE.md` and
+  section 5k. `--muted-foreground` on a `--glass-2` sheet is ~2.6:1 and fails.
 
 ## 4. Hard rules (never break)
 
