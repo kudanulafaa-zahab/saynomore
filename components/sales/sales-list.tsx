@@ -225,44 +225,79 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
   const colors = STATUS_COLOR[o.status];
   const total = o.order_total_mvr ?? 0;
 
-  // Plain tappable row — Void/Delete live on the order detail screen
-  // (one tap away via this link), so no per-row action affordance is
-  // needed here.
+  // Three lines, in the order you actually read them: WHO, WHAT, then the
+  // reference. The order number used to share line one with the customer
+  // name and truncated it to a couple of characters — but you never scan
+  // this list for "SO-2026-080", you scan it for a person. Name now owns
+  // the top line at Body size (17pt, Apple's floor for the primary label);
+  // the reference drops to Footnote underneath.
+  const owed = o.balance_mvr ?? 0;
+  const isOwed = o.status !== "cancelled" && o.status !== "draft" && owed > 0.005;
+
   return (
     <Link href={`/sales/${o.id}`}
-      className="flex items-center justify-between gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
+      className="flex items-start gap-3 p-4 rounded-2xl snm-pressable active:opacity-80"
       style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
     >
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        {/* Neutral tile — the pill on the right already states status in
-            color; painting it twice per row was the "light green everywhere"
-            wash Ali flagged. One row, one colored element. */}
-        <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-foreground truncate">
+      {/* Neutral tile — the pill below already states status in color;
+          painting it twice per row was the "light green everywhere" wash
+          Ali flagged. One row, one colored element. */}
+      <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+        <Icon className="h-4 w-4" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        {/* WHO — and what it cost. Tabular figures so the money column
+            stays aligned down the list instead of jittering per row. */}
+        <div className="flex items-baseline gap-2">
+          <p className="text-[17px] font-semibold text-foreground truncate flex-1 min-w-0" style={{ letterSpacing: "-0.012em" }}>
             {cust?.name ?? "Walk-in"}
           </p>
-          <p className="ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
-            <span className="snm-num">{o.order_number}</span> · via {o.channel}{cust?.island && <> · {cust.island}</>}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2.5 shrink-0">
-        <div className="text-right">
           {total > 0 && (
-            <p className="text-[14px] font-semibold text-foreground snm-num">
-              {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              <span className="ios-subhead font-medium ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
+            <p className="text-[16px] font-bold text-foreground snm-num shrink-0">
+              {total >= 10000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              <span className="text-[11px] font-semibold ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
           )}
-          <span className="text-[12px] uppercase tracking-widest font-semibold rounded-lg px-2 py-0.5 inline-block mt-0.5" style={{ background: colors.bg, color: colors.text }}>
+        </div>
+
+        {/* WHAT — built in Postgres so pack/carton maths never happens here.
+            Two lines max: a mixed carton lists its full scent split. */}
+        {o.items_summary && (
+          <p
+            className="text-[15px] mt-0.5"
+            style={{
+              color: "var(--foreground)",
+              lineHeight: 1.35,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {o.items_summary}
+          </p>
+        )}
+
+        {/* Reference line — never competes with the two above. */}
+        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          <span className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>{o.order_number}</span>
+          <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>·</span>
+          <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{o.channel}</span>
+          <span className="text-[10px] uppercase tracking-wider font-bold rounded-full px-2 py-0.5 shrink-0" style={{ background: colors.bg, color: colors.text }}>
             {STATUS_LABEL[o.status]}
           </span>
+          {/* Money still outstanding is the one thing worth a second colour. */}
+          {isOwed && (
+            <span className="text-[10px] uppercase tracking-wider font-bold rounded-full px-2 py-0.5 shrink-0 snm-num"
+              style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
+              Owes {owed.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          )}
         </div>
-        <ChevronRight className="h-4 w-4" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
       </div>
+
+      <ChevronRight className="h-4 w-4 shrink-0 mt-2" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
     </Link>
   );
 });

@@ -34,6 +34,12 @@ export interface SalesOrderRow {
   created_at: string;
   updated_at: string;
   order_total_mvr?: number;
+  /** Plain-English contents for the list card, built in Postgres (0132) —
+   *  e.g. "Xtra Kering M — 1 carton (4×48 = 192 pcs)" or
+   *  "Sosoft mixed carton — 6 bottles (Blue 2 · Red 2 · Pink 1 · Purple 1)". */
+  items_summary?: string | null;
+  /** Still owed: total − payments − returns. Never recompute this client-side. */
+  balance_mvr?: number;
 }
 
 export interface SalesOrderLineRow {
