@@ -43,7 +43,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { SwipeActions, type SwipeAction } from "@/components/ui/swipe-actions";
-import { formatQtyInTradeUnits } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, priceForMargin } from "@/lib/trade-units";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -2543,7 +2543,8 @@ function NewSaleSheet({
                                       type="range" min={1} max={99} step={1} value={sliderVal}
                                       onChange={(e) => {
                                         const pct = parseInt(e.target.value);
-                                        if (landedPerPack > 0) setSimPackPrice(Math.round(landedPerPack / (1 - pct / 100)));
+                                        const p = priceForMargin(landedPerPack, pct);
+                                        if (p != null) setSimPackPrice(Math.round(p));
                                       }}
                                       className="snm-slider2 relative"
                                       style={{ touchAction: "none" }}

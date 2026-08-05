@@ -49,6 +49,11 @@ export interface MorningBriefing {
   overdue_mvr: number;
   slow_movers: number;
   expiring_value_mvr: number;
+  /** Batches holding stock with NO expiry date recorded. Without these,
+   *  expiring_value_mvr = 0 means "I cannot see", not "nothing is expiring"
+   *  — and every batch is currently in this state. */
+  batches_without_expiry: number;
+  stock_value_without_expiry_mvr: number;
   /** Rival prices past their check cycle, or never taken on an A/B item. */
   price_checks_due: number;
   /** The urgent subset — a shipment landed at a new cost, so margin moved. */

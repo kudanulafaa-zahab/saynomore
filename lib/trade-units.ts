@@ -89,3 +89,32 @@ export function costPerTradeUnit(
   }
   return { value: costPerPiece, unitLabel: "pc" };
 }
+
+// ── Price ↔ margin, one implementation ────────────────────────────────────
+//
+// The margin sliders in Sales (quick price check) and Market (competitor
+// comparison) each carried their own copy of this arithmetic. They were
+// identical, which is exactly how two screens quietly start disagreeing about
+// money — one gets a rounding tweak, the other doesn't, and Ali sees two
+// answers for the same product.
+//
+// AUTHORITY NOTE: Postgres owns the real figures. `v_skus.actual_margin_pct`
+// is the margin of record and `simulate_landed_costs` computes the price for
+// a target margin. These helpers exist ONLY to drive an interactive slider
+// preview — they must never be used to store, post or report a number.
+
+/** Selling price that yields `marginPct` on a given cost. Both in the same
+ *  unit (per pack, per carton — never mixed). */
+export function priceForMargin(cost: number, marginPct: number): number | null {
+  if (!(cost > 0)) return null;
+  // A 100% margin implies an infinite price; the sliders clamp to 99 but a
+  // caller could pass anything.
+  if (!(marginPct > -Infinity) || marginPct >= 100) return null;
+  return cost / (1 - marginPct / 100);
+}
+
+/** Margin percentage a given price earns on a given cost. */
+export function marginAtPrice(cost: number, price: number): number | null {
+  if (!(price > 0) || !(cost >= 0)) return null;
+  return (1 - cost / price) * 100;
+}
