@@ -807,6 +807,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
   const [cartonStr, setCartonStr] = useState(() => initialPrices ? String(initialPrices.carton) : "");
   const [pieceStr,  setPieceStr]  = useState(() => initialPrices ? String(initialPrices.piece)  : "");
   const [saving,    setSaving]    = useState(false);
+  const [lossConfirm, setLossConfirm] = useState(false);
 
   function applyMargin(mStr: string) {
     setMarginStr(mStr);
@@ -856,14 +857,31 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
   // column (it exists for competitor comparison and the ledger, not for him to
   // type) so it can never be the reason a save is blocked.
   const canSave = sku && parseFloat(packStr) > 0 && parseFloat(cartonStr) > 0;
+  // A below-cost TIER PRICE is worse than a below-cost line: the line loses
+  // money once, the price rule loses money on every future sale to that tier,
+  // silently. Same law as the order screens (skills.md: losing money is a
+  // decision, never an accident) — and measured against the unit actually
+  // sold, per migration 0139, not a per-piece price nobody is charged.
+  const belowCostTiers = (() => {
+    if (!landed || !sku) return [] as { unit: string; price: number; cost: number }[]
+    const noun = sku.unit_uom === "ml" ? "bottle" : sku.unit_uom === "g" ? "pouch" : "pack";
+    const out: { unit: string; price: number; cost: number }[] = [];
+    const pk = parseFloat(packStr), ctn = parseFloat(cartonStr);
+    const costPack = landed * pcsPerPack, costCtn = landed * pcsPerCarton;
+    if (pk  > 0 && pk  < costPack) out.push({ unit: noun,     price: pk,  cost: costPack });
+    if (ctn > 0 && ctn < costCtn)  out.push({ unit: "carton", price: ctn, cost: costCtn  });
+    return out;
+  })();
+
   const derivedPiece = parseFloat(pieceStr) > 0
     ? parseFloat(pieceStr)
     : parseFloat(packStr) > 0 && pcsPerPack > 0 ? parseFloat(packStr) / pcsPerPack
     : parseFloat(cartonStr) > 0 && pcsPerCarton > 0 ? parseFloat(cartonStr) / pcsPerCarton
     : 0;
 
-  async function handleSave() {
+  async function handleSave(acceptLoss = false) {
     if (!canSave || !sku) return;
+    if (belowCostTiers.length > 0 && !acceptLoss) { setLossConfirm(true); return; }
     setSaving(true);
     try {
       await onSave({
@@ -997,6 +1015,32 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         );
       })()}
 
+      {belowCostTiers.length > 0 && (
+        <div className="rounded-xl px-4 py-3 mt-3"
+          style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}>
+          <p className="ios-subhead font-semibold snm-num" style={{ color: "var(--snm-error)" }}>
+            ⚠ This price loses money on every sale
+          </p>
+          {belowCostTiers.map((t) => (
+            <p key={t.unit} className="ios-subhead snm-num" style={{ color: "var(--muted-foreground)", marginTop: 2 }}>
+              One {t.unit} costs you MVR {t.cost.toFixed(2)} — at MVR {t.price.toFixed(2)} you lose MVR {(t.cost - t.price).toFixed(2)} each time.
+            </p>
+          ))}
+        </div>
+      )}
+
+      <ConfirmSheet
+        open={lossConfirm}
+        title="This price sells below cost"
+        message={belowCostTiers
+          .map((t) => `One ${t.unit} costs you MVR ${t.cost.toFixed(2)}; this list would sell it at MVR ${t.price.toFixed(2)} — a loss of MVR ${(t.cost - t.price).toFixed(2)} every time.`)
+          .join(" ") + " Go back to adjust it, or save it anyway."}
+        confirmLabel="Save at a loss"
+        loading={saving}
+        onConfirm={() => { setLossConfirm(false); void handleSave(true); }}
+        onClose={() => setLossConfirm(false)}
+      />
+
       <div className="flex gap-3 mt-6">
         {extraAction}
         <button
@@ -1005,7 +1049,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" }}
         >Cancel</button>
         <button
-          onClick={handleSave}
+          onClick={() => void handleSave()}
           disabled={saving || creatingHeader || !canSave}
           className="flex-[2] py-3 rounded-full text-xs font-bold uppercase tracking-widest active:opacity-80 active:scale-95 disabled:opacity-40"
           style={{ background: "var(--foreground)", color: "var(--background)" }}
