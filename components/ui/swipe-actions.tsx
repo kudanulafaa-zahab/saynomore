@@ -113,14 +113,19 @@ export function SwipeActions({
 
   return (
     <div className="relative overflow-hidden rounded-2xl">
-      {/* Actions sit underneath and are revealed, not translated in. */}
-      {active && (
-        <div className="absolute inset-y-0 right-0 flex" aria-hidden={offset === 0}>
+      {/* Actions sit underneath and are revealed by the row sliding off them.
+          They are mounted ONLY while the row is actually displaced: this app's
+          cards are deliberately translucent (the glass look), so anything
+          parked behind a closed row shows straight through it — which painted
+          a green wash across every card in the Sales list. A reveal-from-
+          underneath pattern only works behind an opaque row; behind a
+          translucent one it has to be conditional. */}
+      {active && offset !== 0 && (
+        <div className="absolute inset-y-0 right-0 flex">
           {actions.map((a) => (
             <button
               key={a.label}
               type="button"
-              tabIndex={offset === 0 ? -1 : 0}
               onClick={() => { a.onSelect(); close(); }}
               className="flex flex-col items-center justify-center gap-1 text-[11px] font-semibold"
               style={{ width: ACTION_W, background: a.background, color: a.foreground ?? "var(--snm-on-fill)" }}

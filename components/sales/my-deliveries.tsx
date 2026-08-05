@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import {
   listMyDeliveries, listOrderLinesForOrders, updateOrder, getOrderBalances,
+  recordCodCollection, codCollectionArgs,
   type SalesOrderRow, type SalesOrderLineRow,
 } from "@/lib/queries/sales";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
@@ -147,19 +148,22 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, delivererId,
     if (!order || !amount) return;
     setSaving(true);
     try {
-      // Only call it paid when the money actually covers what was owed.
-      // This used to write 'paid' unconditionally, so a short collection
-      // still closed the order as settled and the shortfall silently
-      // vanished from receivables.
-      const patch = {
-        status: "delivered" as const,
-        payment_status: (isShort ? "partial" : "paid") as "partial" | "paid",
-        cash_collected_mvr: collected,
-        delivered_at: new Date().toISOString(),
-      };
+      // One RPC records the cash in the payments ledger, sets the
+      // denormalised cash_collected_mvr, and marks the order delivered — all
+      // in one transaction. Writing cash_collected_mvr on its own is what left
+      // an order showing "OWES 776" while its detail screen said the money was
+      // already banked (migration 0136). payment_status is derived in
+      // Postgres now, so a short collection can no longer be written as
+      // 'paid' by the browser.
+      const args = codCollectionArgs(order.id, collected, { markDelivered: true });
       const { queued } = await withOfflineFallback(
-        () => updateOrder(order.id, patch),
-        { table: "sales_orders", action: "update", payload: patch, match: { id: order.id } },
+        () => recordCodCollection(args),
+        {
+          table: "sales_orders",
+          action: "rpc",
+          rpcName: "record_cod_collection",
+          payload: args as unknown as Record<string, unknown>,
+        },
       );
       haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Delivered — remember to deposit the cash");

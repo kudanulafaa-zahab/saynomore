@@ -25,6 +25,8 @@ import {
   editOrderLine,
   getOrderAudit,
   getSalesOrderDeleteImpact,
+  recordCodCollection,
+  codCollectionArgs,
   parseVoidReason,
   parseVoidReversedCount,
   type SalesOrderDeleteImpact,
@@ -45,6 +47,7 @@ import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
+import { formatQtyInTradeUnits } from "@/lib/trade-units";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { recordCustomerReturn, type ReturnReason, type ReturnSettlement } from "@/lib/queries/inventory";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
@@ -278,16 +281,32 @@ export function SaleDetail({ id }: { id: string }) {
       if (cash < 0)    { toast.error("Cash collected can't be negative"); return; }
     }
     setCompleting(true);
+    // With cash, one RPC books it into the payments ledger and marks the order
+    // delivered together (migration 0136) — writing cash_collected_mvr alone is
+    // what left an order reading "OWES 776" while its own detail screen said
+    // the money was banked. Without cash it stays a plain status update.
+    const codArgs = isNaN(cash)
+      ? null
+      : codCollectionArgs(order.id, cash, { markDelivered: true });
     const p = {
       status: "delivered",
       delivered_at: new Date().toISOString(),
-      ...(isNaN(cash) ? {} : { cash_collected_mvr: cash }),
     } as Record<string, unknown>;
     try {
-      const { queued } = await withOfflineFallback(
-        () => updateOrder(order.id, p),
-        { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
-      );
+      const { queued } = codArgs
+        ? await withOfflineFallback(
+            () => recordCodCollection(codArgs),
+            {
+              table: "sales_orders",
+              action: "rpc",
+              rpcName: "record_cod_collection",
+              payload: codArgs as unknown as Record<string, unknown>,
+            },
+          )
+        : await withOfflineFallback(
+            () => updateOrder(order.id, p),
+            { table: "sales_orders", action: "update", payload: p, match: { id: order.id } },
+          );
       haptic("success");
       toast.success(queued ? "Saved offline — will sync when connected" : "Order marked as delivered");
       setPanel(null);
@@ -1898,7 +1917,7 @@ function LineDialog({
                         pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
                       />
                       {stock !== null && (
-                        <span style={{ color: stock > 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 13, flexShrink: 0 }}>{stock} pcs</span>
+                        <span style={{ color: stock > 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 13, flexShrink: 0 }}>{formatQtyInTradeUnits(stock, { pcsPerPack: s.pcs_per_pack, packsPerCarton: s.packs_per_carton, unitUom: s.unit_uom, sellableUnits: s.sellable_units })}</span>
                       )}
                     </button>
                   );
@@ -1917,7 +1936,7 @@ function LineDialog({
               </div>
               {stockHere !== null && (
                 <p style={{ color: stockHere === 0 ? "var(--snm-error)" : "var(--muted-foreground)", fontSize: 11, marginTop: 6 }}>
-                  In warehouse: <strong style={{ color: "var(--foreground)" }}>{stockHere.toLocaleString()} pcs</strong>
+                  In warehouse: <strong style={{ color: "var(--foreground)" }}>{formatQtyInTradeUnits(stockHere, { pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom, sellableUnits: sku.sellable_units })}</strong>
                 </p>
               )}
             </div>
@@ -2074,7 +2093,7 @@ function LineDialog({
 
         {insufficient && (
           <div style={{ background: "color-mix(in srgb, var(--snm-error) 10%, transparent)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, border: "1px solid color-mix(in srgb, var(--snm-error) 28%, transparent)" }}>
-            <p style={{ color: "var(--snm-error)", fontSize: 12 }}>⚠ Not enough stock — only {stockHere} pcs available.</p>
+            <p style={{ color: "var(--snm-error)", fontSize: 12 }}>⚠ Not enough stock — only {sku ? formatQtyInTradeUnits(stockHere ?? 0, { pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom, sellableUnits: sku.sellable_units }) : `${stockHere ?? 0}`} available.</p>
           </div>
         )}
 

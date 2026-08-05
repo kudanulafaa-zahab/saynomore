@@ -492,6 +492,45 @@ export async function voidOrder(orderId: string, reason: string) {
  * Blocked when payment is settled or cash was collected — those need a void +
  * credit note, not a silent erase. Use this (not deleteOrder) whenever stock
  * may have been posted or the order isn't a plain draft. */
+/** Records cash collected on delivery (migration 0136).
+ *
+ *  This is the ONLY supported way to record COD cash. It writes an
+ *  `order_payments` row and the denormalised `sales_orders.cash_collected_mvr`
+ *  in one transaction, so the ledger can never disagree with the order.
+ *
+ *  Setting `cash_collected_mvr` with a bare table update is what produced the
+ *  "OWES 776" pill on an order whose detail screen said the cash was already
+ *  banked: the money existed on the order but not in the ledger the balance
+ *  reads. Do not reintroduce that path. */
+export interface CodCollectionArgs {
+  p_order_id: string;
+  p_amount_mvr: number;
+  p_mark_deposited: boolean;
+  p_mark_delivered: boolean;
+  p_note: string | null;
+}
+
+/** Builds the RPC payload, so the live call and the offline-queue entry can
+ *  never drift apart in shape. */
+export function codCollectionArgs(
+  orderId: string,
+  amountMvr: number,
+  opts: { markDeposited?: boolean; markDelivered?: boolean; note?: string } = {},
+): CodCollectionArgs {
+  return {
+    p_order_id: orderId,
+    p_amount_mvr: amountMvr,
+    p_mark_deposited: opts.markDeposited ?? false,
+    p_mark_delivered: opts.markDelivered ?? false,
+    p_note: opts.note ?? null,
+  };
+}
+
+export async function recordCodCollection(args: CodCollectionArgs) {
+  const { error } = await supabase.rpc("record_cod_collection", args);
+  if (error) throw error;
+}
+
 export async function deleteSalesOrder(orderId: string, reason?: string) {
   const { error } = await supabase.rpc("delete_sales_order", { p_order_id: orderId, p_reason: reason ?? null });
   if (error) throw error;

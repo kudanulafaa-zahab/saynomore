@@ -42,7 +42,7 @@ export const FULL_NAV: NavItem[] = [
   // Procurement
   { href: "/reorder",    label: "Reorder",    icon: ClipboardList },
   { href: "/shipments",  label: "Shipments",  icon: Ship        },
-  { href: "/costing",    label: "Costing",    icon: Calculator  },
+  { href: "/costing",    label: "Cost Simulator", icon: Calculator  },
   { href: "/suppliers",  label: "Suppliers",  icon: Building2   },
 
   // Catalogue

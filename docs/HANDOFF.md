@@ -493,6 +493,59 @@ Both depend on iOS touch behaviour that cannot be reproduced here.
 
 ---
 
+## 5g. Ali's screenshots, 2026-08-05 — migrations 0136–0137
+
+**The "OWES 776" contradiction (0136).** SO-2026-072 showed a red owing pill
+in the Sales list while its own detail screen said the cash was collected AND
+banked. Both were reading the database correctly — there were simply **two
+places money could be recorded as received**: the `order_payments` ledger, and
+`sales_orders.cash_collected_mvr` + `payment_status`, written directly by the
+COD delivery flow with no ledger row. SO-2026-072 was the only order in the
+database settled by the second route, and `balance_mvr` (added in 0132) only
+reads the first.
+
+This is the same defect class 0121 fixed for the unpaid *count*, which
+`balance_mvr` then reintroduced for the *amount*. The durable fix was not
+another special case in the balance formula — it was removing the second
+place. `record_cod_collection(...)` now writes the ledger row, the
+denormalised `cash_collected_mvr`, and the delivered status **in one
+transaction**, and derives `payment_status` in Postgres. All three UI call
+sites (sale-detail, my-deliveries, dispatch-view) go through it, including
+offline via the queue's `rpc` action — so a driver can never sync a delivery
+that loses its cash. **Never set `cash_collected_mvr` with a bare UPDATE
+again.** Verified after: zero orders with COD cash but no ledger row, zero
+settled orders showing a balance, zero unsettled orders showing zero.
+
+**Packs and cartons, not pieces (0137).** Ali's standing rule, restated: the
+vendor sells packs and cartons, he sells packs and cartons. Pieces stay in the
+database for four reasons and appear on screen for none of them — the stock
+ledger (which is what lets a part-opened carton exist), landed cost (a carton
+divides to a piece before it meets a price), competitor comparison (rivals
+sell 30s/34s/48s, so per-piece is the only comparable unit — Ali's own point),
+and mixed cartons. The Sales card now reads "1 carton (4 packs of 48)" rather
+than "1 carton (4×48 = 192 pcs)"; pack SIZE is kept because it identifies the
+variant. The Sales composer and Sale Detail use the existing
+`lib/trade-units.ts` `formatQtyInTradeUnits` — **that helper already existed
+from July; do not write a second one.**
+
+**Shipment at a glance (0137).** `get_shipment_summary` rolls a shipment up
+category → brand → model in CARTONS, with ordered and received as separate
+columns so a short shipment is obvious. Answers "how many cases of Xtra Kering
+did I order?" without hand-counting. On SH-2026-001: 96 cartons Xtra Kering,
+22 Merries, 88 Sosoft across 5 colours.
+
+**Green wash on the Sales cards.** The swipe-actions panel was mounted behind
+every row at all times and revealed by translation. This app's cards are
+**deliberately translucent**, so the green WhatsApp button showed straight
+through all of them. Actions are now mounted only while a row is displaced. A
+reveal-from-underneath pattern only works behind an opaque row — remember this
+before adding another one.
+
+**"Where is the simulation module?"** It shipped as "Costing", buried in the
+More overflow, and Ali could not find it. Renamed to **Cost Simulator**.
+
+---
+
 ## 6. Built this session (recent → older highlights)
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
