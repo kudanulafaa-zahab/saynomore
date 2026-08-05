@@ -739,7 +739,7 @@ More overflow, and Ali could not find it. Renamed to **Cost Simulator**.
 
 ---
 
-## 5h. Unprompted expert sweep, 2026-08-05 — migration 0139 (+0138 pending)
+## 5h. Unprompted expert sweep, 2026-08-05 — migration 0139 (0138 was deleted)
 
 Ali: *"I am a complete layman. I want you to do 10 times better because you're
 a full team of top experts. Act like it."* Fair. This section is what that
@@ -807,17 +807,25 @@ than a single — which looks like penalising bulk buyers, until you check
 `sellable_units` and find **nothing sells as singles**. The per-piece price is
 internal. Verified before reporting rather than after.
 
-**Still open, for Ali:**
-- Apply migration 0138 (26 phantom XXXL pieces).
-- Upgrade Supabase to Pro for backups.
-- **Skin Comfort L**: real margin 23.7% against a family that runs 24–31%.
-  It is the thinnest mover in the line at 168 pcs sold. Nudging the pack from
-  MVR 230 to 234 puts it on the ladder.
-- **Island names are fragmenting**: 26 of 57 customers are split across
-  "Male" and "Male’", and Mathiveri has three spellings. Any per-island
-  analysis is already unreliable.
-- **All 31 batches have no expiry date**, so FEFO cannot run and the ≤60-day
-  expiry warning in the morning briefing can never fire.
+**What this list looked like mid-session, and where each item ended up.**
+Kept because the reasoning is useful, corrected because leaving it as "still
+open" would send a new chat off to redo settled work. **§7 is the live list.**
+
+- ~~Apply migration 0138 (26 phantom XXXL pieces).~~ **Dropped.** The argument
+  was built on CBM volume; Ali showed that reasoning was wrong. 0138 was
+  deleted unapplied and there is no gap to fill. **Do not raise the
+  XXXL-34x3 128-vs-102 discrepancy with him again.**
+- ~~Island names fragmenting.~~ **Fixed** in migration 0141 —
+  `normalise_island()` plus a trigger; 26 strings collapsed to 22. Only
+  "Shaniya" and "Phase 2" were left, deliberately (§7a.3).
+- ~~All 31 batches have no expiry date.~~ **Still true and now visible**:
+  migration 0142 makes the morning briefing report 27 batches holding
+  MVR 81,577 with no expiry, instead of a silent all-clear. Data entry, Ali's
+  (§7a.2).
+- **Upgrade Supabase to Pro for backups** — still open, still his call (§7a.1).
+- **Skin Comfort L**: real margin 23.7% against a family that runs 24–31%,
+  and the thinnest mover in the line. Nudging the pack from MVR 230 to 234
+  puts it on the ladder. Still his call — a price is never changed for him.
 
 ---
 
@@ -1188,6 +1196,10 @@ done, applied live, and deployed. Nothing is half-finished.
    delivery areas.)
 4. **Delete the leftover Vercel project shell** from the removed web shop — see
    section 1. Careful to pick the leftover, NOT `saynomore`.
+5. **Skin Comfort L pricing.** Real margin **23.7%** against a family that runs
+   24–31%, and the thinnest mover in the line. Moving the pack from MVR 230 to
+   234 puts it on the ladder. **A selling price is never changed for him** — the
+   app watches and suggests; he decides.
 
 On 2026-08-05 Ali said of items 1–3: *"Disregard these I will do it."* So do
 not re-raise them; just do not assume they are done either.
