@@ -14,6 +14,45 @@
   hand-wave, guess, or skimp on details. Build it properly the first time and
   say briefly what standard you applied.
 
+## Before building ANY screen — the gate that keeps being skipped
+
+Every complaint Ali has raised about a new screen traces to the same cause: I
+built from my own idea of the job instead of from the screen in this app that
+already does it. Migration 0141's header says so in as many words. It happened
+again on the costing simulator's new-product sheet.
+
+**So: no UI is written until this list is written out first, in the reply, and
+Ali can see it.** It is four lines, it costs nothing, and he can spot a wrong
+one in ten seconds — which is the point, because a written field list is the
+only design artifact he can review on a phone.
+
+1. **Which existing screen does this same job?** Name the file and the
+   component. If a screen in this app already takes these inputs, the new one
+   copies it — fields, order, labels, units, and chrome. A second pattern for
+   the same job is a tax on him.
+2. **Every field, with its UNIT spelled out.** "Supplier price" is not a field.
+   "Supplier price — of ONE carton, or ONE pack, chosen by a pill, echoed back
+   as `= X per carton`" is a field. Any figure whose unit a reader could guess
+   wrong is a defect, not a detail.
+3. **Where does each unit WORD come from?** `sellable_units` and the unit noun
+   — never a hardcoded "pack". A product sold only by the carton must never be
+   asked for a pack price, and a bottle is never a "pack".
+4. **Which existing components and classes?** `.label-caps`, `.snm-input` /
+   `h-12 rounded-xl px-4 ios-subhead`, `--glass-bg-1` inputs on a `--glass-2`
+   sheet, pill toggles with the `Check` icon, fixed header + one scrolling body
+   + pinned footer. **Never invent a new input primitive.** If a new one seems
+   needed, that is the signal to go back to step 1.
+
+**Contrast is not a matter of taste.** An input filled with `--glass-bg-2`
+sitting on a `--glass-bg-2` sheet is invisible, in both themes. Surfaces step:
+page → `--glass-2` sheet → `--glass-bg-1` field. Never place a surface on
+itself.
+
+**Derived numbers are never typed.** CBM is `L × W × H ÷ 1 000 000` — a
+generated column in the database, entered as three dimensions in Products and
+echoed back. Ask for the same three anywhere else and echo the same way. If the
+app computes a number in one place, asking the user for it in another is a bug.
+
 ## Stack (locked)
 Next.js 16 App Router (Turbopack) · React 19 (React Compiler ON) · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres) · Vercel · Lucide icons
 
