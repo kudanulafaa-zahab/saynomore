@@ -1049,8 +1049,12 @@ export function ShipmentDetail({ id }: { id: string }) {
               const sku      = skus.find((s) => s.id === l.sku_id);
               const godown   = godowns.find((g) => g.id === l.destination_godown_id);
               const livePer  = preview?.lines.find((p) => p.line.id === l.id);
-              const estPiece = livePer?.perPiece ?? null;
-              const estPack  = livePer?.perPack ?? null;
+              // Lead with the carton — that is what this line orders and what
+              // the supplier invoices. The per-pack figure follows it. Nothing
+              // here is quoted per piece any more: the number exists (it is how
+              // the ledger divides a carton down) but Ali never buys one.
+              const estCarton = livePer?.perCarton ?? null;
+              const estPack   = livePer?.perPack ?? null;
               const ratesSet = preview?.ratesSet ?? false;
               const actualQty = l.qty_cartons_actual ?? l.qty_cartons;
               const isShort  = l.qty_cartons_actual != null && l.qty_cartons_actual < l.qty_cartons;
@@ -1093,14 +1097,14 @@ export function ShipmentDetail({ id }: { id: string }) {
                         {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
                       </span>
                     </p>
-                    {estPiece != null && estPiece > 0 ? (
+                    {estCarton != null && estCarton > 0 ? (
                       <div className="text-right">
                         <p className="font-semibold snm-num" style={{ color: ratesSet ? "var(--snm-success)" : "var(--snm-warning)", fontSize: 14 }}>
-                          {ratesSet ? "" : "~"}Est MVR {fmt2(estPiece)}/pc
+                          {ratesSet ? "" : "~"}Est MVR {fmt2(estCarton)}/ctn
                         </p>
-                        {estPack != null && estPack > 0 && sku && sku.pcs_per_pack > 1 && (
+                        {estPack != null && estPack > 0 && sku && sku.packs_per_carton > 1 && (
                           <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
-                            {fmt2(estPack)}/pack
+                            {fmt2(estPack)}/{sku.unit_uom === "ml" ? "bottle" : sku.unit_uom === "g" ? "pouch" : "pack"}
                           </p>
                         )}
                       </div>

@@ -90,6 +90,34 @@ export function costPerTradeUnit(
   return { value: costPerPiece, unitLabel: "pc" };
 }
 
+// ── Which tiers a SKU is actually sold in ─────────────────────────────────
+//
+// `sellable_units` is the single source of truth and every screen that offers
+// a selling unit must read it. Screens used to SYNTHESISE a third "Piece"
+// button for any pack-selling SKU ("breaking a pack open is a real sale"),
+// which is simply not this trade: the supplier sells packs and cartons and
+// Ali sells packs and cartons. Checked against every line ever sold — all 51
+// `uom='piece'` lines are Sosoft bottles inside a mixed carton, and not one
+// is a diaper. Meanwhile all 31 SKUs are {pack,carton}, {carton} or {pack};
+// none says `piece`. The button offered a sale nobody makes.
+
+/** The tiers this SKU is sold in, carton first. Never adds a tier that
+ *  `sellable_units` doesn't list. */
+export function sellableTiers(units: SellUnit[] | null | undefined): SellUnit[] {
+  const su = units ?? ["pack", "carton"];
+  const tiers = (["carton", "pack", "piece"] as SellUnit[]).filter((u) => su.includes(u));
+  return tiers.length ? tiers : ["carton"];
+}
+
+/** The word for one unit at a given tier, lowercase ("carton", "pack",
+ *  "bottle"). Never says "piece" for a product whose pack IS one unit —
+ *  Sosoft's carton holds 6 packs of 1, so its loose unit is a bottle. */
+export function sellUnitLabel(uom: SellUnit, cfg: TradeUnitConfig): string {
+  if (uom === "carton") return "carton";
+  if (uom === "pack") return containerLabel(cfg.unitUom);
+  return cfg.pcsPerPack === 1 ? containerLabel(cfg.unitUom) : "piece";
+}
+
 // ── Price ↔ margin, one implementation ────────────────────────────────────
 //
 // The margin sliders in Sales (quick price check) and Market (competitor

@@ -829,6 +829,12 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
 
   function applyCarton(cStr: string) {
     setCartonStr(cStr);
+    // The per-piece figure is derived, never typed (see below). If the pack
+    // price hasn't been entered yet, the carton is what we have to derive it
+    // from — otherwise Save sat dead with an unexplained "piece" warning.
+    const ctn = parseFloat(cStr);
+    if (isNaN(ctn) || ctn <= 0 || pcsPerCarton <= 0) return;
+    if (!(parseFloat(packStr) > 0)) setPieceStr((ctn / pcsPerCarton).toFixed(2));
   }
 
   function applyPiece(pStr: string) {
@@ -846,14 +852,22 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
     return m >= 25 ? "var(--snm-success)" : m >= 15 ? "var(--snm-warning)" : "var(--snm-error)";
   }
 
-  const canSave = sku && parseFloat(packStr) > 0 && parseFloat(cartonStr) > 0 && parseFloat(pieceStr) > 0;
+  // Only the two prices Ali actually quotes. The per-piece figure is a derived
+  // column (it exists for competitor comparison and the ledger, not for him to
+  // type) so it can never be the reason a save is blocked.
+  const canSave = sku && parseFloat(packStr) > 0 && parseFloat(cartonStr) > 0;
+  const derivedPiece = parseFloat(pieceStr) > 0
+    ? parseFloat(pieceStr)
+    : parseFloat(packStr) > 0 && pcsPerPack > 0 ? parseFloat(packStr) / pcsPerPack
+    : parseFloat(cartonStr) > 0 && pcsPerCarton > 0 ? parseFloat(cartonStr) / pcsPerCarton
+    : 0;
 
   async function handleSave() {
     if (!canSave || !sku) return;
     setSaving(true);
     try {
       await onSave({
-        price_per_piece_mvr:  parseFloat(pieceStr),
+        price_per_piece_mvr:  derivedPiece,
         price_per_pack_mvr:   parseFloat(packStr),
         price_per_carton_mvr: parseFloat(cartonStr),
         margin_pct:           packMargin !== null ? parseFloat(packMargin.toFixed(1)) : null,
@@ -920,7 +934,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         <div className="flex-1 h-px" style={{ background: "var(--glass-border-lo)" }} />
       </div>
 
-      <SheetInput label={`Pack price — ${pcsPerPack} pcs`} required>
+      <SheetInput label={`Pack price — pack of ${pcsPerPack}`} required>
         <input
           type="number" inputMode="decimal" step="0.5" min="0.01"
           value={packStr}
@@ -937,7 +951,7 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         )}
       </SheetInput>
 
-      <SheetInput label={`Carton price — ${pcsPerCarton} pcs (volume discount)`} required>
+      <SheetInput label={`Carton price — ${packsPerCarton} packs of ${pcsPerPack} (volume discount)`} required>
         <input
           type="number" inputMode="decimal" step="1" min="0.01"
           value={cartonStr}
@@ -965,31 +979,20 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
         )}
       </SheetInput>
 
-      {/* Label was "(optional)" but canSave requires it — the save button
-          just sat dead with no explanation when this was cleared. It
-          auto-fills from the pack price, so it only needs typing when the
-          loose-piece price differs. */}
-      <SheetInput label="Piece price (auto from pack — edit if different)">
-        <input
-          type="number" inputMode="decimal" step="0.01" min="0.01"
-          value={pieceStr}
-          onChange={(e) => applyPiece(e.target.value)}
-          onFocus={(e) => e.target.select()}
-          placeholder="auto-filled from pack ÷ pcs"
-          className={inputCls}
-        />
-      </SheetInput>
+      {/* There is no per-piece input. The column still gets a value (it feeds
+          competitor comparison and the ledger) but it is derived from the pack
+          price — asking Ali to price a loose diaper is asking for a number
+          nobody in this trade quotes. */}
       {!canSave && sku && (() => {
         const missing = [
           parseFloat(packStr)   > 0 ? null : "pack",
           parseFloat(cartonStr) > 0 ? null : "carton",
-          parseFloat(pieceStr)  > 0 ? null : "piece",
         ].filter(Boolean);
         return (
           <p className="ios-subhead mt-2" style={{ color: "var(--snm-warning)" }}>
-            {missing.length === 3
-              ? "All three prices (pack, carton, piece) need a value above 0 to save."
-              : `${missing.join(" and ")} price${missing.length > 1 ? "s" : ""} need${missing.length > 1 ? "" : "s"} a value above 0 to save.`}
+            {missing.length === 2
+              ? "Both the pack price and the carton price need a value above 0 to save."
+              : `The ${missing[0]} price needs a value above 0 to save.`}
           </p>
         );
       })()}
