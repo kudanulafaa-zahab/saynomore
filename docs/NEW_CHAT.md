@@ -37,14 +37,32 @@ start building until I answer.
   Every complaint Ali has raised traces to building before reading. Making the
   first turn a *proposal* rather than a *commit* is what catches it.
 
-## Two habits worth keeping, whatever the chat
+## You do not have to remember anything else
 
-1. **Before any new screen, ask: "which existing screen is this copied from?"**
-   A filename means the work was done. Reasoning instead of a filename means it
-   was not. The full four-line gate is in `CLAUDE.md`.
-2. **One thing at a time.** Quality dropped measurably at the end of long
-   batches on 2026-08-05. "Field list first, then build" costs a minute and
-   saves a rebuild.
+Ali, 2026-08-05: *"I can't remember to ask these two everytime. It's
+impossible to remember."* Correct — and asking you to remember was the same
+mistake, just pointed at you. It is now mechanical.
+
+`.claude/settings.json` carries a **SessionStart hook** that injects
+`.claude/session-rules.md` into every new session automatically, before the
+first word is typed. It fires whether or not you paste the prompt above,
+whether or not you remember it exists. The rules it injects:
+
+1. Output the four-line field list before writing ANY UI, then stop and wait.
+2. One thing at a time — no five-change batches.
+3. Read `app/globals.css` before touching any UI.
+4. Contrast is measured, not judged.
+5. Packs and cartons, never pieces.
+6. Money and stock math in Postgres, anon revoked.
+7. Below-cost needs an explicit decision, on every door.
+8. "Merged" is not "live" — verify the deploy.
+
+**Your only job is to notice when a reply proposes UI without the four lines
+in front of it.** Recognising something missing is far easier than remembering
+to ask for it, and if it is missing you can just say *"field list?"*
+
+To read or change what gets injected, edit `.claude/session-rules.md`. To turn
+it off, delete the `hooks` block from `.claude/settings.json`.
 
 ## Start a fresh chat when
 

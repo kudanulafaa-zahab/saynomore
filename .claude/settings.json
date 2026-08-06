@@ -11,5 +11,19 @@
       "mcp__*__get_project_url",
       "mcp__*__get_logs"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"${CLAUDE_PROJECT_DIR:-.}\"; jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}' < \"$d/.claude/session-rules.md\" 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Loading project rules"
+          }
+        ]
+      }
+    ]
   }
 }
