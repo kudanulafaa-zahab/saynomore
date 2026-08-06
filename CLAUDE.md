@@ -24,6 +24,23 @@
   data modelling, finance/inventory conventions), to current standards. Never
   hand-wave, guess, or skimp on details. Build it properly the first time and
   say briefly what standard you applied.
+- **Run every proposal through the expert council BEFORE presenting it to
+  Ali, not just before building it.** Ali, 2026-08-06: *"I told you I'm a
+  layman without any knowledge. That's why from now on before you agree to me
+  you must always use expert knowledge in all relevant fields."* The incident:
+  a competitor-price feature was proposed that would let any tracked
+  product's rival price be compared against any other — a diaper trial could
+  have been benchmarked against a soft drink. Ali caught it; an ERP/FMCG lens
+  (skills.md Seat 5) would have caught it first, since category-scoped
+  competitive benchmarking is baseline retail-buying practice. He cannot
+  catch a cross-domain flaw himself — that is what he is asking me to do
+  before it reaches him. Concretely, before proposing a plan, screen or
+  calculation: check it against ERP/backend correctness (Seat 3), FMCG
+  operations conventions (Seat 5), finance/accounting conventions (Seat 4),
+  UI/UX (Seat 1), and frontend/backend engineering soundness (Seat 2) —
+  whichever seats are relevant — and only then bring him ONE recommendation.
+  The four-line pre-build checklist is necessary but not sufficient; it names
+  fields and screens, not whether the underlying logic makes domain sense.
 
 ## Before building ANY screen — the gate that keeps being skipped
 
