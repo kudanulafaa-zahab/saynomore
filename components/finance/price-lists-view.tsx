@@ -731,8 +731,13 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onDone }: {
                         {s.brand_name} › {s.model_name}
                         {s.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span> : null}
                       </p>
+                      {/* Landed cost is stored per piece (that is the ledger's
+                          unit) but quoted per pack — the unit he prices in
+                          (Ali, 2026-08-06). */}
                       {s.landed_per_piece_mvr != null && (
-                        <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc</p>
+                        <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+                          Landed MVR {(Number(s.landed_per_piece_mvr) * (s.pcs_per_pack ?? 1)).toFixed(2)}/pk
+                        </p>
                       )}
                     </button>
                   ))}
@@ -910,9 +915,11 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
           <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
             {pcsPerPack} pcs/pack · {packsPerCarton} packs/carton · {pcsPerCarton} pcs/carton
           </p>
+          {/* Quoted per pack, the unit he prices in — the per-piece figure
+              underneath is the ledger's, not his (Ali, 2026-08-06). */}
           {landed != null && (
             <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-              Landed: <span className="font-semibold" style={{ color: "var(--foreground)" }}>MVR {landed.toFixed(3)}/pc</span>
+              Landed: <span className="font-semibold" style={{ color: "var(--foreground)" }}>MVR {(landed * pcsPerPack).toFixed(2)}/pk</span>
             </p>
           )}
         </div>

@@ -35,7 +35,10 @@ function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
   if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} pk`;
   if (ctns > 0) return `${ctns} ctn`;
   if (packs > 0) return `${packs} pk`;
-  return `${pcs} pcs`;
+  // Was `${pcs} pcs`. A remainder smaller than one pack is real stock, but it
+  // is still not traded by the piece — matches formatQtyInTradeUnits's own
+  // "< 1 pk" wording (Ali, 2026-08-06).
+  return pcs > 0 ? "< 1 pk" : "0";
 }
 
 /* ── Types ── */

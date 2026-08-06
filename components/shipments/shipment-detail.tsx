@@ -483,7 +483,10 @@ export function ShipmentDetail({ id }: { id: string }) {
 
   const impactRows: ImpactRow[] = impact
     ? [
-        { label: "Stock still in the godown", value: `${impact.pieces_on_hand.toLocaleString()} pcs` },
+        // Was "{pieces_on_hand} pcs". This is the number Ali weighs before an
+        // irreversible action; in cartons he can judge it at a glance, in
+        // pieces he cannot (migration 0147 does the per-SKU conversion).
+        { label: "Stock still in the godown", value: `${impact.cartons_on_hand.toLocaleString()} cartons` },
         ...(impact.orders_affected > 0
           ? [
               { label: "Customer orders deleted", value: `${impact.orders_affected}` },
@@ -2059,9 +2062,13 @@ function LineDialog({
             <div className="mb-4">
               <p className="label-caps text-[12px] mb-2" style={{ color: "var(--muted-foreground)" }}>QTY CARTONS *</p>
               <QtyStepper value={qtyCartons} min={1} onChange={setQtyCartons} />
+              {/* The total piece count that used to sit between packs and CBM
+                  was dropped (Ali, 2026-08-06) — he orders in cartons and
+                  stocks in packs; the piece total was never a number he acts
+                  on. */}
               {sku && (
                 <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  = {qtyCartons * sku.packs_per_carton} packs · {qtyCartons * sku.packs_per_carton * sku.pcs_per_pack} pcs
+                  = {qtyCartons * sku.packs_per_carton} packs
                   · {(qtyCartons * Number(sku.cbm_per_carton)).toFixed(4)} CBM
                 </p>
               )}

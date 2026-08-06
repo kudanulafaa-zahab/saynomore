@@ -689,7 +689,6 @@ export function EditSkuDialog({
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                     <div className="text-right">
                       <p className="text-[16px] font-bold" style={{ color: "var(--snm-success)" }}>MVR {marginPreview.pack.toFixed(2)}</p>
-                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>MVR {marginPreview.piece.toFixed(4)} /pc</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-1.5" style={{ borderTop: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
@@ -746,7 +745,6 @@ export function EditSkuDialog({
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                     <div className="text-right">
                       <p className="text-[16px] font-bold" style={{ color: "var(--snm-brand-text)" }}>MVR {fixedPreview.pack.toFixed(2)}</p>
-                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>MVR {fixedPreview.piece.toFixed(4)} /pc</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-1.5" style={{ borderTop: "1px solid color-mix(in srgb, var(--snm-brand) 18%, transparent)" }}>

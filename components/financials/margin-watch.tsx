@@ -154,11 +154,15 @@ export function MarginWatch() {
                     {" where you set "}{r.target_margin_pct}%{" · MVR "}{fmt(Number(r.stock_value_mvr))} in stock at this price
                   </>
                 )}
+                {/* Both branches used to end "· {stock_pieces} pcs in stock".
+                    The row above already states stock in MONEY, which is the
+                    honest measure here and the unit he thinks in — a raw
+                    piece count told him nothing (Ali, 2026-08-06). */}
                 {r.status === "no_price" && (
-                  <>No selling price set · {r.stock_pieces} pcs in stock</>
+                  <>No selling price set · MVR {fmt(Number(r.stock_value_mvr))} in stock</>
                 )}
                 {r.status === "no_cost" && (
-                  <>No landed cost on record · {r.stock_pieces} pcs in stock</>
+                  <>No landed cost on record</>
                 )}
               </p>
             </div>

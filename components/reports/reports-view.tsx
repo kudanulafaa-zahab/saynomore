@@ -1037,7 +1037,9 @@ function StockTable({ rows, sortKey, onSort, periodDays }: {
                     <p className="text-foreground ios-subhead">
                       {formatQtyInTradeUnits(r.stock_pieces, cfg)}
                     </p>
-                    <p className="ios-subhead text-muted-foreground">{r.stock_pieces.toLocaleString()} pcs</p>
+                    {/* The raw piece count that used to sit under this was
+                        removed (Ali, 2026-08-06) — it restated the same
+                        quantity in a unit he does not trade in. */}
                   </td>
                   <td className="px-3 py-3 text-right text-muted-foreground ios-subhead">
                     {dailyAvgPieces > 0 ? `${formatQtyInTradeUnits(Math.round(dailyAvgPieces), cfg)}/day` : "—"}
