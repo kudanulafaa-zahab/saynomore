@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import type { CustomerRiskReason } from "@/lib/queries/customer-insights";
 
 // ── Business intelligence reads (all math in Postgres, migrations 0070-0072) ──
 
@@ -88,9 +89,21 @@ export interface MorningBriefing {
   price_checks_due: number;
   /** The urgent subset — a shipment landed at a new cost, so margin moved. */
   price_checks_cost_changed: number;
-  /** Repeat customers past 1.5× their own median ordering gap (0078) —
-   *  empty when everyone's on rhythm. */
-  overdue_customers: { name: string; phone: string | null; usual_gap_days: number; days_since_last: number }[];
+  /** Customers who have gone quiet, from the SINGLE at-risk definition in
+   *  get_customer_insights (0151). The briefing used to inline its own
+   *  rhythm-only copy, which required three orders and so named nobody.
+   *  Worst three by revenue — if only three fit, they should be the three
+   *  worth the most. */
+  at_risk_count: number;
+  overdue_customers: {
+    name: string;
+    phone: string | null;
+    /** Null for a 'ran_out' customer — they have no established rhythm. */
+    usual_gap_days: number | null;
+    days_since_last: number;
+    expected_supply_days: number | null;
+    reason: CustomerRiskReason;
+  }[];
 }
 
 /** Yesterday's business + the watch list, one call. */

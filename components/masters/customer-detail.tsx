@@ -134,9 +134,23 @@ export function CustomerDetail({ id }: { id: string }) {
             <div className="rounded-2xl p-4 flex items-start gap-3"
               style={{ ...CARD, border: "1px solid color-mix(in srgb, var(--snm-warning) 30%, transparent)" }}>
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--snm-warning)" }} />
+              {/* Two rules, two sentences. A one-time buyer has no "usual"
+                  gap — saying "usually every null days" is how this read
+                  before 0151, and it's also the wrong idea: what they bought
+                  simply ran out. */}
               <p className="ios-subhead" style={{ color: "var(--foreground)" }}>
-                <span className="font-semibold" style={{ color: "var(--snm-warning)" }}>Overdue to order.</span>{" "}
-                Usually every {insight.usual_gap_days} days — it&apos;s been {insight.days_since_last}. Worth a message.
+                {insight.risk_reason === "ran_out" ? (
+                  <>
+                    <span className="font-semibold" style={{ color: "var(--snm-warning)" }}>Probably run out.</span>{" "}
+                    What they bought {insight.days_since_last} days ago should have lasted about{" "}
+                    {insight.expected_supply_days} days. Worth a message.
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold" style={{ color: "var(--snm-warning)" }}>Overdue to order.</span>{" "}
+                    Usually every {insight.usual_gap_days} days — it&apos;s been {insight.days_since_last}. Worth a message.
+                  </>
+                )}
               </p>
             </div>
           )}
