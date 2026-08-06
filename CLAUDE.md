@@ -138,6 +138,22 @@ This is permanent. Ali has had to say it three times.
   do not write a second one. Postgres has the twin: `qty_in_trade_units` /
   `unit_noun` (migration 0143), used by `sales_order_item_summary` and
   `get_sales_order_delete_impact`.
+- **"The user" means EVERY word Ali reads — not just app screens.** Ali,
+  2026-08-06: *"I never sell diapers by pieces. It's always sold in packs and
+  cartons. Nobody will sell diapers in pieces."* He had to say it a fourth
+  time, because the rule as written read like a UI rule and I was writing
+  prose. A whole business audit was delivered to him in pieces — "630 pcs
+  sold", "2,200 pieces of demand", "7.3 diapers/day" — every headline number
+  in a unit he does not trade in, so he could not sanity-check a single one
+  against his own knowledge of his business. **The unit rule applies
+  identically to: chat replies, analysis, audits, recommendations, commit
+  messages he may read, PR descriptions, and anything pasted into a message.**
+  Pieces are legitimate in SQL and in the database — they are the ledger's
+  unit. They are NOT legitimate the moment a number crosses into something
+  Ali reads. **Convert at the boundary, every time: divide by `pcs_per_pack`
+  for packs, by `pcs_per_pack * packs_per_carton` for cartons, and say which.**
+  If a rate must be expressed per-day, say "about 2 packs a week", never
+  "7.3 pieces a day".
 - **Never offer a selling unit the SKU doesn't sell.** `skus.sellable_units` is
   the only input — `sellableTiers()` in `lib/trade-units.ts`. Screens used to
   *synthesise* a third "Piece" button for any pack-selling SKU, so every diaper
