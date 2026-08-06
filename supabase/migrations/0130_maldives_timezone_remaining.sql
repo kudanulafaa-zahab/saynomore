@@ -63,6 +63,11 @@ as $function$
   order by sm.created_at desc
   limit greatest(1, p_limit);
 $function$;
+-- The drop-then-recreate above resets grants in this environment (same
+-- class of bug as migration 0145) -- re-revoke so a from-scratch replay
+-- doesn't leave this anon-executable. Confirmed clean on live production.
+revoke execute on function public.get_recent_writeoffs(date, date, integer) from public;
+revoke execute on function public.get_recent_writeoffs(date, date, integer) from anon;
 
 -- ── get_customer_products ───────────────────────────────────────────────
 create or replace function public.get_customer_products(p_customer_id uuid)

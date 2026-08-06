@@ -1,0 +1,41 @@
+name: Database tests
+
+# Every money/stock Postgres function used to be verified only by hand
+# against live production data. That's how SO-2026-076 (revenue recognized,
+# zero stock deducted) and the offline anon-key sync bug (real cash silently
+# never saved) both shipped and sat undetected. This replays every migration
+# onto a fresh, disposable Postgres (never touches production) and runs
+# pgTAP tests against it — so a broken migration or a regression in one of
+# the hard rules (money math, RLS, anon lockdown) fails here, before it can
+# ever reach main.
+#
+# Free: runs entirely in GitHub's own Docker, no Supabase branching, no
+# subscription. Matches production's Postgres major version (17).
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "supabase/config.toml"
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase (replays every migration from empty)
+        run: supabase start
+
+      - name: Run pgTAP tests
+        run: supabase test db
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup

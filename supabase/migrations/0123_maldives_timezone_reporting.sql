@@ -108,6 +108,11 @@ as $function$
     coalesce(s.est, false)
   from sales s, mktg m, opex_total ot, writeoffs w, rtn rt, opex_cats oc;
 $function$;
+-- The drop-then-recreate above resets grants in this environment (same
+-- class of bug as migration 0145) -- re-revoke so a from-scratch replay
+-- doesn't leave this anon-executable. Confirmed clean on live production.
+revoke execute on function public.get_pnl(date, date) from public;
+revoke execute on function public.get_pnl(date, date) from anon;
 
 -- ── get_reports_data ─────────────────────────────────────────────────────
 create or replace function public.get_reports_data(p_from date, p_to date)
@@ -423,6 +428,11 @@ as $function$
   left join revenue r on r.day_date = d.day_date
   order by d.day_date asc;
 $function$;
+-- First creation of get_daily_revenue, never explicitly revoked anywhere --
+-- picked up an implicit PUBLIC grant in this environment (same class of bug
+-- as migration 0145). Confirmed clean on live production.
+revoke execute on function public.get_daily_revenue(integer) from public;
+revoke execute on function public.get_daily_revenue(integer) from anon;
 
 -- ── get_monthly_revenue ──────────────────────────────────────────────────
 -- Also fixes opex_mvr to include business_expenses (added in a later
@@ -479,6 +489,11 @@ as $function$
   left join opex o on o.month_start = m.month_start
   order by m.month_start asc;
 $function$;
+-- The drop-then-recreate above resets grants in this environment (same
+-- class of bug as migration 0145) -- re-revoke so a from-scratch replay
+-- doesn't leave this anon-executable. Confirmed clean on live production.
+revoke execute on function public.get_monthly_revenue(integer) from public;
+revoke execute on function public.get_monthly_revenue(integer) from anon;
 
 -- ── get_campaign_roi ─────────────────────────────────────────────────────
 -- Defensive drop for a from-scratch replay: column list changes here.
@@ -590,6 +605,11 @@ as $function$
   left join newc nc on nc.spend_id = wb.id
   left join stockout so on so.spend_id = wb.id;
 $function$;
+-- The drop-then-recreate above resets grants in this environment (same
+-- class of bug as migration 0145) -- re-revoke so a from-scratch replay
+-- doesn't leave this anon-executable. Confirmed clean on live production.
+revoke execute on function public.get_campaign_roi() from public;
+revoke execute on function public.get_campaign_roi() from anon;
 
 -- ── get_dashboard_metrics ────────────────────────────────────────────────
 -- Timezone fix on every date boundary, plus removes the GREATEST(...,0)
@@ -707,3 +727,8 @@ as $function$
     (SELECT cnt FROM out_of_stock)
   FROM sales_revenue sr;
 $function$;
+-- The drop-then-recreate above resets grants in this environment (same
+-- class of bug as migration 0145) -- re-revoke so a from-scratch replay
+-- doesn't leave this anon-executable. Confirmed clean on live production.
+revoke execute on function public.get_dashboard_metrics() from public;
+revoke execute on function public.get_dashboard_metrics() from anon;

@@ -107,3 +107,8 @@ as $function$
   left join owed  o on o.customer_id = n.customer_id
   order by n.profit desc nulls last;
 $function$;
+-- The drop-then-recreate above resets grants in this environment (same
+-- class of bug as migration 0145) -- re-revoke so a from-scratch replay
+-- doesn't leave this anon-executable. Confirmed clean on live production.
+revoke execute on function public.get_customer_insights() from public;
+revoke execute on function public.get_customer_insights() from anon;
