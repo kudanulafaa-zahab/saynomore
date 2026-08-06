@@ -44,7 +44,10 @@ are about to change.**
 2. **§5L — the complete index of 2026-08-05.** Every merged PR of that day with
    a pointer to the detail. Use it as the completeness check.
 3. **§2b — every screen in the app.** §3 — the design system, by line number.
-4. Then `CLAUDE.md` and `skills.md`, which load automatically and carry the
+4. **§10 — the test suite.** 41 pgTAP tests run on every PR touching
+   `supabase/`. Read it before changing any money or stock function; add a
+   test alongside any new rule.
+5. Then `CLAUDE.md` and `skills.md`, which load automatically and carry the
    standing laws.
 
 **Also read the migration headers before changing any money or stock rule.**
@@ -1213,20 +1216,23 @@ not re-raise them; just do not assume they are done either.
 
 ### 7c. Genuinely open engineering, in priority order
 
-1. **Competitor prices into the new-product simulator.** The margin a
-   prospective product shows is only as good as the selling price Ali types in.
-   The tool can say what something costs; it cannot say what the market pays.
-   Feeding the logged competitor prices in would let it *suggest* a realistic
-   price instead of asking him to guess. **This was raised with Ali and he has
-   not answered — ask before building.**
+1. ~~**Competitor prices into the new-product simulator.**~~ **DONE 2026-08-06**
+   — built category-scoped (a diaper trial can only ever be benchmarked
+   against other diapers), plus a manual typed-in rival price flagged
+   "TYPED IN". See §9.
 2. **Improve CBM accuracy.** Only **five distinct carton sizes** cover all 31
    SKUs, and most were filled from a single measurement. On SH-2026-001 the top
    three sizes carry **85% of the freight**. A five-measurement job that
-   improves every landed cost in the system. Ali knows; he raised it himself.
+   improves every landed cost in the system. **Ali said 2026-08-06 he will do
+   the measurements and apply them himself** — do not start this.
 3. **Preventive duplicate-customer constraints.** Zero duplicates exist today,
    so this is pure prevention. A hard UNIQUE on phone is risky — families share
    numbers — so it needs thought, not a quick index.
 4. **Extend swipe actions beyond Sales rows.** Low value; only if asked.
+5. **Grow the pgTAP suite** (§10). 41 tests cover the money/stock core. The
+   obvious next areas with no coverage yet: `record_customer_return`'s stock
+   and ledger reversal, `write_off_stock`, the tier-price resolution path,
+   and `admin_force_void_grn`.
 
 ### 7d. Deliberately deferred, with the reason
 
@@ -1282,3 +1288,102 @@ business from an installed iOS PWA and cannot open preview links or hosted
 artifacts. Build the change, verify it (tsc + build + live SQL against real
 rows), publish to production, and describe it in words. Do not spend a turn
 producing a mockup he cannot open.
+
+---
+
+## 9. Built 2026-08-06 — Cost Simulator + the test suite
+
+### 9a. Cost Simulator: competitor prices, and new products first
+
+- **Category-scoped competitor prices.** The new-product sheet can now check a
+  trial product's price against what rivals charge — but **only within the same
+  category**. The first draft would have let a diaper trial be benchmarked
+  against any tracked product's rival price, including a soft drink. Ali caught
+  it. Category gating is the fix, and the incident is now a standing rule in
+  `CLAUDE.md` (run every proposal through the expert council *before*
+  presenting it, not just before building).
+  New RPC `get_competitor_reference_prices(category_id, pcs_per_pack,
+  packs_per_carton)` — migration 0145. Normalises every observation to
+  per-piece (same maths as `get_competitor_price_gaps`) then converts to the
+  **trial's own** pack/carton size, in Postgres.
+- **A manual typed-in rival price**, for when nothing is logged yet. It is
+  **never written to `competitor_prices`** — a trial product has no SKU row to
+  attach it to, and saving it would misrepresent a guess as a verified Market
+  observation elsewhere in the app. It stays scratch to the trial and is
+  badged **"TYPED IN"**, visually distinct from a real logged price. Picking a
+  logged peer and typing a price are mutually exclusive.
+- **New products now lead the screen.** Ali: the simulator is mainly for
+  costing what he does *not* stock yet, but the existing catalogue list came
+  first. Swapped; the catalogue is reframed as the supporting step (it is
+  there so freight/duty split against real cartons, like a real GRN).
+- **Duty rate suggested from the picked category** (`product_categories.
+  duty_rate_pct`), same "shown, tap to use, never auto-filled" pattern as the
+  competitor price. A typed override still wins.
+- **`get_competitor_price_gaps` fixed** (migration 0146) — it was never moved
+  onto `v_competitor_prices_current` after migration 0102 introduced it, so
+  the Price Gaps dashboard was comparing against the cheapest price a rival
+  was **ever** logged at, not their current one. Zero live results changed
+  (every variant has exactly one observation today); it closes the gap before
+  a second price check makes it real.
+
+### 9b. Vercel: no more preview builds
+
+`vercel.json` carries an `ignoreCommand` that skips the build unless the ref is
+`main`. Ali: *"I don't need preview unless I ask."* Only merges to `main` now
+produce a deployment. Works for any future branch name.
+
+---
+
+## 10. The test suite — read this before changing any money/stock function
+
+**41 pgTAP tests run automatically on every PR touching `supabase/`**
+(`.github/workflows/db-tests.yml`). Free: GitHub Actions replays every
+migration onto a throwaway Postgres in Docker and runs the tests against it.
+**Nothing ever touches production.** No Supabase branching, no subscription.
+
+Run them locally with `npx supabase start` then `npx supabase test db`.
+
+| File | What it guards |
+|---|---|
+| `security_and_stock_rules.test.sql` | No SECURITY DEFINER function is anon-executable (all ~94 in one test); RLS on every money/stock table; `stock_signed_delta`'s sign convention |
+| `confirm_grn.test.sql` | Zero-CBM block; GRN status flip; batch + `stock_movements` get the exact piece count |
+| `post_sale_fifo.test.sql` | FIFO empties the older batch first; the true weighted cost snapshot; double-post guard; **an oversized sale leaves no orphan order**; offline-key replay is idempotent |
+| `money_rules.test.sql` | Margin measured against the unit actually sold (0139); Maldives date buckets (0123/0126/0130); returns netted off the balance (0124); no SKU sells by the piece |
+| `destructive_guards.test.sql` | A part-paid order cannot be deleted and **its payment survives** (0129); a delivered order cannot be deleted; deleting returns stock (0134); deletions are audit-logged |
+
+`supabase/seed.sql` is the shared fixture — one catalogue chain, one godown,
+one supplier, fixed UUIDs. Add to it rather than rebuilding a catalogue in
+each test.
+
+**Every test above was mutation-tested**: the rule it guards was deliberately
+broken in a local database, the test was observed to fail with exactly the
+wrong numbers, then the correct version was restored and reverified. A test
+that has never been seen to fail is not yet a test.
+
+### 10a. What building the suite uncovered
+
+Three real findings, none of which were live production defects, all now fixed:
+
+1. **The migration history could not rebuild the database from scratch.**
+   Twelve files broke a from-empty replay — a function referencing a column a
+   *previous* migration had dropped, ten `CREATE OR REPLACE`s that change a
+   function's return columns (which Postgres refuses without a DROP first),
+   and 14 RLS policies that no migration ever created. Every one traces to the
+   same cause: **a change made directly against production outside any tracked
+   migration file.** All 137 migrations now replay cleanly onto an empty
+   Postgres. This closes a real disaster-recovery gap that is *separate* from
+   the no-backups risk in §7a.1.
+2. **Eight functions came back anon-executable on a clean replay** — because
+   new/recreated functions pick up an implicit `PUBLIC` grant here, and
+   `REVOKE ... FROM anon` alone does not remove it. **Verified against live
+   production first: production has always been clean for all eight.** Fixed
+   in the migration files with an explicit `REVOKE ... FROM PUBLIC`.
+3. **`confirm_grn`'s own zero-CBM check is unreachable** — a table CHECK
+   constraint on `shipment_lines.cbm_per_carton` rejects the row at insert
+   time, so the function's own `RAISE` can never fire through the app's normal
+   path. The rule *is* enforced, just one layer earlier than the migration
+   header implies. Not a defect; worth knowing before "fixing" it.
+
+**When you add a money or stock rule, add the test with it.** That is now the
+cheapest part of the work, and it is the only thing that makes the next
+session's changes safe.
