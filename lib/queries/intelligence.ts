@@ -19,6 +19,16 @@ export async function getReceivablesAging(): Promise<ReceivableRow[]> {
   return (data ?? []) as ReceivableRow[];
 }
 
+/** WHY this product needs a promo (migration 0150). The distinction is not
+ *  cosmetic: "over-bought but selling well" used to land on this list too,
+ *  which had the advisor recommending a discount on the best-selling product
+ *  in the business. That case is a BUYING correction and lives on Reorder
+ *  (status 'overstock'), never here. */
+export type PromoReason =
+  | "expiring"   // a batch dies within 180 days — a deadline beats everything
+  | "dead"       // zero sales in 90 days
+  | "stagnant";  // it sells, but the stock lasts over a year at that pace
+
 export interface PromoSuggestionRow {
   sku_id: string;
   internal_code: string;
@@ -31,9 +41,12 @@ export interface PromoSuggestionRow {
   promo_pack_mvr: number;       // price at the 10% floor margin
   discount_pct: number;
   pcs_per_pack: number;
+  reason: PromoReason;
 }
 
-/** Slow movers with margin headroom for a clearance promo. */
+/** Stock that genuinely isn't moving, with margin headroom for a clearance
+ *  promo. Already ordered by urgency (expiring, then dead, then stagnant)
+ *  and by cash within each — don't re-sort it on the client. */
 export async function getPromoSuggestions(): Promise<PromoSuggestionRow[]> {
   const { data, error } = await supabase.rpc("get_promo_suggestions");
   if (error) throw error;
@@ -57,7 +70,14 @@ export interface MorningBriefing {
   running_out: { product: string; packs_left: number; days_left: number }[];
   overdue_count: number;
   overdue_mvr: number;
-  slow_movers: number;
+  /** Cash locked in stock that isn't moving — dead, stagnant or expiring
+   *  (migration 0150). Replaced a bare `slow_movers` count that fired on 20
+   *  of 31 SKUs because it counted over-bought best sellers as slow. Money
+   *  leads and the worst two are named, so the line is a decision, not a
+   *  statistic. */
+  stuck_stock_count: number;
+  stuck_stock_mvr: number;
+  stuck_stock_top: { product: string; mvr: number; reason: PromoReason }[];
   expiring_value_mvr: number;
   /** Batches holding stock with NO expiry date recorded. Without these,
    *  expiring_value_mvr = 0 means "I cannot see", not "nothing is expiring"
