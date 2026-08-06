@@ -215,6 +215,25 @@ is a placeholder. Treat it as real data with known error, not as junk.
    nav-config did nothing — the Price Simulator shipped built, routable and
    invisible. Never reintroduce a local list. After adding a page, open the
    menu and confirm it is there.
+9. **Never `git reset --hard` toward a branch without diffing what's on each
+   side first.** Ali, 2026-08-06: *"I told you to make absolutely sure you
+   apply what experts will do."* The incident: reconciling this session's
+   branch against `origin/main` after a squash-merge, `reset --hard` was run
+   on the assumption `origin/main` already had everything — it didn't, and a
+   real commit (Supabase CLI test tooling, a migration fix) was silently
+   discarded and had to be redone. A safe, non-destructive reconciliation
+   method was already known and had worked once (`git stash` → `reset --hard
+   origin/main` → `stash pop`, resolving conflicts by keeping the stashed
+   side, then a normal `push` with no force) — and was abandoned twice more
+   afterward for `git push --force` out of expediency, which is the deeper
+   failure: knowing the disciplined method and not using it every time.
+   **Going forward: fetch and diff before any reset; use the stash-and-pop
+   method to reconcile a diverged branch; treat `--force`/`--force-with-lease`
+   as a last resort requiring the same care as any other destructive command,
+   never a shortcut.** Extends the same standard to security review: a fix
+   for one instance of a bug class (e.g. an anon-grant gap) is not done until
+   the whole surface it touches has been swept systematically, not left to
+   be discovered one test run at a time.
 
 ## Key paths
 - Queries: `lib/queries/` · Pages: `app/(app)/` · Components: `components/`
