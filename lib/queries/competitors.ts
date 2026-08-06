@@ -135,6 +135,38 @@ export async function listCompetitorPriceGaps(thresholdPct = 10): Promise<Compet
   return (data ?? []) as CompetitorPriceGap[];
 }
 
+// ── Category-scoped reference prices — for costing a product not yet in the
+// catalogue (Cost Simulator's new-product line, migration 0145). Never
+// cross-category: a diaper trial must only ever be benchmarked against other
+// diapers, never a soft drink or a detergent. Money conversion (per-piece to
+// the caller's own pack/carton size) happens in Postgres, not here. ──
+
+export interface CompetitorReferencePrice {
+  variant_id: string;
+  brand_name: string;
+  model_name: string;
+  variant_display: string | null;
+  competitor_name: string;
+  price_per_piece_mvr: number;
+  price_per_pack_mvr: number;
+  price_per_carton_mvr: number;
+  observed_date: string;
+}
+
+export async function listCompetitorReferencePrices(
+  categoryId: string,
+  pcsPerPack: number,
+  packsPerCarton: number,
+): Promise<CompetitorReferencePrice[]> {
+  const { data, error } = await supabase.rpc("get_competitor_reference_prices", {
+    p_category_id: categoryId,
+    p_pcs_per_pack: pcsPerPack,
+    p_packs_per_carton: packsPerCarton,
+  });
+  if (error) throw error;
+  return (data ?? []) as CompetitorReferencePrice[];
+}
+
 // ── Price-check cadence (migration 0104) ─────────────────────────────────
 // When is a rival's price due for a fresh look?
 //

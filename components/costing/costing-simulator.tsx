@@ -26,6 +26,8 @@ import {
   type CostingLineInput, type CostingScenario, type FobCurrency, type FobBasis,
   type CartonSizeReference,
 } from "@/lib/queries/costing";
+import { listCategories, type CategoryRow } from "@/lib/queries/products";
+import { listCompetitorReferencePrices, type CompetitorReferencePrice } from "@/lib/queries/competitors";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
@@ -59,6 +61,10 @@ interface Trial {
   key: string;
   name: string;
   variant: string;
+  /** product_categories.id — never a free-typed category. Gates which rivals'
+   *  prices can be borrowed as a reference below: a diaper trial must only
+   *  ever be compared against other diapers, never an unrelated category. */
+  categoryId: string;
   pcsPerPack: string;
   packsPerCarton: string;
   /** Carton dimensions, entered exactly as in Products → Edit SKU. CBM is
@@ -93,7 +99,7 @@ function trialCbm(t: Trial): number {
 function emptyTrial(): Trial {
   return {
     key: `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    name: "", variant: "",
+    name: "", variant: "", categoryId: "",
     pcsPerPack: "", packsPerCarton: "",
     lenCm: "", widCm: "", hgtCm: "",
     unitNoun: "pack", sellsPack: true,
@@ -148,6 +154,7 @@ export function CostingSimulator() {
   const [rows, setRows] = useState<Row[]>([]);
   const [trials, setTrials] = useState<Trial[]>([]);
   const [boxes, setBoxes] = useState<CartonSizeReference[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [trialDraft, setTrialDraft] = useState<Trial | null>(null);
   const [ship, setShip] = useState<CostingShipmentInput>(EMPTY_SHIPMENT);
   const [results, setResults] = useState<CostingResultRow[] | null>(null);
@@ -165,14 +172,16 @@ export function CostingSimulator() {
 
   const load = useCallback(async () => {
     try {
-      const [seed, saved, defaults, ref] = await Promise.all([
+      const [seed, saved, defaults, ref, cats] = await Promise.all([
         getCostingSeed(),
         listScenarios().catch(() => []),
         getCostingDefaults().catch(() => null),
         getCartonSizeReference().catch(() => []),
+        listCategories().catch(() => []),
       ]);
       setRows(seed.map(toRow));
       setBoxes(ref);
+      setCategories(cats);
       setScenarios(saved);
       // Open on the real numbers: the most recent shipment's FX rates and
       // charges. A saved scenario, if there is one, wins over them.
@@ -307,6 +316,7 @@ export function CostingSimulator() {
         new_product: {
           name: t.name.trim() || "New product",
           variant_display: t.variant.trim() || undefined,
+          category_name: categories.find((c) => c.id === t.categoryId)?.name,
           pcs_per_pack: num(t.pcsPerPack),
           packs_per_carton: num(t.packsPerCarton),
           duty_rate_pct: num(t.dutyPct),
@@ -786,6 +796,7 @@ export function CostingSimulator() {
         <TrialSheet
           draft={trialDraft}
           boxes={boxes}
+          categories={categories}
           onClose={() => setTrialDraft(null)}
           onSave={(t) => {
             setTrials((xs) => xs.some((x) => x.key === t.key)
@@ -1201,14 +1212,33 @@ function Hint({ children, tone }: { children: React.ReactNode; tone?: "good" }) 
   );
 }
 
-function TrialSheet({ draft, boxes, onClose, onSave }: {
+function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
   draft: Trial;
   boxes: CartonSizeReference[];
+  categories: CategoryRow[];
   onClose: () => void;
   onSave: (t: Trial) => void;
 }) {
   const [t, setT] = useState<Trial>(draft);
   const set = (p: Partial<Trial>) => setT((x) => ({ ...x, ...p }));
+
+  // Rivals' current prices for OTHER products in the same category — never
+  // cross-category (a diaper trial must never borrow a soft drink's price).
+  // Refetched whenever the category or this trial's own pack config changes,
+  // because the conversion to MVR/pack and MVR/carton below is done in
+  // Postgres against THIS trial's config, not the reference product's.
+  const [refPrices, setRefPrices] = useState<CompetitorReferencePrice[]>([]);
+  const [refVariantId, setRefVariantId] = useState("");
+  const pcsN = num(t.pcsPerPack), pktN = num(t.packsPerCarton);
+  useEffect(() => {
+    if (!t.categoryId || pcsN <= 0 || pktN <= 0) { setRefPrices([]); return; }
+    let live = true;
+    listCompetitorReferencePrices(t.categoryId, pcsN, pktN)
+      .then((rows) => { if (live) setRefPrices(rows); })
+      .catch(() => { if (live) setRefPrices([]); });
+    return () => { live = false; };
+  }, [t.categoryId, pcsN, pktN]);
+  const refPrice = refPrices.find((r) => r.variant_id === refVariantId) ?? null;
 
   const noun = t.unitNoun;
   const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
@@ -1273,13 +1303,26 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
                   className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                   style={inputSty} />
               </label>
-              <label className="block">
+              <label className="block mb-2">
                 <FieldLabel>Size</FieldLabel>
                 <input value={t.variant} onChange={(e) => set({ variant: e.target.value })}
                   placeholder="XL"
                   className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                   style={inputSty} />
               </label>
+              {categories.length > 0 && (
+                <div>
+                  <FieldLabel>Category</FieldLabel>
+                  <div className="flex flex-wrap gap-2">
+                    <Pills
+                      options={categories.map((c) => ({ v: c.id, l: c.name }))}
+                      value={t.categoryId}
+                      onChange={(v) => { set({ categoryId: v }); setRefVariantId(""); }}
+                    />
+                  </div>
+                  <Hint>Which existing products this can be checked against below.</Hint>
+                </div>
+              )}
             </div>
 
             {/* Pack configuration */}
@@ -1475,6 +1518,58 @@ function TrialSheet({ draft, boxes, onClose, onSave }: {
                 </label>
               </div>
               <Hint>Gives you the margin, and the most you could pay per carton.</Hint>
+
+              {/* What rivals charge for a peer in the SAME category — never
+                  cross-category. Optional: only shown once a category is
+                  picked, and only ever fills the field on tap, never
+                  automatically (a selling price is always Ali's decision). */}
+              {t.categoryId && (
+                refPrices.length > 0 ? (
+                  <div className="mt-3">
+                    <FieldLabel>Check against what rivals charge</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {refPrices.map((r) => {
+                        const on = r.variant_id === refVariantId;
+                        return (
+                          <button key={r.variant_id} type="button"
+                            onClick={() => setRefVariantId(on ? "" : r.variant_id)}
+                            className="snm-pressable"
+                            style={{
+                              padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                              cursor: "pointer", ...(on ? PILL_ON : PILL_OFF),
+                            }}>
+                            {r.model_name}{r.variant_display ? ` ${r.variant_display}` : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {refPrice && (
+                      <div className="mt-2 rounded-lg px-2.5 py-2 flex items-center justify-between gap-2"
+                        style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+                        <span className="text-[12.5px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+                          {refPrice.competitor_name} charges MVR{" "}
+                          {(t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr)
+                            .toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                          per {t.sellUnit === "pack" ? noun : "carton"}
+                        </span>
+                        <button type="button"
+                          onClick={() => set({
+                            sellPrice: String(t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr),
+                          })}
+                          className="snm-pressable shrink-0"
+                          style={{
+                            padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                            background: "var(--foreground)", color: "var(--background)", border: "none", cursor: "pointer",
+                          }}>
+                          Use this
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Hint>No rival prices logged yet for this category.</Hint>
+                )
+              )}
             </div>
 
             {/* Duty */}
