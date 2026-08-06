@@ -1,6 +1,8 @@
 @skills.md
 # SayNoMore — Project Rules
 
+> **Starting a new chat?** The exact prompt to paste is in `docs/NEW_CHAT.md`.
+>
 > **Continuing in a new chat?** Read `docs/HANDOFF.md` first — project/access
 > IDs, the module map, the design system map, and what's built.
 >
