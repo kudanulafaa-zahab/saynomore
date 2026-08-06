@@ -45,6 +45,16 @@ export interface MorningBriefing {
   yesterday_orders: number;
   yesterday_delivered: number;
   yesterday_collected: number;
+  /** Products at zero stock that SOLD in the last 30 days — proven demand,
+   *  nothing to sell. The most expensive thing a distributor can get wrong,
+   *  so it leads the watch list (migration 0148). Quantities are packs; the
+   *  conversion happens in Postgres so no piece count ever reaches here. */
+  stockout_count: number;
+  stockout_mvr_month: number;
+  stockouts: { product: string; packs_per_month: number; mvr_per_month: number }[];
+  /** Still has stock, but under 7 days of cover at the last 30 days' rate. */
+  running_out_count: number;
+  running_out: { product: string; packs_left: number; days_left: number }[];
   overdue_count: number;
   overdue_mvr: number;
   slow_movers: number;

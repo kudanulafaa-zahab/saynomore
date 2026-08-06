@@ -23,6 +23,35 @@ export function MorningBriefing() {
   // Each watch item leads with the money at stake and ends with the action —
   // Ali should know what it costs him and what to do, not just a count.
   const watch: { text: string; href: string; tone: string }[] = [];
+
+  // Out of stock on something that sells LEADS the list. Nothing else here
+  // costs money as fast: the demand is proven, the shelf is empty, and every
+  // day it stays empty is revenue that simply does not happen. The audit of
+  // 2026-08-06 found four such products worth MVR 6,741 a month — while the
+  // briefing was reporting slow movers and price checks instead.
+  if ((b.stockout_count ?? 0) > 0) {
+    const names = (b.stockouts ?? []).map((s) => s.product).join(", ");
+    const more = (b.stockout_count ?? 0) - (b.stockouts ?? []).length;
+    watch.push({
+      text: `Out of stock: ${names}${more > 0 ? ` +${more} more` : ""}`
+          + `${b.stockout_mvr_month > 0 ? ` — about MVR ${fmt(b.stockout_mvr_month)} a month of sales you can't fill` : ""}`
+          + `. Reorder.`,
+      href: "/reorder", tone: "var(--snm-error)",
+    });
+  }
+  // The one that still has time on it — separate line, calmer tone, because
+  // "running out" and "already out" are different decisions.
+  if ((b.running_out_count ?? 0) > 0) {
+    const r = (b.running_out ?? [])[0];
+    const more = (b.running_out_count ?? 0) - 1;
+    if (r) watch.push({
+      text: `${r.product} runs out in ${r.days_left} day${r.days_left === 1 ? "" : "s"}`
+          + ` (${r.packs_left} pack${r.packs_left === 1 ? "" : "s"} left)`
+          + `${more > 0 ? ` — and ${more} other${more === 1 ? "" : "s"} within the week` : ""}`,
+      href: "/reorder", tone: "var(--snm-warning)",
+    });
+  }
+
   if (b.overdue_count > 0) watch.push({
     text: `Chase MVR ${fmt(b.overdue_mvr)} owed by ${b.overdue_count} customer${b.overdue_count === 1 ? "" : "s"} — past 30 days, collect before it turns to bad debt`,
     href: "/financials?tab=owed", tone: "var(--snm-error)",
