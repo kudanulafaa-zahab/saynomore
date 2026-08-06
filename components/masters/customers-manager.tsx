@@ -418,7 +418,7 @@ export function CustomersManager() {
                           {i.orders_count} order{i.orders_count !== 1 ? "s" : ""} · +MVR{" "}
                           {Number(i.profit_mvr).toLocaleString("en-MV", { maximumFractionDigits: 0 })} profit
                           {i.days_since_last != null ? ` · last ${i.days_since_last === 0 ? "today" : `${i.days_since_last}d ago`}` : ""}
-                          {i.at_risk ? " · overdue to order" : ""}
+                          {i.at_risk ? (i.risk_reason === "ran_out" ? " · probably run out" : " · overdue to order") : ""}
                         </p>
                       );
                     })()}

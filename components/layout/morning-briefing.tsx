@@ -67,10 +67,14 @@ export function MorningBriefing() {
     text: `No expiry date on MVR ${fmt(b.stock_value_without_expiry_mvr)} of stock (${b.batches_without_expiry} batch${b.batches_without_expiry === 1 ? "" : "es"}) — until these are entered the app cannot warn you before it goes off`,
     href: "/inventory", tone: "var(--snm-warning)",
   });
+  // The app as salesperson: call before the order goes to someone else.
+  // Two different sentences, because a repeat buyer breaking their rhythm and
+  // a first-time buyer whose pack ran out are different conversations — and
+  // the second kind has no "usual gap" to quote (0151).
   for (const oc of b.overdue_customers ?? []) watch.push({
-    // The app as salesperson: their rhythm broke — call before the order
-    // goes to someone else. Deep-links to the customer book.
-    text: `${oc.name} usually orders every ${oc.usual_gap_days} days — it's been ${oc.days_since_last}. Worth a call${oc.phone ? ` (${oc.phone})` : ""}`,
+    text: oc.reason === "ran_out"
+      ? `${oc.name} bought ${oc.days_since_last} days ago — enough for about ${oc.expected_supply_days} days, so they've run out. Worth a call${oc.phone ? ` (${oc.phone})` : ""}`
+      : `${oc.name} usually orders every ${oc.usual_gap_days} days — it's been ${oc.days_since_last}. Worth a call${oc.phone ? ` (${oc.phone})` : ""}`,
     href: "/customers", tone: "var(--snm-warning)",
   });
   // Price checks. The urgent case leads: a shipment just landed at a new cost,

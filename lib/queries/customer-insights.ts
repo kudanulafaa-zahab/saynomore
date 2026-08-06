@@ -21,12 +21,27 @@ export interface CustomerInsight {
   avg_order_mvr: number;
   /** Median days between order days; null until they've ordered on 2+ days. */
   usual_gap_days: number | null;
-  /** Repeat buyer (3+ order days) overdue against their OWN rhythm. */
+  /** Overdue by EITHER rule below — see risk_reason for which (0151). */
   at_risk: boolean;
   outstanding_mvr: number;
   /** Share of all customer revenue — concentration risk. */
   revenue_share_pct: number;
+  /** How long what they last bought should have lasted, in days: packs on
+   *  their last order × the cohort's measured days-per-pack. Null when the
+   *  last order had no pack-based quantity. */
+  expected_supply_days: number | null;
+  /** Which rule fired, so the screen can use the right words (0151). */
+  risk_reason: CustomerRiskReason | null;
 }
+
+/** Two different ways a customer goes quiet, needing different sentences.
+ *
+ *  `rhythm` — a repeat buyer (3+ order days) is past their OWN usual gap.
+ *  `ran_out` — they bought once or twice, and more time has passed than what
+ *    they bought could possibly have lasted. These customers have no rhythm
+ *    to break, which is why at_risk used to flag 0 of 58: the rhythm rule
+ *    needs three orders and 42 of 58 customers have ordered exactly once. */
+export type CustomerRiskReason = "rhythm" | "ran_out";
 
 export interface CustomerProduct {
   sku_id: string;
