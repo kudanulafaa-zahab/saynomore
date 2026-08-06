@@ -90,6 +90,13 @@ AS $$
     CASE WHEN COALESCE(vel.per_day, 0) = 0 THEN 0 ELSE 1 END,
     st.value_mvr DESC;
 $$;
+-- Found proving the migration history replays cleanly, then verifying the
+-- resulting schema against a pgTAP test: new functions in this project pick
+-- up an implicit PUBLIC grant (same class of bug as migration 0145), so
+-- REVOKE ... FROM anon alone leaves it reachable via the inherited PUBLIC
+-- grant. Confirmed clean on live production already (this table has no
+-- anon/PUBLIC row there) -- this closes the same gap in the migration file.
+REVOKE EXECUTE ON FUNCTION public.get_promo_suggestions() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.get_promo_suggestions() FROM anon;
 
 CREATE OR REPLACE FUNCTION public.get_campaign_roi()
@@ -135,4 +142,5 @@ AS $$
   FROM windows w
   LEFT JOIN rev r ON r.id = w.id;
 $$;
+REVOKE EXECUTE ON FUNCTION public.get_campaign_roi() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.get_campaign_roi() FROM anon;

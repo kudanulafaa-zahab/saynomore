@@ -571,3 +571,8 @@ as $function$
     case when coalesce(vel.per_day, 0) = 0 then 0 else 1 end,
     st.value_mvr desc;
 $function$;
+-- The drop-then-recreate above resets grants in this environment (same
+-- class of bug as migration 0145) -- re-revoke so a from-scratch replay
+-- doesn't leave this anon-executable. Confirmed clean on live production.
+revoke execute on function public.get_promo_suggestions() from public;
+revoke execute on function public.get_promo_suggestions() from anon;
