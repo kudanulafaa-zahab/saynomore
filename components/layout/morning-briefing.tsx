@@ -84,10 +84,21 @@ export function MorningBriefing() {
     text: `${b.price_checks_due} rival price${b.price_checks_due === 1 ? " is" : "s are"} due a check — best-sellers every 30 days`,
     href: "/competitors?tab=competitors", tone: "var(--muted-foreground)",
   });
-  if (b.slow_movers > 0) watch.push({
-    text: `${b.slow_movers} slow mover${b.slow_movers === 1 ? "" : "s"} tying up cash — a promo could turn ${b.slow_movers === 1 ? "it" : "them"} back into money`,
-    href: "/competitors", tone: "var(--snm-warning)",
-  });
+  // Cash stuck in stock that isn't moving. Money leads and the worst two are
+  // named — the old line was "20 slow movers", a count that fired on two
+  // thirds of the catalogue because it counted over-bought best sellers as
+  // slow (migration 0150). Xtra Kering M, the top seller in the business, was
+  // top of that list. An alert on 20 of 31 products is an alert nobody reads.
+  if ((b.stuck_stock_count ?? 0) > 0) {
+    const names = (b.stuck_stock_top ?? []).map((s) => s.product).join(", ");
+    const more = (b.stuck_stock_count ?? 0) - (b.stuck_stock_top ?? []).length;
+    watch.push({
+      text: `MVR ${fmt(b.stuck_stock_mvr)} stuck in stock that isn't selling`
+          + `${names ? `: ${names}${more > 0 ? ` +${more} more` : ""}` : ""}`
+          + ` — clear it with a promo`,
+      href: "/competitors", tone: "var(--snm-warning)",
+    });
+  }
 
   // Four scannable stats instead of a run-on sentence — number over label,
   // so the whole of yesterday reads at a glance. The money figures drop the

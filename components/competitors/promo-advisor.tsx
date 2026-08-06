@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Megaphone, ChevronDown, ChevronUp } from "lucide-react";
 import { getPromoSuggestions, type PromoSuggestionRow } from "@/lib/queries/intelligence";
@@ -9,11 +10,24 @@ function fmt(n: number) {
   return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
 }
 
-/** Promo Advisor — slow movers crossed with margin headroom. For each SKU
- *  sitting >180 days deep (or not selling at all), suggests a clearance
- *  price that still keeps a 10% margin at the latest landed cost, with a
- *  ready-to-post caption. Turning dead stock into cash beats holding it. */
-const PREVIEW_COUNT = 3; // biggest cash-freers shown; the rest collapse
+/** Promo Advisor — stock that genuinely isn't moving, crossed with margin
+ *  headroom. Suggests a clearance price that still keeps a 10% margin at the
+ *  latest landed cost, with a ready-to-post caption.
+ *
+ *  What is NOT here matters as much as what is: a product that sells well but
+ *  was over-ordered is a BUYING correction, not a discount, and it lives on
+ *  Reorder as status 'overstock'. Until migration 0150 it landed here too,
+ *  which put Xtra Kering M — the best seller in the business — at the top of
+ *  the list with a suggested price cut. */
+const PREVIEW_COUNT = 3; // most urgent shown; the rest collapse
+
+// Why a product is on this list, in Ali's words. The chip is the only place
+// the difference is visible, so it says the diagnosis, not the category name.
+const REASON_LABEL: Record<PromoSuggestionRow["reason"], string> = {
+  expiring: "Expires soon",
+  dead:     "Never sells",
+  stagnant: "Barely sells",
+};
 
 export function PromoAdvisor() {
   const [rows, setRows] = useState<PromoSuggestionRow[] | null>(null);
@@ -35,11 +49,12 @@ export function PromoAdvisor() {
 
   const totalValue = rows.reduce((s, r) => s + Number(r.stock_value_mvr), 0);
 
-  // Most cash freed first — so the 3 shown by default are always the ones
-  // worth acting on. The long tail collapses behind "Show N more".
-  const sorted  = [...rows].sort((a, b) => Number(b.stock_value_mvr) - Number(a.stock_value_mvr));
-  const visible = expanded ? sorted : sorted.slice(0, PREVIEW_COUNT);
-  const hidden  = sorted.length - visible.length;
+  // Server order is already right: expiring first (a date is absolute), then
+  // never-sells, then barely-sells, and most cash freed within each. The
+  // client used to re-sort by value alone, which buried an expiring batch
+  // behind a bigger pile of merely-slow stock. Don't re-sort.
+  const visible = expanded ? rows : rows.slice(0, PREVIEW_COUNT);
+  const hidden  = rows.length - visible.length;
 
   // A short, human month like "August" from an expiry days count — used to
   // give the caption a concrete "best before" instead of a vague "hurry".
@@ -94,9 +109,11 @@ export function PromoAdvisor() {
         </span>
       </div>
       <p className="ios-footnote mb-4" style={{ color: "var(--muted-foreground)" }}>
-        {rows.length === 1 ? "This product is" : `These ${rows.length} products are`} moving slowly and tying up cash.
-        Clear {rows.length === 1 ? "it" : "them"} at the promo price below — still MVR-positive at 10% on today&apos;s cost —
-        and turn shelf stock back into money. Tap <span style={{ color: "var(--foreground)", fontWeight: 600 }}>Copy post</span> for a ready caption.
+        {rows.length === 1 ? "This product isn't" : `These ${rows.length} products aren't`} selling — the money is stuck on the shelf.
+        Clear {rows.length === 1 ? "it" : "them"} at the promo price below and it still earns 10% on today&apos;s cost.
+        Tap <span style={{ color: "var(--foreground)", fontWeight: 600 }}>Copy post</span> for a ready caption.
+        Products you simply over-ordered aren&apos;t here — those show on{" "}
+        <Link href="/reorder" style={{ color: "var(--foreground)", fontWeight: 600 }}>Reorder</Link>, where the fix is to order less, not to cut the price.
       </p>
 
       <div className="space-y-2">
@@ -140,6 +157,12 @@ export function PromoAdvisor() {
                     style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
                     keeps 10%
                   </span>
+                  {/* The diagnosis, so two products at the same discount don't
+                      read as the same problem. Same chip shape as "keeps 10%". */}
+                  <span className="ios-caption1 font-semibold px-1.5 py-0.5 rounded-md"
+                    style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+                    {REASON_LABEL[r.reason]}
+                  </span>
                 </div>
               </div>
               <button
@@ -155,8 +178,8 @@ export function PromoAdvisor() {
         ))}
       </div>
 
-      {/* Collapse the long tail — only the biggest cash-freers show by default */}
-      {(hidden > 0 || expanded) && sorted.length > PREVIEW_COUNT && (
+      {/* Collapse the long tail — only the most urgent show by default */}
+      {(hidden > 0 || expanded) && rows.length > PREVIEW_COUNT && (
         <button
           onClick={() => setExpanded((v) => !v)}
           className="snm-pressable w-full mt-3 flex items-center justify-center gap-1 rounded-xl py-2.5 ios-footnote font-semibold"
