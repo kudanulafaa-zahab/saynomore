@@ -34,6 +34,8 @@ by line number.
 `app/globals.css` before touching any UI, and `git log --stat` for anything you
 are about to change.**
 
+**The exact prompt to open a new chat with lives in `docs/NEW_CHAT.md`.**
+
 ### Start here
 
 1. **§7 — What is left to do.** Written to be picked up cold. It separates what
