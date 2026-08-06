@@ -30,7 +30,9 @@ function qtyLabel(p: CustomerProduct) {
     return `${Math.round(p.qty_pieces / p.pcs_per_carton)} ctn`;
   }
   if (p.pcs_per_pack > 0) return `${Math.max(1, Math.round(p.qty_pieces / p.pcs_per_pack))} pk`;
-  return `${p.qty_pieces} pcs`;
+  // Was `${qty_pieces} pcs`. Only reachable if a SKU has no pack config at
+  // all; even then, say it in the trade unit (Ali, 2026-08-06).
+  return p.qty_pieces > 0 ? "< 1 pk" : "0";
 }
 
 const STATUS_COLOR: Record<string, string> = {

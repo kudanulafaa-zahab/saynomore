@@ -331,7 +331,11 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
                     <p className="ios-subhead font-semibold text-foreground ml-4 shrink-0 snm-num">
                       {ctns > 0 && <>{ctns} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>ctn</span></>}
                       {packs > 0 && <><span className="mx-1 ios-subhead" style={{ color: "var(--muted-foreground)" }}>+</span>{packs} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>pk</span></>}
-                      {ctns === 0 && packs === 0 && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{pieces} pcs</span>}
+                      {/* Was "{pieces} pcs" when a godown held less than one
+                          pack. A part-pack is real, but it is still not sold
+                          by the piece — say so in the trade unit
+                          (Ali, 2026-08-06). */}
+                      {ctns === 0 && packs === 0 && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{pieces > 0 ? "< 1 pk" : "0"}</span>}
                     </p>
                   </div>
                 );

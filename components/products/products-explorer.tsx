@@ -295,10 +295,12 @@ function SkuPanel({
                 <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   per {packLabel(sku).toLowerCase()}
                 </p>
-                {/* Secondary: per piece for competitor comparison */}
-                <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
-                  MVR {Number(sku.landed_per_piece_mvr).toFixed(4)} /pc
-                </p>
+                {/* The per-piece figure that used to sit here was removed
+                    (Ali, 2026-08-06): he trades in packs and cartons, so a
+                    4-decimal per-piece cost under the per-pack cost is noise
+                    on a screen he reads daily. Per-piece comparison lives in
+                    Market, where rivals' 30s/34s/48s make it the only
+                    comparable unit. */}
               </div>
               {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null ? (
                 <div className="text-right">
@@ -2013,16 +2015,10 @@ function NewSkuWizard({
                           </p>
                         </div>
                       )}
-                      {/* Per-piece only matters for multi-piece packs. For a single
-                          unit (1 bottle = the piece) it's meaningless — hide it. */}
-                      {pcsN > 1 && derivedBottlePrice != null && (
-                        <div>
-                          <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Per piece</p>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted-foreground)" }}>
-                            MVR {(derivedBottlePrice / pcsN).toFixed(4)}
-                          </p>
-                        </div>
-                      )}
+                      {/* The per-piece price that used to sit here was removed
+                          (Ali, 2026-08-06). He prices in packs and cartons —
+                          both are already shown above — so a derived per-piece
+                          figure only crowds the sheet. */}
                     </div>
                   )}
 

@@ -1363,8 +1363,20 @@ export function SaleDetail({ id }: { id: string }) {
             })()}
           </strong>{" "}
           comes off {order.order_number}
+          {/* Was "{qty_pieces} pcs" — a raw piece count in the one place a
+              mistake is irreversible. Quoted in the unit actually traded
+              (Ali, 2026-08-06). */}
           {pendingDeleteLine?.qty_pieces
-            ? <>, and its <strong style={{ color: "var(--foreground)" }}>{pendingDeleteLine.qty_pieces} pcs</strong> go back into stock</>
+            ? (() => {
+                const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
+                const cfg: TradeUnitConfig = {
+                  pcsPerPack: sku?.pcs_per_pack ?? 1,
+                  packsPerCarton: sku?.packs_per_carton ?? 1,
+                  unitUom: sku?.unit_uom,
+                  sellableUnits: sku?.sellable_units,
+                };
+                return <>, and its <strong style={{ color: "var(--foreground)" }}>{formatQtyInTradeUnits(pendingDeleteLine.qty_pieces, cfg)}</strong> go back into stock</>;
+              })()
             : null}.
         </p>
         <SheetActions>

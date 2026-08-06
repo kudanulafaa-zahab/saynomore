@@ -303,8 +303,15 @@ export interface ShipmentVoidImpact {
   status: string;
   line_count: number;
   batch_count: number;
+  /** Ledger units. Kept because they are what stock_movements counts, but
+   *  never shown to Ali — the carton figures below are (migration 0147). */
   pieces_received: number;
   pieces_on_hand: number;
+  /** The same quantities in cartons, each batch divided by its OWN SKU's
+   *  carton size in Postgres — a shipment spans several pack configurations,
+   *  so this cannot be derived from the piece totals here. */
+  cartons_received: number;
+  cartons_on_hand: number;
   orders_affected: number;
   orders_value_mvr: number;
   paid_orders: number;

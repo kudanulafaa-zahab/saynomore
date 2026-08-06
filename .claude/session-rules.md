@@ -45,9 +45,18 @@ placeholder. An unselected pill carrying a choice is content, not a hint.
 
 ## 5. Diapers sell in PACKS and CARTONS. Never pieces.
 
-No SKU has `piece` in `sellable_units`. Never show a piece count on screen,
-never offer a selling unit the product doesn't sell, and quote money in the
-unit sold. Pieces stay in the database only.
+No SKU has `piece` in `sellable_units`. Never offer a selling unit the product
+doesn't sell, and quote money in the unit sold. Pieces stay in the database
+only.
+
+**This is not a UI rule — it covers every word Ali reads.** App screens, chat
+replies, analysis, audits, recommendations, PR text. Ali has said it four
+times; the fourth was after a whole business audit came back to him in
+"630 pcs sold" and "7.3 diapers/day", numbers he cannot sanity-check against
+his own business. Query in pieces if you must — **convert before it reaches
+him**: ÷ `pcs_per_pack` for packs, ÷ (`pcs_per_pack` × `packs_per_carton`)
+for cartons, and say which. A rate is "about 2 packs a week", never
+"7.3 pieces a day".
 
 ## 6. Money and stock math lives in Postgres
 
