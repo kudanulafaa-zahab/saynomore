@@ -1258,6 +1258,7 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
   }, [t.categoryId, pcsN, pktN]);
   const refPrice = refPrices.find((r) => r.variant_id === refVariantId) ?? null;
   const manualN = num(t.manualCompetitorPrice);
+  const category = categories.find((c) => c.id === t.categoryId) ?? null;
 
   const noun = t.unitNoun;
   const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
@@ -1646,7 +1647,9 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
               )}
             </div>
 
-            {/* Duty */}
+            {/* Duty — suggested from the picked category's real rate
+                (product_categories.duty_rate_pct), same "shown, tap to use,
+                never auto-filled" pattern as the competitor price above. */}
             <div className="mb-6">
               <Caps>
                 IMPORT DUTY %
@@ -1656,7 +1659,29 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
                 onFocus={(e) => e.target.select()}
                 className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
                 style={inputSty} />
-              <Hint>Diapers and detergents are 0% in the Maldives.</Hint>
+              {category ? (
+                Number(category.duty_rate_pct) === num(t.dutyPct) ? (
+                  <Hint>{category.name} is {category.duty_rate_pct}% in the Maldives — matches.</Hint>
+                ) : (
+                  <div className="mt-2 rounded-lg px-2.5 py-2 flex items-center justify-between gap-2"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+                    <span className="text-[12.5px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+                      {category.name} is {category.duty_rate_pct}% in the Maldives
+                    </span>
+                    <button type="button"
+                      onClick={() => set({ dutyPct: String(category.duty_rate_pct) })}
+                      className="snm-pressable shrink-0"
+                      style={{
+                        padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                        background: "var(--foreground)", color: "var(--background)", border: "none", cursor: "pointer",
+                      }}>
+                      Use this
+                    </button>
+                  </div>
+                )
+              ) : (
+                <Hint>Diapers and detergents are 0% in the Maldives.</Hint>
+              )}
             </div>
           </div>
 
