@@ -82,7 +82,11 @@ AS $$
     m.name                                                  AS model_name,
     v.display_name                                          AS variant_display,
     s.internal_code,
-    s.unit_uom,
+    -- unit_uom moved off skus onto product_categories in migration 0003,
+    -- one migration before this one; this function is fully superseded by
+    -- 0046/0047 anyway, so this is a from-scratch-replay fix only, not a
+    -- change to what's live in production.
+    NULL::TEXT AS unit_uom,
     s.pcs_per_pack,
     s.packs_per_carton,
 

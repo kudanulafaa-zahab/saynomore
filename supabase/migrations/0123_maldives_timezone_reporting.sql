@@ -28,6 +28,8 @@
 --     from this function), fixed now before anything gets wired to it.
 
 -- ── get_pnl ──────────────────────────────────────────────────────────────
+-- Defensive drop for a from-scratch replay: column list changes here.
+drop function if exists public.get_pnl(date, date);
 create or replace function public.get_pnl(p_from date, p_to date)
  returns table(revenue_mvr numeric, cogs_mvr numeric, gross_profit_mvr numeric, marketing_mvr numeric, other_opex_mvr numeric, stock_writeoff_mvr numeric, returns_net_mvr numeric, net_profit_mvr numeric, gross_margin_pct numeric, net_margin_pct numeric, opex_by_category jsonb, has_estimated_cost boolean)
  language sql
@@ -427,6 +429,8 @@ $function$;
 -- migration than this function; it only ever summed marketing_spend).
 -- Currently dead code — financials-view.tsx only reads .revenue_mvr from
 -- this function — fixed now so it isn't wrong the day someone wires it up.
+-- Defensive drop for a from-scratch replay: column list changes here.
+drop function if exists public.get_monthly_revenue(integer);
 create or replace function public.get_monthly_revenue(p_months integer default 6)
  returns table(month_label text, month_start date, revenue_mvr numeric, opex_mvr numeric)
  language sql
@@ -477,6 +481,8 @@ as $function$
 $function$;
 
 -- ── get_campaign_roi ─────────────────────────────────────────────────────
+-- Defensive drop for a from-scratch replay: column list changes here.
+drop function if exists public.get_campaign_roi();
 create or replace function public.get_campaign_roi()
  returns table(spend_id uuid, window_days integer, spend_mvr numeric, revenue_during numeric, profit_during numeric, profit_before numeric, profit_lift numeric, net_after_spend numeric, units_during integer, units_before numeric, orders_during integer, new_customers integer, enough_data boolean, verdict text, confounded_stockout boolean, confounded_price boolean)
  language sql
@@ -589,6 +595,8 @@ $function$;
 -- Timezone fix on every date boundary, plus removes the GREATEST(...,0)
 -- floor on gross profit so a real loss month shows as a loss here too,
 -- matching get_pnl (which was never floored).
+-- Defensive drop for a from-scratch replay: column list changes here.
+drop function if exists public.get_dashboard_metrics();
 create or replace function public.get_dashboard_metrics()
  returns table(revenue_today_mvr numeric, revenue_this_month_mvr numeric, revenue_last_month_mvr numeric, gross_profit_this_month_mvr numeric, gross_margin_pct numeric, orders_awaiting_dispatch bigint, orders_out_for_delivery bigint, orders_dispatched_today bigint, orders_delivered_today bigint, overdue_orders_count bigint, low_stock_sku_count bigint, total_stock_value_mvr numeric, shipments_in_transit bigint, pending_payments_mvr numeric, pending_payments_count bigint, cod_undeposited_mvr numeric, shipments_arriving_soon bigint, overstock_sku_count bigint, reorder_needed_count bigint, slow_stock_value_mvr numeric, slow_stock_count bigint, out_of_stock_count bigint)
  language sql

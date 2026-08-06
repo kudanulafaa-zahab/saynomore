@@ -79,6 +79,8 @@ AS $function$
   ORDER BY MAX(o.age_days) DESC, SUM(o.outstanding) DESC;
 $function$;
 
+-- Defensive drop for a from-scratch replay: column list changes here.
+DROP FUNCTION IF EXISTS public.get_sales_orders(text, text, boolean, uuid, timestamptz, uuid, int);
 CREATE OR REPLACE FUNCTION public.get_sales_orders(
   p_status            text        default null,
   p_search            text        default null,
