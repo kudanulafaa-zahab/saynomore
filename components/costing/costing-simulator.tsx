@@ -89,6 +89,13 @@ interface Trial {
   sellPrice: string;
   targetMargin: string;
   dutyPct: string;
+  /** A rival price typed in on the spot — never written to competitor_prices
+   *  (there is no real SKU here for it to attach to; writing it would misrepresent
+   *  a guess as a verified Market observation). Scratch to this trial only, same
+   *  as everything else on this sheet. Quoted in whatever unit sellUnit is set
+   *  to, so it lines up with sellPrice above it without any conversion. */
+  manualCompetitorName: string;
+  manualCompetitorPrice: string;
 }
 
 function trialCbm(t: Trial): number {
@@ -105,6 +112,7 @@ function emptyTrial(): Trial {
     unitNoun: "pack", sellsPack: true,
     qty: "", fob: "", fobBasis: "carton", currency: "USD",
     sellUnit: "pack", sellPrice: "", targetMargin: "", dutyPct: "0",
+    manualCompetitorName: "", manualCompetitorPrice: "",
   };
 }
 
@@ -565,55 +573,14 @@ export function CostingSimulator() {
         </div>
       </section>
 
-      {/* ── Products ───────────────────────────────────────────────────── */}
-      <section className="snm-card rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[17px] font-semibold" style={{ color: "var(--foreground)" }}>What&apos;s in it</h2>
-          <button
-            onClick={() => { setRows((rs) => rs.map((r) => toRow(r))); setResults(null); }}
-            className="flex items-center gap-1.5 text-[13px] font-medium snm-pressable"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
-          </button>
-        </div>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Find a product"
-            className="w-full h-11 rounded-xl pl-9 pr-3 text-[15px] outline-none"
-            style={{ background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
-          />
-        </div>
-
-        <div className="space-y-4">
-          {groups.map((g) => (
-            <div key={g.title} className="space-y-1.5">
-              <p className="text-[11px] font-bold uppercase tracking-wider px-0.5" style={{ color: "var(--muted-foreground)" }}>
-                {g.title}
-              </p>
-              {g.rows.map((r) => (
-                <LineEditor key={r.sku_id} row={r} onPatch={patch} />
-              ))}
-            </div>
-          ))}
-          {groups.length === 0 && (
-            <p className="text-[14px] py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
-              No product matches “{search}”.
-            </p>
-          )}
-        </div>
-      </section>
-
-      {/* ── Products he does NOT stock yet ──────────────────────────────
-          The decision that actually costs money is bringing something in for
-          the first time. These ride in the same simulation as the catalogue
-          lines, so a trial product takes its share of freight from the same
-          pot — which is the only way to see that adding it makes everything
-          else in the container more expensive too. ── */}
+      {/* ── Products he does NOT stock yet — the main event ───────────────
+          Ali, 2026-08-06: the simulator is for new products mainly, so this
+          section leads. The decision that actually costs money is bringing
+          something in for the first time. These ride in the same simulation
+          as the catalogue lines, so a trial product takes its share of
+          freight from the same pot — which is the only way to see that
+          adding it makes everything else in the container more expensive
+          too. ── */}
       <section className="snm-card rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -670,6 +637,57 @@ export function CostingSimulator() {
             })}
           </div>
         )}
+      </section>
+
+      {/* ── Existing catalogue — supporting role ──────────────────────────
+          Not the main reason to open this screen; here so a trial product's
+          freight/duty split against real cartons already in the container,
+          the same way a real GRN would. ── */}
+      <section className="snm-card rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-[17px] font-semibold" style={{ color: "var(--foreground)" }}>Add existing products</h2>
+            <p className="text-[12.5px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              Optional — so freight and duty split the same way a real container does.
+            </p>
+          </div>
+          <button
+            onClick={() => { setRows((rs) => rs.map((r) => toRow(r))); setResults(null); }}
+            className="flex items-center gap-1.5 text-[13px] font-medium snm-pressable shrink-0"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Reset
+          </button>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Find a product"
+            className="w-full h-11 rounded-xl pl-9 pr-3 text-[15px] outline-none"
+            style={{ background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+          />
+        </div>
+
+        <div className="space-y-4">
+          {groups.map((g) => (
+            <div key={g.title} className="space-y-1.5">
+              <p className="text-[11px] font-bold uppercase tracking-wider px-0.5" style={{ color: "var(--muted-foreground)" }}>
+                {g.title}
+              </p>
+              {g.rows.map((r) => (
+                <LineEditor key={r.sku_id} row={r} onPatch={patch} />
+              ))}
+            </div>
+          ))}
+          {groups.length === 0 && (
+            <p className="text-[14px] py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
+              No product matches “{search}”.
+            </p>
+          )}
+        </div>
       </section>
 
       {/* ── Run ────────────────────────────────────────────────────────── */}
@@ -1239,6 +1257,7 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
     return () => { live = false; };
   }, [t.categoryId, pcsN, pktN]);
   const refPrice = refPrices.find((r) => r.variant_id === refVariantId) ?? null;
+  const manualN = num(t.manualCompetitorPrice);
 
   const noun = t.unitNoun;
   const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
@@ -1519,56 +1538,111 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
               </div>
               <Hint>Gives you the margin, and the most you could pay per carton.</Hint>
 
-              {/* What rivals charge for a peer in the SAME category — never
-                  cross-category. Optional: only shown once a category is
-                  picked, and only ever fills the field on tap, never
-                  automatically (a selling price is always Ali's decision). */}
+              {/* What rivals charge — from your logged Market data (picked,
+                  scoped to the SAME category — never cross-category) OR
+                  typed in on the spot. Mutually exclusive: picking a peer
+                  clears a typed price and vice versa, so only one source is
+                  ever active. Either way it only fills sellPrice on tap,
+                  never automatically — a selling price is always Ali's
+                  decision. The typed path never writes to competitor_prices:
+                  there is no real SKU here for it to attach to, so it stays
+                  scratch to this trial, same as everything else on this
+                  sheet, and is flagged "TYPED IN" rather than shown the same
+                  way as a real logged observation. */}
               {t.categoryId && (
-                refPrices.length > 0 ? (
-                  <div className="mt-3">
-                    <FieldLabel>Check against what rivals charge</FieldLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {refPrices.map((r) => {
-                        const on = r.variant_id === refVariantId;
-                        return (
-                          <button key={r.variant_id} type="button"
-                            onClick={() => setRefVariantId(on ? "" : r.variant_id)}
-                            className="snm-pressable"
-                            style={{
-                              padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600,
-                              cursor: "pointer", ...(on ? PILL_ON : PILL_OFF),
-                            }}>
-                            {r.model_name}{r.variant_display ? ` ${r.variant_display}` : ""}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {refPrice && (
-                      <div className="mt-2 rounded-lg px-2.5 py-2 flex items-center justify-between gap-2"
-                        style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-                        <span className="text-[12.5px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
-                          {refPrice.competitor_name} charges MVR{" "}
-                          {(t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr)
-                            .toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
-                          per {t.sellUnit === "pack" ? noun : "carton"}
-                        </span>
-                        <button type="button"
-                          onClick={() => set({
-                            sellPrice: String(t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr),
-                          })}
-                          className="snm-pressable shrink-0"
-                          style={{
-                            padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700,
-                            background: "var(--foreground)", color: "var(--background)", border: "none", cursor: "pointer",
-                          }}>
-                          Use this
-                        </button>
+                <div className="mt-3">
+                  {refPrices.length > 0 && (
+                    <>
+                      <FieldLabel>Check against what rivals charge</FieldLabel>
+                      <div className="flex flex-wrap gap-2 mb-2.5">
+                        {refPrices.map((r) => {
+                          const on = r.variant_id === refVariantId;
+                          return (
+                            <button key={r.variant_id} type="button"
+                              onClick={() => {
+                                setRefVariantId(on ? "" : r.variant_id);
+                                if (!on) set({ manualCompetitorPrice: "", manualCompetitorName: "" });
+                              }}
+                              className="snm-pressable"
+                              style={{
+                                padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                                cursor: "pointer", ...(on ? PILL_ON : PILL_OFF),
+                              }}>
+                              {r.model_name}{r.variant_display ? ` ${r.variant_display}` : ""}
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
+                    </>
+                  )}
+
+                  <FieldLabel>Or type a rival price you know</FieldLabel>
+                  <div className="flex gap-2">
+                    <input value={t.manualCompetitorName}
+                      onChange={(e) => set({ manualCompetitorName: e.target.value })}
+                      placeholder="Who (optional)"
+                      className="w-[38%] h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                      style={inputSty} />
+                    <input type="number" inputMode="decimal" value={t.manualCompetitorPrice}
+                      onChange={(e) => {
+                        set({ manualCompetitorPrice: e.target.value });
+                        if (e.target.value) setRefVariantId("");
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      placeholder={`MVR per ${t.sellUnit === "pack" ? noun : "carton"}`}
+                      className="flex-1 h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                      style={inputSty} />
                   </div>
-                ) : (
-                  <Hint>No rival prices logged yet for this category.</Hint>
-                )
+
+                  {refPrice && (
+                    <div className="mt-2 rounded-lg px-2.5 py-2 flex items-center justify-between gap-2"
+                      style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+                      <span className="text-[12.5px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+                        {refPrice.competitor_name} charges MVR{" "}
+                        {(t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr)
+                          .toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        per {t.sellUnit === "pack" ? noun : "carton"}
+                      </span>
+                      <button type="button"
+                        onClick={() => set({
+                          sellPrice: String(t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr),
+                        })}
+                        className="snm-pressable shrink-0"
+                        style={{
+                          padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                          background: "var(--foreground)", color: "var(--background)", border: "none", cursor: "pointer",
+                        }}>
+                        Use this
+                      </button>
+                    </div>
+                  )}
+                  {!refPrice && manualN > 0 && (
+                    <div className="mt-2 rounded-lg px-2.5 py-2 flex items-center justify-between gap-2"
+                      style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
+                      <span className="text-[12.5px] flex items-center gap-1.5 flex-wrap" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                          style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+                          TYPED IN
+                        </span>
+                        {t.manualCompetitorName.trim() || "Rival"} charges MVR{" "}
+                        {manualN.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        per {t.sellUnit === "pack" ? noun : "carton"}
+                      </span>
+                      <button type="button"
+                        onClick={() => set({ sellPrice: String(manualN) })}
+                        className="snm-pressable shrink-0"
+                        style={{
+                          padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                          background: "var(--foreground)", color: "var(--background)", border: "none", cursor: "pointer",
+                        }}>
+                        Use this
+                      </button>
+                    </div>
+                  )}
+                  {refPrices.length === 0 && (
+                    <Hint>No rival prices logged for this category yet — type one in above.</Hint>
+                  )}
+                </div>
               )}
             </div>
 
