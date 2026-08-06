@@ -501,6 +501,8 @@ create or replace view public.v_stock_levels as
 drop policy if exists sm_staff_out on public.stock_movements;
 
 -- ── 7. get_promo_suggestions — defensive NULLIF + Maldives velocity window
+-- Defensive drop for a from-scratch replay, same reason as migration 0073.
+drop function if exists public.get_promo_suggestions();
 create or replace function public.get_promo_suggestions()
  returns table(sku_id uuid, internal_code text, full_path text, stock_pieces integer, stock_value_mvr numeric, days_of_stock integer, expiry_days_left integer, current_pack_mvr numeric, promo_pack_mvr numeric, discount_pct numeric, pcs_per_pack integer)
  language sql

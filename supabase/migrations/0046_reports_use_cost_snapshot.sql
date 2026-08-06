@@ -12,6 +12,11 @@
 -- blank. Fully-snapshotted periods are now permanently accurate; only
 -- reports spanning pre-migration sales mix in an estimate for those rows.
 
+-- The column list changes here (adds total_landed_cost_mvr/has_estimated_cost,
+-- drops unit_uom), which CREATE OR REPLACE cannot do for an existing
+-- function -- drop first so a from-scratch replay doesn't break here.
+DROP FUNCTION IF EXISTS get_reports_data(DATE, DATE);
+
 CREATE OR REPLACE FUNCTION get_reports_data(p_from DATE, p_to DATE)
 RETURNS TABLE (
   sku_id                UUID,
@@ -129,6 +134,10 @@ AS $function$
   WHERE s.is_active = TRUE
   ORDER BY COALESCE(ps.revenue_mvr, 0) DESC;
 $function$;
+
+-- Same reason as get_reports_data above: adds has_estimated_cost, which
+-- CREATE OR REPLACE can't do for an existing function.
+DROP FUNCTION IF EXISTS get_contribution_margin(DATE, DATE);
 
 CREATE OR REPLACE FUNCTION get_contribution_margin(p_from DATE, p_to DATE)
 RETURNS TABLE (

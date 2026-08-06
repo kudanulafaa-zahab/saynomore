@@ -2,6 +2,67 @@
 -- (select auth.uid()) is evaluated once per statement (InitPlan) instead of
 -- once per row, per Supabase lint 0003_auth_rls_initplan. No semantic change.
 
+-- Found while proving migrations replay cleanly from an empty database
+-- (they didn't): a from-scratch replay reaches this point with some of the
+-- policies below already present and some missing, which means at least
+-- one of these was created directly against production outside any tracked
+-- migration file at some point in this project's history, and the exact
+-- boundary isn't reconstructable from the files alone. Rather than guess,
+-- each is created defensively (idempotent -- skips quietly if it already
+-- exists) in its pre-wrap form (bare auth.uid()), matching what the ALTER
+-- POLICY statements below convert to the scalar-subselect form, so this
+-- migration's own diff is unchanged and still does exactly what its header
+-- says. Verified against the live policy definitions in pg_policies before
+-- writing these; changes nothing live in production.
+DO $$ BEGIN
+  CREATE POLICY brands_read ON public.brands FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY product_models_read ON public.product_models FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY variants_read ON public.variants FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY skus_read ON public.skus FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY suppliers_read ON public.suppliers FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY customers_read ON public.customers FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY godowns_read ON public.godowns FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY competitors_read ON public.competitors FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY competitor_prices_read ON public.competitor_prices FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY marketing_spend_read ON public.marketing_spend FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY marketing_spend_skus_read ON public.marketing_spend_skus FOR SELECT USING (auth.uid() IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY owner ON public.push_subscriptions FOR ALL USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY price_lists_admin_write ON public.price_lists
+    FOR ALL
+    USING (EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.id = auth.uid() AND user_profiles.role = 'admin'))
+    WITH CHECK (EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.id = auth.uid() AND user_profiles.role = 'admin'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY price_list_items_admin_write ON public.price_list_items
+    FOR ALL
+    USING (EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.id = auth.uid() AND user_profiles.role = 'admin'))
+    WITH CHECK (EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.id = auth.uid() AND user_profiles.role = 'admin'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- Simple "any authenticated user can read" policies
 alter policy brands_read               on public.brands               using ((select auth.uid()) is not null);
 alter policy product_models_read       on public.product_models       using ((select auth.uid()) is not null);

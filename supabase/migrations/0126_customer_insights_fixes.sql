@@ -14,6 +14,8 @@
 --    fixed in this same audit), but the fallback belongs here on the same
 --    "never silently treat missing cost as zero" principle.
 
+-- Defensive drop for a from-scratch replay: column list changes here.
+drop function if exists public.get_customer_insights();
 create or replace function public.get_customer_insights()
  returns table(customer_id uuid, name text, phone text, island text, price_tier text, orders_count integer, first_order_at date, last_order_at date, days_since_last integer, revenue_mvr numeric, profit_mvr numeric, avg_order_mvr numeric, usual_gap_days integer, at_risk boolean, outstanding_mvr numeric, revenue_share_pct numeric)
  language sql

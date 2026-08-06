@@ -58,6 +58,8 @@ as $function$
 $function$;
 
 -- 2) Reorder suggestions: 'out' passes through as status; sort it to the top.
+-- Defensive drop for a from-scratch replay: column list changes here.
+drop function if exists public.get_reorder_suggestions(numeric, numeric);
 create or replace function public.get_reorder_suggestions(p_lead_weeks numeric default 6, p_safety_weeks numeric default 4)
 returns table(sku_id uuid, brand_name text, model_name text, variant_display text, internal_code text, stock_pieces numeric, stock_cartons numeric, daily_avg_pieces numeric, dir numeric, cover_days numeric, suggested_pieces numeric, suggested_cartons integer, pcs_per_carton integer, revenue_per_day numeric, status text, supplier_name text, lead_days numeric, order_by_date date)
 language sql stable security definer

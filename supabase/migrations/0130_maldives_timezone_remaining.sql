@@ -39,6 +39,8 @@ as $function$
 $function$;
 
 -- ── get_recent_writeoffs ────────────────────────────────────────────────
+-- Defensive drop for a from-scratch replay: column list changes here.
+drop function if exists public.get_recent_writeoffs(date, date, integer);
 create or replace function public.get_recent_writeoffs(p_from date default null::date, p_to date default null::date, p_limit integer default 50)
  returns table(id uuid, created_at timestamp with time zone, brand_name text, model_name text, variant_display text, qty_pieces integer, pcs_per_pack integer, pcs_per_carton integer, reason text, cost_mvr numeric, godown_name text)
  language sql

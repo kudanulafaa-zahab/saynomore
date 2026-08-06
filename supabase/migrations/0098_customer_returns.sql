@@ -223,6 +223,8 @@ REVOKE EXECUTE ON FUNCTION public.get_returns(date, date, int) FROM public, anon
 GRANT  EXECUTE ON FUNCTION public.get_returns(date, date, int) TO authenticated, service_role;
 
 -- ── Owed now nets off returns (one definition; dashboard follows via 0080) ───
+-- Defensive drop for a from-scratch replay: column list changes here.
+DROP FUNCTION IF EXISTS public.get_receivables_aging();
 CREATE OR REPLACE FUNCTION public.get_receivables_aging()
 RETURNS TABLE (
   customer_id uuid, customer_name text, phone text,

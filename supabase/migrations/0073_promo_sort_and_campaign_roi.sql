@@ -8,6 +8,10 @@
 --    during the campaign window vs an equal-length window immediately
 --    before — the lift, in rufiyaa and as a multiple of spend. This is what
 --    makes logged campaigns *measured* instead of just recorded.
+-- Found proving migrations replay from scratch: column list changes here,
+-- which CREATE OR REPLACE can't do for an existing function.
+DROP FUNCTION IF EXISTS public.get_promo_suggestions();
+
 CREATE OR REPLACE FUNCTION public.get_promo_suggestions()
 RETURNS TABLE (
   sku_id              uuid,
