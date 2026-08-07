@@ -303,6 +303,18 @@ export function ReorderView() {
                         {needs && mv?.strong ? " · Top seller" : ""}
                         {over ? " · overstocked" : ""}
                       </p>
+                      {/* Why a suggestion is bigger than raw sales imply. The
+                          rate is measured over days stock was actually on the
+                          shelf (0155), so an empty shelf no longer reads as
+                          weak demand. Its own line, not appended to the
+                          metadata above, because that line truncates — and
+                          this is the justification for the number, not a
+                          detail beside it. */}
+                      {needs && sug?.demand_censored && sug.days_unavailable_30 > 0 && (
+                        <p className="ios-footnote font-semibold mt-0.5" style={{ color: "var(--snm-warning)" }}>
+                          Out of stock {sug.days_unavailable_30} of the last 30 days — real demand is higher than sales show
+                        </p>
+                      )}
                     </div>
 
                     {on && (
