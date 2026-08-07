@@ -43,14 +43,26 @@ helpful.
 If it has to be read, it is `--foreground`. A field's name never lives in its
 placeholder. An unselected pill carrying a choice is content, not a hint.
 
-## 5. Diapers sell in PACKS and CARTONS. Never pieces.
+## 5. PACKS and CARTONS at every step — buy, receive, sell. Never pieces.
+
+Ali, 2026-08-07, said permanently:
+
+> "For diapers the vendor sells in packs/cartons, we receive packs/cartons and
+> we sell packs/cartons. Never in pieces."
+
+**BUY** (what the vendor quotes), **RECEIVE** (what lands and what the GRN
+records) and **SELL** (what the customer buys) are all packs and cartons.
+There is no step where a diaper is counted in pieces. Earlier versions of this
+rule read like a *selling* rule, so the buy and receive sides kept leaking —
+the shipment void impact said "26,944 pcs" until migration 0147.
 
 No SKU has `piece` in `sellable_units`. Never offer a selling unit the product
-doesn't sell, and quote money in the unit sold. Pieces stay in the database
-only.
+doesn't sell, and quote money in the unit sold. Never ASK for a piece count
+either: a field that takes one is as wrong as a label that prints one.
+Pieces stay in the database only.
 
 **This is not a UI rule — it covers every word Ali reads.** App screens, chat
-replies, analysis, audits, recommendations, PR text. Ali has said it four
+replies, analysis, audits, recommendations, PR text. He has now said it five
 times; the fourth was after a whole business audit came back to him in
 "630 pcs sold" and "7.3 diapers/day", numbers he cannot sanity-check against
 his own business. Query in pieces if you must — **convert before it reaches
