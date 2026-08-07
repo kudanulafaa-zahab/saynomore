@@ -114,6 +114,16 @@ export interface ReorderSuggestion {
   /** Real units sold in the last 90 days (0095) — the "what actually sells"
    *  signal for ordering decisions. */
   sold_90d: number;
+  /** Days in the last 30 with nothing on the shelf (0155). */
+  days_unavailable_30: number;
+  /** True when the selling rate was measured over the days stock was actually
+   *  available rather than the calendar — i.e. this product ran out, so raw
+   *  sales understate demand. The rate used to divide by 30 days regardless,
+   *  which made a product that was out half the month look like it sold half
+   *  as fast, so it was re-ordered short and ran out again. Xtra Kering L was
+   *  understated 2x. Surface this wherever the suggestion is shown: a number
+   *  that silently doubles needs its reason attached. */
+  demand_censored: boolean;
 }
 
 export async function listReorderSuggestions(
