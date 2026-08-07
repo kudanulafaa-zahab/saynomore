@@ -10,6 +10,7 @@ import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/quer
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { mvtInstant } from "@/lib/mvt-date";
+import { costPerTradeUnit, type UnitUom } from "@/lib/trade-units";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
 type SortDir  = "desc" | "asc";
@@ -93,6 +94,19 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn, unitUom }: {
 }) {
   const qty  = fmtQty(batch.qty_pieces_remaining, pcsPerPack, pcsPerCtn, unitUom);
   const date = mvtInstant(batch.received_at, { day: "numeric", month: "short", year: "2-digit" });
+  // What this batch cost, in the unit it was bought, received and sold in.
+  // It used to read "MVR 10.40/pc" — the only cost on the row, in a unit
+  // nothing is traded in. Ali, 2026-08-07: the vendor sells packs and cartons,
+  // we receive packs and cartons, we sell packs and cartons. The whole chain,
+  // not just the selling end.
+  const cost = costPerTradeUnit(Number(batch.landed_per_piece_mvr), {
+    pcsPerPack,
+    packsPerCarton: pcsPerPack > 0 ? pcsPerCtn / pcsPerPack : 0,
+    // The row receives unit_uom as a plain column string; narrow it to the
+    // three the helper knows. Anything else falls through to the default
+    // pack noun, which is what packAbbr above does too.
+    unitUom: (unitUom ?? null) as UnitUom | null,
+  });
   return (
     <div
       className="flex items-center justify-between px-3 py-3 rounded-xl"
@@ -114,7 +128,7 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn, unitUom }: {
       <div className="text-right shrink-0 ml-3">
         <span className="ios-subhead font-semibold text-foreground snm-num">{qty}</span>
         <span className="ios-subhead ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
-          MVR {batch.landed_per_piece_mvr.toFixed(2)}/pc
+          MVR {cost.value.toFixed(2)}/{cost.unitLabel}
         </span>
       </div>
     </div>

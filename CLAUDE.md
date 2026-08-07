@@ -125,13 +125,37 @@ Next.js 16 App Router (Turbopack) · React 19 (React Compiler ON) · TypeScript 
 ## Migrations
 Claude is authorized to write and apply new migrations directly via the Supabase MCP against production — no manual dashboard step, no waiting for Ali to run SQL (confirmed by Ali 2026-07-01, after migration 0041).
 
-## Units — diapers are sold in PACKS and CARTONS. Never pieces. (Ali, 2026-08-05)
+## Units — the WHOLE CHAIN is packs and cartons. Never pieces. (Ali, 2026-08-07)
 
-This is permanent. Ali has had to say it three times.
+This is permanent. Ali has now said it five times, and the fifth time widened
+it past selling:
 
-- **Nobody in this trade sells diapers loose.** The supplier sells packs and
-  cartons; Ali sells packs and cartons. Every SKU's `sellable_units` is
-  `{pack,carton}`, `{carton}` or `{pack}` — **not one SKU sells `piece`.**
+> "For diapers the vendor sells in packs/cartons, we receive packs/cartons and
+> we sell packs/cartons. Never in pieces."
+
+**Three points in the chain, one unit system. There is no step at which a
+diaper is counted in pieces:**
+
+| Step | Unit | Where it shows up |
+|---|---|---|
+| **BUY** — what the vendor quotes and invoices | packs / cartons | Costing simulator, shipment lines (`qty_cartons`, `fob_per_carton`), supplier prices |
+| **RECEIVE** — what arrives and what the GRN records | packs / cartons | Shipments, GRN dialog, batches, void impact |
+| **SELL** — what the customer buys | packs / cartons | Sales, Price Lists, Inventory, Reorder, Promo Advisor |
+
+Earlier versions of this rule read as a *selling* rule, so the buy and receive
+sides kept leaking pieces (the shipment void impact said "26,944 pcs" until
+migration 0147). Treat all three as the same rule. If a number describes
+diapers moving anywhere in the business, it is packs or cartons.
+
+- **Nobody in this trade handles diapers loose — at any step.** The vendor
+  sells packs and cartons, the container arrives in packs and cartons, and Ali
+  sells packs and cartons. Every SKU's `sellable_units` is `{pack,carton}`,
+  `{carton}` or `{pack}` — **not one SKU sells `piece`.**
+- **Quantities you ASK FOR are packs and cartons too**, not just quantities you
+  display. A field that takes a piece count is as wrong as a label that prints
+  one — that is why `edit_sales_order_line` now refuses anything that is not a
+  whole number of the line's selling unit (migration 0156), naming the unit and
+  the two nearest valid answers.
 - **Never show a piece count to the user.** Not "192 pcs", not "= 128 pieces
   total", not "64 pcs in stock". Say "1 carton (4 packs of 48)" or "2 packs of
   34". Use `formatQtyInTradeUnits` in `lib/trade-units.ts` — it already exists,
