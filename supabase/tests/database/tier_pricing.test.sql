@@ -26,7 +26,7 @@
 -- 0158 apply_target_prices, 0159 here.
 
 begin;
-select plan(10);
+select plan(13);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000f0', 'test-tier@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000f0';
@@ -146,6 +146,38 @@ select is(
   (select price_per_pack_mvr from get_tier_price_for_sku('00000000-0000-0000-0000-0000000000f1', 'retail')),
   850::numeric,
   'and the list price is what order entry is given'
+);
+
+-- ── Only units the product is actually sold in are quoted (0160) ──────────
+-- Ali, 2026-08-07: "Sosoft I sell in cartons. Not bottles. But customer can
+-- make mixed carton of six bottles not less." So the carton is the only
+-- selling unit, and a pack price for one is an offer that cannot be filled.
+-- The engine used to return "MVR 37 a pack" for a MVR 220 carton-only bottle.
+insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
+                  carton_length_cm, carton_width_cm, carton_height_cm,
+                  fixed_price_per_carton_mvr, sellable_units)
+values ('00000000-0000-0000-0000-0000000000f7', '00000000-0000-0000-0000-000000000004',
+        'TEST-CARTON-ONLY-1x6', 1, 6, 40, 30, 30, 220, array['carton']);
+
+select is(
+  (select price_per_carton_mvr from get_tier_price_for_sku('00000000-0000-0000-0000-0000000000f7', 'retail')),
+  220::numeric,
+  'a carton-only product is quoted its carton price'
+);
+
+select is(
+  (select price_per_pack_mvr from get_tier_price_for_sku('00000000-0000-0000-0000-0000000000f7', 'retail')),
+  null,
+  'and NOT a pack price -- it used to answer MVR 37 for a unit never sold'
+);
+
+-- Per-piece is deliberately kept: no SKU sells by the piece, so it cannot be
+-- mistaken for a selling unit, and the Market screen needs it to compare
+-- against rivals who sell 30s, 34s and 48s (the sanctioned carve-out).
+select isnt(
+  (select price_per_piece_mvr from get_tier_price_for_sku('00000000-0000-0000-0000-0000000000f7', 'retail')),
+  null,
+  'per-piece is still returned -- it is the comparison figure, never a selling unit'
 );
 
 select * from finish();
