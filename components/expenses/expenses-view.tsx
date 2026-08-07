@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { mvtToday } from "@/lib/mvt-date";
+import { mvtPlainDay, mvtToday } from "@/lib/mvt-date";
 import {
   Loader2, Trash2, X, ChevronRight,
 } from "lucide-react";
@@ -271,7 +271,7 @@ export function ExpensesView() {
                 <div className="min-w-0">
                   <p className="ios-subhead font-medium text-foreground">{catName(r.category_id)}</p>
                   <p className="ios-subhead text-muted-foreground">
-                    {new Date(r.expense_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                    {mvtPlainDay(r.expense_date)}
                     {r.description ? ` · ${r.description}` : ""}
                   </p>
                 </div>

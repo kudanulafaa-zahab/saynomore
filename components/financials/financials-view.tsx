@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { mvtToday, mvtTomorrow, mvtFirstOfMonth, mvtLastMonthRange } from "@/lib/mvt-date";
+import { mvtFirstOfMonth, mvtInstant, mvtLastMonthRange, mvtToday, mvtTomorrow } from "@/lib/mvt-date";
 import {
   Loader2, TrendingUp, TrendingDown, ArrowRight,
   ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Banknote,
@@ -212,7 +212,7 @@ function CodView() {
                           <div style={{ minWidth: 0 }}>
                             <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500 }}>{o.customer_name}</p>
                             <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
-                              {o.order_number} · {new Date(o.delivered_at).toLocaleTimeString("en-MV", { hour: "2-digit", minute: "2-digit" })}
+                              {o.order_number} · {mvtInstant(o.delivered_at, { hour: "2-digit", minute: "2-digit" })}
                             </p>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>

@@ -37,6 +37,7 @@ import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
 import { haptic } from "@/lib/haptics";
+import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
@@ -88,10 +89,6 @@ const STEP_IDX: Record<ShipmentStatus, number> = {
 
 function fmt0(n: number) { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 function fmt2(n: number) { return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function fmtDate(iso: string | null | undefined) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" });
-}
 
 /* ── Number input with local state ──────────────────────────────────────── */
 
@@ -935,7 +932,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" style={{ color: "var(--snm-success)" }} />
               <p className="ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>
-                Received — {fmtDate(shipment.grn_confirmed_at)}
+                Received — {mvtInstant(shipment.grn_confirmed_at, { day: "numeric", month: "short", year: "numeric" })}
               </p>
             </div>
           </Field>
@@ -958,7 +955,7 @@ export function ShipmentDetail({ id }: { id: string }) {
           </Field>
           <Field label="EXPECTED ARRIVAL">
             {locked
-              ? <p className="ios-subhead text-foreground">{fmtDate(shipment.expected_arrival_date) || "—"}</p>
+              ? <p className="ios-subhead text-foreground">{mvtPlainDay(shipment.expected_arrival_date, { day: "numeric", month: "short", year: "numeric" }) || "—"}</p>
               : <div className="relative">
                   <input
                     type="date"
@@ -1521,7 +1518,7 @@ export function ShipmentDetail({ id }: { id: string }) {
               <p className="ios-subhead font-semibold" style={{ color: "var(--snm-success)" }}>Stock Live</p>
               {shipment.grn_confirmed_at && (
                 <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                  Confirmed {fmtDate(shipment.grn_confirmed_at)}
+                  Confirmed {mvtInstant(shipment.grn_confirmed_at, { day: "numeric", month: "short", year: "numeric" })}
                 </p>
               )}
             </div>

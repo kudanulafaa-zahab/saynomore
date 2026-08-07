@@ -9,6 +9,7 @@ import {
   type CustomerInsight, type CustomerProduct, type CustomerOrder,
 } from "@/lib/queries/customer-insights";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
@@ -20,9 +21,6 @@ const CARD: React.CSSProperties = {
 
 function fmt(n: number) {
   return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
-function dayLabel(iso: string) {
-  return new Date(iso).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" });
 }
 /** Quantities in the unit the product sells in — never loose pieces. */
 function qtyLabel(p: CustomerProduct) {
@@ -195,7 +193,7 @@ export function CustomerDetail({ id }: { id: string }) {
                     </span>
                   </p>
                   <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                    {dayLabel(o.created_at)} · {o.items} item{o.items !== 1 ? "s" : ""}
+                    {mvtInstant(o.created_at, { day: "numeric", month: "short", year: "numeric" })} · {o.items} item{o.items !== 1 ? "s" : ""}
                     {Number(o.balance_mvr) > 0.005 ? " · unpaid" : ""}
                   </p>
                 </div>
@@ -224,7 +222,7 @@ export function CustomerDetail({ id }: { id: string }) {
                       <div className="min-w-0">
                         <p className="ios-subhead font-semibold text-foreground truncate">{p.variant_display ?? "—"}</p>
                         <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
-                          {qtyLabel(p)} bought{p.last_bought ? ` · last ${dayLabel(p.last_bought)}` : ""}
+                          {qtyLabel(p)} bought{p.last_bought ? ` · last ${mvtPlainDay(p.last_bought, { day: "numeric", month: "short", year: "numeric" })}` : ""}
                         </p>
                       </div>
                       <div className="text-right shrink-0">

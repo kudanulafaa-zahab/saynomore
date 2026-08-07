@@ -163,19 +163,38 @@ select is(
 );
 
 -- ── The whole bug class, not just this instance ───────────────────────────
--- This one has now been fixed four separate times, each time in one more
--- function that the last sweep missed (migrations 0123, 0126, 0130, 0152).
--- A structural guard ends that: CURRENT_DATE is the server's UTC day and this
--- business does not run on UTC, so no function may use it. If a new function
--- needs "today", it is `(now() at time zone 'Indian/Maldives')::date`.
+-- Fixed five separate times now (0123, 0126, 0130, 0152, 0153), each sweep
+-- leaving one more behind. The class has TWO shapes and lives in TWO kinds
+-- of object, and every previous guard covered only part of that grid:
+--
+--   shape 1  CURRENT_DATE              -- the server's UTC day
+--   shape 2  <timestamptz col>::date   -- buckets an instant on the UTC day
+--   place 1  functions
+--   place 2  VIEWS  <- 0152's guard never looked here, and v_expiring_stock
+--                     was sitting in it
+--
+-- The column list is every genuine `timestamp with time zone` column in the
+-- schema. It deliberately does NOT include date columns like expense_date or
+-- start_date: those have no timezone to get wrong, and matching them would
+-- make this fail on correct code.
+--
+-- If something new needs "today", it is (now() at time zone
+-- 'Indian/Maldives')::date. There is no correct use of the server's day in
+-- this database.
 select is_empty(
-  $$select p.proname
-      from pg_proc p
-      join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public'
-       and p.prokind = 'f'
-       and p.prosrc ~* '\mCURRENT_DATE\M'$$,
-  'no function anywhere buckets a date by the server''s UTC day -- Maldives time, everywhere, permanently'
+  $$with src as (
+      select 'function ' || p.proname as obj, p.prosrc as body
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.prokind = 'f'
+      union all
+      select 'view ' || c.relname, pg_get_viewdef(c.oid, true)
+        from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind in ('v','m')
+    )
+    select obj from src
+     where body ~ '\y(\w+)\.(created_at|updated_at|received_at|paid_at|delivered_at|dispatched_at|picked_at|cash_deposited_at|arrived_at|grn_confirmed_at|ordered_at|verified_at|last_paid_at)::date'
+        or body ~* '\yCURRENT_DATE\y'$$,
+  'no function OR view anywhere buckets a timestamp on the server''s UTC day -- Maldives time, everywhere, permanently'
 );
 
 select * from finish();

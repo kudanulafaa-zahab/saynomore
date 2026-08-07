@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { invalidate } from "@/lib/swr-lite";
+import { mvtPlainDay } from "@/lib/mvt-date";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -680,9 +681,7 @@ export interface PriceProvenance {
 
 function fmtListDate(iso: string | null): string | null {
   if (!iso) return null;
-  const d = new Date(iso + "T00:00:00");
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-MV", { month: "short", year: "numeric" });
+  return mvtPlainDay(iso, { month: "short", year: "numeric" }) || null;
 }
 
 /**

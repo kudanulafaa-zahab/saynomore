@@ -20,6 +20,7 @@ import {
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { haptic } from "@/lib/haptics";
 import { toPieces, type SaleUom } from "@/lib/queries/sales";
+import { mvtInstant } from "@/lib/mvt-date";
 
 /* ── qty helpers (pieces → carton/pack, matches inventory-view) ── */
 function toCtns(pcs: number, pcsPerCtn: number) {
@@ -958,7 +959,7 @@ function WriteOffTab({
                       {[w.brand_name, w.model_name, w.variant_display].filter(Boolean).join(" · ")}
                     </p>
                     <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                      {qtyLabel} · {reasonWord}{note ? ` — ${note}` : ""} · {new Date(w.created_at).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                      {qtyLabel} · {reasonWord}{note ? ` — ${note}` : ""} · {mvtInstant(w.created_at)}
                     </p>
                   </div>
                   <p className="snm-num ios-subhead font-semibold shrink-0" style={{ color: "var(--snm-error)" }}>
@@ -1245,7 +1246,7 @@ function VerificationHistory() {
         <div className="space-y-2">
           {sessions.map((s) => {
             const clean = s.lines_discrepant === 0;
-            const date = new Date(s.verified_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
+            const date = mvtInstant(s.verified_at, { day: "numeric", month: "short", year: "2-digit" });
             return (
               <div key={s.session_id} className="rounded-2xl px-4 py-3 flex items-center justify-between"
                 style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>

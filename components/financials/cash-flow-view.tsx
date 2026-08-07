@@ -11,6 +11,7 @@ import { getCurrentUserRole } from "@/lib/queries/products";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
+import { mvtPlainDay } from "@/lib/mvt-date";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
@@ -30,7 +31,7 @@ function fmtShort(n: number) {
   return n.toFixed(0);
 }
 function weekLabel(iso: string) {
-  return new Date(iso).toLocaleDateString("en-MV", { day: "numeric", month: "short" });
+  return mvtPlainDay(iso);
 }
 
 export function CashFlowView() {

@@ -17,6 +17,7 @@ import { listSuppliers, type SupplierRow } from "@/lib/queries/masters";
 import { Sheet } from "@/components/ui/sheet";
 import { getCurrentUserRole, listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory";
+import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
@@ -59,10 +60,6 @@ const ACTIVE_STATUSES: ShipmentStatus[] = ["draft", "ordered", "in_transit", "ar
 
 /* ── Date helpers ────────────────────────────────────────────────────────── */
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-MV", { day: "numeric", month: "short" });
-}
 
 function etaState(date: string | null | undefined): "overdue" | "today" | "upcoming" | null {
   if (!date) return null;
@@ -424,12 +421,12 @@ function PoCard({
     etaS === "today"   ? "var(--snm-warning)"  :
                          "var(--muted-foreground)";
   const etaLabel =
-    etaS === "overdue"  ? `Overdue · ${fmtDate(eta)}` :
+    etaS === "overdue"  ? `Overdue · ${mvtPlainDay(eta)}` :
     etaS === "today"    ? "Arriving today"              :
-    eta                 ? `ETA ${fmtDate(eta)}`         : "ETA not set";
+    eta                 ? `ETA ${mvtPlainDay(eta)}`         : "ETA not set";
 
   const confirmedLabel = shipment.grn_confirmed_at
-    ? `Received ${fmtDate(shipment.grn_confirmed_at)}`
+    ? `Received ${mvtInstant(shipment.grn_confirmed_at)}`
     : "Received";
 
   return (
