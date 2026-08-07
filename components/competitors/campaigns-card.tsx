@@ -11,6 +11,7 @@ import { getCampaignRoi, type CampaignRoiRow } from "@/lib/queries/intelligence"
 import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { SpendSheet } from "@/components/expenses/expenses-view";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
+import { mvtPlainDay } from "@/lib/mvt-date";
 
 function fmt(n: number) {
   return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
@@ -77,7 +78,7 @@ export function CampaignsCard() {
                   {r.campaign_name ?? "Campaign"}
                 </p>
                 <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
-                  {new Date(r.start_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                  {mvtPlainDay(r.start_date)}
                   {" · "}MVR {fmt(Number(r.amount_mvr))}
                 </p>
                 {(() => {

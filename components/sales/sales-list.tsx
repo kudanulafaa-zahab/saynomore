@@ -44,6 +44,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { SwipeActions, type SwipeAction } from "@/components/ui/swipe-actions";
 import { formatQtyInTradeUnits, priceForMargin, sellableTiers, sellUnitLabel, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
+import { mvtDayKey, mvtInstant, mvtToday, mvtYesterday } from "@/lib/mvt-date";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -353,16 +354,17 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
 /** "Today" / "Yesterday" / "24 Jul" — the heading the order list groups under,
  *  so the newest-first sort is visible instead of looking arbitrary. */
 function dayLabel(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-  const diffDays = Math.round((startOf(today) - startOf(d)) / 86400000);
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return d.toLocaleDateString("en-MV", {
+  // Malé days, not the device's. This used to compare local midnights, so an
+  // order placed at 00:30 in Malé headed a "Yesterday" group on a phone set to
+  // UTC while every total beside it came from Postgres on the Maldives day.
+  const day = mvtDayKey(iso);
+  if (day === mvtToday()) return "Today";
+  if (day === mvtYesterday()) return "Yesterday";
+  const sameYear = day.slice(0, 4) === mvtToday().slice(0, 4);
+  return mvtInstant(iso, {
     day: "numeric",
     month: "short",
-    ...(d.getFullYear() !== today.getFullYear() ? { year: "numeric" } : {}),
+    ...(sameYear ? {} : { year: "numeric" }),
   });
 }
 
@@ -848,7 +850,7 @@ export function SalesList() {
                             <div className="min-w-0">
                               <p className="ios-subhead font-semibold text-foreground">{o.order_number}</p>
                               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                                {new Date(o.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · via {o.channel}
+                                {mvtInstant(o.created_at)} · via {o.channel}
                               </p>
                             </div>
                           </div>
@@ -1796,7 +1798,7 @@ function NewSaleSheet({
                   <span className="text-left min-w-0">
                     <span className="block text-[14px] font-semibold text-foreground">Repeat last order</span>
                     <span className="block ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                      {lastOrder.lines.length} item{lastOrder.lines.length !== 1 ? "s" : ""} · {new Date(lastOrder.createdAt).toLocaleDateString("en-MV", { day: "numeric", month: "short" })} · today&rsquo;s prices
+                      {lastOrder.lines.length} item{lastOrder.lines.length !== 1 ? "s" : ""} · {mvtInstant(lastOrder.createdAt)} · today&rsquo;s prices
                     </span>
                   </span>
                 </span>

@@ -18,6 +18,7 @@ import {
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
+import { mvtPlainDay } from "@/lib/mvt-date";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
@@ -297,7 +298,7 @@ export function ReorderView() {
                       <p className="snm-num ios-subhead truncate" style={{ color: "var(--muted-foreground)" }}>
                         {s.pcs_per_pack}/pk × {s.packs_per_carton}/ctn · {stockCtnFor(s.id)} ctn in stock
                         {needs && sug!.order_by_date
-                          ? ` · order by ${new Date(sug!.order_by_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}`
+                          ? ` · order by ${mvtPlainDay(sug!.order_by_date)}`
                           : ""}
                         {needs && mv?.strong ? " · Top seller" : ""}
                         {over ? " · overstocked" : ""}

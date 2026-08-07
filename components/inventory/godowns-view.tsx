@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
+import { mvtInstant } from "@/lib/mvt-date";
 
 /* ── Helpers ── */
 
@@ -164,7 +165,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
             .sort((a, b) => a.received_at.localeCompare(b.received_at))
             .map((b, i) => {
               const bQty  = fmtQty(b.qty_pieces_remaining, sku.pcs_per_pack, pcsPerCtn);
-              const bDate = new Date(b.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
+              const bDate = mvtInstant(b.received_at, { day: "numeric", month: "short", year: "2-digit" });
               return (
                 <div
                   key={b.batch_id}

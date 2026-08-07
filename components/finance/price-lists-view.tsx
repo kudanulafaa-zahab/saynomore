@@ -17,6 +17,7 @@ import type { PriceTier } from "@/lib/queries/masters";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
+import { mvtPlainDay } from "@/lib/mvt-date";
 
 /* ── Tier config ──────────────────────────────────────────────────────────────
    Non-hierarchical peer categories — dedicated --snm-tag-* palette, never the
@@ -189,7 +190,7 @@ export function PriceListsView() {
                         <div className="min-w-0">
                           <p className="ios-subhead font-medium truncate" style={{ color: "var(--foreground)" }}>{pl.name}</p>
                           <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                            Effective {new Date(pl.effective_from + "T00:00:00").toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+                            Effective {mvtPlainDay(pl.effective_from, { day: "numeric", month: "short", year: "numeric" })}
                             {pl.notes ? ` · ${pl.notes}` : ""}
                           </p>
                         </div>
@@ -554,7 +555,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onDone }: {
           <p className="text-xs font-bold uppercase tracking-widest" style={{ color: t.color }}>{t.label} Tier</p>
           <h2 className="text-base font-semibold truncate" style={{ color: "var(--foreground)" }}>{priceList.name}</h2>
           <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-            Effective {new Date(priceList.effective_from + "T00:00:00").toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+            Effective {mvtPlainDay(priceList.effective_from, { day: "numeric", month: "short", year: "numeric" })}
           </p>
         </div>
         {canWrite && (

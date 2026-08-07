@@ -56,6 +56,7 @@ import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { supabase } from "@/lib/supabase";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { notifyAdmins } from "@/lib/push";
+import { mvtInstant } from "@/lib/mvt-date";
 
 /** Keeps the chosen selling unit on a tier the SKU is actually sold in.
  *  Switching from a diaper (pack + carton) to a carton-only Sosoft must not
@@ -1071,7 +1072,7 @@ export function SaleDetail({ id }: { id: string }) {
                 <p style={{ color: "var(--snm-success)", fontSize: 13, fontWeight: 600 }}>Cash deposited to bank</p>
                 {order.cash_deposited_at && (
                   <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginLeft: "auto" }}>
-                    {new Date(order.cash_deposited_at).toLocaleDateString()}
+                    {mvtInstant(order.cash_deposited_at, { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                 )}
               </div>
@@ -1738,7 +1739,7 @@ function PaymentLedger({
                     </span>
                   </p>
                   <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 1 }}>
-                    {new Date(p.paid_at).toLocaleDateString()}{p.reference ? ` · ${p.reference}` : ""}
+                    {mvtInstant(p.paid_at, { day: "numeric", month: "short", year: "numeric" })}{p.reference ? ` · ${p.reference}` : ""}
                   </p>
                 </div>
                 {canWrite && (

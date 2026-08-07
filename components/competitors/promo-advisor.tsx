@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Megaphone, ChevronDown, ChevronUp } from "lucide-react";
 import { getPromoSuggestions, type PromoSuggestionRow } from "@/lib/queries/intelligence";
+import { mvtInstant } from "@/lib/mvt-date";
 
 function fmt(n: number) {
   return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
@@ -61,7 +62,7 @@ export function PromoAdvisor() {
   function expiryMonth(daysLeft: number): string {
     const d = new Date();
     d.setDate(d.getDate() + daysLeft);
-    return d.toLocaleDateString("en-MV", { month: "long" });
+    return mvtInstant(d, { month: "long" });
   }
 
   // The caption adapts to WHY this SKU is on the list, so no two posts read

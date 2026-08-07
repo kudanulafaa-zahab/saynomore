@@ -38,6 +38,7 @@ import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { priceForMargin } from "@/lib/trade-units";
+import { mvtPlainDay } from "@/lib/mvt-date";
 
 // Liquid Glass content surface (2026-07-15) — matches .glass-panel's recipe
 // (fill + specular inset highlight + border) without needing 21 JSX call
@@ -1444,7 +1445,7 @@ export function CompetitorsView() {
                             MVR {fmt2(cheapest.pricePiece * sku.pcs_per_carton)}/ctn · {fmt2(cheapest.pricePiece)}/pc
                           </p>
                           <p className="ios-footnote mt-1 truncate" style={{ color: "var(--muted-foreground)" }}>
-                            {new Date(cheapest.price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                            {mvtPlainDay(cheapest.price.observed_date)}
                           </p>
                         </>
                       ) : cheapest ? (
@@ -1484,7 +1485,7 @@ export function CompetitorsView() {
                       <div className="min-w-0">
                         <p className="ios-footnote font-medium text-foreground truncate">{competitor?.name ?? "Unknown"}</p>
                         <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                          {new Date(price.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short" })}
+                          {mvtPlainDay(price.observed_date)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -1640,7 +1641,7 @@ export function CompetitorsView() {
                                   <span className="snm-num text-foreground font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
                                   {" "}{BASIS_LABEL[p.price_basis]}
                                   {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/${p.price_basis === "per_carton" ? "ctn" : "pk"}` : ""}
-                                  {" · "}{new Date(p.observed_date).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+                                  {" · "}{mvtPlainDay(p.observed_date, { day: "numeric", month: "short", year: "numeric" })}
                                 </p>
                                 {p.notes && <p className="ios-subhead mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
                               </div>

@@ -9,6 +9,7 @@ import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSu
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
+import { mvtInstant } from "@/lib/mvt-date";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
 type SortDir  = "desc" | "asc";
@@ -91,7 +92,7 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn, unitUom }: {
   batch: BatchStock; idx: number; pcsPerPack: number; pcsPerCtn: number; unitUom?: string | null;
 }) {
   const qty  = fmtQty(batch.qty_pieces_remaining, pcsPerPack, pcsPerCtn, unitUom);
-  const date = new Date(batch.received_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "2-digit" });
+  const date = mvtInstant(batch.received_at, { day: "numeric", month: "short", year: "2-digit" });
   return (
     <div
       className="flex items-center justify-between px-3 py-3 rounded-xl"
