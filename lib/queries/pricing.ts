@@ -4,7 +4,16 @@ import { supabase } from "@/lib/supabase";
 // All margin math happens in Postgres (get_pricing_health / migration 0068);
 // this module only ships the rows to the UI.
 
-export type PricingHealthStatus = "below_target" | "no_price" | "no_cost";
+/** `below_cost` (migration 0162) needs NO target margin — it is the absolute
+ *  judgement that a price is at or under landed cost, so every sale loses
+ *  money. It exists because `below_target` was the only bad verdict and it
+ *  requires target_margin_pct, which is unset on every SKU holding stock: a
+ *  below-cost price used to fall through to 'ok'. */
+export type PricingHealthStatus =
+  | "below_cost"
+  | "below_target"
+  | "no_price"
+  | "no_cost";
 
 export interface PricingHealthRow {
   sku_id: string;
