@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { ShieldCheck, Phone } from "lucide-react";
-import { getReceivablesAging, type ReceivableRow } from "@/lib/queries/intelligence";
+import { ShieldCheck, Phone, Undo2 } from "lucide-react";
+import {
+  getReceivablesAging, getCustomerCredits,
+  type ReceivableRow, type CustomerCreditRow,
+} from "@/lib/queries/intelligence";
 
 function fmt(n: number) {
   return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
@@ -20,6 +24,7 @@ const BUCKET_STYLE: Record<ReceivableRow["bucket"], { label: string; color: stri
  *  impossible to not know. All math in Postgres (get_receivables_aging). */
 export function ReceivablesView() {
   const [rows, setRows] = useState<ReceivableRow[] | null>(null);
+  const [credits, setCredits] = useState<CustomerCreditRow[]>([]);
 
   useEffect(() => {
     // Guard against a fast tab-switch away before this resolves — see the
@@ -27,6 +32,12 @@ export function ReceivablesView() {
     let cancelled = false;
     getReceivablesAging()
       .then((r) => { if (!cancelled) setRows(r); })
+      .catch((e) => { if (!cancelled) toast.error((e as Error).message); });
+    // Money owed the other way. Loaded separately and never merged into the
+    // aging rows above (0161) — netting a credit against real debt would
+    // understate what is actually out there.
+    getCustomerCredits()
+      .then((c) => { if (!cancelled) setCredits(c); })
       .catch((e) => { if (!cancelled) toast.error((e as Error).message); });
     return () => { cancelled = true; };
   }, []);
@@ -42,16 +53,21 @@ export function ReceivablesView() {
 
   if (rows.length === 0) {
     return (
-      <div className="glass-panel p-4 flex items-center gap-3">
-        <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "var(--snm-success)" }} />
-        <div>
-          <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
-            Nobody owes you anything
-          </p>
-          <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-            Every non-draft order is fully paid.
-          </p>
+      <div className="space-y-3">
+        <div className="glass-panel p-4 flex items-center gap-3">
+          <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "var(--snm-success)" }} />
+          <div>
+            <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
+              Nobody owes you anything
+            </p>
+            <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
+              Every non-draft order is fully paid.
+            </p>
+          </div>
         </div>
+        {/* "Nobody owes you" is about money coming IN. It must not swallow
+            money that has to go back OUT. */}
+        <CreditsBlock credits={credits} />
       </div>
     );
   }
@@ -112,6 +128,69 @@ export function ReceivablesView() {
           );
         })}
       </div>
+
+      <CreditsBlock credits={credits} />
+    </div>
+  );
+}
+
+/** Money owed BACK to customers — one row per order, worst first.
+ *
+ *  It happens when a paid order shrinks: a line edited down, or a return.
+ *  Before migration 0161 the order simply read "paid" and this money had no
+ *  screen at all, because the aging report drops any balance that isn't
+ *  positive. A credit nobody acts on is a customer who paid twice and was
+ *  never told.
+ *
+ *  Orange, not green: money that has to go back out is attention, not good
+ *  money. Not red either — it is an obligation, not a loss. */
+function CreditsBlock({ credits }: { credits: CustomerCreditRow[] }) {
+  if (credits.length === 0) return null;
+
+  const total = credits.reduce((s, c) => s + Number(c.credit_mvr), 0);
+
+  return (
+    <div className="space-y-2 pt-1">
+      <div className="glass-panel p-5">
+        <p className="label-caps mb-1" style={{ color: "var(--muted-foreground)" }}>You owe back</p>
+        <p className="currency-display snm-num" style={{ color: "var(--snm-warning)" }}>
+          MVR {fmt(total)}
+        </p>
+        <p className="ios-footnote mt-1" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+          {credits.length === 1 ? "One customer has" : `${credits.length} customers have`} paid more than
+          the order ended up being worth. Refund it, or hold it against their next order.
+        </p>
+      </div>
+
+      {credits.map((c) => (
+        <div key={c.order_id} className="glass-panel p-4 flex items-center gap-3">
+          <Undo2 className="h-4 w-4 shrink-0" style={{ color: "var(--snm-warning)" }} />
+          <Link href={`/sales/${c.order_id}`} className="snm-pressable min-w-0 flex-1">
+            <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
+              {c.customer_name}
+            </p>
+            <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+              {c.order_number} · {c.days_since}d ago
+            </p>
+          </Link>
+          <div className="text-right shrink-0">
+            <p className="ios-headline font-bold snm-num" style={{ color: "var(--snm-warning)" }}>
+              MVR {fmt(Number(c.credit_mvr))}
+            </p>
+            <p className="ios-caption1 font-semibold" style={{ color: "var(--muted-foreground)" }}>to refund</p>
+          </div>
+          {c.phone && (
+            <a
+              href={`tel:${c.phone}`}
+              className="snm-pressable w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}
+              aria-label={`Call ${c.customer_name}`}
+            >
+              <Phone className="h-4 w-4" style={{ color: "var(--foreground)" }} />
+            </a>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

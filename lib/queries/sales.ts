@@ -8,7 +8,18 @@ import { mvtPlainDay } from "@/lib/mvt-date";
 
 export type OrderStatus = "draft" | "confirmed" | "picked" | "out_for_delivery" | "delivered" | "cancelled";
 export type OrderChannel = "whatsapp" | "viber" | "messenger" | "instagram" | "tiktok" | "facebook" | "walkin" | "phone" | "other";
-export type PaymentStatus = "pending" | "partial" | "paid" | "cod" | "deposited";
+/** `credit` = the customer has paid MORE than the order is now worth, so money
+ *  is owed BACK to them (migration 0161). It happens when a paid order shrinks
+ *  — a line edited down, or a return. Before 0161 there was no value for it and
+ *  "paid + returned >= total" collapsed an overpayment to `paid`, so an order
+ *  the customer was owed MVR 2,800 on read as settled. */
+export type PaymentStatus =
+  | "pending"
+  | "partial"
+  | "paid"
+  | "cod"
+  | "deposited"
+  | "credit";
 export type SaleUom = "carton" | "pack" | "piece";
 
 export interface SalesOrderRow {

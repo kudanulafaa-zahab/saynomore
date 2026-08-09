@@ -1689,25 +1689,39 @@ function PaymentLedger({
 }) {
   const paid    = balance?.paid_mvr ?? 0;
   const bal      = balance?.balance_mvr ?? orderTotal;
-  const isPaid   = paymentStatus === "paid" || bal <= 0.005;
-  const isPartial = !isPaid && paid > 0.005;
   const credit   = bal < -0.005 ? -bal : 0;
+  // Overpaid is its OWN state, and it has to be tested first. `bal <= 0.005`
+  // is true for a negative balance too, so a customer owed MVR 2,800 used to
+  // read "Paid in full" in green with a green "MVR 2,800 credit" beside it —
+  // the app calling a debt a win. Green means good money (Seat 1); money that
+  // has to go back out is attention, so it is orange, like cash to collect.
+  const isCredit  = credit > 0 || paymentStatus === "credit";
+  const isPaid    = !isCredit && (paymentStatus === "paid" || bal <= 0.005);
+  const isPartial = !isPaid && !isCredit && paid > 0.005;
 
-  const accent = isPaid ? "var(--snm-success)" : isPartial ? "var(--snm-warning)" : "var(--muted-foreground)";
-  const statusLabel = isPaid ? "Paid in full" : isPartial ? "Partly paid" : "Awaiting payment";
+  const accent = isCredit ? "var(--snm-warning)"
+               : isPaid ? "var(--snm-success)"
+               : isPartial ? "var(--snm-warning)"
+               : "var(--muted-foreground)";
+  const statusLabel = isCredit ? "Overpaid — money owed back"
+                    : isPaid ? "Paid in full"
+                    : isPartial ? "Partly paid"
+                    : "Awaiting payment";
 
   return (
     <div style={{ marginBottom: 16 }}>
       {/* Status + progress */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {isPaid
+          {isCredit
+            ? <Undo2 style={{ color: accent, width: 18, height: 18 }} />
+            : isPaid
             ? <CheckCircle2 style={{ color: accent, width: 18, height: 18 }} />
             : <Smartphone style={{ color: accent, width: 18, height: 18 }} />}
           <p style={{ color: accent, fontSize: 13, fontWeight: 700 }}>{statusLabel}</p>
         </div>
         {credit > 0 && (
-          <p style={{ color: "var(--snm-success)", fontSize: 12, fontWeight: 600 }}>MVR {fmt(credit)} credit</p>
+          <p className="snm-num" style={{ color: accent, fontSize: 12, fontWeight: 700 }}>MVR {fmt(credit)} to refund</p>
         )}
       </div>
 
@@ -1719,7 +1733,9 @@ function PaymentLedger({
         <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
           Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong> of MVR {fmt(orderTotal)}
         </span>
-        {!isPaid && (
+        {/* An overpaid order has a NEGATIVE balance — "MVR -2,800 left" is not
+            a sentence. It is stated as the refund above instead. */}
+        {!isPaid && !isCredit && (
           <span style={{ color: accent, fontSize: 12, fontWeight: 700 }}>MVR {fmt(bal)} left</span>
         )}
       </div>

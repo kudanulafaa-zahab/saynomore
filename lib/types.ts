@@ -1,3 +1,5 @@
+import type { PaymentStatus } from "@/lib/queries/sales";
+
 // ── SKU Hierarchy ──────────────────────────────────────────────────────────
 // Brand > Category > Variant > Packaging > Unit Size > Units/Pack > Packs/Carton
 
@@ -138,7 +140,9 @@ export interface SalesOrder {
   order_number: string;
   status: "draft" | "confirmed" | "delivered" | "cancelled";
   channel: "whatsapp" | "instagram" | "viber" | "tiktok" | "walkin" | "other";
-  payment_status: "pending" | "partial" | "paid";
+  /** One definition, in lib/queries/sales.ts. This copy was three values short
+   *  — it never had `cod` or `deposited` either, both live since 0136. */
+  payment_status: PaymentStatus;
   notes?: string;
   created_at: string;
 }
