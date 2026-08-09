@@ -425,7 +425,16 @@ function CartLines({
           only review and confirm. There must be add more to order pill so I
           can again add another product easily." It sits at the TOP, where he
           lands after adding, not buried under the list. */}
-      <div className="flex items-center justify-between gap-3 px-0.5">
+      {/* Sticks to the top of the viewport while the cart is on screen. Ali,
+          2026-08-09: "The add product pill is way down below I have to scroll
+          everytime." The pill was already at the top of the cart, but the cart
+          sits under the catalogue — so reaching it meant scrolling back up. */}
+      <div className="flex items-center justify-between gap-3 px-2 py-2 -mx-2 rounded-xl"
+        style={{
+          position: "sticky", top: 0, zIndex: 5,
+          background: "var(--background)",
+          borderBottom: "0.5px solid var(--glass-border-lo)",
+        }}>
         <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>
           Order items · {lines.length}
         </p>
@@ -3545,7 +3554,10 @@ function MixedCartonSheet({
   const unitUom = (skus[0]?.unit_uom ?? null) as UnitUom | null;
   const noun = containerLabel(unitUom);
 
-  const [mode, setMode] = useState<"single" | "mixed">("single");
+  // Ali, 2026-08-09: "Create mix carton is default." It is the common sale —
+  // a customer picking six bottles across colours — so it should not cost a
+  // tap to reach.
+  const [mode, setMode] = useState<"single" | "mixed">("mixed");
   const [cartons, setCartons] = useState<Record<string, number>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [targetCartons, setTargetCartons] = useState(1);
