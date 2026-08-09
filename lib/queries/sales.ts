@@ -64,6 +64,10 @@ export interface SalesOrderLineRow {
   unit_price_mvr: number;
   line_total_mvr: number;
   is_mixed_carton_fill: boolean;
+  /** Godown this line is picked from. NULL = the order's own godown, which is
+   *  the normal case (0164/0165). Set when the product was only stocked
+   *  elsewhere — the picker has to be told, or stock leaves the wrong shelf. */
+  source_godown_id: string | null;
   notes: string | null;
   /** Quantity-weighted average landed cost at the moment this line was sold. Set by post_sale; null until confirmed, and null on legacy rows sold before this column existed. */
   landed_cost_per_piece_mvr: number | null;

@@ -29,6 +29,10 @@ interface OrderWithLines {
   lines: SalesOrderLineRow[];
   customer?: CustomerRow;
   godown?: GodownRow;
+  /** Other godowns this order must ALSO be collected from, because a line is
+   *  sourced elsewhere (0164/0165). Empty for an ordinary order. A driver told
+   *  only the order's warehouse would drive away without part of the load. */
+  extraGodowns?: GodownRow[];
   /** Still owed on this order, from Postgres — net of payments already
    *  recorded and any returned goods. Never a client-side line-total sum. */
   balanceMvr?: number;
@@ -347,7 +351,13 @@ function IssueSheet({ open, order, onClose, onDone }: {
    chip) so NB/S vs S vs a different pack-count can't be confused, with a large
    quantity badge that spells out carton/pack/piece in full. */
 
-function ItemsBlock({ lines, skus }: { lines: SalesOrderLineRow[]; skus: SkuFullRow[] }) {
+function ItemsBlock({ lines, skus, orderGodownId, godowns }: {
+  lines: SalesOrderLineRow[];
+  skus: SkuFullRow[];
+  /** Only used to flag the lines that come from a DIFFERENT shelf. */
+  orderGodownId?: string | null;
+  godowns?: GodownRow[];
+}) {
   return (
     <div style={{ marginBottom: 12 }}>
       <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.09em", fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 8 }}>
@@ -371,6 +381,11 @@ function ItemsBlock({ lines, skus }: { lines: SalesOrderLineRow[]; skus: SkuFull
                 />
               ) : (
                 <span style={{ fontSize: 16, color: "var(--foreground)", fontWeight: 600 }}>{l.sku_id}</span>
+              )}
+              {l.source_godown_id && l.source_godown_id !== orderGodownId && (
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--snm-warning)", flexShrink: 0 }}>
+                  {godowns?.find((g) => g.id === l.source_godown_id)?.name ?? "other godown"}
+                </span>
               )}
               {/* Big, unmissable quantity — the number of units to load/hand over */}
               <div style={{
@@ -464,7 +479,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
   onIssue: (order: SalesOrderRow) => void;
   onCash: (order: SalesOrderRow, expected: number, customerName?: string) => void;
 }) {
-  const { order, lines, customer, godown } = item;
+  const { order, lines, customer, godown, extraGodowns } = item;
   const isCod = order.payment_status === "cod";
   // Order value for display. What to COLLECT is item.balanceMvr (from
   // Postgres, net of payments and returns) — the two differ on a part-paid
@@ -543,13 +558,20 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
               <p style={{ fontSize: 17, fontWeight: 700, color: "var(--foreground)", margin: 0 }}>
                 {godown.name}
               </p>
+              {/* A second stop is not a detail — leaving without it means the
+                  customer is short and the driver comes back. */}
+              {(extraGodowns?.length ?? 0) > 0 && (
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--snm-warning)", margin: "2px 0 0" }}>
+                  and {extraGodowns!.map((g) => g.name).join(" and ")}
+                </p>
+              )}
             </div>
           </div>
         )}
 
         {/* ── Items — always visible, prominent (Ali's #1: no squinting, no
              dropdown, so the driver can't grab the wrong product) ───────── */}
-        <ItemsBlock lines={lines} skus={skus} />
+        <ItemsBlock lines={lines} skus={skus} orderGodownId={order.source_godown_id} godowns={extraGodowns} />
 
         {/* ── Address — always visible + one-tap navigate ──────────────── */}
         <AddressBlock order={order} customer={customer} />
@@ -712,6 +734,11 @@ export function MyDeliveries() {
         lines: linesByOrder.get(o.id) ?? [],
         customer: customerById.get(o.customer_id ?? ""),
         godown: godownById.get(o.source_godown_id ?? ""),
+        extraGodowns: [...new Set(
+          (linesByOrder.get(o.id) ?? [])
+            .map((l) => l.source_godown_id)
+            .filter((g): g is string => !!g && g !== o.source_godown_id),
+        )].map((id) => godownById.get(id)).filter((g): g is GodownRow => !!g),
         balanceMvr: balances.get(o.id),
       }));
       // Sort: out_for_delivery → picked → confirmed → delivered

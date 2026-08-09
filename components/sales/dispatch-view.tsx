@@ -35,6 +35,9 @@ interface OrderWithLines {
   lines: SalesOrderLineRow[];
   customer?: CustomerRow;
   godown?: GodownRow;
+  /** Godowns this order must ALSO be picked from, because a line is sourced
+   *  elsewhere (0164/0165). Empty for an ordinary single-warehouse order. */
+  extraGodowns?: GodownRow[];
 }
 
 /* ── Skeleton ────────────────────────────────────────────────────────────── */
@@ -130,12 +133,22 @@ export function DispatchView() {
       const customerById = new Map(customers.map((c) => [c.id, c]));
       const godownById = new Map(godowns.map((g) => [g.id, g]));
       const linesByOrder = await listOrderLinesForOrders(orders.map((o) => o.id));
-      const enriched: OrderWithLines[] = orders.map((o) => ({
-        order: o,
-        lines: linesByOrder.get(o.id) ?? [],
-        customer: customerById.get(o.customer_id ?? ""),
-        godown: godownById.get(o.source_godown_id ?? ""),
-      }));
+      const enriched: OrderWithLines[] = orders.map((o) => {
+        const lines = linesByOrder.get(o.id) ?? [];
+        // A driver told only the order's warehouse would load the wrong van
+        // for any line picked somewhere else. Collect those, once each.
+        const extraIds = [...new Set(
+          lines.map((l) => l.source_godown_id)
+               .filter((g): g is string => !!g && g !== o.source_godown_id),
+        )];
+        return {
+          order: o,
+          lines,
+          customer: customerById.get(o.customer_id ?? ""),
+          godown: godownById.get(o.source_godown_id ?? ""),
+          extraGodowns: extraIds.map((id) => godownById.get(id)).filter((g): g is GodownRow => !!g),
+        };
+      });
       setItems(enriched);
     } catch (e) {
       toast.error((e as Error).message);
@@ -402,12 +415,23 @@ export function DispatchView() {
                       <p className="ios-subhead mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
                         {item.order.order_number}
                         {item.godown?.name && <> · {item.godown.name}</>}
+
                         {isAdmin && (
                           <> · <span style={{ color: item.order.assigned_driver_id ? "var(--foreground)" : "var(--snm-warning)", fontWeight: 500 }}>
                             {driverName(item.order.assigned_driver_id)}
                           </span></>
                         )}
                       </p>
+                      {/* Its own row, never inside the truncating meta line.
+                          Found in a browser: the meta line ends in "·…" on a
+                          phone, so the one fact that changes where the driver
+                          goes was hidden behind an ellipsis. */}
+                      {(item.extraGodowns?.length ?? 0) > 0 && (
+                        <p className="ios-footnote font-bold mt-1"
+                          style={{ color: "var(--snm-warning)" }}>
+                          Also collect from {item.extraGodowns!.map((g) => g.name).join(" + ")}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
