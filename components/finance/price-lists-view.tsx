@@ -844,13 +844,6 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
     if (!(parseFloat(packStr) > 0)) setPieceStr((ctn / pcsPerCarton).toFixed(2));
   }
 
-  function applyPiece(pStr: string) {
-    setPieceStr(pStr);
-    const p = parseFloat(pStr);
-    if (isNaN(p) || p <= 0) return;
-    if (landed && p > 0) setMarginStr(((1 - landed / p) * 100).toFixed(1));
-  }
-
   const packMargin   = landed && parseFloat(packStr)   > 0 ? ((1 - landed / (parseFloat(packStr)   / pcsPerPack))   * 100) : null;
   const cartonMargin = landed && parseFloat(cartonStr) > 0 ? ((1 - landed / (parseFloat(cartonStr) / pcsPerCarton)) * 100) : null;
 
