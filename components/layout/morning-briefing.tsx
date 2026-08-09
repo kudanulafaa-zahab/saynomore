@@ -56,6 +56,22 @@ export function MorningBriefing() {
     text: `Chase MVR ${fmt(b.overdue_mvr)} owed by ${b.overdue_count} customer${b.overdue_count === 1 ? "" : "s"} — past 30 days, collect before it turns to bad debt`,
     href: "/financials?tab=owed", tone: "var(--snm-error)",
   });
+  // The other direction, and it sits next to the line above on purpose: a
+  // customer who paid more than the order ended up being worth is owed money
+  // back. It happens when a paid order shrinks — a line edited down, or a
+  // return. Until 0161 nothing said so: the order read "paid" and the aging
+  // report drops negative balances, so the only trace was a number inside a
+  // view. A credit nobody chases is a customer who paid twice and was never
+  // told. Deliberately NOT netted off the overdue figure above.
+  if ((b.credits_count ?? 0) > 0) {
+    const names = (b.credits_top ?? []).map((c) => c.name).join(", ");
+    const more = (b.credits_count ?? 0) - (b.credits_top ?? []).length;
+    watch.push({
+      text: `You owe MVR ${fmt(b.credits_mvr)} back — ${names}${more > 0 ? ` +${more} more` : ""}`
+          + ` paid more than the order ended up being worth. Refund it or hold it against their next order.`,
+      href: "/financials?tab=owed", tone: "var(--snm-warning)",
+    });
+  }
   if (b.expiring_value_mvr > 0) watch.push({
     text: `MVR ${fmt(b.expiring_value_mvr)} of stock expires within 60 days — move it now or write it off`,
     href: "/inventory", tone: "var(--snm-warning)",

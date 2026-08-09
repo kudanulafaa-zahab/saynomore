@@ -20,6 +20,28 @@ export async function getReceivablesAging(): Promise<ReceivableRow[]> {
   return (data ?? []) as ReceivableRow[];
 }
 
+/** One order where the customer has paid more than it is now worth. */
+export interface CustomerCreditRow {
+  order_id: string;
+  order_number: string;
+  customer_id: string | null;
+  customer_name: string;
+  phone: string | null;
+  /** Money owed BACK to the customer, always positive. */
+  credit_mvr: number;
+  days_since: number;
+}
+
+/** The opposite of receivables: money owed BACK, per order, worst first
+ *  (migration 0161). A separate call rather than negative rows inside the
+ *  aging report, because aging answers "who owes me" and a negative folded
+ *  into a bucket would quietly net against real debt. */
+export async function getCustomerCredits(): Promise<CustomerCreditRow[]> {
+  const { data, error } = await supabase.rpc("get_customer_credits");
+  if (error) throw error;
+  return (data ?? []) as CustomerCreditRow[];
+}
+
 /** WHY this product needs a promo (migration 0150). The distinction is not
  *  cosmetic: "over-bought but selling well" used to land on this list too,
  *  which had the advisor recommending a discount on the best-selling product
@@ -71,6 +93,13 @@ export interface MorningBriefing {
   running_out: { product: string; packs_left: number; days_left: number }[];
   overdue_count: number;
   overdue_mvr: number;
+  /** The other direction: orders where the customer has paid MORE than the
+   *  order is now worth, so money is owed back to them (migration 0161).
+   *  Deliberately NOT netted into overdue_mvr — aging answers "who owes me"
+   *  and a negative folded into a bucket would quietly shrink real debt. */
+  credits_count: number;
+  credits_mvr: number;
+  credits_top: { name: string; mvr: number }[];
   /** Cash locked in stock that isn't moving — dead, stagnant or expiring
    *  (migration 0150). Replaced a bare `slow_movers` count that fired on 20
    *  of 31 SKUs because it counted over-bought best sellers as slow. Money
