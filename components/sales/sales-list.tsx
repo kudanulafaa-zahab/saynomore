@@ -425,16 +425,7 @@ function CartLines({
           only review and confirm. There must be add more to order pill so I
           can again add another product easily." It sits at the TOP, where he
           lands after adding, not buried under the list. */}
-      {/* Sticks to the top of the viewport while the cart is on screen. Ali,
-          2026-08-09: "The add product pill is way down below I have to scroll
-          everytime." The pill was already at the top of the cart, but the cart
-          sits under the catalogue — so reaching it meant scrolling back up. */}
-      <div className="flex items-center justify-between gap-3 px-2 py-2 -mx-2 rounded-xl"
-        style={{
-          position: "sticky", top: 0, zIndex: 5,
-          background: "var(--background)",
-          borderBottom: "0.5px solid var(--glass-border-lo)",
-        }}>
+      <div className="flex items-center justify-between gap-3 px-0.5">
         <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>
           Order items · {lines.length}
         </p>
@@ -1738,10 +1729,17 @@ function NewSaleSheet({
   const maxPiecesFor = useCallback((line: DraftLine) => {
     // A line sourced from another warehouse is capped by THAT warehouse.
     const gid = line.source_godown_id ?? godownId;
-    return gid
+    const onShelf = gid
       ? stockLevels.find((l) => l.sku_id === line.sku.id && l.godown_id === gid)?.qty_pieces ?? 0
       : stockLevels.filter((l) => l.sku_id === line.sku.id).reduce((a, l) => a + l.qty_pieces, 0);
-  }, [godownId, stockLevels]);
+    // A product can now sit in the cart TWICE — a full carton and bottles in a
+    // mixed carton. Each entry may only claim what the other has not, or the
+    // two together would oversell a shelf that holds one of them.
+    const heldElsewhere = draftLines
+      .filter((l) => l.sku.id === line.sku.id && l.key !== line.key)
+      .reduce((a, l) => a + l.qty_pieces, 0);
+    return Math.max(0, onShelf - heldElsewhere);
+  }, [godownId, stockLevels, draftLines]);
 
   /** One step of whatever unit this line is sold in — a carton for a carton
    *  line, a pack for a pack line, a bottle for a mixed-carton fill. Every
@@ -1893,12 +1891,48 @@ function NewSaleSheet({
       // derives both from the SKU's own pack/carton configuration, so the
       // stored numbers can't drift from the price and quantity actually
       // agreed (hard rule 1: money math lives in Postgres).
-      const linePayloads = draftLines.map((l) => ({
-        sku_id: l.sku.id, uom: l.uom, qty: l.qty,
-        unit_price_mvr: l.unit_price_mvr,
-        is_mixed_carton_fill: l.is_mixed_carton_fill,
-        source_godown_id: l.source_godown_id ?? null,
-      }));
+      // The CART may hold a product twice — a full carton and bottles inside
+      // a mixed carton are different purchases and are shown apart. The
+      // DATABASE allows one row per product per order
+      // (sales_order_lines_order_sku_uniq), so they are combined here, at the
+      // last possible moment.
+      //
+      // Combining is lossless for everything that counts: both sides are
+      // priced off the same carton rate, so the money is identical, and the
+      // stock is the same pieces off the same shelf. Only the presentation
+      // differs, and the presentation has already done its job by then.
+      const linePayloads = [...draftLines.reduce((acc, l) => {
+        const prev = acc.get(l.sku.id);
+        if (!prev) {
+          acc.set(l.sku.id, {
+            sku_id: l.sku.id, uom: l.uom, qty: l.qty,
+            unit_price_mvr: l.unit_price_mvr,
+            is_mixed_carton_fill: l.is_mixed_carton_fill,
+            source_godown_id: l.source_godown_id ?? null,
+            _pieces: l.qty_pieces,
+          });
+          return acc;
+        }
+        // Two entries for one product: express the total in bottles, the only
+        // unit that can describe a carton plus loose bottles.
+        const perMix = l.sku.mixed_carton_pieces
+          || l.sku.pcs_per_pack * l.sku.packs_per_carton || 1;
+        const pieces = prev._pieces + l.qty_pieces;
+        acc.set(l.sku.id, {
+          sku_id: l.sku.id,
+          uom: "piece" as SaleUom,
+          qty: pieces,
+          unit_price_mvr: (l.sku.selling_price_per_carton_mvr
+            ?? (prev.unit_price_mvr * (prev.uom === "carton" ? perMix : 1))) / perMix,
+          is_mixed_carton_fill: true,
+          source_godown_id: prev.source_godown_id ?? l.source_godown_id ?? null,
+          _pieces: pieces,
+        });
+        return acc;
+      }, new Map<string, {
+        sku_id: string; uom: SaleUom; qty: number; unit_price_mvr: number;
+        is_mixed_carton_fill: boolean; source_godown_id: string | null; _pieces: number;
+      }>()).values()].map(({ _pieces, ...line }) => line);
 
       // One RPC = one transaction: the order, its lines and the FIFO stock
       // deduction all commit together or not at all. The old three-step
@@ -3453,17 +3487,22 @@ function NewSaleSheet({
                 const tp = tierPrices.get(a.sku.id);
                 const cartonPrice = (tp ? tp.price_per_carton_mvr : a.sku.selling_price_per_carton_mvr) ?? 0;
 
-                const i = next.findIndex((l) => l.sku.id === a.sku.id);
+                // A full carton of one colour and bottles inside a mixed
+                // carton are DIFFERENT purchases and stay apart in the cart.
+                // Ali, 2026-08-09: "You cannot say for example 7 bottles blue
+                // because I chose a mix carton with 1 bottle blue and the
+                // other 6 bottles merged with this."
+                //
+                // They are merged only at SAVE, because sales_order_lines
+                // allows one row per product per order. The money and the
+                // stored order are identical either way — both sides are
+                // priced off the same carton rate — so this is presentation,
+                // not a change to anything that counts.
+                const kind = a.mixed ? "mix" : "ctn";
+                const key = `${a.sku.id}-${kind}`;
+                const i = next.findIndex((l) => l.key === key);
                 const pieces = (i === -1 ? 0 : next[i].qty_pieces) + a.pieces;
-                // Once any part of a colour comes from a mix — or the running
-                // total stops being a whole number of cartons — the whole line
-                // has to be expressed in bottles, because cartons cannot
-                // describe it. The money is the same either way: both sides are
-                // priced off the same carton rate.
-                const mixed = (i !== -1 && next[i].is_mixed_carton_fill)
-                  || a.mixed
-                  || pieces % perLine !== 0;
-                const key = i === -1 ? `${a.sku.id}-${Date.now()}` : next[i].key;
+                const mixed = a.mixed || pieces % perLine !== 0;
 
                 // Keep whichever godown is already on the line; a merge never
                 // silently moves stock to a different warehouse.
@@ -3582,7 +3621,12 @@ function MixedCartonSheet({
     const onShelf = godownId
       ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0
       : stockLevels.filter((l) => l.sku_id === s.id).reduce((a, l) => a + l.qty_pieces, 0);
-    const inCart = draftLines.find((l) => l.sku.id === s.id)?.qty_pieces ?? 0;
+    // Sum every cart entry for this product — since the cart splits a full
+    // carton from a mixed fill, find() would see only the first and the sheet
+    // would offer stock the cart has already claimed.
+    const inCart = draftLines
+      .filter((l) => l.sku.id === s.id)
+      .reduce((a, l) => a + l.qty_pieces, 0);
     return Math.max(0, onShelf - inCart);
   };
   /** Where this line would actually be picked from. NULL = the order's own
