@@ -1108,7 +1108,15 @@ export function SaleDetail({ id }: { id: string }) {
               the order would erase the whole sale). Admin/manager only. */}
           {isAdminOrManager && lines.length > 0 && (
             <button
-              onClick={() => { setRetSkuId(lines[0].sku_id); setRetQty(""); setPanel("return"); }}
+              onClick={() => {
+                setRetSkuId(lines[0].sku_id); setRetQty("");
+                // Same rule on the way IN as on change: the sheet opens on the
+                // first line, so its unit has to match that line too.
+                const firstSku = skus.find((x) => x.id === lines[0].sku_id);
+                setRetUnit(lines[0].is_mixed_carton_fill ? "piece"
+                  : firstSku ? pickUom(firstSku, retUnit) : retUnit);
+                setPanel("return");
+              }}
               style={{ width: "100%", marginTop: 14, background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
               <Undo2 style={{ width: 16, height: 16 }} />
@@ -1436,7 +1444,25 @@ export function SaleDetail({ id }: { id: string }) {
             pcsPerPack: sku?.pcs_per_pack ?? 1, packsPerCarton: sku?.packs_per_carton ?? 1,
             unitUom: sku?.unit_uom, sellableUnits: sku?.sellable_units,
           };
-          const retTiers = sellableTiers(sku?.sellable_units);
+          // A RETURN mirrors what was actually transacted on that line, which is
+          // not always what the product is SOLD in. Ali's rule "Sosoft only by
+          // the carton" governs selling: a customer cannot buy three bottles.
+          // A damaged bottle coming back out of a carton already sold is a
+          // different event — the same carve-out CLAUDE.md already makes for
+          // Stock Ops, where "a torn pack is real".
+          //
+          // Without this a mixed-carton line could not be returned AT ALL:
+          // the line holds 4 bottles, the only unit offered was the carton,
+          // and 6 > 4 so every attempt was refused.
+          //
+          // Nothing downstream needed changing — record_customer_return already
+          // works in pieces, and returns write to sales_returns and
+          // stock_movements, never to sales_order_lines, so the whole-carton
+          // guard (0163) is not involved.
+          const retLine = lines.find((l) => l.sku_id === retSkuId);
+          const retTiers = retLine?.is_mixed_carton_fill
+            ? (["piece"] as SaleUom[])
+            : sellableTiers(sku?.sellable_units);
           const retWord = (u: SaleUom) => sellUnitLabel(u, retCfg);
           const pcsPerPack = sku?.pcs_per_pack ?? 1;
           const pcsPerCtn  = (sku?.pcs_per_pack ?? 1) * (sku?.packs_per_carton ?? 1);
@@ -1452,7 +1478,12 @@ export function SaleDetail({ id }: { id: string }) {
                 <select value={retSkuId} onChange={(e) => {
                     setRetSkuId(e.target.value); setRetQty("");
                     const next = skus.find((x) => x.id === e.target.value);
-                    if (next) setRetUnit(pickUom(next, retUnit));
+                    // A mixed-carton line comes back in bottles, whatever the
+                    // product is sold in — otherwise the unit pill and the
+                    // offered tier disagree and the sheet cannot be submitted.
+                    const nextLine = lines.find((l) => l.sku_id === e.target.value);
+                    if (nextLine?.is_mixed_carton_fill) setRetUnit("piece");
+                    else if (next) setRetUnit(pickUom(next, retUnit));
                   }}
                   style={{ width: "100%", height: 46, borderRadius: 12, padding: "0 12px", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", fontSize: 14 }}>
                   {lines.map((l) => {
