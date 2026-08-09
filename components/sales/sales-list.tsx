@@ -22,7 +22,7 @@ const BarcodeScanner = dynamic(
 );
 import {
   listOrdersPage, countOrders, listOrderCustomersPage, peekNextOrderNumber,
-  createOrderLine, createAndPostSale,
+  createAndPostSale,
   getTierPricesForSkus, getLastOrderForCustomer,
   ORDER_PAGE_SIZE,
   type SalesOrderRow, type OrderStatus, type OrderChannel, type SaleUom, type TierPrice,
