@@ -78,21 +78,31 @@ export function MarginWatch() {
       <div className="glass-panel p-4 mb-5 flex items-center gap-3">
         <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "var(--snm-success)" }} />
         <div>
+          {/* Says only what it actually checked. The old wording — "every
+              selling price still earns its target margin" — was false comfort:
+              a target margin is set on no product at all, so nothing was being
+              measured against one. Same doctrine as the expiry line in the
+              morning briefing: a zero warning is only good news if there is
+              data behind it. */}
           <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
-            All margins on target
+            No price is below cost
           </p>
           <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-            Every selling price still earns its target margin at the latest landed cost.
+            Every product in stock is priced above what it landed at, and any price with a
+            target margin still meets it.
           </p>
         </div>
       </div>
     );
   }
 
+  const losing = rows.filter((r) => r.status === "below_cost");
   const drifted = rows.filter((r) => r.status === "below_target");
   const unpriced = rows.filter((r) => r.status === "no_price");
   const uncosted = rows.filter((r) => r.status === "no_cost");
   const valueAtRisk = rows.reduce((s, r) => s + Number(r.stock_value_mvr || 0), 0);
+  // Selling under cost is a loss, not a drift. It colours the whole panel.
+  const worstTone = losing.length > 0 ? "var(--snm-error)" : "var(--snm-warning)";
 
   return (
     <div className="glass-panel p-5 mb-5">
@@ -101,14 +111,16 @@ export function MarginWatch() {
         <span
           className="ios-caption1 font-semibold px-2 py-0.5 rounded-full"
           style={{
-            background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)",
-            color: "var(--snm-warning)",
+            background: `color-mix(in srgb, ${worstTone} 12%, transparent)`,
+            color: worstTone,
           }}
         >
           MVR {fmt(valueAtRisk)} affected
         </span>
       </div>
-      <p className="ios-footnote mb-4" style={{ color: "var(--muted-foreground)" }}>
+      <p className="ios-footnote mb-4" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+        {/* Money being lost leads, and it is stated in rufiyaa. */}
+        {losing.length > 0 && `${losing.length} product${losing.length === 1 ? " is" : "s are"} priced BELOW what ${losing.length === 1 ? "it" : "they"} cost you — every sale loses money. MVR ${fmt(losing.reduce((s, r) => s + Number(r.stock_value_mvr || 0), 0))} of stock is on those prices. `}
         {drifted.length > 0 && `${drifted.length} price${drifted.length === 1 ? "" : "s"} slipped below your target after the latest shipment cost more — you're leaving margin on the table. Tap to reprice to target. `}
         {unpriced.length > 0 && `${unpriced.length} product${unpriced.length === 1 ? " is" : "s are"} in stock with no selling price — you can't sell ${unpriced.length === 1 ? "it" : "them"} until priced. `}
         {uncosted.length > 0 && `${uncosted.length} ${uncosted.length === 1 ? "has" : "have"} no landed cost yet — margin can't be trusted until the GRN is costed.`}
@@ -131,7 +143,7 @@ export function MarginWatch() {
                 color: r.status === "below_target" ? "var(--snm-warning)" : "var(--snm-error)",
               }}
             >
-              {r.status === "below_target" ? (
+              {r.status === "below_cost" || r.status === "below_target" ? (
                 <TrendingDown className="h-4 w-4" />
               ) : r.status === "no_price" ? (
                 <Tag className="h-4 w-4" />
@@ -145,6 +157,17 @@ export function MarginWatch() {
                 {r.full_path}
               </p>
               <p className="ios-footnote snm-num" style={{ color: "var(--muted-foreground)" }}>
+                {/* Rufiyaa first, percentage second: "loses money on every
+                    carton" is the sentence, the % is the comparison figure. */}
+                {r.status === "below_cost" && (
+                  <>
+                    <span style={{ color: "var(--snm-error)", fontWeight: 700 }}>
+                      Priced below cost
+                    </span>
+                    {r.worst_margin_pct != null && <> · {r.worst_margin_pct}% margin</>}
+                    {" · MVR "}{fmt(Number(r.stock_value_mvr))} in stock at this price
+                  </>
+                )}
                 {r.status === "below_target" && r.worst_margin_pct != null && (
                   <>
                     {"Earning only "}
@@ -167,7 +190,12 @@ export function MarginWatch() {
               </p>
             </div>
 
-            {r.status === "below_target" && canFix ? (
+            {/* One-tap reprice needs a target to reprice TO. A below-cost
+                product usually has none — that is why it went unnoticed — so
+                it goes to Products, where the price is Ali's to set. */}
+            {(r.status === "below_target"
+              || (r.status === "below_cost" && r.target_margin_pct != null))
+             && canFix ? (
               <button
                 onClick={() => fix(r)}
                 disabled={fixing === r.sku_id}
