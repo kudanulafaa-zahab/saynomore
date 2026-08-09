@@ -3318,6 +3318,21 @@ function NewSaleSheet({
           ) : (
             <>
               <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
+              {/* Ali, 2026-08-09: "the +add more is down below when I scroll".
+                  It lived in the cart, and the cart scrolls — so wherever it
+                  is put inside the page, it eventually leaves the screen. The
+                  footer is the only thing that never moves, so that is where a
+                  permanently-available action belongs. Icon-only to keep the
+                  primary action wide on a phone. */}
+              {draftLines.length > 0 && (
+                <button
+                  onClick={() => productSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  aria-label="Add more products"
+                  className="snm-pressable h-14 w-14 shrink-0 rounded-xl flex items-center justify-center"
+                  style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--snm-brand-text)" }}>
+                  <Plus className="h-5 w-5" />
+                </button>
+              )}
               <button disabled={draftLines.length === 0 || shortfalls.length > 0} onClick={() => setStep(3)}
                 className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
                 style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
