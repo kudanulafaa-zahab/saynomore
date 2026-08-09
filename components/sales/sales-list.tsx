@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
-  Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
+  Banknote, Smartphone, ArrowRight, ArrowLeft, X, Users, List, ChevronDown, ScanLine,
   Warehouse, TrendingUp, RotateCcw, Phone, MessageCircle, Check,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -396,40 +396,33 @@ function CartSectionLabel({ text, tone }: { text: string; tone?: string }) {
 }
 
 function CartLines({
-  lines, grandTotal, editable, onChangeQty, onRemove, onAddMore, maxPiecesFor,
+  lines, grandTotal, editable, onChangeQty, onRemove, maxPiecesFor,
 }: {
   lines: DraftLine[];
   grandTotal: number;
   editable: boolean;
   onChangeQty: (key: string, delta: number) => void;
   onRemove: (key: string) => void;
-  onAddMore?: () => void;
   maxPiecesFor: (line: DraftLine) => number;
 }) {
   if (lines.length === 0) return null;
   const groups = groupCartLines(lines);
 
-  const addMorePill = onAddMore ? (
-    <button
-      onClick={onAddMore}
-      className="snm-pressable shrink-0 h-9 px-3.5 rounded-full flex items-center gap-1.5 ios-footnote font-bold"
-      style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
-      <Plus className="h-3.5 w-3.5" /> Add more
-    </button>
-  ) : null;
-
   return (
     <div className="space-y-3">
-      {/* Header: what is in the cart, and the way back to the catalogue right
-          beside it. Ali, 2026-08-09: "I add a mixed carton to cart then I see
-          only review and confirm. There must be add more to order pill so I
-          can again add another product easily." It sits at the TOP, where he
-          lands after adding, not buried under the list. */}
-      <div className="flex items-center justify-between gap-3 px-0.5">
+      {/* Ali, 2026-08-09: "What's this big + sign? The actual '+add more' is
+          scrolling."
+          Both complaints had ONE cause: there were two ways to add another
+          product — a pill in this cart and an icon in the footer — and the
+          pill scrolled off because the cart scrolls. Adding the second control
+          was the mistake; wherever an "add" control is placed INSIDE the page,
+          it eventually leaves the screen. So the cart no longer carries one at
+          all. It carries the list and the total, nothing else, and the single
+          labelled "Add product" lives in the footer, which never moves. */}
+      <div className="px-0.5">
         <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>
           Order items · {lines.length}
         </p>
-        {addMorePill}
       </div>
 
       {groups.map((g) => {
@@ -508,15 +501,6 @@ function CartLines({
         <span style={{ color: "var(--muted-foreground)" }}>Total</span>
         <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
       </div>
-
-      {onAddMore && (
-        <button
-          onClick={onAddMore}
-          className="snm-pressable w-full h-12 rounded-2xl flex items-center justify-center gap-1.5 ios-subhead font-semibold"
-          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", color: "var(--snm-brand-text)" }}>
-          <Plus className="h-4 w-4" /> Add more products
-        </button>
-      )}
     </div>
   );
 }
@@ -2005,6 +1989,48 @@ function NewSaleSheet({
             {orderNumber || "Assigned on save"}
           </span>
         </div>
+
+        {/* Step indicator — moved OUT of the scrolling body and into the fixed
+            header, and a finished step is now tappable.
+
+            Two things fall out of that. It is always on screen, so you can
+            always see where you are; and it becomes the way BACK, which frees
+            the footer to hold two buttons instead of three. At 393pt three
+            buttons wrapped "Add product" and "Review & Confirm" onto two lines
+            each — that was the "unorganized" look, measured in a browser at
+            Ali's device size rather than guessed at.
+
+            Backwards only. Going forward still has to pass the checks in the
+            footer buttons (a customer chosen, a cart with whole cartons in
+            it); a breadcrumb must never be a way around them. */}
+        <div className="flex items-center gap-2 pb-3">
+          {([1, 2, 3] as Step[]).map((s) => {
+            const done = step > s;
+            return (
+              <div key={s} className="flex items-center gap-2 flex-1">
+                <button
+                  type="button"
+                  disabled={!done}
+                  onClick={() => setStep(s)}
+                  aria-label={done ? `Back to ${stepLabels[s]}` : undefined}
+                  className="flex items-center gap-2 min-w-0 disabled:cursor-default"
+                >
+                  <span className="h-6 w-6 rounded-full flex items-center justify-center ios-subhead font-bold shrink-0 transition-all"
+                    style={step === s ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
+                      : done ? { background: "color-mix(in srgb, var(--snm-success) 20%, transparent)", color: "var(--snm-success)" }
+                      : { background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                    {done ? "✓" : s}
+                  </span>
+                  <span className="ios-subhead truncate"
+                    style={{ color: step === s || done ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                    {stepLabels[s]}
+                  </span>
+                </button>
+                {s < 3 && <div className="flex-1 h-px bg-border" />}
+              </div>
+            );
+          })}
+        </div>
       </header>
 
       {/* Content — takes all remaining space; touch-action auto re-enables scrolling inside.
@@ -2022,22 +2048,6 @@ function NewSaleSheet({
           WebkitOverflowScrolling: "touch",
         } as React.CSSProperties}
       >
-
-        {/* Step indicator */}
-        <div className="flex items-center gap-2">
-          {([1, 2, 3] as Step[]).map((s) => (
-            <div key={s} className="flex items-center gap-2 flex-1">
-              <div className="h-6 w-6 rounded-full flex items-center justify-center ios-subhead font-bold shrink-0 transition-all"
-                style={step === s ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
-                  : step > s ? { background: "color-mix(in srgb, var(--snm-success) 20%, transparent)", color: "var(--snm-success)" }
-                  : { background: "var(--secondary)", color: "var(--muted-foreground)" }}>
-                {step > s ? "✓" : s}
-              </div>
-              <span className="ios-subhead" style={{ color: step === s ? "var(--foreground)" : "var(--muted-foreground)" }}>{stepLabels[s]}</span>
-              {s < 3 && <div className="flex-1 h-px bg-border" />}
-            </div>
-          ))}
-        </div>
 
         {/* ── Step 1: Customer ── */}
         {step === 1 && (
@@ -3182,17 +3192,15 @@ function NewSaleSheet({
               );
             })() : null}
 
-            {/* Draft lines — the same cart as step 3, same component. The
-                "Add more" pill scrolls back to the catalogue above rather than
-                changing step, because on this screen the catalogue is already
-                here; it just may be off-screen after an add. */}
+            {/* Draft lines — the same cart as step 3, same component. It is a
+                list and a total; the way to add another product is the footer
+                button, which is on screen no matter how far this has scrolled. */}
             <CartLines
               lines={draftLines}
               grandTotal={grandTotal}
               editable
               onChangeQty={changeLineQty}
               onRemove={removeLine}
-              onAddMore={() => productSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
               maxPiecesFor={maxPiecesFor}
             />
 
@@ -3227,7 +3235,6 @@ function NewSaleSheet({
               editable
               onChangeQty={changeLineQty}
               onRemove={removeLine}
-              onAddMore={() => setStep(2)}
               maxPiecesFor={maxPiecesFor}
             />
 
@@ -3351,24 +3358,35 @@ function NewSaleSheet({
             </>
           ) : (
             <>
-              <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
-              {/* Ali, 2026-08-09: "the +add more is down below when I scroll".
-                  It lived in the cart, and the cart scrolls — so wherever it
-                  is put inside the page, it eventually leaves the screen. The
-                  footer is the only thing that never moves, so that is where a
-                  permanently-available action belongs. Icon-only to keep the
-                  primary action wide on a phone. */}
-              {draftLines.length > 0 && (
-                <button
-                  onClick={() => productSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  aria-label="Add more products"
-                  className="snm-pressable h-14 w-14 shrink-0 rounded-xl flex items-center justify-center"
-                  style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--snm-brand-text)" }}>
-                  <Plus className="h-5 w-5" />
-                </button>
-              )}
+              {/* Ali, 2026-08-09: "What's this big + sign? The actual '+add
+                  more' is scrolling."
+                  Two mistakes, one fix. The pill lived in the cart, and the
+                  cart scrolls, so it left the screen — and the answer I reached
+                  for was a SECOND control in the footer rather than moving the
+                  first, which left a bare "+" whose meaning nobody can guess.
+                  Now there is exactly one, it says what it does, and it is in
+                  the footer, which never moves.
+
+                  "← Back" goes icon-only once the cart has something in it, so
+                  three controls still fit a 390pt phone without the primary
+                  action wrapping. A left chevron is a universal affordance in
+                  a way a bare plus is not.
+
+                  Only TWO buttons here. A third made both of these wrap onto
+                  two lines at 393pt — "Back" now lives in the step indicator
+                  at the top, which is always on screen. */}
+              <button
+                onClick={() => draftLines.length > 0
+                  ? productSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  : setStep(1)}
+                className="snm-pressable h-14 flex-1 rounded-xl px-3 flex items-center justify-center gap-1.5 ios-subhead font-semibold whitespace-nowrap"
+                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: draftLines.length > 0 ? "var(--snm-brand-text)" : "var(--foreground)" }}>
+                {draftLines.length > 0
+                  ? <><Plus className="h-4 w-4 shrink-0" /> Add product</>
+                  : <><ArrowLeft className="h-4 w-4 shrink-0" /> Back</>}
+              </button>
               <button disabled={draftLines.length === 0 || shortfalls.length > 0} onClick={() => setStep(3)}
-                className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+                className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2 whitespace-nowrap"
                 style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                 {draftLines.length === 0 ? "Add at least 1 item"
                   : shortfalls.length > 0 ? `Add ${shortfalls[0].short} more ${shortfalls[0].noun}`
