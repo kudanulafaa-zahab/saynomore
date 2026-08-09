@@ -109,6 +109,12 @@ interface DraftLine {
   unit_price_mvr: number;
   line_total_mvr: number;
   is_mixed_carton_fill: boolean;
+  /** Godown this line is picked from. undefined = the order's godown, which is
+   *  the normal case. Set when the product is only stocked somewhere else, so
+   *  a sale is never blocked by the warehouse chosen at the start (0164/0165). */
+  source_godown_id?: string;
+  /** Display only — the name behind source_godown_id. */
+  source_godown_name?: string;
 }
 
 // ── UOM intelligence ──────────────────────────────────────────────────────────
@@ -304,7 +310,7 @@ function CartItemRow({
   editable: boolean;
   onChangeQty: (key: string, delta: number) => void;
   onRemove: (key: string) => void;
-  maxPiecesFor: (sku: SkuFullRow) => number;
+  maxPiecesFor: (line: DraftLine) => number;
 }) {
   const l = line;
   const step = lineStepUnit(l);
@@ -312,7 +318,7 @@ function CartItemRow({
     ? 1
     : (l.uom === "carton" ? l.sku.pcs_per_pack * l.sku.packs_per_carton
        : l.uom === "pack" ? l.sku.pcs_per_pack : 1);
-  const atCap = l.qty_pieces + per > maxPiecesFor(l.sku);
+  const atCap = l.qty_pieces + per > maxPiecesFor(l);
 
   return (
     <div className="rounded-2xl p-3.5"
@@ -328,6 +334,14 @@ function CartItemRow({
           <p className="ios-footnote snm-num mt-0.5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
             {lineQtyText(l)} · {linePriceText(l)}
           </p>
+          {/* Only shown when this line does NOT come from the order's own
+              warehouse — a normal line stays quiet. This is the line the
+              picker and the driver have to see. */}
+          {l.source_godown_name && (
+            <p className="ios-footnote font-semibold mt-0.5" style={{ color: "var(--snm-warning)" }}>
+              Pick from {l.source_godown_name}
+            </p>
+          )}
         </div>
         <span className="ios-subhead font-bold snm-num shrink-0 text-foreground">
           MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -390,7 +404,7 @@ function CartLines({
   onChangeQty: (key: string, delta: number) => void;
   onRemove: (key: string) => void;
   onAddMore?: () => void;
-  maxPiecesFor: (sku: SkuFullRow) => number;
+  maxPiecesFor: (line: DraftLine) => number;
 }) {
   if (lines.length === 0) return null;
   const groups = groupCartLines(lines);
@@ -1712,11 +1726,13 @@ function NewSaleSheet({
 
   /** Bottles/pieces on the shelf for a SKU in the chosen warehouse. The cart's
    *  + button stops here, so an order can never be built past what exists. */
-  const maxPiecesFor = useCallback((sku: SkuFullRow) => (
-    godownId
-      ? stockLevels.find((l) => l.sku_id === sku.id && l.godown_id === godownId)?.qty_pieces ?? 0
-      : stockLevels.filter((l) => l.sku_id === sku.id).reduce((a, l) => a + l.qty_pieces, 0)
-  ), [godownId, stockLevels]);
+  const maxPiecesFor = useCallback((line: DraftLine) => {
+    // A line sourced from another warehouse is capped by THAT warehouse.
+    const gid = line.source_godown_id ?? godownId;
+    return gid
+      ? stockLevels.find((l) => l.sku_id === line.sku.id && l.godown_id === gid)?.qty_pieces ?? 0
+      : stockLevels.filter((l) => l.sku_id === line.sku.id).reduce((a, l) => a + l.qty_pieces, 0);
+  }, [godownId, stockLevels]);
 
   /** One step of whatever unit this line is sold in — a carton for a carton
    *  line, a pack for a pack line, a bottle for a mixed-carton fill. Every
@@ -1736,7 +1752,7 @@ function NewSaleSheet({
       const nextQty = Math.max(1, l.qty + delta);
       const nextPieces = Math.round(nextQty * per);
       // Never step past the shelf.
-      if (delta > 0 && nextPieces > maxPiecesFor(l.sku)) return l;
+      if (delta > 0 && nextPieces > maxPiecesFor(l)) return l;
       return {
         ...l,
         qty: nextQty,
@@ -1872,6 +1888,7 @@ function NewSaleSheet({
         sku_id: l.sku.id, uom: l.uom, qty: l.qty,
         unit_price_mvr: l.unit_price_mvr,
         is_mixed_carton_fill: l.is_mixed_carton_fill,
+        source_godown_id: l.source_godown_id ?? null,
       }));
 
       // One RPC = one transaction: the order, its lines and the FIFO stock
@@ -3424,18 +3441,24 @@ function NewSaleSheet({
                   || pieces % perLine !== 0;
                 const key = i === -1 ? `${a.sku.id}-${Date.now()}` : next[i].key;
 
+                // Keep whichever godown is already on the line; a merge never
+                // silently moves stock to a different warehouse.
+                const gId = (i === -1 ? undefined : next[i].source_godown_id) ?? a.godownId;
+                const gName = (i === -1 ? undefined : next[i].source_godown_name) ?? a.godownName;
                 const line: DraftLine = mixed
                   ? {
                       key, sku: a.sku, uom: "piece", qty: pieces, qty_pieces: pieces,
                       unit_price_mvr: cartonPrice / perMix,
                       line_total_mvr: (cartonPrice / perMix) * pieces,
                       is_mixed_carton_fill: true,
+                      source_godown_id: gId, source_godown_name: gName,
                     }
                   : {
                       key, sku: a.sku, uom: "carton", qty: pieces / perLine, qty_pieces: pieces,
                       unit_price_mvr: cartonPrice,
                       line_total_mvr: cartonPrice * (pieces / perLine),
                       is_mixed_carton_fill: false,
+                      source_godown_id: gId, source_godown_name: gName,
                     };
                 if (i === -1) next.push(line); else next[i] = line;
               }
@@ -3500,7 +3523,11 @@ function NewSaleSheet({
 //
 // Stock is counted net of what the cart already holds, so opening the sheet a
 // second time cannot oversell what the first visit reserved.
-type MixedCartonAdd = { sku: SkuFullRow; pieces: number; mixed: boolean };
+type MixedCartonAdd = {
+  sku: SkuFullRow; pieces: number; mixed: boolean;
+  /** Set only when the chosen warehouse has none and this comes from another. */
+  godownId?: string; godownName?: string;
+};
 
 function MixedCartonSheet({
   skus, godownId, godowns, stockLevels, tierPrices, draftLines, onClose, onAdd,
@@ -3531,8 +3558,22 @@ function MixedCartonSheet({
     const inCart = draftLines.find((l) => l.sku.id === s.id)?.qty_pieces ?? 0;
     return Math.max(0, onShelf - inCart);
   };
+  /** Where this line would actually be picked from. NULL = the order's own
+   *  godown. Ali, 2026-08-09: "I must be able to choose the godown where the
+   *  sku is available and fulfill the order without going back." So when the
+   *  chosen warehouse has none and another has stock, the sale is sourced from
+   *  there instead of being refused -- no restart, no second order. */
+  const sourceFor = (s: SkuFullRow) =>
+    availablePieces(s) > 0 ? null : (elsewhereList(s)[0] ?? null);
+
+  /** What can actually be sold: here if here has it, otherwise the other
+   *  godown's stock, because that is where it will come from. */
+  const usablePieces = (s: SkuFullRow) => {
+    const here = availablePieces(s);
+    return here > 0 ? here : (elsewhereList(s)[0]?.pieces ?? 0);
+  };
   const availableCartons = (s: SkuFullRow) =>
-    piecesPerCarton > 0 ? Math.floor(availablePieces(s) / piecesPerCarton) : 0;
+    piecesPerCarton > 0 ? Math.floor(usablePieces(s) / piecesPerCarton) : 0;
 
   /** Where this colour IS, when the chosen warehouse has none. Ali,
    *  2026-08-09, on a Purple row reading "None left": "It could be available
@@ -3543,9 +3584,10 @@ function MixedCartonSheet({
    *  says "None here · N in <other>". This sheet did not, so inside it a
    *  colony of stock in Funvilu looked like nothing at all. Same answer, same
    *  words, both doors. */
-  const elsewhere = (s: SkuFullRow) => stockLevels
+  const elsewhereList = (s: SkuFullRow) => stockLevels
     .filter((l) => l.sku_id === s.id && l.godown_id !== godownId && l.qty_pieces > 0)
-    .map((l) => ({ name: godowns.find((g) => g.id === l.godown_id)?.name ?? "another godown",
+    .map((l) => ({ id: l.godown_id,
+                   name: godowns.find((g) => g.id === l.godown_id)?.name ?? "another godown",
                    pieces: l.qty_pieces }))
     .sort((a, b) => b.pieces - a.pieces);
 
@@ -3578,18 +3620,21 @@ function MixedCartonSheet({
     setCartons((prev) => ({ ...prev, [s.id]: Math.max(0, Math.min(next, availableCartons(s))) }));
   }
   function setBottleCount(s: SkuFullRow, next: number) {
-    setCounts((prev) => ({ ...prev, [s.id]: Math.max(0, Math.min(next, availablePieces(s))) }));
+    setCounts((prev) => ({ ...prev, [s.id]: Math.max(0, Math.min(next, usablePieces(s))) }));
   }
 
   function handleAdd() {
     const adds: MixedCartonAdd[] = [];
     for (const s of skus) {
+      const src = sourceFor(s);
       if (mode === "single") {
         const n = cartons[s.id] ?? 0;
-        if (n > 0) adds.push({ sku: s, pieces: n * piecesPerCarton, mixed: false });
+        if (n > 0) adds.push({ sku: s, pieces: n * piecesPerCarton, mixed: false,
+                              godownId: src?.id, godownName: src?.name });
       } else {
         const n = counts[s.id] ?? 0;
-        if (n > 0) adds.push({ sku: s, pieces: n, mixed: true });
+        if (n > 0) adds.push({ sku: s, pieces: n, mixed: true,
+                              godownId: src?.id, godownName: src?.name });
       }
     }
     if (adds.length > 0) onAdd(adds);
@@ -3706,12 +3751,12 @@ function MixedCartonSheet({
           {skus.map((s) => {
             const price = cartonPriceOf(s);
             const singleMode = mode === "single";
-            const cap = singleMode ? availableCartons(s) : availablePieces(s);
+            const cap = singleMode ? availableCartons(s) : usablePieces(s);
             const count = singleMode ? (cartons[s.id] ?? 0) : (counts[s.id] ?? 0);
-            const soldOut = cap <= 0;
+            const soldOut = availablePieces(s) <= 0;
             return (
               <div key={s.id} className="rounded-2xl p-4 flex items-center justify-between gap-3"
-                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", opacity: soldOut ? 0.5 : 1 }}>
+                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", opacity: cap > 0 ? 1 : 0.5 }}>
                 <div className="min-w-0 flex-1">
                   {/* Colour first — the team picks Sosoft by colour, not scent.
                       model_name is the colour, variant_display is the scent. */}
@@ -3719,7 +3764,7 @@ function MixedCartonSheet({
                   <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
                   <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                     {soldOut
-                      ? (singleMode ? "No full carton here" : "None here")
+                      ? (singleMode ? "No full carton in this warehouse" : "None in this warehouse")
                       : singleMode
                         ? `${cap} carton${cap === 1 ? "" : "s"} available${price != null ? ` · MVR ${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton` : ""}`
                         : `${cap} ${noun}${cap === 1 ? "" : "s"} available`}
@@ -3728,13 +3773,15 @@ function MixedCartonSheet({
                       the unit he trades in — a warehouse he cannot sell from
                       today is still the difference between "we have none" and
                       "we have plenty, in the other place". */}
-                  {soldOut && elsewhere(s).length > 0 && (
+                  {soldOut && elsewhereList(s).length > 0 && (
                     <p className="ios-footnote font-semibold" style={{ color: "var(--snm-warning)" }}>
-                      {elsewhere(s).map((e) => (
-                        singleMode && piecesPerCarton > 0
-                          ? `${Math.floor(e.pieces / piecesPerCarton)} carton${Math.floor(e.pieces / piecesPerCarton) === 1 ? "" : "s"} at ${e.name}`
-                          : `${e.pieces} ${noun}${e.pieces === 1 ? "" : "s"} at ${e.name}`
-                      )).join(" · ")}
+                      {(() => {
+                        const e = elsewhereList(s)[0];
+                        const n = singleMode && piecesPerCarton > 0
+                          ? `${Math.floor(e.pieces / piecesPerCarton)} carton${Math.floor(e.pieces / piecesPerCarton) === 1 ? "" : "s"}`
+                          : `${e.pieces} ${noun}${e.pieces === 1 ? "" : "s"}`;
+                        return `Will be picked from ${e.name} · ${n} there`;
+                      })()}
                     </p>
                   )}
                   {price == null && (
@@ -3753,7 +3800,7 @@ function MixedCartonSheet({
                   <span className="w-6 text-center ios-subhead font-bold tabular-nums text-foreground">{count}</span>
                   <button
                     onClick={() => singleMode ? setCartonCount(s, count + 1) : setBottleCount(s, count + 1)}
-                    disabled={soldOut || count >= cap || price == null}
+                    disabled={count >= cap || price == null}
                     aria-label={`One more ${s.model_name}`}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>

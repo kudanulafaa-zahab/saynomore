@@ -427,6 +427,10 @@ export interface NewSaleLineInput {
   qty: number;
   unit_price_mvr: number;
   is_mixed_carton_fill?: boolean;
+  /** Pick this line from a specific godown instead of the order's (0164/0165).
+   *  null/omitted is the normal case and means "wherever the order ships from",
+   *  so a single-warehouse order is unchanged. */
+  source_godown_id?: string | null;
 }
 
 export async function createAndPostSale(
