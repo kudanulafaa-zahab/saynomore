@@ -9,7 +9,7 @@ import {
   Loader2, Plus, Search, ShoppingCart, CheckCircle2,
   Clock, Truck, Package, XCircle, UserPlus, ChevronRight, Trash2,
   Banknote, Smartphone, ArrowRight, X, Users, List, ChevronDown, ScanLine,
-  Warehouse, TrendingUp, RotateCcw, Phone, MessageCircle,
+  Warehouse, TrendingUp, RotateCcw, Phone, MessageCircle, Check,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -43,7 +43,7 @@ import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { SwipeActions, type SwipeAction } from "@/components/ui/swipe-actions";
-import { formatQtyInTradeUnits, priceForMargin, sellableTiers, sellUnitLabel, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, formatMixedCartonQty, containerLabel, priceForMargin, sellableTiers, sellUnitLabel, costPerTradeUnit, type TradeUnitConfig, type UnitUom } from "@/lib/trade-units";
 import { mvtDayKey, mvtInstant, mvtToday, mvtYesterday } from "@/lib/mvt-date";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
@@ -151,6 +151,32 @@ function tradeCfg(sku: SkuFullRow): TradeUnitConfig {
     unitUom: sku.unit_uom,
     sellableUnits: sku.sellable_units,
   };
+}
+
+/** Quantity text for a cart line.
+ *
+ *  A mixed-carton brand is stated in CARTONS plus loose bottles — "1 ctn +
+ *  4 bottles" — never as a bare bottle count. Sosoft is sold by the carton, so
+ *  that is the unit Ali reads; bottles only appear as the remainder he is
+ *  actually choosing. Everything else uses its own selling unit as before. */
+function lineQtyText(l: DraftLine): string {
+  const per = l.sku.mixed_carton_pieces;
+  if (per && per > 0 && l.is_mixed_carton_fill) {
+    return formatMixedCartonQty(l.qty_pieces, per, l.sku.unit_uom as UnitUom | null);
+  }
+  return `${l.qty} ${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
+}
+
+/** Unit price for a cart line, quoted in the unit the product is SOLD in.
+ *  A mixed fill is stored per bottle so the ledger can split a carton across
+ *  colours, but "MVR 37/btl" is a price nobody is charged — the carton rate it
+ *  was derived from is the real one. */
+function linePriceText(l: DraftLine): string {
+  const per = l.sku.mixed_carton_pieces;
+  if (per && per > 0 && l.is_mixed_carton_fill) {
+    return `MVR ${(l.unit_price_mvr * per).toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton`;
+  }
+  return `MVR ${l.unit_price_mvr.toLocaleString()}/${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
@@ -1845,8 +1871,13 @@ function NewSaleSheet({
                     }, 0);
                     const cartonPrice = first.selling_price_per_carton_mvr;
                     const outOfStock = totalStock <= 0;
-                    const inCart = draftLines.filter((l) => l.is_mixed_carton_fill && groupSkus.some((s) => s.id === l.sku.id))
-                      .reduce((a, l) => a + l.qty_pieces, 0) / piecesNeeded;
+                    // Every line for this brand counts, not just mixed fills —
+                    // a single-colour carton is an ordinary carton line now.
+                    // Kept in PIECES and formatted at the end: dividing here
+                    // produced the raw "1.6666666666666667 cartons in cart".
+                    const inCartPieces = draftLines
+                      .filter((l) => groupSkus.some((s) => s.id === l.sku.id))
+                      .reduce((a, l) => a + l.qty_pieces, 0);
                     return (
                       <button key={brandId} onClick={() => !outOfStock && setMixedCartonBrandId(brandId)}
                         disabled={outOfStock}
@@ -1858,11 +1889,11 @@ function NewSaleSheet({
                           </p>
                           <span className="ios-footnote font-semibold px-2 py-0.5 rounded-full"
                             style={{ background: "color-mix(in srgb, var(--snm-brand) 12%, transparent)", color: "var(--snm-brand-text)" }}>
-                            Build a carton
+                            Add cartons
                           </span>
                         </div>
                         <p className="ios-footnote mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                          {groupSkus.length} scents · mix any combo to fill {piecesNeeded}
+                          {groupSkus.length} colours · one colour or mixed, any quantity
                         </p>
                         <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1 }}>
                           <div className="flex items-baseline gap-1.5">
@@ -1875,10 +1906,10 @@ function NewSaleSheet({
                             {outOfStock ? "Out of stock" : `${totalStock} ctn in stock`}
                           </p>
                         </div>
-                        {inCart > 0 && (
+                        {inCartPieces > 0 && (
                           <span className="ios-footnote font-semibold shrink-0 px-2 py-0.5 rounded-full inline-block mt-2"
                             style={{ color: "var(--snm-brand-text)", background: "var(--snm-brand-muted)" }}>
-                            {inCart} carton{inCart === 1 ? "" : "s"} in cart
+                            {formatMixedCartonQty(inCartPieces, piecesNeeded, first.unit_uom as UnitUom | null)} in cart
                           </span>
                         )}
                       </button>
@@ -2716,7 +2747,6 @@ function NewSaleSheet({
                   Order items · {draftLines.length}
                 </p>
                 {draftLines.map((l) => {
-                  const uomWord = sellUnitLabel(l.uom, tradeCfg(l.sku));
                   return (
                   <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 ios-subhead" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
                     <div className="min-w-0 flex-1">
@@ -2729,7 +2759,7 @@ function NewSaleSheet({
                           </span>
                         )}
                       </div>
-                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{lineQtyText(l)} · {linePriceText(l)}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-foreground font-semibold ios-subhead snm-num">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
@@ -2770,7 +2800,6 @@ function NewSaleSheet({
             {/* Line items */}
             <div className="rounded-xl overflow-hidden" style={CARD}>
               {draftLines.map((l, i) => {
-                const uomWord = sellUnitLabel(l.uom, tradeCfg(l.sku));
                 return (
                   <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 ios-subhead" style={{ borderBottom: i < draftLines.length - 1 ? "0.5px solid var(--glass-border-lo)" : "none" }}>
                     <div className="min-w-0 flex-1">
@@ -2783,7 +2812,7 @@ function NewSaleSheet({
                           </span>
                         )}
                       </div>
-                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{l.qty} {uomWord} · MVR {l.unit_price_mvr.toLocaleString()}/{uomWord}</p>
+                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{lineQtyText(l)} · {linePriceText(l)}</p>
                     </div>
                     <span className="snm-num text-foreground font-semibold ios-subhead shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   </div>
@@ -2999,19 +3028,58 @@ function NewSaleSheet({
           godownId={godownId}
           stockLevels={stockLevels}
           tierPrices={tierPrices}
+          draftLines={draftLines}
           onClose={() => setMixedCartonBrandId(null)}
-          onAdd={(lines) => {
-            // A scent may already be on the order from a separate line. One
-            // line per product is a hard database rule, so the freshly built
-            // carton replaces any existing line for the same SKU rather than
-            // creating a duplicate that would fail on save.
-            const incoming = new Set(lines.map((l) => l.sku.id));
+          onAdd={(adds) => {
+            // ADD to whatever the colour already has — never replace it.
+            // Replacing is what silently deleted bottles and left the cart
+            // holding 1.67 cartons: build 2 Purple + 4 Red, then 6 Purple, and
+            // Purple's 2 was overwritten by 6 instead of becoming 8.
+            //
+            // One line per product per order is a database rule
+            // (sales_order_lines_order_sku_uniq), so the merge is mandatory,
+            // not a convenience.
             setDraftLines((prev) => {
-              const kept = prev.filter((l) => !incoming.has(l.sku.id));
-              if (kept.length !== prev.length) {
-                toast.info("Replaced the lines for the products in this carton");
+              const next = [...prev];
+              for (const a of adds) {
+                // Carton size for a LINE is the SKU's own pack config, because
+                // that is what Postgres uses to derive qty_pieces from a
+                // carton qty. mixed_carton_pieces is the brand-level "a carton
+                // is this many individually-chosen bottles" figure and drives
+                // the mix target and the per-bottle rate.
+                const perLine = a.sku.pcs_per_pack * a.sku.packs_per_carton || 1;
+                const perMix = a.sku.mixed_carton_pieces || perLine;
+                const tp = tierPrices.get(a.sku.id);
+                const cartonPrice = (tp ? tp.price_per_carton_mvr : a.sku.selling_price_per_carton_mvr) ?? 0;
+
+                const i = next.findIndex((l) => l.sku.id === a.sku.id);
+                const pieces = (i === -1 ? 0 : next[i].qty_pieces) + a.pieces;
+                // Once any part of a colour comes from a mix — or the running
+                // total stops being a whole number of cartons — the whole line
+                // has to be expressed in bottles, because cartons cannot
+                // describe it. The money is the same either way: both sides are
+                // priced off the same carton rate.
+                const mixed = (i !== -1 && next[i].is_mixed_carton_fill)
+                  || a.mixed
+                  || pieces % perLine !== 0;
+                const key = i === -1 ? `${a.sku.id}-${Date.now()}` : next[i].key;
+
+                const line: DraftLine = mixed
+                  ? {
+                      key, sku: a.sku, uom: "piece", qty: pieces, qty_pieces: pieces,
+                      unit_price_mvr: cartonPrice / perMix,
+                      line_total_mvr: (cartonPrice / perMix) * pieces,
+                      is_mixed_carton_fill: true,
+                    }
+                  : {
+                      key, sku: a.sku, uom: "carton", qty: pieces / perLine, qty_pieces: pieces,
+                      unit_price_mvr: cartonPrice,
+                      line_total_mvr: cartonPrice * (pieces / perLine),
+                      is_mixed_carton_fill: false,
+                    };
+                if (i === -1) next.push(line); else next[i] = line;
               }
-              return [...kept, ...lines];
+              return next;
             });
             setMixedCartonBrandId(null);
           }}
@@ -3023,68 +3091,126 @@ function NewSaleSheet({
   );
 }
 
-// ── Mixed-carton picker ──────────────────────────────────────────────────────
-// One screen, one action: pick how many bottles of each scent fill the
-// carton (must total exactly `piecesNeeded`), tap once to add every non-zero
-// scent as its own is_mixed_carton_fill draft line. Each line still carries
-// its own sku_id, so post_sale deducts FIFO stock from that scent's own
-// batches — nothing about stock movements or costing changes, only how many
-// taps it takes a salesperson to build the cart entry.
+// ── Sosoft carton picker (single colour or mixed) ────────────────────────────
+// Ali, 2026-08-07: "Sosoft I sell in cartons. Not bottles. But customer can
+// make mixed carton of six bottles not less. Customer can also purchase single
+// color carton." And 2026-08-09: "must be able to sell mixed color cartons and
+// single color cartons too if the customer choice. And customer must be able to
+// purchase any quantity of cartons as long as it's in stock."
+//
+// So there are two first-class ways to buy, and any number of cartons of each:
+//
+//   SINGLE COLOUR  n whole cartons of one colour -> an ordinary CARTON line
+//                  (uom 'carton'), because that is exactly what it is. FIFO,
+//                  costing, the money-in-the-unit-sold rule and the whole-unit
+//                  edit guard (0156) then all apply unchanged.
+//   MIXED          n cartons' worth of bottles picked across colours ->
+//                  is_mixed_carton_fill piece lines at carton-rate ÷ 6. This is
+//                  the sanctioned piece carve-out in CLAUDE.md: a mixed carton
+//                  is the one place a bottle is a real ledger unit.
+//
+// WHAT WAS WRONG BEFORE
+//
+//  * The sheet could only ever build ONE carton. Every colour was capped at 6
+//    bottles and the Add button required the total to equal exactly 6. There
+//    was no quantity control at all.
+//  * Single colour had no door. Every Sosoft SKU is pulled out of the product
+//    grid into one card, so the mixer was the only way in. Six of one colour
+//    did work, but nothing said so and it was still capped at one carton.
+//  * Adding REPLACED any existing line for the same colour instead of adding to
+//    it. Building 2 Purple + 4 Red, then 6 Purple, left 6 Purple + 4 Red = 10
+//    bottles: four bottles the salesperson had entered vanished from the order,
+//    and the cart held one and two-thirds of a carton. That is the
+//    "1.6666666666666667 cartons in cart" Ali screenshotted.
+//
+// One line per product per order is a database rule
+// (sales_order_lines_order_sku_uniq), so a colour bought BOTH as a whole carton
+// and inside a mix merges into one line, expressed in bottles — the only unit
+// that can describe a non-carton multiple. The money is identical either way,
+// because both sides are priced off the same carton rate.
+//
+// Stock is counted net of what the cart already holds, so opening the sheet a
+// second time cannot oversell what the first visit reserved.
+type MixedCartonAdd = { sku: SkuFullRow; pieces: number; mixed: boolean };
+
 function MixedCartonSheet({
-  skus, godownId, stockLevels, tierPrices, onClose, onAdd,
+  skus, godownId, stockLevels, tierPrices, draftLines, onClose, onAdd,
 }: {
   skus: SkuFullRow[];
   godownId: string;
   stockLevels: StockLevel[];
   tierPrices: Map<string, TierPrice>;
+  draftLines: DraftLine[];
   onClose: () => void;
-  onAdd: (lines: DraftLine[]) => void;
+  onAdd: (adds: MixedCartonAdd[]) => void;
 }) {
-  const piecesNeeded = skus[0]?.mixed_carton_pieces ?? 0;
+  const piecesPerCarton = skus[0]?.mixed_carton_pieces ?? 0;
+  const unitUom = (skus[0]?.unit_uom ?? null) as UnitUom | null;
+  const noun = containerLabel(unitUom);
+
+  const [mode, setMode] = useState<"single" | "mixed">("single");
+  const [cartons, setCartons] = useState<Record<string, number>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [targetCartons, setTargetCartons] = useState(1);
 
-  const stockFor = (s: SkuFullRow) => godownId
-    ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0
-    : stockLevels.filter((l) => l.sku_id === s.id).reduce((a, l) => a + l.qty_pieces, 0);
+  /** Bottles still on the shelf AFTER what this order already holds. */
+  const availablePieces = (s: SkuFullRow) => {
+    const onShelf = godownId
+      ? stockLevels.find((l) => l.sku_id === s.id && l.godown_id === godownId)?.qty_pieces ?? 0
+      : stockLevels.filter((l) => l.sku_id === s.id).reduce((a, l) => a + l.qty_pieces, 0);
+    const inCart = draftLines.find((l) => l.sku.id === s.id)?.qty_pieces ?? 0;
+    return Math.max(0, onShelf - inCart);
+  };
+  const availableCartons = (s: SkuFullRow) =>
+    piecesPerCarton > 0 ? Math.floor(availablePieces(s) / piecesPerCarton) : 0;
 
-  // Per-piece price: mixed fill always charges carton-rate ÷ pieces, same
-  // rule as the single-SKU "Mixed carton fill" toggle this sheet replaces.
-  const pricePerPiece = (s: SkuFullRow) => {
+  /** Money is quoted per CARTON — that is the unit Sosoft is sold in. */
+  const cartonPriceOf = (s: SkuFullRow) => {
     const tp = tierPrices.get(s.id);
-    const cartonPrice = tp ? tp.price_per_carton_mvr : s.selling_price_per_carton_mvr;
-    return cartonPrice != null && piecesNeeded > 0 ? cartonPrice / piecesNeeded : null;
+    return tp ? tp.price_per_carton_mvr : s.selling_price_per_carton_mvr;
   };
 
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const remaining = piecesNeeded - total;
-  const canAdd = total === piecesNeeded && piecesNeeded > 0;
+  // ── Single colour ──
+  const singleCartons = skus.reduce((a, s) => a + (cartons[s.id] ?? 0), 0);
+  const singleTotalMvr = skus.reduce(
+    (a, s) => a + (cartons[s.id] ?? 0) * (cartonPriceOf(s) ?? 0), 0);
+  const singlePriced = skus.every((s) => (cartons[s.id] ?? 0) === 0 || cartonPriceOf(s) != null);
+  const canAddSingle = singleCartons > 0 && singlePriced;
 
-  function setCount(skuId: string, next: number) {
-    const sku = skus.find((s) => s.id === skuId);
-    if (!sku) return;
-    const stock = stockFor(sku);
-    const clamped = Math.max(0, Math.min(next, stock, piecesNeeded));
-    setCounts((prev) => ({ ...prev, [skuId]: clamped }));
+  // ── Mixed ──
+  const mixedBottles = skus.reduce((a, s) => a + (counts[s.id] ?? 0), 0);
+  const mixedTarget = targetCartons * piecesPerCarton;
+  const mixedRemaining = mixedTarget - mixedBottles;
+  const totalAvailableBottles = skus.reduce((a, s) => a + availablePieces(s), 0);
+  const maxMixedCartons = piecesPerCarton > 0
+    ? Math.max(1, Math.floor(totalAvailableBottles / piecesPerCarton)) : 1;
+  const mixedPriced = skus.every((s) => (counts[s.id] ?? 0) === 0 || cartonPriceOf(s) != null);
+  const mixedTotalMvr = skus.reduce(
+    (a, s) => a + (counts[s.id] ?? 0) * ((cartonPriceOf(s) ?? 0) / Math.max(1, piecesPerCarton)), 0);
+  const canAddMixed = piecesPerCarton > 0 && mixedBottles === mixedTarget && mixedPriced;
+
+  function setCartonCount(s: SkuFullRow, next: number) {
+    setCartons((prev) => ({ ...prev, [s.id]: Math.max(0, Math.min(next, availableCartons(s))) }));
+  }
+  function setBottleCount(s: SkuFullRow, next: number) {
+    setCounts((prev) => ({ ...prev, [s.id]: Math.max(0, Math.min(next, availablePieces(s))) }));
   }
 
   function handleAdd() {
-    const lines: DraftLine[] = [];
+    const adds: MixedCartonAdd[] = [];
     for (const s of skus) {
-      const qty = counts[s.id] ?? 0;
-      if (qty <= 0) continue;
-      const unitPrice = pricePerPiece(s);
-      if (unitPrice == null) continue;
-      lines.push({
-        key: `${s.id}-${Date.now()}`,
-        sku: s, uom: "piece", qty,
-        qty_pieces: qty,
-        unit_price_mvr: unitPrice,
-        line_total_mvr: unitPrice * qty,
-        is_mixed_carton_fill: true,
-      });
+      if (mode === "single") {
+        const n = cartons[s.id] ?? 0;
+        if (n > 0) adds.push({ sku: s, pieces: n * piecesPerCarton, mixed: false });
+      } else {
+        const n = counts[s.id] ?? 0;
+        if (n > 0) adds.push({ sku: s, pieces: n, mixed: true });
+      }
     }
-    if (lines.length > 0) onAdd(lines);
+    if (adds.length > 0) onAdd(adds);
   }
+
+  const canAdd = mode === "single" ? canAddSingle : canAddMixed;
 
   return (
     <div
@@ -3102,54 +3228,122 @@ function MixedCartonSheet({
           maxHeight: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
         }}
       >
-        {/* Fixed header — grabber + title + running counter, always visible */}
+        {/* Fixed header — grabber, title, mode choice, and (for a mix) the
+            carton target with its progress. Always visible. */}
         <div className="shrink-0 px-5 pt-3 pb-3" style={{ borderBottom: "0.5px solid var(--glass-border-lo)" }}>
           <div className="w-10 h-1 bg-border rounded-full mx-auto mb-3" />
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">{skus[0]?.brand_name} · Build a carton</h2>
-              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Mix any scents to fill {piecesNeeded} bottles</p>
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-foreground truncate">
+                {skus[0]?.brand_name} · Add cartons
+              </h2>
+              <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                Sold by the carton · {piecesPerCarton} {noun}s in a carton
+              </p>
             </div>
             <button onClick={onClose} className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }} aria-label="Close">
               <X className="h-4 w-4 text-foreground" />
             </button>
           </div>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
-              <div className="h-full rounded-full transition-all" style={{
-                width: `${Math.min(100, (total / Math.max(1, piecesNeeded)) * 100)}%`,
-                background: total === piecesNeeded ? "var(--snm-success)" : total > piecesNeeded ? "var(--snm-error)" : "var(--snm-brand)",
-              }} />
-            </div>
-            <p className="ios-subhead font-bold shrink-0 tabular-nums" style={{ color: total === piecesNeeded ? "var(--snm-success)" : "var(--foreground)" }}>
-              {total} / {piecesNeeded}
-            </p>
-          </div>
-        </div>
 
-        {/* Scrollable body — one stepper row per scent, the ONLY scroll region */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4 space-y-2" style={{ touchAction: "pan-y" }}>
-          {skus.map((s) => {
-            const stock = stockFor(s);
-            const count = counts[s.id] ?? 0;
-            const outOfStock = stock <= 0;
-            const atCap = count >= stock || count >= piecesNeeded;
-            return (
-              <div key={s.id} className="rounded-2xl p-4 flex items-center justify-between gap-3"
-                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", opacity: outOfStock ? 0.5 : 1 }}>
-                <div className="min-w-0 flex-1">
-                  {/* Colour first — the team picks Sosoft by colour, not scent.
-                      model_name is the colour (Blue/Pink/…); variant_display is
-                      the scent. Lead with colour, scent as the sub-line. */}
-                  <p className="ios-subhead font-semibold text-foreground truncate">{s.model_name}</p>
-                  <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
-                  <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                    {outOfStock ? "Out of stock" : `${stock} bottle${stock === 1 ? "" : "s"} in stock`}
+          {/* A choice, so it is content: real foreground text on a filled
+              surface, never muted-on-transparent. */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {([
+              { key: "single" as const, label: "One colour" },
+              { key: "mixed" as const,  label: "Mixed carton" },
+            ]).map((m) => {
+              const on = mode === m.key;
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => setMode(m.key)}
+                  className="h-11 rounded-xl ios-subhead font-semibold flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+                  style={{
+                    background: on ? "var(--glass-accent)" : "var(--glass-bg-1)",
+                    color: on ? "var(--snm-brand-on)" : "var(--foreground)",
+                    border: "0.5px solid var(--glass-border-lo)",
+                  }}
+                >
+                  {on && <Check className="h-4 w-4" />}
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {mode === "mixed" && (
+            <>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="ios-subhead font-semibold text-foreground">How many cartons</p>
+                  <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                    = {mixedTarget} {noun}s to pick
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <button
-                    onClick={() => setCount(s.id, count - 1)}
+                    onClick={() => setTargetCartons((n) => Math.max(1, n - 1))}
+                    disabled={targetCartons <= 1}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
+                    −
+                  </button>
+                  <span className="w-6 text-center ios-subhead font-bold tabular-nums text-foreground">{targetCartons}</span>
+                  <button
+                    onClick={() => setTargetCartons((n) => Math.min(maxMixedCartons, n + 1))}
+                    disabled={targetCartons >= maxMixedCartons}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                    style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                  <div className="h-full rounded-full transition-all" style={{
+                    width: `${Math.min(100, (mixedBottles / Math.max(1, mixedTarget)) * 100)}%`,
+                    background: mixedBottles === mixedTarget ? "var(--snm-success)" : mixedBottles > mixedTarget ? "var(--snm-error)" : "var(--snm-brand)",
+                  }} />
+                </div>
+                <p className="ios-subhead font-bold shrink-0 tabular-nums" style={{ color: mixedBottles === mixedTarget ? "var(--snm-success)" : "var(--foreground)" }}>
+                  {mixedBottles} / {mixedTarget}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Scrollable body — one row per colour, the ONLY scroll region */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4 space-y-2" style={{ touchAction: "pan-y" }}>
+          {skus.map((s) => {
+            const price = cartonPriceOf(s);
+            const singleMode = mode === "single";
+            const cap = singleMode ? availableCartons(s) : availablePieces(s);
+            const count = singleMode ? (cartons[s.id] ?? 0) : (counts[s.id] ?? 0);
+            const soldOut = cap <= 0;
+            return (
+              <div key={s.id} className="rounded-2xl p-4 flex items-center justify-between gap-3"
+                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", opacity: soldOut ? 0.5 : 1 }}>
+                <div className="min-w-0 flex-1">
+                  {/* Colour first — the team picks Sosoft by colour, not scent.
+                      model_name is the colour, variant_display is the scent. */}
+                  <p className="ios-subhead font-semibold text-foreground truncate">{s.model_name}</p>
+                  <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
+                  <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                    {soldOut
+                      ? (singleMode ? "No full carton left" : "None left")
+                      : singleMode
+                        ? `${cap} carton${cap === 1 ? "" : "s"} available${price != null ? ` · MVR ${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton` : ""}`
+                        : `${cap} ${noun}${cap === 1 ? "" : "s"} available`}
+                  </p>
+                  {price == null && (
+                    <p className="ios-footnote font-semibold" style={{ color: "var(--snm-error)" }}>No carton price set</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => singleMode ? setCartonCount(s, count - 1) : setBottleCount(s, count - 1)}
                     disabled={count <= 0}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
@@ -3157,8 +3351,8 @@ function MixedCartonSheet({
                   </button>
                   <span className="w-6 text-center ios-subhead font-bold tabular-nums text-foreground">{count}</span>
                   <button
-                    onClick={() => setCount(s.id, count + 1)}
-                    disabled={outOfStock || atCap}
+                    onClick={() => singleMode ? setCartonCount(s, count + 1) : setBottleCount(s, count + 1)}
+                    disabled={soldOut || count >= cap || price == null}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                     +
@@ -3169,11 +3363,15 @@ function MixedCartonSheet({
           })}
         </div>
 
-        {/* Fixed footer — one primary action, disabled until exactly full */}
+        {/* Fixed footer — money first, then one primary action */}
         <div className="shrink-0 px-5 py-4 flex flex-col gap-2" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
-          {!canAdd && (
-            <p className="ios-footnote text-center" style={{ color: remaining < 0 ? "var(--snm-error)" : "var(--muted-foreground)" }}>
-              {remaining > 0 ? `Add ${remaining} more bottle${remaining === 1 ? "" : "s"} to fill the carton` : `${Math.abs(remaining)} too many — remove some`}
+          {mode === "mixed" && !canAddMixed && (
+            <p className="ios-footnote text-center" style={{ color: mixedRemaining < 0 ? "var(--snm-error)" : "var(--foreground)", opacity: mixedRemaining < 0 ? 1 : 0.7 }}>
+              {mixedRemaining > 0
+                ? `Pick ${mixedRemaining} more ${noun}${mixedRemaining === 1 ? "" : "s"} to fill ${targetCartons === 1 ? "the carton" : `${targetCartons} cartons`}`
+                : mixedRemaining < 0
+                  ? `${Math.abs(mixedRemaining)} too many — remove some`
+                  : "Set a carton price on these products first"}
             </p>
           )}
           <button
@@ -3181,7 +3379,10 @@ function MixedCartonSheet({
             disabled={!canAdd}
             className="h-14 w-full rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
             style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
-            <Plus className="h-4 w-4" /> Add Carton to Order
+            <Plus className="h-4 w-4" />
+            {mode === "single"
+              ? `Add ${singleCartons || ""} carton${singleCartons === 1 ? "" : "s"}${canAddSingle ? ` · MVR ${singleTotalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ""}`.replace("Add  carton", "Add cartons")
+              : `Add ${targetCartons} mixed carton${targetCartons === 1 ? "" : "s"}${canAddMixed ? ` · MVR ${mixedTotalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ""}`}
           </button>
         </div>
       </div>

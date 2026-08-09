@@ -67,6 +67,34 @@ export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): str
 }
 
 /**
+ * Quantity string for a MIXED-CARTON brand (Sosoft): the carton is the only
+ * selling unit, but its contents are picked individually, so a customer can
+ * hold a whole number of cartons plus loose bottles mid-build.
+ *
+ * "2 ctn", "2 ctn + 3 bottles", "3 bottles", "0".
+ *
+ * Separate from formatQtyInTradeUnits because that one is driven by
+ * sellable_units: Sosoft is carton-only, so it has no pack tier to describe a
+ * remainder with and falls back to "50% ctn" — true, but not a thing anyone
+ * says. Here the remainder is real, countable stock the customer is choosing,
+ * and the noun still comes from unit_uom, never a hardcoded word.
+ */
+export function formatMixedCartonQty(
+  pieces: number,
+  piecesPerCarton: number,
+  uom: UnitUom | null | undefined,
+): string {
+  const noun = containerLabel(uom);
+  if (piecesPerCarton <= 0) return `${pieces} ${noun}${pieces === 1 ? "" : "s"}`;
+  const ctns = Math.floor(pieces / piecesPerCarton);
+  const rem = pieces % piecesPerCarton;
+  const parts: string[] = [];
+  if (ctns > 0) parts.push(`${ctns} ctn`);
+  if (rem > 0) parts.push(`${rem} ${noun}${rem === 1 ? "" : "s"}`);
+  return parts.length > 0 ? parts.join(" + ") : "0";
+}
+
+/**
  * Converts a per-piece cost/price into the SKU's primary trade-unit cost
  * (per pack, or per carton if the SKU is carton-only), for display in
  * Reports tables where a per-piece figure would be meaningless.
