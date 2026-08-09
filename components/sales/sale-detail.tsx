@@ -913,6 +913,8 @@ export function SaleDetail({ id }: { id: string }) {
               lines={lines}
               skus={skus}
               editable={linesEditable}
+              godowns={godowns}
+              orderGodownId={order.source_godown_id}
               onEdit={(l) => { setEditingLine(l); setPanel("addLine"); }}
             />
             {totals.count > 0 && (
@@ -1616,13 +1618,16 @@ function SheetActions({ children }: { children: React.ReactNode }) {
 }
 
 function LineList({
-  lines, skus, editable, onEdit, onDelete, style: extraStyle,
+  lines, skus, editable, onEdit, onDelete, godowns, orderGodownId, style: extraStyle,
 }: {
   lines: SalesOrderLineRow[];
   skus: SkuFullRow[];
   editable: boolean;
   onEdit?: (l: SalesOrderLineRow) => void;
   onDelete?: (l: SalesOrderLineRow) => void;
+  /** Needed only to name a line's own godown when it differs from the order's. */
+  godowns?: GodownRow[];
+  orderGodownId?: string | null;
   style?: React.CSSProperties;
 }) {
   if (lines.length === 0) {
@@ -1641,6 +1646,14 @@ function LineList({
               <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
                 {l.qty} {l.uom} · MVR {Number(l.unit_price_mvr).toLocaleString()}
               </p>
+              {/* Silent for an ordinary line. Shown only when this one is
+                  picked somewhere else, because that is the difference between
+                  a driver loading the right van and the wrong one. */}
+              {l.source_godown_id && l.source_godown_id !== orderGodownId && (
+                <p style={{ color: "var(--snm-warning)", fontSize: 12, fontWeight: 700 }}>
+                  Pick from {godowns?.find((g) => g.id === l.source_godown_id)?.name ?? "another godown"}
+                </p>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
               <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600, marginRight: 4 }}>
