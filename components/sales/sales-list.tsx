@@ -153,18 +153,39 @@ function tradeCfg(sku: SkuFullRow): TradeUnitConfig {
   };
 }
 
-/** Quantity text for a cart line.
+/** Quantity text for ONE cart line.
  *
- *  A mixed-carton brand is stated in CARTONS plus loose bottles — "1 ctn +
- *  4 bottles" — never as a bare bottle count. Sosoft is sold by the carton, so
- *  that is the unit Ali reads; bottles only appear as the remainder he is
- *  actually choosing. Everything else uses its own selling unit as before. */
+ *  A mixed-carton fill is stated in bottles only — "8 bottles" — never
+ *  "1 ctn + 2 bottles". In a MIXED carton the cartons are made ACROSS colours,
+ *  so a single colour does not have a carton of its own; printing one there
+ *  said something untrue. The carton count belongs to the brand GROUP, and
+ *  CartLines shows it in the group header where it is actually meaningful.
+ *
+ *  Everything else reads in its own selling unit, exactly as before. */
 function lineQtyText(l: DraftLine): string {
   const per = l.sku.mixed_carton_pieces;
   if (per && per > 0 && l.is_mixed_carton_fill) {
-    return formatMixedCartonQty(l.qty_pieces, per, l.sku.unit_uom as UnitUom | null);
+    const noun = containerLabel(l.sku.unit_uom as UnitUom | null);
+    return `${l.qty_pieces} ${plural(noun, l.qty_pieces)}`;
   }
-  return `${l.qty} ${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
+  return `${l.qty} ${plural(sellUnitLabel(l.uom, tradeCfg(l.sku)), l.qty)}`;
+}
+
+/** "2 carton" is not a sentence. sellUnitLabel returns the singular noun, so
+ *  anything that prints it beside a count has to agree with the count. */
+function plural(word: string, n: number): string {
+  return n === 1 ? word : `${word}s`;
+}
+
+/** The number the +/− buttons move, and the word for it. Every product works
+ *  the same way: you step the unit that product is sold in. */
+function lineStepUnit(l: DraftLine): { value: number; word: string } {
+  const per = l.sku.mixed_carton_pieces;
+  if (per && per > 0 && l.is_mixed_carton_fill) {
+    const noun = containerLabel(l.sku.unit_uom as UnitUom | null);
+    return { value: l.qty_pieces, word: plural(noun, l.qty_pieces) };
+  }
+  return { value: l.qty, word: plural(sellUnitLabel(l.uom, tradeCfg(l.sku)), l.qty) };
 }
 
 /** Unit price for a cart line, quoted in the unit the product is SOLD in.
@@ -177,6 +198,226 @@ function linePriceText(l: DraftLine): string {
     return `MVR ${(l.unit_price_mvr * per).toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton`;
   }
   return `MVR ${l.unit_price_mvr.toLocaleString()}/${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
+}
+
+// ── The cart ─────────────────────────────────────────────────────────────────
+// Ali, 2026-08-09: "There must be function to add more products to each order.
+// For example I add one case. There must be button or something to let me add
+// more to this order or delete from order like a proper checkout page or cart."
+// And: "This process should be same for all products. I mean the cart
+// component. Not just sosoft. Everything must be harmonized ui/ux."
+//
+// So: ONE cart, used by New Sale step 2 AND step 3, and every product behaves
+// identically — a +/− stepper on the unit that product is sold in, a bin, and
+// a button to go back for more. There is no Sosoft-special cart.
+//
+// What was there before: step 2 had a bin and nothing else, and step 3 was a
+// read-only list — no quantity, no delete, no way to add. Once an item was in,
+// the only way to change it was to remove it and start again. The app already
+// had this pattern in sale-detail.tsx (LineList: tap to edit, bin to remove,
+// "Add item" to add); New Sale simply never got it.
+//
+// The ONE thing that varies by product is INFORMATION, not interaction:
+// a mixed-carton brand also gets a group header saying how many cartons its
+// lines add up to. That is the number Ali actually sells in, and it is the
+// number the database enforces — it cannot be read off any single line,
+// because a mixed carton is built across colours. When the group is short, the
+// header says by how much and Place Order is blocked, so the shortfall is
+// caught here rather than as a server error after the last tap.
+
+interface CartGroup {
+  key: string;
+  /** Set only for a mixed-carton brand — the group is then a real section. */
+  brandName: string | null;
+  piecesPerCarton: number;
+  unitUom: UnitUom | null;
+  lines: DraftLine[];
+  /** Pieces across this brand's MIXED lines — what the whole-carton rule counts. */
+  mixedPieces: number;
+  totalPieces: number;
+  totalMvr: number;
+}
+
+/** Lines of a mixed-carton brand collapse into one section; everything else is
+ *  its own row. First-seen order is preserved either way. */
+function groupCartLines(lines: DraftLine[]): CartGroup[] {
+  const out: CartGroup[] = [];
+  const byBrand = new Map<string, CartGroup>();
+  for (const l of lines) {
+    const per = l.sku.mixed_carton_pieces ?? 0;
+    if (per > 0) {
+      let g = byBrand.get(l.sku.brand_id);
+      if (!g) {
+        g = {
+          key: `brand-${l.sku.brand_id}`,
+          brandName: l.sku.brand_name,
+          piecesPerCarton: per,
+          unitUom: (l.sku.unit_uom ?? null) as UnitUom | null,
+          lines: [], mixedPieces: 0, totalPieces: 0, totalMvr: 0,
+        };
+        byBrand.set(l.sku.brand_id, g);
+        out.push(g);
+      }
+      g.lines.push(l);
+      if (l.is_mixed_carton_fill) g.mixedPieces += l.qty_pieces;
+      g.totalPieces += l.qty_pieces;
+      g.totalMvr += l.line_total_mvr;
+    } else {
+      out.push({
+        key: l.key, brandName: null, piecesPerCarton: 0,
+        unitUom: (l.sku.unit_uom ?? null) as UnitUom | null,
+        lines: [l], mixedPieces: 0, totalPieces: l.qty_pieces, totalMvr: l.line_total_mvr,
+      });
+    }
+  }
+  return out;
+}
+
+/** Bottles still needed to round a brand's mixed lines up to whole cartons.
+ *  0 means the group is valid. Mirrors the database rule exactly (0163). */
+function cartonShortfall(g: CartGroup): number {
+  if (g.piecesPerCarton <= 0 || g.mixedPieces === 0) return 0;
+  const rem = g.mixedPieces % g.piecesPerCarton;
+  return rem === 0 ? 0 : g.piecesPerCarton - rem;
+}
+
+/** Every mixed-carton group that is not yet a whole number of cartons. */
+function cartShortfalls(lines: DraftLine[]): { brand: string; short: number; noun: string }[] {
+  return groupCartLines(lines)
+    .filter((g) => g.brandName != null && cartonShortfall(g) > 0)
+    .map((g) => {
+      const short = cartonShortfall(g);
+      const noun = containerLabel(g.unitUom);
+      return { brand: g.brandName!, short, noun: `${noun}${short === 1 ? "" : "s"}` };
+    });
+}
+
+function CartLines({
+  lines, grandTotal, editable, onChangeQty, onRemove, onAddMore, maxPiecesFor,
+}: {
+  lines: DraftLine[];
+  grandTotal: number;
+  editable: boolean;
+  onChangeQty: (key: string, delta: number) => void;
+  onRemove: (key: string) => void;
+  onAddMore?: () => void;
+  maxPiecesFor: (sku: SkuFullRow) => number;
+}) {
+  if (lines.length === 0) return null;
+  const groups = groupCartLines(lines);
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+      <p className="px-4 pt-3 pb-2 text-[12px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
+        Order items · {lines.length}
+      </p>
+
+      {groups.map((g) => (
+        <div key={g.key}>
+          {/* Only a mixed-carton brand gets a section header, and it exists to
+              say the one number no single line can: how many CARTONS these
+              lines make between them. */}
+          {g.brandName && (
+            <div className="px-4 py-2 flex items-baseline justify-between gap-2"
+              style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
+              <div className="min-w-0">
+                <p className="ios-subhead font-semibold text-foreground truncate">{g.brandName}</p>
+                {/* Just the trade-unit form. Adding "· 17 bottles" after
+                    "2 ctn + 5 bottles" said the same thing twice. */}
+                <p className="ios-footnote snm-num" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                  {formatMixedCartonQty(g.totalPieces, g.piecesPerCarton, g.unitUom)}
+                </p>
+              </div>
+              <span className="ios-subhead font-semibold snm-num shrink-0 text-foreground">
+                MVR {g.totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
+            </div>
+          )}
+          {g.brandName && cartonShortfall(g) > 0 && (
+            <p className="px-4 pb-2 ios-footnote font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--snm-error)" }}>
+              {cartonShortfall(g)} more {containerLabel(g.unitUom)}{cartonShortfall(g) === 1 ? "" : "s"} to fill the carton — {g.brandName} is only sold by the carton
+            </p>
+          )}
+
+          {g.lines.map((l) => {
+            const step = lineStepUnit(l);
+            const per = l.sku.mixed_carton_pieces && l.is_mixed_carton_fill
+              ? 1
+              : (l.uom === "carton" ? l.sku.pcs_per_pack * l.sku.packs_per_carton
+                 : l.uom === "pack" ? l.sku.pcs_per_pack : 1);
+            const atCap = l.qty_pieces + per > maxPiecesFor(l.sku);
+            return (
+              <div key={l.key} className="px-4 py-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="ios-subhead text-foreground truncate">
+                      {g.brandName ? l.sku.model_name : `${l.sku.brand_name} · ${l.sku.model_name}`}
+                      <span style={{ color: "var(--muted-foreground)" }}> · {l.sku.variant_display}</span>
+                    </p>
+                    <p className="ios-footnote snm-num" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                      {lineQtyText(l)} · {linePriceText(l)}
+                    </p>
+                  </div>
+                  <span className="ios-subhead font-semibold snm-num shrink-0 text-foreground">
+                    MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+
+                {editable && (
+                  <div className="flex items-center justify-between gap-3 mt-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        onClick={() => onChangeQty(l.key, -1)}
+                        disabled={step.value <= 1}
+                        aria-label="One less"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                        style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
+                        −
+                      </button>
+                      <span className="min-w-[1.5rem] text-center ios-subhead font-bold tabular-nums text-foreground">
+                        {step.value}
+                      </span>
+                      <button
+                        onClick={() => onChangeQty(l.key, 1)}
+                        disabled={atCap}
+                        aria-label="One more"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                        style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
+                        +
+                      </button>
+                      <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{step.word}</span>
+                    </div>
+                    <button
+                      onClick={() => onRemove(l.key)}
+                      aria-label="Remove from order"
+                      className="snm-pressable w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      <div className="flex justify-between px-4 py-3 ios-subhead font-semibold"
+        style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
+        <span style={{ color: "var(--muted-foreground)" }}>Total</span>
+        <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+      </div>
+
+      {onAddMore && (
+        <button
+          onClick={onAddMore}
+          className="snm-pressable w-full h-12 flex items-center justify-center gap-1.5 ios-subhead font-semibold"
+          style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "transparent", color: "var(--snm-brand-text)" }}>
+          <Plus className="h-4 w-4" /> Add more products
+        </button>
+      )}
+    </div>
+  );
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
@@ -1379,6 +1620,51 @@ function NewSaleSheet({
   const insufficient = stockHere !== null && lineQtyPieces > stockHere;
   const grandTotal = useMemo(() => draftLines.reduce((s, l) => s + l.line_total_mvr, 0), [draftLines]);
 
+  /** Bottles/pieces on the shelf for a SKU in the chosen warehouse. The cart's
+   *  + button stops here, so an order can never be built past what exists. */
+  const maxPiecesFor = useCallback((sku: SkuFullRow) => (
+    godownId
+      ? stockLevels.find((l) => l.sku_id === sku.id && l.godown_id === godownId)?.qty_pieces ?? 0
+      : stockLevels.filter((l) => l.sku_id === sku.id).reduce((a, l) => a + l.qty_pieces, 0)
+  ), [godownId, stockLevels]);
+
+  /** One step of whatever unit this line is sold in — a carton for a carton
+   *  line, a pack for a pack line, a bottle for a mixed-carton fill. Every
+   *  product behaves the same way; only the unit differs, and it comes from
+   *  the line rather than from anything hardcoded.
+   *
+   *  qty_pieces and line_total are kept in step because the cart displays them,
+   *  but Postgres re-derives both on save from uom and qty (rule 1) — these are
+   *  never the numbers that get stored. */
+  const changeLineQty = useCallback((key: string, delta: number) => {
+    setDraftLines((prev) => prev.map((l) => {
+      if (l.key !== key) return l;
+      const mixed = !!l.sku.mixed_carton_pieces && l.is_mixed_carton_fill;
+      const per = mixed ? 1
+        : l.uom === "carton" ? l.sku.pcs_per_pack * l.sku.packs_per_carton
+        : l.uom === "pack" ? l.sku.pcs_per_pack : 1;
+      const nextQty = Math.max(1, l.qty + delta);
+      const nextPieces = Math.round(nextQty * per);
+      // Never step past the shelf.
+      if (delta > 0 && nextPieces > maxPiecesFor(l.sku)) return l;
+      return {
+        ...l,
+        qty: nextQty,
+        qty_pieces: nextPieces,
+        line_total_mvr: nextQty * l.unit_price_mvr,
+      };
+    }));
+  }, [maxPiecesFor]);
+
+  const removeLine = useCallback((key: string) => {
+    setDraftLines((prev) => prev.filter((l) => l.key !== key));
+  }, []);
+
+  /** Mixed-carton brands that do not yet add up to whole cartons. Place Order
+   *  is blocked on this, so the shortfall is caught in the cart instead of
+   *  coming back as a database error after the final tap (migration 0163). */
+  const shortfalls = useMemo(() => cartShortfalls(draftLines), [draftLines]);
+
   /**
    * Is the chosen warehouse actually the right one for this basket?
    *
@@ -1432,6 +1718,12 @@ function NewSaleSheet({
   // below-cost confirm sheet. Both entry doors share one guard.
   function doAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
+    // Same confirmation as the carton sheet — every add says so, whatever the
+    // product. The editor closes on add, so silence is indistinguishable from
+    // a tap that did not register.
+    toast.success(
+      `Added ${parseFloat(lineQty)} ${sellUnitLabel(lineUom, tradeCfg(selectedSku))} of ${selectedSku.brand_name} ${selectedSku.model_name}`,
+    );
     setDraftLines((prev) => [...prev, {
       key: `${selectedSku.id}-${Date.now()}`,
       sku: selectedSku, uom: lineUom, qty: parseFloat(lineQty),
@@ -2740,42 +3032,16 @@ function NewSaleSheet({
               );
             })() : null}
 
-            {/* Draft lines */}
-            {draftLines.length > 0 && (
-              <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                <p className="px-4 pt-3 pb-2 text-[12px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
-                  Order items · {draftLines.length}
-                </p>
-                {draftLines.map((l) => {
-                  return (
-                  <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-3 ios-subhead" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name}</p>
-                        {l.is_mixed_carton_fill && (
-                          <span className="ios-subhead font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-                            MIXED CTN
-                          </span>
-                        )}
-                      </div>
-                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{lineQtyText(l)} · {linePriceText(l)}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-foreground font-semibold ios-subhead snm-num">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      <button onClick={() => setDraftLines((p) => p.filter((x) => x.key !== l.key))} className="opacity-40 active:opacity-100">
-                        <Trash2 className="h-3.5 w-3.5 text-foreground" />
-                      </button>
-                    </div>
-                  </div>
-                  );
-                })}
-                <div className="flex justify-between px-4 py-3 ios-subhead font-semibold" style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
-                  <span style={{ color: "var(--muted-foreground)" }}>Total</span>
-                  <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                </div>
-              </div>
-            )}
+            {/* Draft lines — the same cart as step 3, same component. */}
+            <CartLines
+              lines={draftLines}
+              grandTotal={grandTotal}
+              editable
+              onChangeQty={changeLineQty}
+              onRemove={removeLine}
+              maxPiecesFor={maxPiecesFor}
+            />
+
             </>
             )}
           </div>
@@ -2797,28 +3063,19 @@ function NewSaleSheet({
               </p>
             </div>
 
-            {/* Line items */}
-            <div className="rounded-xl overflow-hidden" style={CARD}>
-              {draftLines.map((l, i) => {
-                return (
-                  <div key={l.key} className="flex items-center justify-between gap-2 px-4 py-3 ios-subhead" style={{ borderBottom: i < draftLines.length - 1 ? "0.5px solid var(--glass-border-lo)" : "none" }}>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-foreground truncate">{l.sku.brand_name} · {l.sku.model_name} · {l.sku.variant_display}</p>
-                        {l.is_mixed_carton_fill && (
-                          <span className="ios-subhead font-bold px-1.5 py-0.5 rounded shrink-0"
-                            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-                            MIXED CTN
-                          </span>
-                        )}
-                      </div>
-                      <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{lineQtyText(l)} · {linePriceText(l)}</p>
-                    </div>
-                    <span className="snm-num text-foreground font-semibold ios-subhead shrink-0">MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Line items — the SAME cart component as step 2, with the
+                quantity steppers, the bin and a way back for more. It used to
+                be a read-only list: nothing could be changed on the last
+                screen before the order was placed. */}
+            <CartLines
+              lines={draftLines}
+              grandTotal={grandTotal}
+              editable
+              onChangeQty={changeLineQty}
+              onRemove={removeLine}
+              onAddMore={() => setStep(2)}
+              maxPiecesFor={maxPiecesFor}
+            />
 
             {/* ── Ship from ──
                 The warehouse decides which stock gets deducted, and it was
@@ -2941,10 +3198,12 @@ function NewSaleSheet({
           ) : (
             <>
               <button onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
-              <button disabled={draftLines.length === 0} onClick={() => setStep(3)}
+              <button disabled={draftLines.length === 0 || shortfalls.length > 0} onClick={() => setStep(3)}
                 className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
                 style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
-                {draftLines.length === 0 ? "Add at least 1 item" : <>Review & Confirm <ArrowRight className="h-4 w-4" /></>}
+                {draftLines.length === 0 ? "Add at least 1 item"
+                  : shortfalls.length > 0 ? `Add ${shortfalls[0].short} more ${shortfalls[0].noun}`
+                  : <>Review & Confirm <ArrowRight className="h-4 w-4" /></>}
               </button>
             </>
           )
@@ -2952,10 +3211,16 @@ function NewSaleSheet({
         {step === 3 && (
           <>
             <button onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
-            <button disabled={saving} onClick={handleSubmit}
+            {/* A part-carton is refused by the database (0163). Catching it
+                here means the reason is on screen next to the fix, instead of
+                arriving as an error after the last tap. */}
+            <button disabled={saving || shortfalls.length > 0} onClick={handleSubmit}
               className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Place Order <ArrowRight className="h-4 w-4" /></>}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" />
+                : shortfalls.length > 0
+                  ? `Add ${shortfalls[0].short} more ${shortfalls[0].noun}`
+                  : <>Place Order <ArrowRight className="h-4 w-4" /></>}
             </button>
           </>
         )}
@@ -3081,6 +3346,15 @@ function NewSaleSheet({
               }
               return next;
             });
+            // Ali, 2026-08-09: "It's not showing me whether adding or not.
+            // There is no way for me to know." The sheet closes on add, so
+            // without this nothing at all confirms it landed.
+            const per = adds[0].sku.mixed_carton_pieces || 1;
+            const pieces = adds.reduce((a, x) => a + x.pieces, 0);
+            const ctns = Math.round(pieces / per);
+            toast.success(
+              `Added ${ctns} ${adds[0].mixed ? "mixed " : ""}carton${ctns === 1 ? "" : "s"} of ${adds[0].sku.brand_name}`,
+            );
             setMixedCartonBrandId(null);
           }}
         />,
@@ -3285,6 +3559,7 @@ function MixedCartonSheet({
                   <button
                     onClick={() => setTargetCartons((n) => Math.max(1, n - 1))}
                     disabled={targetCartons <= 1}
+                    aria-label="One carton fewer"
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
                     −
@@ -3293,6 +3568,7 @@ function MixedCartonSheet({
                   <button
                     onClick={() => setTargetCartons((n) => Math.min(maxMixedCartons, n + 1))}
                     disabled={targetCartons >= maxMixedCartons}
+                    aria-label="One carton more"
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                     +
@@ -3345,6 +3621,7 @@ function MixedCartonSheet({
                   <button
                     onClick={() => singleMode ? setCartonCount(s, count - 1) : setBottleCount(s, count - 1)}
                     disabled={count <= 0}
+                    aria-label={`One fewer ${s.model_name}`}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
                     −
@@ -3353,6 +3630,7 @@ function MixedCartonSheet({
                   <button
                     onClick={() => singleMode ? setCartonCount(s, count + 1) : setBottleCount(s, count + 1)}
                     disabled={soldOut || count >= cap || price == null}
+                    aria-label={`One more ${s.model_name}`}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                     +
@@ -3381,7 +3659,9 @@ function MixedCartonSheet({
             style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
             <Plus className="h-4 w-4" />
             {mode === "single"
-              ? `Add ${singleCartons || ""} carton${singleCartons === 1 ? "" : "s"}${canAddSingle ? ` · MVR ${singleTotalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ""}`.replace("Add  carton", "Add cartons")
+              ? (singleCartons === 0
+                  ? "Add cartons"
+                  : `Add ${singleCartons} carton${singleCartons === 1 ? "" : "s"} · MVR ${singleTotalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}`)
               : `Add ${targetCartons} mixed carton${targetCartons === 1 ? "" : "s"}${canAddMixed ? ` · MVR ${mixedTotalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ""}`}
           </button>
         </div>
