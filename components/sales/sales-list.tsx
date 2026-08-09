@@ -3385,6 +3385,7 @@ function NewSaleSheet({
         <MixedCartonSheet
           skus={mixedCartonGroups.get(mixedCartonBrandId) ?? []}
           godownId={godownId}
+          godowns={godowns}
           stockLevels={stockLevels}
           tierPrices={tierPrices}
           draftLines={draftLines}
@@ -3502,10 +3503,11 @@ function NewSaleSheet({
 type MixedCartonAdd = { sku: SkuFullRow; pieces: number; mixed: boolean };
 
 function MixedCartonSheet({
-  skus, godownId, stockLevels, tierPrices, draftLines, onClose, onAdd,
+  skus, godownId, godowns, stockLevels, tierPrices, draftLines, onClose, onAdd,
 }: {
   skus: SkuFullRow[];
   godownId: string;
+  godowns: GodownRow[];
   stockLevels: StockLevel[];
   tierPrices: Map<string, TierPrice>;
   draftLines: DraftLine[];
@@ -3531,6 +3533,21 @@ function MixedCartonSheet({
   };
   const availableCartons = (s: SkuFullRow) =>
     piecesPerCarton > 0 ? Math.floor(availablePieces(s) / piecesPerCarton) : 0;
+
+  /** Where this colour IS, when the chosen warehouse has none. Ali,
+   *  2026-08-09, on a Purple row reading "None left": "It could be available
+   *  at another godown. In which case app must be intelligent enough to
+   *  suggest availability at the other godown."
+   *
+   *  The product GRID already refuses to hide a product owned elsewhere and
+   *  says "None here · N in <other>". This sheet did not, so inside it a
+   *  colony of stock in Funvilu looked like nothing at all. Same answer, same
+   *  words, both doors. */
+  const elsewhere = (s: SkuFullRow) => stockLevels
+    .filter((l) => l.sku_id === s.id && l.godown_id !== godownId && l.qty_pieces > 0)
+    .map((l) => ({ name: godowns.find((g) => g.id === l.godown_id)?.name ?? "another godown",
+                   pieces: l.qty_pieces }))
+    .sort((a, b) => b.pieces - a.pieces);
 
   /** Money is quoted per CARTON — that is the unit Sosoft is sold in. */
   const cartonPriceOf = (s: SkuFullRow) => {
@@ -3702,11 +3719,24 @@ function MixedCartonSheet({
                   <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>{s.variant_display}</p>
                   <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                     {soldOut
-                      ? (singleMode ? "No full carton left" : "None left")
+                      ? (singleMode ? "No full carton here" : "None here")
                       : singleMode
                         ? `${cap} carton${cap === 1 ? "" : "s"} available${price != null ? ` · MVR ${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton` : ""}`
                         : `${cap} ${noun}${cap === 1 ? "" : "s"} available`}
                   </p>
+                  {/* Owned, just not here. Says which godown and how much, in
+                      the unit he trades in — a warehouse he cannot sell from
+                      today is still the difference between "we have none" and
+                      "we have plenty, in the other place". */}
+                  {soldOut && elsewhere(s).length > 0 && (
+                    <p className="ios-footnote font-semibold" style={{ color: "var(--snm-warning)" }}>
+                      {elsewhere(s).map((e) => (
+                        singleMode && piecesPerCarton > 0
+                          ? `${Math.floor(e.pieces / piecesPerCarton)} carton${Math.floor(e.pieces / piecesPerCarton) === 1 ? "" : "s"} at ${e.name}`
+                          : `${e.pieces} ${noun}${e.pieces === 1 ? "" : "s"} at ${e.name}`
+                      )).join(" · ")}
+                    </p>
+                  )}
                   {price == null && (
                     <p className="ios-footnote font-semibold" style={{ color: "var(--snm-error)" }}>No carton price set</p>
                   )}
