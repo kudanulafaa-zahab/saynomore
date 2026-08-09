@@ -292,6 +292,95 @@ function cartShortfalls(lines: DraftLine[]): { brand: string; short: number; nou
     });
 }
 
+/** One item in the cart. Its own card with air around it — Ali, 2026-08-09:
+ *  "Each product must have a line break so it's easier for me." Dense divided
+ *  rows read as a table of numbers; a card per item reads as a list of things
+ *  bought, which is what a cart is. */
+function CartItemRow({
+  line, hideBrand, editable, onChangeQty, onRemove, maxPiecesFor,
+}: {
+  line: DraftLine;
+  hideBrand: boolean;
+  editable: boolean;
+  onChangeQty: (key: string, delta: number) => void;
+  onRemove: (key: string) => void;
+  maxPiecesFor: (sku: SkuFullRow) => number;
+}) {
+  const l = line;
+  const step = lineStepUnit(l);
+  const per = l.sku.mixed_carton_pieces && l.is_mixed_carton_fill
+    ? 1
+    : (l.uom === "carton" ? l.sku.pcs_per_pack * l.sku.packs_per_carton
+       : l.uom === "pack" ? l.sku.pcs_per_pack : 1);
+  const atCap = l.qty_pieces + per > maxPiecesFor(l.sku);
+
+  return (
+    <div className="rounded-2xl p-3.5"
+      style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="ios-subhead font-semibold text-foreground truncate">
+            {hideBrand ? l.sku.model_name : `${l.sku.brand_name} · ${l.sku.model_name}`}
+          </p>
+          <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>
+            {l.sku.variant_display}
+          </p>
+          <p className="ios-footnote snm-num mt-0.5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+            {lineQtyText(l)} · {linePriceText(l)}
+          </p>
+        </div>
+        <span className="ios-subhead font-bold snm-num shrink-0 text-foreground">
+          MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        </span>
+      </div>
+
+      {editable && (
+        <div className="flex items-center justify-between gap-3 mt-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => onChangeQty(l.key, -1)}
+              disabled={step.value <= 1}
+              aria-label="One less"
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+              style={{ background: "color-mix(in srgb, var(--foreground) 10%, transparent)", color: "var(--foreground)" }}>
+              −
+            </button>
+            <span className="min-w-[1.5rem] text-center ios-subhead font-bold tabular-nums text-foreground">
+              {step.value}
+            </span>
+            <button
+              onClick={() => onChangeQty(l.key, 1)}
+              disabled={atCap}
+              aria-label="One more"
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+              style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
+              +
+            </button>
+            <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{step.word}</span>
+          </div>
+          <button
+            onClick={() => onRemove(l.key)}
+            aria-label="Remove from order"
+            className="snm-pressable w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Small section label inside a brand group. */
+function CartSectionLabel({ text, tone }: { text: string; tone?: string }) {
+  return (
+    <p className="label-caps text-[11px] px-0.5 pt-1"
+      style={{ color: tone ?? "var(--foreground)", opacity: tone ? 1 : 0.6 }}>
+      {text}
+    </p>
+  );
+}
+
 function CartLines({
   lines, grandTotal, editable, onChangeQty, onRemove, onAddMore, maxPiecesFor,
 }: {
@@ -306,104 +395,102 @@ function CartLines({
   if (lines.length === 0) return null;
   const groups = groupCartLines(lines);
 
-  return (
-    <div className="rounded-xl overflow-hidden" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-      <p className="px-4 pt-3 pb-2 text-[12px] uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>
-        Order items · {lines.length}
-      </p>
+  const addMorePill = onAddMore ? (
+    <button
+      onClick={onAddMore}
+      className="snm-pressable shrink-0 h-9 px-3.5 rounded-full flex items-center gap-1.5 ios-footnote font-bold"
+      style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
+      <Plus className="h-3.5 w-3.5" /> Add more
+    </button>
+  ) : null;
 
-      {groups.map((g) => (
-        <div key={g.key}>
-          {/* Only a mixed-carton brand gets a section header, and it exists to
-              say the one number no single line can: how many CARTONS these
-              lines make between them. */}
-          {g.brandName && (
-            <div className="px-4 py-2 flex items-baseline justify-between gap-2"
-              style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
+  return (
+    <div className="space-y-3">
+      {/* Header: what is in the cart, and the way back to the catalogue right
+          beside it. Ali, 2026-08-09: "I add a mixed carton to cart then I see
+          only review and confirm. There must be add more to order pill so I
+          can again add another product easily." It sits at the TOP, where he
+          lands after adding, not buried under the list. */}
+      <div className="flex items-center justify-between gap-3 px-0.5">
+        <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>
+          Order items · {lines.length}
+        </p>
+        {addMorePill}
+      </div>
+
+      {groups.map((g) => {
+        // Inside a mixed-carton brand, a whole carton of one colour and
+        // bottles that make up a mixed carton are two different purchases and
+        // must never share a list. Ali, 2026-08-09: "There is no
+        // differentiator line between the single color carton and mix carton."
+        const full = g.lines.filter((l) => !l.is_mixed_carton_fill);
+        const mixed = g.lines.filter((l) => l.is_mixed_carton_fill);
+        const short = cartonShortfall(g);
+        const mixedCartons = g.piecesPerCarton > 0
+          ? Math.floor(g.mixedPieces / g.piecesPerCarton) : 0;
+        const noun = containerLabel(g.unitUom);
+
+        // An ordinary product: one card, nothing around it.
+        if (!g.brandName) {
+          return (
+            <CartItemRow key={g.key} line={g.lines[0]} hideBrand={false}
+              editable={editable} onChangeQty={onChangeQty} onRemove={onRemove}
+              maxPiecesFor={maxPiecesFor} />
+          );
+        }
+
+        return (
+          <div key={g.key} className="rounded-2xl p-3 space-y-2"
+            style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+            <div className="flex items-baseline justify-between gap-2 px-0.5">
               <div className="min-w-0">
-                <p className="ios-subhead font-semibold text-foreground truncate">{g.brandName}</p>
-                {/* Just the trade-unit form. Adding "· 17 bottles" after
-                    "2 ctn + 5 bottles" said the same thing twice. */}
+                <p className="ios-subhead font-bold text-foreground truncate">{g.brandName}</p>
                 <p className="ios-footnote snm-num" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   {formatMixedCartonQty(g.totalPieces, g.piecesPerCarton, g.unitUom)}
                 </p>
               </div>
-              <span className="ios-subhead font-semibold snm-num shrink-0 text-foreground">
+              <span className="ios-subhead font-bold snm-num shrink-0 text-foreground">
                 MVR {g.totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </span>
             </div>
-          )}
-          {g.brandName && cartonShortfall(g) > 0 && (
-            <p className="px-4 pb-2 ios-footnote font-semibold" style={{ background: "var(--glass-bg-1)", color: "var(--snm-error)" }}>
-              {cartonShortfall(g)} more {containerLabel(g.unitUom)}{cartonShortfall(g) === 1 ? "" : "s"} to fill the carton — {g.brandName} is only sold by the carton
-            </p>
-          )}
 
-          {g.lines.map((l) => {
-            const step = lineStepUnit(l);
-            const per = l.sku.mixed_carton_pieces && l.is_mixed_carton_fill
-              ? 1
-              : (l.uom === "carton" ? l.sku.pcs_per_pack * l.sku.packs_per_carton
-                 : l.uom === "pack" ? l.sku.pcs_per_pack : 1);
-            const atCap = l.qty_pieces + per > maxPiecesFor(l.sku);
-            return (
-              <div key={l.key} className="px-4 py-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="ios-subhead text-foreground truncate">
-                      {g.brandName ? l.sku.model_name : `${l.sku.brand_name} · ${l.sku.model_name}`}
-                      <span style={{ color: "var(--muted-foreground)" }}> · {l.sku.variant_display}</span>
-                    </p>
-                    <p className="ios-footnote snm-num" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-                      {lineQtyText(l)} · {linePriceText(l)}
-                    </p>
-                  </div>
-                  <span className="ios-subhead font-semibold snm-num shrink-0 text-foreground">
-                    MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
+            {full.length > 0 && (
+              <>
+                <CartSectionLabel text="Full cartons · one colour" />
+                {full.map((l) => (
+                  <CartItemRow key={l.key} line={l} hideBrand
+                    editable={editable} onChangeQty={onChangeQty} onRemove={onRemove}
+                    maxPiecesFor={maxPiecesFor} />
+                ))}
+              </>
+            )}
 
-                {editable && (
-                  <div className="flex items-center justify-between gap-3 mt-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <button
-                        onClick={() => onChangeQty(l.key, -1)}
-                        disabled={step.value <= 1}
-                        aria-label="One less"
-                        className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
-                        style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
-                        −
-                      </button>
-                      <span className="min-w-[1.5rem] text-center ios-subhead font-bold tabular-nums text-foreground">
-                        {step.value}
-                      </span>
-                      <button
-                        onClick={() => onChangeQty(l.key, 1)}
-                        disabled={atCap}
-                        aria-label="One more"
-                        className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
-                        style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
-                        +
-                      </button>
-                      <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{step.word}</span>
-                    </div>
-                    <button
-                      onClick={() => onRemove(l.key)}
-                      aria-label="Remove from order"
-                      className="snm-pressable w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)", color: "var(--snm-error)" }}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+            {mixed.length > 0 && (
+              <>
+                <CartSectionLabel
+                  text={short > 0
+                    ? `Mixed · ${g.mixedPieces} of ${(mixedCartons + 1) * g.piecesPerCarton} ${noun}s`
+                    : `Mixed carton${mixedCartons === 1 ? "" : "s"} · ${mixedCartons} × ${g.piecesPerCarton} ${noun}s`}
+                  tone={short > 0 ? "var(--snm-error)" : undefined}
+                />
+                {short > 0 && (
+                  <p className="ios-footnote font-semibold px-0.5" style={{ color: "var(--snm-error)" }}>
+                    {short} more {noun}{short === 1 ? "" : "s"} to fill the carton — {g.brandName} is only sold by the carton
+                  </p>
                 )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+                {mixed.map((l) => (
+                  <CartItemRow key={l.key} line={l} hideBrand
+                    editable={editable} onChangeQty={onChangeQty} onRemove={onRemove}
+                    maxPiecesFor={maxPiecesFor} />
+                ))}
+              </>
+            )}
+          </div>
+        );
+      })}
 
-      <div className="flex justify-between px-4 py-3 ios-subhead font-semibold"
-        style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "var(--glass-bg-1)" }}>
+      <div className="flex justify-between items-center px-3.5 py-3 rounded-2xl ios-subhead font-bold"
+        style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
         <span style={{ color: "var(--muted-foreground)" }}>Total</span>
         <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
       </div>
@@ -411,8 +498,8 @@ function CartLines({
       {onAddMore && (
         <button
           onClick={onAddMore}
-          className="snm-pressable w-full h-12 flex items-center justify-center gap-1.5 ios-subhead font-semibold"
-          style={{ borderTop: "0.5px solid var(--glass-border-lo)", background: "transparent", color: "var(--snm-brand-text)" }}>
+          className="snm-pressable w-full h-12 rounded-2xl flex items-center justify-center gap-1.5 ios-subhead font-semibold"
+          style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", color: "var(--snm-brand-text)" }}>
           <Plus className="h-4 w-4" /> Add more products
         </button>
       )}
@@ -1364,6 +1451,9 @@ function NewSaleSheet({
   }, [filteredSkus]);
 
   const [mixedCartonBrandId, setMixedCartonBrandId] = useState<string | null>(null);
+  /** The catalogue block, so the cart's "Add more" pill can bring it back into
+   *  view — on step 2 the products are already on screen, just scrolled past. */
+  const productSearchRef = useRef<HTMLDivElement | null>(null);
 
   // ── Brand → Model grouping for the normal product grid ──
   // Mamypoko alone spans 5 model lines (Royal Soft, Royal Soft Boy/Girl,
@@ -2126,7 +2216,7 @@ function NewSaleSheet({
 
             {/* Product picker */}
             {!selectedSkuId ? (
-              <div className="space-y-3">
+              <div className="space-y-3" ref={productSearchRef}>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
                     <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
@@ -3032,13 +3122,17 @@ function NewSaleSheet({
               );
             })() : null}
 
-            {/* Draft lines — the same cart as step 3, same component. */}
+            {/* Draft lines — the same cart as step 3, same component. The
+                "Add more" pill scrolls back to the catalogue above rather than
+                changing step, because on this screen the catalogue is already
+                here; it just may be off-screen after an add. */}
             <CartLines
               lines={draftLines}
               grandTotal={grandTotal}
               editable
               onChangeQty={changeLineQty}
               onRemove={removeLine}
+              onAddMore={() => productSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
               maxPiecesFor={maxPiecesFor}
             />
 
