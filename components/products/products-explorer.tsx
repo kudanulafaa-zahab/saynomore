@@ -1024,21 +1024,28 @@ export function ProductsExplorer() {
         onSaved={loadAll}
       />
 
-      {/* Edit SKU dialog */}
-      <EditSkuDialog
-        sku={editSku}
-        open={!!editSku}
-        onOpenChange={(o) => !o && setEditSku(null)}
-        onSaved={async () => { await loadAll(); }}
-      />
+      {/* Edit SKU dialog — MOUNTED only while a sku is selected.
+          That mount is what resets the form. The dialog used to stay mounted
+          forever and copy the sku's fields across in an effect, which left a
+          frame where a price form showed the previous sku's numbers. */}
+      {editSku && (
+        <EditSkuDialog
+          sku={editSku}
+          open
+          onOpenChange={(o) => !o && setEditSku(null)}
+          onSaved={async () => { await loadAll(); }}
+        />
+      )}
 
       {/* Cascade delete */}
+      {cascadeTarget && (
       <CascadeDeleteDialog
         target={cascadeTarget}
-        open={!!cascadeTarget}
+        open
         onOpenChange={(o) => !o && setCascadeTarget(null)}
         onDone={async () => { setSelectedSku(null); await loadAll(); }}
       />
+      )}
     </div>
   );
 }
