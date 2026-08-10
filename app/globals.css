@@ -1959,8 +1959,13 @@
    effect — it is:
 
      LAW 1  Text is never carved. Labels, money and numbers stay at full
-            --foreground. --muted-foreground is DARKENED here (#5f6470 light /
-            #a2a7b2 dark) because the standard value fails on this base.
+            --foreground. --muted-foreground is DARKENED here (#585d69 light /
+            #bcc1cb dark) because the standard value fails on this base.
+            Those two are the MEASURED values, deepened once more after the
+            first pair (#5f6470 / #a2a7b2) still failed at 4.47:1 on NESTED
+            surfaces — a card inside a card, which is where the base is
+            lightest. Tune against the lightest surface a token can land on,
+            never against the page.
      LAW 2  A control whose state is not carried by TEXT carries it by a
             FULL-CONTRAST FILL — toggles, steppers, sliders, checkmarks. That
             is the reference's saturated-fill trick, and it clears 3:1 by a

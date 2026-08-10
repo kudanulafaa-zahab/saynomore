@@ -12,9 +12,12 @@
 > `skills.md`, and `git log`. Those are committed and cannot be lost when a
 > chat ends. A summary can only lose the *pointer*. **Read
 > `app/globals.css` before touching any UI** — it holds four palettes
-> (sunrise/aurora/ember/monochrome, each light+dark), the Liquid Glass frost
+> (sunrise/aurora/ember/soft, each light+dark) in **two different materials**
+> (Soft is carved and opaque; the rest are glass), the Liquid Glass frost
 > dial, and the Display P3 wide-gamut tuning for Retina/OLED. None of that is
-> obvious from a component file, and all of it is easy to break by accident.
+> obvious from a component file, and all of it is easy to break by accident —
+> a hardcoded `blur()` or `box-shadow` is invisible in review and silently
+> breaks Soft. Use `--glass-blur-content` / `--snm-float-shadow` instead.
 
 ## Behaviour
 - Plain English. One recommendation. Lead with the answer.
@@ -72,9 +75,12 @@ only design artifact he can review on a phone.
    needed, that is the signal to go back to step 1.
 
 **Contrast is not a matter of taste — and the usual failure is TEXT, not
-surfaces.** `--muted-foreground` is `#8e9192`. A bottom sheet is `--glass-2` —
-13% white over the page gradient. That pairing measures about **2.6:1**, under
-the 4.5:1 readable floor. Other screens survive it because their muted text is
+surfaces.** A bottom sheet is `--glass-2` — 13% white over the page gradient.
+`--muted-foreground` on it measured about **2.6:1**, under the 4.5:1 readable
+floor. (The token was `#8e9192` when that was measured; it is now `#63676f`
+light / `#aab0b8` dark — deepened, but muted-on-a-sheet is still not safe.)
+**Measure, don't judge: `npm run audit:contrast` checks 72 cases on the
+rendered page.** Other screens survive it because their muted text is
 one short caption *beside* real `--foreground` content; a form that is mostly
 empty has no such content, so if the captions, the field names (as
 placeholders), the helper lines and the unselected pills are all muted, the

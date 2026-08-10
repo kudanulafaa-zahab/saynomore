@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same three audits he can run locally:
+# This runs the same five audits he can run locally (`npm run audit:ui`):
 #
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
 #             things that cost money or make the screen unusable
@@ -23,8 +23,9 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All three are proven to fail when the bug they guard is reintroduced; that was
-# checked by putting each one back deliberately.
+# All five are proven to fail when the bug they guard is reintroduced; that was
+# checked by putting each one back deliberately. The table of which mutation
+# each one caught is in scripts/audit/README.md.
 
 on:
   pull_request:

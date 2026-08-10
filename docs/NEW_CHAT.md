@@ -7,8 +7,10 @@ deliberately short enough to type from a phone if you ever lose it.
 
 ```
 Read docs/HANDOFF.md in full before doing anything, then app/globals.css
-before touching any UI. Start with section 7 (what's left), 5L (everything
-done on 2026-08-05), 2b (every screen) and 3 (the design system).
+before touching any UI. Start with section 7 (what's left) and 11 (the
+newest work — it overrides 7 where they disagree), then 2b and 2c (every
+screen, and the shared code), 3 (the design system), 10 and 12 (the two
+test gates — run npm run audit:ui before you claim a screen works).
 
 Treat HANDOFF as a map, not the record — the record is globals.css, the
 migration headers, skills.md and git log. If they ever disagree, git wins.
@@ -21,15 +23,23 @@ start building until I answer.
 
 ## Why it is written this way
 
-- **"in full"** — a new session will otherwise skim. The file is 1,200 lines
+- **"in full"** — a new session will otherwise skim. The file is 1,700 lines
   and the parts that matter most are not at the top.
+- **"11 overrides 7"** — §7 is the older "what's left" list and parts of it
+  have been overtaken. Naming which one wins costs one clause and saves a
+  session from re-doing finished work.
 - **"then `app/globals.css` before touching any UI"** — this is the one that
   protects the work that is easiest to destroy by accident: four palettes
-  (sunrise / aurora / ember / monochrome, each light and dark), the Liquid
-  Glass frost dial, the Display P3 wide-gamut tuning for Retina, and a
-  deliberate carve-out where text colours were left in sRGB because their
-  contrast was verified on Ali's device in daylight. None of that is visible
-  from a component file.
+  (sunrise / aurora / ember / soft, each light and dark) in **two different
+  materials** — Soft is carved and opaque where the others are glass, so a
+  hardcoded blur or shadow silently breaks it — plus the Liquid Glass frost
+  dial, the Display P3 wide-gamut tuning for Retina, and a deliberate
+  carve-out where text colours were left in sRGB because their contrast was
+  verified on Ali's device in daylight. None of that is visible from a
+  component file.
+- **"run `npm run audit:ui`"** — the screens have a test gate now, and it is
+  the difference between "it looks right on my machine" and knowing. It takes
+  minutes and it has caught things nobody could see.
 - **"map, not the record… git wins"** — a summary can go stale or thin. The
   code and the migration headers cannot. This sentence stops a new session
   trusting a paraphrase over the source.

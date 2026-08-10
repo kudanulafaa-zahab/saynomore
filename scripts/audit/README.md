@@ -1,6 +1,6 @@
 # Browser audits
 
-Three scripts that check the app the way Ali does, so he does not have to.
+Five scripts that check the app the way Ali does, so he does not have to.
 
 ## Why these exist
 
@@ -27,7 +27,7 @@ You need the local stack up — Docker, `supabase start`, and the app running.
 supabase start                # replays every migration onto a fresh Postgres
 npm run audit:seed            # fixture data + an admin sign-in
 npm run dev                   # or: npm run build && npm run start
-npm run audit:ui              # all three
+npm run audit:ui              # all five
 ```
 
 Individually:

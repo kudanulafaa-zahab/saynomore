@@ -30,18 +30,36 @@ out wrong twice.
 
 ## 3. Read `app/globals.css` before touching any UI
 
-It holds four palettes (sunrise / aurora / ember / monochrome, each light AND
-dark), the Liquid Glass frost dial, and Display P3 wide-gamut tuning for
-Retina/OLED — including a deliberate carve-out where text colours were left in
-sRGB because their contrast was verified on Ali's device in daylight. None of
-this is visible from a component file. All of it is easy to destroy by being
-helpful.
+It holds four palettes (sunrise / aurora / ember / soft, each light AND dark)
+in **two different materials** — Soft is carved and opaque where the other
+three are glass — plus the Liquid Glass frost dial and Display P3 wide-gamut
+tuning for Retina/OLED, including a deliberate carve-out where text colours
+were left in sRGB because their contrast was verified on Ali's device in
+daylight. None of this is visible from a component file. All of it is easy to
+destroy by being helpful.
+
+**The specific way it breaks:** a hardcoded `blur(14px)` or a hand-typed
+`box-shadow` looks harmless in review and cannot be reached by any palette, so
+Soft silently stops being Soft on that surface. Use `--glass-blur-content`,
+`--snm-float-shadow` and `--snm-thumb-shadow`. `npm run audit:material` fails
+the build over it — run it, and `npm run audit:ui`, before saying a screen
+works.
 
 ## 4. Contrast is measured, not judged
 
-`--muted-foreground` (#8e9192) on a `--glass-2` sheet is ~2.6:1 — it fails.
-If it has to be read, it is `--foreground`. A field's name never lives in its
-placeholder. An unselected pill carrying a choice is content, not a hint.
+`--muted-foreground` on a `--glass-2` sheet measured **~2.6:1** — it fails.
+(The token was `#8e9192` when that was measured; it has since been deepened to
+`#63676f` light / `#aab0b8` dark, which made it *less bad*, not safe. The rule
+is unchanged.) If it has to be read, it is `--foreground`. A field's name never
+lives in its placeholder. An unselected pill carrying a choice is content, not
+a hint.
+
+**Do not judge this by eye — measure it.** `npm run audit:contrast` composites
+the real backdrop through every translucent ancestor and checks 72 cases: 4
+palettes × 2 schemes × 9 screens. It has caught failures that were invisible in
+`globals.css`, including tab-bar labels failing in all four palettes at once.
+Tune a token against the **lightest** surface it can land on — a card inside a
+card — never against the page.
 
 ## 5. PACKS and CARTONS at every step — buy, receive, sell. Never pieces.
 
@@ -89,4 +107,6 @@ Always verify the production deployment reaches READY **and** that
 ---
 
 Full versions with the incident behind each rule: `CLAUDE.md`, `skills.md`.
-What is left to do: `docs/HANDOFF.md` §7.
+What is left to do: `docs/HANDOFF.md` **§7, then §11** — §11 is newer and
+overrides §7 where they disagree. The two test gates are §10 (money and stock,
+173 pgTAP tests) and §12 (the screens, five browser audits).

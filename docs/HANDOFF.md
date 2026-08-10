@@ -14,9 +14,9 @@ one.** The record is:
 
 | The real record | Why it cannot be lost |
 |---|---|
-| `app/globals.css` (1,837 lines) | Every design token, with the reasoning AND the date of each decision in the comments. Four palettes, the frost dial, Display P3, the whole material. |
+| `app/globals.css` (2,271 lines) | Every design token, with the reasoning AND the date of each decision in the comments. Four palettes — **two different materials** — the frost dial, Display P3, the whole thing. |
 | `skills.md` | The design/engineering laws with the incident that created each one. Loads automatically. |
-| `supabase/migrations/*.sql` | Every money and stock rule, with a header explaining WHY. 144 files. Applied live, tracked in git. |
+| `supabase/migrations/*.sql` | Every money and stock rule, with a header explaining WHY. 157 files, latest `0166`. Applied live, tracked in git. |
 | `git log` | Every change, with a full commit message explaining the decision. |
 | The code itself | Comments carry the reasoning at the point of use. |
 
@@ -25,7 +25,7 @@ memory of any conversation still has every one of them.
 
 What a *summary* can lose is the **map** — knowing something exists so you go
 and read it. That is what went thin here: section 3 was 22 lines describing
-1,837 lines of design work, and never mentioned the four palettes or the
+what is now 2,271 lines of design work, and never mentioned the palettes or the
 Display P3 / Retina tuning at all. A new session would not have known to look.
 Sections 2b and 3 were rewritten on 2026-08-05 to point at the real thing,
 by line number.
@@ -41,12 +41,17 @@ are about to change.**
 1. **§7 — What is left to do.** Written to be picked up cold. It separates what
    is Ali's call, what was offered and never answered, what is genuinely open,
    what is deferred and why, and what looks like a bug but was decided.
-2. **§5L — the complete index of 2026-08-05.** Every merged PR of that day with
-   a pointer to the detail. Use it as the completeness check.
+   **§11 is newer than §7 — read both; where they disagree, §11 wins.**
+2. **§11 — the complete index of 2026-08-07 → 08-10.** The most recent work:
+   the Soft palette, the contrast sweep, the browser audit gate, the sales-file
+   split, backups. Use it as the completeness check for anything current.
+   §5L is the same thing for 2026-08-05.
 3. **§2b — every screen in the app.** §3 — the design system, by line number.
-4. **§10 — the test suite.** 41 pgTAP tests run on every PR touching
-   `supabase/`. Read it before changing any money or stock function; add a
-   test alongside any new rule.
+4. **The two test gates, and they are peers.** §10 — 173 pgTAP tests on every
+   PR touching `supabase/`; read it before changing any money or stock
+   function. **§12 — five browser audits on every PR touching the screens**;
+   read it before changing any UI, and run `npm run audit:ui` before claiming
+   a screen works.
 5. Then `CLAUDE.md` and `skills.md`, which load automatically and carry the
    standing laws.
 
@@ -132,6 +137,28 @@ and routable** (the Price Simulator shipped that way — hard rule 8).
 Roles: `admin`/`manager` see everything, `viewer` sees all but `/dispatch`,
 `staff` (drivers) see only `/deliveries`.
 
+### 2c. The shared primitives — check here before writing a new one
+
+There is **one canonical implementation per pattern**, and duplicating one is
+how the bugs get in. Before you write a helper, a card style or a hook, look
+here.
+
+| File | What it owns | Why it exists |
+|---|---|---|
+| `lib/surfaces.ts` | `CARD`, `CARD_L2`, `CARD_ROUNDED` | The card recipe was copy-pasted as a local `const CARD` in **nine** files, so a palette change reached some screens and not others. Import it; never redeclare it. |
+| `lib/trade-units.ts` | `formatQtyInTradeUnits`, `sellableTiers`, `costPerTradeUnit` | Packs and cartons, never pieces. `sellableTiers` reads `skus.sellable_units` — screens used to *synthesise* a Piece button, which invited a loose-diaper sale. Postgres has the twin: `qty_in_trade_units` / `unit_noun` (0143). |
+| `lib/use-on-mount.ts` | `useOnMount(fn)` | Replaced 12 copies of `useEffect(() => { load() }, [])`. **Read its doc comment** — it is honest that it hides the lint rule rather than fixing it, which is why it is not called `useSafeEffect`. |
+| `lib/palette.ts` | `PALETTES`, the pre-paint init script, swatches | Also maps a stored `"monochrome"` back to Sunrise. |
+| `lib/offline-write.ts` / `offline-queue.ts` | `withOfflineFallback` → `enqueue` → `drainQueue` | The IndexedDB write queue. Verified end-to-end for the first time on 2026-08-10 (§12). |
+| `lib/push.ts` | Every notification | One send path, admin fan-out, dedup, category gate. |
+| `lib/mvt-date.ts` | Maldives time | Every date bucket. |
+| `components/sales/cart/cart-math.ts` | `groupCartLines`, `cartonShortfall`, `lineQtyText`, … | Pure functions, no React. "1.666 cartons" and "7 bottles blue" both lived here; they are now testable in isolation. |
+
+**New Sale was split out of a 4,044-line file on 2026-08-10.** If you are
+looking for the composer it is **`components/sales/new-sale-sheet.tsx`**, not
+`sales-list.tsx` (now 716 lines, and just the list). The Sosoft colour picker
+is `mixed-carton-sheet.tsx`; the cart UI is `cart/cart-lines.tsx`.
+
 ---
 
 ## 3. Design system — READ `app/globals.css` BEFORE TOUCHING ANY UI
@@ -144,29 +171,37 @@ knows what exists and does not damage it by accident. **Nothing here is
 optional polish — it was built and tuned over many sessions on Ali's real
 device.**
 
-### 3a. Four palettes, each with light AND dark — not one theme
+### 3a. Four palettes, each with light AND dark — and TWO materials
 
 `[data-palette]` in `app/globals.css`:
 
-| Palette | Light | Dark |
-|---|---|---|
-| `sunrise` | :345 | :349 / :604 |
-| `aurora` | :363 | :375 / :612 |
-| `ember` | :389 | :401 / :620 |
-| `monochrome` | :423 | :435 / :628 |
+| Palette | Material | Light | Dark |
+|---|---|---|---|
+| `sunrise` | glass | :360 / :371 | :375 / :665 |
+| `aurora` | glass | :389 | :401 / :673 |
+| `ember` | glass | :415 | :427 / :681 |
+| `soft` | **carved** | :1989 | :2076 |
+
+**`monochrome` was DELETED on 2026-08-10** (Ali: *"You can delete the
+monochrome theme"*). `lib/palette.ts` maps any stored `"monochrome"` back to
+Sunrise, so a phone that still had it selected does not land on a blank theme.
+Do not resurrect it.
 
 Switched from **Settings → `components/settings/palette-section.tsx`**, applied
 pre-paint by the init script in **`lib/palette.ts`** (no flash of the wrong
-theme). Glass fill/blur/radius tokens are **identical across all palettes**
-(:283) — only wallpaper, accent and status colours vary. A change to the glass
-material therefore hits all four at once; a change to an accent must be made in
-four places.
+theme). Glass fill/blur/radius tokens are **identical across the three glass
+palettes** (:283) — only wallpaper, accent and status colours vary. A change to
+the glass material therefore hits all three at once; a change to an accent must
+be made in three places, plus Soft.
 
-Dark mode has its own name and its own tuning: **"Void & Vapor"** (:484) — a
+**Soft is not a colour variation — it is a different physics.** See §3f before
+touching it, and before adding any surface anywhere.
+
+Dark mode has its own name and its own tuning: **"Void & Vapor"** (:539) — a
 neutral graphite glow fading to true OLED black, so translucent cards have real
 depth to float above.
 
-### 3b. Retina / Display P3 wide gamut (:1694)
+### 3b. Retina / Display P3 wide gamut (:1764)
 
 Every iPhone since the 7 renders Display P3 — about **25% more colour volume
 than sRGB**. Accent FILLS are re-expressed in `color(display-p3 …)` so buttons,
@@ -178,7 +213,7 @@ the sRGB hex above as the automatic fallback.
 Maldivian daylight**. Fills only carry a 3:1 large-element bar; text does not.
 **Do not "finish the job" by converting the text tokens.**
 
-### 3c. The Liquid Glass master dial — one user scalar (:138)
+### 3c. The Liquid Glass master dial — one user scalar (:142)
 
 `--glass-frost` (0–1, default 0.5, persisted as `snm-frost`) drives the whole
 material Apple-style: 0 = clear glass, 1 = heavy frost. **0.5 reproduces the
@@ -199,32 +234,41 @@ surface without them and it will not respond to the dial.**
 
 ### 3d. What else is in there, by line
 
-- **Apple HIG iOS type scale** (:71) — the `ios-*` classes, SF/Dynamic Type at
-  Large. `.ios-page-title` is the one canonical page title (:1329).
-- **Motion tokens** (:104) — one spring language app-wide
+- **Apple HIG iOS type scale** (:75) — the `ios-*` classes, SF/Dynamic Type at
+  Large. `.ios-page-title` is the one canonical page title (:1387).
+- **Motion tokens** (:108) — one spring language app-wide
   (`--snm-spring`, `--snm-ease-out`). Never hardcode a bezier.
-- **The scrim** (:115) — the ONE backdrop recipe for every modal/sheet/overlay.
-- **Atmospheric depth** (:259 light, :555 dark) — the fixed `--app-bg` gradient
-  painted by `body::before`, which is what translucent surfaces reveal.
+- **The scrim** (:119) — the ONE backdrop recipe for every modal/sheet/overlay.
+- **Atmospheric depth** (:285 light, :616 dark) — the fixed `--app-bg` gradient
+  painted by `body::before` (:907), which is what translucent surfaces reveal.
   **Neutral luminance only, no hue** — that is what keeps green/red/orange
-  meaning money.
-- **Glass utility classes** (:900) — primary surface (cards), secondary
-  (modals/sheets), tertiary (elevated dialogs), flat (dividers, no blur for
-  perf), sidebar, bottom nav, inputs.
-- **Floating tab bar — iOS 26 Liquid Glass signature** (:1013). Uses
-  `--tabbar-bg`/`--tabbar-border`, NOT the shared glass tokens, deliberately.
-- **Concentric corner radius** (:1257) and **capsule controls** (:1266) —
-  Apple's default button shape; `.glass` / `.glassProminent` buttons (:1269,
-  :1288) mirror SwiftUI's `buttonStyle`.
-- **Press physics** `.snm-pressable` (:1218), **tabular money** `.snm-num`
-  (:1229), **accessible focus ring** (:1237), `.label-caps` (:1093),
-  `.snm-input` (:1183) — 48px, the app's canonical field.
-- **Parallax drift** (:1451) — scroll-driven, compositor-thread only.
-- **Native-app feel** (:818) — pinch-zoom and text selection blocked globally;
-  native scroll indicators (:875). Rubber-band bounce stays ON.
+  meaning money. Soft replaces the gradient with a flat base; see §3f.
+- **Glass utility classes** (:958) — primary surface (cards, :968), secondary
+  (modals/sheets, :984), tertiary (elevated dialogs, :993), flat (dividers, no
+  blur for perf, :1002), sidebar (:1009), bottom nav (:1017), inputs (:1025).
+- **Floating tab bar — iOS 26 Liquid Glass signature** (:1071). Uses
+  `--tabbar-bg`/`--tabbar-border`, NOT the shared glass tokens, deliberately —
+  and since 2026-08-10 `--tabbar-fg` / `--tabbar-accent` (:1732) for the
+  labels, because the bar composites lighter than the page and failed contrast
+  in every palette at once. Do not paint tab labels from `--muted-foreground`.
+- **Concentric corner radius** (:1315) and **capsule controls** (:1324) —
+  Apple's default button shape; `.glass` / `.glassProminent` buttons (:1327,
+  :1346) mirror SwiftUI's `buttonStyle`.
+- **Press physics** `.snm-pressable` (:1276), **tabular money** `.snm-num`
+  (:1287), **accessible focus ring** (:1295), `.label-caps` (:1150),
+  `.snm-input` (:1240) — 48px, the app's canonical field.
+- **Three tokens that make a surface theme-aware** (:276–:280) —
+  `--glass-blur-content` (never hardcode `blur(14px)` on a card),
+  `--snm-float-shadow` and `--snm-thumb-shadow`. Added 2026-08-10 because the
+  blur had been hand-typed into 22 components and shadows into 8 more, where
+  no palette could reach them. `material.mjs` now fails the build over it.
+- **Parallax drift** (:1509) — scroll-driven, compositor-thread only.
+- **Native-app feel** (:876) — pinch-zoom and text selection blocked globally;
+  native scroll indicators (:933). Rubber-band bounce stays ON.
 - **Accessibility fallbacks that must survive refactors:**
-  `prefers-reduced-motion` (:1502, :1680), `prefers-reduced-transparency`
-  (:1739 — opaque fills, no blur), `prefers-contrast: more` (:1762).
+  `prefers-reduced-motion` (:1852, plus :1560 and the Soft block),
+  `prefers-reduced-transparency` (:1805 — opaque fills, no blur),
+  `prefers-contrast: more` (:1829, and :2197 for Soft).
 
 ### 3e. The laws (full versions with case history in `skills.md` Seat 1)
 
@@ -239,7 +283,53 @@ surface without them and it will not respond to the dial.**
 - **Sheets arrive, they don't appear** — `.snm-sheet-in` spring,
   `.snm-scrim-in` fade, transform/opacity only.
 - **Contrast is measurable, not taste** — see the rule in `CLAUDE.md` and
-  section 5k. `--muted-foreground` on a `--glass-2` sheet is ~2.6:1 and fails.
+  section 5k. It is now MEASURED on every PR by `contrast.mjs` (§12) rather
+  than argued about; 72 checks, and the app passes all of them.
+
+### 3f. Soft — the carved palette (2026-08-10, :1911)
+
+**Soft is a different material, not a different colour scheme.** Read the
+block header at `app/globals.css:1911` before changing anything in it; it is
+the fullest statement of the reasoning and it is where the record lives.
+
+The short version, because it governs how you write *any* new surface:
+
+- **Soft UI and Liquid Glass are opposite physics.** Carved says "opaque, cut
+  out of the page": one flat base, light shadow up-left, dark shadow
+  down-right, zero transparency. Glass says "translucent, floating above the
+  page". They cannot both describe one surface, so they are split **by role** —
+  the same layering law the app already had, with one substitution:
+
+  | Role | Material |
+  |---|---|
+  | In-flow content that sits ON the page — cards, rows, buttons, inputs, pills, steppers, toggles | **carved** (emboss/deboss, no blur) |
+  | Chrome that floats ABOVE the page — tab bar, sheets, modals, topbar | **glass** (translucent, blurred) |
+
+- **It works through a token bridge (:2032), not through class overrides.**
+  Most screens in this app style *inline* from `--glass-*` tokens rather than
+  through `.snm-card`. So Soft redefines the tokens themselves — `--glass-1`,
+  `--glass-bg-1/2`, `--glass-fill-top/bottom` all become the flat base;
+  `--glass-shadow` becomes the carve; `--glass-sheen`, `--glass-inner`,
+  `--glass-specular` and `--glass-blur-content` go to `none`. **That is why a
+  hardcoded `blur(14px)` or a hand-typed `box-shadow` breaks the theme:** it
+  routes around the bridge, and no palette can reach it. `material.mjs` fails
+  the build over exactly that.
+- **Its three laws, because soft UI's known failure is contrast** (a control
+  the same colour as its background, marked by a 1–2% shadow, measures ~1.1:1
+  where WCAG 1.4.11 wants 3:1):
+  1. **Text is never carved** — full `--foreground`; the muted token is
+     deepened to `#585d69` / `#bcc1cb`.
+  2. **A control whose state is not carried by TEXT carries it by a
+     full-contrast FILL** — toggles, steppers, checkmarks. That is the
+     reference image's own trick.
+  3. **The fill is `--foreground`, never a hue** — colour still means money.
+- **Dark Soft raises the page to `#212327`,** not OLED black: the emboss needs
+  a mid-tone to push light off, and black has nothing to lighten.
+- **It is cheaper than what it replaces** — two box-shadows per card instead
+  of a per-card `backdrop-filter`.
+- Its swatch in Settings is drawn from **literal** values, not the `--soft-*`
+  tokens, since those only exist while Soft is the active palette. It carries
+  `data-palette-swatch` so the material audit skips it.
 
 ## 4. Hard rules (never break)
 
@@ -946,9 +1036,12 @@ modules looks fine and legible."*
 
 Fair question, and the answer is measurable rather than aesthetic.
 
-`--muted-foreground` is `#8e9192`. A bottom sheet is `--glass-2` = **13% white**
-over the page gradient. That pairing is roughly **2.6:1** — under the 4.5:1
-readable floor. Every other screen uses the same token and looks fine because
+A bottom sheet is `--glass-2` = **13% white** over the page gradient, and
+`--muted-foreground` on it measured roughly **2.6:1** — under the 4.5:1
+readable floor. (`--muted-foreground` was `#8e9192` at the time; it was
+deepened on 2026-08-10 to `#63676f` light / `#aab0b8` dark after the same
+token was caught failing on ordinary *cards* too — see §11b. Deeper, but
+still not safe on a sheet, so the rule below is unchanged.) Every other screen uses the same token and looks fine because
 its muted text is one short caption sitting *beside* real `--foreground`
 content. A mostly-empty form has no such content: I had put the section
 captions, the field names (as placeholders), four multi-line helper paragraphs
@@ -1023,7 +1116,10 @@ re-fires it. **"Merged" and "live" can come apart; always verify the production
 deployment reaches READY and that the `saynomore-beta.vercel.app` alias points
 at it.**
 
-## 6. Built this session (recent → older highlights)
+## 6. Built up to 2026-08-04 (recent → older highlights)
+
+*("this session" when written; kept as-is because the detail is still accurate.
+For newer work see §9 (08-06), §11 (08-07 → 08-10) and §12.)*
 
 - **0100 FK indexes + screen error boundaries.** Eleven foreign keys had no index, so a
   parent delete sequential-scanned `audit_log`, `sales_orders`, `order_payments`,
@@ -1183,15 +1279,21 @@ at it.**
 
 ## 7. What is left to do — start here in a new chat
 
-**Current as of 2026-08-05, end of session.** Everything above this line is
-done, applied live, and deployed. Nothing is half-finished.
+**Current as of 2026-08-05, end of session — then amended where §11 (2026-08-07
+→ 08-10) overtook it.** Everything above this line is done, applied live, and
+deployed. Nothing is half-finished. **Where §7 and §11 disagree, §11 is newer.**
 
 ### 7a. Ali's, not mine — do not start these without his word
 
-1. **Backup.** The Supabase project is on the **FREE plan: no backups, no
-   point-in-time recovery.** An export zip was produced and sent. Pro is about
-   **USD 25/month** and is the single biggest risk on the board. He has been
-   told twice; it is his call, not a thing to keep raising.
+1. **Backup. — TOOLING BUILT 2026-08-10; the running of it is still his.**
+   The Supabase project is on the **FREE plan**, and Supabase's own words are
+   that backups "are not available for download for Free Plan projects" and
+   that deleting a project removes them "irreversible". So `npm run backup`
+   now exists (`scripts/backup.sh`), and **its restore has been tested, not
+   assumed** — see §11. What is still open is a decision only Ali can make:
+   run it on a schedule and keep the file **off** the Supabase account, or
+   pay about **USD 25/month** for Pro and get daily backups plus no pausing.
+   He has been told; do not keep raising it.
 2. **Expiry dates.** 27 batches holding **MVR 81,577** have no expiry recorded,
    so the whole FEFO/expiry engine (built, tested, wired into the briefing) is
    dark. The dates are printed on the cartons — data entry, not code.
@@ -1229,10 +1331,24 @@ not re-raise them; just do not assume they are done either.
    so this is pure prevention. A hard UNIQUE on phone is risky — families share
    numbers — so it needs thought, not a quick index.
 4. **Extend swipe actions beyond Sales rows.** Low value; only if asked.
-5. **Grow the pgTAP suite** (§10). 41 tests cover the money/stock core. The
-   obvious next areas with no coverage yet: `record_customer_return`'s stock
-   and ledger reversal, `write_off_stock`, the tier-price resolution path,
-   and `admin_force_void_grn`.
+5. **Grow the pgTAP suite** (§10). Now **173 tests across 19 files**, up from
+   41 — returns and tier pricing both got covered in between. The two that are
+   still genuinely untested: **`write_off_stock`** and
+   **`admin_force_void_grn`**. Both destroy stock, which is exactly the kind
+   of function that should not be the untested one.
+6. **The 43 remaining lint warnings** (§7e). **15 of them are not cleanup** —
+   they are `setState` after an `await` inside a fetch, which is the ordinary
+   client-fetch shape and only removable by changing how the app loads data.
+   That is an architecture decision, not a tidy-up, and it needs Ali's word
+   before anyone spends a session on it. The rest are one-line resets and
+   dialog form-syncs; each needs the **open-two-records-in-a-row** proof used
+   on `EditSkuDialog` before it is touched, because that is the bug this class
+   of "fix" causes. Put `--max-warnings 0` in the lint script only when they
+   reach zero — a threshold that is never met teaches people to ignore it.
+7. **Two dashboard-only security settings.** Supabase → Authentication: enable
+   leaked-password protection, and reduce the OTP / login-link expiry to under
+   an hour. Neither can be done from a migration or the MCP; they are clicks in
+   the dashboard. Everything else on the security board is already clean (§11).
 
 ### 7d. Deliberately deferred, with the reason
 
@@ -1256,8 +1372,13 @@ Do not "fix" these; they were decided:
 - Supplier payments are timed to expected arrival — a visible assumption.
 - `sales_orders.order_source` exists but is constrained to `'walk-in'`; it
   predates the removed web shop and is not a leftover of it.
-- The `react-hooks/set-state-in-effect` eslint warnings (about 20) are
-  pre-existing and parked. Do not blind-refactor money dialogs to clear them.
+- The `react-hooks/set-state-in-effect` eslint warnings — **43 today, down
+  from 58** — are pre-existing and deliberately parked, not forgotten. See
+  §7c.6 for what each group is and what clearing it would cost. **Do not
+  blind-refactor money dialogs to clear them:** a dialog that syncs its form
+  in an effect looks wrong and is often load-bearing, and the failure it
+  causes (stale values when you open a second record straight after the
+  first) does not show up until you open two in a row.
 
 ### Still designed-but-unused in the schema (audited 2026-07-27, nothing broken)
 Available whenever Ali wants them, no work needed to "unlock" — they're just unused:
@@ -1336,20 +1457,32 @@ produce a deployment. Works for any future branch name.
 
 ## 10. The test suite — read this before changing any money/stock function
 
-**41 pgTAP tests run automatically on every PR touching `supabase/`**
-(`.github/workflows/db-tests.yml`). Free: GitHub Actions replays every
-migration onto a throwaway Postgres in Docker and runs the tests against it.
-**Nothing ever touches production.** No Supabase branching, no subscription.
+**173 pgTAP tests across 19 files run automatically on every PR touching
+`supabase/`** (`.github/workflows/db-tests.yml`). Free: GitHub Actions replays
+every migration onto a throwaway Postgres in Docker and runs the tests against
+it. **Nothing ever touches production.** No Supabase branching, no
+subscription.
 
 Run them locally with `npx supabase start` then `npx supabase test db`.
 
-| File | What it guards |
-|---|---|
-| `security_and_stock_rules.test.sql` | No SECURITY DEFINER function is anon-executable (all ~94 in one test); RLS on every money/stock table; `stock_signed_delta`'s sign convention |
-| `confirm_grn.test.sql` | Zero-CBM block; GRN status flip; batch + `stock_movements` get the exact piece count |
-| `post_sale_fifo.test.sql` | FIFO empties the older batch first; the true weighted cost snapshot; double-post guard; **an oversized sale leaves no orphan order**; offline-key replay is idempotent |
-| `money_rules.test.sql` | Margin measured against the unit actually sold (0139); Maldives date buckets (0123/0126/0130); returns netted off the balance (0124); no SKU sells by the piece |
-| `destructive_guards.test.sql` | A part-paid order cannot be deleted and **its payment survives** (0129); a delivered order cannot be deleted; deleting returns stock (0134); deletions are audit-logged |
+| File | Tests | What it guards |
+|---|---|---|
+| `security_and_stock_rules.test.sql` | 10 | No SECURITY DEFINER function is anon-executable (all ~94 in one test); RLS on every money/stock table; `stock_signed_delta`'s sign convention |
+| `confirm_grn.test.sql` | 5 | Zero-CBM block; GRN status flip; batch + `stock_movements` get the exact piece count |
+| `post_sale_fifo.test.sql` | 11 | FIFO empties the older batch first; the true weighted cost snapshot; double-post guard; **an oversized sale leaves no orphan order**; offline-key replay is idempotent |
+| `money_rules.test.sql` | 9 | Margin measured against the unit actually sold (0139); Maldives date buckets (0123/0126/0130); returns netted off the balance (0124); no SKU sells by the piece |
+| `destructive_guards.test.sql` | 8 | A part-paid order cannot be deleted and **its payment survives** (0129); a delivered order cannot be deleted; deleting returns stock (0134); deletions are audit-logged |
+| `tier_pricing.test.sql` | 13 | Price-list resolution, incl. what a sold-out product costs (0050-era) |
+| `pricing_health.test.sql` | 13 | Margin Watch judges the unit actually sold, and never stays quiet about a loss |
+| `mixed_carton.test.sql` · `mixed_carton_return.test.sql` | 11 · 5 | A mixed carton and a whole single-colour carton stay separate; part of a mixed carton can be returned |
+| `customer_returns.test.sql` | 9 | A return puts stock back into the batches it came out of |
+| `customer_credits.test.sql` | 9 | Money owed BACK to a customer is not invisible |
+| `edit_order_line.test.sql` | 10 | Editing a confirmed line cannot break the ledger; whole trade units only (0156) |
+| `cod_collection.test.sql` | 9 | COD cash cannot quietly exceed the order's worth |
+| `line_source_godown.test.sql` · `picking_split_godown.test.sql` | 9 · 8 | A line can ship from a different godown than the rest of the order |
+| `reorder_censored_demand.test.sql` | 8 | Demand measured over the days you could actually sell |
+| `promo_advisor.test.sql` · `reprice.test.sql` | 8 · 9 | Clearance keeps a floor margin; reprice works when the shelf is empty |
+| `customer_lapse.test.sql` | 9 | The at-risk rhythm signal |
 
 `supabase/seed.sql` is the shared fixture — one catalogue chain, one godown,
 one supplier, fixed UUIDs. Add to it rather than rebuilding a catalogue in
@@ -1387,3 +1520,228 @@ Three real findings, none of which were live production defects, all now fixed:
 **When you add a money or stock rule, add the test with it.** That is now the
 cheapest part of the work, and it is the only thing that makes the next
 session's changes safe.
+
+---
+
+## 11. COMPLETE index of 2026-08-07 → 08-10 — every change, in order
+
+**This section is newer than §7. Where they disagree, this wins.**
+
+Fifteen PRs, #64 → #78, each squash-merged to `main`, each deployed and each
+verified READY with `saynomore-beta.vercel.app` pointing at it. Grouped by what
+they were about, not by date, because that is how you will look for them.
+
+### 11a. New Sale — the screen every recent bug lived in (#64–#68)
+
+Every one of these came from Ali's screenshots. They are listed because the
+*pattern* matters more than the individual fixes: all five were layout and
+unit-clarity defects in one 4,000-line file, and none of them could have been
+caught by a database test.
+
+- **#64 Mixed carton is the default**, and "Add more" no longer needs scrolling.
+- **#65 "Add more" moves to the footer**, where nothing scrolls. An add control
+  that lives inside a scrolling list disappears exactly when it is needed.
+- **#66 A full carton and a mixed carton stay apart in the cart.** They had been
+  merging into one line, which is where "7 bottles blue" and
+  "1.6666666666666667 cartons" came from.
+- **#67 One "Add product" button**, and the step indicator stops scrolling away.
+  Three footer buttons wrapped their labels onto two lines at 393pt, so "Back"
+  moved into the step indicator, which is now **tappable backwards only** —
+  you can return to a finished step, never skip to an unfinished one.
+- **#68 A real tablet and a real desktop layout.** Before this the phone screen
+  was stretched to 1512px. The order **total was literally unreachable** on
+  desktop: a sticky rail clipped inside the page's single scroller. Fixed with
+  a split pane at `lg:` and an independently scrolling order rail — **the
+  sanctioned exception** to the one-scroll-container rule in `CLAUDE.md`,
+  because a docked rail is a pane beside the page, not content inside it.
+
+### 11b. Soft, and the contrast sweep (#69, #70)
+
+- **#69 Soft: a fifth palette, and every theme now passes contrast.** The
+  palette is documented in **§3f**; read that plus `globals.css:1911`.
+- **#70 Soft is consistent app-wide, and Monochrome is gone.** Ali:
+  *"I think it's not consistent app wide. You can delete the monochrome
+  theme."* He was right, and the cause is worth remembering: **the blur had
+  been hand-typed into 22 components and shadows into 8 more.** No palette can
+  reach a hardcoded `blur(14px)`. Three tokens now own it —
+  `--glass-blur-content`, `--snm-float-shadow`, `--snm-thumb-shadow` — and
+  `material.mjs` fails the build if a new one appears.
+
+**The contrast work is the part to read before touching a colour.** Everything
+below was **measured on the rendered page**, compositing the real backdrop
+through every translucent ancestor — not read off a token. Every one of these
+was invisible in `globals.css`:
+
+| What failed | Measured | Fix |
+|---|---|---|
+| Tab-bar labels, dark, **in all four shipped palettes** | 3.81:1 | `--tabbar-fg` / `--tabbar-accent`; the bar composites lighter than the page |
+| The accent used as **text** | 2.77:1 | restored `--snm-brand-text` per palette |
+| The accent as a **button fill** under white | 3.09:1 | deepened sunrise + aurora `--glass-accent` |
+| `--muted-foreground` on **cards** (it passed on the page) | 2.81 / 3.59:1 | `#63676f` light, `#aab0b8` dark |
+| Dashboard "Assign now" — white on light orange, **dark mode** | **1.9:1** | `--snm-on-fill: #14100a` in dark |
+| "Confirmed" badge, Aurora / Ember | 4.48 / 3.96:1 | `--snm-info` → the text variant, not the fill |
+| Soft's muted + error red on **nested** surfaces | 4.47 / 4.35:1 | `#585d69` / `#b01d1d` |
+
+**The lesson, and it generalises:** a token's contrast is meaningless until you
+know what is painted behind it. Tune against the **lightest surface the token
+can land on** — a card inside a card — never against the page.
+
+### 11c. The house — one card, one file per job (#71–#75)
+
+- **#71 The screens check themselves now.** The browser audit gate — **§12**.
+- **#72 One card, one place.** Nine files each declared their own local
+  `const CARD`. Now `lib/surfaces.ts` (§2c).
+- **#73 Break up the 4,044-line sales file.** The order list, the wizard, the
+  cart, the cart maths, the Sosoft picker and the warehouse selects were one
+  scope. Now six files; `cart-math.ts` is pure functions with no React, which
+  is where the arithmetic bugs were. Nothing changed behaviourally — the
+  journey audit was the proof of that, and it is why the split was safe to do
+  at all.
+- **#74, #75 Warnings: 58 → 43.** Killed 327 lines of dead dialogs; stopped
+  two lists flashing after a save; named the loader pattern
+  (`lib/use-on-mount.ts`). **Stopped deliberately at 43** — see §7c.6 for what
+  the remaining ones are and why finishing them is an architecture decision
+  rather than a cleanup.
+
+### 11d. Things that had never once been verified (#76–#78)
+
+Each of these covered a path that was *believed* to work and had never been
+exercised. That is the category worth hunting for.
+
+- **#76 The offline path.** `withOfflineFallback` → `enqueue` → `drainQueue`
+  had been unverified since the day it was written, and an offline sync bug
+  here once meant real cash was recorded and silently never saved. Now driven
+  for real: network cut mid-sale, queued not lost, the screen says so, the
+  queue drains on reconnect, the order exists. The same PR fixed audits that
+  **passed on an empty database and failed on a used one** — two selectors
+  were matching rows *behind* the sheet.
+- **#77 There is no backup of this business. Here is one.** `npm run backup`
+  → `scripts/backup.sh`. What building it taught, all three of which are traps:
+  1. **`supabase db dump` defaults to SCHEMA ONLY.** It prints "Dumping
+     schemas" and produces a perfectly valid file with every table definition
+     and **not one row of business**. It restores cleanly and is empty. The
+     script therefore dumps schema and data separately, and **verifies the
+     ledger is present before claiming success** — that verification is the
+     only reason the trap was caught.
+  2. **`pg_dump` 16 against Postgres 17 refuses outright.** The Supabase CLI is
+     preferred because it runs a matching version in a container.
+  3. **The repo is PUBLIC.** A dump holds every customer, price and payment,
+     so the script *refuses to write inside the repository*.
+  **The restore was tested, not assumed:** 2 orders, 5 lines, 10 stock
+  movements and 6 products came back whole. The ~57 errors were all Supabase
+  platform schemas (auth/storage/realtime) that only exist inside a Supabase
+  project; none touched business data.
+- **#78 Cover receiving — the biggest money calculation in the app.** See §12.
+
+### 11e. Security and performance — measured, not assumed
+
+Both were checked properly for the first time. **Nothing needed fixing**, which
+is worth recording so the next session does not re-run it for nothing:
+
+- **RLS is on for all 33 `public` tables**, and every anon-facing SELECT policy
+  requires `auth.uid() IS NOT NULL` or a role check.
+- **Anonymous reads were actually attempted** against 10 tables with the live
+  anon key — all refused, `42501 permission denied`. Empirical, not inferred.
+- Supabase advisors: **0 errors**, 72 WARN, of which 68 are the benign
+  `authenticated_security_definer_function_executable`.
+- `keepalive()` is the one anon-executable SECURITY DEFINER function. It is
+  `select now()` with `search_path ''`. Harmless, and deliberate.
+- **Git history contains no production `service_role` key.** The only one
+  present is Supabase's well-known **local demo** key, added for CI.
+- Vercel runtime errors over 7 days: **none**.
+- **`pg_net` was left in the `net` schema on purpose.** Its functions already
+  live there and the pg_cron digest calls `net.http_post` schema-qualified;
+  moving it would break the 07:00 low-stock digest to satisfy a lint.
+- **Performance, first measurement** — throttled phone (4× CPU, ~1.6 Mbps,
+  150 ms latency): first paint 644–796 ms, fully loaded 1.5–1.8 s, 79 KB, ~32
+  requests, **no sequential query waterfalls** (21 files use `Promise.all`).
+  **Caveat, stated plainly: measured against a 6-SKU fixture, not production
+  data volumes.** Re-measure against real data before trusting it.
+
+### 11f. Still Ali's to do, from this stretch
+
+1. **Run `npm run backup` regularly, and keep the file off the Supabase
+   account** — or move to Pro. §7a.1.
+2. **The two dashboard-only auth settings.** §7c.7.
+3. **Measure the five carton sizes with a tape measure.** Said before and it
+   is still the highest-value non-code job on the board: every landed cost,
+   margin and price warning rides on dimensions mostly filled in from one
+   rough measurement, and the top three sizes carry **85% of the freight**.
+
+---
+
+## 12. The browser audit gate — read this before changing any screen
+
+**Five audits run on every PR touching `app/`, `components/`, `lib/`,
+`scripts/audit/`, `supabase/fixtures/` or `package.json`**
+(`.github/workflows/ui-checks.yml`). They are the peer of §10: that gate
+guards the money, this one guards what a person sees.
+
+**Why they exist.** The database half of this app has had 170+ tests for
+months and has not produced an incident. The screens had nothing — **every UI
+defect in August was found by Ali, on his phone, after it shipped.** He was
+the only quality check the front end had. Same app, two halves, one difference.
+
+They are plain `.mjs` scripts that exit `0` or `1` and print numbers, not a
+test-runner. Run the lot locally with:
+
+```bash
+supabase start && npm run audit:seed && npm run build && npm run start
+npm run audit:ui        # all five
+```
+
+| Audit | Checks | What it guards |
+|---|---|---|
+| `journey.mjs` | 36 | A real sale driven on **phone, tablet and desktop**: mixed and single-colour cartons stay separate; a part carton cannot be added; the cart shows a total; no footer button wraps; the page never scrolls sideways; the rail is desktop-only; the add control is never inside a scroller; **no piece count ever reaches the screen**; nothing throws |
+| `grn.mjs` | 13 | Receiving a shipment through the real screen, then the money it produced — per-line landed cost, total conservation, forex locked, stock moved, and that it **refuses to receive twice** |
+| `offline.mjs` | 6 | A sale recorded with the network cut is queued not lost, the screen says so, the queue drains, the order exists |
+| `material.mjs` | 9 screens | Every in-flow surface actually wears the current theme — structurally, not aesthetically |
+| `contrast.mjs` | 72 | 4 palettes × 2 schemes × 9 screens, measured on the **rendered** page |
+
+**They are proven to fail.** Each was verified by putting its bug back — the
+table is in `scripts/audit/README.md`. A check that has never been seen to
+fail is not yet a check; it is a source of false confidence. Two further
+mutation attempts were deliberately *not* caught, and that was correct: each
+had a second fix covering it. Worth knowing before trusting a green run.
+
+**The fixture** is `supabase/fixtures/ui_fixture.sql` — one idempotent `DO`
+block with **fixed UUIDs and an early return**. Fixed, because the first
+version minted fresh UUIDs each run, which meant a second run violated a
+unique key and, worse, **would have doubled the stock**. `seed.mjs` creates the
+auth user through the real signup endpoint, so `handle_new_user` gets
+exercised too.
+
+**`seed.mjs` and `grn.mjs` refuse a non-local database URL.** They delete and
+insert stock to reset their fixture; against production that is real stock.
+The guard parses `new URL(value).hostname` — an earlier regex version read
+`postgres:postgres@127.0.0.1` as remote and blocked a local run.
+
+### 12a. The most instructive failure in the whole gate
+
+The GRN audit's expected figures came from a **UI code comment** stating that
+duty is apportioned by rate-weighted FOB. The audit returned 1,826.76 where
+1,656.83 was expected.
+
+**Because the total still balanced at exactly 61,600, the money was provably
+conserved and only the split was in doubt — so the right move was to read
+`confirm_grn`, not to "fix" the app.** It weights duty by
+`fob_total_mvr * duty_rate_pct` and **falls back to CBM share when the total
+weight is zero**. Every category Ali actually trades — Diapers, Dishwashing,
+Liquid and Powder Detergent — is at **0.00%** duty; only Tobacco carries a
+rate, and he does not sell it. So in production the weighted branch never runs
+and duty spreads by CBM like everything else.
+
+**The app was right and the expectation was wrong.** The fixture now matches
+the path the business is actually on, not the one the code merely permits.
+Two general lessons, both cheap and both repeatable: **check conservation
+before checking the split** — a total that still balances tells you the error
+is in apportionment, not in the money; and **a code comment is not the
+record** — the function is.
+
+### 12b. Adding a check
+
+Put it where it belongs. A money or stock rule belongs in
+`supabase/tests/database/` (§10), not here — these are for what a person sees.
+Prefer one clear assertion with a **number in its failure message** over a
+screenshot comparison: Ali reads the failure, and "3.84:1, needs 4.5" tells
+him something a diff image does not.
