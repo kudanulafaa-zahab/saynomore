@@ -39,18 +39,12 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { priceForMargin } from "@/lib/trade-units";
 import { mvtPlainDay } from "@/lib/mvt-date";
+import { CARD } from "@/lib/surfaces";
 
 // Liquid Glass content surface (2026-07-15) — matches .glass-panel's recipe
 // (fill + specular inset highlight + border) without needing 21 JSX call
 // sites converted to className. No backdrop-filter here by design: content
 // cards use translucency over the wallpaper, blur is chrome-only.
-const CARD = {
-  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "var(--glass-blur-content)",
-  WebkitBackdropFilter: "var(--glass-blur-content)",
-  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
-  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
-} as const;
 
 
 const BASIS_LABEL: Record<PriceBasis, string> = {
@@ -1768,7 +1762,6 @@ function CompetitorModal({ editing, onClose, onDone }: { editing?: CompetitorRow
   const [name, setName] = useState(editing?.name ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
-  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)", backdropFilter: "var(--glass-blur-content)", WebkitBackdropFilter: "var(--glass-blur-content)" } as const;
 
   async function save() {
     if (!name.trim()) return;
@@ -1820,7 +1813,6 @@ function PriceModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const CARD = { background: "var(--glass-1)", boxShadow: "var(--glass-shadow), var(--glass-inner)", backdropFilter: "var(--glass-blur-content)", WebkitBackdropFilter: "var(--glass-blur-content)" } as const;
 
   const [selectedCompId, setSelectedCompId] = useState(competitorId ?? editing?.competitor_id ?? "");
   const [variantId, setVariantId] = useState(editing?.variant_id ?? "");

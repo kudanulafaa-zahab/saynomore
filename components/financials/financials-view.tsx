@@ -16,14 +16,8 @@ import { listRecentWriteoffs, writeoffLabel, type WriteoffRow, listReturns, retu
 import { MarginWatch } from "./margin-watch";
 import { ReceivablesView } from "./receivables-view";
 import { CashFlowView } from "./cash-flow-view";
+import { CARD } from "@/lib/surfaces";
 
-const CARD: React.CSSProperties = {
-  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "var(--glass-blur-content)",
-  WebkitBackdropFilter: "var(--glass-blur-content)",
-  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
-  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
-};
 
 function fmt(n: number, decimals = 0) {
   return n.toLocaleString("en-MV", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });

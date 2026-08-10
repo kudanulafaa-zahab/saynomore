@@ -31,14 +31,8 @@ import { Sheet } from "@/components/ui/sheet";
 import { haptic } from "@/lib/haptics";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { CARD } from "@/lib/surfaces";
 
-const CARD = {
-  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "var(--glass-blur-content)",
-  WebkitBackdropFilter: "var(--glass-blur-content)",
-  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
-  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
-} as const;
 
 const CURRENCIES: SupplierCurrency[] = ["IDR", "USD", "MVR", "MYR", "THB", "CNY", "EUR"];
 const COMMON_COUNTRIES = ["Indonesia", "Malaysia", "Thailand", "China", "Singapore", "India", "Maldives", "Other"];
