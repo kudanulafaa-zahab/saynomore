@@ -1835,3 +1835,267 @@
   .snm-pressable:active,
   .snm-btn:active { transform: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOFT — the fifth palette (2026-08-10)
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Ali, 2026-08-10, with a reference image of a soft-UI / neumorphic kit:
+   "the same design principles and minimalism using the exact emboss and
+   debossed effects on Liquid Glass aesthetic with real 2026 Apple HIG Liquid
+   Glass and glassmorphism guidelines... But I need to make sure you keep the
+   existing themes with that existing design guidelines for them."
+
+   So: a FIFTH palette. Every rule below is scoped to [data-palette="soft"].
+   Sunrise, Aurora, Ember and Monochrome cannot be affected by anything in
+   this block — not by accident, but by construction.
+
+   ── THE ONE THING THAT HAD TO CHANGE, AND WHY ──────────────────────────────
+
+   Soft UI and Liquid Glass are opposite physics and cannot both describe the
+   same surface. Soft UI says "this is OPAQUE and carved out of the page":
+   one flat base colour, a light shadow up-left, a dark shadow down-right, no
+   transparency at all. Liquid Glass says "this is TRANSLUCENT and floating
+   above the page": you can see through it, it refracts, it has a specular
+   rim. Copying the reference literally onto everything would mean deleting
+   Liquid Glass; using Liquid Glass everywhere would mean no emboss.
+
+   They resolve by ROLE, which is also how the physical objects work — a
+   moulded control panel, seen through a glass cover:
+
+     CARVED (emboss/deboss, no blur)  in-flow controls and content that sit
+                                      ON the page: cards, list rows, buttons,
+                                      inputs, pills, steppers, toggles.
+     GLASS  (translucent, blurred)    chrome that floats ABOVE the page: the
+                                      tab bar, sheets, modals, the topbar.
+
+   This is the same layering law the app already has (skills.md Seat 1:
+   floating chrome blurs heavier than content) with one substitution — content
+   depth is now carved rather than lightly blurred.
+
+   ── THE SECOND THING THAT HAD TO CHANGE: CONTRAST ──────────────────────────
+
+   Soft UI's known failure, and the reason the style died as a trend, is that
+   a control is the same colour as its background and the only thing marking
+   it is a 1-2% shadow. That measures about 1.1:1. WCAG 1.4.11 wants 3:1 for
+   the boundary of a control. This is a money app, used on a phone, in
+   Maldivian daylight — shipping that would be the single worst thing to do
+   to it.
+
+   The reference image already solves this and it is worth seeing how: every
+   ACTIVE part in it is a saturated fill (the blue, pink and teal sliders and
+   toggles). Only the inert chrome is soft. The fix is not to bolt dark
+   borders onto everything — that destroys the "carved from one material"
+   effect — it is:
+
+     LAW 1  Text is never carved. Labels, money and numbers stay at full
+            --foreground. --muted-foreground is DARKENED here (#5f6470 light /
+            #a2a7b2 dark) because the standard value fails on this base.
+     LAW 2  A control whose state is not carried by TEXT carries it by a
+            FULL-CONTRAST FILL — toggles, steppers, sliders, checkmarks. That
+            is the reference's saturated-fill trick, and it clears 3:1 by a
+            wide margin.
+     LAW 3  The fill is --foreground, never a hue. Ali's standing law is that
+            colour means money: green/red/orange keep their monopoly. This is
+            why the palette below is neutral where the reference is colourful.
+
+   ── DARK MODE ──────────────────────────────────────────────────────────────
+
+   The emboss trick needs a mid-tone base to push light off; pure OLED black
+   has nothing to lighten. So dark Soft raises the page to a near-black
+   elevated grey (#212327) and leans on the dark shadow with a much fainter
+   light one — the same way iOS elevates dark surfaces rather than tinting
+   them.
+
+   ── PERFORMANCE ────────────────────────────────────────────────────────────
+
+   This is CHEAPER than what it replaces: two box-shadows per card instead of
+   a per-card backdrop-filter. Blur survives only on floating chrome, which is
+   a handful of elements.                                                    */
+
+/* ---- Wallpaper: nearly flat. Soft UI needs one even base to carve from,
+   so the bokeh fields are pulled almost to nothing rather than removed —
+   keeping the same four-field machinery every other palette uses. ---- */
+[data-palette="soft"]:not(.dark) {
+  --wallpaper-base: #e6e9ee;
+  --wallpaper-field-1: #ffffff;
+  --wallpaper-field-2: #dfe3ea;
+  --wallpaper-field-3: #f2f4f8;
+  --wallpaper-field-4: #ffffff;
+  --wallpaper-opacity-1: 0.22;
+  --wallpaper-opacity-2: 0.20;
+  --wallpaper-opacity-3: 0.18;
+  --wallpaper-opacity-4: 0.16;
+  --glass-accent: #2f333c;
+
+  /* The carve. Distances are in the 4-12px band Apple's own control shadows
+     live in — big enough to read as depth on Retina, small enough that it
+     never becomes a drop shadow. */
+  --soft-base:   #e6e9ee;
+  --soft-lo:     rgba(160, 172, 190, 0.55);   /* down-right, the shade */
+  --soft-hi:     rgba(255, 255, 255, 0.95);   /* up-left, the light */
+  --soft-raised:      6px 6px 12px var(--soft-lo), -6px -6px 12px var(--soft-hi);
+  --soft-raised-sm:   3px 3px 6px  var(--soft-lo), -3px -3px 6px  var(--soft-hi);
+  --soft-pressed:     inset 4px 4px 8px var(--soft-lo), inset -4px -4px 8px var(--soft-hi);
+  --soft-well:        inset 3px 3px 6px var(--soft-lo), inset -2px -2px 5px var(--soft-hi);
+
+  /* LAW 1 — the standard muted grey measures ~2.5:1 on this base. */
+  --muted-foreground: #5f6470;
+
+  /* ── The token bridge ──────────────────────────────────────────────────
+     Most screens in this app do NOT use the .snm-card class — they set
+     `style={{...CARD}}` inline, where CARD is built from these tokens. So a
+     theme that only overrode classes would repaint about six components and
+     leave two hundred untouched. Overriding the TOKENS is what makes Soft
+     reach every screen, including ones not written yet.
+
+     The split is the role law in token form:
+       plain fills  (--glass-fill-top / -bottom, --glass-1, --glass-bg-1)
+                    are CONTENT -> opaque soft base, carved.
+       -strong fills stay translucent -> that is the floating chrome (headers,
+                    footers, sheets, pills) and it keeps its Liquid Glass.
+
+     An opaque fill also neutralises the backdrop-filter sitting behind it —
+     blur is only visible through translucency — so the inline
+     `blur(14px * --frost-b)` on content cards stops showing without having to
+     reach into every component to remove it. */
+  --glass-fill-top:    var(--soft-base);
+  --glass-fill-bottom: var(--soft-base);
+  --glass-1:           var(--soft-base);
+  --glass-bg-1:        var(--soft-base);
+  --glass-bg-2:        var(--soft-base);
+
+  /* The carve replaces the drop shadow, and the specular rim goes: a carved
+     surface has no glass edge to catch light. */
+  --glass-shadow:  var(--soft-raised);
+  --glass-specular: transparent;
+  --glass-sheen:   none;
+  --glass-inner:   none;
+
+  /* Kept as a real hairline rather than removed. Plenty of surfaces are
+     inline-styled with `border: 0.5px solid var(--glass-border-lo)` and no
+     shadow of their own; with it transparent they would vanish into the base.
+     Faint enough not to fight the carve, present enough to hold an edge. */
+  --glass-border:    rgba(255, 255, 255, 0.75);
+  --glass-border-lo: rgba(160, 172, 190, 0.38);
+}
+
+[data-palette="soft"].dark {
+  --wallpaper-base: #1b1d21;
+  --wallpaper-field-1: #2a2d33;
+  --wallpaper-field-2: #232529;
+  --wallpaper-field-3: #2f3238;
+  --wallpaper-field-4: #3a3e46;
+  --wallpaper-opacity-1: 0.30;
+  --wallpaper-opacity-2: 0.26;
+  --wallpaper-opacity-3: 0.22;
+  --wallpaper-opacity-4: 0.14;
+  --glass-accent: #e8eaee;
+
+  --soft-base:   #212327;
+  --soft-lo:     rgba(0, 0, 0, 0.62);
+  --soft-hi:     rgba(255, 255, 255, 0.055);
+  --soft-raised:      6px 6px 12px var(--soft-lo), -5px -5px 11px var(--soft-hi);
+  --soft-raised-sm:   3px 3px 6px  var(--soft-lo), -2px -2px 5px  var(--soft-hi);
+  --soft-pressed:     inset 4px 4px 8px var(--soft-lo), inset -3px -3px 7px var(--soft-hi);
+  --soft-well:        inset 3px 3px 7px var(--soft-lo), inset -2px -2px 4px var(--soft-hi);
+
+  --muted-foreground: #a2a7b2;
+
+  /* Token bridge — see the light block above for the reasoning. */
+  --glass-fill-top:    var(--soft-base);
+  --glass-fill-bottom: var(--soft-base);
+  --glass-1:           var(--soft-base);
+  --glass-bg-1:        var(--soft-base);
+  --glass-bg-2:        var(--soft-base);
+  --glass-shadow:  var(--soft-raised);
+  --glass-specular: transparent;
+  --glass-sheen:   none;
+  --glass-inner:   none;
+  --glass-border:    rgba(255, 255, 255, 0.07);
+  --glass-border-lo: rgba(255, 255, 255, 0.07);
+}
+
+/* ---- CARVED: in-flow content. Opaque, no blur, emboss. ---- */
+[data-palette="soft"] .snm-card,
+[data-palette="soft"] .glass {
+  background-color: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--soft-raised);
+}
+
+/* A surface nested INSIDE a carved surface is debossed, not raised — you
+   cannot stack two raised planes and still read a hierarchy. This is the
+   soft-UI form of the standing "never place a surface on itself" rule. */
+[data-palette="soft"] .snm-card .snm-card,
+[data-palette="soft"] .snm-card-l2,
+[data-palette="soft"] .glass-flat {
+  background-color: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--soft-well);
+}
+
+/* ---- Inputs are wells. You type INTO something. ---- */
+[data-palette="soft"] .glass-input,
+[data-palette="soft"] .snm-input,
+[data-palette="soft"] input[type="text"],
+[data-palette="soft"] input[type="number"],
+[data-palette="soft"] input[type="search"],
+[data-palette="soft"] input[type="email"],
+[data-palette="soft"] input[type="password"],
+[data-palette="soft"] textarea,
+[data-palette="soft"] select {
+  background-color: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--soft-well);
+  color: var(--foreground);
+}
+
+/* ---- Press feedback IS the deboss. A carved button pushed in is the whole
+   point of the style, so the scale transform steps aside for it. ---- */
+[data-palette="soft"] .snm-pressable:active,
+[data-palette="soft"] .snm-btn:active {
+  transform: none;
+  box-shadow: var(--soft-pressed);
+}
+
+/* ---- GLASS survives on floating chrome only. Untouched below — the tab bar,
+   sheets, modals and topbar keep their real backdrop blur, which is what
+   makes this a Liquid Glass theme and not a 2020 neumorphism pastiche. ---- */
+
+/* ---- LAW 2 — a control with no text says what it is with a full-contrast
+   fill. Anything marked .snm-fill gets the treatment; it is deliberately an
+   opt-in class so a decorative element can never accidentally claim it. ---- */
+[data-palette="soft"] .snm-fill {
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: var(--soft-raised-sm);
+  border: none;
+}
+
+/* ---- Accessibility fallbacks. Both of these already exist for the other
+   palettes; Soft has to answer them too. Reduced transparency is a no-op here
+   (nothing in-flow is transparent), but higher contrast must give the borders
+   back — when someone asks for contrast, the aesthetic loses. ---- */
+@media (prefers-contrast: more) {
+  [data-palette="soft"] .snm-card,
+  [data-palette="soft"] .glass,
+  [data-palette="soft"] .snm-card-l2,
+  [data-palette="soft"] .glass-input,
+  [data-palette="soft"] .snm-input,
+  [data-palette="soft"] input,
+  [data-palette="soft"] textarea,
+  [data-palette="soft"] select {
+    border: 1px solid var(--foreground);
+    box-shadow: none;
+  }
+}
