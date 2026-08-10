@@ -273,7 +273,11 @@ export function ShipmentsList() {
               }}
             >
               {label}
-              <span className="ios-subhead opacity-70">{count}</span>
+              {/* No opacity on the count. It is muted text already, and fading
+                  it again measured 2.95:1 — a number you are meant to read
+                  should not be the faintest thing in the pill. Hierarchy comes
+                  from the order (label, then count), not from fading data. */}
+              <span className="ios-subhead">{count}</span>
             </button>
           );
         })}

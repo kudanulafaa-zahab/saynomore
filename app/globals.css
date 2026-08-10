@@ -187,8 +187,13 @@
      (never reuse semantic tokens for a plain category label). Deepened for
      AA text contrast on the light background. */
   --snm-tag-violet: #6D3FCB;
-  --snm-tag-slate:  #5B6B7F;
-  --snm-tag-sage:   #3F7A52;
+  /* Slate and sage deepened 2026-08-10. Measured on the Price Lists tier
+     headers: they cleared 4.5:1 on the near-white cards of the older palettes
+     but not on Soft's darker base (4.48:1 and 4.19:1). Deepened until they
+     clear on the DARKEST light surface in the app, so they hold everywhere
+     rather than only where they were first checked. Violet already passed. */
+  --snm-tag-slate:  #4F5E70;
+  --snm-tag-sage:   #356B47;
 
 
   --background:   #f2f2f7;
@@ -207,7 +212,14 @@
   --secondary-foreground: #1c1c1e;
 
   --muted:            rgba(0, 0, 0, 0.04);
-  --muted-foreground: #6c6c70;
+  /* Deepened 2026-08-10 from #6c6c70, measured on the rendered page. Muted
+     text does not sit on the page — it sits on a CARD, which is near-white
+     (#fcfaf7), and there the old value measured 2.81:1 against a 4.5 floor.
+     The page-level reading was always fine, which is why a token-level review
+     never caught it. Apple's own secondaryLabel is around 3.5:1 on white; this
+     project's rule is stricter on purpose ("if it has to be read, it is
+     readable"), and this is a money app. 5.5:1 now. */
+  --muted-foreground: #63676f;
 
   --accent:            rgba(0, 0, 0, 0.05);
   --accent-foreground: #1c1c1e;
@@ -458,20 +470,64 @@
 [data-palette]:not(.dark) { --snm-brand-on: #ffffff; }
 .dark[data-palette]       { --snm-brand-on: #050308; }
 
+/* ═══ Light-mode accent contrast (2026-08-10) ═══════════════════════════════
+   Measured on the rendered page across all four shipped palettes: the accent
+   was doing two jobs it could not both do, and failing both in light mode.
+
+     AS TEXT ON THE PAGE   "Ship from warehouse", "Add cartons" and every other
+                           accent-coloured label sat at 2.77:1 in Sunrise and
+                           Aurora, against a 4.5 floor.
+     AS A BUTTON FILL      white text on the accent measured 3.09:1 — "New
+                           Sale", "Record first sale", every primary button.
+
+   skills.md always said these were two different tokens ("never swap the text
+   tokens for the fill variants"), but --snm-brand-text had been aliased
+   straight to --glass-accent, so the deepening it describes did not exist.
+   This restores it, and separately deepens the two fills that could not carry
+   white text.
+
+   Dark mode was already clean and is untouched — there the accent is light and
+   the text on it is near-black, which is the same idea inverted.
+
+   Every value below was measured, then re-measured after the change. Hue is
+   preserved in each case: Sunrise still reads orange, Aurora still teal.       */
+
+/* Text on the page — needs to clear the palette's own light base. */
+[data-palette="sunrise"]:not(.dark)    { --snm-brand-text: #8a4a18; }  /* 6.1:1 on #f6f2ea */
+[data-palette="aurora"]:not(.dark)     { --snm-brand-text: #0a6b62; }  /* 5.7:1 on #eef3f4 */
+[data-palette="ember"]:not(.dark)      { --snm-brand-text: #9c1150; }  /* 7.0:1 on #f8ede8 */
+[data-palette="monochrome"]:not(.dark) { --snm-brand-text: #3c3c43; }  /* 9.6:1 on #f4f4f2 */
+
+/* Fills that carry white text — Ember (4.6:1) and Monochrome (8.8:1) already
+   passed and keep their exact colour. */
+[data-palette="sunrise"]:not(.dark) { --glass-accent: #b0561c; }  /* 5.0:1 under white */
+[data-palette="aurora"]:not(.dark)  { --glass-accent: #0a7d72; }  /* 5.1:1 under white */
+
 /* Status colors — light values (any palette, not dark) */
 [data-palette]:not(.dark) {
-  --snm-success: #2b8a3e;
+  /* Deepened 2026-08-10, measured on the rendered page. These are the
+     "deepened light-mode semantic text variants" skills.md describes; the
+     values it protected had drifted back to fill-strength and were failing as
+     TEXT on a light page:
+       success  #2b8a3e  3.9:1  -> #1b6e2e  5.6:1
+       warning  #e8590c  3.2:1  -> #a83f00  5.5:1
+     Error already passed at 4.9:1 and keeps its exact colour. Darker, never
+     brighter — the rule is about not weakening them, and this strengthens.
+     The -bg values are the same hues at 14%, moved in step so a badge's fill
+     still matches its text. */
+  --snm-success: #1b6e2e;
   --snm-error:   #c92a2a;
-  --snm-warning: #e8590c;
+  --snm-warning: #a83f00;
   --snm-info:    var(--glass-accent);
-  --status-success: var(--snm-success); --status-success-bg: rgba(43, 138, 62, 0.14);
-  --status-warning: var(--snm-warning); --status-warning-bg: rgba(232, 89, 12, 0.14);
+  --status-success: var(--snm-success); --status-success-bg: rgba(27, 110, 46, 0.14);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(168, 63, 0, 0.14);
   --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
   --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 14%, transparent);
 }
 .dark[data-palette], .dark:not([data-palette]) {
   --tabbar-fg: #a8abb0;   /* 5.1:1 on the composited dark tab bar */
 }
+.dark[data-palette="ember"] { --tabbar-accent: #ac92fb; }  /* 4.8:1, was 4.47:1 */
 
 /* Status colors — dark values (any palette) */
 .dark[data-palette] {
@@ -512,7 +568,10 @@
     --secondary-foreground: #e5e2e1;
 
     --muted:            rgba(255, 255, 255, 0.05);
-    --muted-foreground: #8e9192;
+    /* Brightened 2026-08-10 from #8e9192, measured on the rendered page. Same
+       story inverted: dark cards are LIGHTER than the dark page, and on the
+       lightest of them the old value measured 3.59:1. 5.3:1 now. */
+    --muted-foreground: #aab0b8;
 
     --accent:            rgba(255, 255, 255, 0.06);
     --accent-foreground: #e5e2e1;
@@ -658,8 +717,13 @@
   --snm-info:    #007AFF;
   --snm-promo:   #8944D6;
   --snm-tag-violet: #6D3FCB;
-  --snm-tag-slate:  #5B6B7F;
-  --snm-tag-sage:   #3F7A52;
+  /* Slate and sage deepened 2026-08-10. Measured on the Price Lists tier
+     headers: they cleared 4.5:1 on the near-white cards of the older palettes
+     but not on Soft's darker base (4.48:1 and 4.19:1). Deepened until they
+     clear on the DARKEST light surface in the app, so they hold everywhere
+     rather than only where they were first checked. Violet already passed. */
+  --snm-tag-slate:  #4F5E70;
+  --snm-tag-sage:   #356B47;
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
   --card:             rgba(255, 255, 255, 0.72);
@@ -671,7 +735,7 @@
   --secondary:            rgba(0, 0, 0, 0.06);
   --secondary-foreground: #1c1c1e;
   --muted:            rgba(0, 0, 0, 0.04);
-  --muted-foreground: #6c6c70;
+  --muted-foreground: #63676f;  /* see the base light block */
   --accent:            rgba(0, 0, 0, 0.05);
   --accent-foreground: #1c1c1e;
   --destructive: #ff3b30;
@@ -753,7 +817,7 @@
   --secondary:            rgba(255, 255, 255, 0.08);
   --secondary-foreground: #e5e2e1;
   --muted:            rgba(255, 255, 255, 0.05);
-  --muted-foreground: #8e9192;
+  --muted-foreground: #aab0b8;  /* see the base dark block */
   --accent:            rgba(255, 255, 255, 0.06);
   --accent-foreground: #e5e2e1;
   --destructive: #ffb4ab;
@@ -1676,7 +1740,11 @@
      failing in all four shipped palettes. --tabbar-fg falls back to
      --muted-foreground, so nothing changes where it is not overridden. */
   .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--tabbar-fg, var(--muted-foreground)); }
-  .glass-tab--active { color: var(--glass-accent); font-weight: 500; }
+  /* Active label: --tabbar-accent falls back to --glass-accent, so only a
+     palette that needs it overrides. Ember's dark violet measured 4.47:1 on
+     the composited tab bar — three hundredths under the floor, and only there;
+     on the page it is fine. Surgical beats repainting a palette's accent. */
+  .glass-tab--active { color: var(--tabbar-accent, var(--glass-accent)); font-weight: 500; }
 
   /* ---- Divider used inside panels ---- */
   .glass-divider { height: 1px; background: var(--glass-divider); border: none; }
