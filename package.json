@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "audit:seed": "node scripts/audit/seed.mjs",
+    "audit:contrast": "node scripts/audit/contrast.mjs",
+    "audit:material": "node scripts/audit/material.mjs",
+    "audit:journey": "node scripts/audit/journey.mjs",
+    "audit:ui": "npm run audit:journey && npm run audit:material && npm run audit:contrast"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -2940,6 +2940,9 @@ function NewSaleSheet({
                     // fixed element, so it always paints on top of
                     // everything with no ambiguity.
                     <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="How this price was worked out"
                       className="fixed inset-0 z-[80] flex items-end snm-scrim-in"
                       style={{ background: "var(--scrim-bg)", touchAction: "none" }}
                       onClick={() => { setShowPriceExplain(false); setEditingPrice(false); setSimEditingTyped(false); }}
@@ -3845,7 +3848,14 @@ function MixedCartonSheet({
   const canAdd = mode === "single" ? canAddSingle : canAddMixed;
 
   return (
+    // role="dialog" + aria-modal: a bottom sheet IS a modal dialog, and until
+    // now it was an anonymous div — a screen reader announced nothing, and
+    // nothing could tell "a sheet is open" from "a sheet is closed" without
+    // guessing at class names. The journey audit waits on this.
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${skus[0]?.brand_name ?? "Product"} — add cartons`}
       className="fixed inset-0 z-[80] flex items-end snm-scrim-in"
       style={{ background: "var(--scrim-bg)", touchAction: "none" }}
       onClick={onClose}

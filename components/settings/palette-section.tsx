@@ -62,7 +62,12 @@ export function PaletteSection() {
                   border: active ? "1.5px solid var(--glass-accent)" : "0.5px solid var(--glass-border-lo)",
                 }}
               >
-                <div className="relative h-12 w-12 rounded-full overflow-hidden" style={{ boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4)" }}>
+                {/* data-palette-swatch: the material audit skips these. A
+                    swatch is a PREVIEW of another theme, so it is the one place
+                    in the app allowed to paint in a vocabulary that is not the
+                    current one. Marked rather than special-cased by screen, so
+                    the rest of Settings stays audited. */}
+                <div data-palette-swatch className="relative h-12 w-12 rounded-full overflow-hidden" style={{ boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4)" }}>
                   {/* A carved palette previews its MATERIAL, not a colour it
                       does not have. Soft's whole identity is the emboss, so the
                       swatch is a raised disc — the same two shadows the theme
