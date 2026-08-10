@@ -2012,7 +2012,11 @@ function NewSaleSheet({
         {/* Visible row sits BELOW the safe area inset */}
         <div className="flex items-center justify-between py-3.5" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="text-foreground opacity-60 active:opacity-100 text-xl">✕</button>
+            {/* 60% measured 4.19:1 — under the 4.5 floor. 72% clears it, and
+                it is the close control on a money screen, so it should not be
+                the faintest thing on it. Helps every palette, not just Soft. */}
+            <button onClick={onClose} aria-label="Close new sale"
+              className="text-foreground opacity-[0.72] active:opacity-100 text-xl">✕</button>
             <span className="text-[18px] font-bold text-foreground tracking-tight">New Sale</span>
           </div>
           <span className="snm-num ios-subhead font-mono" style={{ color: "var(--muted-foreground)" }}>

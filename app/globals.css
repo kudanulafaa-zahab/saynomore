@@ -469,6 +469,10 @@
   --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
   --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 14%, transparent);
 }
+.dark[data-palette], .dark:not([data-palette]) {
+  --tabbar-fg: #a8abb0;   /* 5.1:1 on the composited dark tab bar */
+}
+
 /* Status colors — dark values (any palette) */
 .dark[data-palette] {
   --snm-success: #69db7c;
@@ -1663,7 +1667,15 @@
     border: 1px solid var(--tabbar-border);
     box-shadow: inset 0 1px 1px var(--glass-specular-strong);
   }
-  .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted-foreground); }
+  /* The INACTIVE tab label needs its own colour, not --muted-foreground.
+     Measured on the rendered page: the tab bar is translucent glass, so in
+     dark mode it composites to about rgb(51,54,61) — much lighter than the
+     page — and muted text on it came out at 3.81:1, under the 4.5 floor. On
+     the page itself the same token is fine, which is why this never showed up
+     in a token-level review. Found while auditing the Soft palette; it was
+     failing in all four shipped palettes. --tabbar-fg falls back to
+     --muted-foreground, so nothing changes where it is not overridden. */
+  .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--tabbar-fg, var(--muted-foreground)); }
   .glass-tab--active { color: var(--glass-accent); font-weight: 500; }
 
   /* ---- Divider used inside panels ---- */
@@ -1939,8 +1951,21 @@
   --soft-pressed:     inset 4px 4px 8px var(--soft-lo), inset -4px -4px 8px var(--soft-hi);
   --soft-well:        inset 3px 3px 6px var(--soft-lo), inset -2px -2px 5px var(--soft-hi);
 
-  /* LAW 1 — the standard muted grey measures ~2.5:1 on this base. */
+  /* LAW 1 — measured on the real page, not judged. The standard muted grey
+     measures ~2.5:1 on this base, so it is deepened here. */
   --muted-foreground: #5f6470;
+
+  /* Semantic colours are deepened FOR THIS PALETTE ONLY. The shared light
+     values are tuned against the near-white glass cards of the other four
+     palettes; Soft's base is darker (#e6e9ee), and measured on it they came
+     out at success 3.59:1, error 4.45:1 and warning 2.92:1 — all under the
+     4.5 floor, warning badly so. The other palettes' verified values are
+     untouched (skills.md: those were contrast-checked on Ali's own device in
+     daylight and must not be swapped). These are Soft's own, measured the
+     same way: 5.6, 5.4 and 5.8 to 1. */
+  --snm-success: #14682c;
+  --snm-error:   #b71c1c;
+  --snm-warning: #9a3b00;
 
   /* ── The token bridge ──────────────────────────────────────────────────
      Most screens in this app do NOT use the .snm-card class — they set
@@ -2000,7 +2025,16 @@
   --soft-pressed:     inset 4px 4px 8px var(--soft-lo), inset -3px -3px 7px var(--soft-hi);
   --soft-well:        inset 3px 3px 7px var(--soft-lo), inset -2px -2px 4px var(--soft-hi);
 
-  --muted-foreground: #a2a7b2;
+  /* Measured against the TAB BAR, not the page. The tab bar is translucent
+     glass over this base and composites to about rgb(71,72,76); an inactive
+     nav label at the old value measured 3.77:1 there. Against the page itself
+     it was always fine — which is exactly why this had to be measured on the
+     rendered screen rather than reasoned about from the token. */
+  --muted-foreground: #bcc1cb;
+  /* Soft's dark tab bar sits on a lighter base than the other palettes', so
+     the shared --tabbar-fg is too dark here — it measured 4 failures until
+     this line. Same reason the token exists at all: measure per surface. */
+  --tabbar-fg: #bcc1cb;
 
   /* Token bridge — see the light block above for the reasoning. */
   --glass-fill-top:    var(--soft-base);
@@ -2098,4 +2132,66 @@
     border: 1px solid var(--foreground);
     box-shadow: none;
   }
+}
+
+/* ---- Wells: a thing you type INTO is carved in, not out ------------------
+   Search boxes and fields in this app are inline-styled — `style={{...CARD}}`
+   on a wrapper with a bare <input> inside it. A stylesheet cannot outrank an
+   inline style, so these carry !important. That is normally a smell; here it
+   is the only way a theme can restyle two hundred components it did not
+   write, and every rule is scoped to [data-palette="soft"] and to elements
+   that literally contain a form control, so it cannot leak into another
+   palette or onto a surface that is not a field.
+
+   The wrapper is the well and the inner <input> goes transparent, so a search
+   row reads as ONE carved slot with an icon in it — not a well inside a well. */
+[data-palette="soft"] input,
+[data-palette="soft"] textarea,
+[data-palette="soft"] select {
+  background: var(--soft-base) !important;
+  box-shadow: var(--soft-well) !important;
+  border-color: transparent !important;
+  color: var(--foreground);
+}
+[data-palette="soft"] :is(div, label):has(> input, > textarea, > select) {
+  background: var(--soft-base) !important;
+  background-image: none !important;
+  box-shadow: var(--soft-well) !important;
+  border-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-palette="soft"] :is(div, label):has(> input, > textarea, > select) > :is(input, textarea, select) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ---- Utilities for components to adopt --------------------------------- */
+/* Inline-styled segmented pills and steppers cannot be reached from CSS, so
+   they need a class. These are the two shapes the whole style is made of;
+   naming them means a component opts in once and behaves in every palette
+   (they are inert outside Soft). */
+.snm-carved  { box-shadow: var(--soft-raised, none); }
+.snm-carved-sm { box-shadow: var(--soft-raised-sm, none); }
+.snm-inset   { box-shadow: var(--soft-well, none); }
+
+[data-palette="soft"] .snm-carved,
+[data-palette="soft"] .snm-carved-sm,
+[data-palette="soft"] .snm-inset {
+  background: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+}
+
+/* ---- Floating chrome keeps its glass. Stated as a rule so a later edit has
+   to argue with it rather than quietly delete it: these are the ONLY blurred
+   surfaces in this palette, and that is what makes it Liquid Glass rather
+   than a 2020 neumorphism pastiche. ---- */
+[data-palette="soft"] .glass-panel--strong,
+[data-palette="soft"] .glass-tabbar,
+[data-palette="soft"] .glass-modal,
+[data-palette="soft"] .glass-bottom-nav {
+  /* inherits the untouched definitions above — listed here as documentation */
 }
