@@ -118,6 +118,32 @@ begin
   insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
     values (v_batch, v_sku, v_godown, 'in', 1680, 'shipment');
 
+  -- ── A SECOND shipment, arrived and waiting to be received ─────────────────
+  -- The first shipment's batches were inserted directly, which is fine for
+  -- giving the app stock to sell but means confirm_grn — the biggest money
+  -- calculation in the system — is never exercised. This one is left ARRIVED
+  -- with freight and duty on it and no batches, so the GRN audit can drive the
+  -- real thing through the real screen and check the landed cost that comes out.
+  --
+  -- Two lines with DIFFERENT carton sizes on purpose: freight is apportioned by
+  -- each line's share of total CBM, so a single-line shipment would apportion
+  -- 100% to it and prove nothing.
+  --   freight  USD 2,000  -> MVR 30,800 at 15.4, apportioned by CBM share
+  --   local     MVR  7,700  (MPL + agent + last mile), same CBM apportionment
+  --   duty      MVR 15,400  apportioned by rate-weighted FOB value, not CBM
+  insert into shipments (id, reference, supplier_id, status,
+                         rate_usd_to_mvr, rate_usd_to_idr, rate_idr_to_mvr,
+                         my_freight_share_usd, customs_duty_mvr,
+                         mpl_charges_mvr, agent_fee_mvr, last_mile_mvr)
+  values ('00000000-0000-0000-0000-0000000f0031', 'SH-FIXTURE-GRN', v_supplier, 'arrived',
+          15.4, 15400, 0.001, 2000, 15400, 5000, 2000, 700);
+  insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
+                              fob_per_carton, fob_currency, destination_godown_id)
+  values ('00000000-0000-0000-0000-0000000f0032', '00000000-0000-0000-0000-0000000f0031',
+          (function_prefix || '3001')::uuid, 10, 0.036, 10, 'USD', v_godown),
+         ('00000000-0000-0000-0000-0000000f0033', '00000000-0000-0000-0000-0000000f0031',
+          (function_prefix || '3999')::uuid, 10, 0.080, 40, 'USD', v_godown);
+
   -- ── One confirmed, unpaid, undispatched order ─────────────────────────────
   -- Confirmed so it carries a status badge; no driver so the dashboard raises
   -- "waiting for a driver"; unpaid so Owed is non-zero. Between them those three
