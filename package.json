@@ -13,7 +13,8 @@
     "audit:material": "node scripts/audit/material.mjs",
     "audit:journey": "node scripts/audit/journey.mjs",
     "audit:ui": "npm run audit:journey && npm run audit:offline && npm run audit:material && npm run audit:contrast",
-    "audit:offline": "node scripts/audit/offline.mjs"
+    "audit:offline": "node scripts/audit/offline.mjs",
+    "backup": "bash scripts/backup.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
