@@ -27,6 +27,9 @@ const SCREENS = [
   ["products",   "/products"],
   ["shipments",  "/shipments"],
   ["settings",   "/settings"],
+  // Added 2026-08-10: the P&L's running costs are entered here, and the
+  // screen was never measured because it was not on this list.
+  ["expenses",   "/expenses"],
   ["reorder",    "/reorder"],
   ["pricelists", "/pricelists"],
 ];

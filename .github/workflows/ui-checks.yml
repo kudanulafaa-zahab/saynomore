@@ -12,18 +12,19 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same five audits he can run locally (`npm run audit:ui`):
+# This runs the same six audits he can run locally (`npm run audit:ui`):
 #
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
 #             things that cost money or make the screen unusable
 #   grn       receives a shipment and checks the landed cost that comes out —
 #             the biggest money calculation in the app
 #   offline   records a sale with the network cut and proves it is not lost
+#   running   the P&L never claims a net profit it has no running costs for
 #   material  every in-flow surface actually wears the current theme
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All five are proven to fail when the bug they guard is reintroduced; that was
+# All six are proven to fail when the bug they guard is reintroduced; that was
 # checked by putting each one back deliberately. The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
@@ -115,6 +116,9 @@ jobs:
 
       - name: Offline — a sale survives losing signal
         run: npm run audit:offline
+
+      - name: Running costs — the P&L tells the truth about them
+        run: npm run audit:running-costs
 
       - name: Material — the theme reaches every surface
         run: npm run audit:material

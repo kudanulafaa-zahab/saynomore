@@ -1,6 +1,6 @@
 # Browser audits
 
-Five scripts that check the app the way Ali does, so he does not have to.
+Six scripts that check the app the way Ali does, so he does not have to.
 
 ## Why these exist
 
@@ -27,7 +27,7 @@ You need the local stack up — Docker, `supabase start`, and the app running.
 supabase start                # replays every migration onto a fresh Postgres
 npm run audit:seed            # fixture data + an admin sign-in
 npm run dev                   # or: npm run build && npm run start
-npm run audit:ui              # all five
+npm run audit:ui              # all six
 ```
 
 Individually:
@@ -38,6 +38,7 @@ npm run audit:grn                           # receiving, and the landed cost
 node scripts/audit/journey.mjs --device phone
 npm run audit:material                      # defaults to the Soft palette
 npm run audit:contrast                      # all palettes, both schemes
+npm run audit:running-costs                 # resets its own fixture first
 node scripts/audit/contrast.mjs --palette sunrise
 ```
 
@@ -75,6 +76,18 @@ mode that costs money and makes no noise, and it has happened here before: an
 offline sync bug once meant real cash was recorded and silently never saved.
 The queue machinery had been unverified since the day it was written.
 
+**`running-costs.mjs`** — the P&L never claims a profit it cannot support. The
+bug it guards was not a crash: `get_pnl` reported **MVR 13,790 "net profit"**
+for a month whose running costs were **MVR 0**, in 32px confident green,
+because the app modelled rent — identical every month — as a one-off event and
+asked for it again every month, so `business_expenses` held ONE row in the
+app's whole life. Ali reads his profit here and nowhere else. The audit asserts
+both directions: with no costs the bottom line must call itself "Profit before
+running costs", say plainly that the real figure is lower, and offer the one tap
+that fixes it; the moment costs exist it must become a real Net Profit, or the
+honest state is just a nag that gets ignored. It also holds the jargon line —
+COGS must never come back to this screen.
+
 **`contrast.mjs`** — every readable word, every palette, both schemes, measured
 on the **rendered page**. It composites the real backdrop through every
 translucent ancestor, because a token's colour tells you nothing until you know
@@ -95,6 +108,7 @@ was verified by putting its bug back:
 | an "Add more" button back inside the cart | journey — failed on all three device sizes |
 | offline writes dropped instead of queued | offline — "the sale was not queued" |
 | freight split evenly per line instead of by CBM | grn — both landed costs wrong by 584/carton |
+| generator changed to `DO UPDATE` (a corrected month silently reverted) | pgTAP `recurring_expenses` — 3 tests, incl. "a hand-corrected month SURVIVES regeneration" |
 
 Two earlier mutation attempts were **not** caught, and that was correct: each
 had a second fix covering it, so neither was still a regression. Worth knowing

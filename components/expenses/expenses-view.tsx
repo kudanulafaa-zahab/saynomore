@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { mvtPlainDay, mvtToday } from "@/lib/mvt-date";
 import {
-  Loader2, Trash2, X, ChevronRight,
+  Loader2, Trash2, X, ChevronRight, Check, RefreshCw,
 } from "lucide-react";
 import {
   listMarketingSpend,
@@ -15,10 +15,14 @@ import {
   listBusinessExpenses,
   createBusinessExpense,
   deleteBusinessExpense,
+  listRecurringExpenses,
+  createRecurringExpense,
+  endRecurringExpense,
   type MarketingSpendRow,
   type SpendChannel,
   type ExpenseCategoryRow,
   type BusinessExpenseRow,
+  type RecurringExpenseRow,
 } from "@/lib/queries/expenses";
 import { getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { SelectionMark } from "@/components/ui/selection-mark";
@@ -59,6 +63,14 @@ export function ExpensesView() {
   const [quickAmountError, setQuickAmountError] = useState(false);
   const [quickCategoryError, setQuickCategoryError] = useState(false);
 
+  // Standing monthly costs (0167). Defaults to OFF so the quick bar behaves
+  // exactly as it always has for a one-off cost; rent and salaries are the
+  // reason it exists, and the empty-state below is what points at it.
+  const [repeatMonthly, setRepeatMonthly] = useState(false);
+  const [recurring, setRecurring] = useState<RecurringExpenseRow[]>([]);
+  const [endTarget, setEndTarget] = useState<RecurringExpenseRow | null>(null);
+  const [ending, setEnding] = useState(false);
+
   // General business expenses (rent, salaries, …) — these feed the P&L's
   // Operating Expenses line. Marketing campaigns stay their own thing.
   const [categories, setCategories] = useState<ExpenseCategoryRow[]>([]);
@@ -77,12 +89,14 @@ export function ExpensesView() {
 
   async function load() {
     try {
-      const [r, cats, biz] = await Promise.all([
+      const [r, cats, biz, rec] = await Promise.all([
         listMarketingSpend(), listExpenseCategories(), listBusinessExpenses(),
+        listRecurringExpenses(),
       ]);
       setRows(r);
       setCategories(cats);
       setBizRows(biz);
+      setRecurring(rec);
       setQuickCategoryId((prev) => prev || cats[0]?.id || "");
     } catch (e) {
       toast.error((e as Error).message);
@@ -102,6 +116,25 @@ export function ExpensesView() {
 
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "—";
 
+  async function handleEndRecurring() {
+    if (!endTarget) return;
+    setEnding(true);
+    try {
+      // ends_on is the LAST month it applies — this month. Next month's
+      // generation skips it; every month already filled in is untouched.
+      await endRecurringExpense(endTarget.id, today);
+      haptic("success");
+      toast.success("Stopped — earlier months are unchanged");
+      setEndTarget(null);
+      load();
+    } catch (e) {
+      haptic("error");
+      toast.error((e as Error).message);
+    } finally {
+      setEnding(false);
+    }
+  }
+
   async function handleQuickLog() {
     const amt = parseFloat(quickAmount);
     const amountBad = !amt || amt <= 0;
@@ -114,6 +147,40 @@ export function ExpensesView() {
     if (categoryBad) { toast.error("Pick a category"); return; }
     if (otherBad) { toast.error("Say what this 'Other' expense is"); return; }
     setLoggingQuick(true);
+
+    // EVERY MONTH takes a different door: it writes a TEMPLATE, and Postgres
+    // generates the actual expense rows from it (0167). Deliberately not sent
+    // through withOfflineFallback — the offline queue replays a plain table
+    // insert, and this insert fires a trigger that back-fills every month since
+    // the start date. Queuing it would mean the months appear at an
+    // unpredictable later time, which is not a good trade for a cost you set
+    // once. One-off expenses keep the offline path they have always had.
+    if (repeatMonthly) {
+      const desc = quickIsOther ? quickOther.trim() : null;
+      try {
+        await createRecurringExpense({
+          category_id: quickCategoryId,
+          amount_mvr: amt,
+          starts_on: quickDate || today,
+          description: desc,
+        });
+        haptic("success");
+        toast.success("Monthly cost saved — every month is filled in for you");
+        setQuickAmount("");
+        setQuickDate(today);
+        setQuickOther("");
+        setQuickOtherError(false);
+        setRepeatMonthly(false);
+        load();
+      } catch (e) {
+        haptic("error");
+        toast.error((e as Error).message);
+      } finally {
+        setLoggingQuick(false);
+      }
+      return;
+    }
+
     const payload = {
       category_id: quickCategoryId,
       amount_mvr: amt,
@@ -223,13 +290,51 @@ export function ExpensesView() {
             ))}
           </select>
         </div>
+        {/* Does this cost repeat? THE reason business_expenses held one row for
+            months: rent and salaries are the same every month, and the app was
+            asking for them again every month. Both pills carry real
+            --foreground text on --glass-bg-1 — an unselected pill here is a
+            CHOICE, not a hint, so it is never muted-on-transparent. */}
+        <div className="flex items-center gap-2 mt-2" role="group" aria-label="Does this cost repeat?">
+          {([
+            { on: false, label: "One time" },
+            { on: true,  label: "Every month" },
+          ] as const).map((opt) => {
+            const active = repeatMonthly === opt.on;
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => setRepeatMonthly(opt.on)}
+                aria-pressed={active}
+                className="flex-1 h-11 rounded-xl ios-subhead font-semibold flex items-center justify-center gap-1.5 snm-pressable"
+                style={{
+                  background: active ? "var(--foreground)" : "var(--glass-bg-1)",
+                  color:      active ? "var(--background)" : "var(--foreground)",
+                  border:     active ? "none" : "1px solid var(--glass-border-lo)",
+                }}
+              >
+                {active && <Check className="h-4 w-4 shrink-0" />}
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {repeatMonthly && (
+          <p className="ios-footnote mt-2 px-1" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+            Set it once. Every month from the date below is filled in for you —
+            including months already gone, so past profit is right too.
+          </p>
+        )}
+
         {/* Date + Log — date defaults to today, capped at today so a cost can
             be back-dated or corrected but not accidentally booked in the future. */}
         <div className="flex items-center gap-2 mt-2">
           <input
             type="date" value={quickDate} max={today}
             onChange={(e) => setQuickDate(e.target.value)}
-            aria-label="Expense date"
+            aria-label={repeatMonthly ? "First month this cost applies" : "Expense date"}
             className="flex-1 min-w-0 h-11 px-3 rounded-xl ios-subhead bg-secondary text-foreground outline-none"
             style={{ border: "1px solid var(--border)" }}
           />
@@ -239,7 +344,7 @@ export function ExpensesView() {
             className="h-11 px-5 rounded-xl ios-subhead font-semibold shrink-0 disabled:opacity-50"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
-            {loggingQuick ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log"}
+            {loggingQuick ? <Loader2 className="h-4 w-4 animate-spin" /> : repeatMonthly ? "Save" : "Log"}
           </button>
         </div>
 
@@ -257,6 +362,75 @@ export function ExpensesView() {
           />
         )}
       </div>
+
+      {/* ── Your monthly costs ────────────────────────────────────────────────
+          The standing costs the P&L needs to be true. When there are none this
+          is the empty state that explains WHY it matters in money terms —
+          silent-when-healthy does not apply here, because the absence of this
+          data is itself the problem (the P&L reported MVR 13,790 profit with
+          zero running costs behind it). Once costs exist it becomes a plain
+          list and stops lecturing. */}
+      {recurring.length > 0 ? (
+        <div className="mt-6">
+          <div className="flex items-baseline justify-between mb-2">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Your monthly costs</h2>
+            <p className="ios-subhead font-semibold snm-num" style={{ color: "var(--foreground)" }}>
+              MVR {fmt(recurring.reduce((a, r) => a + Number(r.amount_mvr), 0))}<span className="ios-footnote font-normal" style={{ opacity: 0.7 }}> a month</span>
+            </p>
+          </div>
+          <div className="glass rounded-2xl overflow-hidden">
+            {recurring.map((r, i) => (
+              <div
+                key={r.id}
+                className="flex items-center gap-3 px-4 py-3"
+                style={{ borderTop: i === 0 ? "none" : "0.5px solid var(--glass-border-lo)" }}
+              >
+                <RefreshCw className="h-4 w-4 shrink-0" style={{ color: "var(--foreground)", opacity: 0.55 }} />
+                <div className="min-w-0 flex-1">
+                  <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                    {catName(r.category_id)}
+                  </p>
+                  <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                    {r.description ? `${r.description} · ` : ""}
+                    Every month{r.starts_on ? ` since ${mvtPlainDay(r.starts_on)}` : ""}
+                  </p>
+                </div>
+                <p className="ios-subhead font-semibold snm-num shrink-0" style={{ color: "var(--foreground)" }}>
+                  MVR {fmt(Number(r.amount_mvr))}
+                </p>
+                {canWrite && (
+                  <button
+                    onClick={() => setEndTarget(r)}
+                    aria-label={`Stop ${catName(r.category_id)}`}
+                    className="w-11 h-11 -mr-2 flex items-center justify-center shrink-0 active:opacity-60"
+                  >
+                    <X className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="ios-footnote mt-2 px-1" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+            These are added to every month automatically. To change one month only,
+            edit that month&apos;s expense in the list below.
+          </p>
+        </div>
+      ) : canWrite ? (
+        <div className="mt-6 glass rounded-2xl p-4">
+          <p className="ios-subhead font-semibold mb-1" style={{ color: "var(--foreground)" }}>
+            Your profit is missing your running costs
+          </p>
+          <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+            Rent, salaries, fuel and phone are the same most months, so the app
+            can fill them in for you. Until it knows them, the profit on
+            Financials is only your profit <em>before</em> the cost of running
+            the business.
+          </p>
+          <p className="ios-footnote mt-2" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+            Add one above with <strong>Every month</strong> chosen.
+          </p>
+        </div>
+      ) : null}
 
       {/* Business expenses — recent */}
       {bizRows.length > 0 && (
@@ -309,6 +483,24 @@ export function ExpensesView() {
             : ""
         }
         confirmLabel="Delete"
+      />
+
+      {/* Stopping a monthly cost is NOT deleting it. The months it has already
+          filled in were really paid, so they stay — removing them would rewrite
+          finished months and change past profit. It simply stops from next
+          month. Said in those words, because "delete" would imply otherwise. */}
+      <ConfirmSheet
+        open={endTarget !== null}
+        onClose={() => setEndTarget(null)}
+        onConfirm={handleEndRecurring}
+        loading={ending}
+        title="Stop this monthly cost?"
+        message={
+          endTarget
+            ? `${catName(endTarget.category_id)} · MVR ${fmt(Number(endTarget.amount_mvr))} a month will stop from next month. Months already recorded stay as they are.`
+            : ""
+        }
+        confirmLabel="Stop"
       />
     </div>
   );

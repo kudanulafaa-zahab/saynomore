@@ -88,6 +88,11 @@ export interface BusinessExpenseRow {
   expense_date: string;
   description: string | null;
   created_at: string;
+  /** Set when this row was generated from a standing monthly cost (0167).
+   *  Generated rows are ordinary expense rows in every other respect — the
+   *  P&L, the totals and this list do not special-case them. */
+  recurring_id?: string | null;
+  period_month?: string | null;
 }
 
 export interface BusinessExpenseInput {
@@ -125,6 +130,92 @@ export async function createBusinessExpense(input: BusinessExpenseInput): Promis
 export async function deleteBusinessExpense(id: string): Promise<void> {
   const { error } = await supabase.from("business_expenses").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ── Standing monthly costs (rent, salaries…) — migration 0167 ──────────────
+//
+// Rent is the same every month. The app used to model it as a one-off event
+// and ask for it again every month, which is why business_expenses held ONE
+// row and the P&L reported a net profit with no running costs in it.
+//
+// A recurring row is a TEMPLATE. Postgres generates the real expense rows from
+// it (materialise_recurring_expenses, fired by a trigger on write and by
+// pg_cron monthly), so nothing here computes money — the client only ever
+// describes the cost.
+
+export interface RecurringExpenseRow {
+  id: string;
+  category_id: string;
+  amount_mvr: number;
+  starts_on: string;
+  ends_on: string | null;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface RecurringExpenseInput {
+  category_id: string;
+  amount_mvr: number;
+  /** Any date in the first month it applies; normalised to the 1st here
+   *  because the table CHECKs it, and a friendlier error is no error. */
+  starts_on: string;
+  description?: string | null;
+}
+
+/** First of the month, in the local (Maldives) sense — never UTC-shifted.
+ *  Built from the string parts rather than a Date so a `2026-08-01` on a phone
+ *  behind UTC cannot become July. */
+function firstOfMonth(isoDate: string): string {
+  const [y, m] = isoDate.split("-");
+  return `${y}-${m}-01`;
+}
+
+export async function listRecurringExpenses(): Promise<RecurringExpenseRow[]> {
+  const { data, error } = await supabase
+    .from("recurring_expenses")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as RecurringExpenseRow[];
+}
+
+export async function createRecurringExpense(input: RecurringExpenseInput): Promise<RecurringExpenseRow> {
+  const { data, error } = await supabase
+    .from("recurring_expenses")
+    .insert({ ...input, starts_on: firstOfMonth(input.starts_on) })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as RecurringExpenseRow;
+}
+
+/** Ending a cost, not deleting it. The months it already generated are real
+ *  expenses that were really paid — deleting the template must never rewrite
+ *  history. `ends_on` is the LAST month it applies. */
+export async function endRecurringExpense(id: string, lastMonth: string): Promise<void> {
+  const { error } = await supabase
+    .from("recurring_expenses")
+    .update({ is_active: false, ends_on: firstOfMonth(lastMonth), updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Does the P&L for this period actually have running costs behind it?
+ *  Period-aware on purpose (0168): one expense entered months ago does not
+ *  make THIS month complete. */
+export interface RunningCostsStatus {
+  has_costs: boolean;
+  amount_mvr: number;
+  from_recurring: boolean | null;
+  ever_recorded: boolean;
+}
+
+export async function getRunningCostsStatus(from: string, to: string): Promise<RunningCostsStatus | null> {
+  const { data, error } = await supabase.rpc("running_costs_status", { p_from: from, p_to: to });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row ?? null) as RunningCostsStatus | null;
 }
 
 // ── The P&L — one Postgres call, zero client-side financial math ──────────
