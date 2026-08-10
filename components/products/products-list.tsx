@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { listSkusFlat, toggleSkuActive, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
+import { useOnMount } from "@/lib/use-on-mount";
 
 export function ProductsList() {
   const [rows, setRows] = useState<SkuFullRow[]>([]);
@@ -27,7 +28,7 @@ export function ProductsList() {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();

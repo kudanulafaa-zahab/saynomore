@@ -21,6 +21,7 @@ import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { haptic } from "@/lib/haptics";
 import { toPieces, type SaleUom } from "@/lib/queries/sales";
 import { mvtInstant } from "@/lib/mvt-date";
+import { useOnMount } from "@/lib/use-on-mount";
 
 /* ── qty helpers (pieces → carton/pack, matches inventory-view) ── */
 function toCtns(pcs: number, pcsPerCtn: number) {
@@ -802,7 +803,7 @@ function WriteOffTab({
   const [history, setHistory] = useState<WriteoffRow[]>([]);
 
   function loadHistory() { listRecentWriteoffs(30).then(setHistory).catch(() => {}); }
-  useEffect(() => { loadHistory(); }, []);
+  useOnMount(loadHistory);
 
   const available = useMemo(() => {
     const inG = levels.filter((l) => l.godown_id === godownId && l.qty_pieces > 0);

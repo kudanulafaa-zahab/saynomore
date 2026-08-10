@@ -35,6 +35,7 @@ import {
   type CostBasis,
 } from "@/lib/queries/products";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { useOnMount } from "@/lib/use-on-mount";
 
 // Human-readable summary of category configuration — no raw field codes shown to user
 function humanMeta(c: CategoryRow): string {
@@ -84,7 +85,7 @@ export function CategoriesManager() {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
 
   if (loading) {
     return <SkeletonRows rows={6} />;

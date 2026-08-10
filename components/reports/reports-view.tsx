@@ -14,6 +14,7 @@ import { groupByBrand } from "@/lib/group-by-brand";
 import { TopBrandsChart } from "./top-brands-chart";
 import { MarginDistributionChart } from "./margin-distribution-chart";
 import { TopContributorsChart } from "./top-contributors-chart";
+import { useOnMount } from "@/lib/use-on-mount";
 
 // ── Date helpers ─────────────────────────────────────────────────────────
 
@@ -96,7 +97,7 @@ export function ReportsView() {
     }
   }
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useOnMount(load);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();

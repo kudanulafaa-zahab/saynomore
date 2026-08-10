@@ -20,6 +20,7 @@ import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
+import { useOnMount } from "@/lib/use-on-mount";
 
 
 const STATUS: Record<ReorderSuggestion["status"], { label: string; color: string }> = {
@@ -48,7 +49,7 @@ export function ReorderView() {
   }, []);
 
   async function load() {
-    setLoading(true);
+    // Starts true already; see the note in shipments-list.tsx.
     try {
       const [sug, sk] = await Promise.all([listReorderSuggestions(), listSkusFlat()]);
       setRows(sug);
@@ -68,7 +69,7 @@ export function ReorderView() {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
 
   const cbmFor = useMemo(() => {
     const m = new Map<string, number>();

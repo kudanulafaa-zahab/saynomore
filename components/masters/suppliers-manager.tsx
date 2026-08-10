@@ -32,6 +32,7 @@ import { haptic } from "@/lib/haptics";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { CARD } from "@/lib/surfaces";
+import { useOnMount } from "@/lib/use-on-mount";
 
 
 const CURRENCIES: SupplierCurrency[] = ["IDR", "USD", "MVR", "MYR", "THB", "CNY", "EUR"];
@@ -101,7 +102,7 @@ export function SuppliersManager() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
   const canWrite = role !== "viewer" && role !== null;

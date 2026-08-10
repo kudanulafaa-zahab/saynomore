@@ -35,6 +35,7 @@ import {
 } from "@/lib/queries/masters";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { haptic } from "@/lib/haptics";
+import { useOnMount } from "@/lib/use-on-mount";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Administrator",
@@ -81,7 +82,7 @@ export function UsersManager() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
   useEffect(() => {
     getCurrentUserRole().then(setMyRole).catch(() => {});
     // Get current user id

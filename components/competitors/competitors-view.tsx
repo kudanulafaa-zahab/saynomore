@@ -40,6 +40,7 @@ import { haptic } from "@/lib/haptics";
 import { priceForMargin } from "@/lib/trade-units";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
+import { useOnMount } from "@/lib/use-on-mount";
 
 // Liquid Glass content surface (2026-07-15) — matches .glass-panel's recipe
 // (fill + specular inset highlight + border) without needing 21 JSX call
@@ -406,7 +407,7 @@ export function CompetitorsView() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
 
   // Products priced above the cheapest logged competitor by more than the
   // alert threshold — same threshold the per-SKU simulator uses below.

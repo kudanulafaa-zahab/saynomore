@@ -28,6 +28,7 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { BodyPortal } from "@/components/ui/body-portal";
+import { useOnMount } from "@/lib/use-on-mount";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -90,7 +91,7 @@ export function ExpensesView() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
 
   const totalMvr = useMemo(() => rows.reduce((a, r) => a + Number(r.amount_mvr), 0), [rows]);
 
