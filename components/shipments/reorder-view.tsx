@@ -19,14 +19,8 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 import { mvtPlainDay } from "@/lib/mvt-date";
+import { CARD } from "@/lib/surfaces";
 
-const CARD: React.CSSProperties = {
-  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "var(--glass-blur-content)",
-  WebkitBackdropFilter: "var(--glass-blur-content)",
-  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
-  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
-};
 
 const STATUS: Record<ReorderSuggestion["status"], { label: string; color: string }> = {
   out:       { label: "Out of stock", color: "var(--snm-error)" },

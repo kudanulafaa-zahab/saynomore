@@ -18,16 +18,10 @@ import { Sheet } from "@/components/ui/sheet";
 import { getCurrentUserRole, listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
 import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
+import { CARD } from "@/lib/surfaces";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
-const CARD: React.CSSProperties = {
-  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "var(--glass-blur-content)",
-  WebkitBackdropFilter: "var(--glass-blur-content)",
-  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
-  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
-} as const;
 
 /* ── Status config ───────────────────────────────────────────────────────── */
 

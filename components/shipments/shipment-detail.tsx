@@ -38,17 +38,10 @@ import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
 import { haptic } from "@/lib/haptics";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
+import { CARD_ROUNDED as CARD } from "@/lib/surfaces";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
-const CARD: React.CSSProperties = {
-  background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "var(--glass-blur-content)",
-  WebkitBackdropFilter: "var(--glass-blur-content)",
-  borderRadius: 16,
-  boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
-  border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
-};
 
 const SHEET: React.CSSProperties = {
   background: "var(--glass-2)",
