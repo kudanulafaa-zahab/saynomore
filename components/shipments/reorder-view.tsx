@@ -22,8 +22,8 @@ import { mvtPlainDay } from "@/lib/mvt-date";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
-  WebkitBackdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
+  backdropFilter: "var(--glass-blur-content)",
+  WebkitBackdropFilter: "var(--glass-blur-content)",
   boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
   border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
 };

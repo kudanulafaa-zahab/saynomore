@@ -265,6 +265,16 @@
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-edge)));
+  /* Content blur, as a TOKEN. It used to be typed out inline in 22 components
+     as `blur(calc(14px * var(--frost-b)))`, which meant a theme could not turn
+     it off — Soft is carved, not frosted, and was still paying for a blur layer
+     it does not use. Now a palette sets this once. */
+  --glass-blur-content: blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+  /* Floating things (FABs, docked action buttons) and small control thumbs
+     (switch knobs, selected tab chips) had their shadows hardcoded across
+     eight components, so they stayed glassy in a carved theme. Same fix. */
+  --snm-float-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --snm-thumb-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
   --glass-blur:      blur(calc(28px * var(--frost-b))) saturate(180%);
   --glass-blur-lg:   blur(calc(48px * var(--frost-b))) saturate(200%);
 
@@ -423,40 +433,6 @@
   --glass-accent: #a78bfa;
 }
 
-/* ---- MONOCHROME (2026-07-17) — "color carries meaning, not decoration."
-   The wallpaper itself is built entirely from grays (barely-there warm-
-   neutral in light, cool-neutral in dark) — the ONLY saturated color
-   anywhere on screen in this palette is --snm-success/warning/error
-   (reorder alerts, margin deltas), which stay fully saturated via the
-   shared status-color block below (it doesn't key off --glass-accent for
-   those, only for --snm-info). --glass-accent here is a neutral slate,
-   used only for selection state (active tab, chosen swatch), never as
-   page decoration. */
-[data-palette="monochrome"]:not(.dark) {
-  --wallpaper-base: #f4f4f2;
-  --wallpaper-field-1: #e2e2de;
-  --wallpaper-field-2: #d8d8d4;
-  --wallpaper-field-3: #ececea;
-  --wallpaper-field-4: #ffffff;
-  --wallpaper-opacity-1: 0.5;
-  --wallpaper-opacity-2: 0.4;
-  --wallpaper-opacity-3: 0.45;
-  --wallpaper-opacity-4: 0.35;
-  --glass-accent: #4b4b52;
-}
-.dark[data-palette="monochrome"] {
-  --wallpaper-base: #0a0a0b;
-  --wallpaper-field-1: #1c1c1f;
-  --wallpaper-field-2: #262629;
-  --wallpaper-field-3: #141416;
-  --wallpaper-field-4: #3a3a40;
-  --wallpaper-opacity-1: 0.55;
-  --wallpaper-opacity-2: 0.45;
-  --wallpaper-opacity-3: 0.5;
-  --wallpaper-opacity-4: 0.4;
-  --glass-accent: #b5b5bd;
-}
-
 /* ---- Brand/status tokens derived from the palette accent — same for
    every palette, just riding whatever --glass-accent the palette above
    set. Scoped broadly ([data-palette], any theme) so one rule covers all
@@ -496,7 +472,6 @@
 [data-palette="sunrise"]:not(.dark)    { --snm-brand-text: #8a4a18; }  /* 6.1:1 on #f6f2ea */
 [data-palette="aurora"]:not(.dark)     { --snm-brand-text: #0a6b62; }  /* 5.7:1 on #eef3f4 */
 [data-palette="ember"]:not(.dark)      { --snm-brand-text: #9c1150; }  /* 7.0:1 on #f8ede8 */
-[data-palette="monochrome"]:not(.dark) { --snm-brand-text: #3c3c43; }  /* 9.6:1 on #f4f4f2 */
 
 /* Fills that carry white text — Ember (4.6:1) and Monochrome (8.8:1) already
    passed and keep their exact colour. */
@@ -609,6 +584,9 @@
     --glass-shadow:    0 2px 20px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35);
     --glass-shadow-lg: 0 12px 60px rgba(0, 0, 0, 0.70), 0 4px 16px rgba(0, 0, 0, 0.40);
     --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(0.18 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.20 * var(--frost-edge)));
+    --glass-blur-content: blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate));
+    --snm-float-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+    --snm-thumb-shadow: 0 3px 8px rgba(0, 0, 0, 0.45), 0 1px 1px rgba(0, 0, 0, 0.35);
     --glass-blur:      blur(calc(32px * var(--frost-b))) saturate(160%);
     --glass-blur-lg:   blur(calc(56px * var(--frost-b))) saturate(180%);
 
@@ -687,14 +665,6 @@
     --wallpaper-opacity-1: 0.4; --wallpaper-opacity-2: 0.34;
     --wallpaper-opacity-3: 0.38; --wallpaper-opacity-4: 0.2;
     --glass-accent: #a78bfa;
-  }
-  :root[data-palette="monochrome"]:not(.light) {
-    --wallpaper-base: #0a0a0b;
-    --wallpaper-field-1: #1c1c1f; --wallpaper-field-2: #262629;
-    --wallpaper-field-3: #141416; --wallpaper-field-4: #3a3a40;
-    --wallpaper-opacity-1: 0.55; --wallpaper-opacity-2: 0.45;
-    --wallpaper-opacity-3: 0.5; --wallpaper-opacity-4: 0.4;
-    --glass-accent: #b5b5bd;
   }
   :root[data-palette]:not(.light) {
     --snm-brand-on: #050308;
@@ -2071,6 +2041,12 @@
      Faint enough not to fight the carve, present enough to hold an edge. */
   --glass-border:    rgba(255, 255, 255, 0.75);
   --glass-border-lo: rgba(160, 172, 190, 0.38);
+  /* Nothing in-flow blurs in this palette, and floating things are carved
+     rather than dropped. This is what makes Soft consistent everywhere
+     instead of only on the screens that happened to be checked. */
+  --glass-blur-content: none;
+  --snm-float-shadow: var(--soft-raised);
+  --snm-thumb-shadow: var(--soft-raised-sm);
 }
 
 [data-palette="soft"].dark {
@@ -2116,6 +2092,12 @@
   --glass-inner:   none;
   --glass-border:    rgba(255, 255, 255, 0.07);
   --glass-border-lo: rgba(255, 255, 255, 0.07);
+  /* Nothing in-flow blurs in this palette, and floating things are carved
+     rather than dropped. This is what makes Soft consistent everywhere
+     instead of only on the screens that happened to be checked. */
+  --glass-blur-content: none;
+  --snm-float-shadow: var(--soft-raised);
+  --snm-thumb-shadow: var(--soft-raised-sm);
 }
 
 /* ---- CARVED: in-flow content. Opaque, no blur, emboss. ---- */

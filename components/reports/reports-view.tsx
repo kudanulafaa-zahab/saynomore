@@ -387,7 +387,7 @@ export function ReportsView() {
                 minHeight: 40,
                 background: tab === t.key ? "var(--background)" : "transparent",
                 color: tab === t.key ? "var(--foreground)" : "var(--muted-foreground)",
-                boxShadow: tab === t.key ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                boxShadow: tab === t.key ? "var(--snm-thumb-shadow)" : "none",
               }}
             >
               {t.label}

@@ -19,8 +19,8 @@ import { CashFlowView } from "./cash-flow-view";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
-  WebkitBackdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
+  backdropFilter: "var(--glass-blur-content)",
+  WebkitBackdropFilter: "var(--glass-blur-content)",
   border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
   boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
 };
@@ -407,8 +407,12 @@ export function FinancialsView() {
           { key: "owed",   label: "Owed" },
           { key: "cod",    label: "COD Cash" },
         ] as const).map((t) => (
+          // nowrap + tighter side padding: at 393pt "Cash Flow" and "COD Cash"
+          // each broke onto two lines, so the strip stood twice as tall as it
+          // should and the four tabs no longer read as one control.
           <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, transition: "all 0.15s",
+            style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer",
+              fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", transition: "all 0.15s",
               background: tab === t.key ? "var(--glass-accent)" : "transparent",
               color:      tab === t.key ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
           >{t.label}</button>
