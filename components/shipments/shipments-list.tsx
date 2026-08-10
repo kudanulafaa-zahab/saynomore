@@ -19,6 +19,7 @@ import { getCurrentUserRole, listSkusFlat, type SkuFullRow } from "@/lib/queries
 import { listReorderAlerts, type SkuReorderAlert } from "@/lib/queries/inventory";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
+import { useOnMount } from "@/lib/use-on-mount";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
@@ -82,7 +83,11 @@ export function ShipmentsList() {
   const [role, setRole]         = useState<string | null>(null);
 
   async function load() {
-    setLoading(true);
+    // No setLoading(true) here. `loading` already starts true, so the skeleton
+    // shows on the first load; setting it again makes the whole list flash back
+    // to a skeleton after deleting a purchase order, when the right behaviour is
+    // for the list to swap in place. Standing rule in skills.md: "initial state
+    // true, set false in .finally — refetches swap in place".
     try {
       const [s, sup, sk, al] = await Promise.all([
         listShipments(), listSuppliers(), listSkusFlat(), listReorderAlerts(),
@@ -95,7 +100,7 @@ export function ShipmentsList() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const isAdmin = role === "admin";
   const canWrite = role !== "viewer" && role !== null;

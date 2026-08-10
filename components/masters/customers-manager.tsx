@@ -17,6 +17,7 @@ import { CustomerForm } from "@/components/masters/customer-form";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { getCustomerInsights, type CustomerInsight } from "@/lib/queries/customer-insights";
 import { haptic } from "@/lib/haptics";
+import { useOnMount } from "@/lib/use-on-mount";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -72,7 +73,7 @@ export function CustomersManager() {
     catch (e) { toast.error((e as Error).message); }
     finally { setLoading(false); }
   }
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
   useEffect(() => { getCustomerInsights().then(setInsights).catch(() => {}); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const canWrite = role !== "viewer" && role !== null;

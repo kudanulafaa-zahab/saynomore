@@ -18,6 +18,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { mvtPlainDay } from "@/lib/mvt-date";
+import { useOnMount } from "@/lib/use-on-mount";
 
 /* ── Tier config ──────────────────────────────────────────────────────────────
    Non-hierarchical peer categories — dedicated --snm-tag-* palette, never the
@@ -77,7 +78,7 @@ export function PriceListsView() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useOnMount(load);
 
   // Lock body scroll when any full-screen overlay is open — prevents iOS bleed-through
   const overlayOpen = !!(openList || newListTier);
