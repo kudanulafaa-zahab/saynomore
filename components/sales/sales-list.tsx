@@ -1966,16 +1966,46 @@ function NewSaleSheet({
   // z-index — same reasoning as the price-explain sheet's portal below.
   if (!portalReady) return null;
   return createPortal(
+    // ── Three layouts, one component ─────────────────────────────────────────
+    // Ali, 2026-08-09: "this is a Retina display mobile view first app but it
+    // must be different for tablet and desktop completely with proper design."
+    //
+    // PHONE  (<768) full-screen takeover, three steps. Unchanged — it is what
+    //        he uses every day and it is right for one thumb.
+    // TABLET (md, 768-1023) the same three steps, but as a centred window with
+    //        the app visible behind it, instead of one phone screen stretched
+    //        to fill an iPad. A modal that eats a large screen for a creation
+    //        task is an iPhone pattern, not an iPadOS/macOS one.
+    // DESKTOP (lg, 1024+) the window widens and the ORDER moves into a rail on
+    //        the right that is visible during all three steps — the standard
+    //        desktop checkout shape. The cart stops being something you scroll
+    //        to and becomes something you watch while you price.
+    //
+    // Deliberately ONE component with responsive classes, not a desktop fork.
+    // Every guard that protects money — the below-cost confirm, whole mixed
+    // cartons, the stock cap, the cross-godown pick — hangs off these same
+    // handlers and this same footer button. A second component would be a
+    // second door, and the standing rule here is one guard, every door.
     <div
-      className="fixed inset-x-0 top-0 z-50 flex flex-col glass-wallpaper glass-wallpaper--calm"
-      style={{
-        touchAction: "none",
-        // 100dvh = dynamic viewport height — shrinks when keyboard opens on iOS 15.4+
-        // This is the correct, CSS-native solution. No JS measurement needed.
-        height: "100dvh",
-      }}
+      className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center md:p-6 lg:p-8"
+      style={{ touchAction: "none" }}
       onTouchMove={(e) => e.stopPropagation()}
     >
+      {/* Scrim — tablet and desktop only. On a phone the sheet IS the screen,
+          so there is nothing to dim. */}
+      <div className="hidden md:block absolute inset-0 snm-scrim-in"
+        style={{ background: "color-mix(in srgb, var(--background) 55%, transparent)", backdropFilter: "blur(8px)" }}
+        onClick={onClose} aria-hidden />
+
+      <div
+        // 100dvh = dynamic viewport height — shrinks when the keyboard opens on
+        // iOS 15.4+. CSS-native, no JS measurement. Never 100vh (standing rule:
+        // it ignores the iOS dynamic toolbar).
+        className="relative flex flex-col w-full glass-wallpaper glass-wallpaper--calm
+                   h-[100dvh] md:h-[92dvh] md:max-h-[920px]
+                   md:rounded-3xl md:overflow-hidden md:max-w-3xl lg:max-w-6xl md:shadow-2xl"
+        style={{ border: "0.5px solid var(--glass-border-lo)" }}
+      >
 
       {/* Header — safe-area aware, clears Dynamic Island / notch */}
       <header className="glass-panel--strong px-5 shrink-0 relative z-[1]" style={{ borderRadius: 0, borderLeft: "none", borderRight: "none", borderTop: "none", borderBottom: "0.5px solid var(--glass-border-lo)" }}>
@@ -2041,13 +2071,23 @@ function NewSaleSheet({
           dead against every other screen in the app. `contain` keeps the
           bounce and still traps the scroll. */}
       <div
-        className="flex-1 min-h-0 overflow-y-auto px-5 space-y-5 pb-6"
+        className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden px-5 lg:px-8 pb-6 lg:pb-0"
         style={{
           touchAction: "pan-y",
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch",
         } as React.CSSProperties}
       >
+      {/* Scroll ownership.
+          PHONE/TABLET: one scroller — this element — and the columns just flow.
+          DESKTOP: a split pane, where each column owns its own scroll. That is
+          the one exception the standing rule allows, and it is needed here: a
+          sticky rail inside a single scroller gets clipped the moment the order
+          is taller than the window, and the first thing to disappear is the
+          TOTAL. An order total you cannot reach is not a layout preference. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8 lg:h-full lg:min-h-0">
+        <div className="space-y-5 min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pb-8 lg:pr-1"
+          style={{ overscrollBehavior: "contain" }}>
 
         {/* ── Step 1: Customer ── */}
         {step === 1 && (
@@ -3194,15 +3234,18 @@ function NewSaleSheet({
 
             {/* Draft lines — the same cart as step 3, same component. It is a
                 list and a total; the way to add another product is the footer
-                button, which is on screen no matter how far this has scrolled. */}
-            <CartLines
-              lines={draftLines}
-              grandTotal={grandTotal}
-              editable
-              onChangeQty={changeLineQty}
-              onRemove={removeLine}
-              maxPiecesFor={maxPiecesFor}
-            />
+                button, which is on screen no matter how far this has scrolled.
+                Hidden at lg, where the rail on the right already shows it. */}
+            <div className="lg:hidden">
+              <CartLines
+                lines={draftLines}
+                grandTotal={grandTotal}
+                editable
+                onChangeQty={changeLineQty}
+                onRemove={removeLine}
+                maxPiecesFor={maxPiecesFor}
+              />
+            </div>
 
             </>
             )}
@@ -3228,15 +3271,17 @@ function NewSaleSheet({
             {/* Line items — the SAME cart component as step 2, with the
                 quantity steppers, the bin and a way back for more. It used to
                 be a read-only list: nothing could be changed on the last
-                screen before the order was placed. */}
-            <CartLines
-              lines={draftLines}
-              grandTotal={grandTotal}
-              editable
-              onChangeQty={changeLineQty}
-              onRemove={removeLine}
-              maxPiecesFor={maxPiecesFor}
-            />
+                screen before the order was placed. Hidden at lg — the rail. */}
+            <div className="lg:hidden">
+              <CartLines
+                lines={draftLines}
+                grandTotal={grandTotal}
+                editable
+                onChangeQty={changeLineQty}
+                onRemove={removeLine}
+                maxPiecesFor={maxPiecesFor}
+              />
+            </div>
 
             {/* ── Ship from ──
                 The warehouse decides which stock gets deducted, and it was
@@ -3318,13 +3363,76 @@ function NewSaleSheet({
             </p>
           </div>
         )}
+        </div>
+
+        {/* ── Desktop order rail (lg and up) ──────────────────────────────────
+            The order, visible during all three steps. On a phone the cart is
+            something you scroll to; on a wide screen there is room to simply
+            keep it on screen, which is what every desktop checkout does and
+            what makes the "Add product" footer button unnecessary here.
+
+            It uses the SAME CartLines component and the SAME handlers as the
+            phone, so the steppers, the bin, the stock cap and the whole-carton
+            arithmetic behave identically. Nothing about money is re-implemented
+            for a wide screen. There is also no action button in this rail: the
+            single primary action stays in the footer, so there is exactly one
+            door through the below-cost and shortfall guards. */}
+        <aside aria-label="Order summary"
+          className="hidden lg:block lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pb-8 space-y-3"
+          style={{ overscrollBehavior: "contain" }}>
+          <div className="rounded-2xl p-4 space-y-1"
+            style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+            <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>This order</p>
+            <p className="ios-subhead font-semibold text-foreground truncate">
+              {customerId === "walkin" ? "Walk-in customer" : (customer?.name ?? "No customer yet")}
+            </p>
+            <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+              {[
+                customerId && customerId !== "walkin" ? `${orderTier} price` : null,
+                godowns.find((g) => g.id === godownId)?.name ?? "No warehouse yet",
+                CHANNELS.find((c) => c.value === channel)?.label,
+              ].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+
+          {draftLines.length === 0 ? (
+            <div className="rounded-2xl p-5 text-center"
+              style={{ background: "var(--glass-bg-1)", border: "0.5px dashed var(--glass-border-lo)" }}>
+              <ShoppingCart className="h-5 w-5 mx-auto mb-2" style={{ color: "var(--foreground)", opacity: 0.5 }} />
+              <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                Nothing added yet. Pick a product on the left and it appears here.
+              </p>
+            </div>
+          ) : (
+            <CartLines
+              lines={draftLines}
+              grandTotal={grandTotal}
+              editable
+              onChangeQty={changeLineQty}
+              onRemove={removeLine}
+              maxPiecesFor={maxPiecesFor}
+            />
+          )}
+
+          {shortfalls.length > 0 && (
+            <p className="ios-footnote font-semibold px-1" style={{ color: "var(--snm-error)" }}>
+              {shortfalls[0].short} more {shortfalls[0].noun} needed to fill the carton
+            </p>
+          )}
+        </aside>
+      </div>
       </div>
 
       {/* Fixed bottom actions */}
-      <footer className="glass-panel--strong shrink-0 px-5 gap-3 flex items-center relative z-[1]" style={{ paddingTop: "12px", paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))", minHeight: 72, borderRadius: 0, borderLeft: "none", borderRight: "none", borderBottom: "none", borderTop: "0.5px solid var(--glass-border-lo)" }}>
+      {/* Action bar. On a phone the buttons split the full width — a thumb
+          needs the target. On desktop that same rule produced a 1110px-wide
+          "Review & Confirm", which is a phone button stretched, not a desktop
+          one: at lg they take their natural width and sit to the right, where
+          a primary action belongs in a window. */}
+      <footer className="glass-panel--strong shrink-0 px-5 lg:px-8 gap-3 flex items-center lg:justify-end relative z-[1]" style={{ paddingTop: "12px", paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))", minHeight: 72, borderRadius: 0, borderLeft: "none", borderRight: "none", borderBottom: "none", borderTop: "0.5px solid var(--glass-border-lo)" }}>
         {step === 1 && (
           <>
-            <button onClick={onClose} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
+            <button onClick={onClose} className="flex-1 lg:flex-none lg:px-10 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
             <button disabled={!customerId} onClick={async () => {
                 try {
                   const skuIds = skus.map((s) => s.id);
@@ -3336,7 +3444,7 @@ function NewSaleSheet({
                 }
                 setStep(2);
               }}
-              className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+              className="flex-[2] lg:flex-none lg:px-14 h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
               Add Products <ArrowRight className="h-4 w-4" />
             </button>
@@ -3349,9 +3457,9 @@ function NewSaleSheet({
             // which left a dead gap between it and this same bar). One
             // action, always in the same place, native-form style.
             <>
-              <button onClick={() => setSelectedSkuId("")} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
+              <button onClick={() => setSelectedSkuId("")} className="flex-1 lg:flex-none lg:px-10 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
               <button onClick={handleAddLine} disabled={!lineQty || !linePrice || lineQtyPieces <= 0 || insufficient}
-                className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+                className="flex-[2] lg:flex-none lg:px-14 h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
                 style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                 <Plus className="h-4 w-4" /> Add to Order
               </button>
@@ -3379,14 +3487,14 @@ function NewSaleSheet({
                 onClick={() => draftLines.length > 0
                   ? productSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
                   : setStep(1)}
-                className="snm-pressable h-14 flex-1 rounded-xl px-3 flex items-center justify-center gap-1.5 ios-subhead font-semibold whitespace-nowrap"
+                className="snm-pressable h-14 flex-1 rounded-xl px-3 flex items-center justify-center gap-1.5 ios-subhead font-semibold whitespace-nowrap lg:hidden"
                 style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: draftLines.length > 0 ? "var(--snm-brand-text)" : "var(--foreground)" }}>
                 {draftLines.length > 0
                   ? <><Plus className="h-4 w-4 shrink-0" /> Add product</>
                   : <><ArrowLeft className="h-4 w-4 shrink-0" /> Back</>}
               </button>
               <button disabled={draftLines.length === 0 || shortfalls.length > 0} onClick={() => setStep(3)}
-                className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2 whitespace-nowrap"
+                className="flex-[2] lg:flex-none lg:px-14 h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2 whitespace-nowrap"
                 style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                 {draftLines.length === 0 ? "Add at least 1 item"
                   : shortfalls.length > 0 ? `Add ${shortfalls[0].short} more ${shortfalls[0].noun}`
@@ -3397,12 +3505,12 @@ function NewSaleSheet({
         )}
         {step === 3 && (
           <>
-            <button onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
+            <button onClick={() => setStep(2)} className="flex-1 lg:flex-none lg:px-10 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>← Back</button>
             {/* A part-carton is refused by the database (0163). Catching it
                 here means the reason is on screen next to the fix, instead of
                 arriving as an error after the last tap. */}
             <button disabled={saving || shortfalls.length > 0} onClick={handleSubmit}
-              className="flex-[2] h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
+              className="flex-[2] lg:flex-none lg:px-14 h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" />
                 : shortfalls.length > 0
@@ -3559,6 +3667,7 @@ function NewSaleSheet({
         />,
         document.body,
       )}
+      </div>
     </div>,
     document.body,
   );
