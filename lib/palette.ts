@@ -1,4 +1,4 @@
-export const PALETTES = ["sunrise", "aurora", "ember", "monochrome"] as const;
+export const PALETTES = ["sunrise", "aurora", "ember", "monochrome", "soft"] as const;
 export type Palette = (typeof PALETTES)[number];
 
 export const PALETTE_STORAGE_KEY = "snm-palette";
@@ -20,6 +20,9 @@ export const PALETTE_SWATCHES: Record<Palette, { label: string; colors: [string,
   aurora:     { label: "Aurora",     colors: ["#9fe3d0", "#9cc7f0", "#c0b0f0", "#ffffff"] },
   ember:      { label: "Ember",      colors: ["#ff8a4d", "#e0568f", "#ffbe4d", "#fff0e0"] },
   monochrome: { label: "Monochrome", colors: ["#e2e2de", "#d8d8d4", "#ececea", "#ffffff"] },
+  // Soft is a MATERIAL, not a colour scheme — its swatch shows the carve
+  // (light rim, base, shade) rather than four hues it doesn't have.
+  soft:       { label: "Soft",       colors: ["#ffffff", "#e6e9ee", "#dfe3ea", "#a0acbe"] },
 };
 
 /**

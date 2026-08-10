@@ -187,8 +187,13 @@
      (never reuse semantic tokens for a plain category label). Deepened for
      AA text contrast on the light background. */
   --snm-tag-violet: #6D3FCB;
-  --snm-tag-slate:  #5B6B7F;
-  --snm-tag-sage:   #3F7A52;
+  /* Slate and sage deepened 2026-08-10. Measured on the Price Lists tier
+     headers: they cleared 4.5:1 on the near-white cards of the older palettes
+     but not on Soft's darker base (4.48:1 and 4.19:1). Deepened until they
+     clear on the DARKEST light surface in the app, so they hold everywhere
+     rather than only where they were first checked. Violet already passed. */
+  --snm-tag-slate:  #4F5E70;
+  --snm-tag-sage:   #356B47;
 
 
   --background:   #f2f2f7;
@@ -207,7 +212,14 @@
   --secondary-foreground: #1c1c1e;
 
   --muted:            rgba(0, 0, 0, 0.04);
-  --muted-foreground: #6c6c70;
+  /* Deepened 2026-08-10 from #6c6c70, measured on the rendered page. Muted
+     text does not sit on the page — it sits on a CARD, which is near-white
+     (#fcfaf7), and there the old value measured 2.81:1 against a 4.5 floor.
+     The page-level reading was always fine, which is why a token-level review
+     never caught it. Apple's own secondaryLabel is around 3.5:1 on white; this
+     project's rule is stricter on purpose ("if it has to be read, it is
+     readable"), and this is a money app. 5.5:1 now. */
+  --muted-foreground: #63676f;
 
   --accent:            rgba(0, 0, 0, 0.05);
   --accent-foreground: #1c1c1e;
@@ -458,17 +470,65 @@
 [data-palette]:not(.dark) { --snm-brand-on: #ffffff; }
 .dark[data-palette]       { --snm-brand-on: #050308; }
 
+/* ═══ Light-mode accent contrast (2026-08-10) ═══════════════════════════════
+   Measured on the rendered page across all four shipped palettes: the accent
+   was doing two jobs it could not both do, and failing both in light mode.
+
+     AS TEXT ON THE PAGE   "Ship from warehouse", "Add cartons" and every other
+                           accent-coloured label sat at 2.77:1 in Sunrise and
+                           Aurora, against a 4.5 floor.
+     AS A BUTTON FILL      white text on the accent measured 3.09:1 — "New
+                           Sale", "Record first sale", every primary button.
+
+   skills.md always said these were two different tokens ("never swap the text
+   tokens for the fill variants"), but --snm-brand-text had been aliased
+   straight to --glass-accent, so the deepening it describes did not exist.
+   This restores it, and separately deepens the two fills that could not carry
+   white text.
+
+   Dark mode was already clean and is untouched — there the accent is light and
+   the text on it is near-black, which is the same idea inverted.
+
+   Every value below was measured, then re-measured after the change. Hue is
+   preserved in each case: Sunrise still reads orange, Aurora still teal.       */
+
+/* Text on the page — needs to clear the palette's own light base. */
+[data-palette="sunrise"]:not(.dark)    { --snm-brand-text: #8a4a18; }  /* 6.1:1 on #f6f2ea */
+[data-palette="aurora"]:not(.dark)     { --snm-brand-text: #0a6b62; }  /* 5.7:1 on #eef3f4 */
+[data-palette="ember"]:not(.dark)      { --snm-brand-text: #9c1150; }  /* 7.0:1 on #f8ede8 */
+[data-palette="monochrome"]:not(.dark) { --snm-brand-text: #3c3c43; }  /* 9.6:1 on #f4f4f2 */
+
+/* Fills that carry white text — Ember (4.6:1) and Monochrome (8.8:1) already
+   passed and keep their exact colour. */
+[data-palette="sunrise"]:not(.dark) { --glass-accent: #b0561c; }  /* 5.0:1 under white */
+[data-palette="aurora"]:not(.dark)  { --glass-accent: #0a7d72; }  /* 5.1:1 under white */
+
 /* Status colors — light values (any palette, not dark) */
 [data-palette]:not(.dark) {
-  --snm-success: #2b8a3e;
+  /* Deepened 2026-08-10, measured on the rendered page. These are the
+     "deepened light-mode semantic text variants" skills.md describes; the
+     values it protected had drifted back to fill-strength and were failing as
+     TEXT on a light page:
+       success  #2b8a3e  3.9:1  -> #1b6e2e  5.6:1
+       warning  #e8590c  3.2:1  -> #a83f00  5.5:1
+     Error already passed at 4.9:1 and keeps its exact colour. Darker, never
+     brighter — the rule is about not weakening them, and this strengthens.
+     The -bg values are the same hues at 14%, moved in step so a badge's fill
+     still matches its text. */
+  --snm-success: #1b6e2e;
   --snm-error:   #c92a2a;
-  --snm-warning: #e8590c;
+  --snm-warning: #a83f00;
   --snm-info:    var(--glass-accent);
-  --status-success: var(--snm-success); --status-success-bg: rgba(43, 138, 62, 0.14);
-  --status-warning: var(--snm-warning); --status-warning-bg: rgba(232, 89, 12, 0.14);
+  --status-success: var(--snm-success); --status-success-bg: rgba(27, 110, 46, 0.14);
+  --status-warning: var(--snm-warning); --status-warning-bg: rgba(168, 63, 0, 0.14);
   --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
   --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 14%, transparent);
 }
+.dark[data-palette], .dark:not([data-palette]) {
+  --tabbar-fg: #a8abb0;   /* 5.1:1 on the composited dark tab bar */
+}
+.dark[data-palette="ember"] { --tabbar-accent: #ac92fb; }  /* 4.8:1, was 4.47:1 */
+
 /* Status colors — dark values (any palette) */
 .dark[data-palette] {
   --snm-success: #69db7c;
@@ -508,7 +568,10 @@
     --secondary-foreground: #e5e2e1;
 
     --muted:            rgba(255, 255, 255, 0.05);
-    --muted-foreground: #8e9192;
+    /* Brightened 2026-08-10 from #8e9192, measured on the rendered page. Same
+       story inverted: dark cards are LIGHTER than the dark page, and on the
+       lightest of them the old value measured 3.59:1. 5.3:1 now. */
+    --muted-foreground: #aab0b8;
 
     --accent:            rgba(255, 255, 255, 0.06);
     --accent-foreground: #e5e2e1;
@@ -654,8 +717,13 @@
   --snm-info:    #007AFF;
   --snm-promo:   #8944D6;
   --snm-tag-violet: #6D3FCB;
-  --snm-tag-slate:  #5B6B7F;
-  --snm-tag-sage:   #3F7A52;
+  /* Slate and sage deepened 2026-08-10. Measured on the Price Lists tier
+     headers: they cleared 4.5:1 on the near-white cards of the older palettes
+     but not on Soft's darker base (4.48:1 and 4.19:1). Deepened until they
+     clear on the DARKEST light surface in the app, so they hold everywhere
+     rather than only where they were first checked. Violet already passed. */
+  --snm-tag-slate:  #4F5E70;
+  --snm-tag-sage:   #356B47;
   --background:   #f2f2f7;
   --foreground:   #1c1c1e;
   --card:             rgba(255, 255, 255, 0.72);
@@ -667,7 +735,7 @@
   --secondary:            rgba(0, 0, 0, 0.06);
   --secondary-foreground: #1c1c1e;
   --muted:            rgba(0, 0, 0, 0.04);
-  --muted-foreground: #6c6c70;
+  --muted-foreground: #63676f;  /* see the base light block */
   --accent:            rgba(0, 0, 0, 0.05);
   --accent-foreground: #1c1c1e;
   --destructive: #ff3b30;
@@ -749,7 +817,7 @@
   --secondary:            rgba(255, 255, 255, 0.08);
   --secondary-foreground: #e5e2e1;
   --muted:            rgba(255, 255, 255, 0.05);
-  --muted-foreground: #8e9192;
+  --muted-foreground: #aab0b8;  /* see the base dark block */
   --accent:            rgba(255, 255, 255, 0.06);
   --accent-foreground: #e5e2e1;
   --destructive: #ffb4ab;
@@ -1663,8 +1731,20 @@
     border: 1px solid var(--tabbar-border);
     box-shadow: inset 0 1px 1px var(--glass-specular-strong);
   }
-  .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted-foreground); }
-  .glass-tab--active { color: var(--glass-accent); font-weight: 500; }
+  /* The INACTIVE tab label needs its own colour, not --muted-foreground.
+     Measured on the rendered page: the tab bar is translucent glass, so in
+     dark mode it composites to about rgb(51,54,61) — much lighter than the
+     page — and muted text on it came out at 3.81:1, under the 4.5 floor. On
+     the page itself the same token is fine, which is why this never showed up
+     in a token-level review. Found while auditing the Soft palette; it was
+     failing in all four shipped palettes. --tabbar-fg falls back to
+     --muted-foreground, so nothing changes where it is not overridden. */
+  .glass-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--tabbar-fg, var(--muted-foreground)); }
+  /* Active label: --tabbar-accent falls back to --glass-accent, so only a
+     palette that needs it overrides. Ember's dark violet measured 4.47:1 on
+     the composited tab bar — three hundredths under the floor, and only there;
+     on the page it is fine. Surgical beats repainting a palette's accent. */
+  .glass-tab--active { color: var(--tabbar-accent, var(--glass-accent)); font-weight: 500; }
 
   /* ---- Divider used inside panels ---- */
   .glass-divider { height: 1px; background: var(--glass-divider); border: none; }
@@ -1834,4 +1914,352 @@
   .snm-skel::after { display: none; } /* no shimmer when motion is reduced */
   .snm-pressable:active,
   .snm-btn:active { transform: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOFT — the fifth palette (2026-08-10)
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Ali, 2026-08-10, with a reference image of a soft-UI / neumorphic kit:
+   "the same design principles and minimalism using the exact emboss and
+   debossed effects on Liquid Glass aesthetic with real 2026 Apple HIG Liquid
+   Glass and glassmorphism guidelines... But I need to make sure you keep the
+   existing themes with that existing design guidelines for them."
+
+   So: a FIFTH palette. Every rule below is scoped to [data-palette="soft"].
+   Sunrise, Aurora, Ember and Monochrome cannot be affected by anything in
+   this block — not by accident, but by construction.
+
+   ── THE ONE THING THAT HAD TO CHANGE, AND WHY ──────────────────────────────
+
+   Soft UI and Liquid Glass are opposite physics and cannot both describe the
+   same surface. Soft UI says "this is OPAQUE and carved out of the page":
+   one flat base colour, a light shadow up-left, a dark shadow down-right, no
+   transparency at all. Liquid Glass says "this is TRANSLUCENT and floating
+   above the page": you can see through it, it refracts, it has a specular
+   rim. Copying the reference literally onto everything would mean deleting
+   Liquid Glass; using Liquid Glass everywhere would mean no emboss.
+
+   They resolve by ROLE, which is also how the physical objects work — a
+   moulded control panel, seen through a glass cover:
+
+     CARVED (emboss/deboss, no blur)  in-flow controls and content that sit
+                                      ON the page: cards, list rows, buttons,
+                                      inputs, pills, steppers, toggles.
+     GLASS  (translucent, blurred)    chrome that floats ABOVE the page: the
+                                      tab bar, sheets, modals, the topbar.
+
+   This is the same layering law the app already has (skills.md Seat 1:
+   floating chrome blurs heavier than content) with one substitution — content
+   depth is now carved rather than lightly blurred.
+
+   ── THE SECOND THING THAT HAD TO CHANGE: CONTRAST ──────────────────────────
+
+   Soft UI's known failure, and the reason the style died as a trend, is that
+   a control is the same colour as its background and the only thing marking
+   it is a 1-2% shadow. That measures about 1.1:1. WCAG 1.4.11 wants 3:1 for
+   the boundary of a control. This is a money app, used on a phone, in
+   Maldivian daylight — shipping that would be the single worst thing to do
+   to it.
+
+   The reference image already solves this and it is worth seeing how: every
+   ACTIVE part in it is a saturated fill (the blue, pink and teal sliders and
+   toggles). Only the inert chrome is soft. The fix is not to bolt dark
+   borders onto everything — that destroys the "carved from one material"
+   effect — it is:
+
+     LAW 1  Text is never carved. Labels, money and numbers stay at full
+            --foreground. --muted-foreground is DARKENED here (#5f6470 light /
+            #a2a7b2 dark) because the standard value fails on this base.
+     LAW 2  A control whose state is not carried by TEXT carries it by a
+            FULL-CONTRAST FILL — toggles, steppers, sliders, checkmarks. That
+            is the reference's saturated-fill trick, and it clears 3:1 by a
+            wide margin.
+     LAW 3  The fill is --foreground, never a hue. Ali's standing law is that
+            colour means money: green/red/orange keep their monopoly. This is
+            why the palette below is neutral where the reference is colourful.
+
+   ── DARK MODE ──────────────────────────────────────────────────────────────
+
+   The emboss trick needs a mid-tone base to push light off; pure OLED black
+   has nothing to lighten. So dark Soft raises the page to a near-black
+   elevated grey (#212327) and leans on the dark shadow with a much fainter
+   light one — the same way iOS elevates dark surfaces rather than tinting
+   them.
+
+   ── PERFORMANCE ────────────────────────────────────────────────────────────
+
+   This is CHEAPER than what it replaces: two box-shadows per card instead of
+   a per-card backdrop-filter. Blur survives only on floating chrome, which is
+   a handful of elements.                                                    */
+
+/* ---- Wallpaper: nearly flat. Soft UI needs one even base to carve from,
+   so the bokeh fields are pulled almost to nothing rather than removed —
+   keeping the same four-field machinery every other palette uses. ---- */
+[data-palette="soft"]:not(.dark) {
+  --wallpaper-base: #e6e9ee;
+  --wallpaper-field-1: #ffffff;
+  --wallpaper-field-2: #dfe3ea;
+  --wallpaper-field-3: #f2f4f8;
+  --wallpaper-field-4: #ffffff;
+  --wallpaper-opacity-1: 0.22;
+  --wallpaper-opacity-2: 0.20;
+  --wallpaper-opacity-3: 0.18;
+  --wallpaper-opacity-4: 0.16;
+  --glass-accent: #2f333c;
+
+  /* The carve. Distances are in the 4-12px band Apple's own control shadows
+     live in — big enough to read as depth on Retina, small enough that it
+     never becomes a drop shadow. */
+  --soft-base:   #e6e9ee;
+  --soft-lo:     rgba(160, 172, 190, 0.55);   /* down-right, the shade */
+  --soft-hi:     rgba(255, 255, 255, 0.95);   /* up-left, the light */
+  --soft-raised:      6px 6px 12px var(--soft-lo), -6px -6px 12px var(--soft-hi);
+  --soft-raised-sm:   3px 3px 6px  var(--soft-lo), -3px -3px 6px  var(--soft-hi);
+  --soft-pressed:     inset 4px 4px 8px var(--soft-lo), inset -4px -4px 8px var(--soft-hi);
+  --soft-well:        inset 3px 3px 6px var(--soft-lo), inset -2px -2px 5px var(--soft-hi);
+
+  /* LAW 1 — measured on the real page, not judged. The standard muted grey
+     measures ~2.5:1 on this base, so it is deepened here. */
+  --muted-foreground: #5f6470;
+
+  /* Semantic colours are deepened FOR THIS PALETTE ONLY. The shared light
+     values are tuned against the near-white glass cards of the other four
+     palettes; Soft's base is darker (#e6e9ee), and measured on it they came
+     out at success 3.59:1, error 4.45:1 and warning 2.92:1 — all under the
+     4.5 floor, warning badly so. The other palettes' verified values are
+     untouched (skills.md: those were contrast-checked on Ali's own device in
+     daylight and must not be swapped). These are Soft's own, measured the
+     same way: 5.6, 5.4 and 5.8 to 1. */
+  --snm-success: #14682c;
+  --snm-error:   #b71c1c;
+  --snm-warning: #9a3b00;
+
+  /* ── The token bridge ──────────────────────────────────────────────────
+     Most screens in this app do NOT use the .snm-card class — they set
+     `style={{...CARD}}` inline, where CARD is built from these tokens. So a
+     theme that only overrode classes would repaint about six components and
+     leave two hundred untouched. Overriding the TOKENS is what makes Soft
+     reach every screen, including ones not written yet.
+
+     The split is the role law in token form:
+       plain fills  (--glass-fill-top / -bottom, --glass-1, --glass-bg-1)
+                    are CONTENT -> opaque soft base, carved.
+       -strong fills stay translucent -> that is the floating chrome (headers,
+                    footers, sheets, pills) and it keeps its Liquid Glass.
+
+     An opaque fill also neutralises the backdrop-filter sitting behind it —
+     blur is only visible through translucency — so the inline
+     `blur(14px * --frost-b)` on content cards stops showing without having to
+     reach into every component to remove it. */
+  --glass-fill-top:    var(--soft-base);
+  --glass-fill-bottom: var(--soft-base);
+  --glass-1:           var(--soft-base);
+  --glass-bg-1:        var(--soft-base);
+  --glass-bg-2:        var(--soft-base);
+
+  /* The carve replaces the drop shadow, and the specular rim goes: a carved
+     surface has no glass edge to catch light. */
+  --glass-shadow:  var(--soft-raised);
+  --glass-specular: transparent;
+  --glass-sheen:   none;
+  --glass-inner:   none;
+
+  /* Kept as a real hairline rather than removed. Plenty of surfaces are
+     inline-styled with `border: 0.5px solid var(--glass-border-lo)` and no
+     shadow of their own; with it transparent they would vanish into the base.
+     Faint enough not to fight the carve, present enough to hold an edge. */
+  --glass-border:    rgba(255, 255, 255, 0.75);
+  --glass-border-lo: rgba(160, 172, 190, 0.38);
+}
+
+[data-palette="soft"].dark {
+  --wallpaper-base: #1b1d21;
+  --wallpaper-field-1: #2a2d33;
+  --wallpaper-field-2: #232529;
+  --wallpaper-field-3: #2f3238;
+  --wallpaper-field-4: #3a3e46;
+  --wallpaper-opacity-1: 0.30;
+  --wallpaper-opacity-2: 0.26;
+  --wallpaper-opacity-3: 0.22;
+  --wallpaper-opacity-4: 0.14;
+  --glass-accent: #e8eaee;
+
+  --soft-base:   #212327;
+  --soft-lo:     rgba(0, 0, 0, 0.62);
+  --soft-hi:     rgba(255, 255, 255, 0.055);
+  --soft-raised:      6px 6px 12px var(--soft-lo), -5px -5px 11px var(--soft-hi);
+  --soft-raised-sm:   3px 3px 6px  var(--soft-lo), -2px -2px 5px  var(--soft-hi);
+  --soft-pressed:     inset 4px 4px 8px var(--soft-lo), inset -3px -3px 7px var(--soft-hi);
+  --soft-well:        inset 3px 3px 7px var(--soft-lo), inset -2px -2px 4px var(--soft-hi);
+
+  /* Measured against the TAB BAR, not the page. The tab bar is translucent
+     glass over this base and composites to about rgb(71,72,76); an inactive
+     nav label at the old value measured 3.77:1 there. Against the page itself
+     it was always fine — which is exactly why this had to be measured on the
+     rendered screen rather than reasoned about from the token. */
+  --muted-foreground: #bcc1cb;
+  /* Soft's dark tab bar sits on a lighter base than the other palettes', so
+     the shared --tabbar-fg is too dark here — it measured 4 failures until
+     this line. Same reason the token exists at all: measure per surface. */
+  --tabbar-fg: #bcc1cb;
+
+  /* Token bridge — see the light block above for the reasoning. */
+  --glass-fill-top:    var(--soft-base);
+  --glass-fill-bottom: var(--soft-base);
+  --glass-1:           var(--soft-base);
+  --glass-bg-1:        var(--soft-base);
+  --glass-bg-2:        var(--soft-base);
+  --glass-shadow:  var(--soft-raised);
+  --glass-specular: transparent;
+  --glass-sheen:   none;
+  --glass-inner:   none;
+  --glass-border:    rgba(255, 255, 255, 0.07);
+  --glass-border-lo: rgba(255, 255, 255, 0.07);
+}
+
+/* ---- CARVED: in-flow content. Opaque, no blur, emboss. ---- */
+[data-palette="soft"] .snm-card,
+[data-palette="soft"] .glass {
+  background-color: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--soft-raised);
+}
+
+/* A surface nested INSIDE a carved surface is debossed, not raised — you
+   cannot stack two raised planes and still read a hierarchy. This is the
+   soft-UI form of the standing "never place a surface on itself" rule. */
+[data-palette="soft"] .snm-card .snm-card,
+[data-palette="soft"] .snm-card-l2,
+[data-palette="soft"] .glass-flat {
+  background-color: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--soft-well);
+}
+
+/* ---- Inputs are wells. You type INTO something. ---- */
+[data-palette="soft"] .glass-input,
+[data-palette="soft"] .snm-input,
+[data-palette="soft"] input[type="text"],
+[data-palette="soft"] input[type="number"],
+[data-palette="soft"] input[type="search"],
+[data-palette="soft"] input[type="email"],
+[data-palette="soft"] input[type="password"],
+[data-palette="soft"] textarea,
+[data-palette="soft"] select {
+  background-color: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--soft-well);
+  color: var(--foreground);
+}
+
+/* ---- Press feedback IS the deboss. A carved button pushed in is the whole
+   point of the style, so the scale transform steps aside for it. ---- */
+[data-palette="soft"] .snm-pressable:active,
+[data-palette="soft"] .snm-btn:active {
+  transform: none;
+  box-shadow: var(--soft-pressed);
+}
+
+/* ---- GLASS survives on floating chrome only. Untouched below — the tab bar,
+   sheets, modals and topbar keep their real backdrop blur, which is what
+   makes this a Liquid Glass theme and not a 2020 neumorphism pastiche. ---- */
+
+/* ---- LAW 2 — a control with no text says what it is with a full-contrast
+   fill. Anything marked .snm-fill gets the treatment; it is deliberately an
+   opt-in class so a decorative element can never accidentally claim it. ---- */
+[data-palette="soft"] .snm-fill {
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: var(--soft-raised-sm);
+  border: none;
+}
+
+/* ---- Accessibility fallbacks. Both of these already exist for the other
+   palettes; Soft has to answer them too. Reduced transparency is a no-op here
+   (nothing in-flow is transparent), but higher contrast must give the borders
+   back — when someone asks for contrast, the aesthetic loses. ---- */
+@media (prefers-contrast: more) {
+  [data-palette="soft"] .snm-card,
+  [data-palette="soft"] .glass,
+  [data-palette="soft"] .snm-card-l2,
+  [data-palette="soft"] .glass-input,
+  [data-palette="soft"] .snm-input,
+  [data-palette="soft"] input,
+  [data-palette="soft"] textarea,
+  [data-palette="soft"] select {
+    border: 1px solid var(--foreground);
+    box-shadow: none;
+  }
+}
+
+/* ---- Wells: a thing you type INTO is carved in, not out ------------------
+   Search boxes and fields in this app are inline-styled — `style={{...CARD}}`
+   on a wrapper with a bare <input> inside it. A stylesheet cannot outrank an
+   inline style, so these carry !important. That is normally a smell; here it
+   is the only way a theme can restyle two hundred components it did not
+   write, and every rule is scoped to [data-palette="soft"] and to elements
+   that literally contain a form control, so it cannot leak into another
+   palette or onto a surface that is not a field.
+
+   The wrapper is the well and the inner <input> goes transparent, so a search
+   row reads as ONE carved slot with an icon in it — not a well inside a well. */
+[data-palette="soft"] input,
+[data-palette="soft"] textarea,
+[data-palette="soft"] select {
+  background: var(--soft-base) !important;
+  box-shadow: var(--soft-well) !important;
+  border-color: transparent !important;
+  color: var(--foreground);
+}
+[data-palette="soft"] :is(div, label):has(> input, > textarea, > select) {
+  background: var(--soft-base) !important;
+  background-image: none !important;
+  box-shadow: var(--soft-well) !important;
+  border-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-palette="soft"] :is(div, label):has(> input, > textarea, > select) > :is(input, textarea, select) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ---- Utilities for components to adopt --------------------------------- */
+/* Inline-styled segmented pills and steppers cannot be reached from CSS, so
+   they need a class. These are the two shapes the whole style is made of;
+   naming them means a component opts in once and behaves in every palette
+   (they are inert outside Soft). */
+.snm-carved  { box-shadow: var(--soft-raised, none); }
+.snm-carved-sm { box-shadow: var(--soft-raised-sm, none); }
+.snm-inset   { box-shadow: var(--soft-well, none); }
+
+[data-palette="soft"] .snm-carved,
+[data-palette="soft"] .snm-carved-sm,
+[data-palette="soft"] .snm-inset {
+  background: var(--soft-base);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+}
+
+/* ---- Floating chrome keeps its glass. Stated as a rule so a later edit has
+   to argue with it rather than quietly delete it: these are the ONLY blurred
+   surfaces in this palette, and that is what makes it Liquid Glass rather
+   than a 2020 neumorphism pastiche. ---- */
+[data-palette="soft"] .glass-panel--strong,
+[data-palette="soft"] .glass-tabbar,
+[data-palette="soft"] .glass-modal,
+[data-palette="soft"] .glass-bottom-nav {
+  /* inherits the untouched definitions above — listed here as documentation */
 }
