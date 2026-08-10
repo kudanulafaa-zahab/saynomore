@@ -12,7 +12,8 @@
     "audit:contrast": "node scripts/audit/contrast.mjs",
     "audit:material": "node scripts/audit/material.mjs",
     "audit:journey": "node scripts/audit/journey.mjs",
-    "audit:ui": "npm run audit:journey && npm run audit:material && npm run audit:contrast"
+    "audit:ui": "npm run audit:journey && npm run audit:offline && npm run audit:material && npm run audit:contrast",
+    "audit:offline": "node scripts/audit/offline.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -117,4 +117,22 @@ begin
             10, 1680, 3.05, 128.1, 512.4);
   insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
     values (v_batch, v_sku, v_godown, 'in', 1680, 'shipment');
+
+  -- ── One confirmed, unpaid, undispatched order ─────────────────────────────
+  -- Confirmed so it carries a status badge; no driver so the dashboard raises
+  -- "waiting for a driver"; unpaid so Owed is non-zero. Between them those three
+  -- states light up most of the data-dependent UI in the app.
+  --
+  -- Posted through post_sale so the stock ledger stays honest — a fixture that
+  -- invents an order without moving stock would leave every quantity in the app
+  -- disagreeing with itself, and the audits would be measuring a lie.
+  insert into sales_orders (id, order_number, status, payment_status, channel,
+                            customer_id, source_godown_id)
+  values ('00000000-0000-0000-0000-0000000f9001', 'SO-FIXTURE-1', 'draft', 'pending',
+          'whatsapp', v_customer, v_godown);
+  insert into sales_order_lines (id, order_id, sku_id, uom, qty, qty_pieces,
+                                 unit_price_mvr, line_total_mvr)
+  values ('00000000-0000-0000-0000-0000000f9002', '00000000-0000-0000-0000-0000000f9001',
+          (function_prefix || '3999')::uuid, 'carton', 1, 168, 776, 776);
+  perform post_sale('00000000-0000-0000-0000-0000000f9001');
 end $$;

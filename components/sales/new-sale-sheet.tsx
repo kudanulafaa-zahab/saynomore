@@ -788,6 +788,9 @@ export function NewSaleSheet({
     // handlers and this same footer button. A second component would be a
     // second door, and the standing rule here is one guard, every door.
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="New sale"
       className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center md:p-6 lg:p-8"
       style={{ touchAction: "none" }}
       onTouchMove={(e) => e.stopPropagation()}
