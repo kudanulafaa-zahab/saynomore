@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueRow } from "@/lib/queries/reports";
 import { groupByBrand } from "@/lib/group-by-brand";
-import { getPnl, type PnlRow } from "@/lib/queries/expenses";
+import { getPnl, getRunningCostsStatus, type PnlRow, type RunningCostsStatus } from "@/lib/queries/expenses";
+import Link from "next/link";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
 import { listRecentWriteoffs, writeoffLabel, type WriteoffRow, listReturns, returnLabel, type ReturnRow } from "@/lib/queries/inventory";
 import { MarginWatch } from "./margin-watch";
@@ -261,6 +262,7 @@ export function FinancialsView() {
   const [monthly, setMonthly]   = useState<MonthlyRevenueRow[]>([]);
   const [writeoffs, setWriteoffs] = useState<WriteoffRow[]>([]);
   const [returns, setReturns] = useState<ReturnRow[]>([]);
+  const [runningCosts, setRunningCosts] = useState<RunningCostsStatus | null>(null);
   const [loading, setLoading]   = useState(true);
 
   // Maldives calendar, not the device's. These used to be built from local
@@ -302,8 +304,12 @@ export function FinancialsView() {
       // the total shown on the "Damaged & write-offs" line.
       listRecentWriteoffs(50, firstOfMonth, tomorrow).catch(() => [] as WriteoffRow[]),
       listReturns(50, firstOfMonth, tomorrow).catch(() => [] as ReturnRow[]),
+      // Does THIS period's profit have this period's running costs behind it?
+      // Same window as the P&L above, deliberately — asking about a different
+      // window is how a figure quietly stops matching its own label (0168).
+      getRunningCostsStatus(firstOfMonth, tomorrow).catch(() => null),
     ])
-      .then(([p, lp, r, m, w, rt]) => {
+      .then(([p, lp, r, m, w, rt, rc]) => {
         if (cancelled) return;
         setPnl(p);
         setLastPnl(lp);
@@ -311,6 +317,7 @@ export function FinancialsView() {
         setMonthly(m);
         setWriteoffs(w);
         setReturns(rt);
+        setRunningCosts(rc);
       })
       .catch((e) => { if (!cancelled) toast.error((e as Error).message); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -327,6 +334,11 @@ export function FinancialsView() {
   const stockWriteoff   = Number(pnl?.stock_writeoff_mvr ?? 0);
   const returnsNet      = Number(pnl?.returns_net_mvr ?? 0);
   const netProfit       = Number(pnl?.net_profit_mvr ?? 0);
+  // Whether the bottom line is entitled to call itself NET profit. Defaults to
+  // TRUE while loading so the screen never flashes the alarming state and then
+  // takes it back — a figure that changes its own claim mid-render is worse
+  // than either version of it.
+  const costsKnown      = runningCosts === null ? true : runningCosts.has_costs;
   const grossMarginPct  = Number(pnl?.gross_margin_pct ?? 0);
   const netMarginPct    = Number(pnl?.net_margin_pct ?? 0);
   const opexBreakdown   = pnl?.opex_by_category ?? [];
@@ -345,7 +357,7 @@ export function FinancialsView() {
     [rows],
   );
 
-  // Which brand's SKUs are expanded in the "Gross Profit by Brand" card.
+  // Which brand's SKUs are expanded in the "Profit on the goods, by brand" card.
   const [openBrand, setOpenBrand] = useState<string | null>(null);
 
   // ── Chart — Revenue bars only (what the RPC gives us) ────────────────────
@@ -451,7 +463,7 @@ export function FinancialsView() {
 
           {/* Landed cost row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Landed Cost (COGS)</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− What the goods cost</p>
             <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalLandedCost)}</p>
           </div>
 
@@ -459,7 +471,7 @@ export function FinancialsView() {
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
             <div>
-              <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>Gross Profit</p>
+              <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>Profit on the goods</p>
               <p style={{ color: grossMarginPct >= 20 ? "var(--snm-success)" : grossMarginPct >= 10 ? "var(--snm-warning)" : "var(--snm-error)", fontSize: 11, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                 {grossMarginPct.toFixed(1)}% gross margin
                 {grossDelta !== null && (
@@ -480,7 +492,7 @@ export function FinancialsView() {
 
           {/* Operating expenses — rent, salaries, utilities… by category */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: opexBreakdown.length ? 4 : 6 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Operating Expenses</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Running costs (rent, salaries…)</p>
             <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(otherOpex)}</p>
           </div>
           {opexBreakdown.map((c) => (
@@ -542,22 +554,67 @@ export function FinancialsView() {
             </>
           )}
 
-          {/* Net profit divider */}
+          {/* ── The bottom line, and how sure it is ──────────────────────────
+              This figure was showing MVR 13,790 in confident green with ZERO
+              running costs behind it — no rent, no salaries, no fuel — because
+              business_expenses held one row in the app's whole life. It was the
+              most misleading number in the app: Ali has nowhere else to read
+              his profit from, and 32px bold green reads as fact.
+
+              The old screen did warn, in 12px grey, under the number. Visual
+              weight was inverted against reliability. So the number itself now
+              tells the truth: with no running costs recorded for THIS period it
+              is not net profit at all, it is profit BEFORE the cost of running
+              the business — and it is named that, in neutral ink, with the one
+              tap that fixes it. It goes green and becomes "Net Profit" the
+              moment the costs exist. Nothing is hidden and no figure changes;
+              only the claim it makes about itself. */}
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>Net Profit</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                {netProfit >= 0
-                  ? <TrendingUp  style={{ color: "var(--snm-success)", width: 14, height: 14 }} />
-                  : <TrendingDown style={{ color: "var(--snm-error)",   width: 14, height: 14 }} />}
-                <span style={{ color: netProfit >= 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 12, fontWeight: 600 }}>
-                  {netMarginPct >= 0 ? "+" : ""}{netMarginPct.toFixed(1)}% net margin
-                </span>
-              </div>
-              <p style={{ color: "var(--muted-foreground)", fontSize: 10, marginTop: 2 }}>Revenue − COGS − Marketing − Expenses{stockWriteoff > 0 ? " − Write-offs" : ""}{returnsNet !== 0 ? " − Returns" : ""}</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>
+                {costsKnown ? "Net Profit" : "Profit before running costs"}
+              </p>
+              {costsKnown ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                  {netProfit >= 0
+                    ? <TrendingUp  style={{ color: "var(--snm-success)", width: 14, height: 14 }} />
+                    : <TrendingDown style={{ color: "var(--snm-error)",   width: 14, height: 14 }} />}
+                  <span style={{ color: netProfit >= 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 12, fontWeight: 600 }}>
+                    {netMarginPct >= 0 ? "+" : ""}{netMarginPct.toFixed(1)}% net margin
+                  </span>
+                </div>
+              ) : (
+                <p style={{ color: "var(--foreground)", opacity: 0.85, fontSize: 12, marginTop: 4, fontWeight: 500 }}>
+                  Rent, salaries and fuel are not in this yet — your real profit
+                  is lower.
+                </p>
+              )}
+              <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 3 }}>
+                Sales − what the goods cost{marketingSpend > 0 ? " − Marketing" : ""}
+                {costsKnown ? " − Running costs" : ""}
+                {stockWriteoff > 0 ? " − Damaged" : ""}{returnsNet !== 0 ? " − Returns" : ""}
+              </p>
+              {!costsKnown && (
+                <Link
+                  href="/expenses"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 4, marginTop: 8,
+                    height: 36, padding: "0 14px", borderRadius: 12,
+                    background: "var(--foreground)", color: "var(--background)",
+                    fontSize: 13, fontWeight: 600, textDecoration: "none",
+                  }}
+                >
+                  Add your monthly costs
+                </Link>
+              )}
             </div>
-            <p style={{ color: netProfit >= 0 ? "var(--foreground)" : "var(--snm-error)", fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+            <p style={{
+              color: netProfit < 0 ? "var(--snm-error)" : "var(--foreground)",
+              opacity: costsKnown ? 1 : 0.75,
+              fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em",
+              fontVariantNumeric: "tabular-nums", flexShrink: 0,
+            }}>
               MVR {fmtShort(netProfit)}
             </p>
           </div>
@@ -642,12 +699,12 @@ export function FinancialsView() {
           )}
         </div>
 
-        {/* ── 3. Gross Profit by Brand ── */}
+        {/* ── 3. Profit on the goods, by brand ── */}
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                Gross Profit by Brand
+                Profit on the goods, by brand
               </p>
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>{monthName} · top 5 by profit</p>
             </div>
@@ -666,7 +723,7 @@ export function FinancialsView() {
                 <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Brand</p>
                 <div style={{ display: "flex", gap: 40 }}>
                   <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Revenue</p>
-                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Gross Profit</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Profit on goods</p>
                 </div>
               </div>
 
