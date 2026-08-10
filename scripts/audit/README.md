@@ -34,6 +34,7 @@ Individually:
 
 ```bash
 npm run audit:journey                       # all three device sizes
+npm run audit:grn                           # receiving, and the landed cost
 node scripts/audit/journey.mjs --device phone
 npm run audit:material                      # defaults to the Soft palette
 npm run audit:contrast                      # all palettes, both schemes
@@ -57,6 +58,15 @@ carved palette an in-flow surface is opaque, unblurred, and carries the carve's
 two-shadow signature. Floating chrome is exempt, because chrome stays glass by
 design. This is what found that the blur had been hand-typed into 22 components
 and shadows into 8 more, where no theme could reach them.
+
+**`grn.mjs`** — receives a shipment through the real screen and checks the money
+that comes out. This is the biggest calculation in the app: confirming a GRN
+apportions freight and local charges by each line's share of CBM, apportions
+duty, locks the forex rate permanently, creates the batches and moves the stock
+— all at once, and irreversibly. Get it wrong and nothing errors; every landed
+cost, margin and price suggestion downstream is simply wrong. The fixture's
+shipment has two lines with **different carton sizes** on purpose: a single-line
+shipment apportions 100% to itself and proves nothing.
 
 **`offline.mjs`** — records a sale with the network CUT and asserts it was
 queued rather than lost, that the screen says so, that the queue drains on
@@ -84,6 +94,7 @@ was verified by putting its bug back:
 | a hardcoded `blur(14px)` on the sales card | material — "BLUR on in-flow content", 3 elements |
 | an "Add more" button back inside the cart | journey — failed on all three device sizes |
 | offline writes dropped instead of queued | offline — "the sale was not queued" |
+| freight split evenly per line instead of by CBM | grn — both landed costs wrong by 584/carton |
 
 Two earlier mutation attempts were **not** caught, and that was correct: each
 had a second fix covering it, so neither was still a regression. Worth knowing

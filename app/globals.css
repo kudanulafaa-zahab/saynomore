@@ -495,7 +495,12 @@
      The -bg values are the same hues at 14%, moved in step so a badge's fill
      still matches its text. */
   --snm-success: #1b6e2e;
-  --snm-error:   #c92a2a;
+  /* Error deepened 2026-08-10 from #c92a2a. It cleared 4.9:1 on the PAGE and I
+     left it there; on a nested card (a panel inside a panel, the lightest of
+     which is Ember's rgb(238,228,223)) "Priced below cost" measured 4.35:1.
+     Same lesson as --muted-foreground: tune against the lightest surface the
+     token can land on, not the first one you checked. 5.5:1 there now. */
+  --snm-error:   #b01d1d;
   --snm-warning: #a83f00;
   /* Info follows the TEXT variant of the accent, not the fill. It is used both
      ways — the "Confirmed" status badge paints it as text, the driver banner as
@@ -506,7 +511,7 @@
   --snm-info:    var(--snm-brand-text);
   --status-success: var(--snm-success); --status-success-bg: rgba(27, 110, 46, 0.14);
   --status-warning: var(--snm-warning); --status-warning-bg: rgba(168, 63, 0, 0.14);
-  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
+  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(176, 29, 29, 0.14);
   --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 14%, transparent);
 }
 .dark[data-palette], .dark:not([data-palette]) {
@@ -2005,8 +2010,12 @@
   --soft-well:        inset 3px 3px 6px var(--soft-lo), inset -2px -2px 5px var(--soft-hi);
 
   /* LAW 1 — measured on the real page, not judged. The standard muted grey
-     measures ~2.5:1 on this base, so it is deepened here. */
-  --muted-foreground: #5f6470;
+     measures ~2.5:1 on this base, so it is deepened here.
+     Deepened again 2026-08-10 from #5f6470: on a NESTED surface (a card inside
+     a card, rgb(221,224,228)) rather than the page, it measured 4.47:1 — three
+     hundredths under. Found only after the fixture grew a received shipment and
+     Margin Watch had rows to render. 4.98:1 there now, 5.4:1 on the page. */
+  --muted-foreground: #585d69;
 
   /* Semantic colours are deepened FOR THIS PALETTE ONLY. The shared light
      values are tuned against the near-white glass cards of the other four
