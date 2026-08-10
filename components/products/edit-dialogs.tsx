@@ -1,374 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle, ImageOff, Upload } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  updateBrand,
-  updateModel,
-  updateVariant,
-  updateSku,
-  uploadVariantImage,
-  adminDeleteBrandCascade,
-  adminDeleteModelCascade,
-  adminDeleteVariantCascade,
-  adminDeleteSku,
-  type BrandRow,
-  type ModelRow,
-  type VariantRow,
-  type SkuFullRow,
-  type CategoryRow,
-  type AttrKey,
-  type SellUnit,
-} from "@/lib/queries/products";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { updateSku, adminDeleteBrandCascade, adminDeleteModelCascade, adminDeleteVariantCascade, adminDeleteSku, type SkuFullRow, type SellUnit } from "@/lib/queries/products";
 
 // ── Brand editor ────────────────────────────────────────────────────────
 
-export function EditBrandDialog({
-  brand,
-  open,
-  onOpenChange,
-  onSaved,
-}: {
-  brand: BrandRow | null;
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onSaved: () => void;
-}) {
-  const [name, setName] = useState("");
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open && brand) {
-      setName(brand.name);
-      setNotes(brand.notes ?? "");
-    }
-  }, [open, brand]);
-
-  async function save() {
-    if (!brand || !name.trim()) return;
-    setSaving(true);
-    try {
-      await updateBrand(brand.id, { name: name.trim(), notes: notes.trim() || null });
-      toast.success("Saved");
-      onOpenChange(false);
-      onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border">
-        <DialogHeader>
-          <DialogTitle>Edit Brand</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[60px]" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !name.trim()}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── Model editor ────────────────────────────────────────────────────────
-
-export function EditModelDialog({
-  model,
-  categories,
-  open,
-  onOpenChange,
-  onSaved,
-}: {
-  model: ModelRow | null;
-  categories: CategoryRow[];
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onSaved: () => void;
-}) {
-  const [name, setName] = useState("");
-  const [catId, setCatId] = useState("");
-  const [hs, setHs] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open && model) {
-      setName(model.name);
-      setCatId(model.category_id);
-      setHs(model.hs_code ?? "");
-    }
-  }, [open, model]);
-
-  async function save() {
-    if (!model || !name.trim() || !catId) return;
-    setSaving(true);
-    try {
-      await updateModel(model.id, {
-        name: name.trim(),
-        category_id: catId,
-        hs_code: hs.trim() || null,
-      });
-      toast.success("Saved");
-      onOpenChange(false);
-      onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border">
-        <DialogHeader>
-          <DialogTitle>Edit Model</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Category *</Label>
-            <Select value={catId} onValueChange={(v) => v && setCatId(v)}>
-              <SelectTrigger>
-                <SelectValue>{categories.find((c) => c.id === catId)?.name}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>HS Code</Label>
-            <Input value={hs} onChange={(e) => setHs(e.target.value)} />
-          </div>
-          {/* Duty rate lives on the Category now (e.g. Tobacco = 200%) — every
-              model/pack size in that category inherits it automatically, set
-              once under Products → Categories rather than per model. */}
-          <p className="ios-subhead flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            Customs duty is set on the Category ({categories.find((c) => c.id === catId)?.name ?? "—"}), not per model — edit it under Products → Categories.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !name.trim() || !catId}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── Variant editor (category-driven attributes) ─────────────────────────
-
-const ATTR_LABELS: Record<AttrKey, string> = {
-  size: "Size",
-  scent: "Scent",
-  format: "Format",
-  volume_ml: "Volume (ml)",
-  weight_g: "Weight (g)",
-  colour: "Colour",
-  other: "Other",
-};
-
-export function EditVariantDialog({
-  variant,
-  category,
-  open,
-  onOpenChange,
-  onSaved,
-}: {
-  variant: VariantRow | null;
-  category?: CategoryRow;
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onSaved: () => void;
-}) {
-  const [attrs, setAttrs] = useState<Record<string, string>>({});
-  const [display, setDisplay] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const schema: AttrKey[] = useMemo(
-    () => (category?.variant_attributes ?? []) as AttrKey[],
-    [category],
-  );
-
-  useEffect(() => {
-    if (open && variant) {
-      const fromDb: Record<string, string> = {};
-      Object.entries(variant.attributes).forEach(([k, v]) => { fromDb[k] = String(v); });
-      setAttrs(fromDb);
-      setDisplay(variant.display_name);
-      setImageUrl(variant.image_url);
-    }
-  }, [open, variant]);
-
-  async function handlePickImage(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !variant) return;
-    setUploading(true);
-    try {
-      const url = await uploadVariantImage(variant.id, file);
-      // Persist immediately — a photo is useful the moment it's uploaded,
-      // independent of whether the rest of the form gets saved.
-      await updateVariant(variant.id, { image_url: url });
-      setImageUrl(`${url}?t=${Date.now()}`); // bust cache: same path, new content
-      toast.success("Photo uploaded");
-      onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function save() {
-    if (!variant || !display.trim()) return;
-    const cleaned: Record<string, string | number> = {};
-    for (const k of schema.length > 0 ? schema : Object.keys(attrs)) {
-      const v = attrs[k];
-      if (v === undefined || v.trim() === "") continue;
-      cleaned[k] = /^[0-9.]+$/.test(v) ? Number(v) : v.trim();
-    }
-    setSaving(true);
-    try {
-      await updateVariant(variant.id, { display_name: display.trim(), attributes: cleaned });
-      toast.success("Saved");
-      onOpenChange(false);
-      onSaved();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const keys = schema.length > 0 ? schema : (Object.keys(attrs) as AttrKey[]);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Edit Variant</DialogTitle>
-          {category && <DialogDescription>Category: {category.name}</DialogDescription>}
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Photo</Label>
-            <div className="flex items-center gap-3">
-              <div
-                className="h-20 w-20 shrink-0 rounded-lg overflow-hidden flex items-center justify-center"
-                style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border)" }}
-              >
-                {imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={imageUrl} alt={display || "Variant"} className="h-full w-full object-cover" />
-                ) : (
-                  <ImageOff className="h-6 w-6" style={{ color: "var(--muted-foreground)" }} />
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePickImage}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Upload className="h-3.5 w-3.5" />
-                  )}
-                  {imageUrl ? "Replace photo" : "Upload photo"}
-                </Button>
-                <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                  Shown on the web shop. One photo per size/scent.
-                </p>
-              </div>
-            </div>
-          </div>
-          {keys.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              {keys.map((k) => (
-                <div key={k} className="space-y-2">
-                  <Label>{ATTR_LABELS[k] ?? k}</Label>
-                  <Input
-                    value={attrs[k] ?? ""}
-                    onChange={(e) => setAttrs({ ...attrs, [k]: e.target.value })}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="space-y-2">
-            <Label>Display name *</Label>
-            <Input value={display} onChange={(e) => setDisplay(e.target.value)} />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !display.trim()}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── SKU (Pack) editor ───────────────────────────────────────────────────
+// EditBrandDialog, EditModelDialog and EditVariantDialog were removed on
+// 2026-08-10. They were exported and never imported anywhere — 327 lines of
+// dead dialogs carrying three of the app's react-hooks warnings, and three
+// more places a future edit could have been made in the wrong copy. Brands,
+// models and variants are edited through products-explorer's own sheets.
 
 export function EditSkuDialog({
   sku,
@@ -381,41 +28,39 @@ export function EditSkuDialog({
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
 }) {
-  const [code, setCode] = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [pcsPerPack, setPcsPerPack] = useState("");
-  const [packsPerCarton, setPacksPerCarton] = useState("");
-  const [l, setL] = useState("");
-  const [w, setW] = useState("");
-  const [h, setH] = useState("");
-  const [kg, setKg] = useState("");
-  const [marginPct, setMarginPct] = useState("");
-  const [fixedPrice, setFixedPrice] = useState("");
-  const [fixedPackPrice, setFixedPackPrice] = useState("");
-  const [fixedCartonPrice, setFixedCartonPrice] = useState("");
-  const [sellUnits, setSellUnits] = useState<SellUnit[]>(["pack", "carton"]);
+  // Initialised FROM the sku, not synced to it by an effect.
+  //
+  // The old shape was `useState("")` plus a `useEffect` that copied every field
+  // across whenever `open` or `sku` changed. React 19 flags that (cascading
+  // renders), and the real hazard behind the warning is worse than a render
+  // cost: between the dialog painting and the effect running there is a frame
+  // where a money form is showing the PREVIOUS sku's numbers. On a form that
+  // sets selling prices, that is a frame too many.
+  //
+  // The reset now comes from mounting: products-explorer renders this only
+  // while a sku is selected, so opening a different one is a fresh mount with
+  // fresh initial state, and closing genuinely discards. Same behaviour, no
+  // effect, no stale frame.
+  const perPiece = sku?.fixed_selling_price_mvr;
+  const initialFixedPrice = perPiece != null
+    ? (perPiece * (sku?.pcs_per_pack ?? 1)).toFixed(2) : "";
+
+  const [code, setCode] = useState(sku?.internal_code ?? "");
+  const [barcode, setBarcode] = useState(sku?.supplier_barcode ?? "");
+  const [pcsPerPack, setPcsPerPack] = useState(sku ? String(sku.pcs_per_pack) : "");
+  const [packsPerCarton, setPacksPerCarton] = useState(sku ? String(sku.packs_per_carton) : "");
+  const [l, setL] = useState(sku ? String(sku.carton_length_cm) : "");
+  const [w, setW] = useState(sku ? String(sku.carton_width_cm) : "");
+  const [h, setH] = useState(sku ? String(sku.carton_height_cm) : "");
+  const [kg, setKg] = useState(sku?.carton_weight_kg?.toString() ?? "");
+  const [marginPct, setMarginPct] = useState(sku?.target_margin_pct?.toString() ?? "");
+  const [fixedPrice, setFixedPrice] = useState(initialFixedPrice);
+  const [fixedPackPrice, setFixedPackPrice] = useState(sku?.fixed_price_per_pack_mvr?.toString() ?? "");
+  const [fixedCartonPrice, setFixedCartonPrice] = useState(sku?.fixed_price_per_carton_mvr?.toString() ?? "");
+  const [sellUnits, setSellUnits] = useState<SellUnit[]>(
+    sku?.sellable_units?.length ? sku.sellable_units : ["pack", "carton"]);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (open && sku) {
-      setCode(sku.internal_code);
-      setBarcode(sku.supplier_barcode ?? "");
-      setPcsPerPack(String(sku.pcs_per_pack));
-      setPacksPerCarton(String(sku.packs_per_carton));
-      setL(String(sku.carton_length_cm));
-      setW(String(sku.carton_width_cm));
-      setH(String(sku.carton_height_cm));
-      setKg(sku.carton_weight_kg?.toString() ?? "");
-      setSellUnits(sku.sellable_units?.length ? sku.sellable_units : ["pack", "carton"]);
-      setMarginPct(sku.target_margin_pct?.toString() ?? "");
-      // Pre-fill in per-pack terms so UI speaks trade units (not per-piece)
-      const storedPerPiece = sku.fixed_selling_price_mvr;
-      const pcsP = sku.pcs_per_pack ?? 1;
-      setFixedPrice(storedPerPiece != null ? (storedPerPiece * pcsP).toFixed(2) : "");
-      setFixedPackPrice(sku.fixed_price_per_pack_mvr?.toString() ?? "");
-      setFixedCartonPrice(sku.fixed_price_per_carton_mvr?.toString() ?? "");
-    }
-  }, [open, sku]);
 
   const cbm = useMemo(() => {
     const lv = parseFloat(l), wv = parseFloat(w), hv = parseFloat(h);
@@ -871,10 +516,10 @@ export function CascadeDeleteDialog({
   onOpenChange: (o: boolean) => void;
   onDone: () => void;
 }) {
+  // Cleared by MOUNTING, not by an effect — see EditSkuDialog above.
   const [confirmText, setConfirmText] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) setConfirmText(""); }, [open]);
 
   if (!target) return null;
 
