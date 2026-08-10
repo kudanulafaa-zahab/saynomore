@@ -39,7 +39,7 @@ export function Switch({
           height: 27,
           width: 27,
           background: "#fff",
-          boxShadow: "0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.16)",
+          boxShadow: "var(--snm-thumb-shadow)",
           transform: checked ? "translateX(20px)" : "translateX(0)",
         }}
       />

@@ -1107,7 +1107,7 @@ function Combobox({
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 100,
           background: "var(--glass-2)", backdropFilter: "var(--glass-blur-lg)", WebkitBackdropFilter: "var(--glass-blur-lg)",
           border: "0.5px solid var(--glass-border-lo)", borderRadius: 12, overflow: "hidden",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+          boxShadow: "var(--snm-float-shadow)",
         }}>
           <div style={{ padding: "8px 8px 4px" }}>
             <input

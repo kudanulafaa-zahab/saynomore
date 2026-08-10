@@ -23,8 +23,8 @@ import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 
 const CARD: React.CSSProperties = {
   background: "linear-gradient(180deg, var(--glass-fill-top), var(--glass-fill-bottom))",
-  backdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
-  WebkitBackdropFilter: "blur(calc(14px * var(--frost-b))) saturate(var(--glass-saturate))",
+  backdropFilter: "var(--glass-blur-content)",
+  WebkitBackdropFilter: "var(--glass-blur-content)",
   border: "1px solid var(--glass-border, rgba(255,255,255,0.65))",
   boxShadow: "inset 0 1px 1px var(--glass-specular), var(--glass-shadow)",
 } as const;
@@ -339,7 +339,7 @@ export function ShipmentsList() {
         <button
           onClick={() => setNewSheet(true)}
           className="fixed bottom-24 right-4 h-14 w-14 rounded-full flex items-center justify-center transition active:scale-95 z-40"
-          style={{ background: "var(--foreground)", boxShadow: "0 4px 16px rgba(0,0,0,0.24)" }}
+          style={{ background: "var(--foreground)", boxShadow: "var(--snm-float-shadow)" }}
           aria-label="New purchase order"
         >
           <Plus className="h-6 w-6" style={{ color: "var(--background)" }} />

@@ -538,7 +538,7 @@ function VerifyTab({
               onClick={submit}
               disabled={saving || !canWrite}
               className="w-full h-13 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-80 disabled:opacity-60"
-              style={{ background: "var(--foreground)", color: "var(--background)", height: 52, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}
+              style={{ background: "var(--foreground)", color: "var(--background)", height: 52, boxShadow: "var(--snm-float-shadow)" }}
             >
               {saving ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Check className="h-4.5 w-4.5" />}
               {checkedEverything

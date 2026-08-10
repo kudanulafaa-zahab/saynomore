@@ -47,7 +47,7 @@ export function PaletteSection() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {PALETTES.map((p) => {
-            const { label, colors } = PALETTE_SWATCHES[p];
+            const { label, colors, material } = PALETTE_SWATCHES[p];
             const active = palette === p;
             return (
               <button
@@ -63,9 +63,25 @@ export function PaletteSection() {
                 }}
               >
                 <div className="relative h-12 w-12 rounded-full overflow-hidden" style={{ boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4)" }}>
+                  {/* A carved palette previews its MATERIAL, not a colour it
+                      does not have. Soft's whole identity is the emboss, so the
+                      swatch is a raised disc — the same two shadows the theme
+                      uses everywhere else, at swatch scale. Showing it as a
+                      grey bokeh ball advertised a colour scheme instead. */}
                   <div
                     className="absolute inset-0"
-                    style={{
+                    style={material === "carved" ? {
+                      // Literal values, not the --soft-* tokens: those only
+                      // exist while Soft is ACTIVE, so on any other palette the
+                      // preview would have drawn flat — exactly when you most
+                      // need to see what you are about to switch to. Inset by
+                      // 3px because the container clips, and an outer shadow
+                      // needs room to fall inside it.
+                      inset: 3,
+                      background: "#e6e9ee",
+                      boxShadow: "3px 3px 6px rgba(160,172,190,0.75), -3px -3px 6px rgba(255,255,255,0.95)",
+                      borderRadius: "9999px",
+                    } : {
                       background: [
                         `radial-gradient(circle at 30% 25%, ${colors[0]} 0%, transparent 55%)`,
                         `radial-gradient(circle at 75% 30%, ${colors[1]} 0%, transparent 50%)`,
