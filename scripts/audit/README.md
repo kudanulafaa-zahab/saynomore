@@ -58,6 +58,13 @@ two-shadow signature. Floating chrome is exempt, because chrome stays glass by
 design. This is what found that the blur had been hand-typed into 22 components
 and shadows into 8 more, where no theme could reach them.
 
+**`offline.mjs`** — records a sale with the network CUT and asserts it was
+queued rather than lost, that the screen says so, that the queue drains on
+reconnect, and that the order really exists afterwards. This is the failure
+mode that costs money and makes no noise, and it has happened here before: an
+offline sync bug once meant real cash was recorded and silently never saved.
+The queue machinery had been unverified since the day it was written.
+
 **`contrast.mjs`** — every readable word, every palette, both schemes, measured
 on the **rendered page**. It composites the real backdrop through every
 translucent ancestor, because a token's colour tells you nothing until you know
@@ -76,6 +83,7 @@ was verified by putting its bug back:
 | dark `--muted-foreground` back to `#8e9192` with `--tabbar-fg` removed | contrast — 3.84:1 on every dark screen |
 | a hardcoded `blur(14px)` on the sales card | material — "BLUR on in-flow content", 3 elements |
 | an "Add more" button back inside the cart | journey — failed on all three device sizes |
+| offline writes dropped instead of queued | offline — "the sale was not queued" |
 
 Two earlier mutation attempts were **not** caught, and that was correct: each
 had a second fix covering it, so neither was still a regression. Worth knowing

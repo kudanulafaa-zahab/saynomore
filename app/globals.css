@@ -57,6 +57,10 @@
   /* Foreground that sits ON any saturated semantic fill (success/error/
      warning/info buttons and pills). White in both modes — every Apple
      system colour used as a fill is dark enough for white to pass AA. */
+  /* Text ON a semantic fill (the dashboard's "Assign now" pill and friends).
+     White is right in LIGHT mode, where success/warning/error are deep colours.
+     It is badly wrong in dark, where those same tokens are light — white on the
+     dark-mode warning orange measures 1.9:1. See the dark override below. */
   --snm-on-fill: #ffffff;
 
   /* Brand text = foreground (monochrome): links/interactive text signal
@@ -493,7 +497,13 @@
   --snm-success: #1b6e2e;
   --snm-error:   #c92a2a;
   --snm-warning: #a83f00;
-  --snm-info:    var(--glass-accent);
+  /* Info follows the TEXT variant of the accent, not the fill. It is used both
+     ways — the "Confirmed" status badge paints it as text, the driver banner as
+     a background — and the fill variant failed as text: 4.48:1 in Aurora and
+     3.96:1 in Ember on the sales list. The deepened value clears both jobs
+     (>=4.5 as text on the page, >=6:1 under white as a fill). The same mistake
+     --snm-brand-text had, in a token I missed the first time round. */
+  --snm-info:    var(--snm-brand-text);
   --status-success: var(--snm-success); --status-success-bg: rgba(27, 110, 46, 0.14);
   --status-warning: var(--snm-warning); --status-warning-bg: rgba(168, 63, 0, 0.14);
   --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(201, 42, 42, 0.14);
@@ -501,6 +511,11 @@
 }
 .dark[data-palette], .dark:not([data-palette]) {
   --tabbar-fg: #a8abb0;   /* 5.1:1 on the composited dark tab bar */
+  /* Dark-mode semantic colours are LIGHT, so the text on them must be dark:
+     9.9:1 on warning, 10.7:1 on success, 8.0:1 on error. Found only once the
+     fixture had an order in it and the dashboard's watch list appeared — the
+     audits had been blind to every screen that needs data to exist. */
+  --snm-on-fill: #14100a;
 }
 .dark[data-palette="ember"] { --tabbar-accent: #ac92fb; }  /* 4.8:1, was 4.47:1 */
 

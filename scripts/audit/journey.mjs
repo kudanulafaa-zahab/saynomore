@@ -28,7 +28,7 @@ import { launch, signedInPage, checklist, finish, BASE, DEVICES } from "./lib.mj
  *  and hung forever, because that animation class is also on the desktop scrim
  *  inside New Sale itself — a sheet has to be identified by what it IS. */
 async function noSheet(page) {
-  await page.waitForFunction(() => document.querySelectorAll('[role="dialog"][aria-modal="true"]').length === 0,
+  await page.waitForFunction(() => document.querySelectorAll('[role="dialog"][aria-modal="true"]:not([aria-label="New sale"])').length === 0,
     null, { timeout: 15_000 });
   await page.waitForTimeout(250);
 }
@@ -44,10 +44,10 @@ async function noSheet(page) {
 async function openPicker(page, brand) {
   await noSheet(page);
   await page.locator("button", { hasText: brand }).first().click();
-  await page.waitForFunction(() => document.querySelectorAll('[role="dialog"][aria-modal="true"]').length > 0,
+  await page.waitForFunction(() => document.querySelectorAll('[role="dialog"][aria-modal="true"]:not([aria-label="New sale"])').length > 0,
     null, { timeout: 15_000 });
   await page.waitForTimeout(600);
-  return page.getByRole("dialog");
+  return page.getByRole("dialog", { name: /add cartons/i });
 }
 
 const wanted = process.argv.includes("--device")
@@ -63,7 +63,12 @@ for (const device of wanted) {
   // ── Open New Sale, pick a customer ────────────────────────────────────────
   await page.goto(`${BASE}/sales`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /new sale/i }).first().click();
-  await page.getByText("Ahmed Ziyad").first().click();
+  // Scoped to the sheet. Unscoped, this matched the ORDER ROW behind it as soon
+  // as the fixture had a sale in it — so the audit passed on an empty database
+  // and failed on a used one. A test that only works on a clean slate teaches
+  // you to ignore red, which is worse than having no test.
+  const newSale = page.getByRole("dialog", { name: /new sale/i });
+  await newSale.getByText("Ahmed Ziyad").first().click();
   await page.getByRole("button", { name: /add products/i }).first().click();
   await page.waitForTimeout(1500);
 
