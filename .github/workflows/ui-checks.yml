@@ -1,0 +1,117 @@
+name: UI checks
+
+# The other half of the gate.
+#
+# supabase/ already had db-tests.yml: it replays every migration onto a fresh
+# Postgres and runs 170+ pgTAP tests. That half of the app has not produced an
+# incident in months.
+#
+# The screens had nothing. Every UI defect this month — a bare "+" nobody could
+# read, buttons wrapping onto two lines, an "add" control that scrolled off the
+# screen, a phone layout stretched across a laptop, grey text at 2.8:1, a theme
+# that stopped halfway through the app — was found by Ali, on his phone, after
+# it shipped. He was the only quality check the front end had.
+#
+# This runs the same three audits he can run locally:
+#
+#   journey   drives a real sale on phone, tablet and desktop, and asserts the
+#             things that cost money or make the screen unusable
+#   material  every in-flow surface actually wears the current theme
+#   contrast  every readable word, every theme, both schemes, measured on the
+#             RENDERED page rather than read off a token
+#
+# All three are proven to fail when the bug they guard is reintroduced; that was
+# checked by putting each one back deliberately.
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "scripts/audit/**"
+      - "supabase/fixtures/**"
+      - "package.json"
+      - ".github/workflows/ui-checks.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ui-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Cheap things first — a type error or a lint error should not wait on a
+      # browser and a database.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase (replays every migration from empty)
+        run: supabase start
+
+      # The keys below are Supabase's well-known LOCAL demo keys. They are
+      # public, they only ever unlock this throwaway container, and production's
+      # keys live in Vercel where this workflow cannot reach them.
+      - name: Point the app at the local stack
+        run: |
+          cat > .env.local <<'ENV'
+          NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+          SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+          ENV
+
+      - name: Seed the UI fixture
+        run: npm run audit:seed
+
+      - name: Build
+        run: npm run build
+
+      # Plain curl rather than `npx wait-on`: npx would fetch an unpinned
+      # package at run time, which is a supply-chain surface and a new way for
+      # the gate itself to fail. A loop is four lines and has no dependencies.
+      - name: Start the built app
+        run: |
+          npm run start &
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://127.0.0.1:3000/login; then
+              echo "app is up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "app did not start within 60s"; exit 1
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Journey — a real sale on phone, tablet and desktop
+        run: npm run audit:journey
+
+      - name: Material — the theme reaches every surface
+        run: npm run audit:material
+
+      - name: Contrast — every word, every theme, both schemes
+        run: npm run audit:contrast
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
