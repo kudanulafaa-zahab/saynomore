@@ -44,6 +44,15 @@ node scripts/audit/contrast.mjs --palette sunrise
 
 Each exits `0` or `1` and prints what failed, with numbers.
 
+**Run the browser audits AFTER `supabase test db`, not before.** The audits place
+real orders, receive a real shipment and post real expenses into the same local
+database — that is the point of them. The pgTAP suite assumes the pristine
+`seed.sql` fixture, so running it afterwards produces failures in
+`money_rules` and `post_sale_fifo` that look alarming and are pure pollution.
+If you see those two fail, `supabase db reset` and re-run before believing
+anything. CI never hits this: `db-tests.yml` and `ui-checks.yml` each start
+their own throwaway Postgres.
+
 ## What each one checks
 
 **`journey.mjs`** — drives a real sale on phone, tablet and desktop. A mixed
@@ -81,12 +90,24 @@ bug it guards was not a crash: `get_pnl` reported **MVR 13,790 "net profit"**
 for a month whose running costs were **MVR 0**, in 32px confident green,
 because the app modelled rent — identical every month — as a one-off event and
 asked for it again every month, so `business_expenses` held ONE row in the
-app's whole life. Ali reads his profit here and nowhere else. The audit asserts
-both directions: with no costs the bottom line must call itself "Profit before
-running costs", say plainly that the real figure is lower, and offer the one tap
-that fixes it; the moment costs exist it must become a real Net Profit, or the
-honest state is just a nag that gets ignored. It also holds the jargon line —
-COGS must never come back to this screen.
+app's whole life. Ali reads his profit here and nowhere else.
+
+The audit asserts both directions. With no operating expenses recorded, the
+bottom line must say so plainly, state that the real figure is lower, and offer
+the one tap that fixes it; once expenses exist that caveat must disappear and an
+Operating Expenses line must appear, or the honest state is just a nag that gets
+ignored.
+
+It also **pins the terminology**, in the opposite direction to what you might
+expect. An earlier version renamed the line to "Profit before running costs"
+when expenses were missing, and paraphrased COGS and Gross Profit into plain
+English. Ali, 2026-08-10: *"Don't change the finance or account terms like cogs
+net profit etc. you should leave as it is. Always use correct terms where
+applicable."* He is right — those are the words his accountant, his bank and
+every finance system use, and paraphrasing them leaves him less able to talk to
+those people. So the audit now checks that **COGS and Gross Profit are PRESENT**
+and that Net Profit is never renamed. The explanation goes beside the term, not
+instead of it.
 
 **`contrast.mjs`** — every readable word, every palette, both schemes, measured
 on the **rendered page**. It composites the real backdrop through every

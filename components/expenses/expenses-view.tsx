@@ -165,7 +165,7 @@ export function ExpensesView() {
           description: desc,
         });
         haptic("success");
-        toast.success("Monthly cost saved — every month is filled in for you");
+        toast.success("Recurring expense saved — every month is posted for you");
         setQuickAmount("");
         setQuickDate(today);
         setQuickOther("");
@@ -290,12 +290,12 @@ export function ExpensesView() {
             ))}
           </select>
         </div>
-        {/* Does this cost repeat? THE reason business_expenses held one row for
+        {/* Does this expense recur? THE reason business_expenses held one row for
             months: rent and salaries are the same every month, and the app was
             asking for them again every month. Both pills carry real
             --foreground text on --glass-bg-1 — an unselected pill here is a
             CHOICE, not a hint, so it is never muted-on-transparent. */}
-        <div className="flex items-center gap-2 mt-2" role="group" aria-label="Does this cost repeat?">
+        <div className="flex items-center gap-2 mt-2" role="group" aria-label="Does this expense recur?">
           {([
             { on: false, label: "One time" },
             { on: true,  label: "Every month" },
@@ -323,8 +323,8 @@ export function ExpensesView() {
 
         {repeatMonthly && (
           <p className="ios-footnote mt-2 px-1" style={{ color: "var(--foreground)", opacity: 0.75 }}>
-            Set it once. Every month from the date below is filled in for you —
-            including months already gone, so past profit is right too.
+            Set it once. Every month from the date below is posted automatically,
+            including months already past, so earlier Net Profit is corrected too.
           </p>
         )}
 
@@ -373,7 +373,7 @@ export function ExpensesView() {
       {recurring.length > 0 ? (
         <div className="mt-6">
           <div className="flex items-baseline justify-between mb-2">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Your monthly costs</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Recurring Expenses</h2>
             <p className="ios-subhead font-semibold snm-num" style={{ color: "var(--foreground)" }}>
               MVR {fmt(recurring.reduce((a, r) => a + Number(r.amount_mvr), 0))}<span className="ios-footnote font-normal" style={{ opacity: 0.7 }}> a month</span>
             </p>
@@ -401,7 +401,7 @@ export function ExpensesView() {
                 {canWrite && (
                   <button
                     onClick={() => setEndTarget(r)}
-                    aria-label={`Stop ${catName(r.category_id)}`}
+                    aria-label={`Stop recurring ${catName(r.category_id)}`}
                     className="w-11 h-11 -mr-2 flex items-center justify-center shrink-0 active:opacity-60"
                   >
                     <X className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
@@ -411,20 +411,19 @@ export function ExpensesView() {
             ))}
           </div>
           <p className="ios-footnote mt-2 px-1" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-            These are added to every month automatically. To change one month only,
-            edit that month&apos;s expense in the list below.
+            Posted automatically each month. To correct a single month, edit that
+            month&apos;s expense in the list below — your edit is never overwritten.
           </p>
         </div>
       ) : canWrite ? (
         <div className="mt-6 glass rounded-2xl p-4">
           <p className="ios-subhead font-semibold mb-1" style={{ color: "var(--foreground)" }}>
-            Your profit is missing your running costs
+            No recurring operating expenses set up
           </p>
           <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.8 }}>
-            Rent, salaries, fuel and phone are the same most months, so the app
-            can fill them in for you. Until it knows them, the profit on
-            Financials is only your profit <em>before</em> the cost of running
-            the business.
+            Rent, salaries, fuel and phone recur every month, so the app can post
+            them for you. Until they are recorded, Net Profit on Financials is
+            overstated — it has no operating expenses deducted.
           </p>
           <p className="ios-footnote mt-2" style={{ color: "var(--foreground)", opacity: 0.8 }}>
             Add one above with <strong>Every month</strong> chosen.
@@ -494,10 +493,10 @@ export function ExpensesView() {
         onClose={() => setEndTarget(null)}
         onConfirm={handleEndRecurring}
         loading={ending}
-        title="Stop this monthly cost?"
+        title="Stop this recurring expense?"
         message={
           endTarget
-            ? `${catName(endTarget.category_id)} · MVR ${fmt(Number(endTarget.amount_mvr))} a month will stop from next month. Months already recorded stay as they are.`
+            ? `${catName(endTarget.category_id)} · MVR ${fmt(Number(endTarget.amount_mvr))} a month will stop from next month. Expenses already posted stay as they are.`
             : ""
         }
         confirmLabel="Stop"

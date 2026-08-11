@@ -30,6 +30,8 @@ const SCREENS = [
   // Added 2026-08-10: the P&L's running costs are entered here, and the
   // screen was never measured because it was not on this list.
   ["expenses",   "/expenses"],
+  // Added 2026-08-10 with the jargon sweep: Reports was never measured either.
+  ["reports",    "/reports"],
   ["reorder",    "/reorder"],
   ["pricelists", "/pricelists"],
 ];
