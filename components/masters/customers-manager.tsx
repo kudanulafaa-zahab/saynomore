@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
 import {
@@ -66,7 +67,14 @@ export function CustomersManager() {
   // Value ranking (0099). Ranked by PROFIT, not revenue — margins vary by SKU,
   // so equal spend is not equal worth. Loaded alongside the directory.
   const [insights, setInsights] = useState<CustomerInsight[]>([]);
-  const [segment, setSegment] = useState<"az" | "top" | "risk" | "owes">("az");
+  // Opens on the lens named in ?lens= so the dashboard's "See all" lands where
+  // it promised. Without this the link dropped you on A–Z and you had to know
+  // to press "At risk" — which is the same "the app knows but does not tell
+  // you" problem the dashboard section was built to fix.
+  const lensParam = useSearchParams().get("lens");
+  const [segment, setSegment] = useState<"az" | "top" | "risk" | "owes">(
+    lensParam === "risk" || lensParam === "owes" || lensParam === "top" ? lensParam : "az",
+  );
 
   async function load() {
     try { setRows(await listCustomers()); }

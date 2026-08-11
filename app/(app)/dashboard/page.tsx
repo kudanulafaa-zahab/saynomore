@@ -3,7 +3,9 @@ import {
   getPnlServer,
   getDailyRevenueServer,
   getSignedInFirstName,
+  getRanOutCustomersServer,
 } from "@/lib/queries/dashboard-server";
+import { whatsappLink, reorderNudge } from "@/lib/wa";
 import {
   TrendingUp,
   TrendingDown,
@@ -19,6 +21,7 @@ import {
   PackageX,
   RefreshCw,
   AlertOctagon,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { MorningBriefing } from "@/components/layout/morning-briefing";
@@ -65,11 +68,14 @@ export default async function DashboardPage() {
 
   // Every read goes through the server query layer — this page used to call
   // supabase.rpc(...) inline, against hard rule 4.
-  const [data, pnl, firstName, dailyRevenueData] = await Promise.all([
+  const [data, pnl, firstName, dailyRevenueData, ranOut] = await Promise.all([
     getDashboardMetricsServer(),
     getPnlServer(firstOfMonth, tomorrow),
     getSignedInFirstName(),
     getDailyRevenueServer(7),
+    // Never let a follow-up list break the dashboard: this is an opportunity,
+    // not a vital sign, and the money figures above must render regardless.
+    getRanOutCustomersServer(3).catch(() => ({ rows: [], total: 0 })),
   ]);
   const netProfit    = Number(pnl?.net_profit_mvr ?? 0);
   const netMargin    = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
@@ -201,6 +207,81 @@ export default async function DashboardPage() {
             {exception.cta} →
           </span>
         </Link>
+      )}
+
+
+      {/* ── Zone 0b: Customers who have run out ───────────────────────────
+           THE SECOND ORDER IS THE BUSINESS. 52 of 73 customers have never
+           bought twice, on a product a household finishes in about a
+           fortnight — measured, not assumed: the median pack lasts 6.8 days
+           and a typical order is 2.5 packs.
+
+           The app already knew who had run out. get_customer_insights has
+           computed `expected_supply_days` and flagged `ran_out` for months —
+           it just lived behind a lens on the Customers screen that you had to
+           know to open. A brain nobody hears is not intelligence.
+
+           This is deliberately NOT part of the one-exception strip above.
+           That strip is for things going wrong — cash unbanked, orders stuck,
+           stock out — and a customer needing more diapers is not a fault. It
+           would also lose every time, because an operational alarm always
+           outranks an opportunity, which is exactly how the most valuable
+           action in the business would stay invisible.
+
+           Silent when there is nobody to chase. */}
+      {ranOut.rows.length > 0 && (
+        <div className="glass-panel rounded-2xl" style={{ padding: 18 }}>
+          <div className="flex items-baseline justify-between gap-3 mb-3">
+            <div className="min-w-0">
+              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                Probably out of stock at home
+              </p>
+              <p className="ios-subhead font-semibold mt-0.5" style={{ color: "var(--foreground)" }}>
+                {ranOut.total} customer{ranOut.total !== 1 ? "s" : ""} due a top-up
+              </p>
+            </div>
+            <Link href="/customers?lens=risk" className="ios-subhead shrink-0 flex items-center gap-0.5"
+              style={{ color: "var(--snm-brand-text)" }}>
+              See all <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          <div className="space-y-2">
+            {ranOut.rows.map((c) => {
+              // No link when the stored number is not a shape we recognise —
+              // messaging a stranger is far worse than one missing button.
+              const wa = whatsappLink(c.phone, reorderNudge(c.name));
+              return (
+                <div key={c.customer_id}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                  style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                  <Link href={`/customers/${c.customer_id}`} className="min-w-0 flex-1">
+                    <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                      {c.name}
+                    </p>
+                    <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                      {c.days_since_last != null ? `Last ordered ${c.days_since_last} days ago` : "No recent order"}
+                      {c.expected_supply_days != null ? ` · bought about ${c.expected_supply_days} days' worth` : ""}
+                    </p>
+                  </Link>
+                  {wa && (
+                    <a
+                      href={wa}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Message ${c.name} on WhatsApp`}
+                      className="shrink-0 flex items-center gap-1.5 h-11 px-3.5 rounded-xl ios-subhead font-semibold snm-pressable"
+                      style={{ background: "var(--foreground)", color: "var(--background)" }}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Message
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* ── Zone 0: Morning briefing — yesterday + the watch list ── */}
