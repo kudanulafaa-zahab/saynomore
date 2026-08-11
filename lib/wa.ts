@@ -57,19 +57,83 @@ export function whatsappLink(phone: string | null | undefined, message: string):
   return `https://wa.me/${n}?text=${encodeURIComponent(message)}`;
 }
 
+/** First name only: "Hi Ibrahim shailan" reads like a form letter, which is the
+ *  opposite of how this business actually talks to people. */
+function firstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] || fullName.trim();
+}
+
 /**
- * The opening line for a "you have probably run out" nudge.
+ * THREE drafts to choose from, not one.
  *
- * Deliberately short, warm and non-specific about the product: he sells
- * diapers, detergent and cleaning liquid, and a message that assumes a baby
- * would be wrong for some customers. It is a conversation opener, not a sales
- * script — he edits it before sending, and the point is to make starting the
- * conversation take one tap instead of five.
+ * Ali, 2026-08-12: *"I need to be able to select a message from 3 options.
+ * Don't use 'I'. Use 'we'."*
  *
- * First name only: "Hi Ibrahim shailan" reads like a form letter, which is the
- * opposite of how this business actually talks to people.
+ * WHY THREE. A single canned line is a form letter, and a form letter sent to
+ * the same customer twice is worse than no message at all — these are people he
+ * sells to personally through WhatsApp and Instagram, and the whole business is
+ * built on that relationship. Three drafts covering three different situations
+ * let him pick the one that fits the person, which is what a human would do.
+ * They are deliberately different in KIND, not three rewordings of one idea:
+ *
+ *   check-in  — no offer at all. For a customer he does not want to push.
+ *   deliver   — a concrete offer with timing. The one that converts.
+ *   same      — "the usual again?". Lowest friction of the three: the customer
+ *               answers yes instead of composing an order, which is the single
+ *               biggest reason a repeat purchase does not happen.
+ *
+ * WHY "WE". Ali's instruction, and it is right for a reason worth recording:
+ * "I can deliver today" is a favour from one person, and it makes the business
+ * sound like one man with a scooter. "We can deliver today" is a company
+ * keeping a promise — the same words his customers hear from every other
+ * supplier they buy from. It also stays true when a driver makes the delivery,
+ * which is what actually happens.
+ *
+ * All three stay non-specific about the product. He sells diapers, detergent
+ * and cleaning liquid, and a message that assumes a baby would be wrong for
+ * some customers.
+ *
+ * Nothing sends by itself. wa.me opens the chat with the chosen draft in the
+ * box, and he edits and sends. An app that messaged customers on its own would
+ * be a worse product and a worse relationship.
+ */
+export interface ReorderDraft {
+  /** Short label for the picker — what SITUATION this message is for. */
+  key: "check-in" | "deliver" | "same";
+  label: string;
+  /** One line telling him when to pick this one. */
+  hint: string;
+  text: string;
+}
+
+export function reorderDrafts(fullName: string): ReorderDraft[] {
+  const first = firstName(fullName);
+  return [
+    {
+      key: "check-in",
+      label: "Just checking in",
+      hint: "No pressure — opens the conversation",
+      text: `Hi ${first}, hope you're doing well! Just checking if you're running low on anything.`,
+    },
+    {
+      key: "deliver",
+      label: "Offer delivery",
+      hint: "A clear offer with a time",
+      text: `Hi ${first}, hope you're well! If you're running low we can deliver today — just let us know.`,
+    },
+    {
+      key: "same",
+      label: "Same as last time",
+      hint: "Easiest to say yes to",
+      text: `Hi ${first}! Would you like the same as last time? We can send it over today if that works.`,
+    },
+  ];
+}
+
+/**
+ * The default draft, for anywhere that needs one line without a picker.
+ * Kept as the "offer delivery" wording — the one that actually converts.
  */
 export function reorderNudge(fullName: string): string {
-  const first = fullName.trim().split(/\s+/)[0] || fullName.trim();
-  return `Hi ${first}, hope you're well! Just checking if you're running low — I can deliver today.`;
+  return reorderDrafts(fullName)[1].text;
 }

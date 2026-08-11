@@ -5,7 +5,7 @@ import {
   getSignedInFirstName,
   getRanOutCustomersServer,
 } from "@/lib/queries/dashboard-server";
-import { whatsappLink, reorderNudge } from "@/lib/wa";
+import { MessageButton } from "@/components/customers/message-button";
 import {
   TrendingUp,
   TrendingDown,
@@ -21,7 +21,6 @@ import {
   PackageX,
   RefreshCw,
   AlertOctagon,
-  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { MorningBriefing } from "@/components/layout/morning-briefing";
@@ -248,9 +247,6 @@ export default async function DashboardPage() {
 
           <div className="space-y-2">
             {ranOut.rows.map((c) => {
-              // No link when the stored number is not a shape we recognise —
-              // messaging a stranger is far worse than one missing button.
-              const wa = whatsappLink(c.phone, reorderNudge(c.name));
               return (
                 <div key={c.customer_id}
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5"
@@ -264,19 +260,10 @@ export default async function DashboardPage() {
                       {c.expected_supply_days != null ? ` · bought about ${c.expected_supply_days} days' worth` : ""}
                     </p>
                   </Link>
-                  {wa && (
-                    <a
-                      href={wa}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Message ${c.name} on WhatsApp`}
-                      className="shrink-0 flex items-center gap-1.5 h-11 px-3.5 rounded-xl ios-subhead font-semibold snm-pressable"
-                      style={{ background: "var(--foreground)", color: "var(--background)" }}
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      Message
-                    </a>
-                  )}
+                  {/* Three drafts to choose from, in "we" — see
+                      components/customers/message-button.tsx. Renders nothing
+                      when the stored number is not a shape we trust. */}
+                  <MessageButton name={c.name} phone={c.phone} />
                 </div>
               );
             })}

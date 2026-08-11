@@ -14,7 +14,7 @@
 //
 // Usage:  npm run audit:wa
 
-import { waNumber, whatsappLink, reorderNudge } from "../../lib/wa.ts";
+import { waNumber, whatsappLink, reorderNudge, reorderDrafts } from "../../lib/wa.ts";
 
 const cases: [string | null, string | null, string][] = [
   ["7772367",      "9607772367", "plain 7-digit local mobile gets 960"],
@@ -45,6 +45,25 @@ console.log(`  ${shapeOk ? "✓" : "✗"} the link points at wa.me with the qual
 // First name only: "Hi Ibrahim shailan" reads like a form letter, which is the
 // opposite of how this business talks to people.
 const nameOk = reorderNudge("Ibrahim shailan").startsWith("Hi Ibrahim,");
+
+// THREE drafts, all in "we" (Ali, 2026-08-12: "I need to be able to select a
+// message from 3 options. Don't use 'I'. Use 'we'."). Pure logic, so it belongs
+// here rather than in a browser audit: the wording rule is a property of the
+// text, not of the screen that renders it.
+const drafts = reorderDrafts("Ibrahim shailan");
+const speaksAsI = (t: string) => /\bI\b|\bI'|\bmy\b/.test(t);
+const draftCases: [boolean, string][] = [
+  [drafts.length === 3,                                  "three drafts are offered"],
+  [new Set(drafts.map((d) => d.text)).size === 3,         "the three are actually DIFFERENT texts, not one three times"],
+  [drafts.every((d) => d.text.startsWith("Hi Ibrahim")),  "each opens with the FIRST name only"],
+  [!drafts.some((d) => speaksAsI(d.text)),                `no draft speaks as "I" (${drafts.find((d) => speaksAsI(d.text))?.text.slice(0, 50) ?? "none"})`],
+  [drafts.some((d) => /\bwe\b/i.test(d.text)),           'the drafts speak as "we"'],
+  [drafts.every((d) => d.label.trim() && d.hint.trim()),  "each is labelled and says when to use it"],
+];
+for (const [ok, why] of draftCases) {
+  if (!ok) failed++;
+  console.log(`  ${ok ? "\u2713" : "\u2717"} ${why}`);
+}
 if (!nameOk) failed++;
 console.log(`  ${nameOk ? "✓" : "✗"} the draft greets by first name only`);
 
@@ -54,6 +73,6 @@ if (!draftOnly) failed++;
 console.log(`  ${draftOnly ? "✓" : "✗"} the message is a DRAFT (?text=), never auto-sent`);
 
 console.log(failed === 0
-  ? `\n✓ WhatsApp links — ${cases.length + 3} checks passed\n\nAll good.`
+  ? `\n✓ WhatsApp links — ${cases.length + draftCases.length + 3} checks passed\n\nAll good.`
   : `\n✗ WhatsApp links — ${failed} check(s) FAILED\n`);
 process.exit(failed === 0 ? 0 : 1);
