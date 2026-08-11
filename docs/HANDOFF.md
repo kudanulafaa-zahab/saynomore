@@ -16,7 +16,7 @@ one.** The record is:
 |---|---|
 | `app/globals.css` (2,271 lines) | Every design token, with the reasoning AND the date of each decision in the comments. Four palettes — **two different materials** — the frost dial, Display P3, the whole thing. |
 | `skills.md` | The design/engineering laws with the incident that created each one. Loads automatically. |
-| `supabase/migrations/*.sql` | Every money and stock rule, with a header explaining WHY. 157 files, latest `0166`. Applied live, tracked in git. |
+| `supabase/migrations/*.sql` | Every money and stock rule, with a header explaining WHY. 168 files, latest `0177`. Applied live, tracked in git. |
 | `git log` | Every change, with a full commit message explaining the decision. |
 | The code itself | Comments carry the reasoning at the point of use. |
 
@@ -38,21 +38,25 @@ are about to change.**
 
 ### Start here
 
-1. **§7 — What is left to do.** Written to be picked up cold. It separates what
+1. **§13 — the complete index of 2026-08-11.** The most recent work, and the
+   newest section in the file: recurring expenses and an honest Net Profit,
+   the P&L drill-downs, the nav regroup, the reorder nudge, direct receipts,
+   and the New SKU fix. **Newer than §11 and §7 — where they disagree, §13
+   wins.** Read §13g first if you want the shortest useful list.
+2. **§7 — What is left to do.** Written to be picked up cold. It separates what
    is Ali's call, what was offered and never answered, what is genuinely open,
    what is deferred and why, and what looks like a bug but was decided.
-   **§11 is newer than §7 — read both; where they disagree, §11 wins.**
-2. **§11 — the complete index of 2026-08-07 → 08-10.** The most recent work:
-   the Soft palette, the contrast sweep, the browser audit gate, the sales-file
-   split, backups. Use it as the completeness check for anything current.
+   **The precedence chain is §13 > §11 > §7.**
+3. **§11 — the complete index of 2026-08-07 → 08-10.** The Soft palette, the
+   contrast sweep, the browser audit gate, the sales-file split, backups.
    §5L is the same thing for 2026-08-05.
-3. **§2b — every screen in the app.** §3 — the design system, by line number.
-4. **The two test gates, and they are peers.** §10 — 173 pgTAP tests on every
+4. **§2b — every screen in the app.** §3 — the design system, by line number.
+5. **The two test gates, and they are peers.** §10 — 182 pgTAP tests on every
    PR touching `supabase/`; read it before changing any money or stock
-   function. **§12 — five browser audits on every PR touching the screens**;
+   function. **§12 — ten browser audits on every PR touching the screens**;
    read it before changing any UI, and run `npm run audit:ui` before claiming
    a screen works.
-5. Then `CLAUDE.md` and `skills.md`, which load automatically and carry the
+6. Then `CLAUDE.md` and `skills.md`, which load automatically and carry the
    standing laws.
 
 **Also read the migration headers before changing any money or stock rule.**
@@ -118,21 +122,26 @@ and routable** (the Price Simulator shipped that way — hard rule 8).
 | Core | `/sales` | Order list, New Sale composer, Sale Detail, returns, COD. |
 | Core | `/inventory` | Stock by product and godown, batches, expiry, days-of-stock. |
 | Core | `/dispatch` | Driver assignment board. |
-| Finance | `/financials` | P&L, cash flow, runway, contribution margin. |
-| Finance | `/reports` | Trends, days of stock, campaign ROI. |
-| Finance | `/pricelists` | Customer tier prices (pack + carton; per-piece derived). |
-| Finance | `/costing` | Price Simulator — landed-cost sandbox, incl. products not stocked yet. |
-| Finance | `/expenses` | Pure money-out ledger; campaign spend lands here. |
+| Finance | `/financials` | P&L (Revenue and COGS **open into their parts**), cash flow, runway, contribution margin. |
+| Finance | `/reports` | Trends, days of stock, campaign ROI — each explained beside the term, never instead of it (§13b). |
+| Finance | `/expenses` | Pure money-out ledger; campaign spend lands here; **recurring costs** live here (§13a). |
+| Pricing | `/pricelists` | Customer tier prices (pack + carton; per-piece derived). |
+| Pricing | `/costing` | Price Simulator — landed-cost sandbox, incl. products not stocked yet. |
+| Pricing | `/competitors` | Market: rival prices, Promo Advisor. Per-piece lives here. |
 | Procurement | `/reorder` | What to buy, from 90-day velocity with trend. |
 | Procurement | `/shipments` | Purchase orders, container costs, GRN. |
 | Procurement | `/suppliers` | Supplier master. |
-| Catalogue | `/products` | 7-level SKU hierarchy, carton dimensions, photos. |
-| Catalogue | `/godowns` | Warehouses. |
-| Catalogue | `/stock-ops` | Transfers, write-offs, stock counts — the ledger door. |
-| Catalogue | `/competitors` | Market: rival prices, Promo Advisor. Per-piece lives here. |
-| Operations | `/customers` | Customer master + insights. |
+| Warehouse | `/godowns` | Warehouses. |
+| Warehouse | `/stock-ops` | **Receive** (direct, §13e), transfers, write-offs, stock counts — the ledger door. |
+| Master Data | `/products` | 7-level SKU hierarchy, carton dimensions (now optional), photos. |
+| Master Data | `/customers` | Customer master + insights. |
 | — | `/settings` | Notifications, palette picker, frost dial. |
 | Staff role | `/deliveries` | Driver's own run sheet. |
+
+**The sections were regrouped on 2026-08-11 (#83)** into Core / Finance /
+Pricing / Procurement / Warehouse / Master Data — the shape of the business,
+not of the codebase. `journey.mjs` now parses the expected labels out of
+`nav-config.ts` and checks the real More sheet lists every one.
 
 Roles: `admin`/`manager` see everything, `viewer` sees all but `/dispatch`,
 `staff` (drivers) see only `/deliveries`.
@@ -146,7 +155,8 @@ here.
 | File | What it owns | Why it exists |
 |---|---|---|
 | `lib/surfaces.ts` | `CARD`, `CARD_L2`, `CARD_ROUNDED` | The card recipe was copy-pasted as a local `const CARD` in **nine** files, so a palette change reached some screens and not others. Import it; never redeclare it. |
-| `lib/trade-units.ts` | `formatQtyInTradeUnits`, `sellableTiers`, `costPerTradeUnit` | Packs and cartons, never pieces. `sellableTiers` reads `skus.sellable_units` — screens used to *synthesise* a Piece button, which invited a loose-diaper sale. Postgres has the twin: `qty_in_trade_units` / `unit_noun` (0143). |
+| `lib/trade-units.ts` | `formatQtyInTradeUnits`, `sellableTiers`, `costPerTradeUnit`, `containerLabel` | Packs and cartons, never pieces. `sellableTiers` reads `skus.sellable_units` — screens used to *synthesise* a Piece button, which invited a loose-diaper sale. Postgres has the twin: `qty_in_trade_units` / `unit_noun` (0143). **`containerLabel` is the one place that names a unit** — four private copies were found in two days (§13e, §13f); check for a fifth before writing a unit word anywhere. |
+| `lib/wa.ts` | `waNumber`, `whatsappLink`, `reorderNudge` | Follow-up links. Recognises two number shapes and **refuses everything else** — a guessed number opens a chat with a stranger and hands them a message meant for a customer. No link is a small inconvenience; the wrong link is not. |
 | `lib/use-on-mount.ts` | `useOnMount(fn)` | Replaced 12 copies of `useEffect(() => { load() }, [])`. **Read its doc comment** — it is honest that it hides the lint rule rather than fixing it, which is why it is not called `useSafeEffect`. |
 | `lib/palette.ts` | `PALETTES`, the pre-paint init script, swatches | Also maps a stored `"monochrome"` back to Sunrise. |
 | `lib/offline-write.ts` / `offline-queue.ts` | `withOfflineFallback` → `enqueue` → `drainQueue` | The IndexedDB write queue. Verified end-to-end for the first time on 2026-08-10 (§12). |
@@ -1457,7 +1467,7 @@ produce a deployment. Works for any future branch name.
 
 ## 10. The test suite — read this before changing any money/stock function
 
-**173 pgTAP tests across 19 files run automatically on every PR touching
+**182 pgTAP tests across 20 files run automatically on every PR touching
 `supabase/`** (`.github/workflows/db-tests.yml`). Free: GitHub Actions replays
 every migration onto a throwaway Postgres in Docker and runs the tests against
 it. **Nothing ever touches production.** No Supabase branching, no
@@ -1483,6 +1493,7 @@ Run them locally with `npx supabase start` then `npx supabase test db`.
 | `reorder_censored_demand.test.sql` | 8 | Demand measured over the days you could actually sell |
 | `promo_advisor.test.sql` · `reprice.test.sql` | 8 · 9 | Clearance keeps a floor margin; reprice works when the shelf is empty |
 | `customer_lapse.test.sql` | 9 | The at-risk rhythm signal |
+| `recurring_expenses.test.sql` | 9 | A monthly cost materialises once per month and **a hand-corrected month survives regeneration** (`DO NOTHING`, never `DO UPDATE`); the generator uses the **Maldives** day, not the server's UTC day (0167–0170) |
 
 `supabase/seed.sql` is the shared fixture — one catalogue chain, one godown,
 one supplier, fixed UUIDs. Add to it rather than rebuilding a catalogue in
@@ -1723,7 +1734,7 @@ unmergeable anyway. Fix the conflict; the run appears on its own.
 
 ## 12. The browser audit gate — read this before changing any screen
 
-**Five audits run on every PR touching `app/`, `components/`, `lib/`,
+**Ten audits run on every PR touching `app/`, `components/`, `lib/`,
 `scripts/audit/`, `supabase/fixtures/` or `package.json`**
 (`.github/workflows/ui-checks.yml`). They are the peer of §10: that gate
 guards the money, this one guards what a person sees.
@@ -1738,16 +1749,21 @@ test-runner. Run the lot locally with:
 
 ```bash
 supabase start && npm run audit:seed && npm run build && npm run start
-npm run audit:ui        # all five
+npm run audit:ui        # all ten
 ```
 
 | Audit | Checks | What it guards |
 |---|---|---|
-| `journey.mjs` | 36 | A real sale driven on **phone, tablet and desktop**: mixed and single-colour cartons stay separate; a part carton cannot be added; the cart shows a total; no footer button wraps; the page never scrolls sideways; the rail is desktop-only; the add control is never inside a scroller; **no piece count ever reaches the screen**; nothing throws |
+| `wa-links.mts` | 13 | The follow-up links **never guess a phone number**. Pure logic, no browser, no database — so it runs first. Two known shapes are recognised and everything else gets **no link**, because a wrong number opens a chat with a stranger |
+| `journey.mjs` | 37 | A real sale driven on **phone, tablet and desktop**: mixed and single-colour cartons stay separate; a part carton cannot be added; the cart shows a total; no footer button wraps; the page never scrolls sideways; the rail is desktop-only; the add control is never inside a scroller; **no piece count ever reaches the screen**; nothing throws. Also enforces **hard rule 8** — every page in `nav-config.ts` is in the real More sheet |
 | `grn.mjs` | 13 | Receiving a shipment through the real screen, then the money it produced — per-line landed cost, total conservation, forex locked, stock moved, and that it **refuses to receive twice** |
 | `offline.mjs` | 6 | A sale recorded with the network cut is queued not lost, the screen says so, the queue drains, the order exists |
-| `material.mjs` | 9 screens | Every in-flow surface actually wears the current theme — structurally, not aesthetically |
-| `contrast.mjs` | 72 | 4 palettes × 2 schemes × 9 screens, measured on the **rendered** page |
+| `running-costs.mjs` | 20 | The P&L never claims a profit it cannot support, the drill-downs **add up to their totals exactly**, and the accounting terms are **pinned** — COGS, Gross Profit and Net Profit must be PRESENT and unrenamed (§13b) |
+| `reorder-nudge.mjs` | 13 | The dashboard actually asks for the second order: names people, says how long it has been, one tap to WhatsApp, "See all" lands on the At risk lens. Plus the units rule |
+| `direct-receipt.mjs` | 12 | Stock that never travelled in a container can be received and **reads right afterwards** — asked for in the product's own unit, total echoed back before committing, Inventory says "24 tubs" |
+| `new-sku.mjs` | 5 | A product with **no carton** can be created — driven on top of a deliberately reproduced stuck state (orphan brand/model/variant), because a fix that only works on a clean database would not have helped Ali at all |
+| `material.mjs` | 11 screens | Every in-flow surface actually wears the current theme — structurally, not aesthetically |
+| `contrast.mjs` | 88 | 4 palettes × 2 schemes × 11 screens, measured on the **rendered** page |
 
 **They are proven to fail.** Each was verified by putting its bug back — the
 table is in `scripts/audit/README.md`. A check that has never been seen to
@@ -1762,10 +1778,18 @@ unique key and, worse, **would have doubled the stock**. `seed.mjs` creates the
 auth user through the real signup endpoint, so `handle_new_user` gets
 exercised too.
 
-**`seed.mjs` and `grn.mjs` refuse a non-local database URL.** They delete and
-insert stock to reset their fixture; against production that is real stock.
-The guard parses `new URL(value).hostname` — an earlier regex version read
+**Every audit that writes refuses a non-local database URL** — `seed.mjs`,
+`grn.mjs`, `reorder-nudge.mjs`, `direct-receipt.mjs`, `new-sku.mjs`. They
+delete and insert stock, back-date orders and create products to reset their
+fixture; against production that is real stock. The guard parses
+`new URL(value).hostname` — an earlier regex version read
 `postgres:postgres@127.0.0.1` as remote and blocked a local run.
+
+**An audit whose result depends on which audits ran before it is not a check,
+it is a coin toss.** `reorder-nudge` first back-dated its customer's order by
+45 days, passed alone, and failed when run after `journey` and `offline` —
+those place extra orders for the same customer, so the last order moves forward
+and 45 days stops exceeding the supply it bought. It is 400 days now.
 
 ### 12a. The most instructive failure in the whole gate
 
@@ -1796,3 +1820,232 @@ Put it where it belongs. A money or stock rule belongs in
 Prefer one clear assertion with a **number in its failure message** over a
 screenshot comparison: Ali reads the failure, and "3.84:1, needs 4.5" tells
 him something a diff image does not.
+
+---
+
+## 13. COMPLETE index of 2026-08-11 — every change, in order
+
+**This section is newer than §11 and §7. Where they disagree, this wins.**
+
+Eight PRs, **#79 → #86**, each squash-merged to `main`, each deployed and each
+verified READY with `saynomore-beta.vercel.app` pointing at it. Migrations
+**0167 → 0177**. The gate grew from 5 audits / 145 checks to **10 audits /
+~220 checks**, and pgTAP from 173 to **182**.
+
+The day started as a design/UX review Ali delegated entirely — *"I'm just a
+bystander now. You're tasked as a top consultant so it's your job to pick the
+best team for the entire app and business"* — and turned into finance
+correctness, then into a real bug he hit on his phone.
+
+### 13a. The P&L was overstating profit, structurally (#80)
+
+Not a crash. `get_pnl` reported **MVR 13,790 "net profit"** for a month whose
+operating expenses were **MVR 0**, in confident 32px green.
+
+**The cause was a data-model mismatch, not arithmetic.** Rent, salaries and
+internet are the same every month — but the app modelled every cost as a
+one-off event and asked for it again each month, so `business_expenses` held
+**ONE row in the app's entire life** (a single MVR 1,000 expense). A figure
+nobody could keep up with is a figure that will always be zero.
+
+**0167** adds recurring expenses and a generator that materialises them into
+real `business_expenses` rows, so the P&L reads one table and nothing about the
+downstream money math changes. The safety property is in the conflict clause
+and it is deliberate:
+
+```sql
+on conflict (recurring_id, period_month) where recurring_id is not null
+  do nothing;              -- NEVER do update: a corrected month wins.
+```
+
+If Ali edits September's rent because it actually changed, regeneration must
+not silently revert him. `DO UPDATE` there is the bug; pgTAP has three tests on
+it, including *"a hand-corrected month SURVIVES regeneration"*.
+
+Three follow-ups, each a real defect found after the fact and each kept as its
+own migration because **the files must describe what production actually ran**:
+
+- **0168** — `has_running_costs_configured()` returned true off that one
+  historical MVR 1,000 row, so the honest-state banner would never appear. Now
+  period-aware.
+- **0169** — the REVOKEs in 0167 did not take. **Supabase grants EXECUTE to
+  `authenticated` by default on new functions in `public`.** Revoking from
+  `anon` alone leaves the function reachable. Check the grants after every new
+  SECURITY DEFINER function; do not assume the REVOKE line did what it says.
+- **0170** — the generator used `CURRENT_DATE`, which is the **server's UTC
+  day**, not Maldives (UTC+5). Now
+  `(now() at time zone 'Indian/Maldives')::date`. Caught by pgTAP
+  `money_rules` test 9, not by reading the code.
+
+### 13b. Reports explains itself — without renaming one accounting term (#81, #82)
+
+**This is the correction to keep.** The first version paraphrased the finance
+vocabulary into plain English: COGS → "What the goods cost", Gross Profit →
+"Profit on the goods", Net Profit → "Profit before running costs". Ali,
+2026-08-10:
+
+> *"Don't change the the finance or account terms like cogs net profit etc. you
+> should leave as it is. Always use correct terms where applicable."*
+
+He is right, and the reasoning generalises past this screen: **those are the
+words his accountant, his bank and every finance system use.** Paraphrasing
+them makes him *less* able to talk to those people — it optimises one screen at
+the cost of every conversation he has off it. "Novice-friendly" means the
+explanation goes **beside** the term, never instead of it.
+
+`running-costs.mjs` now asserts COGS and Gross Profit are **PRESENT** and that
+Net Profit is never renamed — a check pointing the opposite way to what you
+would guess, which is exactly why it is written down.
+
+**#82** makes Revenue and COGS — the two biggest numbers on the P&L — open into
+their parts, with the parts **reconciled against the total in the audit**. The
+mutation that proved it: halve one brand's revenue in the drill-down so the
+parts no longer sum. Caught.
+
+**One mutation attempt was a no-op and is worth remembering.** The first try
+dropped the *first* brand group (`brandGroups.slice(1)`) and the audit stayed
+green — correctly, because that brand had no sales in the fixture period and
+the component already filters zero-value groups out. Nothing had changed. **A
+mutation that does not change behaviour proves nothing about the check, only
+about the mutation.** Stopping there would have bought false confidence.
+
+### 13c. Navigation regrouped (#83)
+
+Three pages were filed where nobody would look for them. Sections are now
+**Core / Finance / Pricing / Procurement / Warehouse / Master Data**, which is
+the shape of the business rather than the shape of the codebase. Grouping is
+still DATA in `nav-config.ts` (hard rule 8), and `journey.mjs` now parses the
+expected labels **out of that file** and opens the real More sheet to check
+every page is listed — parsed, not copied, because a copy drifts and then
+asserts the wrong thing while looking green.
+
+### 13d. The app knew who had run out — now it says so (#84)
+
+**The finding, from real data: 52 of 73 customers have never bought twice.** A
+28.8% repeat rate, on products a household finishes in about a fortnight.
+Average order MVR 474, largest customer 6.8% of revenue, and every channel on
+record is facebook / instagram / messenger / viber / whatsapp. **This is D2C
+social selling, not distribution** — which is the single most useful thing
+learned about the business today, and it should shape what gets built next.
+
+The intelligence already existed and was invisible: `get_customer_insights` had
+been computing `expected_supply_days` and flagging `ran_out` for months, behind
+a lens on the Customers screen you had to know to open. Now it reaches the
+dashboard with one tap to WhatsApp and a first-name draft (`lib/wa.ts`).
+
+**Nothing sends by itself.** `wa.me` opens the chat with an editable draft — he
+sells to these people personally, and an app that messages customers on its own
+would be a worse product and a worse relationship.
+
+**And a statistical error of mine, recorded because it is the kind that reads
+as authoritative.** I told Ali 48 customers were overdue with MVR 18,405 at
+stake. I had **averaged a ratio** (pieces ÷ days across customers), which
+inflated consumption to ~9.8 pieces/day. The correct median is 6.8 days per
+pack, a typical order is 2.5 packs, so about 17 days of supply — roughly **15**
+customers, not 48. **The app's existing model was right and my ad-hoc query was
+wrong.** Never average a ratio; take the median of the per-customer rate.
+
+### 13e. Stock can arrive without a shipment (#85) — the Body Shop problem
+
+Ali carried a few dozen Body Shop body butters home in his baggage. There was
+exactly **one door into stock** — shipment → GRN → freight apportioned by CBM —
+and `shipment_lines` requires `cbm_per_carton > 0`, so they could not be
+entered at all. He asked, correctly, what the general answer is for future
+products like this.
+
+The general answer: **a second, honest door**, not a fake shipment. A fake
+shipment with invented dimensions would corrupt the freight split of every real
+import those SKUs later appear on.
+
+- **0171** — `inventory_batches.shipment_line_id` becomes nullable, with a
+  `source` column (`shipment` | `direct`) and a CHECK that keeps the pairing
+  honest in **both** directions. Plus `receive_direct_stock` and
+  `void_direct_receipt`. Landed cost for a direct receipt is simply **the price
+  paid** — there is no freight to apportion.
+- **0172** — `product_categories.unit_uom` was limited to `pcs`/`ml`/`g`, so a
+  tub was unreachable. Ali had already created a "Bodybutter" category with
+  `pcs`, which made `unit_noun()` return **"pack"** — two dozen tubs would have
+  read "24 packs" on every screen.
+- **0173** — `qty_cartons_received` had `CHECK (> 0)`. A suitcase has no
+  cartons; 0 is the truth, 24 would be a lie, and a computed figure is
+  fractional. Relaxed to `>= 0` **for the direct case only** — a container line
+  with no cartons is still a real data error and that check is what catches it.
+- **0174** — 0171's function wrote `reason` (the column is `notes`) and omitted
+  the NOT NULL `source_type`. **PL/pgSQL does not validate a function body
+  against the catalog at CREATE time**, so it applied cleanly and failed on the
+  first real call. Assume nothing about a function body until it has been run.
+- **0175** — `source_type` gets its own `direct_receipt` value rather than
+  borrowing `shipment` (which would make a suitcase indistinguishable from a
+  container in every receiving report) or `adjustment` (which is a *correction*
+  to a count, not an arrival).
+
+`direct-receipt.mjs` watches what goes quietly wrong rather than just "the form
+works": the screen asks in the **product's own unit** ("How many tubs"), the
+total is echoed back **before** committing — a mistyped unit cost silently
+becomes the cost basis of every future sale from that batch — the confirm says
+what it will NOT do, and Inventory afterwards reads "24 tubs".
+
+**That last check found a real bug while it was being written: three places
+knew what a unit is called** — Postgres `unit_noun`, `lib/trade-units`
+`containerLabel`, and a private copy inside `inventory-view` — so the same 24
+tubs read "24 ctn" on the brand rollup while the database called them tubs.
+
+### 13f. Three bugs behind one wrong error message (#86)
+
+Ali, with a screenshot: *"Can't create bodybutter"*, and
+`duplicate key value violates unique constraint "variants_model_id_attributes_key"`.
+
+**That message named none of the three things actually wrong**, and the one it
+named was a consequence of the first.
+
+1. `skus.carton_length_cm/width/height` were NOT NULL with `CHECK (> 0)`. His
+   form had 0, 0, 0 — correct, because a tub in a suitcase has no carton.
+2. The card inserted brand → model → variant → sku **in sequence with no
+   transaction**, so the rejection left the first three **stranded**. Every
+   retry then collided on the orphan variant and reported a duplicate key —
+   an error about a completely different thing, with nothing on screen hinting
+   at carton dimensions.
+3. And even with both fixed he would still have been stuck: `canSave` required
+   `lenCm && widCm && htCm`, so the Create button sat **permanently greyed out
+   with nothing explaining why**. Found only by driving the real form — the
+   click timed out on a button that could never become enabled. **That is worse
+   than an error; an error at least tells you what to fix.**
+
+**0176** makes dimensions optional — the check *moves* rather than disappears.
+CBM is load-bearing, but it was being enforced on the **product** when it is a
+fact about **shipping one**. The guard that matters already sits on
+`shipment_lines`, so **hard rule 4 is untouched**. `NULL` now means "not
+measured", still distinct from a measured zero, which remains impossible.
+
+**0177** makes `create_sku_full` one transaction, reusing an existing
+brand/model/variant by name case-insensitively. A failure leaves nothing
+behind, **and orphans from earlier failures are adopted rather than blocking** —
+which is why this shipped with no cleanup script. Proven both ways: the real
+product created on top of his stuck rows, and a forced failure at the last step
+left **zero** orphans.
+
+**A fourth copy of "what is one unit called"** was hiding in the Create wizard
+(`ml → Bottle`, `g → Pouch`, else `Pack`). Four found in two days. All now
+derive from one source — check for a fifth before adding a unit word anywhere.
+
+**Also worth recording as a process miss:** I had added the single-unit option
+to the **Edit** dialog and not the **Create** wizard — the one Ali actually
+uses. Adding an option to one of two screens that do the same job is the
+failure the four-line pre-build checklist in `CLAUDE.md` exists to prevent.
+
+**`BODY-DEWB-1x1` exists in production.** It should not be recreated —
+Stock Ops → Receive is the next step for it.
+
+### 13g. Still Ali's to do, after this stretch
+
+Unchanged from §11f, plus one new and now the most valuable:
+
+1. **Enter the operating expenses once, with *Every month*.** Rent, salaries,
+   internet, transport. **Until this is done Net Profit is overstated** — the
+   app now says so on the screen rather than pretending, but the number does
+   not become true until the costs are in it.
+2. `npm run backup` regularly, kept off the Supabase account. §7a.1.
+3. The two Supabase dashboard settings — leaked-password protection, and OTP /
+   login-link expiry under an hour. §7c.7.
+4. **Measure the five carton sizes.** Still the highest-value non-code job:
+   the top three carry **85% of the freight**.
