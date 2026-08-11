@@ -19,11 +19,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   listCategories, listBrands, listModels, listVariants, listSkusFlat,
-  createBrand, createModel, createVariant, createSku, createCategory, deleteCategory, deleteModel,
+  createSkuFull, createCategory, deleteCategory, deleteModel,
   toggleSkuActive, getCurrentUserRole, updateSku,
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
   type SkuFullRow, type AttrKey, type SellUnit,
 } from "@/lib/queries/products";
+import { containerLabel, type UnitUom } from "@/lib/trade-units";
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
 } from "./edit-dialogs";
@@ -1354,7 +1355,7 @@ function CategoryPills({
 }
 
 function NewSkuWizard({
-  open, onOpenChange, brands, categories, models, variants, existingSkus, onSaved,
+  open, onOpenChange, brands, categories, models, existingSkus, onSaved,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -1493,63 +1494,58 @@ function NewSkuWizard({
 
   useEffect(() => { if (open) reset(); }, [open]);
 
-  // ── Resolve brand: find existing or create new
-  async function resolveBrand(name: string): Promise<string> {
-    const existing = allBrands.find((b) => b.name.toLowerCase() === name.trim().toLowerCase());
-    if (existing) return existing.id;
-    const b = await createBrand(name.trim());
-    setLocalBrands((prev) => [...prev, b]);
-    return b.id;
-  }
-
-  // ── Resolve model: find existing for this brand+name, or create new
-  async function resolveModel(name: string, bId: string, catId: string): Promise<string> {
-    const existing = allModels.find(
-      (m) => m.brand_id === bId && m.name.toLowerCase() === name.trim().toLowerCase()
-    );
-    if (existing) return existing.id;
-    const m = await createModel({ brand_id: bId, category_id: catId, name: name.trim() });
-    setLocalModels((prev) => [...prev, m]);
-    return m.id;
-  }
-
-  // ── Save: creates everything needed in sequence, then the SKU
+  // ── Save: ONE transaction — brand, model, variant and SKU together
   async function save() {
-    if (!brandInput.trim() || !modelInput.trim() || !categoryId || !pcsPerPack || !packsPerCtn || !lenCm || !widCm || !htCm || !code.trim()) {
+    // Carton dimensions are NOT required. A body butter carried home in a
+    // suitcase has no carton, and demanding L x W x H either blocks the product
+    // entirely or — worse — invites someone to type 10 x 10 x 10 to get past
+    // the form, which would corrupt the freight split of every real import that
+    // product later appears on. Measure the box when it arrives in a box: the
+    // guard that matters lives on the shipment line (cbm_per_carton > 0).
+    if (!brandInput.trim() || !modelInput.trim() || !categoryId || !pcsPerPack || !packsPerCtn || !code.trim()) {
       toast.error("Fill all required fields.");
       return;
     }
     const variantDisplay = attrsToDisplayName(variantAttrs, schema) || modelInput.trim();
     setSaving(true);
     try {
-      const bId = await resolveBrand(brandInput);
-      const mId = await resolveModel(modelInput, bId, categoryId);
-
-      // Resolve variant: find or create
-      const existingVariant = variants.find(
-        (v) => v.model_id === mId && v.display_name.toLowerCase() === variantDisplay.toLowerCase()
-      );
-      const cleanedAttrs: Record<string, string | number> = {};
-      for (const k of schema) {
-        const val = variantAttrs[k];
-        if (val && val.trim()) {
-          cleanedAttrs[k] = ATTR_SPECS_WIZARD[k]?.type === "number" ? Number(val) : val.trim();
-        }
-      }
-      const vId = existingVariant
-        ? existingVariant.id
-        : (await createVariant({ model_id: mId, attributes: cleanedAttrs, display_name: variantDisplay })).id;
-
-      await createSku({
-        variant_id: vId,
+      // ONE transaction for the whole product — brand, model, variant, SKU.
+      //
+      // This used to be four sequential inserts, and a failure at the last step
+      // left the first three stranded. Because a variant is unique on
+      // (model_id, attributes) and most categories here have no attributes, the
+      // NEXT attempt collided on that orphan and reported a duplicate-key error
+      // for a problem that was actually about carton dimensions. Ali hit
+      // exactly that trying to add a Body Shop body butter, and could not get
+      // past it however many times he retried.
+      //
+      // create_sku_full also reuses an existing brand/model/variant by name, so
+      // orphans from earlier failures are adopted rather than blocking.
+      const newSkuId = await createSkuFull({
+        brand: brandInput.trim(),
+        category_id: categoryId,
+        model: modelInput.trim(),
+        variant: variantDisplay,
         internal_code: code.trim(),
         supplier_barcode: barcode.trim() || null,
         pcs_per_pack: parseInt(pcsPerPack),
         packs_per_carton: parseInt(packsPerCtn),
-        carton_length_cm: parseFloat(lenCm),
-        carton_width_cm: parseFloat(widCm),
-        carton_height_cm: parseFloat(htCm),
+        // Blank or 0 means "no carton to measure" — a tub carried home in a
+        // suitcase has no dimensions, and inventing some would corrupt the
+        // freight split of any real import it later appears on.
+        carton_length_cm: parseFloat(lenCm) || null,
+        carton_width_cm: parseFloat(widCm) || null,
+        carton_height_cm: parseFloat(htCm) || null,
         sellable_units: sellUnits,
+      });
+
+      // Prices are applied after, deliberately. They are OPTIONAL and editable
+      // from the SKU dialog at any time, so a failure here leaves a real,
+      // visible, usable product with no price — recoverable in two taps. That
+      // is a different class of problem from an invisible orphan variant that
+      // silently blocks every future attempt, which is what the atomic call
+      // above exists to prevent.
+      const pricePatch = {
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         // fixed_selling_price_mvr is always stored per-piece.
         // If user entered per bottle/pack: divide by pcs_per_pack.
@@ -1562,7 +1558,10 @@ function NewSkuWizard({
         // Don't persist a pack volume-break for a carton-only product.
         fixed_price_per_pack_mvr: sellUnits.includes("pack") && fixedPackPrice ? parseFloat(fixedPackPrice) : null,
         fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
-      });
+      };
+      if (Object.values(pricePatch).some((v) => v != null)) {
+        await updateSku(newSkuId, pricePatch);
+      }
 
       haptic("success");
       toast.success("SKU created");
@@ -1574,8 +1573,17 @@ function NewSkuWizard({
 
   const hasVariantFields = schema.length > 0;
   const variantFilled = !hasVariantFields || schema.some((k) => variantAttrs[k]?.trim());
+  // Carton dimensions are NOT part of this. A product with no carton — a body
+  // butter carried home in a suitcase — has none to give, and requiring them
+  // here left the Create button permanently greyed out with nothing on screen
+  // explaining why. That is worse than an error: an error at least tells you
+  // what to fix.
+  //
+  // The guard that actually matters lives on the shipment line
+  // (cbm_per_carton > 0), so freight still cannot go unapportioned on a real
+  // import. Measure the box when there is a box.
   const canSave = !!brandInput.trim() && !!modelInput.trim() && !!categoryId &&
-    variantFilled && !!pcsPerPack && !!packsPerCtn && !!lenCm && !!widCm && !!htCm && !!code.trim();
+    variantFilled && !!pcsPerPack && !!packsPerCtn && !!code.trim();
 
   const inp: React.CSSProperties = {
     width: "100%", height: 44, padding: "0 12px", borderRadius: 10,
@@ -1855,11 +1863,14 @@ function NewSkuWizard({
             {(() => {
               // Derive trade unit label from category/variant attrs
               const fmtAttr = variantAttrs["format"];
+              // containerLabel is the single source (twin of Postgres
+              // unit_noun). This was a fourth private copy of the mapping,
+              // which is how a body butter could be a "tub" in the database and
+              // a "Pack" on the form that creates it.
+              const singularWord = containerLabel(category?.unit_uom as UnitUom | undefined);
               const tradeUnit = fmtAttr
                 ? fmtAttr
-                : category?.unit_uom === "ml" ? "Bottle"
-                : category?.unit_uom === "g"  ? "Pouch"
-                : "Pack";
+                : singularWord.charAt(0).toUpperCase() + singularWord.slice(1);
 
               // Parse pack config for live derivation
               const pcsN  = parseInt(pcsPerPack, 10);
@@ -1898,6 +1909,11 @@ function NewSkuWizard({
                     <Label className="ios-subhead">Sold in</Label>
                     <div style={{ display: "flex", gap: 8 }}>
                       {([
+                        // "Single" for something sold one at a time — a Body
+                        // Shop body butter is a tub, not a pack of anything.
+                        // The Edit dialog gained this first; the CREATE wizard
+                        // is the screen that actually needed it.
+                        { key: "piece" as const, label: `Single ${singularWord}` },
                         { key: "pack" as const, label: tradeUnit },
                         { key: "carton" as const, label: "Carton" },
                       ]).map((opt) => {
