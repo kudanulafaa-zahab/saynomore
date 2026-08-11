@@ -150,6 +150,12 @@ check that tests the link instead of the destination is how a half-built feature
 gets reported as done.** It now opens the lens and asserts the ran-out group is
 separated out, named, dated, reasoned, and carries the same Message button.
 
+It also enforces **one owner for the follow-up job**: a customer may be named
+exactly ONCE on the dashboard. The briefing used to repeat the card's people as
+sentences ending *"Worth a call (9409259)"* — a phone number printed as text,
+directly below a card with a Message button. Adding the card was only half the
+job; nothing removed what it replaced.
+
 The Message button is also checked properly: three genuinely different drafts,
 each a distinct `wa.me` link, none of them speaking as "I". Ali, 2026-08-12:
 *"I need to be able to select a message from 3 options. Don't use 'I'. Use
@@ -243,6 +249,7 @@ was verified by putting its bug back:
 | brand revenue in the P&L drill-down halved, so the parts no longer sum to the total | running-costs — "the brand breakdown adds up to the Revenue total exactly" |
 | the hardcoded `"ctn"` put back on the Inventory brand rollup | direct-receipt — "Inventory shows 24 tubs" |
 | the At risk lens reverted to the profit-ranked list — a correct link to a useless page | reorder-nudge — 4 checks, incl. "it separates who has RUN OUT from who is merely late" and "the SAME Message button as the dashboard". **The old href assertion still passed**, which is exactly why it was not enough |
+| the customer sentences put back in the morning briefing, under the card that replaced them | reorder-nudge — "a customer is named ONCE on the dashboard (found 2)" and "no 'Worth a call' sentence" |
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |

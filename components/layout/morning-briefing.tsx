@@ -83,16 +83,26 @@ export function MorningBriefing() {
     text: `No expiry date on MVR ${fmt(b.stock_value_without_expiry_mvr)} of stock (${b.batches_without_expiry} batch${b.batches_without_expiry === 1 ? "" : "es"}) — until these are entered the app cannot warn you before it goes off`,
     href: "/inventory", tone: "var(--snm-warning)",
   });
-  // The app as salesperson: call before the order goes to someone else.
-  // Two different sentences, because a repeat buyer breaking their rhythm and
-  // a first-time buyer whose pack ran out are different conversations — and
-  // the second kind has no "usual gap" to quote (0151).
-  for (const oc of b.overdue_customers ?? []) watch.push({
-    text: oc.reason === "ran_out"
-      ? `${oc.name} bought ${oc.days_since_last} days ago — enough for about ${oc.expected_supply_days} days, so they've run out. Worth a call${oc.phone ? ` (${oc.phone})` : ""}`
-      : `${oc.name} usually orders every ${oc.usual_gap_days} days — it's been ${oc.days_since_last}. Worth a call${oc.phone ? ` (${oc.phone})` : ""}`,
-    href: "/customers", tone: "var(--snm-warning)",
-  });
+  // NO CUSTOMER LINES HERE. They used to be, one sentence each, and they
+  // duplicated the "Probably out of stock at home" card sitting directly above
+  // this briefing on the same screen — same people, same two facts, worse
+  // action. Ali, 2026-08-12: *"In dashboard you're also duplicating the same
+  // stuff for which you gave the better option to message. Below it is a list
+  // of same people."*
+  //
+  // The card wins on every count: it names the same customers, gives the same
+  // two facts, and offers a Message button with three drafts. This offered
+  // "Worth a call (9409259)" — a raw phone number you cannot tap, in a briefing
+  // that is meant to be scanned. Two components doing one job is how the unit
+  // noun ended up with four copies; the follow-up job now has ONE owner.
+  //
+  // The softer `rhythm` group is not lost — `getRanOutCustomersServer` counts
+  // them and the card points at them, and the At risk lens lists them under
+  // "Later than they usually order" (§13i).
+  //
+  // `b.overdue_customers` is still returned by get_morning_briefing and is
+  // deliberately not read here. Leaving the RPC alone keeps this a pure UI
+  // change; the payload is small and other callers may want it.
   // Price checks. The urgent case leads: a shipment just landed at a new cost,
   // so the margin has moved and the reprice decision is live — that's when a
   // rival's price needs to be current, not when a timer happens to expire.

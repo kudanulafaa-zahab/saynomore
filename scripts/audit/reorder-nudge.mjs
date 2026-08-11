@@ -65,6 +65,17 @@ try {
   // Ali, 2026-08-12: "I need to be able to select a message from 3 options.
   // Don't use 'I'. Use 'we'." One canned line is a form letter, and the same
   // form letter twice to one customer is worse than not writing.
+  // ONE OWNER FOR THE FOLLOW-UP JOB.
+  // The morning briefing below this card used to list the SAME customers as
+  // sentences — same names, same two facts, and a worse action ("Worth a call
+  // (9409259)", a phone number you cannot tap). Ali, 2026-08-12: "In dashboard
+  // you're also duplicating the same stuff for which you gave the better option
+  // to message. Below it is a list of same people."
+  // A name may appear ONCE on this screen.
+  const nameHits = (await page.locator("body").innerText()).match(/Ahmed Ziyad/g) ?? [];
+  list.is(nameHits.length, 1, `a customer is named ONCE on the dashboard, not repeated in the briefing (found ${nameHits.length})`);
+  list.ok(!/worth a call/i.test(txt), "no 'Worth a call' sentence duplicating the Message button");
+
   const msg = page.getByRole("button", { name: /message ahmed ziyad on whatsapp/i }).first();
   list.ok(await msg.count() > 0, "a one-tap Message button is offered");
   await msg.click();

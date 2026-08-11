@@ -111,17 +111,23 @@ export function CustomersManager() {
       .map((c) => ({ c, i: insightById.get(c.id) }))
       .filter((x): x is { c: CustomerRow; i: CustomerInsight } => !!x.i);
     if (segment === "top")  return [...withData].sort((a, b) => Number(b.i.profit_mvr) - Number(a.i.profit_mvr));
-    // At risk is ordered the way the dashboard orders it: the people who have
-    // actually RUN OUT first, then the ones merely later than their usual
-    // rhythm, each block by how long it has been. The dashboard shows the top
-    // three of the ran-out group and "See all" lands here, so the two lists
-    // must agree on both membership and order — otherwise the link promises
-    // "the rest of these six" and delivers a different set.
+    // At risk is ordered EXACTLY the way the dashboard orders it: people who
+    // have actually RUN OUT first, then those merely later than their usual
+    // rhythm, and within each block by LIFETIME VALUE — the most worthwhile
+    // conversation first (`getRanOutCustomersServer` says the same in the same
+    // words). The dashboard shows the top three of the ran-out group and
+    // "See all" lands here, so the two must agree on membership AND order;
+    // otherwise the link promises "the rest of these six" and hands back a
+    // list whose first three are different people, which reads as a bug.
+    // Days-since is the tiebreak, not the key — sorting by it put a one-off
+    // MVR 90 customer above the best account in the business.
     if (segment === "risk") return withData.filter((x) => x.i.at_risk)
       .sort((a, b) => {
         const rank = (r: string | null) => (r === "ran_out" ? 0 : 1);
         const byReason = rank(a.i.risk_reason) - rank(b.i.risk_reason);
         if (byReason !== 0) return byReason;
+        const byValue = Number(b.i.revenue_mvr ?? 0) - Number(a.i.revenue_mvr ?? 0);
+        if (byValue !== 0) return byValue;
         return (b.i.days_since_last ?? 0) - (a.i.days_since_last ?? 0);
       });
     return withData.filter((x) => Number(x.i.outstanding_mvr) > 0)
