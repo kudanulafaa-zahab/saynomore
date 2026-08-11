@@ -357,7 +357,7 @@ export function FinancialsView() {
     [rows],
   );
 
-  // Which brand's SKUs are expanded in the "Profit on the goods, by brand" card.
+  // Which brand's SKUs are expanded in the "Gross Profit by Brand" card.
   const [openBrand, setOpenBrand] = useState<string | null>(null);
 
   // ── Chart — Revenue bars only (what the RPC gives us) ────────────────────
@@ -463,7 +463,7 @@ export function FinancialsView() {
 
           {/* Landed cost row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− What the goods cost</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Landed Cost (COGS)</p>
             <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalLandedCost)}</p>
           </div>
 
@@ -471,7 +471,7 @@ export function FinancialsView() {
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
             <div>
-              <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>Profit on the goods</p>
+              <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>Gross Profit</p>
               <p style={{ color: grossMarginPct >= 20 ? "var(--snm-success)" : grossMarginPct >= 10 ? "var(--snm-warning)" : "var(--snm-error)", fontSize: 11, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                 {grossMarginPct.toFixed(1)}% gross margin
                 {grossDelta !== null && (
@@ -492,7 +492,7 @@ export function FinancialsView() {
 
           {/* Operating expenses — rent, salaries, utilities… by category */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: opexBreakdown.length ? 4 : 6 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Running costs (rent, salaries…)</p>
+            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Operating Expenses</p>
             <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(otherOpex)}</p>
           </div>
           {opexBreakdown.map((c) => (
@@ -554,26 +554,33 @@ export function FinancialsView() {
             </>
           )}
 
-          {/* ── The bottom line, and how sure it is ──────────────────────────
+          {/* ── The bottom line, and how complete it is ─────────────────────
               This figure was showing MVR 13,790 in confident green with ZERO
-              running costs behind it — no rent, no salaries, no fuel — because
-              business_expenses held one row in the app's whole life. It was the
-              most misleading number in the app: Ali has nowhere else to read
-              his profit from, and 32px bold green reads as fact.
+              operating expenses behind it — no rent, no salaries, no fuel —
+              because business_expenses held one row in the app's whole life.
+              Ali has nowhere else to read his profit from, and 32px bold green
+              reads as fact.
 
-              The old screen did warn, in 12px grey, under the number. Visual
-              weight was inverted against reliability. So the number itself now
-              tells the truth: with no running costs recorded for THIS period it
-              is not net profit at all, it is profit BEFORE the cost of running
-              the business — and it is named that, in neutral ink, with the one
-              tap that fixes it. It goes green and becomes "Net Profit" the
-              moment the costs exist. Nothing is hidden and no figure changes;
-              only the claim it makes about itself. */}
+              THE LABEL STAYS "NET PROFIT". Ali, 2026-08-10: "Don't change the
+              finance or account terms like cogs net profit etc. you should
+              leave as it is. Always use correct terms where applicable." He is
+              right, and an earlier version of this block got it wrong by
+              renaming the line to "Profit before running costs". COGS, Gross
+              Profit and Net Profit are what his accountant, his bank and every
+              finance system use; paraphrasing them leaves him less able to talk
+              to those people, not more. The correct term is the term.
+
+              So the incompleteness is carried by a NOTE and by restraint in the
+              styling — not by renaming a standard subtotal. The old screen did
+              warn, in 12px grey under the number, which inverted visual weight
+              against reliability. Now the caveat sits at --foreground beside the
+              term, the number holds back its confident green until the expenses
+              exist, and the fix is one tap away. No figure changes. */}
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>
-                {costsKnown ? "Net Profit" : "Profit before running costs"}
+                Net Profit
               </p>
               {costsKnown ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
@@ -586,14 +593,14 @@ export function FinancialsView() {
                 </div>
               ) : (
                 <p style={{ color: "var(--foreground)", opacity: 0.85, fontSize: 12, marginTop: 4, fontWeight: 500 }}>
-                  Rent, salaries and fuel are not in this yet — your real profit
-                  is lower.
+                  No operating expenses recorded this period — rent, salaries and
+                  fuel are not deducted yet, so the real figure is lower.
                 </p>
               )}
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 3 }}>
-                Sales − what the goods cost{marketingSpend > 0 ? " − Marketing" : ""}
-                {costsKnown ? " − Running costs" : ""}
-                {stockWriteoff > 0 ? " − Damaged" : ""}{returnsNet !== 0 ? " − Returns" : ""}
+                Revenue − COGS{marketingSpend > 0 ? " − Marketing" : ""}
+                {costsKnown ? " − Operating Expenses" : ""}
+                {stockWriteoff > 0 ? " − Write-offs" : ""}{returnsNet !== 0 ? " − Returns" : ""}
               </p>
               {!costsKnown && (
                 <Link
@@ -605,7 +612,7 @@ export function FinancialsView() {
                     fontSize: 13, fontWeight: 600, textDecoration: "none",
                   }}
                 >
-                  Add your monthly costs
+                  Add operating expenses
                 </Link>
               )}
             </div>
@@ -699,12 +706,12 @@ export function FinancialsView() {
           )}
         </div>
 
-        {/* ── 3. Profit on the goods, by brand ── */}
+        {/* ── 3. Gross Profit by Brand ── */}
         <div style={{ ...CARD, borderRadius: 16, padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div>
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                Profit on the goods, by brand
+                Gross Profit by Brand
               </p>
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>{monthName} · top 5 by profit</p>
             </div>
@@ -723,7 +730,7 @@ export function FinancialsView() {
                 <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Brand</p>
                 <div style={{ display: "flex", gap: 40 }}>
                   <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Revenue</p>
-                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Profit on goods</p>
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Gross Profit</p>
                 </div>
               </div>
 

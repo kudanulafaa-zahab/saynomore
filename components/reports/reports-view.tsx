@@ -181,27 +181,25 @@ export function ReportsView() {
     const dateRange = `${from} to ${to}`;
 
     if (tab === "bestsellers" || tab === "margins") {
-      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Margin %"];
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Revenue (MVR)", "Landed Cost (MVR)", "Margin %"];
       csv = [headers, ...filtered.map((r) => [
         r.internal_code,
         r.brand_name,
         r.model_name,
         r.variant_display,
         formatQtyInTradeUnits(r.total_qty_pieces, tradeCfg(r)),
-        r.total_qty_pieces,
         r.total_revenue_mvr.toFixed(2),
         r.total_landed_cost_mvr.toFixed(2),
         r.gross_margin_pct != null ? r.gross_margin_pct.toFixed(1) + "%" : "",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "contribution") {
-      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Qty Sold (pcs)", "Revenue (MVR)", "Landed Cost (MVR)", "Marketing (MVR)", "Contribution (MVR)", "Contribution %"];
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Revenue (MVR)", "Landed Cost (MVR)", "Marketing (MVR)", "Contribution (MVR)", "Contribution %"];
       csv = [headers, ...contribFiltered.map((r) => [
         r.internal_code,
         r.brand_name,
         r.model_name,
         r.variant_display,
         formatQtyInTradeUnits(r.total_qty_pieces, tradeCfg(r)),
-        r.total_qty_pieces,
         r.total_revenue_mvr.toFixed(2),
         r.total_landed_cost_mvr.toFixed(2),
         r.marketing_spend_mvr.toFixed(2),
@@ -209,7 +207,7 @@ export function ReportsView() {
         r.contribution_margin_pct != null ? r.contribution_margin_pct.toFixed(1) + "%" : "",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "abc") {
-      const headers = ["Rank", "Class", "SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Qty Sold (pcs)", "Revenue (MVR)", "Revenue Share %", "Cumulative %"];
+      const headers = ["Rank", "Class", "SKU Code", "Brand", "Model", "Variant", "Qty Sold", "Revenue (MVR)", "Revenue Share %", "Cumulative %"];
       csv = [headers, ...abcFiltered.map((r) => [
         r.rank,
         r.abc_class,
@@ -218,20 +216,18 @@ export function ReportsView() {
         r.model_name,
         r.variant_display,
         formatQtyInTradeUnits(r.total_qty_pieces, tradeCfg(r)),
-        r.total_qty_pieces,
         r.total_revenue_mvr.toFixed(2),
         r.revenue_share_pct.toFixed(2) + "%",
         r.cumulative_pct.toFixed(2) + "%",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     } else if (tab === "stock") {
-      const headers = ["SKU Code", "Brand", "Model", "Variant", "Stock", "Stock (pcs)", "Days of Stock"];
+      const headers = ["SKU Code", "Brand", "Model", "Variant", "Stock", "Days of Stock"];
       csv = [headers, ...filtered.map((r) => [
         r.internal_code,
         r.brand_name,
         r.model_name,
         r.variant_display,
         formatQtyInTradeUnits(r.stock_pieces, tradeCfg(r)),
-        r.stock_pieces,
         r.days_of_stock != null ? r.days_of_stock.toFixed(0) : "—",
       ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     }
@@ -334,6 +330,7 @@ export function ReportsView() {
         <SummaryCard
           label="Total Revenue"
           value={`MVR ${totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+          sublabel="revenue for the period shown"
           icon={TrendingUp}
           tokenColor="var(--snm-success)"
           hero
@@ -343,18 +340,21 @@ export function ReportsView() {
           <SummaryCard
             label="SKUs Sold"
             value={String(totals.skusSold)}
+            sublabel="distinct SKUs sold this period"
             icon={Package}
             tokenColor="var(--snm-brand)"
           />
           <SummaryCard
             label="Avg Margin"
             value={totals.avgMargin !== null ? `${totals.avgMargin.toFixed(1)}%` : "—"}
+            sublabel="gross margin — kept per MVR 100 of revenue"
             icon={BarChart3}
             tokenColor="var(--snm-info)"
           />
           <SummaryCard
             label="Low Stock SKUs"
             value={String(totals.lowStock)}
+            sublabel={totals.lowStock > 0 ? "SKUs to reorder soon" : "nothing needs reordering"}
             icon={Clock}
             tokenColor={totals.lowStock > 0 ? "var(--snm-error)" : "var(--muted-foreground)"}
           />
@@ -373,13 +373,7 @@ export function ReportsView() {
           5 tabs never stretches the page sideways on a phone. */}
       <div className="overflow-x-auto no-scrollbar -mx-1 px-1" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         <div className="flex gap-1 rounded-xl p-1 w-max" style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)" }}>
-          {([
-            { key: "bestsellers",  label: "Best Sellers" },
-            { key: "margins",      label: "Margins" },
-            { key: "contribution", label: "Contribution" },
-            { key: "abc",          label: "ABC" },
-            { key: "stock",        label: "Days of Stock" },
-          ] as const).map((t) => (
+          {(TABS).map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -396,6 +390,13 @@ export function ReportsView() {
           ))}
         </div>
       </div>
+
+      {/* What this tab actually is. One sentence, --foreground at 0.8 rather
+          than --muted-foreground: on a mostly-numeric screen this line is what
+          makes the table readable, so it is content, not a hint. */}
+      <p className="ios-footnote px-1 -mt-1" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+        {TABS.find((t) => t.key === tab)?.blurb}
+      </p>
 
       {/* Search */}
       <div className="relative">
@@ -473,6 +474,29 @@ export function ReportsView() {
 }
 
 // ── Summary card ─────────────────────────────────────────────────────────
+
+
+/* ── What each tab IS, in words Ali was never taught but shouldn't need ──────
+   The old labels were the analyst's names for these techniques: "ABC",
+   "Contribution", "Margins". ABC classification is a real and useful method —
+   and completely opaque if nobody has taught you it, which is a learning curve
+   sitting on the one screen meant to tell you how the business is doing.
+
+   Each tab now carries the plain name AND one sentence saying what the number
+   is for. The sentence is --foreground at 0.8, not --muted-foreground: it is
+   the thing that makes the table readable, so it is content, not a hint. */
+const TABS = [
+  { key: "bestsellers",  label: "Best Sellers",
+    blurb: "What you sold most of, ranked by revenue rather than quantity — a cheap product that sells often can still earn less than a dear one." },
+  { key: "margins",      label: "Margins",
+    blurb: "Gross margin: what you keep on each product after COGS (what the goods cost you landed). The rufiyaa figure matters more than the percentage." },
+  { key: "contribution", label: "Contribution",
+    blurb: "Contribution margin: gross profit minus the marketing spent on that product. A product can show a healthy margin and still contribute little once its advertising is paid for." },
+  { key: "abc",          label: "ABC",
+    blurb: "ABC analysis: products ranked by revenue with a cumulative share. Class A earns roughly the first 80%, B the next 15%, C the rest — the A lines are the ones never to run out of." },
+  { key: "stock",        label: "Days of Stock",
+    blurb: "Days of stock: how long the shelf lasts at the recent selling rate. Low means reorder; very high means cash tied up in stock." },
+] as const;
 
 function SummaryCard({ label, value, sublabel, icon: Icon, tokenColor, hero }: {
   label: string; value: string; sublabel?: string; icon: typeof TrendingUp; tokenColor: string; hero?: boolean;
@@ -782,14 +806,23 @@ function AbcTable({ rows }: { rows: AbcRow[] }) {
     <div className="space-y-3">
       {/* Class summary chips */}
       <div className="grid grid-cols-3 gap-3">
-        {(["A", "B", "C"] as const).map((cls) => (
+        {([
+          // A/B/C is the standard classification and the letters stay — the
+          // table, the CSV and every retail buyer use them. What was missing is
+          // that nobody has ever told Ali what they MEAN, so the letter sat on
+          // screen as decoration. The caption under each count now carries the
+          // meaning; --foreground because it is the point of the chip.
+          { cls: "A" as const, meaning: "top ~80% of revenue" },
+          { cls: "B" as const, meaning: "next ~15%" },
+          { cls: "C" as const, meaning: "final ~5%" },
+        ]).map(({ cls, meaning }) => (
           <div key={cls} className="glass p-3 rounded-2xl flex items-center gap-3">
             <span className="h-9 w-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0" style={abcClassStyle(cls)}>
               {cls}
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="snm-num text-[20px] font-bold leading-none text-foreground">{counts[cls]}</p>
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground mt-1">SKUs</p>
+              <p className="text-[11px] mt-1" style={{ color: "var(--foreground)", opacity: 0.75 }}>{meaning}</p>
             </div>
           </div>
         ))}
