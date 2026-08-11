@@ -84,17 +84,26 @@ export interface AtRiskCustomer {
   orders_count: number;
 }
 
-export async function getRanOutCustomersServer(limit = 3): Promise<{ rows: AtRiskCustomer[]; total: number }> {
+export async function getRanOutCustomersServer(limit = 3): Promise<{ rows: AtRiskCustomer[]; total: number; laterThanUsual: number }> {
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase.rpc("get_customer_insights");
   if (error) throw error;
 
-  const all = ((data ?? []) as Record<string, unknown>[])
+  const rowsIn = (data ?? []) as Record<string, unknown>[];
+  const all = rowsIn
     .filter((r) => r.at_risk === true && r.risk_reason === "ran_out")
     .sort((a, b) => Number(b.revenue_mvr ?? 0) - Number(a.revenue_mvr ?? 0));
 
+  // The softer group — a repeat buyer past their own usual gap. They do NOT
+  // get rows on the dashboard (that would bury the people who have actually
+  // run out), but the count is carried so the card can point at them instead
+  // of letting them disappear. Until 2026-08-12 they were listed as separate
+  // sentences in the morning briefing, which duplicated this whole card.
+  const laterThanUsual = rowsIn.filter((r) => r.at_risk === true && r.risk_reason === "rhythm").length;
+
   return {
     total: all.length,
+    laterThanUsual,
     rows: all.slice(0, limit).map((r) => ({
       customer_id:          String(r.customer_id),
       name:                 String(r.name ?? ""),

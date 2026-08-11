@@ -74,7 +74,7 @@ export default async function DashboardPage() {
     getDailyRevenueServer(7),
     // Never let a follow-up list break the dashboard: this is an opportunity,
     // not a vital sign, and the money figures above must render regardless.
-    getRanOutCustomersServer(3).catch(() => ({ rows: [], total: 0 })),
+    getRanOutCustomersServer(3).catch(() => ({ rows: [], total: 0, laterThanUsual: 0 })),
   ]);
   const netProfit    = Number(pnl?.net_profit_mvr ?? 0);
   const netMargin    = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
@@ -238,6 +238,15 @@ export default async function DashboardPage() {
               <p className="ios-subhead font-semibold mt-0.5" style={{ color: "var(--foreground)" }}>
                 {ranOut.total} customer{ranOut.total !== 1 ? "s" : ""} due a top-up
               </p>
+              {/* The softer group gets a count, not rows — listing them here
+                  would bury the people who have actually run out. They used to
+                  be separate sentences in the briefing below, which duplicated
+                  this whole card. */}
+              {ranOut.laterThanUsual > 0 && (
+                <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                  {ranOut.laterThanUsual} more {ranOut.laterThanUsual === 1 ? "is" : "are"} later than they usually order
+                </p>
+              )}
             </div>
             <Link href="/customers?lens=risk" className="ios-subhead shrink-0 flex items-center gap-0.5"
               style={{ color: "var(--snm-brand-text)" }}>

@@ -2198,3 +2198,44 @@ three distinct `wa.me` links. Nothing sends by itself — `wa.me` opens the chat
 with a draft.
 
 ---
+
+
+---
+
+### 13k. The dashboard said the same thing twice
+
+Ali, 2026-08-12: *"In dashboard you're also duplicating the same stuff for which
+you gave the better option to message. Below it is a list of same people."*
+
+The "Probably out of stock at home" card named Fathimath, Samoona and Axmean
+with a Message button. The morning briefing **directly below it, on the same
+screen**, listed the same people again as sentences:
+
+> *Fathimath bought 34 days ago — enough for about 14 days, so they've run out.
+> Worth a call (9409259)*
+
+Same names, same two facts, and a **worse** action — a phone number printed as
+text, in a list meant to be scanned. The briefing lines predate the card by two
+days; adding the card was only half the job, because nothing removed what it
+replaced. **The follow-up job now has ONE owner** (`morning-briefing.tsx` no
+longer reads `overdue_customers`, and says why in place).
+
+Two things went with it, because removing the lines alone would have quietly
+lost information:
+
+- **The softer group is still counted.** `rhythm` customers — a repeat buyer
+  past their own usual gap — had no other mention on the dashboard. They now
+  appear as *"N more are later than they usually order"* under the headline,
+  and in full on the At risk lens under their own heading. A count, not rows:
+  listing them would bury the people who have actually run out.
+- **The card and the lens now agree on ORDER, not just membership.** The card
+  sorts by lifetime value ("the most worthwhile conversation first" — its own
+  documented choice); the lens had been sorting by days-since, which put a
+  one-off MVR 90 customer above the best account in the business. "See all" is
+  a continuation, so its first three must be the card's three. §13i claimed
+  they agreed on "membership and order" before this was true — a comment
+  describing an intention rather than the code.
+
+`reorder-nudge.mjs` now asserts **a customer is named exactly ONCE on the
+dashboard**, and that no "Worth a call" sentence exists. Proven by mutation:
+putting the briefing lines back fails both, with `found 2`.
