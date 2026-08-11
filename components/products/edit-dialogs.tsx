@@ -6,6 +6,7 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { containerLabel, type UnitUom } from "@/lib/trade-units";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { updateSku, adminDeleteBrandCascade, adminDeleteModelCascade, adminDeleteVariantCascade, adminDeleteSku, type SkuFullRow, type SellUnit } from "@/lib/queries/products";
 
@@ -148,8 +149,11 @@ export function EditSkuDialog({
 
   // Trade unit label — what this product is actually sold as (never "Pc")
   const attrs = sku?.attributes as Record<string, string> | undefined;
-  const unit = attrs?.format
-    || (sku?.unit_uom === "ml" ? "Bottle" : sku?.unit_uom === "g" ? "Pouch" : "Pack");
+  // containerLabel is the one place this mapping lives (and the twin of
+  // Postgres unit_noun). This used to keep its own copy, which is how a tub
+  // would have been called a "Pack" here while the database called it a tub.
+  const singular = containerLabel(sku?.unit_uom as UnitUom | undefined);
+  const unit = attrs?.format || (singular.charAt(0).toUpperCase() + singular.slice(1));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -272,6 +276,19 @@ export function EditSkuDialog({
               <Label>Sold in</Label>
               <div className="flex gap-2">
                 {([
+                  // "Single" is the third door, added 2026-08-11 for products
+                  // that ARE one item — a Body Shop body butter is a tub, not a
+                  // pack of anything. sellable_units has always permitted
+                  // 'piece'; nothing ever offered it, which is why a
+                  // hand-carried tub could not be set up at all.
+                  //
+                  // This does NOT weaken the packs-and-cartons rule. That rule
+                  // exists because nobody trades diapers loose, and a diaper
+                  // SKU still never offers this — its category is measured in
+                  // pcs, so the label below reads "Pack" and choosing Single
+                  // would be visibly wrong. The rule is about diapers, not
+                  // about arithmetic.
+                  { key: "piece" as SellUnit, label: `Single ${singular}` },
                   { key: "pack" as SellUnit, label: unit },
                   { key: "carton" as SellUnit, label: "Carton" },
                 ]).map((opt) => {
@@ -296,6 +313,8 @@ export function EditSkuDialog({
               </div>
               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                 The units customers can buy. Carton-only products hide pack pricing.
+                Choose <strong>Single {singular}</strong> for something sold one at a
+                time — set pieces per {unit.toLowerCase()} and {unit.toLowerCase()}s per carton to 1.
               </p>
             </div>
 

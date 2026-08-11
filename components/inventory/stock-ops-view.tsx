@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Search, MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight,
-  Check, AlertTriangle, Loader2, History, PackageX,
+  Check, AlertTriangle, Loader2, History, PackageX, PackagePlus,
 } from "lucide-react";
 import { listSkusFlat, compareSkusForDisplay, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
@@ -16,10 +16,12 @@ import {
   type StockCountSummary, type StockCountSession, type StockCountVariance,
   writeOffStock, type WriteOffReason,
   listRecentWriteoffs, type WriteoffRow,
+  receiveDirectStock,
 } from "@/lib/queries/inventory";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { haptic } from "@/lib/haptics";
 import { toPieces, type SaleUom } from "@/lib/queries/sales";
+import { sellableTiers, sellUnitLabel, type SellUnit, type UnitUom } from "@/lib/trade-units";
 import { mvtInstant } from "@/lib/mvt-date";
 import { useOnMount } from "@/lib/use-on-mount";
 
@@ -97,7 +99,7 @@ function UnitToggle({ sku, value, onChange }: { sku: SkuFullRow; value: SaleUom;
   );
 }
 
-type Tab = "verify" | "transfer" | "writeoff";
+type Tab = "receive" | "verify" | "transfer" | "writeoff";
 
 /* ════════════════════════════════════════════════════════════════════════ */
 
@@ -169,6 +171,7 @@ export function StockOpsView() {
         style={{ background: "color-mix(in srgb, var(--foreground) 6%, transparent)" }}
       >
         {([
+          { id: "receive", label: "Receive", icon: PackagePlus },
           { id: "verify", label: "Verify Count", icon: ClipboardCheck },
           { id: "transfer", label: "Transfer", icon: ArrowLeftRight },
           { id: "writeoff", label: "Write-off", icon: PackageX },
@@ -199,13 +202,244 @@ export function StockOpsView() {
         </div>
       )}
 
-      {tab === "verify" ? (
+      {tab === "receive" ? (
+        <ReceiveTab skus={skus} godowns={godowns} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
+      ) : tab === "verify" ? (
         <VerifyTab skus={skus} godowns={godowns} levels={levels} onDone={reloadLevels} canWrite={canWrite} />
       ) : tab === "transfer" ? (
         <TransferTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
       ) : (
         <WriteOffTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
       )}
+    </div>
+  );
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════ */
+/* RECEIVE — stock that never travelled in a container                       */
+/*                                                                           */
+/* Ali, 2026-08-11: "Recently I brought with my baggage a few dozen Body Shop */
+/* body butter with me. It's not a shipment I create with logistics etc."     */
+/*                                                                           */
+/* There was one door into stock: a shipment, a GRN, freight split by CBM.    */
+/* shipment_lines requires CBM > 0, so a hand-carried tub could not go        */
+/* through it — and should not: that check is what makes freight land         */
+/* correctly on real imports. This is the second door, where the cost simply  */
+/* IS the price paid.                                                        */
+/*                                                                           */
+/* Every number is worked out in Postgres (receive_direct_stock). This screen */
+/* only ever says "24 tubs at MVR 175 each".                                  */
+/* ════════════════════════════════════════════════════════════════════════ */
+
+function ReceiveTab({
+  skus, godowns, skuMap, onDone, canWrite,
+}: {
+  skus: SkuFullRow[]; godowns: GodownRow[];
+  skuMap: Map<string, SkuFullRow>; onDone: () => Promise<void>; canWrite: boolean;
+}) {
+  const [godownId, setGodownId] = useState<string>(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");
+  const [skuId, setSkuId]   = useState<string>("");
+  const [q, setQ]           = useState("");
+  const [qty, setQty]       = useState("");
+  const [unit, setUnit]     = useState<SaleUom>("piece");
+  const [cost, setCost]     = useState("");
+  const [note, setNote]     = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Unlike Write-off, this lists EVERY product: you are adding stock, so the
+  // ones with none are exactly the ones you are most likely to want.
+  const matches = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const list = term
+      ? skus.filter((s) => skuLabel(s).toLowerCase().includes(term) || (s.internal_code ?? "").toLowerCase().includes(term))
+      : skus;
+    return [...list].sort(compareSkusForDisplay).slice(0, 40);
+  }, [skus, q]);
+
+  const selected = skuId ? skuMap.get(skuId) : undefined;
+  const qtyNum   = Math.max(0, Math.floor(Number(qty) || 0));
+  const costNum  = Number(cost);
+  const costOk   = cost.trim() !== "" && !isNaN(costNum) && costNum >= 0;
+  const canSubmit = !!skuId && qtyNum > 0 && costOk && !!godownId && !saving;
+
+  // Only the units this product actually sells in — the same rule the sales
+  // screens obey, and Postgres refuses anything else anyway.
+  const tiers = selected ? sellableTiers(selected.sellable_units as SellUnit[] | null) : [];
+
+  function pickSku(id: string) {
+    if (id === skuId) { setSkuId(""); return; }
+    setSkuId(id);
+    const sku = skuMap.get(id);
+    if (sku) {
+      const allowed = sellableTiers(sku.sellable_units as SellUnit[] | null);
+      const preferred = defaultUnitFor(sku);
+      setUnit(allowed.includes(preferred) ? preferred : (allowed[0] ?? "piece"));
+    }
+  }
+
+  async function submit() {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      await receiveDirectStock({
+        sku_id: skuId, godown_id: godownId,
+        qty: qtyNum, uom: unit as "piece" | "pack" | "carton",
+        unit_cost_mvr: costNum, note: note.trim() || null,
+      });
+      haptic("success");
+      toast.success("Stock received");
+      setSkuId(""); setQty(""); setCost(""); setNote(""); setQ("");
+      setConfirming(false);
+      await onDone();
+    } catch (e) {
+      haptic("error");
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const unitWord = selected
+    ? sellUnitLabel(unit as SellUnit, {
+        pcsPerPack: selected.pcs_per_pack, packsPerCarton: selected.packs_per_carton,
+        unitUom: selected.unit_uom as UnitUom, sellableUnits: selected.sellable_units as SellUnit[] | null,
+      })
+    : "unit";
+  const totalMvr = qtyNum > 0 && costOk ? qtyNum * costNum : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="snm-card rounded-2xl p-4 space-y-4">
+        <div>
+          <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
+            Stock you bought or carried in
+          </p>
+          <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+            No shipment, no freight, no CBM. What you paid is the cost.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Godown</p>
+          <select value={godownId} onChange={(e) => setGodownId(e.target.value)}
+            className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+            style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }}>
+            {godowns.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Product</p>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search"
+            className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+            style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }} />
+          <div className="rounded-xl overflow-hidden" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
+            {matches.length === 0 ? (
+              <p className="ios-subhead px-4 py-3" style={{ color: "var(--muted-foreground)" }}>No product matches.</p>
+            ) : matches.map((s, i) => (
+              <button key={s.id} type="button" onClick={() => pickSku(s.id)}
+                className="w-full text-left px-4 py-3 flex items-center justify-between gap-3"
+                style={{
+                  background: skuId === s.id ? "var(--foreground)" : "var(--glass-bg-1)",
+                  color:      skuId === s.id ? "var(--background)" : "var(--foreground)",
+                  borderTop: i === 0 ? "none" : "0.5px solid var(--glass-border-lo)",
+                }}>
+                <span className="ios-subhead font-medium truncate">{skuLabel(s)}</span>
+                {skuId === s.id && <Check className="h-4 w-4 shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {selected && (
+          <>
+            {tiers.length > 1 && (
+              <div className="space-y-1.5">
+                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Received as</p>
+                <div className="flex gap-2">
+                  {tiers.map((t) => {
+                    const on = unit === t;
+                    return (
+                      <button key={t} type="button" onClick={() => setUnit(t as SaleUom)}
+                        className="flex-1 h-11 rounded-xl ios-subhead font-semibold snm-pressable flex items-center justify-center gap-1.5"
+                        style={{
+                          background: on ? "var(--foreground)" : "var(--glass-bg-1)",
+                          color:      on ? "var(--background)" : "var(--foreground)",
+                          border:     on ? "none" : "1px solid var(--glass-border-lo)",
+                        }}>
+                        {on && <Check className="h-4 w-4 shrink-0" />}
+                        {sellUnitLabel(t, {
+                          pcsPerPack: selected.pcs_per_pack, packsPerCarton: selected.packs_per_carton,
+                          unitUom: selected.unit_uom as UnitUom, sellableUnits: selected.sellable_units as SellUnit[] | null,
+                        })}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  How many {unitWord.toLowerCase()}s
+                </p>
+                <input type="number" inputMode="numeric" min="1" value={qty}
+                  onChange={(e) => setQty(e.target.value)} placeholder="24"
+                  className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                  style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }} />
+              </div>
+              <div className="space-y-1.5">
+                <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  Cost of one, MVR
+                </p>
+                <input type="number" inputMode="decimal" min="0" step="0.01" value={cost}
+                  onChange={(e) => setCost(e.target.value)} placeholder="175"
+                  className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                  style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }} />
+              </div>
+            </div>
+
+            {/* Echoed back so a mistyped figure is obvious BEFORE it becomes
+                the cost basis of every future sale of this batch. */}
+            {totalMvr != null && (
+              <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+                = MVR {totalMvr.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for {qtyNum} {unitWord.toLowerCase()}{qtyNum === 1 ? "" : "s"}
+              </p>
+            )}
+
+            <div className="space-y-1.5">
+              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Note (optional)</p>
+              <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Carried in baggage"
+                className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                style={{ background: "var(--glass-bg-1)", border: "1px solid var(--glass-border-lo)" }} />
+            </div>
+          </>
+        )}
+
+        <button disabled={!canWrite || !canSubmit} onClick={() => setConfirming(true)}
+          className="w-full h-12 rounded-xl ios-subhead font-semibold flex items-center justify-center gap-2 disabled:opacity-40 snm-pressable"
+          style={{ background: "var(--foreground)", color: "var(--background)" }}>
+          <PackagePlus className="h-4.5 w-4.5" /> Add to stock
+        </button>
+      </div>
+
+      {/* Money in, stock in — worth one confirmation, like every other ledger
+          door here. The figures are repeated so the sheet is the last chance to
+          catch a wrong price. */}
+      <ConfirmSheet
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={submit}
+        loading={saving}
+        title="Add this to stock?"
+        message={selected
+          ? `${skuLabel(selected)} — ${qtyNum} ${unitWord.toLowerCase()}${qtyNum === 1 ? "" : "s"} at MVR ${costNum.toFixed(2)} each (MVR ${(totalMvr ?? 0).toFixed(2)}). This is not a shipment, so no freight or duty is added.`
+          : ""}
+        confirmLabel="Add to stock"
+      />
     </div>
   );
 }

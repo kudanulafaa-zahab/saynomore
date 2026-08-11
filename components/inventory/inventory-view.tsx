@@ -10,7 +10,7 @@ import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/quer
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { mvtInstant } from "@/lib/mvt-date";
-import { costPerTradeUnit, type UnitUom } from "@/lib/trade-units";
+import { costPerTradeUnit, containerLabel, type UnitUom } from "@/lib/trade-units";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
 type SortDir  = "desc" | "asc";
@@ -29,11 +29,31 @@ function fmtMvr(n: number) {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
 }
-/** Compact chip word for one pack-level unit: a Sosoft 500ml is a bottle. */
+/** Compact chip word for one pack-level unit: a Sosoft 500ml is a bottle.
+ *
+ *  Derives from containerLabel so there is ONE place that knows what a unit is
+ *  called. This used to carry its own copy of the mapping — the third, after
+ *  Postgres unit_noun and lib/trade-units — which is how a tub could be a
+ *  "tub" in the database and a "pk" on the same screen. Only the squeeze into
+ *  three letters lives here. */
 function packAbbr(unitUom: string | null | undefined) {
-  return unitUom === "ml" ? "btl" : unitUom === "g" ? "pch" : "pk";
+  const w = containerLabel(unitUom as UnitUom | null | undefined);
+  return ({ bottle: "btl", pouch: "pch", pack: "pk", sachet: "sct" } as Record<string, string>)[w] ?? w;
+}
+
+/** Is one "carton" of this product just one item? True for anything sold
+ *  singly — a Body Shop tub is 1 per pack and 1 per carton, so calling 24 of
+ *  them "24 ctn" is arithmetically right and completely wrong to read. */
+function isSingleUnit(pcsPerPack: number, packsPerCarton: number) {
+  return pcsPerPack === 1 && packsPerCarton === 1;
 }
 function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number, unitUom?: string | null) {
+  // Sold singly: there is no carton and no pack to speak of, just the thing
+  // itself. "24 tubs", never "24 ctn".
+  if (isSingleUnit(pcsPerPack, pcsPerCtn)) {
+    const w = containerLabel(unitUom as UnitUom | null | undefined);
+    return pcs > 0 ? `${pcs.toLocaleString("en-MV")} ${w}${pcs === 1 ? "" : "s"}` : "0";
+  }
   const ctns  = toCtns(pcs, pcsPerCtn);
   const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);
   const pk    = packAbbr(unitUom);
@@ -68,6 +88,10 @@ interface SkuStock {
 interface BrandGroup {
   skus: SkuStock[];
   totalCartons: number;
+  /** The word for this brand's unit when every SKU under it is sold singly
+   *  (e.g. "tub"). Null when the brand mixes formats, where "ctn" is the only
+   *  honest common denominator. */
+  unitWord: string | null;
   totalValue: number;
   hasOut: boolean;
   hasLow: boolean;
@@ -573,10 +597,18 @@ export function InventoryView() {
     const map = new Map<string, BrandGroup>();
     for (const row of filtered) {
       const brand  = row.sku.brand_name;
-      const entry  = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasOut: false, hasLow: false, hasCritical: false };
+      const entry  = map.get(brand) ?? { skus: [], totalCartons: 0, totalValue: 0, hasOut: false, hasLow: false, hasCritical: false, unitWord: null as string | null };
       const pcsPerCtn = row.sku.pcs_per_pack * row.sku.packs_per_carton;
       entry.skus.push(row);
       entry.totalCartons += toCtns(row.totalPieces, pcsPerCtn);
+      // Agree on one word, or fall back to cartons. The push above already
+      // happened, so length === 1 IS the first SKU — proposing on length === 0
+      // never fired and quietly left every brand on "ctn".
+      {
+        const w = isSingleUnit(row.sku.pcs_per_pack, row.sku.packs_per_carton)
+          ? containerLabel(row.sku.unit_uom as UnitUom | null | undefined) : null;
+        entry.unitWord = entry.skus.length === 1 ? w : (entry.unitWord === w ? w : null);
+      }
       entry.totalValue   += row.totalValue;
       entry.hasOut        = entry.hasOut || row.isOut;
       entry.hasLow        = entry.hasLow || row.isLow;
@@ -892,7 +924,10 @@ export function InventoryView() {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                      {brandData.totalCartons.toLocaleString()} ctn
+                      {brandData.totalCartons.toLocaleString()}{" "}
+                      {brandData.unitWord
+                        ? `${brandData.unitWord}${brandData.totalCartons === 1 ? "" : "s"}`
+                        : "ctn"}
                     </p>
                     <p className="snm-num ios-subhead font-semibold text-foreground">MVR {fmtMvr(brandData.totalValue)}</p>
                     {!searchActive && (

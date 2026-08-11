@@ -1,6 +1,6 @@
 # Browser audits
 
-Eight scripts that check the app the way Ali does, so he does not have to.
+Nine scripts that check the app the way Ali does, so he does not have to.
 
 ## Why these exist
 
@@ -27,7 +27,7 @@ You need the local stack up — Docker, `supabase start`, and the app running.
 supabase start                # replays every migration onto a fresh Postgres
 npm run audit:seed            # fixture data + an admin sign-in
 npm run dev                   # or: npm run build && npm run start
-npm run audit:ui              # all eight
+npm run audit:ui              # all nine
 ```
 
 Individually:
@@ -145,6 +145,22 @@ version used 45, passed alone, and failed when run after `journey` and
 grows and 45 days stops exceeding its supply. **An audit whose result depends on
 which audits ran before it is not a check, it is a coin toss.**
 
+**`direct-receipt.mjs`** — stock bought locally or carried in can be received,
+and reads right afterwards. Ali carried a few dozen Body Shop body butters home
+in his baggage; there was one door into stock (shipment → GRN → freight split
+by CBM) and `shipment_lines` requires CBM > 0, so they could not be entered at
+all. Beyond "the form works", this watches the things that go quietly wrong:
+the screen asks in the **product's own unit** ("How many tubs"), the total is
+echoed back **before** committing (a mistyped unit cost silently becomes the
+cost basis of every future sale from that batch), the confirm says what it will
+NOT do, and Inventory afterwards reads "24 tubs" — never "24 packs" and never a
+piece count.
+
+That last check found a real bug while it was being written: **three** places
+knew what a unit is called — Postgres `unit_noun`, `lib/trade-units`
+`containerLabel`, and a private copy inside `inventory-view` — so the same 24
+tubs read "24 ctn" on the brand rollup while the database called them tubs.
+
 **`contrast.mjs`** — every readable word, every palette, both schemes, measured
 on the **rendered page**. It composites the real backdrop through every
 translucent ancestor, because a token's colour tells you nothing until you know
@@ -167,6 +183,7 @@ was verified by putting its bug back:
 | freight split evenly per line instead of by CBM | grn — both landed costs wrong by 584/carton |
 | generator changed to `DO UPDATE` (a corrected month silently reverted) | pgTAP `recurring_expenses` — 3 tests, incl. "a hand-corrected month SURVIVES regeneration" |
 | brand revenue in the P&L drill-down halved, so the parts no longer sum to the total | running-costs — "the brand breakdown adds up to the Revenue total exactly" |
+| the hardcoded `"ctn"` put back on the Inventory brand rollup | direct-receipt — "Inventory shows 24 tubs" |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
 

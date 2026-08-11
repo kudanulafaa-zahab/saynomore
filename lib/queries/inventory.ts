@@ -489,3 +489,48 @@ export async function listStockCountVariance(from?: string, to?: string): Promis
   if (error) throw error;
   return (data ?? []) as StockCountVariance[];
 }
+
+/* ── Direct receipt — stock that never travelled in a container ────────────
+ *
+ * Bought locally or carried in. There is no shipment, no CBM and no freight to
+ * apportion: the cost IS the price paid. Migration 0171 explains why this is a
+ * second door rather than a relaxed shipment — shipment_lines requires
+ * CBM > 0, and that guard is what keeps freight landing correctly on real
+ * imports.
+ *
+ * All the arithmetic happens in Postgres. The client says "24 tubs at MVR 175
+ * each"; receive_direct_stock works out the pieces and the per-piece landed
+ * cost, and writes the batch, the movement and the audit row.
+ */
+export interface DirectReceiptInput {
+  sku_id: string;
+  godown_id: string;
+  /** How many, expressed in `uom`. */
+  qty: number;
+  /** Must be one of the SKU's sellable_units — Postgres refuses anything else. */
+  uom: "piece" | "pack" | "carton";
+  /** What ONE `uom` cost, in MVR. */
+  unit_cost_mvr: number;
+  note?: string | null;
+}
+
+export async function receiveDirectStock(input: DirectReceiptInput): Promise<string> {
+  const { data, error } = await supabase.rpc("receive_direct_stock", {
+    p_sku_id:        input.sku_id,
+    p_godown_id:     input.godown_id,
+    p_qty:           input.qty,
+    p_uom:           input.uom,
+    p_unit_cost_mvr: input.unit_cost_mvr,
+    p_note:          input.note ?? null,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+/** Undo a direct receipt. Postgres refuses once any of the stock has moved —
+ *  by then the batch is part of a sale's cost basis and the honest correction
+ *  is a write-off or a stock count. */
+export async function voidDirectReceipt(batchId: string): Promise<void> {
+  const { error } = await supabase.rpc("void_direct_receipt", { p_batch_id: batchId });
+  if (error) throw error;
+}
