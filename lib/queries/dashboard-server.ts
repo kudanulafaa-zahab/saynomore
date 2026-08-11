@@ -54,3 +54,55 @@ export async function getSignedInFirstName(): Promise<string> {
   const full = profile?.full_name;
   return full ? String(full).trim().split(/\s+/)[0] : "";
 }
+
+/**
+ * Customers who have run out of what they last bought.
+ *
+ * The intelligence already existed — get_customer_insights computes
+ * `expected_supply_days` from the packs on their last order times the cohort's
+ * MEASURED days-per-pack (median 6.8 days on live data), and flags `ran_out`
+ * when more time has passed than that could have covered. What was missing is
+ * that it never reached the dashboard: it lived behind a lens on the Customers
+ * screen that you had to know to open.
+ *
+ * That matters more than any other number in this business. 52 of 73 customers
+ * have never bought a second time, on a product a household finishes in about
+ * two weeks. The second order is the whole game, and nothing was asking for it.
+ *
+ * Ordered by lifetime value so the most worthwhile conversation is first.
+ * `ran_out` only — a `rhythm` customer is merely later than usual, which is a
+ * softer signal and does not belong on a screen that is meant to be silent
+ * when healthy.
+ */
+export interface AtRiskCustomer {
+  customer_id: string;
+  name: string;
+  phone: string | null;
+  days_since_last: number | null;
+  expected_supply_days: number | null;
+  revenue_mvr: number;
+  orders_count: number;
+}
+
+export async function getRanOutCustomersServer(limit = 3): Promise<{ rows: AtRiskCustomer[]; total: number }> {
+  const supabase = await getSupabaseServer();
+  const { data, error } = await supabase.rpc("get_customer_insights");
+  if (error) throw error;
+
+  const all = ((data ?? []) as Record<string, unknown>[])
+    .filter((r) => r.at_risk === true && r.risk_reason === "ran_out")
+    .sort((a, b) => Number(b.revenue_mvr ?? 0) - Number(a.revenue_mvr ?? 0));
+
+  return {
+    total: all.length,
+    rows: all.slice(0, limit).map((r) => ({
+      customer_id:          String(r.customer_id),
+      name:                 String(r.name ?? ""),
+      phone:                (r.phone as string | null) ?? null,
+      days_since_last:      r.days_since_last      == null ? null : Number(r.days_since_last),
+      expected_supply_days: r.expected_supply_days == null ? null : Number(r.expected_supply_days),
+      revenue_mvr:          Number(r.revenue_mvr ?? 0),
+      orders_count:         Number(r.orders_count ?? 0),
+    })),
+  };
+}

@@ -1,6 +1,6 @@
 # Browser audits
 
-Six scripts that check the app the way Ali does, so he does not have to.
+Eight scripts that check the app the way Ali does, so he does not have to.
 
 ## Why these exist
 
@@ -27,7 +27,7 @@ You need the local stack up — Docker, `supabase start`, and the app running.
 supabase start                # replays every migration onto a fresh Postgres
 npm run audit:seed            # fixture data + an admin sign-in
 npm run dev                   # or: npm run build && npm run start
-npm run audit:ui              # all six
+npm run audit:ui              # all eight
 ```
 
 Individually:
@@ -119,6 +119,32 @@ those people. So the audit now checks that **COGS and Gross Profit are PRESENT**
 and that Net Profit is never renamed. The explanation goes beside the term, not
 instead of it.
 
+**`wa-links.mts`** — the customer follow-up links never guess a phone number.
+Pure logic, no browser, no database, so it runs first. Maldives numbers are
+stored as 7 local digits (73 of 74 customers), one already carries `+960`, and
+nothing validates what gets typed in. `wa.me` needs a full international
+number — so the rule is: recognise the two known shapes, **refuse everything
+else**. A wrong number does not fail visibly; it opens a chat with somebody
+else and hands them a message meant for a customer. No link is a small
+inconvenience; the wrong link is an embarrassing message to a stranger.
+
+**`reorder-nudge.mjs`** — does the app actually ask for the second order? 52 of
+73 customers have never bought twice, on a product a household finishes in
+about a fortnight (measured: the median pack lasts 6.8 days, a typical order is
+2.5 packs). The intelligence already existed and was invisible —
+`get_customer_insights` has computed `expected_supply_days` and flagged
+`ran_out` for months, behind a lens on the Customers screen you had to know to
+open. This checks the whole path: the section appears, names people, says how
+long it has been and how long what they bought should have lasted, offers one
+tap to WhatsApp with a first-name draft, and "See all" lands on the At risk
+lens rather than A–Z. Plus the units rule: no piece count reaches the screen.
+
+It back-dates the fixture customer's order by **400 days**, not 45. The first
+version used 45, passed alone, and failed when run after `journey` and
+`offline` — those place extra orders for the same customer, so their last order
+grows and 45 days stops exceeding its supply. **An audit whose result depends on
+which audits ran before it is not a check, it is a coin toss.**
+
 **`contrast.mjs`** — every readable word, every palette, both schemes, measured
 on the **rendered page**. It composites the real backdrop through every
 translucent ancestor, because a token's colour tells you nothing until you know
@@ -142,6 +168,7 @@ was verified by putting its bug back:
 | generator changed to `DO UPDATE` (a corrected month silently reverted) | pgTAP `recurring_expenses` — 3 tests, incl. "a hand-corrected month SURVIVES regeneration" |
 | brand revenue in the P&L drill-down halved, so the parts no longer sum to the total | running-costs — "the brand breakdown adds up to the Revenue total exactly" |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
+| `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
 
 **One mutation attempt was a no-op and is worth recording**, because stopping
 there would have bought false confidence. The first attempt at breaking the
