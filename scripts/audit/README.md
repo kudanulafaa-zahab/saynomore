@@ -1,6 +1,6 @@
 # Browser audits
 
-Nine scripts that check the app the way Ali does, so he does not have to.
+Ten scripts that check the app the way Ali does, so he does not have to.
 
 ## Why these exist
 
@@ -27,7 +27,7 @@ You need the local stack up — Docker, `supabase start`, and the app running.
 supabase start                # replays every migration onto a fresh Postgres
 npm run audit:seed            # fixture data + an admin sign-in
 npm run dev                   # or: npm run build && npm run start
-npm run audit:ui              # all nine
+npm run audit:ui              # all ten
 ```
 
 Individually:
@@ -184,6 +184,7 @@ was verified by putting its bug back:
 | generator changed to `DO UPDATE` (a corrected month silently reverted) | pgTAP `recurring_expenses` — 3 tests, incl. "a hand-corrected month SURVIVES regeneration" |
 | brand revenue in the P&L drill-down halved, so the parts no longer sum to the total | running-costs — "the brand breakdown adds up to the Revenue total exactly" |
 | the hardcoded `"ctn"` put back on the Inventory brand rollup | direct-receipt — "Inventory shows 24 tubs" |
+| `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
 

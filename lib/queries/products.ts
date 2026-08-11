@@ -486,3 +486,62 @@ export async function deleteCategory(id: string) {
   if (error) throw error;
   invalidate("skus:");
 }
+
+/* ── Creating a product in ONE transaction ─────────────────────────────────
+ *
+ * The New SKU card used to call createBrand -> createModel -> createVariant ->
+ * createSku in sequence. Any failure at the last step left the first three
+ * behind, and because a variant is unique on (model_id, attributes) — and most
+ * categories here have no variant attributes, so every variant under a model
+ * is {} — the NEXT attempt could not even reach the real error. It collided on
+ * the orphan and reported THAT.
+ *
+ * Ali hit exactly this: a body butter with no carton dimensions was rejected by
+ * the SKU's CHECK (carton_length_cm > 0), leaving brand + model + variant
+ * stranded, and every retry then showed "duplicate key value violates unique
+ * constraint variants_model_id_attributes_key" — an error about a completely
+ * different thing.
+ *
+ * create_sku_full (migration 0177) does all four in one transaction and reuses
+ * existing rows by name, so a retry HEALS instead of colliding. The four
+ * functions above stay for the screens that genuinely create one thing at a
+ * time; this is the only correct way to create a whole product at once.
+ */
+export interface CreateSkuFullInput {
+  brand: string;
+  category_id: string;
+  model: string;
+  /** Defaults to the model name when the category has no distinguishing attributes. */
+  variant?: string | null;
+  internal_code: string;
+  pcs_per_pack: number;
+  packs_per_carton: number;
+  sellable_units?: SellUnit[];
+  /** 0 or omitted means "no carton to measure" — stored as NULL, not zero. */
+  carton_length_cm?: number | null;
+  carton_width_cm?: number | null;
+  carton_height_cm?: number | null;
+  carton_weight_kg?: number | null;
+  supplier_barcode?: string | null;
+}
+
+export async function createSkuFull(input: CreateSkuFullInput): Promise<string> {
+  const { data, error } = await supabase.rpc("create_sku_full", {
+    p_brand:            input.brand,
+    p_category_id:      input.category_id,
+    p_model:            input.model,
+    p_variant:          input.variant ?? null,
+    p_internal_code:    input.internal_code,
+    p_pcs_per_pack:     input.pcs_per_pack,
+    p_packs_per_carton: input.packs_per_carton,
+    p_sellable_units:   input.sellable_units ?? ["pack", "carton"],
+    p_length_cm:        input.carton_length_cm ?? null,
+    p_width_cm:         input.carton_width_cm ?? null,
+    p_height_cm:        input.carton_height_cm ?? null,
+    p_weight_kg:        input.carton_weight_kg ?? null,
+    p_barcode:          input.supplier_barcode ?? null,
+  });
+  if (error) throw error;
+  invalidate("skus:");
+  return data as string;
+}
