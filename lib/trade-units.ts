@@ -10,14 +10,38 @@
 // sellable_units (e.g. detergent sells by carton only -- never show a
 // fabricated "packs" figure for it).
 
-export type UnitUom = "pcs" | "ml" | "g";
+// Mirrors product_categories.unit_uom, widened in migration 0172 so a product
+// sold as a single item can say what it IS. Measures (pcs/ml/g) describe how a
+// unit is counted; the rest name the unit itself.
+export type UnitUom =
+  | "pcs" | "ml" | "g"
+  | "tub" | "jar" | "tube" | "bar" | "sachet" | "bottle" | "unit";
 export type SellUnit = "piece" | "pack" | "carton";
 
-/** Label for one "pack"-level unit, based on the category's unit_uom. */
+/** Label for one "pack"-level unit, based on the category's unit_uom.
+ *
+ *  THIS IS THE TWIN OF public.unit_noun(text) IN POSTGRES AND MUST MATCH IT.
+ *  They had already drifted: 0172 taught the database that a unit can be a tub,
+ *  while this still fell through to "pack" for anything it did not recognise —
+ *  so the same 24 tubs would read "24 tubs" from a Postgres view and "24 packs"
+ *  from a React component. Two sources of truth for one word is how a screen
+ *  ends up contradicting itself.
+ *
+ *  The fallback stays "pack" deliberately: it is correct for most of this
+ *  catalogue, and a wrong-but-familiar word beats an empty one. */
 export function containerLabel(uom: UnitUom | null | undefined): string {
-  if (uom === "ml") return "bottle";
-  if (uom === "g") return "pouch";
-  return "pack";
+  switch (uom) {
+    case "ml":     return "bottle";
+    case "g":      return "pouch";
+    case "tub":    return "tub";
+    case "jar":    return "jar";
+    case "tube":   return "tube";
+    case "bar":    return "bar";
+    case "sachet": return "sachet";
+    case "bottle": return "bottle";
+    case "unit":   return "unit";
+    default:       return "pack";
+  }
 }
 
 export interface TradeUnitConfig {
