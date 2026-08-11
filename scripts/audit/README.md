@@ -62,6 +62,16 @@ footer button wraps; the page never scrolls sideways; the docked order rail
 appears only on desktop; the add control is never inside a scroller; no piece
 count ever reaches the screen; nothing throws.
 
+It also enforces **hard rule 8** — "a new page is not done until it appears in
+the menu" — by opening the real More sheet and checking every page in
+`nav-config.ts` is listed. That failure is silent by construction: both menus
+render only the sections named in `NAV_SECTIONS`, so an item whose section is
+missing from that list appears NOWHERE while still type-checking and still
+routing. It is how the Price Simulator once shipped built, routable and
+invisible. The expected labels are parsed out of `nav-config.ts` itself rather
+than copied, because a copy would drift and then assert the wrong thing while
+looking green.
+
 **`material.mjs`** — every in-flow surface actually wears the current theme.
 Not "does it look nice" — a structural rule that is either true or false: in a
 carved palette an in-flow surface is opaque, unblurred, and carries the carve's
@@ -131,6 +141,7 @@ was verified by putting its bug back:
 | freight split evenly per line instead of by CBM | grn — both landed costs wrong by 584/carton |
 | generator changed to `DO UPDATE` (a corrected month silently reverted) | pgTAP `recurring_expenses` — 3 tests, incl. "a hand-corrected month SURVIVES regeneration" |
 | brand revenue in the P&L drill-down halved, so the parts no longer sum to the total | running-costs — "the brand breakdown adds up to the Revenue total exactly" |
+| a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 
 **One mutation attempt was a no-op and is worth recording**, because stopping
 there would have bought false confidence. The first attempt at breaking the
