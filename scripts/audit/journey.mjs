@@ -17,7 +17,16 @@
 //
 // Usage:  node scripts/audit/journey.mjs [--device phone]
 
+import { readFileSync } from "node:fs";
 import { launch, signedInPage, checklist, finish, BASE, DEVICES } from "./lib.mjs";
+
+// Read the labels out of nav-config itself rather than hardcoding them here.
+// A copy would drift, and a stale copy would assert the wrong thing while
+// looking green — the same second-list problem hard rule 8 was written about.
+const NAV_LABELS = [...readFileSync("scripts/../components/layout/nav-config.ts", "utf8")
+  .matchAll(/href: "\/[a-z-]+",\s*label: "([^"]+)"/g)]
+  .map((m) => m[1])
+  .filter((l) => l !== "My Deliveries");   // staff-only nav, not in the admin menu
 
 /** Wait for any open bottom sheet to actually leave.
  *  Without this the next click lands on the brand card BEHIND the sheet and
@@ -166,6 +175,30 @@ for (const device of wanted) {
   const partialAdd = sheet.getByRole("button", { name: /add .*mixed carton/i }).first();
   list.ok(!(await partialAdd.isEnabled()),
     `${tag} a PART-filled mixed carton cannot be added`);
+
+  // ── Every page is reachable from the menu (hard rule 8) ──────────────────
+  //
+  // "A new page is not done until it appears in the menu." The failure this
+  // guards is silent by construction: both menus group items by the `section`
+  // field, and only render sections listed in NAV_SECTIONS — so an item whose
+  // section is missing from that list renders NOWHERE while still type-checking
+  // and still routing. That is exactly how the Price Simulator once shipped
+  // built, routable and invisible.
+  //
+  // The risk became live again when the sections were regrouped (2026-08-11),
+  // which is why this now runs instead of being a thing someone remembers to
+  // check by hand. Phone only: the More sheet is the mobile menu, and one pass
+  // proves the data, which both menus share.
+  if (device === "phone") {
+    await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2000);
+    await page.getByRole("button", { name: /more navigation options/i }).first().click();
+    await page.waitForTimeout(900);
+    const menu = await page.locator("body").innerText();
+    const missing = NAV_LABELS.filter((l) => !menu.includes(l));
+    list.is(missing.length, 0,
+      `${tag} every page is in the menu (missing: ${missing.join(", ") || "none"})`);
+  }
 
   // ── Nothing threw ─────────────────────────────────────────────────────────
   list.is(page.errors.length, 0, `${tag} no uncaught page errors (${page.errors.slice(0, 2).join(" | ")})`);
