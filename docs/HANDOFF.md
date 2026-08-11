@@ -1670,6 +1670,57 @@ is worth recording so the next session does not re-run it for nothing:
 
 ---
 
+## 11g. If CI "didn't run", the PR is probably CONFLICTED — 2026-08-11
+
+Twice in one session a pull request showed **zero workflow runs**. Not failed,
+not skipped — no run created at all, for either workflow, with both of them
+`active` and the changed files plainly matching their `paths:` filters. The
+first time it was written off as a GitHub hiccup and the runs were fired by
+hand with `workflow_dispatch`. It happened again on the very next PR.
+
+**The cause: `on: pull_request` workflows run against the MERGE ref
+(`refs/pull/N/merge`). A conflicted PR has no merge ref, so GitHub never
+creates the run.** The PR looks normal; the checks section is simply empty.
+
+Confirm it in one call rather than guessing:
+
+```
+GET /repos/{owner}/{repo}/pulls/{n}   ->   "mergeable": false,
+                                           "mergeable_state": "dirty"
+```
+
+**Why it kept happening here, and why it will happen to you too.** Everything
+merges to `main` by SQUASH, and this project reuses one long-lived branch name.
+After a squash-merge, `main` holds the work as a NEW commit while the branch
+still carries the original — same content, different SHA. Push more work on top
+and the next PR conflicts against content that is already merged. Nothing looks
+wrong locally; `git diff origin/main HEAD` shows only the new work, because the
+trees agree. It is purely a history-shape conflict.
+
+**The fix is the workflow that is already written down: after a PR merges,
+restart the branch from `main` and replay only the new commit.**
+
+```bash
+git fetch origin main
+git log --oneline origin/main..HEAD          # what is unique
+git diff --stat origin/main <merged-commit>  # empty = already in main, safe to drop
+git checkout -B <branch> origin/main
+git cherry-pick <new-commit>
+git push --force-with-lease origin <branch>
+```
+
+The `git diff --stat` line is not optional — it is what makes the
+`--force-with-lease` safe under hard rule 9, and it takes one second. An
+ordinary `git merge origin/main` also works and needs no force, at the cost of
+a merge commit and hand-resolving conflicts that are usually just two lines.
+
+**Do not fire the runs by hand and move on.** `workflow_dispatch` runs against
+the branch head, not the merge result, so it tells you the branch is fine while
+saying nothing about whether it merges cleanly — and it leaves the PR
+unmergeable anyway. Fix the conflict; the run appears on its own.
+
+---
+
 ## 12. The browser audit gate — read this before changing any screen
 
 **Five audits run on every PR touching `app/`, `components/`, `lib/`,

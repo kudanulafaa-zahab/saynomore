@@ -43,12 +43,12 @@ execFileSync("psql", [DB, "-q", "-c",
   { encoding: "utf8" });
 
 const browser = await launch();
-const list = checklist("Running costs — the feature itself");
+const list = checklist("The P&L — honest totals, and lines that open");
 const { ctx, page } = await signedInPage(browser, { device: "phone", scheme: "light" });
 try {
   // ── The P&L must NOT claim net profit with no running costs ──────────────
   await page.goto(`${BASE}/financials`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(7000);
   const pnl = await page.locator("body").innerText();
   // THE TERM IS ALWAYS "NET PROFIT" — Ali, 2026-08-10: "Don't change the
   // finance or account terms like cogs net profit etc... Always use correct
@@ -68,6 +68,34 @@ try {
     "COGS is present -- the proper accounting term is kept, not paraphrased");
   list.ok(/gross profit/i.test(pnl),
     "so is Gross Profit");
+
+  // ── The two biggest numbers explain themselves ───────────────────────────
+  // Operating Expenses, write-offs and returns already broke down inline;
+  // Revenue and COGS did not, which left the largest figures on the money
+  // screen as bare assertions. They now open, by brand.
+  //
+  // The assertion that matters is not "it opens" but "it TIES". The breakdown
+  // comes from get_reports_data while the total comes from get_pnl — two
+  // separate functions that agree to the cent today and could drift in a later
+  // migration. When they disagree the screen prints "Not attributed to a
+  // brand" with the difference, so this check reads that marker: its ABSENCE
+  // is the proof the drill-down reconciles.
+  const revBtn = page.getByRole("button", { name: /sales revenue.*breakdown/i }).first();
+  list.ok((await revBtn.count()) > 0, "the Revenue line can be opened");
+  await revBtn.click();
+  await page.waitForTimeout(1200);
+  const revOpen = await page.locator("body").innerText();
+  list.ok(!/not attributed to a brand/i.test(revOpen),
+    "the brand breakdown adds up to the Revenue total exactly");
+
+  const cogsBtn = page.getByRole("button", { name: /landed cost cogs.*breakdown/i }).first();
+  list.ok((await cogsBtn.count()) > 0, "so can Landed Cost (COGS)");
+  await cogsBtn.click();
+  await page.waitForTimeout(1200);
+  const cogsOpen = await page.locator("body").innerText();
+  list.ok(!/not attributed to a brand/i.test(cogsOpen),
+    "and the COGS breakdown adds up exactly too");
+  list.ok(!/undefined|NaN/.test(cogsOpen), "no undefined or NaN in either breakdown");
 
   // ── Expenses offers the repeat choice ────────────────────────────────────
   await page.goto(`${BASE}/expenses`, { waitUntil: "networkidle" });
@@ -89,7 +117,7 @@ try {
 
   // ── And the P&L becomes honest ───────────────────────────────────────────
   await page.goto(`${BASE}/financials`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(7000);
   const pnl2 = await page.locator("body").innerText();
   list.ok(/net profit/i.test(pnl2), "the P&L still calls it Net Profit");
   list.ok(!/no operating expenses recorded this period/i.test(pnl2),
