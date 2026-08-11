@@ -61,20 +61,60 @@ try {
   list.ok(/bought about \d+ days' worth/i.test(txt), "and how long what they bought should have lasted");
   list.ok(!/\bpcs\b|pieces/i.test(txt), "no piece counts anywhere on the dashboard");
 
-  const wa = page.getByRole("link", { name: /message ahmed ziyad on whatsapp/i }).first();
-  list.ok(await wa.count() > 0, "a one-tap Message button is offered");
-  const href = await wa.getAttribute("href");
-  list.ok(!!href?.startsWith("https://wa.me/960"), `it opens WhatsApp with a Maldives number (${href?.slice(0,26)}…)`);
-  list.ok(!!href?.includes("?text=Hi%20Ahmed"), "with a first-name draft, not auto-sent");
+  // THREE DRAFTS, AND THE WORD IS "WE".
+  // Ali, 2026-08-12: "I need to be able to select a message from 3 options.
+  // Don't use 'I'. Use 'we'." One canned line is a form letter, and the same
+  // form letter twice to one customer is worse than not writing.
+  const msg = page.getByRole("button", { name: /message ahmed ziyad on whatsapp/i }).first();
+  list.ok(await msg.count() > 0, "a one-tap Message button is offered");
+  await msg.click();
+  await page.waitForTimeout(1200);
+
+  const links = page.locator('a[href^="https://wa.me/"]');
+  const n = await links.count();
+  list.is(n, 3, "the picker offers THREE drafts to choose from");
+
+  const hrefs = [];
+  for (let i = 0; i < n; i++) hrefs.push(await links.nth(i).getAttribute("href"));
+  list.ok(hrefs.every((h) => h?.startsWith("https://wa.me/960")),
+    `every draft opens WhatsApp with a Maldives number (${hrefs[0]?.slice(0, 26)}…)`);
+  list.ok(hrefs.every((h) => h?.includes("?text=Hi%20Ahmed")), "each carries a first-name draft, not auto-sent");
+  list.is(new Set(hrefs).size, 3, "the three drafts are actually DIFFERENT, not one text three times");
+
+  // "I can deliver today" makes the business sound like one man with a scooter,
+  // and stops being true the moment a driver delivers. Checked on the decoded
+  // text, since the href is percent-encoded.
+  const decoded = hrefs.map((h) => decodeURIComponent(h ?? ""));
+  list.ok(decoded.every((t) => !/\bI\b|\bI'|\bmy\b/.test(t)),
+    `no draft speaks as "I" (${decoded.find((t) => /\bI\b|\bI'|\bmy\b/.test(t))?.slice(0, 60) ?? ""})`);
+  list.ok(decoded.some((t) => /\bwe\b/i.test(t)), 'the drafts speak as "we"');
+
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
+  await page.waitForTimeout(800);
 
   const seeAll = page.getByRole("link", { name: /see all/i }).first();
   list.ok(await seeAll.count() > 0, "and a link to the full list");
   list.is(await seeAll.getAttribute("href"), "/customers?lens=risk", "which deep-links to the At risk lens");
 
+  // THE DESTINATION HAS TO BE USEFUL, NOT MERELY CORRECT.
+  // This used to assert the href and then that the word "At risk" appeared —
+  // both true while the page it landed on ranked people by PROFIT, showed no
+  // reason and offered no way to act. Ali: "absolutely useless since I can't
+  // see who's at risk of running out or who ran out already." A check that
+  // tests the link instead of the destination is how a half-built feature gets
+  // reported as done.
   await seeAll.click();
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(4000);
   const cust = await page.locator("body").innerText();
   list.ok(/at risk/i.test(cust), "the Customers screen opens on At risk, not A–Z");
+  list.ok(/probably out of stock at home/i.test(cust), "it separates who has RUN OUT from who is merely late");
+  list.ok(/Ahmed Ziyad/.test(cust), "and names them");
+  list.ok(/last ordered \d+ days ago/i.test(cust), "with how long it has been");
+  list.ok(/days' worth|usually every \d+ days/i.test(cust), "and the reason they are on the list");
+  list.ok(await page.getByRole("button", { name: /message ahmed ziyad on whatsapp/i }).count() > 0,
+    "and the SAME Message button as the dashboard — the list is actionable, not a report");
+  list.ok(!/\bpcs\b|pieces/i.test(cust), "no piece counts on the At risk list either");
   list.is(page.errors.length, 0, `no page errors (${page.errors.slice(0,2).join(" | ")})`);
 } catch (e) {
   list.ok(false, `flow failed: ${String(e).split("\n")[0].slice(0,180)}`);

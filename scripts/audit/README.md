@@ -136,8 +136,25 @@ about a fortnight (measured: the median pack lasts 6.8 days, a typical order is
 `ran_out` for months, behind a lens on the Customers screen you had to know to
 open. This checks the whole path: the section appears, names people, says how
 long it has been and how long what they bought should have lasted, offers one
-tap to WhatsApp with a first-name draft, and "See all" lands on the At risk
-lens rather than A–Z. Plus the units rule: no piece count reaches the screen.
+tap to WhatsApp, and "See all" lands somewhere that can actually answer the
+question you arrived with. Plus the units rule: no piece count reaches the
+screen.
+
+**The most instructive thing about this file is what it USED to assert.** It
+checked that the "See all" href was `/customers?lens=risk` and that the words
+"At risk" then appeared. Both were true — while the page it landed on ranked
+people by **profit**, showed no reason and offered no way to act, and used a
+*different definition of risk* from the dashboard. Ali: *"absolutely useless
+since I can't see who's at risk of running out or who ran out already."* **A
+check that tests the link instead of the destination is how a half-built feature
+gets reported as done.** It now opens the lens and asserts the ran-out group is
+separated out, named, dated, reasoned, and carries the same Message button.
+
+The Message button is also checked properly: three genuinely different drafts,
+each a distinct `wa.me` link, none of them speaking as "I". Ali, 2026-08-12:
+*"I need to be able to select a message from 3 options. Don't use 'I'. Use
+'we'."* "I can deliver today" makes the business sound like one man with a
+scooter and stops being true the moment a driver delivers.
 
 It back-dates the fixture customer's order by **400 days**, not 45. The first
 version used 45, passed alone, and failed when run after `journey` and
@@ -225,6 +242,7 @@ was verified by putting its bug back:
 | generator changed to `DO UPDATE` (a corrected month silently reverted) | pgTAP `recurring_expenses` — 3 tests, incl. "a hand-corrected month SURVIVES regeneration" |
 | brand revenue in the P&L drill-down halved, so the parts no longer sum to the total | running-costs — "the brand breakdown adds up to the Revenue total exactly" |
 | the hardcoded `"ctn"` put back on the Inventory brand rollup | direct-receipt — "Inventory shows 24 tubs" |
+| the At risk lens reverted to the profit-ranked list — a correct link to a useless page | reorder-nudge — 4 checks, incl. "it separates who has RUN OUT from who is merely late" and "the SAME Message button as the dashboard". **The old href assertion still passed**, which is exactly why it was not enough |
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |

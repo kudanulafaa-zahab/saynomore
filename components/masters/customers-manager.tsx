@@ -19,6 +19,7 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { getCustomerInsights, type CustomerInsight } from "@/lib/queries/customer-insights";
 import { haptic } from "@/lib/haptics";
 import { useOnMount } from "@/lib/use-on-mount";
+import { MessageButton } from "@/components/customers/message-button";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -110,8 +111,19 @@ export function CustomersManager() {
       .map((c) => ({ c, i: insightById.get(c.id) }))
       .filter((x): x is { c: CustomerRow; i: CustomerInsight } => !!x.i);
     if (segment === "top")  return [...withData].sort((a, b) => Number(b.i.profit_mvr) - Number(a.i.profit_mvr));
+    // At risk is ordered the way the dashboard orders it: the people who have
+    // actually RUN OUT first, then the ones merely later than their usual
+    // rhythm, each block by how long it has been. The dashboard shows the top
+    // three of the ran-out group and "See all" lands here, so the two lists
+    // must agree on both membership and order — otherwise the link promises
+    // "the rest of these six" and delivers a different set.
     if (segment === "risk") return withData.filter((x) => x.i.at_risk)
-      .sort((a, b) => (b.i.days_since_last ?? 0) - (a.i.days_since_last ?? 0));
+      .sort((a, b) => {
+        const rank = (r: string | null) => (r === "ran_out" ? 0 : 1);
+        const byReason = rank(a.i.risk_reason) - rank(b.i.risk_reason);
+        if (byReason !== 0) return byReason;
+        return (b.i.days_since_last ?? 0) - (a.i.days_since_last ?? 0);
+      });
     return withData.filter((x) => Number(x.i.outstanding_mvr) > 0)
       .sort((a, b) => Number(b.i.outstanding_mvr) - Number(a.i.outstanding_mvr));
   }, [segment, filtered, insightById]);
@@ -282,13 +294,60 @@ export function CustomersManager() {
         ))}
       </div>
 
+      {/* AT RISK is not a value lens — it is a work list.
+          It used to render like "Top customers": ranked flat, headline figure
+          = profit, no reason and no action. So the dashboard's "See all"
+          landed you somewhere that could not answer the only question you came
+          with — WHO has run out, and how do I reach them. Ali, 2026-08-12:
+          "absolutely useless since I can't see who's at risk of running out or
+          who ran out already."
+          It now mirrors the dashboard card exactly: the reason in words, how
+          long it has been, how long what they bought should have lasted, and
+          the same three-draft Message button. */}
+      {segment === "risk" && ranked.length === 0 && (
+        <p className="ios-subhead px-1 py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
+          Nobody is overdue to order.
+        </p>
+      )}
+      {segment === "risk" && ranked.length > 0 && (
+        <div className="space-y-2">
+          {ranked.map(({ c, i }, idx) => {
+            const ranOut = i.risk_reason === "ran_out";
+            const prev = idx > 0 ? ranked[idx - 1].i.risk_reason : null;
+            const startsBlock = idx === 0 || prev !== i.risk_reason;
+            return (
+              <div key={c.id}>
+                {startsBlock && (
+                  <p className="label-caps text-[12px] px-1 pt-2 pb-1.5" style={{ color: "var(--muted-foreground)" }}>
+                    {ranOut ? "Probably out of stock at home" : "Later than they usually order"}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                  style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                  <Link href={`/customers/${c.id}`} className="min-w-0 flex-1">
+                    <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>{c.name}</p>
+                    {/* --foreground at 0.7, never muted: this is the reason he
+                        is looking at the row, not a decorative caption. */}
+                    <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                      {i.days_since_last != null ? `Last ordered ${i.days_since_last} days ago` : "No recent order"}
+                      {ranOut
+                        ? (i.expected_supply_days != null ? ` · bought about ${i.expected_supply_days} days' worth` : "")
+                        : (i.usual_gap_days != null ? ` · usually every ${i.usual_gap_days} days` : "")}
+                    </p>
+                  </Link>
+                  <MessageButton name={c.name} phone={c.phone} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Value lenses — ranked flat list, profit first */}
-      {segment !== "az" && (
+      {segment !== "az" && segment !== "risk" && (
         ranked.length === 0 ? (
           <p className="ios-subhead px-1 py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
-            {segment === "risk" ? "Nobody is overdue to order."
-              : segment === "owes" ? "Nobody owes you money."
-              : "No sales history yet."}
+            {segment === "owes" ? "Nobody owes you money." : "No sales history yet."}
           </p>
         ) : (
           <div className="rounded-2xl overflow-hidden" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>

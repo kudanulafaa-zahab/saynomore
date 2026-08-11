@@ -156,7 +156,8 @@ here.
 |---|---|---|
 | `lib/surfaces.ts` | `CARD`, `CARD_L2`, `CARD_ROUNDED` | The card recipe was copy-pasted as a local `const CARD` in **nine** files, so a palette change reached some screens and not others. Import it; never redeclare it. |
 | `lib/trade-units.ts` | `formatQtyInTradeUnits`, `sellableTiers`, `costPerTradeUnit`, `containerLabel` | Packs and cartons, never pieces. `sellableTiers` reads `skus.sellable_units` — screens used to *synthesise* a Piece button, which invited a loose-diaper sale. Postgres has the twin: `qty_in_trade_units` / `unit_noun` (0143). **`containerLabel` is the one place that names a unit** — four private copies were found in two days (§13e, §13f); check for a fifth before writing a unit word anywhere. |
-| `lib/wa.ts` | `waNumber`, `whatsappLink`, `reorderNudge` | Follow-up links. Recognises two number shapes and **refuses everything else** — a guessed number opens a chat with a stranger and hands them a message meant for a customer. No link is a small inconvenience; the wrong link is not. |
+| `lib/wa.ts` | `waNumber`, `whatsappLink`, `reorderDrafts` | Follow-up links. Recognises two number shapes and **refuses everything else** — a guessed number opens a chat with a stranger and hands them a message meant for a customer. `reorderDrafts` owns the THREE message options and the house voice: the business says **"we"**, never "I" (§13j). |
+| `components/customers/message-button.tsx` | The Message button + its three-draft picker | Used by the dashboard card AND the Customers At risk lens. One file, both callers — the last three copy-pasted patterns here (card recipe, unit noun, blur) all drifted invisibly. |
 | `lib/use-on-mount.ts` | `useOnMount(fn)` | Replaced 12 copies of `useEffect(() => { load() }, [])`. **Read its doc comment** — it is honest that it hides the lint rule rather than fixing it, which is why it is not called `useSafeEffect`. |
 | `lib/palette.ts` | `PALETTES`, the pre-paint init script, swatches | Also maps a stored `"monochrome"` back to Sunrise. |
 | `lib/offline-write.ts` / `offline-queue.ts` | `withOfflineFallback` → `enqueue` → `drainQueue` | The IndexedDB write queue. Verified end-to-end for the first time on 2026-08-10 (§12). |
@@ -2051,6 +2052,7 @@ Unchanged from §11f, plus one new and now the most valuable:
 4. **Measure the five carton sizes.** Still the highest-value non-code job:
    the top three carry **85% of the freight**.
 
+
 ---
 
 ### 13h. The keyboard swallowed the buttons — and why he had to find it
@@ -2132,3 +2134,67 @@ the screen that defines the product.
 
 ---
 
+### 13i. "See all" landed somewhere useless — and my own check said it was fine
+
+Ali, 2026-08-12: *"The dashboard only shows 3 customers at risk. When I click
+'view all' it takes me to the customer directory which is absolutely useless
+since I can't see who's at risk of running out or who ran out already… I think
+you're hallucinating."*
+
+**The link was right and the destination was not**, which is the more dangerous
+shape of half-finished. `/customers?lens=risk` opened the At risk lens exactly
+as designed. But that lens rendered like the *value* lenses — ranked flat, with
+**profit** as the headline figure, no reason shown and **no Message button** —
+so the one question he arrived with ("who has run out, and how do I reach
+them") was the one thing it could not answer.
+
+Worse, the two screens used **different definitions**:
+
+| | Filter | Order | Shows |
+|---|---|---|---|
+| Dashboard card | `at_risk && risk_reason = 'ran_out'` | days since last | reason, days' worth, **Message** |
+| At risk lens | `at_risk` (both reasons) | days since last | orders count, **profit** |
+
+So "See all" promised the rest of those six and delivered a different set.
+
+**The audit is the part worth learning from.** `reorder-nudge.mjs` asserted the
+`href` was `/customers?lens=risk` and then that the words "At risk" appeared on
+the page. Both were true the whole time. **A check that tests the link instead
+of the destination is exactly how a half-built feature gets reported as done** —
+and it is why I told him it was finished. Proven by mutation: reverting the lens
+to the profit-ranked list leaves the old assertion passing and fails the four
+new ones.
+
+The lens now mirrors the dashboard card — blocked into "Probably out of stock at
+home" and "Later than they usually order", each row carrying how long it has
+been, how long what they bought should have lasted, and the same Message button.
+
+### 13j. Three drafts, and the business says "we"
+
+Ali, same message: *"The message feature you built is good. But I need to be
+able to select a message from 3 options. Don't use 'I'. Use 'we'."*
+
+**Why three.** One canned line is a form letter, and the same form letter twice
+to the same customer is worse than not writing at all — this is a business where
+every order arrives through a personal chat. The three differ in **kind**, not
+wording: *check-in* makes no offer (for someone he does not want to push),
+*offer delivery* is a concrete offer with a time (the one that converts), and
+*same as last time* asks a yes/no question instead of making the customer
+compose an order, which is the single biggest reason a repeat purchase does not
+happen.
+
+**Why "we".** His instruction, and it is right for a reason worth keeping: *"I
+can deliver today"* makes the business sound like one man with a scooter, and
+stops being true the moment a driver makes the delivery. *"We"* is what every
+other supplier his customers deal with sounds like.
+
+`components/customers/message-button.tsx` is the ONE implementation, used by
+both the dashboard and the lens — not two copies, because the last three
+copy-pasted patterns here (the card recipe, the unit noun, the blur) all drifted
+invisibly. `reorderDrafts()` in `lib/wa.ts` owns the words. Both audits check
+it: `wa-links` asserts three genuinely different texts, first-name-only, no
+`"I"`, and that `"we"` appears; `reorder-nudge` opens the real picker and checks
+three distinct `wa.me` links. Nothing sends by itself — `wa.me` opens the chat
+with a draft.
+
+---
