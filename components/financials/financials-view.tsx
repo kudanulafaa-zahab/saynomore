@@ -9,7 +9,7 @@ import {
   ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, Banknote,
 } from "lucide-react";
 import { getReportsData, getMonthlyRevenue, type ReportRow, type MonthlyRevenueRow } from "@/lib/queries/reports";
-import { groupByBrand } from "@/lib/group-by-brand";
+import { groupByBrand, type BrandGroup } from "@/lib/group-by-brand";
 import { getPnl, getRunningCostsStatus, type PnlRow, type RunningCostsStatus } from "@/lib/queries/expenses";
 import Link from "next/link";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
@@ -42,6 +42,62 @@ function statusLabel(s: CodReconRow["recon_status"]) {
   if (s === "overage")         return "Overage";
   if (s === "pending_deposit") return "Awaiting deposit";
   return "Balanced";
+}
+
+
+/* ── A P&L line that opens ──────────────────────────────────────────────────
+   Operating Expenses, write-offs and returns already broke themselves down
+   inline on this card; Revenue and COGS — the two largest numbers on the
+   screen — did not. Tapping them now shows where the figure came from, by
+   brand, using the same indent as the lines that already do it.
+
+   TWO RULES THIS OBEYS, BOTH LOAD-BEARING:
+
+   1. NO MONEY MATH HERE. The total shown is always the one get_pnl returned.
+      The sub-lines are per-SKU revenue and landed cost that Postgres already
+      computed (get_reports_data), rolled up by brand by groupByBrand, which
+      sums audited numbers and derives nothing.
+
+   2. A DRILL-DOWN THAT DOES NOT TIE IS A BUG, AND MUST SAY SO. The two RPCs
+      agree to the cent today — checked against production: revenue
+      15,482.99 = 15,482.99, COGS 9,942.85 = 9,942.85 — but they are separate
+      functions and could drift apart in a future migration. If the parts stop
+      adding up to the total, the difference is shown rather than swallowed.
+      Silently displaying a breakdown that contradicts its own heading is how
+      people stop trusting a report entirely. */
+function PnlBreakdown({ groups, total, pick }: {
+  groups: BrandGroup[];
+  total: number;
+  pick: (g: BrandGroup) => number;
+}) {
+  const shown = groups.filter((g) => Math.abs(pick(g)) > 0.005)
+                      .sort((a, b) => Math.abs(pick(b)) - Math.abs(pick(a)));
+  const summed = shown.reduce((a, g) => a + pick(g), 0);
+  const gap = total - summed;
+
+  if (shown.length === 0) {
+    return (
+      <p style={{ color: "var(--muted-foreground)", fontSize: 12, paddingLeft: 14, marginBottom: 6 }}>
+        Nothing recorded in this period.
+      </p>
+    );
+  }
+  return (
+    <>
+      {shown.map((g) => (
+        <div key={g.brand} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 2, paddingLeft: 14 }}>
+          <p style={{ color: "var(--muted-foreground)", fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.brand}</p>
+          <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13, flexShrink: 0 }}>MVR {fmt(pick(g), 2)}</p>
+        </div>
+      ))}
+      {Math.abs(gap) > 0.02 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 2, paddingLeft: 14 }}>
+          <p style={{ color: "var(--snm-warning)", fontSize: 12 }}>Not attributed to a brand</p>
+          <p className="snm-num" style={{ color: "var(--snm-warning)", fontSize: 12, flexShrink: 0 }}>MVR {fmt(gap, 2)}</p>
+        </div>
+      )}
+    </>
+  );
 }
 
 function CodView() {
@@ -357,6 +413,17 @@ export function FinancialsView() {
     [rows],
   );
 
+  // EVERY brand, unsliced and unfiltered — this feeds the Revenue and COGS
+  // drill-downs. brandMap above is deliberately the top 5 for the brand card;
+  // reusing it here would drop the tail and manufacture a reconciliation gap
+  // that says money is unaccounted for when it simply was not shown.
+  const brandGroups = useMemo(() => groupByBrand(rows), [rows]);
+
+  // Which P&L line is currently opened. One at a time: two open breakdowns on
+  // a phone push the bottom line off the screen, and the bottom line is the
+  // reason the card exists.
+  const [openLine, setOpenLine] = useState<"revenue" | "cogs" | null>(null);
+
   // Which brand's SKUs are expanded in the "Gross Profit by Brand" card.
   const [openBrand, setOpenBrand] = useState<string | null>(null);
 
@@ -448,24 +515,57 @@ export function FinancialsView() {
             {monthName} — Month to Date
           </p>
 
-          {/* Revenue row */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Sales Revenue</p>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+          {/* Revenue row — opens to show which brands it came from. Whole row is
+              the target (44pt), so it is reachable one-handed on a phone. */}
+          <button
+            type="button"
+            onClick={() => setOpenLine(openLine === "revenue" ? null : "revenue")}
+            aria-expanded={openLine === "revenue"}
+            aria-label="Sales Revenue — show breakdown by brand"
+            style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: 10, minHeight: 44, background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer" }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Sales Revenue</p>
+              {openLine === "revenue"
+                ? <ChevronDown  style={{ width: 13, height: 13, color: "var(--muted-foreground)", flexShrink: 0 }} />
+                : <ChevronRight style={{ width: 13, height: 13, color: "var(--muted-foreground)", flexShrink: 0 }} />}
+            </span>
+            <span style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
               {revDelta !== null && (
                 <span style={{ fontSize: 11, fontWeight: 600, color: revDelta >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
                   {revDelta >= 0 ? "▲" : "▼"} {Math.abs(revDelta).toFixed(1)}% vs last month
                 </span>
               )}
               <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalRevenue)}</p>
+            </span>
+          </button>
+          {openLine === "revenue" && (
+            <div style={{ marginBottom: 6 }}>
+              <PnlBreakdown groups={brandGroups} total={totalRevenue} pick={(g) => g.revenue} />
             </div>
-          </div>
+          )}
 
-          {/* Landed cost row */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Landed Cost (COGS)</p>
+          {/* Landed cost row — same, by brand. */}
+          <button
+            type="button"
+            onClick={() => setOpenLine(openLine === "cogs" ? null : "cogs")}
+            aria-expanded={openLine === "cogs"}
+            aria-label="Landed Cost COGS — show breakdown by brand"
+            style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: 10, minHeight: 44, background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer" }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+              <p style={{ color: "var(--muted-foreground)", fontSize: 13 }}>− Landed Cost (COGS)</p>
+              {openLine === "cogs"
+                ? <ChevronDown  style={{ width: 13, height: 13, color: "var(--muted-foreground)", flexShrink: 0 }} />
+                : <ChevronRight style={{ width: 13, height: 13, color: "var(--muted-foreground)", flexShrink: 0 }} />}
+            </span>
             <p style={{ color: "var(--muted-foreground)", fontSize: 16, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>MVR {fmtShort(totalLandedCost)}</p>
-          </div>
+          </button>
+          {openLine === "cogs" && (
+            <div style={{ marginBottom: 6 }}>
+              <PnlBreakdown groups={brandGroups} total={totalLandedCost} pick={(g) => g.landedCost} />
+            </div>
+          )}
 
           {/* Gross profit divider */}
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)", marginTop: 12, marginBottom: 12 }} />

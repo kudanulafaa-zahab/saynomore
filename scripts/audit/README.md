@@ -130,6 +130,16 @@ was verified by putting its bug back:
 | offline writes dropped instead of queued | offline — "the sale was not queued" |
 | freight split evenly per line instead of by CBM | grn — both landed costs wrong by 584/carton |
 | generator changed to `DO UPDATE` (a corrected month silently reverted) | pgTAP `recurring_expenses` — 3 tests, incl. "a hand-corrected month SURVIVES regeneration" |
+| brand revenue in the P&L drill-down halved, so the parts no longer sum to the total | running-costs — "the brand breakdown adds up to the Revenue total exactly" |
+
+**One mutation attempt was a no-op and is worth recording**, because stopping
+there would have bought false confidence. The first attempt at breaking the
+drill-down dropped the *first* brand group (`brandGroups.slice(1)`) — and the
+audit stayed green, correctly: the dropped brand had no sales in the fixture
+period, and the component already filters zero-value groups out. Nothing had
+actually changed. The real mutation had to remove value that was genuinely
+there (`g.revenue * 0.5`). **A mutation that does not change behaviour proves
+nothing about the check — only about the mutation.**
 
 Two earlier mutation attempts were **not** caught, and that was correct: each
 had a second fix covering it, so neither was still a regression. Worth knowing
