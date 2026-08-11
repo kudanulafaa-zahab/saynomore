@@ -1,6 +1,6 @@
 # Browser audits
 
-Ten scripts that check the app the way Ali does, so he does not have to.
+Eleven scripts that check the app the way Ali does, so he does not have to.
 
 ## Why these exist
 
@@ -27,7 +27,7 @@ You need the local stack up — Docker, `supabase start`, and the app running.
 supabase start                # replays every migration onto a fresh Postgres
 npm run audit:seed            # fixture data + an admin sign-in
 npm run dev                   # or: npm run build && npm run start
-npm run audit:ui              # all ten
+npm run audit:ui              # all eleven
 ```
 
 Individually:
@@ -161,6 +161,47 @@ knew what a unit is called — Postgres `unit_noun`, `lib/trade-units`
 `containerLabel`, and a private copy inside `inventory-view` — so the same 24
 tubs read "24 ctn" on the brand rollup while the database called them tubs.
 
+**`reach.mjs`** — the one audit that is an INVARIANT rather than a guard on a
+screen. Every other file here defends one screen against one bug that had
+already reached Ali; that is a bug list, and it needs him to find each defect
+first. This asserts two things that must be true of every sheet in the app, so a
+screen written next month is covered by a check written today.
+
+*The action stays touchable.* On iOS the keyboard does not resize the layout
+viewport — it slides up OVER the page, so a sheet pinned to the bottom keeps its
+full height and its footer ends up underneath. Measured on New SKU at 393pt:
+"Create SKU" sat at y=788-836 while the reachable area ended at **516**. 320
+points below the line, on screen, untappable, with nothing saying why. The app
+had solved this — `lib/use-keyboard-inset.ts` publishes the keyboard height as
+`--kb-inset` — but **six sheets consumed it and four did not**, every one of the
+four full of text fields. The asymmetry is invisible in review because both
+versions look identical with the keyboard down. So the audit publishes
+`--kb-inset` itself, exactly as a real iPhone would: a footer that reads it
+lifts and passes, one that ignores it fails with the number of points it is out
+by. No iPhone required and no judgement involved.
+
+*The screen does not drift sideways.* `overflow-y-auto` does **not** leave the
+other axis alone — CSS forces `overflow-x` to `auto` whenever one axis is not
+`visible`, so every scrolling sheet body was silently a horizontal scroller
+waiting for one child to be a few pixels too wide. Checked as two halves,
+because clamping alone would only hide it: nothing may **overflow** (so there is
+nothing to see when panning is off) and nothing may **pan** (so a future
+overflow cannot drag the screen). Either alone is half a fix.
+
+Two things it took three wrong versions to get right, both worth keeping:
+
+- **A check that cries wolf gets switched off.** The first version treated
+  everything below the fold on an ordinary page as stranded and reported 30
+  failures per screen, all nonsense — the app shell scrolls the document, so
+  in-flow content is always reachable. Only `position: fixed` chrome is truly
+  pinned. The tab bar is excluded on purpose: it IS covered by the keyboard,
+  like every native iOS app.
+- **It finds sheets by SHAPE, not by markup.** This app builds them three ways —
+  shadcn `DialogContent` and two hand-rolled `createPortal` sheets. Selecting on
+  `[role="dialog"]` found one of the three, and the other two silently measured
+  a plain page and passed. Fixed, full width, on the bottom edge, with something
+  to press inside it — that also covers whatever the fourth one turns out to be.
+
 **`contrast.mjs`** — every readable word, every palette, both schemes, measured
 on the **rendered page**. It composites the real backdrop through every
 translucent ancestor, because a token's colour tells you nothing until you know
@@ -187,6 +228,8 @@ was verified by putting its bug back:
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
+| the four sheet footers put back the way they shipped, without `--kb-inset` | reach — "Cancel is 320/323/328pt below the reachable line" on New SKU, New Sale and Add Customer |
+| one field 460px wide inside a 393pt sheet — the shape of "it's moving to the sides" | reach — both halves fired: "can pan sideways by 87px" AND "spills past the right edge by 87px" |
 
 **One mutation attempt was a no-op and is worth recording**, because stopping
 there would have bought false confidence. The first attempt at breaking the

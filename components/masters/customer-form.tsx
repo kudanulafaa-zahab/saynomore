@@ -180,7 +180,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
     <>
       {/* Scrollable field body — fills available space; footer stays pinned */}
       <div
-        className="flex-1 min-h-0 space-y-4 overflow-y-auto px-5 py-1"
+        className="flex-1 min-h-0 space-y-4 overflow-y-auto overflow-x-hidden px-5 py-1"
         style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
       >
         {/* Phone FIRST — the primary way we identify repeat customers. Two
@@ -311,7 +311,7 @@ export function CustomerForm({ editing, existing, onPickExisting, onSaved, onCan
       </div>
 
       {/* Footer — full-width primary on top, cancel below (native iOS order) */}
-      <div className="flex flex-col gap-2 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] shrink-0">
+      <div className="flex flex-col gap-2 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom),var(--kb-inset))] shrink-0">
         <Button
           onClick={save}
           disabled={saving || !name.trim()}

@@ -107,7 +107,9 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
           // max-height the body ran full-length and the footer was clipped off
           // the bottom of the sheet. This is the native iOS "large detent".
           height: "calc(100dvh - env(safe-area-inset-top, 44px) - 8px)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          // max(safe area, keyboard) — the Edit / Deactivate footer must stay
+          // above the keyboard, not behind it. Same rule as every other sheet.
+          paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--kb-inset))",
           border: "0.5px solid var(--glass-border-lo)",
           transform: `translateY(${dragY}px)`,
           transition: dragY === 0 ? "transform 0.25s cubic-bezier(0.32,0.72,0,1)" : "none",
@@ -259,7 +261,7 @@ function SkuPanel({
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-5">
 
         {/* Pack config */}
         <div>
@@ -1448,10 +1450,10 @@ function NewSkuWizard({
     if (!sellsPack && fixedEntryUnit !== "carton") setFixedEntryUnit("carton");
   }, [sellsPack]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pcsPerCarton = useMemo(() => {
-    const p = parseInt(pcsPerPack), c = parseInt(packsPerCtn);
-    return p > 0 && c > 0 ? p * c : null;
-  }, [pcsPerPack, packsPerCtn]);
+  // (A pieces-per-carton total used to live here, purely to print
+  //  "{n} pcs per carton total" under the pack config. The echo now reads
+  //  "1 carton = N packs of M", so nothing needs the piece figure — the price
+  //  section below derives its own where it genuinely needs pieces.)
 
   const cbm = useMemo(() => {
     const l = parseFloat(lenCm), w = parseFloat(widCm), h = parseFloat(htCm);
@@ -1605,7 +1607,7 @@ function NewSkuWizard({
         </div>
 
         {/* Scrollable body — flex-1 fills leftover space; footer stays pinned */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-5" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
 
           {/* ── Row 1: Brand + Category ── */}
           <div className="grid grid-cols-2 gap-3">
@@ -1820,16 +1822,29 @@ function NewSkuWizard({
               </div>
             </div>
 
-            {pcsPerCarton && (
+            {/* Echo the pack config back in the units this business trades in.
+                This line used to read "{n} pcs per carton total" — a piece
+                count, on the screen that DEFINES the product. Nobody here buys,
+                receives or sells a loose diaper, so a figure in pieces is one
+                Ali cannot check against anything he knows. */}
+            {parseInt(packsPerCtn, 10) > 0 && parseInt(pcsPerPack, 10) > 0 && (
               <div className="rounded-xl px-3 py-2" style={{ background: "color-mix(in srgb, var(--snm-success) 10%, transparent)" }}>
                 <p className="ios-subhead font-medium" style={{ color: "var(--snm-success)" }}>
-                  {pcsPerCarton} pcs per carton total
+                  1 carton = {packsPerCtn} {parseInt(packsPerCtn, 10) === 1 ? "pack" : "packs"} of {pcsPerPack}
                 </p>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label className="ios-subhead">Carton dimensions (cm) *</Label>
+              {/* NOT required since 0176 — a product that never travels in a
+                  container has no carton to measure. The asterisk survived the
+                  migration and went on demanding something the form no longer
+                  wants, which is worse than silence: it reads as "you cannot
+                  continue" on the exact screen he was already stuck on. */}
+              <Label className="ios-subhead">Carton dimensions (cm)</Label>
+              <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                Leave empty if it has no carton. Needed only to split freight on an import.
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 <input type="number" inputMode="decimal" step="0.1"
                   value={lenCm} onChange={(e) => setLenCm(e.target.value)}
@@ -2146,7 +2161,14 @@ function NewSkuWizard({
         </div>
 
         {/* Footer */}
-        <div className="px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+        {/* The footer lifts above the on-screen keyboard. Without --kb-inset it
+            stays pinned to the bottom of a sheet the keyboard covers: measured
+            at 393pt, "Create SKU" sat 320 points below the reachable line —
+            on screen, but untappable, with nothing saying why. `--kb-inset` is
+            published app-wide by lib/use-keyboard-inset.ts; six other sheets
+            already consumed it and this one did not. scripts/audit/reach.mjs
+            now fails the build over it. */}
+        <div className="px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom),var(--kb-inset))] flex gap-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
           <Button variant="ghost" className="h-12 flex-1" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

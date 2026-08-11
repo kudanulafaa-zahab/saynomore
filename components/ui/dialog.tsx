@@ -94,7 +94,7 @@ function DialogContent({
         ) : (
           /* Scrollable padded body. Horizontal padding lives here so no child
              bleeds to the screen edge; bottom padding clears the iOS home bar. */
-          <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom),var(--kb-inset))] sm:pb-4">
+          <div className="flex flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom),var(--kb-inset))] sm:pb-4">
             {children}
           </div>
         )}

@@ -1734,7 +1734,7 @@ unmergeable anyway. Fix the conflict; the run appears on its own.
 
 ## 12. The browser audit gate — read this before changing any screen
 
-**Ten audits run on every PR touching `app/`, `components/`, `lib/`,
+**Eleven audits run on every PR touching `app/`, `components/`, `lib/`,
 `scripts/audit/`, `supabase/fixtures/` or `package.json`**
 (`.github/workflows/ui-checks.yml`). They are the peer of §10: that gate
 guards the money, this one guards what a person sees.
@@ -1749,7 +1749,7 @@ test-runner. Run the lot locally with:
 
 ```bash
 supabase start && npm run audit:seed && npm run build && npm run start
-npm run audit:ui        # all ten
+npm run audit:ui        # all eleven
 ```
 
 | Audit | Checks | What it guards |
@@ -1762,6 +1762,7 @@ npm run audit:ui        # all ten
 | `reorder-nudge.mjs` | 13 | The dashboard actually asks for the second order: names people, says how long it has been, one tap to WhatsApp, "See all" lands on the At risk lens. Plus the units rule |
 | `direct-receipt.mjs` | 12 | Stock that never travelled in a container can be received and **reads right afterwards** — asked for in the product's own unit, total echoed back before committing, Inventory says "24 tubs" |
 | `new-sku.mjs` | 5 | A product with **no carton** can be created — driven on top of a deliberately reproduced stuck state (orphan brand/model/variant), because a fix that only works on a clean database would not have helped Ali at all |
+| `reach.mjs` | 25 | **An invariant, not a screen guard** — every sheet in the app: with the keyboard up the pinned action stays touchable, and nothing can drift sideways. See §13h |
 | `material.mjs` | 11 screens | Every in-flow surface actually wears the current theme — structurally, not aesthetically |
 | `contrast.mjs` | 88 | 4 palettes × 2 schemes × 11 screens, measured on the **rendered** page |
 
@@ -2049,3 +2050,85 @@ Unchanged from §11f, plus one new and now the most valuable:
    login-link expiry under an hour. §7c.7.
 4. **Measure the five carton sizes.** Still the highest-value non-code job:
    the top three carry **85% of the freight**.
+
+---
+
+### 13h. The keyboard swallowed the buttons — and why he had to find it
+
+Ali, 2026-08-11, after the New SKU fix shipped: *"You're very careless with the
+ui/ux… stuff flow below the reachable area and it's moving to the sides. Why do
+you always defy to follow the design"* — and then the part that matters more
+than the bug:
+
+> *"From now on I don't want to show you where you break stuff. Specially the
+> ui. It's your damn job to do it properly without me asking everytime. You own
+> up everytime when u point it to you. You're just doing adhoc corrections and
+> never following expert consultation or expert rules you are trained on."*
+
+He is right about the pattern, and the pattern has a structural cause worth
+naming: **the other ten audits are a bug list, not a gate.** Each defends one
+screen against one defect that had already reached him. Every new defect
+therefore needs him to find it first and then gets its own bespoke check
+afterwards. That arrangement cannot ever get ahead of him.
+
+**The bug.** On iOS the software keyboard does not resize the layout viewport —
+it slides up OVER the page. A sheet pinned to the bottom keeps its full height,
+so its footer simply ends up underneath. Measured at 393pt: "Create SKU" sat at
+y=788-836 while the reachable area ended at **516**. On screen, 320 points below
+the line, untappable, nothing explaining why.
+
+**The app had already solved it.** `lib/use-keyboard-inset.ts` publishes the
+keyboard height as `--kb-inset`, and a footer lifts with
+`max(env(safe-area-inset-bottom), var(--kb-inset))`. **Six sheets consumed it.
+Four did not** — New SKU, Edit SKU, New Sale and Add Customer, every one of them
+full of text fields. Both versions look identical with the keyboard down, which
+is exactly how all four shipped.
+
+**The sideways drift** has the same invisible-by-construction quality:
+`overflow-y-auto` does not leave the other axis alone. CSS forces `overflow-x`
+to `auto` whenever one axis is not `visible`, so every scrolling sheet body in
+the app was silently a horizontal scroller waiting for one child to be a few
+pixels too wide.
+
+**The answer was not to fix New SKU.** It was `scripts/audit/reach.mjs` — the
+first audit here that asserts an invariant across every sheet rather than
+guarding one screen, so a sheet written next month is covered by a check written
+today. It publishes `--kb-inset` itself, exactly as a real iPhone would, and
+measures: a footer that reads the variable lifts and passes; one that ignores it
+fails with the number of points it is out by. No device needed, no judgement.
+
+Then the eight files with a text field and a bottom action were swept as a
+class, not one at a time — **hard rule 9**, which says a fix for one instance of
+a bug class is not done until the whole surface is swept systematically. Four
+needed the lift; Stock Ops and Reorder turned out to be in-page forms the
+document scrolls, so they were **deliberately left out of the audit list rather
+than added for the look of coverage** — listing them would have bought a free
+pass, which is the failure mode the file exists to remove.
+
+**Three things this took to get right, all worth keeping:**
+
+1. **A check that cries wolf gets switched off.** The first version reported 30
+   failures per screen because it treated everything below the fold on an
+   ordinary page as stranded. The app shell scrolls the document, so in-flow
+   content is always reachable; only `position: fixed` chrome is truly pinned,
+   and the tab bar is excluded on purpose because it IS covered by the keyboard,
+   like every native iOS app.
+2. **Find sheets by shape, not by markup.** Three different constructions exist
+   here — shadcn `DialogContent` and two hand-rolled `createPortal` sheets.
+   `[role="dialog"]` found one; the other two silently measured a plain page and
+   passed.
+3. **The stale `next start` trap cost three runs in one session.** A dead server
+   keeps the port and serves the PREVIOUS build, so the audits measure code that
+   is no longer on disk and the fix looks like it did not work. `pkill -f
+   next-server` does not help — the pattern matches the shell running it, so it
+   kills its own caller (exit 144) and leaves the server up. Kill by whoever
+   holds the PORT: `scripts/audit/restart-app.sh` now does it every time.
+
+Two content bugs on the same screen went with it: carton dimensions still
+carried a **required asterisk** after 0176 made them optional — telling him to
+fill in something the form no longer wants, on the screen he was already stuck
+on — and the pack config echoed **"{n} pcs per carton total"**, a piece count on
+the screen that defines the product.
+
+---
+

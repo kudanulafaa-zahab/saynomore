@@ -1923,7 +1923,7 @@ export function NewSaleSheet({
                         </div>
 
                         {/* Fixed footer — always visible, never scrolled past */}
-                        <div className="shrink-0 flex flex-col gap-2 px-5 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+                        <div className="shrink-0 flex flex-col gap-2 px-5 pt-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)", paddingBottom: "max(1rem, env(safe-area-inset-bottom), var(--kb-inset))" }}>
                           {editingPrice && (editorProvenance.source === "sku_default" || editorProvenance.source === "margin") && selectedSku && landed != null ? (() => {
                             const pcsPerPack = selectedSku.pcs_per_pack || 1;
                             const packsPerCarton = selectedSku.packs_per_carton || 1;
@@ -2240,7 +2240,7 @@ export function NewSaleSheet({
           "Review & Confirm", which is a phone button stretched, not a desktop
           one: at lg they take their natural width and sit to the right, where
           a primary action belongs in a window. */}
-      <footer className="glass-panel--strong shrink-0 px-5 lg:px-8 gap-3 flex items-center lg:justify-end relative z-[1]" style={{ paddingTop: "12px", paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))", minHeight: 72, borderRadius: 0, borderLeft: "none", borderRight: "none", borderBottom: "none", borderTop: "0.5px solid var(--glass-border-lo)" }}>
+      <footer className="glass-panel--strong shrink-0 px-5 lg:px-8 gap-3 flex items-center lg:justify-end relative z-[1]" style={{ paddingTop: "12px", paddingBottom: "max(calc(12px + env(safe-area-inset-bottom, 0px)), var(--kb-inset))", minHeight: 72, borderRadius: 0, borderLeft: "none", borderRight: "none", borderBottom: "none", borderTop: "0.5px solid var(--glass-border-lo)" }}>
         {step === 1 && (
           <>
             <button onClick={onClose} className="flex-1 lg:flex-none lg:px-10 h-14 rounded-xl ios-subhead font-semibold" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>Cancel</button>
