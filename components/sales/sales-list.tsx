@@ -705,6 +705,10 @@ export function SalesList() {
           onClose={() => setNewDialog(false)}
           onCreated={(id) => { setNewDialog(false); load(); if (id !== "reload") router.push(`/sales/${id}`); }}
           onCustomerCreated={(c) => setCustomers((prev) => [c, ...prev])}
+          // Stock received from inside the sale: reload the levels this
+          // component owns, or the product stays greyed out on screen while
+          // being in stock in the database.
+          onStockChanged={async () => setStockLevels(await listStockLevels())}
         />
       )}
 

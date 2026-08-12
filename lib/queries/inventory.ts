@@ -524,6 +524,12 @@ export async function receiveDirectStock(input: DirectReceiptInput): Promise<str
     p_note:          input.note ?? null,
   });
   if (error) throw error;
+  // Every other stock mutation in this file invalidates; this one did not, so
+  // for up to STOCK_TTL after receiving, the app kept showing the OLD level —
+  // the product stayed "out of stock" on screen while being in stock in the
+  // database. Found by the sell-new-product audit, which received stock and
+  // then asserted the card stopped saying "no stock".
+  invalidate("stock:");
   return data as string;
 }
 
@@ -533,4 +539,5 @@ export async function receiveDirectStock(input: DirectReceiptInput): Promise<str
 export async function voidDirectReceipt(batchId: string): Promise<void> {
   const { error } = await supabase.rpc("void_direct_receipt", { p_batch_id: batchId });
   if (error) throw error;
+  invalidate("stock:");
 }

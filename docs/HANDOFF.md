@@ -2370,3 +2370,58 @@ a SKU with no confirmed GRN, found none in the fixture, printed "skipping" and
 reported green. A test that passes because it did nothing is worse than no test.
 It now *creates* the never-received SKU, and was mutation-proven by making the
 card invent a zero cost.
+
+
+---
+
+### 13p. Selling a product you own but have never received (no migration)
+
+Ali, 2026-08-12: *"In sales/new sale/add products I cannot see bodybutter maybe
+because it asks me to choose a godown first. In this case it's not in a godown.
+So fix it so I can see it in sales and add my landed cost manually and set
+selling price."*
+
+**His diagnosis was half right, and the half he missed is the point.** New Sale
+does gate everything on picking a warehouse — but the product was missing
+because a SKU with zero stock in **every** godown is hidden from browsing, and
+when found by search it rendered as a **`disabled`** card reading "Out of
+stock". A dead end at the exact moment he needed it.
+
+**What was deliberately NOT done.** He asked to sell it anyway. Stock is
+`SUM(stock_movements)` (hard rule 2); a sale with no stock behind it has no
+batch, therefore no cost, and would quietly corrupt the P&L, Margin Watch and
+the Product Card at once. `new-sale-sheet.tsx` already carries a comment naming
+**SO-2026-076**, an order that once reached "delivered" with no stock movement.
+**So the rule stayed and the friction moved.**
+
+`components/sales/stock-in-sheet.tsx` — an out-of-stock card now reads
+**"No stock — tap to add"** and opens a receipt in place: how many (in the
+product's own noun — "How many tubs"), what one cost, and the selling price,
+with the total echoed back before committing and the below-cost guard live
+(hard rule 7). It calls the same `receive_direct_stock` as Stock Ops — a second
+door to the same room, not a second implementation.
+
+**The warehouse is not asked for**, and that is the answer to "it's not in a
+godown": stock must live somewhere or none of the arithmetic works, but he has
+already chosen which warehouse the order ships from.
+
+**A real pre-existing bug fell out of building it.** `receiveDirectStock` never
+called `invalidate("stock:")` — every other stock mutation in
+`lib/queries/inventory.ts` does. So for up to the 30-second TTL after ANY direct
+receipt, including from Stock Ops, the app kept showing the old level and the
+product stayed "out of stock" on screen while being in stock in the database.
+`voidDirectReceipt` had the same gap. Found only because the audit received
+stock and then asserted the card stopped saying "no stock" — a check written
+against the *outcome* rather than the click.
+
+**Three locator lessons from writing that audit**, all previously documented and
+all re-learned the hard way:
+
+1. **Scope to the sheet.** `body.innerText()` matched text that was in the DOM
+   but BEHIND the sheet, so the first version reported "found the product" on a
+   screen where the sheet had already closed — green for a flow it never drove.
+2. **`.first()` matched the brand GROUP HEADER**, not the product card, because
+   products stay grouped by brand. The availability line is what is unique to
+   the card.
+3. **A standalone debug run found nothing** because the audit deletes its
+   fixture at the end — the flow only exists while the audit is running.
