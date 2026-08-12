@@ -34,6 +34,7 @@ import { type StockLevel } from "@/lib/queries/inventory";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { formatQtyInTradeUnits, formatMixedCartonQty, priceForMargin, sellableTiers, sellUnitLabel, costPerTradeUnit, type UnitUom } from "@/lib/trade-units";
+import { StockInSheet } from "@/components/sales/stock-in-sheet";
 import { CARD_L2 } from "@/lib/surfaces";
 import { mvtInstant } from "@/lib/mvt-date";
 const CHANNELS: { value: OrderChannel; label: string }[] = [
@@ -58,11 +59,16 @@ type Step = 1 | 2 | 3;
 
 export function NewSaleSheet({
   customers, skus, godowns, stockLevels, onClose, onCreated, onCustomerCreated,
+  onStockChanged,
 }: {
   customers: CustomerRow[]; skus: SkuFullRow[]; godowns: GodownRow[];
   stockLevels: StockLevel[];
   onClose: () => void; onCreated: (id: string) => void;
   onCustomerCreated: (c: CustomerRow) => void;
+  /** Stock was received from inside the sale — the parent owns the levels, so
+   *  it has to reload them or the product stays "out of stock" on screen while
+   *  being in stock in the database. */
+  onStockChanged?: () => Promise<void> | void;
 }) {
   // This full-screen sheet uses the calmer wallpaper variant (see
   // .glass-wallpaper--calm) since it's a dense list of thin rows rather
@@ -299,6 +305,9 @@ export function NewSaleSheet({
   // Quick-add on a below-cost SKU pauses for a deliberate choice — losing
   // money must never be a single accidental tap. Holds the pending add.
   const [belowCostAdd, setBelowCostAdd] = useState<{ sku: SkuFullRow; uom: ReturnType<typeof defaultUom>; price: number } | null>(null);
+  // A product with no stock anywhere, tapped from the picker. Receiving it in
+  // place is what lets the sale continue without abandoning the order.
+  const [stockInSku, setStockInSku] = useState<SkuFullRow | null>(null);
 
   // One-tap rebuild of the customer's previous basket at TODAY's prices.
   // Every line passes the same doors a manual add would: active SKU, enough
@@ -1334,18 +1343,25 @@ export function NewSaleSheet({
                     const stockLabel = stock == null ? null
                       : hereQty > 0 ? `${qtyLabel(hereQty)} in stock`
                       : elsewhereTotal > 0 ? `None here · ${qtyLabel(elsewhereTotal)} in ${otherGodownStock[0].name}`
-                      : "Out of stock";
+                      : "No stock — tap to add";
                     const inOtherGodown = noneHere && elsewhereTotal > 0;
 
                     return (
                       <div key={s.id} className="relative">
-                        <button onClick={() => setSelectedSkuId(s.id)}
-                          disabled={outOfStock}
+                        {/* An out-of-stock product is a ROUTE IN, not a dead end.
+                            It used to be a disabled card, so a product he owns
+                            but has never received — a body butter carried home
+                            in a suitcase — could be found and then not acted on,
+                            with the only way forward being to abandon the order.
+                            Tapping it now opens StockInSheet: quantity, the cost
+                            he paid, a selling price, and the sale carries on.
+                            The stock rule is untouched; only the friction moved. */}
+                        <button onClick={() => outOfStock ? setStockInSku(s) : setSelectedSkuId(s.id)}
                           className="w-full rounded-2xl p-4 text-left transition active:scale-[0.98]"
                           style={{
                             ...CARD,
                             border: "0.5px solid var(--glass-border-lo)",
-                            cursor: outOfStock ? "default" : "pointer",
+                            cursor: "pointer",
                           }}>
                           {/* Identity — same block as every other picker in the app */}
                           <div className="pr-9">
@@ -2337,6 +2353,16 @@ export function NewSaleSheet({
           hint="Scan product barcode"
           onResult={handleScanResult}
           onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {stockInSku && (
+        <StockInSheet
+          sku={stockInSku}
+          godownId={godownId}
+          godownName={godowns.find((g) => g.id === godownId)?.name ?? "this warehouse"}
+          onClose={() => setStockInSku(null)}
+          onReceived={async () => { await onStockChanged?.(); }}
         />
       )}
 
