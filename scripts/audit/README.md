@@ -1,6 +1,6 @@
 # Browser audits
 
-Eleven scripts that check the app the way Ali does, so he does not have to.
+Twelve scripts that check the app the way Ali does, so he does not have to.
 
 ## Why these exist
 
@@ -27,7 +27,7 @@ You need the local stack up — Docker, `supabase start`, and the app running.
 supabase start                # replays every migration onto a fresh Postgres
 npm run audit:seed            # fixture data + an admin sign-in
 npm run dev                   # or: npm run build && npm run start
-npm run audit:ui              # all eleven
+npm run audit:ui              # all twelve
 ```
 
 Individually:
@@ -252,6 +252,9 @@ was verified by putting its bug back:
 | the customer sentences put back in the morning briefing, under the card that replaced them | reorder-nudge — "a customer is named ONCE on the dashboard (found 2)" and "no 'Worth a call' sentence" |
 | `?tab=receive` removed, so the deep link falls through to Verify Count — the REAL bug, exactly as it shipped | new-sku — 3 checks, incl. "the Receive tab actually opens (not Verify Count)" |
 | the "No stock yet — this can't be sold" signpost hidden | new-sku — 5 checks, incl. "with a one-tap route to Receive" and "which lands on the RECEIVE tab (null)" |
+| margin computed as markup on COST instead of on the selling price — the classic flattering error | product-card — 2 checks, incl. "margin is NOT markup-on-cost dressed up as margin" |
+| a per-piece price added to the Product Card, the screen most exposed to that leak | product-card — "no per-piece price — not even for the rival" |
+| the card inventing a zero landed cost for a product that never arrived | pgTAP `product_card` — "a never-received product reported a landed cost" |
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |

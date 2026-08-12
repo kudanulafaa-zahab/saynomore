@@ -1,4 +1,5 @@
 import {
+  FileText,
   LayoutDashboard,
   Boxes,
   ShoppingCart,
@@ -93,6 +94,11 @@ export const FULL_NAV: NavItem[] = [
 
   // Pricing — what to charge
   { href: "/products",   label: "Products",   icon: Package,       section: "Master Data" },
+  // The read-only fact sheet. Filed beside Products because that is where you
+  // look for a product, but it is a different job: Products is where you EDIT
+  // the catalogue, this is where you UNDERSTAND one item. Hard rule 8 — a page
+  // not listed here is invisible even when built and routable.
+  { href: "/product-card", label: "Product Card", icon: FileText,    section: "Master Data" },
   { href: "/godowns",    label: "Godowns",    icon: Warehouse,     section: "Warehouse" },
   { href: "/stock-ops",  label: "Stock Ops",  icon: ArrowLeftRight, section: "Warehouse" },
   { href: "/competitors",label: "Market",     icon: Tag,           section: "Pricing" },

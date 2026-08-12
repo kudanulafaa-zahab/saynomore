@@ -34,6 +34,9 @@ const SCREENS = [
   ["reports",    "/reports"],
   ["reorder",    "/reorder"],
   ["pricelists", "/pricelists"],
+  // Added 2026-08-12 with the new screen itself, so its cards wear the theme
+  // like every other surface. A new page is the easiest one to forget here.
+  ["product-card", "/product-card"],
 ];
 
 // Settings shows a preview swatch per palette; those are gradients ON PURPOSE —
