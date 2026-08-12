@@ -127,6 +127,15 @@ The standing laws, each with the incident that created it:
   per driver per day.
 - Landed cost basis: FOB + CBM-apportioned freight/local + duty-weighted
   duty at the GRN-locked rate — never recompute after confirmation.
+- **Freight and forex are VOLATILE and every shipment stands alone** (Ali,
+  2026-08-12). A rate that differs from last time is normal, not a data error —
+  saying otherwise once cost credibility. Never carry one shipment's rate onto
+  another, even as an estimate. **Landed cost is a property of an ARRIVAL, not
+  of a product**, so margin is not stable and a price set once goes stale: the
+  right moment for a price review is when stock lands. Freight is charged by
+  VOLUME, not value, so a freight rise punishes cheap bulky goods first — the
+  2026-08-16 container would have taken Sosoft from ~40% margin to 10.4% at
+  unchanged prices. Full rule and the incident: CLAUDE.md.
 
 ## Seat 5 — Inventory & FMCG Operations
 

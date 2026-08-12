@@ -2425,3 +2425,64 @@ all re-learned the hard way:
    the card.
 3. **A standalone debug run found nothing** because the audit deletes its
    fixture at the end — the flow only exists while the audit is running.
+
+
+---
+
+### 13q. Freight and forex are volatile — and what my own analysis got wrong
+
+Ali, 2026-08-12: *"Freight rate differs by shipment. The rate I enter is the
+correct rate."* and *"Freight rate, currency conversion are highly volatile. So
+make sure you always remember that."*
+
+**The rule now lives in `CLAUDE.md` and `skills.md` (Seat 4).** Read it there —
+this section records the analysis behind it and, more usefully, three mistakes I
+made in one hour that the rule exists to prevent.
+
+**What is true, on live data.** The container in transit carries freight at
+**MVR 5,133 per CBM** against **MVR 2,392** on the previous one. That is not an
+error: 2.694 CBM versus 8.007 CBM, and minimum charges do not scale down. At
+unchanged selling prices it lands like this:
+
+| Arriving 16 Aug | Landed cost | Margin |
+|---|---|---|
+| **Sosoft**, 39 cartons | **+49.5%** | ~40% → **10.4%** |
+| Merries Good L | +28.9% | ~36% → 17.1% |
+| Xtra Kering NB/S | +28.0% | → 29.5% |
+| Xtra Kering L | +26.2% | ~41% → 25.7% |
+| Xtra Kering XL | +24.2% | ~39% → 24.6% |
+
+Sosoft is worst hit because **freight is charged by volume, not value**: those
+bottles cost MVR 105 a carton and carry MVR 82 of freight. Cheap bulky goods
+always take the worst of a freight rise.
+
+**Three errors of mine, all in one conversation, all the same shape.**
+
+1. **I divided 90 days into 36 days of history.** Every velocity came out 2.5×
+   too low, so "20 cartons of NB/S" read as 3¼ years of stock. It is 111 days.
+2. **I ignored censored demand.** Products cannot sell while they are absent,
+   and NB/S had been out **19 of the last 30 days** with demand *rising*. The
+   app's own `get_sku_reorder_alerts` already models this — `days_unavailable_30`
+   and `demand_censored` exist precisely for it. **The engine was right and my
+   ad-hoc query was wrong**, which is the same mistake as the customer-overdue
+   count in §13d.
+3. **I presented a real market movement as a possible data error.** The freight
+   jump was correct data. Questioning it wasted Ali's time and undermined trust
+   in the number.
+
+**The generalisation worth keeping: when the app already computes something, USE
+IT.** Every ad-hoc query I have written against this database in place of an
+existing engine has been wrong, three times out of three.
+
+**Also established, and it changes what "the data" means.** `SH-2026-001`, GRN
+confirmed 2026-07-08, is **not a real arrival on that date** — it cleared
+customs in June and most of it had already been sold. Ali entered it as an
+opening balance because he had to start somewhere. So:
+
+- The app's history begins **2026-07-08**, 36 days at time of writing.
+- Sales before that date do not exist in the ledger at all.
+- **Open question, put to Ali and not yet answered:** does current stock (about
+  18,700 pieces of the 26,944 recorded on 8 July) match what is physically in
+  Veesange and Funvilu? If it is well above, the opening quantities were too
+  high and the landed costs from July are overstated — freight spread over too
+  few cartons. Settle this before trusting any July margin or COGS figure.

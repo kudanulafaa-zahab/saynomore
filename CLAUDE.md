@@ -246,6 +246,42 @@ is a placeholder. Treat it as real data with known error, not as junk.
   confident argument about pack contents was once built on CBM-per-piece and
   was wrong. Freight apportionment, yes; forensics, no.
 
+## Freight and forex are VOLATILE. Every shipment stands alone. (Ali, 2026-08-12)
+
+> *"Freight rate differs by shipment. The rate I enter is the correct rate."*
+> *"Freight rate, currency conversion are highly volatile. So make sure you
+> always remember that."*
+
+This is permanent, and it was written because I got it wrong: on 2026-08-12 the
+freight on the container in transit worked out at **MVR 5,133 per CBM** against
+**MVR 2,392** on the one before it, and I presented that as *possibly a data
+error*. It was not. A 2.7 CBM consignment genuinely costs far more per cubic
+metre than an 8 CBM one — minimum charges, less container sharing — and the
+rufiyaa/rupiah rate moves underneath it as well.
+
+**What follows from it, and none of this is optional:**
+
+- **Never flag a freight or forex change as an anomaly.** A rate that differs
+  from last time is the normal case, not a mistake to be questioned. Ali enters
+  the real figure off the real invoice.
+- **Never extrapolate one shipment's rate onto another.** Not for an estimate,
+  not for a projection, not "for now". If a screen needs a cost for goods that
+  have not landed, it uses the rate recorded on *that* shipment, and says the
+  freight and duty are not final until GRN.
+- **Landed cost is a property of an ARRIVAL, not of a product.** The same SKU
+  legitimately has a different cost in every batch. That is why the forex rate
+  locks at GRN (hard rule 3) and why batches carry their own cost — and it is
+  why the Product Card labels its cost with the shipment and date it came from.
+- **Therefore MARGIN IS NOT STABLE, and a price set once goes stale.** Every
+  arrival can move it. On the 2026-08-16 container the same prices would have
+  taken Sosoft from about 40% to **10.4%**, because those bottles cost MVR 105
+  a carton and were about to carry MVR 82 of freight. **A price review belongs
+  at the moment stock arrives**, not on a calendar.
+- **Cheap bulky goods are hit hardest by a freight rise**, because freight is
+  charged by volume and not by value. Detergent and cleaning liquid move on
+  freight; diapers move more on the supplier price and the rate. When freight
+  per CBM jumps, look at the low-value-per-CBM lines first.
+
 ## Hard Rules (never break)
 1. All financial calculations in **Postgres**, never TypeScript
 2. Stock quantity derived from `stock_movements` sum — never stored directly
