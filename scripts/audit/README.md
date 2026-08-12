@@ -250,6 +250,8 @@ was verified by putting its bug back:
 | the hardcoded `"ctn"` put back on the Inventory brand rollup | direct-receipt — "Inventory shows 24 tubs" |
 | the At risk lens reverted to the profit-ranked list — a correct link to a useless page | reorder-nudge — 4 checks, incl. "it separates who has RUN OUT from who is merely late" and "the SAME Message button as the dashboard". **The old href assertion still passed**, which is exactly why it was not enough |
 | the customer sentences put back in the morning briefing, under the card that replaced them | reorder-nudge — "a customer is named ONCE on the dashboard (found 2)" and "no 'Worth a call' sentence" |
+| `?tab=receive` removed, so the deep link falls through to Verify Count — the REAL bug, exactly as it shipped | new-sku — 3 checks, incl. "the Receive tab actually opens (not Verify Count)" |
+| the "No stock yet — this can't be sold" signpost hidden | new-sku — 5 checks, incl. "with a one-tap route to Receive" and "which lands on the RECEIVE tab (null)" |
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |

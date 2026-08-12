@@ -105,12 +105,25 @@ type Tab = "receive" | "verify" | "transfer" | "writeoff";
 
 export function StockOpsView() {
   const searchParams = useSearchParams();
-  // Deep link support: /stock-ops?tab=transfer lands directly on the
-  // Transfer tab (used by shortcut links from Inventory/Godowns), while
-  // plain /stock-ops still defaults to Verify Count.
-  const initialTab: Tab = searchParams.get("tab") === "transfer" ? "transfer"
-    : searchParams.get("tab") === "writeoff" ? "writeoff" : "verify";
+  // Deep link support: /stock-ops?tab=receive|transfer|writeoff lands directly
+  // on that tab; plain /stock-ops still defaults to Verify Count.
+  //
+  // `receive` was MISSING from this list until 2026-08-12. The Receive tab
+  // shipped in #85 and nothing could link to it — `?tab=receive` silently fell
+  // through to Verify Count, so the only way in was to know the tab existed and
+  // press it. Ali, having created a product: *"How do I sell it? Where do I
+  // enter cost price?"* Adding a tab is not the job; adding the route TO it is.
+  //
+  // `?sku=<id>` preselects the product, so "Receive stock" on a product page
+  // lands on a form that is already about that product.
+  const tabParam = searchParams.get("tab");
+  const initialTab: Tab =
+      tabParam === "receive"  ? "receive"
+    : tabParam === "transfer" ? "transfer"
+    : tabParam === "writeoff" ? "writeoff"
+    : "verify";
   const [tab, setTab] = useState<Tab>(initialTab);
+  const presetSkuId = searchParams.get("sku");
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
   const [godowns, setGodowns] = useState<GodownRow[]>([]);
   const [levels, setLevels] = useState<StockLevel[]>([]);
@@ -203,7 +216,7 @@ export function StockOpsView() {
       )}
 
       {tab === "receive" ? (
-        <ReceiveTab skus={skus} godowns={godowns} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
+        <ReceiveTab skus={skus} godowns={godowns} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} presetSkuId={presetSkuId} />
       ) : tab === "verify" ? (
         <VerifyTab skus={skus} godowns={godowns} levels={levels} onDone={reloadLevels} canWrite={canWrite} />
       ) : tab === "transfer" ? (
@@ -233,16 +246,31 @@ export function StockOpsView() {
 /* ════════════════════════════════════════════════════════════════════════ */
 
 function ReceiveTab({
-  skus, godowns, skuMap, onDone, canWrite,
+  skus, godowns, skuMap, onDone, canWrite, presetSkuId,
 }: {
   skus: SkuFullRow[]; godowns: GodownRow[];
   skuMap: Map<string, SkuFullRow>; onDone: () => Promise<void>; canWrite: boolean;
+  /** From /stock-ops?sku=<id> — "Receive stock" on a product page lands here
+   *  already about that product, instead of asking him to find it again. */
+  presetSkuId?: string | null;
 }) {
   const [godownId, setGodownId] = useState<string>(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");
-  const [skuId, setSkuId]   = useState<string>("");
+  // Preselected from /stock-ops?sku=<id> at MOUNT, not in an effect. The parent
+  // renders a skeleton until the catalogue has loaded and only then mounts this
+  // tab, so `skuMap` is already populated here — which means this can be
+  // derived rather than set, and no cascading render happens.
+  const [skuId, setSkuId]   = useState<string>(
+    () => (presetSkuId && skuMap.has(presetSkuId) ? presetSkuId : ""),
+  );
   const [q, setQ]           = useState("");
   const [qty, setQty]       = useState("");
-  const [unit, setUnit]     = useState<SaleUom>("piece");
+  const [unit, setUnit]     = useState<SaleUom>(() => {
+    const preset = presetSkuId ? skuMap.get(presetSkuId) : undefined;
+    if (!preset) return "piece";
+    const allowed = sellableTiers(preset.sellable_units as SellUnit[] | null);
+    const preferred = defaultUnitFor(preset);
+    return allowed.includes(preferred) ? preferred : (allowed[0] ?? "piece");
+  });
   const [cost, setCost]     = useState("");
   const [note, setNote]     = useState("");
   const [confirming, setConfirming] = useState(false);

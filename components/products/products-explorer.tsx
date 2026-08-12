@@ -7,9 +7,10 @@ import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Loader2, Search, X, ChevronRight, ChevronDown,
-  Package, Check, SlidersHorizontal, Pencil, ScanLine,
+  Package, Check, SlidersHorizontal, Pencil, ScanLine, PackagePlus,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
@@ -30,6 +31,7 @@ import {
 } from "./edit-dialogs";
 import { haptic } from "@/lib/haptics";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
+import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 
 // Camera barcode scanner — same component used in Sales & Shipments. Lazy-loaded
 // because it pulls in the heavy @zxing decoding library only when opened.
@@ -135,11 +137,14 @@ function MobileSkuSheet({ onClose, children }: { onClose: () => void; children: 
 /* ── SKU detail panel ── */
 
 function SkuPanel({
-  sku, isAdmin, canWrite, onEdit, onDelete, onToggle, onClose, onPricingUpdated,
+  sku, isAdmin, canWrite, stockPieces, onEdit, onDelete, onToggle, onClose, onPricingUpdated,
 }: {
   sku: SkuFullRow;
   isAdmin: boolean;
   canWrite: boolean;
+  /** Total owned across every godown. Zero means the product exists but
+   *  cannot be sold — the state nothing on this screen used to mention. */
+  stockPieces: number;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
@@ -584,6 +589,37 @@ function SkuPanel({
         </div>
       </div>
 
+      {/* NOT SELLABLE YET — the missing signpost.
+          Creating a SKU defines a product; it does not put anything on a
+          shelf. New Sale browses only what you own, so a brand-new product is
+          simply absent there, with nothing anywhere explaining why or what to
+          do about it. Ali, 2026-08-12: "When I enter sku Bodyshop it doesn't
+          show in sales. How do I sell it? Where do I enter cost price?"
+          Both answers are the same screen, and this is the route to it —
+          receiving is where cost is entered, because the same tub can cost a
+          different amount on the next trip and each batch keeps its own. */}
+      {canWrite && stockPieces <= 0 && (
+        <div className="shrink-0 px-5 pt-3">
+          <div className="rounded-xl px-4 py-3" style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)" }}>
+            <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
+              No stock yet — this can&apos;t be sold
+            </p>
+            <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+              Receive it to set what it cost you. That is where cost price is entered, for
+              this and every product that arrives without a shipment.
+            </p>
+            <Link
+              href={`/stock-ops?tab=receive&sku=${sku.id}`}
+              className="mt-2.5 h-11 rounded-xl ios-subhead font-semibold snm-pressable flex items-center justify-center gap-1.5"
+              style={{ background: "var(--foreground)", color: "var(--background)" }}
+            >
+              <PackagePlus className="h-4 w-4" />
+              Receive stock
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Footer actions */}
       {canWrite && (
         <div
@@ -628,8 +664,8 @@ function SkuPanel({
 /* ── SKU row in the flat list ── */
 
 function SkuRow({
-  sku, selected, onClick,
-}: { sku: SkuFullRow; selected: boolean; onClick: () => void }) {
+  sku, selected, stockPieces, onClick,
+}: { sku: SkuFullRow; selected: boolean; stockPieces: number; onClick: () => void }) {
   const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
   return (
     <button
@@ -659,6 +695,18 @@ function SkuRow({
         <p className="ios-subhead mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
           {sku.pcs_per_pack}/pack × {sku.packs_per_carton}/ctn · {pcsPerCtn}/ctn
         </p>
+        {/* The product page says a stockless product cannot be sold; the LIST
+            has to say it too, or the only way to find out is to open each one.
+            Real --foreground on a tint, not muted: this is the reason the
+            product is missing from Sales, not a caption. */}
+        {stockPieces <= 0 && (
+          <span
+            className="inline-block mt-1 px-1.5 py-0.5 rounded-md ios-caption2 font-semibold"
+            style={{ background: "color-mix(in srgb, var(--snm-warning) 15%, transparent)", color: "var(--foreground)" }}
+          >
+            No stock — can&apos;t be sold
+          </span>
+        )}
       </div>
 
       {/* Price */}
@@ -688,6 +736,7 @@ export function ProductsExplorer() {
   const [models, setModels]         = useState<ModelRow[]>([]);
   const [variants, setVariants]     = useState<VariantRow[]>([]);
   const [skus, setSkus]             = useState<SkuFullRow[]>([]);
+  const [levels, setLevels]         = useState<StockLevel[]>([]);
   const [loading, setLoading]       = useState(true);
 
   const [q, setQ]                       = useState("");
@@ -730,10 +779,16 @@ export function ProductsExplorer() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [c, b, m, v, s] = await Promise.all([
+      // Stock rides along so a product page can say whether the product is
+      // actually SELLABLE. Creating a SKU defines a product; it does not put
+      // anything on the shelf, and until 2026-08-12 nothing on this screen
+      // said so — Ali created Body Shop, could not find it in Sales, and had
+      // to ask why.
+      const [c, b, m, v, s, lv] = await Promise.all([
         listCategories(), listBrands(), listModels(), listVariants(), listSkusFlat(),
+        listStockLevels().catch(() => [] as StockLevel[]),
       ]);
-      setCategories(c); setBrands(b); setModels(m); setVariants(v); setSkus(s);
+      setCategories(c); setBrands(b); setModels(m); setVariants(v); setSkus(s); setLevels(lv);
     } catch (err) {
       toast.error("Failed to load: " + (err as Error).message);
     } finally {
@@ -765,6 +820,14 @@ export function ProductsExplorer() {
       router.replace("/products", { scroll: false }); // clean the URL, don't reopen on close
     }
   }, [searchParams, skus, router]);
+
+  // Total owned across every godown. A SKU in another warehouse is stock, not
+  // absence — same rule the sales screens use.
+  const stockBySku = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of levels) m.set(l.sku_id, (m.get(l.sku_id) ?? 0) + Number(l.qty_pieces ?? 0));
+    return m;
+  }, [levels]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -929,6 +992,7 @@ export function ProductsExplorer() {
                   key={sku.id}
                   sku={sku}
                   selected={selectedSku?.id === sku.id}
+                  stockPieces={stockBySku.get(sku.id) ?? 0}
                   onClick={() => setSelectedSku(selectedSku?.id === sku.id ? null : sku)}
                 />
               ))}
@@ -959,6 +1023,7 @@ export function ProductsExplorer() {
               sku={selectedSku}
               isAdmin={isAdmin}
               canWrite={canWrite}
+              stockPieces={stockBySku.get(selectedSku.id) ?? 0}
               onEdit={() => setEditSku(selectedSku)}
               onDelete={() => setCascadeTarget({ kind: "sku", id: selectedSku.id, label: selectedSku.internal_code })}
               onToggle={async () => {
@@ -998,6 +1063,7 @@ export function ProductsExplorer() {
               sku={selectedSku}
               isAdmin={isAdmin}
               canWrite={canWrite}
+              stockPieces={stockBySku.get(selectedSku.id) ?? 0}
               // Close the detail sheet as we open the edit dialog — otherwise the
               // sheet (z-60, own scroll-lock) stays on top of the edit form,
               // freezing it, and two overlays' scroll-locks fight and leave the
