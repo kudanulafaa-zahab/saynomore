@@ -38,13 +38,28 @@ if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(host ?? "")) {
 }
 const q = (sql) => execFileSync("psql", [DB, "-q", "-c", sql], { encoding: "utf8" });
 const CUST = "(select id from customers order by created_at limit 1)";
-// 400 days, not 45. The earlier version used 45 and passed alone but FAILED
-// when run after journey.mjs and offline.mjs — those place extra orders for the
-// same fixture customer, so their last order becomes much larger and 45 days no
-// longer exceeds what it could have covered. An audit whose result depends on
-// which audits ran before it is not a check, it is a coin toss. 400 days is
-// past any plausible supply from any order this fixture can produce.
+// THE BACK-DATE IS COMPUTED, NOT A CONSTANT — and the two constants before it
+// were both wrong for the same reason.
+//
+// `ran_out` fires when days_since_last > max(expected_supply_days * 1.5, 14).
+// journey.mjs and offline.mjs place extra orders for this same fixture
+// customer, and collapsing every order onto one instant makes that instant's
+// "last buy" bigger on every run — so expected_supply_days GROWS, and with it
+// the threshold. 45 days passed alone and failed after those two. 400 days
+// survived longer and then failed too, at 276 days of supply: 276 * 1.5 = 414.
+//
+// A fixed number can only ever postpone this. So: collapse the orders first,
+// ask the function what supply it now sees, then back-date past 1.5x THAT with
+// 30 days to spare. Whatever history has accumulated, the case is a run-out.
+//
+// The lesson the two earlier constants missed: "an audit whose result depends
+// on which audits ran before it is not a check, it is a coin toss" is not
+// fixed by choosing a bigger number — it is fixed by removing the dependency.
 q(`update sales_orders set created_at = now() - interval '400 days' where customer_id = ${CUST};`);
+q(`update sales_orders set created_at = now() - make_interval(days => (
+     select greatest((coalesce(expected_supply_days, 0) * 1.5)::int, 14) + 30
+     from get_customer_insights() where customer_id = ${CUST}
+   )) where customer_id = ${CUST};`);
 
 import { launch, signedInPage, checklist, finish, BASE } from "./lib.mjs";
 const b = await launch();

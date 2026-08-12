@@ -2239,3 +2239,62 @@ lost information:
 `reorder-nudge.mjs` now asserts **a customer is named exactly ONCE on the
 dashboard**, and that no "Worth a call" sentence exists. Proven by mutation:
 putting the briefing lines back fails both, with `found 2`.
+
+
+---
+
+### 13l. A product you create cannot be sold, and nothing said so
+
+Ali, 2026-08-12: *"When I enter sku Bodyshop it doesn't show in sales. How do I
+sell it? Where do I enter cost price? How about any future products"*
+
+Both questions have one answer and the app never gave it. **Creating a SKU
+defines a product; it does not put anything on a shelf.** New Sale browses only
+what you own, so a brand-new product is simply ABSENT there — correct
+behaviour, and completely unexplained. Checked in production: `BODY-DEWB-1x1`
+was live, active and priced at MVR 380 with **stock 0 and zero batches**.
+
+**Cost price is entered when stock ARRIVES, never on the product.** That is not
+a UI convenience, it is the data model: the same tub can cost a different amount
+on the next trip, and each batch carries its own landed cost so FIFO stays
+honest. Two doors, and the answer for every future product is one of them:
+
+| How it arrives | Route | Where cost comes from |
+|---|---|---|
+| In a container | Shipments → GRN | FOB + freight + duty, apportioned by CBM |
+| Any other way (baggage, bought locally) | **Stock Ops → Receive** | what you paid, per unit |
+
+**A bug found on the way, and it is the same class as the rest of this session:
+`?tab=receive` did not work.** Stock Ops has read `?tab=` since the Transfer tab
+shipped, and the Receive tab (#85) was added without adding its route — the
+parameter fell through to Verify Count. **Adding a tab is not the job; adding
+the route to it is.** Now `?tab=receive&sku=<id>` opens Receive with the product
+already chosen.
+
+The signpost itself: a stockless product now says so on its page ("No stock yet
+— this can't be sold", with what receiving is for and a one-tap route), and in
+the LIST ("No stock — can't be sold"), because otherwise the only way to find
+out is to open each product in turn.
+
+### 13m. The audit that was still a coin toss, twice over
+
+`reorder-nudge.mjs` back-dated the fixture order by a fixed number of days. It
+had already been raised **45 → 400** once, with a header explaining that "an
+audit whose result depends on which audits ran before it is not a check, it is a
+coin toss". It failed again anyway, mid-session, at 8 of 10 checks.
+
+**Why a bigger constant could never work.** `ran_out` fires when
+`days_since_last > max(expected_supply_days * 1.5, 14)`. journey and offline
+place extra orders for the same customer, and collapsing every order onto one
+instant makes that instant's "last buy" bigger every run — so
+`expected_supply_days` GROWS and the threshold moves with it. It had reached
+**276 days of supply → a 414-day threshold**, and 400 was no longer enough.
+
+The fix removes the dependency instead of postponing it: collapse the orders,
+**ask the function what supply it now sees**, then back-date past 1.5× that with
+30 days to spare. Verified by running it three times in a row.
+
+**The lesson worth keeping:** the earlier fix wrote the right principle in the
+header and then implemented a bigger magic number. Naming a flaw is not fixing
+it — the check has to stop depending on the thing, not merely tolerate more of
+it.
