@@ -7,7 +7,7 @@ import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Loader2, Search, X, ChevronRight, ChevronDown,
-  Package, Check, SlidersHorizontal, Pencil, ScanLine, PackagePlus,
+  Package, Check, SlidersHorizontal, Pencil, ScanLine, PackagePlus, FileText,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -619,6 +619,23 @@ function SkuPanel({
           </div>
         </div>
       )}
+
+      {/* ONE fact sheet, not two. The full details live on the Product Card
+          (/product-card), and this panel links to it rather than growing its
+          own copy of landed cost, margin and rival price. Two screens showing
+          the same numbers is how they drift — it has happened four times in
+          this codebase already (the card recipe, the unit noun, the blur, the
+          at-risk list). */}
+      <div className="shrink-0 px-5 pt-3">
+        <Link
+          href={`/product-card?sku=${sku.id}`}
+          className="h-11 rounded-xl ios-subhead font-semibold snm-pressable flex items-center justify-center gap-1.5"
+          style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
+        >
+          <FileText className="h-4 w-4" />
+          Full details — cost, margin, rivals
+        </Link>
+      </div>
 
       {/* Footer actions */}
       {canWrite && (

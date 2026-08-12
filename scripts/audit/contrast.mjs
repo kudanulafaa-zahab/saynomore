@@ -31,6 +31,10 @@ const SCREENS = [
   ["expenses",   "/expenses"],
   // Added 2026-08-10 with the jargon sweep: Reports was never measured either.
   ["reports",    "/reports"],
+  // Added 2026-08-12 with the new screen itself. A page dense with money is
+  // exactly where a low-contrast number is dangerous — it is the figure he
+  // prices against.
+  ["product-card", "/product-card"],
 ];
 
 // Runs inside the page. Kept as one self-contained function because it is

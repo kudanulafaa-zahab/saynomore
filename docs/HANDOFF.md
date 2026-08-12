@@ -2298,3 +2298,75 @@ The fix removes the dependency instead of postponing it: collapse the orders,
 header and then implemented a bigger magic number. Naming a flaw is not fixing
 it — the check has to stop depending on the thing, not merely tolerate more of
 it.
+
+
+---
+
+### 13n. Product Card — one screen that tells you everything (0178)
+
+Ali, 2026-08-12: *"How about a new module where I can get all details about an
+sku when I search… fob price, landed cost, selling price, profit by MVR and
+percentage and any other detail I might have missed… Must have competitor price
+if applicable too. It must be really simple interface."*
+
+**Why it is NOT duplication, which was the first thing to check** given that
+four bugs this week were copies drifting apart. To understand one product he had
+to open **Shipments** (what he paid), **Price Lists** (what he charges),
+**Inventory** (what is left), **Market** (what rivals charge) and **Reports**
+(what it earned). Every figure existed; none of them sat together. This is a
+consolidation, not a second copy — and Products' SKU panel now **links** to the
+card rather than growing its own summary, so there is exactly one fact sheet.
+
+**`get_product_card(uuid)` does all of it** (hard rule 1). A screen that
+recomputed margin in TypeScript would be a fifth opinion about margin, and the
+only reason the page is worth trusting is that it agrees with the ledger.
+
+**What it shows, and the two things worth knowing:**
+
+- **Landed cost, decomposed** — supplier price in its own currency, the rate
+  locked at GRN, then freight, local charges and duty, then the landed total per
+  carton and per pack. Labelled as coming from a specific arrival, because forex
+  locks at GRN and a landed cost is a historical fact, not a live figure.
+- **The carton-versus-packs gap.** Nothing had ever shown this: on
+  `MAMY-XTRA-L-42x4`, four packs at MVR 199 is 796 while a carton is 776, so a
+  carton earns **MVR 20 less**. Deliberate or not, he could not see it before.
+- **The rival, converted to OUR pack size in Postgres.** VB sells 40s, he sells
+  42s, so per-piece is the only comparable unit — the conversion happens inside
+  the function so **no screen ever prints a piece price**. VB's price for a pack
+  his size is MVR 268.80 against his 199: he is 26% cheaper.
+- **The next shipment, and why it matters more than the last.** SH-2026-002 is
+  on the water at IDR 299,200 against 299,380 — a **cheaper** supplier price
+  that lands **4.8% dearer** in rufiyaa because the rate moved. That is the
+  number that changes the margin next, and it moves opposite to the foreign
+  price.
+
+**Margin is gross margin, on the selling price** — never markup on cost, which
+reads several points higher and flatters. pgTAP guards the convention
+explicitly, because "41%" and "58%" for the same product is exactly the kind of
+disagreement that destroys trust in a screen.
+
+### 13o. The test suite caught me, and a trigger caught me twice
+
+Two failures while building 0178, both worth recording.
+
+**`money_rules` test 9 failed and named `get_product_card`.** I had written
+`current_date` to age the rival's price — the **server's UTC day**, which is the
+identical slip migration 0170 fixed in the recurring-cost generator. At UTC+5 a
+card opened before 5am local would age a price by an extra day. The rule now has
+two enforcement points and both work: the test is a *catalogue-wide* assertion
+that no function anywhere buckets on the server day, so it caught a function
+written four days after it.
+
+**A trigger silently discarded a value the fixture set.** The pgTAP fixture
+wrote `rate_idr_to_mvr` directly; `trg_derive_idr_to_mvr` computes it from
+USD→MVR ÷ USD→IDR and **NULLs it** when either input is missing, so the explicit
+value vanished and `confirm_grn` refused with "IDR→MVR rate required" — an error
+about the thing I had just set. **A derived column cannot be written to, and it
+fails by looking like it worked.** The fixture now supplies the two rates a
+person actually types.
+
+**And one test passed vacuously.** The never-received-product check searched for
+a SKU with no confirmed GRN, found none in the fixture, printed "skipping" and
+reported green. A test that passes because it did nothing is worse than no test.
+It now *creates* the never-received SKU, and was mutation-proven by making the
+card invent a zero cost.
