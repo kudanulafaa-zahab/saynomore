@@ -246,6 +246,49 @@ is a placeholder. Treat it as real data with known error, not as junk.
   confident argument about pack contents was once built on CBM-per-piece and
   was wrong. Freight apportionment, yes; forensics, no.
 
+## The diaper range is being narrowed to TWO. (Ali, 2026-08-14)
+
+> *"For diapers I am discontinuing mamypoko Royal soft and skin comfort and only
+> sticking to xtra kering and merries for diapers."*
+
+Permanent. From 14 August 2026 the diaper range is **MamyPoko X-Tra Kering** and
+**Merries Good Skin**. Nothing else is reordered.
+
+**Discontinued: MamyPoko Royal Soft, Royal Soft Boy, Royal Soft Girl, Skin
+Comfort.** Together they were 21.4% of diaper revenue over the first 38 days;
+the two he is keeping were 78.6%, so this concentrates on the winners rather
+than cutting into them.
+
+**DISCONTINUED IS NOT INACTIVE, and conflating the two will lose real money.**
+There were about **281 packs** of the four dropped lines still in the godowns
+when he decided (Skin Comfort ~94, the Royal Soft family ~187). They must stay
+fully sellable until that stock is gone. What changes is only this:
+
+- **Never reorder them.** They must not appear in reorder suggestions, shipment
+  planning or any "you are running low" alert. Running low is now the plan.
+- **Never ACQUIRE on them, but DO clear them.** These are opposite things and
+  the distinction matters. Paid advertising, education messages and anything
+  aimed at winning a *new* customer must never feature a line that will not be
+  restocked — winning someone for a product about to vanish is worse than not
+  winning them. But a clearance offer to *existing* customers is exactly right:
+  the Promo Advisor flagging 281 packs of dead range as a slow mover is doing
+  its job, not misfiring. Sell it down, to people who already buy from us.
+- **Still sell them, still price them, still count them.** Stock, landed cost,
+  margin, GRN and P&L all behave exactly as before.
+- **Their sourced claims stay in `product_claims`.** They are still true, and
+  the Product Card still has to explain a product he is still selling.
+
+**The eight customers.** 14 customers have bought a discontinued line. Six of
+them also buy X-Tra Kering or Merries and will barely notice. **Eight buy
+NOTHING ELSE** — when their line runs out, there is nothing in their history to
+bring them back, and on a nine-day reorder clock they will simply be gone.
+Moving those eight onto a kept line is a real retention job with a deadline, not
+a nicety. Skin Comfort XL alone carries seven of the fourteen.
+
+**When a future range is dropped, the same three rules apply**: do not reorder,
+do not market, keep selling. Ali runs a narrow catalogue on purpose; expect this
+again.
+
 ## Freight and forex are VOLATILE. Every shipment stands alone. (Ali, 2026-08-12)
 
 > *"Freight rate differs by shipment. The rate I enter is the correct rate."*
