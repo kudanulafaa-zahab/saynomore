@@ -75,6 +75,42 @@ export async function getCustomerInsights(): Promise<CustomerInsight[]> {
   return (data ?? []) as CustomerInsight[];
 }
 
+/** A customer whose whole history in a category is ranges we stopped buying.
+ *
+ *  Different from `at_risk` and deliberately kept separate: an at-risk customer
+ *  has run late on something we can still sell them, so the fix is a nudge. A
+ *  stranded customer has nothing left to come back FOR — when their stock runs
+ *  out there is nothing in their history to bring them in, and on a ~9-day
+ *  repurchase clock they leave without ever saying so. The fix is a different
+ *  sentence, which is why this is its own type and its own block on screen.
+ *
+ *  Quantities arrive in PACKS. `get_stranded_customers` divides by pcs_per_pack
+ *  in Postgres so no piece count can reach a screen (CLAUDE.md units rule). */
+export interface StrandedCustomer {
+  customer_id: string;
+  name: string;
+  phone: string | null;
+  island: string | null;
+  last_order_on: string | null;
+  days_since_last: number | null;
+  category: string;
+  /** The range we stopped buying, e.g. "Skin Comfort". */
+  dropped_model: string;
+  /** Their size in it, e.g. "XL". Null for categories without sizes. */
+  dropped_size: string | null;
+  packs_bought: number;
+  /** Null when nothing equivalent is in stock — itself the finding. */
+  swap_sku_id: string | null;
+  swap_label: string | null;
+  swap_packs_avail: number | null;
+}
+
+export async function getStrandedCustomers(): Promise<StrandedCustomer[]> {
+  const { data, error } = await supabase.rpc("get_stranded_customers");
+  if (error) throw error;
+  return (data ?? []) as StrandedCustomer[];
+}
+
 export async function getCustomerProducts(customerId: string): Promise<CustomerProduct[]> {
   const { data, error } = await supabase.rpc("get_customer_products", { p_customer_id: customerId });
   if (error) throw error;

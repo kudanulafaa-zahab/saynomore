@@ -16,7 +16,11 @@ import {
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { CustomerForm } from "@/components/masters/customer-form";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
-import { getCustomerInsights, type CustomerInsight } from "@/lib/queries/customer-insights";
+import {
+  getCustomerInsights, getStrandedCustomers,
+  type CustomerInsight, type StrandedCustomer,
+} from "@/lib/queries/customer-insights";
+import { switchDrafts } from "@/lib/wa";
 import { haptic } from "@/lib/haptics";
 import { useOnMount } from "@/lib/use-on-mount";
 import { MessageButton } from "@/components/customers/message-button";
@@ -68,6 +72,8 @@ export function CustomersManager() {
   // Value ranking (0099). Ranked by PROFIT, not revenue — margins vary by SKU,
   // so equal spend is not equal worth. Loaded alongside the directory.
   const [insights, setInsights] = useState<CustomerInsight[]>([]);
+  const [stranded, setStranded] = useState<StrandedCustomer[]>([]);
+  const strandedIds = useMemo(() => new Set(stranded.map((s) => s.customer_id)), [stranded]);
   // Opens on the lens named in ?lens= so the dashboard's "See all" lands where
   // it promised. Without this the link dropped you on A–Z and you had to know
   // to press "At risk" — which is the same "the app knows but does not tell
@@ -84,6 +90,7 @@ export function CustomersManager() {
   }
   useOnMount(load);
   useEffect(() => { getCustomerInsights().then(setInsights).catch(() => {}); }, []);
+  useEffect(() => { getStrandedCustomers().then(setStranded).catch(() => {}); }, []);
   useEffect(() => { getCurrentUserRole().then(setRole).catch(() => {}); }, []);
   const canWrite = role !== "viewer" && role !== null;
 
@@ -121,7 +128,11 @@ export function CustomersManager() {
     // list whose first three are different people, which reads as a bug.
     // Days-since is the tiebreak, not the key — sorting by it put a one-off
     // MVR 90 customer above the best account in the business.
-    if (segment === "risk") return withData.filter((x) => x.i.at_risk)
+    // Anyone shown in the STRANDED block above is left out here, so nobody
+    // appears twice in one work list. Stranded outranks overdue: an overdue
+    // customer can still be sold the thing they want, a stranded one cannot,
+    // so the two need different sentences and the harder case comes first.
+    if (segment === "risk") return withData.filter((x) => x.i.at_risk && !strandedIds.has(x.c.id))
       .sort((a, b) => {
         const rank = (r: string | null) => (r === "ran_out" ? 0 : 1);
         const byReason = rank(a.i.risk_reason) - rank(b.i.risk_reason);
@@ -132,9 +143,22 @@ export function CustomersManager() {
       });
     return withData.filter((x) => Number(x.i.outstanding_mvr) > 0)
       .sort((a, b) => Number(b.i.outstanding_mvr) - Number(a.i.outstanding_mvr));
-  }, [segment, filtered, insightById]);
+  }, [segment, filtered, insightById, strandedIds]);
 
-  const riskCount = useMemo(() => insights.filter((i) => i.at_risk).length, [insights]);
+  // Stranded rows respect the search box like every other lens does, so typing
+  // a name narrows the whole work list and not half of it.
+  const visibleIds = useMemo(() => new Set(filtered.map((c) => c.id)), [filtered]);
+  const strandedRows = useMemo(
+    () => stranded.filter((s) => visibleIds.has(s.customer_id)),
+    [stranded, visibleIds],
+  );
+
+  // Counted as WORK, not as people: a customer stranded in two categories is
+  // two different conversations, and the badge is a to-do count.
+  const riskCount = useMemo(
+    () => insights.filter((i) => i.at_risk && !strandedIds.has(i.customer_id)).length + stranded.length,
+    [insights, stranded, strandedIds],
+  );
   const owesCount = useMemo(() => insights.filter((i) => Number(i.outstanding_mvr) > 0).length, [insights]);
 
   // Group alphabetically by first letter (iOS Contacts pattern) with sticky
@@ -310,10 +334,63 @@ export function CustomersManager() {
           It now mirrors the dashboard card exactly: the reason in words, how
           long it has been, how long what they bought should have lasted, and
           the same three-draft Message button. */}
-      {segment === "risk" && ranked.length === 0 && (
+      {segment === "risk" && ranked.length === 0 && strandedRows.length === 0 && (
         <p className="ios-subhead px-1 py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
           Nobody is overdue to order.
         </p>
+      )}
+
+      {/* STRANDED — first, because it is the only block with a deadline.
+          These customers have bought nothing but ranges we have stopped
+          buying. Everyone else in this lens is late on something we can still
+          sell them; these people have nothing to come back FOR, and when the
+          stock they hold runs out there is no reason in their history to
+          return. They do not announce it — they simply stop.
+          The swap is chosen in Postgres and is only ever something in stock,
+          so this block never offers what cannot be sent. */}
+      {segment === "risk" && strandedRows.length > 0 && (
+        <div className="space-y-2">
+          <p className="label-caps text-[12px] px-1 pt-2 pb-1.5" style={{ color: "var(--muted-foreground)" }}>
+            Nothing left for them to reorder
+          </p>
+          {strandedRows.map((s) => (
+            <div key={`${s.customer_id}-${s.category}`}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+              style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+              <Link href={`/customers/${s.customer_id}`} className="min-w-0 flex-1">
+                <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                  {s.name}
+                </p>
+                {/* --foreground at 0.7, never muted: this is the reason he is
+                    looking at the row, not a decorative caption. */}
+                <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                  Was buying {s.dropped_model}{s.dropped_size ? ` ${s.dropped_size}` : ""}
+                  {s.days_since_last != null ? ` · last ordered ${s.days_since_last} days ago` : ""}
+                </p>
+                {s.swap_label ? (
+                  <p className="ios-footnote mt-0.5" style={{ color: "var(--snm-success)" }}>
+                    Offer {s.swap_label}
+                    {s.swap_packs_avail != null ? ` · ${s.swap_packs_avail} packs in stock` : ""}
+                  </p>
+                ) : (
+                  // Not a failure to hide — it is the finding. There is nothing
+                  // in their size we can send, which is a buying decision.
+                  <p className="ios-footnote mt-0.5" style={{ color: "var(--snm-warning)" }}>
+                    Nothing in {s.dropped_size ?? "their size"} to offer — needs stock
+                  </p>
+                )}
+              </Link>
+              {s.swap_label && (
+                <MessageButton
+                  name={s.name}
+                  phone={s.phone}
+                  label="Offer"
+                  drafts={switchDrafts(s.name, s.swap_label, s.dropped_size)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       )}
       {segment === "risk" && ranked.length > 0 && (
         <div className="space-y-2">

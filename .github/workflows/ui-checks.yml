@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirteen audits he can run locally (`npm run audit:ui`):
+# This runs the same fourteen audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
@@ -27,6 +27,8 @@ name: UI checks
 #   card      the Product Card: every figure on it reconciles to the ledger
 #   sellnew   a product you own but never received can be stocked mid-sale —
 #             and still cannot be sold from nothing
+#   stranded  customers whose whole history is a range we stopped buying are
+#             surfaced, with a replacement we actually hold in stock
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -34,9 +36,16 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All thirteen are proven to fail when the bug they guard is reintroduced; that was
-# checked by putting each one back deliberately. The table of which mutation
-# each one caught is in scripts/audit/README.md.
+# THIRTEEN of the fourteen are proven to fail when the bug they guard is
+# reintroduced; that was checked by putting each one back deliberately. The
+# table of which mutation each one caught is in scripts/audit/README.md.
+#
+# `stranded` is the exception and must not be counted as proven yet: it was
+# written in an environment with no Docker, so it could not be run — let alone
+# mutated — before it shipped. It owes its mutation proof the first time this
+# suite runs somewhere with a local stack. An unproven check is worth less than
+# it looks: it can pass because the bug is absent, or because the check itself
+# never really looked.
 
 on:
   pull_request:
@@ -149,6 +158,9 @@ jobs:
 
       - name: Sell new product — stock it mid-sale, never sell from nothing
         run: npm run audit:sellnew
+
+      - name: Stranded — customers with nothing left to reorder are surfaced
+        run: npm run audit:stranded
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

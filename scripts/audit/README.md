@@ -236,7 +236,16 @@ at once. Neither was findable by reading `globals.css`.
 ## They are proven to fail
 
 A check that cannot fail is worse than none — it manufactures confidence. Each
-was verified by putting its bug back:
+was verified by putting its bug back.
+
+> **`stranded.mjs` is the one exception and is listed here so it cannot be
+> quietly counted as proven.** It was written on a machine with no Docker, so
+> the local stack could not start and the audit could not be run, let alone
+> mutated, before it shipped. Until someone runs it with a local stack and
+> confirms it goes red when the stranded block is removed from
+> `customers-manager.tsx`, treat a green from it as *no evidence*, not as
+> assurance. The engine underneath it (`get_stranded_customers`) does have real
+> coverage — 12 pgTAP tests in `discontinued_range.test.sql`.
 
 | Mutation | Caught by |
 |---|---|
