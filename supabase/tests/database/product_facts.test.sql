@@ -27,8 +27,10 @@ begin
   values ('Test Nappies', 'pcs', 'piece', 'kg', 'weight') returning id into v_cat;
 
   -- A category with NO progression, to prove the ladder is opt-in.
+  -- 'bottle', not 'btl': unit_uom is constrained to a fixed vocabulary
+  -- (pcs/ml/g/tub/jar/tube/bar/sachet/bottle/unit).
   insert into product_categories (name, unit_uom, cost_basis)
-  values ('Test Soap', 'btl', 'piece') returning id into v_flat;
+  values ('Test Soap', 'bottle', 'piece') returning id into v_flat;
 
   -- A third category used only by the duplicate-default constraint check. It is
   -- kept apart from 'Test Nappies' deliberately: a brand_id-null row there would
