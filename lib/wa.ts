@@ -99,7 +99,7 @@ function firstName(fullName: string): string {
  */
 export interface ReorderDraft {
   /** Short label for the picker — what SITUATION this message is for. */
-  key: "check-in" | "deliver" | "same";
+  key: "check-in" | "deliver" | "same" | "heads-up" | "swap" | "same-size";
   label: string;
   /** One line telling him when to pick this one. */
   hint: string;
@@ -136,4 +136,59 @@ export function reorderDrafts(fullName: string): ReorderDraft[] {
  */
 export function reorderNudge(fullName: string): string {
   return reorderDrafts(fullName)[1].text;
+}
+
+/**
+ * Drafts for a customer whose range we have stopped stocking.
+ *
+ * A DIFFERENT MESSAGE, NOT A REORDER NUDGE. "Are you running low?" is the wrong
+ * sentence for someone whose product is going away — it invites them to ask for
+ * a thing we will not have, and the next message has to take it back. These
+ * three lead with what we CAN send.
+ *
+ * NOBODY IS MADE TO FEEL STUPID. Ali, 2026-08-13: educate customers "in a way
+ * they don't feel they're dumb". So none of these say "discontinued", none
+ * explain the customer's own purchase back to them, and none imply they chose
+ * wrongly. The change is ours and it is stated as ours.
+ *
+ * THE SIZE IS THE REASSURANCE. A parent's real question is "will it fit" — so
+ * the size travels into the message whenever we know it, because "the same
+ * size" is the whole of what makes the swap easy to say yes to. Categories
+ * without sizes (a detergent) simply omit it, which is why `size` is optional
+ * rather than a hardcoded assumption about babies.
+ *
+ * WE NEVER OFFER WHAT WE CANNOT SEND. `get_stranded_customers` only returns a
+ * swap that is in stock, and the caller renders no button at all when there
+ * is none — an apology with no alternative is worse than silence.
+ */
+export function switchDrafts(
+  fullName: string,
+  offer: string,
+  size?: string | null,
+): ReorderDraft[] {
+  const first = firstName(fullName);
+  const sized = size ? ` in ${size}` : "";
+  // The size is already in `sized`; this only adds the reassurance that it has
+  // not changed, and says nothing at all for a category that has no sizes.
+  const sameSize = size ? " Same size as before." : "";
+  return [
+    {
+      key: "heads-up",
+      label: "Give them warning",
+      hint: "Honest, and early enough to matter",
+      text: `Hi ${first}, hope you're well! Just so you know, we've changed the range we stock. We have ${offer}${sized} ready whenever you need it.`,
+    },
+    {
+      key: "swap",
+      label: "Offer the replacement",
+      hint: "Leads with what we can send",
+      text: `Hi ${first}! We now stock ${offer}${sized}.${sameSize} Happy to send some over today if that helps.`,
+    },
+    {
+      key: "same-size",
+      label: "Easiest to say yes to",
+      hint: "One question, one answer",
+      text: `Hi ${first}, would you like us to send ${offer}${sized} this time? We can deliver today.`,
+    },
+  ];
 }

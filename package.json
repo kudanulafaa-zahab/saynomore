@@ -12,7 +12,7 @@
     "audit:contrast": "node scripts/audit/contrast.mjs",
     "audit:material": "node scripts/audit/material.mjs",
     "audit:journey": "node scripts/audit/journey.mjs",
-    "audit:ui": "npm run audit:wa && npm run audit:journey && npm run audit:grn && npm run audit:offline && npm run audit:running-costs && npm run audit:reorder && npm run audit:direct && npm run audit:newsku && npm run audit:card && npm run audit:sellnew && npm run audit:reach && npm run audit:material && npm run audit:contrast",
+    "audit:ui": "npm run audit:wa && npm run audit:journey && npm run audit:grn && npm run audit:offline && npm run audit:running-costs && npm run audit:reorder && npm run audit:direct && npm run audit:newsku && npm run audit:card && npm run audit:sellnew && npm run audit:stranded && npm run audit:reach && npm run audit:material && npm run audit:contrast",
     "audit:offline": "node scripts/audit/offline.mjs",
     "backup": "bash scripts/backup.sh",
     "audit:grn": "node scripts/audit/grn.mjs",
@@ -23,7 +23,8 @@
     "audit:newsku": "node scripts/audit/new-sku.mjs",
     "audit:reach": "node scripts/audit/reach.mjs",
     "audit:card": "node scripts/audit/product-card.mjs",
-    "audit:sellnew": "node scripts/audit/sell-new-product.mjs"
+    "audit:sellnew": "node scripts/audit/sell-new-product.mjs",
+    "audit:stranded": "node scripts/audit/stranded.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

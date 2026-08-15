@@ -26,7 +26,7 @@
 import { useState } from "react";
 import { MessageCircle, Check } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
-import { whatsappLink, reorderDrafts, waNumber } from "@/lib/wa";
+import { whatsappLink, reorderDrafts, waNumber, type ReorderDraft } from "@/lib/wa";
 import { haptic } from "@/lib/haptics";
 
 export function MessageButton({
@@ -34,17 +34,32 @@ export function MessageButton({
   phone,
   /** "solid" for the primary row action, "quiet" inside a dense list. */
   tone = "solid",
+  /**
+   * Which three drafts to offer. Defaults to the reorder nudge.
+   *
+   * This is a PROP rather than a second component because the difference
+   * between "are you running low?" and "we've changed the range" is the
+   * sentences, not the interaction — the picker, the three-draft rule, the
+   * "we" wording, the no-number guard and the never-send-it-ourselves promise
+   * are all identical. The last time a pattern was copied across screens the
+   * copies drifted invisibly, so the words vary and nothing else does.
+   */
+  drafts: providedDrafts,
+  /** Overrides the button caption when the message is not a reorder nudge. */
+  label = "Message",
 }: {
   name: string;
   phone: string | null | undefined;
   tone?: "solid" | "quiet";
+  drafts?: ReorderDraft[];
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   // Decided BEFORE anything renders: no trusted number, no button at all.
   if (!waNumber(phone)) return null;
 
-  const drafts = reorderDrafts(name);
+  const drafts = providedDrafts ?? reorderDrafts(name);
 
   return (
     <>
@@ -60,7 +75,7 @@ export function MessageButton({
         }
       >
         <MessageCircle className="h-4 w-4" />
-        Message
+        {label}
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} variant="auto" maxWidth="max-w-md">
