@@ -226,6 +226,10 @@ export function SaleDetail({ id }: { id: string }) {
   const isConfirmed  = order?.status === "confirmed" || order?.status === "picked";
   const isDispatched = order?.status === "out_for_delivery";
   const isDelivered  = order?.status === "delivered";
+  // Stock is deducted when the order is CONFIRMED, so from that point the
+  // goods physically exist outside the godown and can come back.
+  const stockHasLeft = order != null
+    && !["draft", "cancelled"].includes(order.status);
   const isCancelled  = order?.status === "cancelled";
   const isCOD        = order?.payment_method === "cod";
   // Lines can only be safely edited (via editOrderLine, which re-runs FIFO)
@@ -540,6 +544,8 @@ export function SaleDetail({ id }: { id: string }) {
       toast.success(
         res.settlement === "refund"
           ? `Return recorded — MVR ${Number(res.refund_mvr).toLocaleString()} to refund.`
+          : res.settlement === "replace"
+          ? "Return recorded — a replacement has gone out of stock. Nothing changes on the bill."
           : `Return recorded — MVR ${Number(res.refund_mvr).toLocaleString()} off what they owe.`,
       );
       setPanel(null); setRetSkuId(""); setRetQty(""); setRetNotes("");
@@ -1023,6 +1029,44 @@ export function SaleDetail({ id }: { id: string }) {
         </>
       )}
 
+      {/* ── Goods coming back ────────────────────────────────────────────
+          Shown from CONFIRMED onward, not only once delivered. Stock leaves the
+          godown at confirmation (post_sale), so from that moment the goods are
+          out and a return is the only correct way to bring them back or write
+          them off. Gating this on `delivered` was an oversight and it stranded
+          Ali on SO-2026-117: the pack was physically back in his hand and the
+          app offered him nowhere to put it. record_customer_return has always
+          accepted any order that is not draft or cancelled, so the engine and
+          the screen simply disagreed.
+
+          Voiding is NOT the alternative — that erases the whole sale, the money
+          and the history with it. A return records what actually happened: it
+          went out, it came back, and this is what it cost. */}
+      {isAdminOrManager && lines.length > 0 && stockHasLeft && (
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <p style={{ color: "var(--foreground)", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Something come back?</p>
+          <p style={{ color: "var(--foreground)", opacity: 0.75, fontSize: 13, marginBottom: 14 }}>
+            Record what returned, whether it can be sold again, and how the customer is squared up —
+            money back, less to pay, or another one sent.
+          </p>
+          <button
+            onClick={() => {
+              setRetSkuId(lines[0].sku_id); setRetQty("");
+              // Same rule on the way IN as on change: the sheet opens on the
+              // first line, so its unit has to match that line too.
+              const firstSku = skus.find((x) => x.id === lines[0].sku_id);
+              setRetUnit(lines[0].is_mixed_carton_fill ? "piece"
+                : firstSku ? pickUom(firstSku, retUnit) : retUnit);
+              setPanel("return");
+            }}
+            style={{ width: "100%", background: "transparent", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            <Undo2 style={{ width: 16, height: 16 }} />
+            Record a return
+          </button>
+        </div>
+      )}
+
       {/* ── STAGE: Delivered ─────────────────────────────────────────────── */}
       {isDelivered && (
         <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
@@ -1103,26 +1147,6 @@ export function SaleDetail({ id }: { id: string }) {
           )}
 
           <LineList lines={lines} skus={skus} editable={false} />
-
-          {/* Customer return — the correct path for goods coming back (voiding
-              the order would erase the whole sale). Admin/manager only. */}
-          {isAdminOrManager && lines.length > 0 && (
-            <button
-              onClick={() => {
-                setRetSkuId(lines[0].sku_id); setRetQty("");
-                // Same rule on the way IN as on change: the sheet opens on the
-                // first line, so its unit has to match that line too.
-                const firstSku = skus.find((x) => x.id === lines[0].sku_id);
-                setRetUnit(lines[0].is_mixed_carton_fill ? "piece"
-                  : firstSku ? pickUom(firstSku, retUnit) : retUnit);
-                setPanel("return");
-              }}
-              style={{ width: "100%", marginTop: 14, background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", borderRadius: 999, padding: "13px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            >
-              <Undo2 style={{ width: 16, height: 16 }} />
-              Record a return
-            </button>
-          )}
         </div>
       )}
 
@@ -1471,6 +1495,9 @@ export function SaleDetail({ id }: { id: string }) {
           const line = lines.find((l) => l.sku_id === retSkuId);
           const pricePc = line && line.qty_pieces > 0 ? Number(line.line_total_mvr) / line.qty_pieces : 0;
           const value = pieces * pricePc;
+          // What has actually been taken from this customer. Refund is only a
+          // real option above this line — see the settlement row below.
+          const paidSoFar = payments.reduce((a, p) => a + Number(p.amount_mvr), 0);
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
@@ -1530,22 +1557,41 @@ export function SaleDetail({ id }: { id: string }) {
                 </div>
               </div>
 
+              {/* Three settlements, and they are genuinely different events —
+                  not one idea with three labels. "Money back" is only offered
+                  when money was actually taken: refunding someone who never
+                  paid writes a negative payment against an unsettled bill and
+                  leaves them owing the same amount with a phantom refund beside
+                  it. The engine refuses it too (0182); this stops him getting
+                  as far as the error. */}
               <div>
                 <label style={{ color: "var(--muted-foreground)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Settle it how?</label>
                 <div style={{ display: "flex", gap: 6 }}>
-                  {([["credit","Less to pay"],["refund","Money back"]] as const).map(([v, l]) => (
-                    <button key={v} onClick={() => setRetSettle(v)}
-                      style={{ flex: 1, padding: "12px", borderRadius: 12, cursor: "pointer", fontSize: 13, fontWeight: 600,
-                        background: retSettle === v ? "var(--foreground)" : "var(--glass-bg-1)",
-                        color: retSettle === v ? "var(--background)" : "var(--muted-foreground)",
-                        border: retSettle === v ? "none" : "0.5px solid var(--glass-border-lo)" }}>{l}</button>
-                  ))}
+                  {([["credit","Less to pay"],["refund","Money back"],["replace","Send another"]] as const).map(([v, l]) => {
+                    const off = v === "refund" && paidSoFar <= 0;
+                    return (
+                      <button key={v} disabled={off}
+                        onClick={() => setRetSettle(v)}
+                        style={{ flex: 1, padding: "12px", borderRadius: 12, cursor: off ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600,
+                          opacity: off ? 0.4 : 1,
+                          background: retSettle === v ? "var(--foreground)" : "var(--glass-bg-1)",
+                          color: retSettle === v ? "var(--background)" : "var(--muted-foreground)",
+                          border: retSettle === v ? "none" : "0.5px solid var(--glass-border-lo)" }}>{l}</button>
+                    );
+                  })}
                 </div>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 6 }}>
+                <p style={{ color: "var(--foreground)", opacity: 0.75, fontSize: 12, marginTop: 6 }}>
                   {retSettle === "credit"
-                    ? "Reduces what this customer still owes on this order."
-                    : "You hand the money back — recorded as a refund."}
+                    ? "Comes off what they still owe on this order. No money changes hands."
+                    : retSettle === "refund"
+                    ? "You hand the money back — recorded as a refund."
+                    : "They keep the order and you send the same product again. Nothing changes on the bill, and one more comes out of stock."}
                 </p>
+                {paidSoFar <= 0 && (
+                  <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 4 }}>
+                    Nothing has been paid on this order, so there is no money to hand back.
+                  </p>
+                )}
               </div>
 
               <button onClick={() => setRetRestock((v) => !v)}

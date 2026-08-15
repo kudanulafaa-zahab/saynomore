@@ -50,7 +50,12 @@ const STATUS_ICON: Record<OrderStatus, typeof Clock> = {
 // ── Order row (memoized — search re-renders SalesList on every keystroke,
 // but a row only needs to re-render if its own order/customer changed) ──────
 
-const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: SalesOrderRow; customer?: CustomerRow }) {
+const OrderRow = memo(function OrderRow({ order: o }: { order: SalesOrderRow }) {
+  // Identity comes with the order (0181), never from a separately cached
+  // customer list. That lookup could not tell "no customer" apart from
+  // "customer not loaded yet", so a brand-new customer's order was shown
+  // as a walk-in and the name only appeared once the cache caught up.
+  const custName = o.customer_name ?? null;
   const Icon = STATUS_ICON[o.status];
   const colors = STATUS_COLOR[o.status];
   const total = o.order_total_mvr ?? 0;
@@ -67,7 +72,7 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
   // Swipe left for the two things actually done from this list: ring the
   // customer, or message them. Deliberately no money action here — recording
   // a payment needs the amount and method, which is a sheet, not a swipe.
-  const phone = cust?.phone?.replace(/[^\d+]/g, "") ?? "";
+  const phone = o.customer_phone?.replace(/[^\d+]/g, "") ?? "";
   const swipeActions: SwipeAction[] = phone
     ? [
         {
@@ -86,8 +91,8 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
             // country code or it silently opens an empty chat.
             const intl = digits.length <= 7 ? `960${digits}` : digits;
             const msg = isOwed
-              ? `Hello${cust?.name ? ` ${cust.name}` : ""}, about order ${o.order_number} — MVR ${owed.toLocaleString(undefined, { maximumFractionDigits: 2 })} is still outstanding.`
-              : `Hello${cust?.name ? ` ${cust.name}` : ""}, about your order ${o.order_number}.`;
+              ? `Hello${custName ? ` ${custName}` : ""}, about order ${o.order_number} — MVR ${owed.toLocaleString(undefined, { maximumFractionDigits: 2 })} is still outstanding.`
+              : `Hello${custName ? ` ${custName}` : ""}, about your order ${o.order_number}.`;
             window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
           },
         },
@@ -112,7 +117,7 @@ const OrderRow = memo(function OrderRow({ order: o, customer: cust }: { order: S
             stays aligned down the list instead of jittering per row. */}
         <div className="flex items-baseline gap-2">
           <p className="text-[17px] font-semibold text-foreground truncate flex-1 min-w-0" style={{ letterSpacing: "-0.012em" }}>
-            {cust?.name ?? "Walk-in"}
+            {custName ?? "Walk-in"}
           </p>
           {total > 0 && (
             <p className="text-[16px] font-bold text-foreground snm-num shrink-0">
@@ -348,7 +353,10 @@ export function SalesList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupBy, hasMore, custHasMore, loadingMore, cursor, custCursor, filters]);
 
-  const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
+  // No customerById map any more, deliberately. Order identity travels with the
+  // order (0181); a second lookup table aged separately from the list it
+  // described and produced "Walk-in" for real customers. `customers` is still
+  // loaded because the New Sale picker needs the full rows.
 
   /** True when anything is narrowing the list — used to tell "no sales yet"
    *  apart from "no matches". */
@@ -561,7 +569,7 @@ export function SalesList() {
                     {day}
                   </p>
                 )}
-                <OrderRow order={o} customer={customerById.get(o.customer_id ?? "")} />
+                <OrderRow order={o} />
               </div>
             );
           })}

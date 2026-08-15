@@ -13,7 +13,13 @@ export async function proxy(request: NextRequest) {
     path.startsWith("/auth/") ||
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
-    path.startsWith("/offline")
+    path.startsWith("/offline") ||
+    // Which commit is live. It exists to be readable from OUTSIDE the app —
+    // `npm run shipped` uses it to prove production is serving main, and a
+    // check that needed a login could not answer that from a terminal. Safe to
+    // expose: the repository is public, so the SHA is already published, and
+    // the route returns nothing else.
+    path === "/api/version"
   ) {
     return response;
   }
