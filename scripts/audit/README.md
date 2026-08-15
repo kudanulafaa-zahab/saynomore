@@ -236,16 +236,7 @@ at once. Neither was findable by reading `globals.css`.
 ## They are proven to fail
 
 A check that cannot fail is worse than none — it manufactures confidence. Each
-was verified by putting its bug back.
-
-> **`stranded.mjs` is the one exception and is listed here so it cannot be
-> quietly counted as proven.** It was written on a machine with no Docker, so
-> the local stack could not start and the audit could not be run, let alone
-> mutated, before it shipped. Until someone runs it with a local stack and
-> confirms it goes red when the stranded block is removed from
-> `customers-manager.tsx`, treat a green from it as *no evidence*, not as
-> assurance. The engine underneath it (`get_stranded_customers`) does have real
-> coverage — 12 pgTAP tests in `discontinued_range.test.sql`.
+was verified by putting its bug back:
 
 | Mutation | Caught by |
 |---|---|
@@ -268,6 +259,8 @@ was verified by putting its bug back.
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
+| the stranded block never rendered (`segment === "risk"` → `false`) — the feature shipped but invisible, which is how it actually reached Ali the first time | stranded — 7 of 9 checks and the click timed out, incl. "the At risk lens has a block for people with nothing left to reorder" |
+| one switch draft rewritten to "I now stock" instead of "we" | stranded — exactly 2 checks, "each one speaks as 'we'" and "and none of them says 'I'", and nothing else moved |
 | the four sheet footers put back the way they shipped, without `--kb-inset` | reach — "Cancel is 320/323/328pt below the reachable line" on New SKU, New Sale and Add Customer |
 | one field 460px wide inside a 393pt sheet — the shape of "it's moving to the sides" | reach — both halves fired: "can pan sideways by 87px" AND "spills past the right edge by 87px" |
 

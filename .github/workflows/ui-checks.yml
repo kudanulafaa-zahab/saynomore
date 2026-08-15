@@ -36,16 +36,9 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# THIRTEEN of the fourteen are proven to fail when the bug they guard is
-# reintroduced; that was checked by putting each one back deliberately. The
-# table of which mutation each one caught is in scripts/audit/README.md.
-#
-# `stranded` is the exception and must not be counted as proven yet: it was
-# written in an environment with no Docker, so it could not be run — let alone
-# mutated — before it shipped. It owes its mutation proof the first time this
-# suite runs somewhere with a local stack. An unproven check is worth less than
-# it looks: it can pass because the bug is absent, or because the check itself
-# never really looked.
+# All fourteen are proven to fail when the bug they guard is reintroduced; that
+# was checked by putting each one back deliberately. The table of which mutation
+# each one caught is in scripts/audit/README.md.
 
 on:
   pull_request:
