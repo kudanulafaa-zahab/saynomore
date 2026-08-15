@@ -355,6 +355,20 @@ rufiyaa/rupiah rate moves underneath it as well.
    state is `SHIPPED`. If CI is still running, the work is not finished and
    neither is the turn: wait for it, merge it, deploy it, verify it.
    The one exception is work Ali has explicitly asked to hold back.
+
+   **A MIGRATION IS NOT A DELIVERY. Never report a database-only deploy as
+   progress.** Ali, 2026-08-15: *"You can't just half bake a build without
+   frontend if I can't see the app working functions."* Migrations are applied
+   to production via MCP the moment they are written, so for several turns the
+   true state was: engines live, screens in an open PR, and the app on his phone
+   completely unchanged — while he was being told things were "live on
+   production". That reads as progress and is not: he cannot use a function he
+   cannot see. Correct behaviour: **the migration and the screen that exposes it
+   are ONE unit of work**, finished and shipped together, and nothing is
+   described as live until `npm run shipped` passes AND he can open the app and
+   use it. If a database change genuinely must land ahead of its UI, say plainly
+   that the app will look unchanged until the screen ships — never call it
+   done.
 7. Never call Supabase directly in pages — always via `lib/queries/`
 8. **A new page is not done until it appears in the menu.** Nav grouping is
    DATA (`section` on each item in `components/layout/nav-config.ts`), read by
