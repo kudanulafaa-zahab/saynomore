@@ -242,12 +242,21 @@ export async function listRecentWriteoffs(
 // less owed (credit) — chosen per return.
 
 export type ReturnReason     = "unwanted" | "wrong_item" | "defective" | "other";
-export type ReturnSettlement = "refund" | "credit";
+/** How the customer is squared up. Deliberately independent of whether the
+ *  goods can be sold again (`restock`) — those are two different facts and
+ *  conflating them is the classic returns bug.
+ *
+ *  `replace` moves no money at all: they keep what they paid, or still owe
+ *  what they owed, because they are getting the goods they bought. A second
+ *  unit ships from stock and its cost is recorded on the return (0182). */
+export type ReturnSettlement = "refund" | "credit" | "replace";
 
 export interface ReturnResult {
   id: string;
   refund_mvr: number;
   cost_recovered_mvr: number;
+  /** Landed cost of the goods sent out as a replacement. Zero otherwise. */
+  replacement_cost_mvr: number;
   restocked: boolean;
   settlement: ReturnSettlement;
 }
