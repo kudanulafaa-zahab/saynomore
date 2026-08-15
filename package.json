@@ -25,7 +25,8 @@
     "audit:card": "node scripts/audit/product-card.mjs",
     "audit:sellnew": "node scripts/audit/sell-new-product.mjs",
     "audit:stranded": "node scripts/audit/stranded.mjs",
-    "audit:identity": "node scripts/audit/order-identity.mjs"
+    "audit:identity": "node scripts/audit/order-identity.mjs",
+    "shipped": "node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
