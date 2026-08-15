@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same fifteen audits he can run locally (`npm run audit:ui`):
+# This runs the same sixteen audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
@@ -31,6 +31,8 @@ name: UI checks
 #             surfaced, with a replacement we actually hold in stock
 #   identity  an order shows the customer it belongs to on first paint, even
 #             one the browser has never loaded — "Walk-in" means no customer
+#   crosssell a category the customer has never bought is offered alongside an
+#             order already being packed, and adds through the normal door
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -38,7 +40,7 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All fifteen are proven to fail when the bug they guard is reintroduced; that
+# All sixteen are proven to fail when the bug they guard is reintroduced; that
 # was checked by putting each one back deliberately. The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
@@ -159,6 +161,9 @@ jobs:
 
       - name: Order identity — the Sales list never guesses whose order it is
         run: npm run audit:identity
+
+      - name: Cross-sell — the cheapest sale is offered at the till
+        run: npm run audit:crosssell
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

@@ -893,3 +893,42 @@ export function toPieces(uom: SaleUom, qty: number, pcsPerPack: number, packsPer
   // carton
   return Math.round(qty * pcsPerPack * packsPerCarton);
 }
+
+// ── Cross-sell (migration 0183) ──────────────────────────────────────────
+// 55 customers buy nappies, 19 buy detergent, and not one buys both — across
+// 101 orders no basket has ever held two categories. A bottle added to an order
+// already being packed is the cheapest revenue in the business: no advert, no
+// new customer, no second delivery.
+//
+// The whole decision is made in Postgres — which category they have never
+// bought, what is on that warehouse's shelf, what is not being discontinued,
+// what sells above cost. The screen renders one suggestion or nothing.
+
+export interface CrossSellSuggestion {
+  sku_id: string;
+  label: string;
+  category: string;
+  /** The unit it is actually sold in — never a piece. */
+  sell_unit: "pack" | "carton";
+  price_mvr: number;
+  packs_on_hand: number;
+  /** How many OTHER customers buy it. Shown as plain social proof. */
+  buyers: number;
+}
+
+/** One thing worth offering alongside this order, or null when there is
+ *  nothing honest to suggest. `excludeSkus` is whatever is already in the
+ *  basket. */
+export async function getCrossSellSuggestion(
+  customerId: string,
+  godownId: string,
+  excludeSkus: string[] = [],
+): Promise<CrossSellSuggestion | null> {
+  const { data, error } = await supabase.rpc("get_cross_sell_suggestion", {
+    p_customer_id: customerId,
+    p_godown_id: godownId,
+    p_exclude_skus: excludeSkus,
+  });
+  if (error) throw error;
+  return (data ?? null) as CrossSellSuggestion | null;
+}

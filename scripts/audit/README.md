@@ -263,6 +263,8 @@ was verified by putting its bug back:
 | one switch draft rewritten to "I now stock" instead of "we" | stranded — exactly 2 checks, "each one speaks as 'we'" and "and none of them says 'I'", and nothing else moved |
 | the Sales row going back to the cached client-side customer lookup — the REAL bug Ali reported, where a new customer's order read as "Walk-in" | order-identity — 3 of 5 checks, incl. "a customer the browser has never loaded is still shown by name, on first paint" |
 | `get_sales_orders` returning `null` for customer_name/phone again | pgTAP `order_identity` — 4 of 7, incl. "name is absent exactly when the customer is absent"; the walk-in, search and permission checks correctly stayed green |
+| the cross-sell suggestion never reaching the screen (`setCrossSell(null)`) | cross-sell — 5 of 8 checks and the add click timed out |
+| the "never a category they already buy" and "never below cost" rules dropped from `get_cross_sell_suggestion` | pgTAP `cross_sell` — 4 of 10, and it immediately offered the BELOW-COST product |
 | the four sheet footers put back the way they shipped, without `--kb-inset` | reach — "Cancel is 320/323/328pt below the reachable line" on New SKU, New Sale and Add Customer |
 | one field 460px wide inside a 393pt sheet — the shape of "it's moving to the sides" | reach — both halves fired: "can pan sideways by 87px" AND "spills past the right edge by 87px" |
 
