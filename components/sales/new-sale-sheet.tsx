@@ -48,6 +48,7 @@ const CHANNELS: { value: OrderChannel; label: string }[] = [
   { value: "walkin",    label: "Walk-in"   },
   { value: "other",     label: "Other"     },
 ];
+import { getCrossSellSuggestion, type CrossSellSuggestion } from "@/lib/queries/sales";
 import { CartLines } from "./cart/cart-lines";
 import { type DraftLine, packLabel, defaultUom, tradeCfg, cartShortfalls, nextCartLineKey } from "./cart/cart-math";
 import { GlassSelect, WarehouseSelect } from "./warehouse-select";
@@ -135,6 +136,11 @@ export function NewSaleSheet({
   // Starting empty makes it one deliberate tap every time. That is the
   // reminder: unmissable, and impossible to swipe away.
   const [godownId, setGodownId] = useState("");
+  // One thing worth offering alongside this order. Everything about WHICH
+  // thing is decided in Postgres (0183); this holds the answer and whether
+  // he waved it away for this order.
+  const [crossSell, setCrossSell] = useState<CrossSellSuggestion | null>(null);
+  const [crossSellOff, setCrossSellOff] = useState(false);
 
   // Step 3 — payment
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
@@ -517,6 +523,21 @@ export function NewSaleSheet({
 
   const insufficient = stockHere !== null && lineQtyPieces > stockHere;
   const grandTotal = useMemo(() => draftLines.reduce((s, l) => s + l.line_total_mvr, 0), [draftLines]);
+
+  // Ask again whenever the basket, the customer or the warehouse changes — the
+  // answer depends on all three. A walk-in has no history to reason from, so
+  // there is nothing honest to suggest and it is not asked for.
+  useEffect(() => {
+    if (!godownId || !customerId || customerId === "walkin" || draftLines.length === 0) {
+      setCrossSell(null);
+      return;
+    }
+    let cancelled = false;
+    getCrossSellSuggestion(customerId, godownId, draftLines.map((l) => l.sku.id))
+      .then((s) => { if (!cancelled) setCrossSell(s); })
+      .catch(() => { if (!cancelled) setCrossSell(null); });
+    return () => { cancelled = true; };
+  }, [customerId, godownId, draftLines]);
 
   /** Bottles/pieces on the shelf for a SKU in the chosen warehouse. The cart's
    *  + button stops here, so an order can never be built past what exists. */
@@ -2073,6 +2094,59 @@ export function NewSaleSheet({
                 maxPiecesFor={maxPiecesFor}
               />
             </div>
+
+            {/* ONE suggestion, in the scrolling body — never in the pinned
+                footer, which must keep holding the action (reach.mjs enforces
+                that). 55 customers buy nappies, 19 buy detergent and NOT ONE
+                buys both, so the cheapest sale available is a bottle added to a
+                box already going out.
+
+                Everything about which product is decided in Postgres: a
+                category they have never bought, in stock in THIS warehouse,
+                not a discontinued range, and sold above cost. If none of that
+                holds, nothing renders — a suggestion the app cannot stand
+                behind is worse than silence at the till. */}
+            {crossSell && !crossSellOff && (
+              <div className="rounded-2xl p-4" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                      Going out anyway
+                    </p>
+                    <p className="ios-subhead font-semibold mt-0.5 truncate" style={{ color: "var(--foreground)" }}>
+                      {crossSell.label}
+                    </p>
+                    {/* --foreground, not muted: this is the reason to tap. */}
+                    <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                      MVR {crossSell.price_mvr.toLocaleString()} a {crossSell.sell_unit}
+                      {crossSell.buyers > 0 ? ` · ${crossSell.buyers} other customers buy it` : ""}
+                      {` · ${crossSell.packs_on_hand} packs here`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setCrossSellOff(true)}
+                    aria-label="Not this time"
+                    className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center snm-pressable"
+                    style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    const s2 = skus.find((x) => x.id === crossSell.sku_id);
+                    if (!s2) return;
+                    // The same add path as every other product — never a second
+                    // way into the cart, so the one-line-per-product rule and
+                    // the below-cost guard both still apply.
+                    pushQuickLine(s2, defaultUom(s2), crossSell.price_mvr);
+                    setCrossSell(null);
+                  }}
+                  className="mt-3 w-full h-11 rounded-xl ios-subhead font-semibold snm-pressable"
+                  style={{ background: "var(--foreground)", color: "var(--background)" }}>
+                  Add to this order
+                </button>
+              </div>
+            )}
 
             </>
             )}
