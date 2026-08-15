@@ -46,9 +46,16 @@ const q1 = (sql) => execFileSync("psql", [DB, "-tAc", sql], { encoding: "utf8" }
 // Everything this audit needs, created by this audit. reorder-nudge.mjs learned
 // the hard way that a check whose result depends on which audits ran before it
 // is a coin toss, not a check.
+//
+// KEYED OFF THE SKU CODE AND THE CUSTOMER NAME, NEVER THE ORDER NUMBER.
+// `trg_assign_sales_order_number` rewrites order_number on insert, so the
+// 'AUD-STR-1' handed to the INSERT does not survive it — matching on it deleted
+// nothing, the order line outlived its SKU, and the run died on a foreign key
+// during teardown. The SKU code and the customer name are ours and nothing
+// rewrites them.
 const cleanup = `
-  delete from sales_order_lines where order_id in (select id from sales_orders where order_number like 'AUD-STR-%');
-  delete from sales_orders where order_number like 'AUD-STR-%';
+  delete from sales_order_lines where sku_id in (select id from skus where internal_code like 'AUDSTR-%');
+  delete from sales_orders where customer_id in (select id from customers where name = 'AudStr Stranded');
   delete from stock_movements where sku_id in (select id from skus where internal_code like 'AUDSTR-%');
   delete from inventory_batches where sku_id in (select id from skus where internal_code like 'AUDSTR-%');
   delete from skus where internal_code like 'AUDSTR-%';
@@ -159,5 +166,15 @@ try {
 }
 await ctx.close(); await b.close();
 
-q(cleanup);
+// Teardown is REPORTED, not allowed to swallow the run. The first CI run died
+// here with the checks already done and never printed one of them, so a cleanup
+// bug looked exactly like a broken feature. A failure to tidy up is worth
+// knowing about — it leaves rows behind for the next audit — so it becomes a
+// failed check rather than an exception that eats the results.
+try {
+  q(cleanup);
+} catch (e) {
+  list.ok(false, `cleanup left rows behind: ${String(e).split("\n")[0].slice(0, 150)}`);
+}
+
 finish(list.report());
