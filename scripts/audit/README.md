@@ -261,6 +261,8 @@ was verified by putting its bug back:
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
 | the stranded block never rendered (`segment === "risk"` → `false`) — the feature shipped but invisible, which is how it actually reached Ali the first time | stranded — 7 of 9 checks and the click timed out, incl. "the At risk lens has a block for people with nothing left to reorder" |
 | one switch draft rewritten to "I now stock" instead of "we" | stranded — exactly 2 checks, "each one speaks as 'we'" and "and none of them says 'I'", and nothing else moved |
+| the Sales row going back to the cached client-side customer lookup — the REAL bug Ali reported, where a new customer's order read as "Walk-in" | order-identity — 3 of 5 checks, incl. "a customer the browser has never loaded is still shown by name, on first paint" |
+| `get_sales_orders` returning `null` for customer_name/phone again | pgTAP `order_identity` — 4 of 7, incl. "name is absent exactly when the customer is absent"; the walk-in, search and permission checks correctly stayed green |
 | the four sheet footers put back the way they shipped, without `--kb-inset` | reach — "Cancel is 320/323/328pt below the reachable line" on New SKU, New Sale and Add Customer |
 | one field 460px wide inside a 393pt sheet — the shape of "it's moving to the sides" | reach — both halves fired: "can pan sideways by 87px" AND "spills past the right edge by 87px" |
 

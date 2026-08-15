@@ -50,6 +50,16 @@ export interface SalesOrderRow {
    *  e.g. "Xtra Kering M — 1 carton (4×48 = 192 pcs)" or
    *  "Sosoft mixed carton — 6 bottles (Blue 2 · Red 2 · Pink 1 · Purple 1)". */
   items_summary?: string | null;
+  /** The customer's name, from the same row as the order (0181).
+   *
+   *  NULL exactly when `customer_id` is null — so this, and only this, is what
+   *  "Walk-in" may be rendered from. The list used to look the name up in a
+   *  separately cached customer list, which meant a customer it had not loaded
+   *  yet was indistinguishable from an order with no customer at all. */
+  customer_name?: string | null;
+  /** Their phone, for the row's WhatsApp action — same reason as the name:
+   *  a stale lookup made the button silently disappear. */
+  customer_phone?: string | null;
   /** Still owed: total − payments − returns. Never recompute this client-side. */
   balance_mvr?: number;
 }
