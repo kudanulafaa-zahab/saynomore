@@ -58,20 +58,29 @@ async function liveSha() {
 }
 
 let live;
+let lastErr = null;
 const started = Date.now();
 for (;;) {
   try {
     live = await liveSha();
+    lastErr = null;
   } catch (e) {
-    // Before this endpoint existed anywhere, a 404 is the expected answer and
-    // says nothing about the deploy. Say so rather than claiming a failure.
-    fail("could not read the live version", String(e).slice(0, 160)
-      + "\n  (if this 404s, the version endpoint has not shipped yet — deploy once, then this works)");
+    // A mid-deploy site can 404 or serve HTML for a moment, and the very first
+    // run after adding this endpoint will do so until it ships. Under --wait
+    // that is something to wait THROUGH, not to fail on — the first version of
+    // this script gave up here on its own first real use.
+    lastErr = e;
+    live = null;
   }
   if (live === mainSha) break;
   if (!WAIT || Date.now() - started > DEADLINE_MS) break;
   process.stdout.write(".");
   await new Promise((r) => setTimeout(r, 15000));
+}
+
+if (lastErr) {
+  fail("could not read the live version", String(lastErr).slice(0, 160)
+    + "\n  (if this 404s, the version endpoint has not shipped yet — deploy once, then this works)");
 }
 
 if (unmerged) {
