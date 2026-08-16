@@ -3,6 +3,14 @@
 **Read this first when continuing in a new chat.** Pair it with `CLAUDE.md` and
 `skills.md` (the standing laws), which load automatically.
 
+> **THE NEWEST SECTION IS §15 (2026-08-16), AND IT WINS OVER EVERY EARLIER ONE.**
+> The dated index sections stack — §7 → §11 → §13 → §14 → §15 — and each one
+> overrides the ones before it where they disagree. Read the newest first; the
+> older ones are history, not instructions. **What is still open lives in §15g,
+> not in §7a.** The session-start hook still points at "§7, then §11" and is out
+> of date on that one point; when the next dated section is written, add it to
+> this line.
+
 ## What this file is — and what it is NOT
 
 Ali, 2026-08-05: *"There are many things missing from your handoff file… How can
@@ -1293,6 +1301,10 @@ For newer work see §9 (08-06), §11 (08-07 → 08-10) and §12.)*
 **Current as of 2026-08-05, end of session — then amended where §11 (2026-08-07
 → 08-10) overtook it.** Everything above this line is done, applied live, and
 deployed. Nothing is half-finished. **Where §7 and §11 disagree, §11 is newer.**
+
+> **STOP — this section is eleven days old.** Everything below was true on
+> 2026-08-05 and much of it has since been done. The live list of what is still
+> open is **§15g**. Read that first and treat this section as history.
 
 ### 7a. Ali's, not mine — do not start these without his word
 
@@ -2710,3 +2722,199 @@ outgrowing a size. The ladder exists and is ready for when there is.
 - The cross-sell nudge (detergent onto a nappy order) is unbuilt.
 - Attribution: per-platform links + a "where did you hear about us" field.
   `customers.channel` records the ordering medium, not acquisition.
+
+---
+
+## 15. COMPLETE index of 2026-08-16 — every change, in order
+
+**This section is newer than §14, §13, §11 and §7. Where they disagree, this
+wins.**
+
+Three PRs, **#100 → #102**, each squash-merged, deployed and verified with
+`npm run shipped`. Migrations **0184 → 0186**. The gate grew from 16 audits /
+355 checks to **17 audits / 364 checks**, and pgTAP from 250 to **289 tests
+across 29 files**.
+
+Two of the three PRs came from Ali using the app and finding it wrong, and the
+third came from an advisor catching a mistake I made an hour earlier. Read 15d
+first — it is the one with a lesson rather than a feature.
+
+### 15a. One list that says what to do today — migration 0184, PR #100
+
+The app already computed five kinds of work and made him go looking for each
+one on a different screen: money owed (`v_order_balances`), stock out with
+demand behind it (`get_sku_reorder_alerts`), customers who have run out
+(`get_customer_insights`), customers stranded on a dropped range
+(`get_stranded_customers`), and capital in stock that will not move
+(`get_promo_suggestions`).
+
+`get_today(p_limit)` unions all five and ranks them **in Postgres**. It adds no
+screen and no menu item; it replaced the dashboard's run-out card.
+
+**It re-derives nothing.** Every row comes from an engine that already exists,
+so there is never a second definition of "overdue" to drift from the first.
+
+**The hard part was making the money comparable.** "MVR 5,000 owed", "MVR 700 a
+week of lost sales" and "MVR 34,000 of dead stock" are not the same quantity.
+Every row answers one question — *how much is at stake in the next seven days?*
+Dead stock is valued over a **quarter**, because that is how long clearing a
+pile takes. The first draft called it a seven-day number and production data
+punished it inside a minute: eight of the top ten rows were dead stock while the
+best seller being OUT sat at ninth.
+
+**Dead stock is ONE row, not eleven.** A clearance is one decision. The general
+rule: *a row earns its place by being a distinct thing to DO, not a distinct
+thing that is true.*
+
+**It kept what the card could do.** The run-out card had a Message button with
+three drafts. A worklist that could only navigate would have been a downgrade
+wearing the clothes of an upgrade, so the customer rows carry `phone`, and
+stranded rows carry `swap_label` / `swap_size` so `switchDrafts` can name the
+replacement in the customer's own size. **No message is offered from a stock row
+or an unpaid invoice** — asking a debtor to buy more is how a debt gets bigger.
+
+Never reaches the list: a discontinued range running out (that is the plan,
+0180), an order delivered this morning (the driver may still hold the cash), or
+anything at all when the business is healthy.
+
+**A 404 nearly shipped**: the dead-stock row pointed at `/market`, which is not
+a route — the Market module lives at `/competitors`. Invisible in SQL and in
+review; found only because a browser tried to prefetch the link and never came
+back. Route names are now asserted in `today.test.sql`.
+
+19 pgTAP tests, each proven against **thirteen** mutations.
+
+### 15b. A return is not a payment — migration 0185, PR #101
+
+Ali photographed SO-2026-117 and said *"This is very wrong and confusing."* Two
+adjacent lines on his phone: a green **"Paid in full"** above **"Paid MVR 0 of
+MVR 207"**. He sold 1 pack of Xtra Kering XXL, the customer rejected it at the
+door without paying, and the pack came back opened and unsellable.
+
+**Every number underneath was right** — the balance, the stock decision (not
+restocked), the P&L (revenue reversed, cost kept as the loss). The defect was
+the WORD, and the word was load-bearing in three places.
+
+1. **A return was counted as money.** `recalculate_order_payment_status` added
+   `v_returned` to `v_paid` and called the total "paid". New state **`settled`**:
+   nothing left to collect *because goods came back*. `paid` now requires
+   `v_paid >= v_total`. In ordinary accounts an invoice closed by a credit note
+   is settled, not paid — and conflating them makes "how much did we collect
+   this month" unanswerable.
+2. **The flag blocked the buttons on his own screen.** `void_sales_order` and
+   `delete_sales_order` refused with "payment already settled" on an order
+   nobody had paid, so the Void button was dead and its reason false. Both
+   already had the correct guard (`v_paid > 0.005`) four lines below. The flag
+   check is replaced by a **stock** guard: an order already undone by a return
+   must not also be voided, or the pack goes back on the shelf twice.
+3. **"Unpaid" meant three different things** — `get_sales_orders` said
+   `payment_status in ('pending','partial')`, `get_sales_orders_count` said
+   `not in ('paid','deposited')`, `get_receivables_aging` used the flag *and*
+   the arithmetic. So the count above the list included orders the list did not
+   show. All three now ask the ledger: `total - paid - returned > 0.005`.
+
+Also: **the flag could go stale.** `order_payments` had a sync trigger since
+0069; `sales_returns` never did — only one explicit call inside
+`record_customer_return`. A derived value with one hand-written updater is a
+value that will be wrong one day. Trigger added.
+
+And **the trip is over when everything comes back**:
+`complete_order_if_fully_returned` closes an order whose entire contents were
+returned. It sat on the dispatch board for two days after the goods were back,
+which is why he marked it delivered by hand — and *that* hand-action is what
+flipped the flag and produced the screen he photographed. `'delivered'` not
+`'cancelled'`: the goods really left the warehouse.
+
+`v_order_balances` gained `returned_mvr` so the screen can explain **why** a
+balance is zero (appended last — `CREATE OR REPLACE VIEW` only adds columns at
+the end). The panel now reads **"Returned — nothing to pay"** in neutral grey,
+never green, and **"MVR 207 returned of MVR 207"**.
+
+16 pgTAP tests + a new browser audit (`audit:returned`), 7 mutations.
+
+### 15c. What "credit" means, and what it does not
+
+Worth writing down because a plausible-looking test was wrong: **a fully paid
+order cannot be settled by a `credit` return.** There is no bill left to take it
+off, and 0182 correctly refuses with "record this as a money-back refund
+instead". `payment_status = 'credit'` arises from **overpayment**, not from a
+return on a paid order.
+
+### 15d. The lesson: a comment is not a defence — migration 0186, PR #102
+
+0185's `CREATE OR REPLACE VIEW` on `v_order_balances` **silently dropped
+`security_invoker = true`**. The view — the one every money screen reads — went
+back to running with its creator's rights, so RLS was evaluated as the creator
+rather than the caller. The Supabase advisor flagged it ERROR-level minutes
+after the deploy.
+
+**Migration 0124 did exactly this, to exactly this view. 0125 exists only to
+undo it. Migrations 0139, 0149 and 0153 each added a comment warning about the
+trap.** I read that code the same day and walked into it anyway.
+
+So the comment is replaced by a test. `rls_surface.test.sql` asserts, **by
+enumerating the catalogue rather than listing names**:
+
+1. every view in `public` runs as the caller
+2. no `SECURITY DEFINER` function is reachable without signing in
+3. every one of them pins its `search_path`
+4. and there really are views underneath — three `none`s must not pass by
+   default on an empty schema
+
+A view added next year is covered without anyone remembering. **This is the
+standard for every future invariant: enumerate the catalogue, never keep a
+list.**
+
+The rest of the advisor pass was then read end to end rather than stopping at
+the finding that started it. It found `keepalive()` — `select now()`, SECURITY
+DEFINER, callable by `anon`. Switched to INVOKER rather than revoked, because
+being reachable before sign-in is the point of a keepalive.
+
+**Remaining advisor findings are correct as they stand**: `pg_net` in public
+(Supabase's own placement), RLS-on-no-policy on `order_number_counters` (an
+internal counter nobody should reach through the API — the safest state), and
+79 "signed-in users can execute SECURITY DEFINER" (by design; every RPC is
+granted to `authenticated`).
+
+**Two Supabase *Auth* settings are still open and are dashboard config, not
+database**: leaked-password protection is off, and OTP expiry is long. Both are
+worth turning on; neither was changed without asking, because both alter how
+Ali's team signs in.
+
+### 15e. The migration ledger, and how to keep it honest
+
+0184 was applied to production by `execute_sql` before it was finished, so the
+ledger had no record of it while the repo file kept changing. The fix, and the
+pattern for next time: **delete the ledger row and re-apply the final file with
+`apply_migration` under the same name**, so production's recorded SQL is
+byte-identical to the repo. Do not leave a ledger entry that differs from the
+file, and do not stack a "fix" migration onto an unmerged one.
+
+### 15f. Commands that changed
+
+```bash
+npx supabase test db          # 29 files, 289 tests
+npm run audit:ui              # 17 audits, 364 checks (adds audit:returned)
+npm run shipped -- --wait     # the only definition of done
+```
+
+`dockerd` died mid-session once and took the local stack with it. Restart it,
+wait for `docker info`, then `npx supabase start`, then wait for
+`pg_isready -h 127.0.0.1 -p 54322` before `db reset`.
+
+### 15g. Open, carried forward from §14i
+
+Unchanged and still true: the Merries carton photo, the ~18,700-piece stock
+check, monthly running costs, `npm run backup`, the five carton measurements,
+and the marketing assets (logo, product photos, Meta Business access, billing
+card, three sentences on brand choice).
+
+**Known and not yet done:**
+- **X-Tra Kering L and XL are at ZERO packs.** His best seller, out in two big
+  sizes. The Today list now surfaces this, but the stock is still not ordered.
+- `get_reorder_suggestions` is still **blind to stock on the water**.
+- Attribution: per-platform links + a "where did you hear about us" field.
+- The WhatsApp-paste order entry idea — proposed, never approved, not built.
+- The nav "Setup" grouping (Godowns, Suppliers, Price Simulator into one
+  section in More) — recommended by the panel, deliberately deferred so the
+  Today list PR stayed one change. Small, still worth doing.
