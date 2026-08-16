@@ -1,0 +1,50 @@
+-- 0186 — no view leaves RLS behind, and the rule is now enforced not remembered.
+--
+-- SELF-CAUGHT REGRESSION, AND IT IS THE SECOND TIME ON THE SAME VIEW.
+--
+-- 0185 rewrote `v_order_balances` with CREATE OR REPLACE VIEW to expose
+-- `returned_mvr`. CREATE OR REPLACE VIEW does not preserve reloptions unless
+-- they are restated, so the view silently lost `security_invoker = true` and
+-- reverted to running with its CREATOR's rights — which means row level
+-- security is evaluated as the creator, not as the person asking. The Supabase
+-- security advisor flagged it ERROR-level within minutes of the deploy:
+--
+--     View `public.v_order_balances` is defined with the SECURITY DEFINER
+--     property
+--
+-- Migration 0124 did exactly this, to exactly this view, and 0125 exists only
+-- to undo it. Three later migrations (0139, 0149, 0153) each carry a comment
+-- warning about the same trap. Every one of those defences is a note to a
+-- future reader, and a note is not a defence: this is the fourth time the trap
+-- has been walked into and the first three cost a migration each.
+--
+-- SO THE NOTE IS REPLACED BY A TEST. `supabase/tests/database/rls_surface.test.sql`
+-- asserts that EVERY view in `public` carries security_invoker, by
+-- enumeration rather than by name — a view added next year is covered without
+-- anyone remembering to add it. That is the difference between fixing an
+-- instance and closing a class, and it is the standard the project already
+-- sets for anon grants.
+--
+-- WHY IT MATTERS HERE SPECIFICALLY. v_order_balances is the view every money
+-- screen reads: what an order is worth, what was paid, what came back, what is
+-- still owed. A definer-rights view over that is the one place you least want
+-- RLS quietly evaluated as somebody else.
+alter view public.v_order_balances set (security_invoker = true);
+
+-- ── The rest of the sweep ──────────────────────────────────────────────────
+-- Hard rule 9's standing extension: a fix for one instance of a bug class is
+-- not done until the whole surface has been swept systematically, rather than
+-- left to be discovered one advisor run at a time. So the same advisor pass
+-- was read end to end, and it found one other thing.
+--
+-- `keepalive()` is `select now()`, and it is SECURITY DEFINER and callable by
+-- `anon` — the only unauthenticated definer function in the database. Nothing
+-- leaks through it (the current time is not a secret) but a definer function
+-- on the public API surface is a standing invitation, and this one has no
+-- reason to be definer at all: reading the clock needs no elevated rights.
+--
+-- Switched to INVOKER rather than revoked, deliberately: the point of a
+-- keepalive is to be reachable before anyone signs in, so revoking anon would
+-- break what it is for. Dropping the privilege costs nothing and removes it
+-- from the external-facing surface entirely.
+alter function public.keepalive() security invoker;
