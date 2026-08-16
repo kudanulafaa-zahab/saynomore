@@ -3,9 +3,8 @@ import {
   getPnlServer,
   getDailyRevenueServer,
   getSignedInFirstName,
-  getRanOutCustomersServer,
+  getTodayServer,
 } from "@/lib/queries/dashboard-server";
-import { MessageButton } from "@/components/customers/message-button";
 import {
   TrendingUp,
   TrendingDown,
@@ -24,6 +23,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MorningBriefing } from "@/components/layout/morning-briefing";
+import { MessageButton } from "@/components/customers/message-button";
+import { switchDrafts } from "@/lib/wa";
 import { RevenueTrendChart } from "@/components/dashboard/revenue-trend-chart";
 import { MarginCompositionChart } from "@/components/dashboard/margin-composition-chart";
 
@@ -67,14 +68,16 @@ export default async function DashboardPage() {
 
   // Every read goes through the server query layer — this page used to call
   // supabase.rpc(...) inline, against hard rule 4.
-  const [data, pnl, firstName, dailyRevenueData, ranOut] = await Promise.all([
+  const [data, pnl, firstName, dailyRevenueData, today] = await Promise.all([
     getDashboardMetricsServer(),
     getPnlServer(firstOfMonth, tomorrow),
     getSignedInFirstName(),
     getDailyRevenueServer(7),
     // Never let a follow-up list break the dashboard: this is an opportunity,
     // not a vital sign, and the money figures above must render regardless.
-    getRanOutCustomersServer(3).catch(() => ({ rows: [], total: 0, laterThanUsual: 0 })),
+    // The worklist. Never let it break the dashboard: the money figures above
+    // are vital signs and must render whatever this does.
+    getTodayServer(5).catch(() => []),
   ]);
   const netProfit    = Number(pnl?.net_profit_mvr ?? 0);
   const netMargin    = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
@@ -228,54 +231,75 @@ export default async function DashboardPage() {
            action in the business would stay invisible.
 
            Silent when there is nobody to chase. */}
-      {ranOut.rows.length > 0 && (
+      {/* ── What to do today ───────────────────────────────────────────────
+           One ranked list of everything worth doing, from every module.
+
+           It REPLACES the run-out card rather than joining it. That card showed
+           one of five kinds of work; the other four sat behind four different
+           doors and he had to remember each one existed. Ranked in Postgres by
+           money at stake over the next seven days (0184), so the screen makes no
+           judgement of its own — it renders what the engines already know.
+
+           Capped at five on purpose: a worklist that is always long becomes
+           wallpaper, and if everything is urgent then nothing is.
+
+           Silent when there is nothing to do. That is the correct answer, not a
+           gap to fill. */}
+      {today.length > 0 && (
         <div className="glass-panel rounded-2xl" style={{ padding: 18 }}>
-          <div className="flex items-baseline justify-between gap-3 mb-3">
-            <div className="min-w-0">
-              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                Probably out of stock at home
-              </p>
-              <p className="ios-subhead font-semibold mt-0.5" style={{ color: "var(--foreground)" }}>
-                {ranOut.total} customer{ranOut.total !== 1 ? "s" : ""} due a top-up
-              </p>
-              {/* The softer group gets a count, not rows — listing them here
-                  would bury the people who have actually run out. They used to
-                  be separate sentences in the briefing below, which duplicated
-                  this whole card. */}
-              {ranOut.laterThanUsual > 0 && (
-                <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-                  {ranOut.laterThanUsual} more {ranOut.laterThanUsual === 1 ? "is" : "are"} later than they usually order
-                </p>
-              )}
-            </div>
-            <Link href="/customers?lens=risk" className="ios-subhead shrink-0 flex items-center gap-0.5"
-              style={{ color: "var(--snm-brand-text)" }}>
-              See all <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
+          <p className="label-caps text-[12px] mb-3" style={{ color: "var(--muted-foreground)" }}>
+            Worth doing today
+          </p>
 
           <div className="space-y-2">
-            {ranOut.rows.map((c) => {
-              return (
-                <div key={c.customer_id}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                  style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
-                  <Link href={`/customers/${c.customer_id}`} className="min-w-0 flex-1">
+            {today.map((t, i) => (
+              // A ROW THAT CAN ACT, NOT ONLY NAVIGATE. The card this list
+              // replaces carried a Message button with three drafts, and
+              // swapping that for a link would have been a downgrade dressed
+              // as an upgrade. So the customer rows keep it, right here — the
+              // button is a sibling of the link rather than inside it, because
+              // a button nested in an anchor is invalid and taps unpredictably.
+              <div
+                key={`${t.kind}-${t.ref_id ?? i}`}
+                className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+                style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
+              >
+                <Link href={t.href} className="flex items-center gap-3 min-w-0 flex-1 snm-pressable">
+                  <div className="min-w-0 flex-1">
                     <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
-                      {c.name}
+                      {t.title}
                     </p>
-                    <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-                      {c.days_since_last != null ? `Last ordered ${c.days_since_last} days ago` : "No recent order"}
-                      {c.expected_supply_days != null ? ` · bought about ${c.expected_supply_days} days' worth` : ""}
+                    {/* --foreground at 0.7, never muted: this line is the reason
+                        the row is here, not a decorative caption. */}
+                    <p className="ios-footnote truncate" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                      {t.detail}
                     </p>
-                  </Link>
-                  {/* Three drafts to choose from, in "we" — see
-                      components/customers/message-button.tsx. Renders nothing
-                      when the stored number is not a shape we trust. */}
-                  <MessageButton name={c.name} phone={c.phone} />
-                </div>
-              );
-            })}
+                  </div>
+                  {!t.phone && (
+                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                  )}
+                </Link>
+
+                {/* The words differ, the interaction does not. A customer whose
+                    range we stopped stocking must not be asked "are you running
+                    low?" — that invites them to ask for something we will not
+                    have. switchDrafts leads with what we CAN send, in their own
+                    size. MessageButton renders nothing at all when the stored
+                    number is not one we trust. */}
+                {t.phone && (
+                  <MessageButton
+                    name={t.title}
+                    phone={t.phone}
+                    tone="quiet"
+                    drafts={
+                      t.kind === "stranded" && t.swap_label
+                        ? switchDrafts(t.title, t.swap_label, t.swap_size)
+                        : undefined
+                    }
+                  />
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

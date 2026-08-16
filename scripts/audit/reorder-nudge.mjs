@@ -63,17 +63,28 @@ q(`update sales_orders set created_at = now() - make_interval(days => (
 
 import { launch, signedInPage, checklist, finish, BASE } from "./lib.mjs";
 const b = await launch();
-const list = checklist("Dashboard — customers who have run out");
+const list = checklist("Dashboard — the worklist asks for the second order");
 const { ctx, page } = await signedInPage(b, { device: "phone", scheme: "light" });
 try {
   await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
   await page.waitForTimeout(6000);
   const txt = await page.locator("body").innerText();
-  list.ok(/probably out of stock at home/i.test(txt), "the section appears when someone has run out");
-  list.ok(/due a top-up/i.test(txt), "it says how many customers");
-  list.ok(/Ahmed Ziyad/.test(txt), "and names them");
+
+  // THE CARD BECAME A ROW, AND THE ROW MUST STILL BE ABLE TO ACT.
+  // "Probably out of stock at home" was its own card among four other doors:
+  // money owed, stock about to run out, customers stranded on a dropped range,
+  // dead stock. get_today (0184) ranks all five in Postgres by money at stake
+  // in the next seven days and the dashboard renders the top few.
+  //
+  // The risk in that trade is losing the one thing the card could DO. Every
+  // check below the first two is unchanged from when this was a card, on
+  // purpose: same name, same fact, same one-tap message, same three drafts,
+  // same "we". A worklist that can only navigate would be a downgrade wearing
+  // the clothes of an upgrade, and this is what would catch it.
+  list.ok(/worth doing today/i.test(txt), "the worklist appears when there is something to do");
+  list.ok(/Ahmed Ziyad/.test(txt), "and names the customer who has run out");
+  list.ok(/probably out/i.test(txt), "saying why they are on the list");
   list.ok(/last ordered \d+ days ago/i.test(txt), "with how long it has been");
-  list.ok(/bought about \d+ days' worth/i.test(txt), "and how long what they bought should have lasted");
   list.ok(!/\bpcs\b|pieces/i.test(txt), "no piece counts anywhere on the dashboard");
 
   // THREE DRAFTS, AND THE WORD IS "WE".
@@ -119,8 +130,11 @@ try {
   await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
   await page.waitForTimeout(800);
 
-  const seeAll = page.getByRole("link", { name: /see all/i }).first();
-  list.ok(await seeAll.count() > 0, "and a link to the full list");
+  // The row IS the link now — there is no separate "See all", because a
+  // worklist of five things does not need a footer telling you where they came
+  // from. Tapping the person opens the lens that lists everyone like them.
+  const seeAll = page.getByRole("link", { name: /Ahmed Ziyad/i }).first();
+  list.ok(await seeAll.count() > 0, "and the row itself is the way through");
   list.is(await seeAll.getAttribute("href"), "/customers?lens=risk", "which deep-links to the At risk lens");
 
   // THE DESTINATION HAS TO BE USEFUL, NOT MERELY CORRECT.

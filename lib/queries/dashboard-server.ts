@@ -115,3 +115,41 @@ export async function getRanOutCustomersServer(limit = 3): Promise<{ rows: AtRis
     })),
   };
 }
+
+// ── Today (migration 0184) ───────────────────────────────────────────────
+// Everything worth doing right now, from every module, in one ranked list.
+//
+// This replaces the run-out card rather than sitting beside it. The work used
+// to be spread across five screens — customers who ran out, customers stranded
+// on a dropped range, stock about to run out, money owed, dead stock — and the
+// app made him remember which module held which problem. Postgres ranks them
+// against one another by money at stake, so the screen only renders.
+
+export interface TodayItem {
+  kind: "owed" | "stockout" | "ranout" | "stranded" | "deadstock";
+  title: string;
+  detail: string;
+  /** Money at stake in the next seven days — the basis every row is ranked on. */
+  impact_mvr: number;
+  age_days: number | null;
+  /** Straight to the screen that does the job. */
+  href: string;
+  ref_id: string | null;
+  /**
+   * Set only on the customer-shaped rows, so the row can offer the same
+   * one-tap Message button the card it replaced offered. NULL on a stock row —
+   * a shelf has nobody to text — and NULL on an unpaid invoice, because "are
+   * you running low?" is the wrong thing to send someone who has not paid.
+   */
+  phone: string | null;
+  /** The replacement a stranded customer's message has to name, and its size. */
+  swap_label: string | null;
+  swap_size: string | null;
+}
+
+export async function getTodayServer(limit = 5): Promise<TodayItem[]> {
+  const supabase = await getSupabaseServer();
+  const { data, error } = await supabase.rpc("get_today", { p_limit: limit });
+  if (error) throw error;
+  return (data ?? []) as TodayItem[];
+}
