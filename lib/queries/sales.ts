@@ -17,6 +17,11 @@ export type PaymentStatus =
   | "pending"
   | "partial"
   | "paid"
+  /** Nothing left to collect, because the goods came back — NOT because money
+   *  arrived (migration 0185). Both leave a zero balance and they are entirely
+   *  different events; conflating them put a green "Paid in full" directly
+   *  above "Paid MVR 0 of MVR 207" on SO-2026-117. */
+  | "settled"
   | "cod"
   | "deposited"
   | "credit";
@@ -809,6 +814,10 @@ export interface OrderBalanceRow {
   balance_mvr: number;
   last_paid_at: string | null;
   payment_count: number | null;
+  /** What came back off this order. The screen needs it to explain WHY a
+   *  balance is zero; without it the only number the panel had was
+   *  "Paid MVR 0", which is how a returned order came to read "Paid in full". */
+  returned_mvr: number;
 }
 
 /** All payment rows for an order, newest first. */

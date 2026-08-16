@@ -1777,7 +1777,8 @@ function PaymentLedger({
   onRecord: () => void;
   onDeletePayment: (p: OrderPaymentRow) => void;
 }) {
-  const paid    = balance?.paid_mvr ?? 0;
+  const paid     = balance?.paid_mvr ?? 0;
+  const returned = balance?.returned_mvr ?? 0;
   const bal      = balance?.balance_mvr ?? orderTotal;
   const credit   = bal < -0.005 ? -bal : 0;
   // Overpaid is its OWN state, and it has to be tested first. `bal <= 0.005`
@@ -1786,14 +1787,24 @@ function PaymentLedger({
   // the app calling a debt a win. Green means good money (Seat 1); money that
   // has to go back out is attention, so it is orange, like cash to collect.
   const isCredit  = credit > 0 || paymentStatus === "credit";
-  const isPaid    = !isCredit && (paymentStatus === "paid" || bal <= 0.005);
-  const isPartial = !isPaid && !isCredit && paid > 0.005;
+  // SETTLED IS NOT PAID, and this is the line Ali photographed. SO-2026-117
+  // was rejected at the door and never paid a rufiyaa, and the panel put a
+  // green "Paid in full" directly above "Paid MVR 0 of MVR 207". Both states
+  // leave nothing to collect; only one of them involved his money.
+  //
+  // Green is reserved for money earned, so this is deliberately NOT green —
+  // a sale that came back is neither a win nor an alarm, it is information.
+  const isSettled = !isCredit && paymentStatus === "settled";
+  const isPaid    = !isCredit && !isSettled && (paymentStatus === "paid" || bal <= 0.005);
+  const isPartial = !isPaid && !isCredit && !isSettled && paid > 0.005;
 
   const accent = isCredit ? "var(--snm-warning)"
+               : isSettled ? "var(--muted-foreground)"
                : isPaid ? "var(--snm-success)"
                : isPartial ? "var(--snm-warning)"
                : "var(--muted-foreground)";
   const statusLabel = isCredit ? "Overpaid — money owed back"
+                    : isSettled ? "Returned — nothing to pay"
                     : isPaid ? "Paid in full"
                     : isPartial ? "Partly paid"
                     : "Awaiting payment";
@@ -1803,7 +1814,7 @@ function PaymentLedger({
       {/* Status + progress */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {isCredit
+          {isCredit || isSettled
             ? <Undo2 style={{ color: accent, width: 18, height: 18 }} />
             : isPaid
             ? <CheckCircle2 style={{ color: accent, width: 18, height: 18 }} />
@@ -1817,15 +1828,28 @@ function PaymentLedger({
 
       {/* Paid / outstanding bar */}
       <div style={{ height: 8, borderRadius: 999, background: "var(--glass-bg-1)", overflow: "hidden", marginBottom: 10 }}>
-        <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, orderTotal > 0 ? (paid / orderTotal) * 100 : (isPaid ? 100 : 0)))}%`, background: accent, transition: "width 0.3s" }} />
+        {/* The bar tracks what has been SETTLED, not only what was paid. A
+            fully returned order used to show an empty bar under a green tick,
+            because the money never arrived and the bar only knew about money. */}
+        <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, orderTotal > 0 ? ((paid + returned) / orderTotal) * 100 : (isPaid || isSettled ? 100 : 0)))}%`, background: accent, transition: "width 0.3s" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+        {/* "Paid MVR 0 of MVR 207" under a headline saying the order is closed
+            is the contradiction Ali photographed. When goods are what closed
+            it, the line says so. */}
         <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
-          Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong> of MVR {fmt(orderTotal)}
+          {returned > 0.005 && paid <= 0.005 ? (
+            <><strong style={{ color: "var(--foreground)" }}>MVR {fmt(returned)}</strong> returned of MVR {fmt(orderTotal)}</>
+          ) : returned > 0.005 ? (
+            <>Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong>, returned <strong style={{ color: "var(--foreground)" }}>MVR {fmt(returned)}</strong> of MVR {fmt(orderTotal)}</>
+          ) : (
+            <>Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong> of MVR {fmt(orderTotal)}</>
+          )}
         </span>
         {/* An overpaid order has a NEGATIVE balance — "MVR -2,800 left" is not
-            a sentence. It is stated as the refund above instead. */}
-        {!isPaid && !isCredit && (
+            a sentence. It is stated as the refund above instead. Neither is
+            "MVR 0 left" on an order that was returned; the headline said it. */}
+        {!isPaid && !isCredit && !isSettled && (
           <span style={{ color: accent, fontSize: 12, fontWeight: 700 }}>MVR {fmt(bal)} left</span>
         )}
       </div>
