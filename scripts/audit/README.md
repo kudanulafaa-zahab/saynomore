@@ -267,6 +267,12 @@ was verified by putting its bug back:
 | the "never a category they already buy" and "never below cost" rules dropped from `get_cross_sell_suggestion` | pgTAP `cross_sell` — 4 of 10, and it immediately offered the BELOW-COST product |
 | the four sheet footers put back the way they shipped, without `--kb-inset` | reach — "Cancel is 320/323/328pt below the reachable line" on New SKU, New Sale and Add Customer |
 | one field 460px wide inside a 393pt sheet — the shape of "it's moving to the sides" | reach — both halves fired: "can pan sideways by 87px" AND "spills past the right edge by 87px" |
+| `isSettled` forced to `false`, putting the green "Paid in full" back on a returned order — the exact screen Ali photographed | returned-order — 2 of 9, "never says 'Paid in full' about money that never arrived" and "says what actually happened" |
+| `recalculate_order_payment_status` adding the returned amount to the paid amount again | pgTAP `settled_not_paid` — 2 of 16, both about the WORD: an unpaid return and a refunded order each read "paid" |
+| the trigger dropped from `sales_returns`, so only `record_customer_return` keeps the flag current | pgTAP `settled_not_paid` — "the returns ledger keeps the flag current by itself" |
+| `void_sales_order` / `delete_sales_order` losing the "already returned" guard | pgTAP `settled_not_paid` — the void mutation took 2 checks, because a void that succeeds also un-closes the order |
+| `complete_order_if_fully_returned` made a no-op, then made too eager (firing on a partial return) | pgTAP `settled_not_paid` — one check each, in opposite directions |
+| `get_sales_orders_count` put back on its own idea of "unpaid" | pgTAP `settled_not_paid` — "the unpaid list and the number printed above it are the same set of orders" |
 
 **One mutation attempt was a no-op and is worth recording**, because stopping
 there would have bought false confidence. The first attempt at breaking the
