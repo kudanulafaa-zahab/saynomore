@@ -94,6 +94,49 @@ for (const device of wanted) {
   const addMixed = sheet.getByRole("button", { name: /add .*mixed carton/i }).first();
   list.ok(await addMixed.isEnabled(), `${tag} a FULL mixed carton can be added`);
   await addMixed.click();
+
+  // ── THE MESSAGE HAS TO CLEAR THE DYNAMIC ISLAND ───────────────────────────
+  // Ali, 2026-08-16, screenshot: *"I get this error message on top which is
+  // obscured by the Dynamic Island in iOS. All such error messages are always
+  // obscured."* One setting, every module — sonner's default puts a mobile
+  // toast 16px from the top of the VIEWPORT, and the viewport starts behind the
+  // status bar, so on a Dynamic Island iPhone (~59px inset) the message is
+  // painted under the hardware.
+  //
+  // WHAT THIS CAN AND CANNOT CHECK, stated plainly. Headless Chromium has no
+  // safe-area inset, so no browser check can measure the real gap on his phone.
+  // What it CAN do is assert the offset is still EXPRESSED in terms of the safe
+  // area rather than a bare number — exactly what is lost if someone drops the
+  // prop or a sonner upgrade changes its shape. That is the regression; the
+  // pixel arithmetic is the browser's job.
+  //
+  // The DECLARED value, not the computed one: getComputedStyle resolves
+  // `env(safe-area-inset-top, 0px)` down to `calc(0px + 12px)` on a machine with
+  // no inset, which would make the check pass on the arithmetic while telling
+  // us nothing about the expression. The inline style keeps what was written.
+  //
+  // Both offsets are read in the PHONE pass. The element carries the phone and
+  // desktop custom properties together, and the phone is the only pass where a
+  // toast is reliably still on screen when we look — the toaster element does
+  // not exist in the DOM at all until one fires.
+  if (device === "phone") {
+    const island = await page.evaluate(() => {
+      const el = document.querySelector("[data-sonner-toaster]");
+      if (!el) return null;
+      return {
+        mobile: el.style.getPropertyValue("--mobile-offset-top").trim(),
+        desktop: el.style.getPropertyValue("--offset-top").trim(),
+      };
+    });
+    list.ok(island !== null, `${tag} adding to the order raises a toast at all`);
+    if (island) {
+      list.ok(/env\(\s*safe-area-inset-top/.test(island.mobile),
+        `${tag} the toast clears the Dynamic Island (offset "${island.mobile}")`);
+      list.ok(/env\(\s*safe-area-inset-top/.test(island.desktop),
+        `${tag} and clears a landscape notch too (offset "${island.desktop}")`);
+    }
+  }
+
   await noSheet(page);
 
   // ── A WHOLE single-colour carton of the SAME brand ────────────────────────
