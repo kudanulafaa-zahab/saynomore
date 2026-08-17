@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same seventeen audits he can run locally (`npm run audit:ui`):
+# This runs the same eighteen audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
@@ -35,6 +35,8 @@ name: UI checks
 #             order already being packed, and adds through the normal door
 #   returned  an order the customer sent back is never reported as paid — the
 #             screen Ali photographed, green tick over "Paid MVR 0 of MVR 207"
+#   cartonpk  a carton AND some loose packs of the same product, each at its own
+#             discounted price, go on one order — the add that used to be refused
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -42,7 +44,7 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All seventeen are proven to fail when the bug they guard is reintroduced; that
+# All eighteen are proven to fail when the bug they guard is reintroduced; that
 # was checked by putting each one back deliberately. The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
@@ -169,6 +171,9 @@ jobs:
 
       - name: Returned order — never called paid
         run: npm run audit:returned
+
+      - name: A carton and some loose packs — one product, one line
+        run: npm run audit:cartonpacks
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

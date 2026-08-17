@@ -646,18 +646,71 @@ export function NewSaleSheet({
   // below-cost confirm sheet. Both entry doors share one guard.
   function doAddLine() {
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
-    // Same confirmation as the carton sheet — every add says so, whatever the
-    // product. The editor closes on add, so silence is indistinguishable from
-    // a tap that did not register.
-    toast.success(
-      `Added ${parseFloat(lineQty)} ${sellUnitLabel(lineUom, tradeCfg(selectedSku))} of ${selectedSku.brand_name} ${selectedSku.model_name}`,
-    );
-    setDraftLines((prev) => [...prev, {
-      key: `${selectedSku.id}-${Date.now()}`,
-      sku: selectedSku, uom: lineUom, qty: parseFloat(lineQty),
-      qty_pieces: lineQtyPieces, unit_price_mvr: parseFloat(linePrice), line_total_mvr: lineTotal,
-      is_mixed_carton_fill: lineUom === "piece" && mixedCarton,
-    }]);
+    const incomingMixed = lineUom === "piece" && mixedCarton;
+    const joinTo = incomingMixed
+      ? undefined
+      : draftLines.find((l) => l.sku.id === selectedSku.id && !l.is_mixed_carton_fill);
+
+    if (joinTo) {
+      // ADDING THE SAME PRODUCT AGAIN JOINS THE LINE. IT DOES NOT REFUSE.
+      //
+      // Ali, 2026-08-16: *"I try to sell 1 carton and 2 packs of Royal soft
+      // boys… I have to add one carton, set the price manually since I'm giving
+      // a discount and again press add to order and add 2 packs."* That second
+      // add was refused outright, so the sale could not be entered at all.
+      //
+      // He had already asked for this on 2026-08-09 — the quote is at the top
+      // of cart-math.ts — and it was built for DIFFERENT products. The same
+      // product in two units stayed blocked by a UNIQUE (order_id, sku_id)
+      // added back in migration 0060, whose own header calls it a "known
+      // limitation (accepted)". Its real reason is that stock_movements records
+      // (order, sku) and not which LINE, so two lines of one product would make
+      // returns and line edits reverse the wrong stock. That constraint is
+      // worth keeping; refusing him was not.
+      //
+      // So the two adds become one line: the pieces add up, the money adds up,
+      // and the unit becomes the finer of the two (a carton is a whole number
+      // of packs, so the arithmetic always lands on a whole quantity — which is
+      // what the ledger's qty_pieces trigger demands).
+      const rank = { carton: 3, pack: 2, piece: 1 } as const;
+      const uom = rank[lineUom] < rank[joinTo.uom] ? lineUom : joinTo.uom;
+      const per = uom === "carton" ? selectedSku.pcs_per_pack * selectedSku.packs_per_carton
+                : uom === "pack"   ? selectedSku.pcs_per_pack
+                : 1;
+      const pieces = joinTo.qty_pieces + lineQtyPieces;
+      const total  = joinTo.line_total_mvr + lineTotal;
+      const qty    = pieces / per;
+
+      setDraftLines((prev) => prev.map((l) => l.key !== joinTo.key ? l : {
+        ...l,
+        uom, qty, qty_pieces: pieces,
+        // One blended rate, because a line carries one price. The TOTAL is
+        // exact to the rufiyaa — it is the two figures he typed, added.
+        unit_price_mvr: total / qty,
+        line_total_mvr: total,
+        merged_units: l.merged_units || l.uom !== lineUom,
+      }));
+      // Says what it did, in trade units. A silent join on a screen that used
+      // to show a red error would read as the same refusal.
+      toast.success(
+        `Added to ${selectedSku.brand_name} ${selectedSku.model_name} — now `
+        + `${formatQtyInTradeUnits(pieces, tradeCfg(selectedSku))}, `
+        + `MVR ${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+      );
+    } else {
+      // Same confirmation as the carton sheet — every add says so, whatever the
+      // product. The editor closes on add, so silence is indistinguishable from
+      // a tap that did not register.
+      toast.success(
+        `Added ${parseFloat(lineQty)} ${sellUnitLabel(lineUom, tradeCfg(selectedSku))} of ${selectedSku.brand_name} ${selectedSku.model_name}`,
+      );
+      setDraftLines((prev) => [...prev, {
+        key: `${selectedSku.id}-${Date.now()}`,
+        sku: selectedSku, uom: lineUom, qty: parseFloat(lineQty),
+        qty_pieces: lineQtyPieces, unit_price_mvr: parseFloat(linePrice), line_total_mvr: lineTotal,
+        is_mixed_carton_fill: incomingMixed,
+      }]);
+    }
     setSelectedSkuId(""); setSkuSearch(""); setLineQty(""); setLinePrice(""); setLineUom("pack");
     setMixedCarton(false); setPriceManuallyEdited(false); setAutoPriceSource(null);
   }
@@ -668,11 +721,28 @@ export function NewSaleSheet({
     if (!selectedSku || !lineQty || !linePrice || lineQtyPieces <= 0) return;
     // One line per product per order — sales_order_lines has a UNIQUE
     // (order_id, sku_id), and edit_sales_order_line depends on that to scope
-    // its FIFO stock reversal safely. Without this check you could build a
-    // whole order with the same product on two lines and only discover it
-    // when saving failed at the very end.
-    if (draftLines.some((l) => l.sku.id === selectedSku.id)) {
-      toast.error(`${selectedSku.brand_name} ${selectedSku.variant_display} is already in this order — change the quantity on that line instead`);
+    // its FIFO stock reversal safely. That rule stays; what changed is the
+    // ANSWER to it. Adding the same product again now JOINS the existing line
+    // (see doAddLine) instead of refusing, so one line per product is kept by
+    // arithmetic rather than by a red message.
+    //
+    // EITHER WE JOIN, OR WE REFUSE — never a second line. Written as one test
+    // rather than two on purpose: a first draft refused only the mixed-carton
+    // CLASH, which quietly let two mixed-carton fills of one product through to
+    // a UNIQUE violation at the final tap. The audit's own mutation output
+    // showed the cart holding two lines, which is exactly the failure the old
+    // blanket refusal existed to prevent.
+    //
+    // Mixed cartons are the case that cannot join: a mixed carton and an
+    // ordinary line are two different purchases with their own carton
+    // arithmetic — the cart lists them under separate headings — and folding
+    // them together would break the whole-carton assertion that stops a part
+    // carton reaching checkout.
+    const incomingMixed = lineUom === "piece" && mixedCarton;
+    const canJoin = !incomingMixed
+      && draftLines.some((l) => l.sku.id === selectedSku.id && !l.is_mixed_carton_fill);
+    if (!canJoin && draftLines.some((l) => l.sku.id === selectedSku.id)) {
+      toast.error(`${selectedSku.brand_name} ${selectedSku.variant_display} is already in this order as a mixed carton — finish that one first`);
       return;
     }
     const landed = selectedSku.landed_per_piece_mvr;
