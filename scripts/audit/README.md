@@ -268,6 +268,11 @@ was verified by putting its bug back:
 | the four sheet footers put back the way they shipped, without `--kb-inset` | reach — "Cancel is 320/323/328pt below the reachable line" on New SKU, New Sale and Add Customer |
 | one field 460px wide inside a 393pt sheet — the shape of "it's moving to the sides" | reach — both halves fired: "can pan sideways by 87px" AND "spills past the right edge by 87px" |
 | `isSettled` forced to `false`, putting the green "Paid in full" back on a returned order — the exact screen Ali photographed | returned-order — 2 of 9, "never says 'Paid in full' about money that never arrived" and "says what actually happened" |
+| the sonner offset props removed, putting every toast back under the Dynamic Island | journey — 2 of 40, and it names the offending values: `16px` on the phone, `24px` for the notch |
+| the second add refused again (the join never matches) — Ali's original bug | carton-and-packs — 2 of 7, and the cart is left holding TWO lines, which is the UNIQUE violation the old refusal existed to prevent |
+| the join keeps the carton's money but drops the loose packs' | carton-and-packs — "the total is the two prices he typed, added — expected 1810, got 1200" |
+| the join keeps the money but drops the loose packs' quantity | carton-and-packs — the quantity check, showing `1 ctn · MVR 452.5/pack` |
+| the joined line shown as its flat pack count instead of trade units | carton-and-packs — "reads as 1 carton + 2 packs", printing what the cart actually said |
 | `recalculate_order_payment_status` adding the returned amount to the paid amount again | pgTAP `settled_not_paid` — 2 of 16, both about the WORD: an unpaid return and a refunded order each read "paid" |
 | the trigger dropped from `sales_returns`, so only `record_customer_return` keeps the flag current | pgTAP `settled_not_paid` — "the returns ledger keeps the flag current by itself" |
 | `void_sales_order` / `delete_sales_order` losing the "already returned" guard | pgTAP `settled_not_paid` — the void mutation took 2 checks, because a void that succeeds also un-closes the order |

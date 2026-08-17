@@ -17,7 +17,7 @@
 import type { SkuFullRow } from "@/lib/queries/products";
 import type { SaleUom } from "@/lib/queries/sales";
 import {
-  containerLabel, sellUnitLabel,
+  containerLabel, sellUnitLabel, formatQtyInTradeUnits,
   type TradeUnitConfig, type UnitUom,
 } from "@/lib/trade-units";
 
@@ -36,6 +36,13 @@ export interface DraftLine {
   unit_price_mvr: number;
   line_total_mvr: number;
   is_mixed_carton_fill: boolean;
+  /** True when this line was built by adding the SAME product twice in
+   *  DIFFERENT units — a carton, then a few loose packs. The line then holds
+   *  one blended price, so the quantity has to be shown in trade units
+   *  ("1 ctn + 2 pack") rather than as the flat pack count the arithmetic
+   *  collapses to: Ali entered a carton and two packs, and "6 packs" is not
+   *  what he typed. */
+  merged_units?: boolean;
   /** Godown this line is picked from. undefined = the order's godown, which is
    *  the normal case. Set when the product is only stocked somewhere else, so
    *  a sale is never blocked by the warehouse chosen at the start (0164/0165). */
@@ -101,6 +108,12 @@ export function lineQtyText(l: DraftLine): string {
     const noun = containerLabel(l.sku.unit_uom as UnitUom | null);
     return `${l.qty_pieces} ${plural(noun, l.qty_pieces)}`;
   }
+  // A carton plus a few loose packs collapses to a flat pack count, because
+  // that is the only shape the ledger accepts for one line. Showing "6 packs"
+  // back to someone who typed "1 carton" and then "2 packs" is how a correct
+  // total still reads as a mistake, so a joined line is described the way the
+  // rest of the app describes quantities of this product.
+  if (l.merged_units) return formatQtyInTradeUnits(l.qty_pieces, tradeCfg(l.sku));
   return `${l.qty} ${plural(sellUnitLabel(l.uom, tradeCfg(l.sku)), l.qty)}`;
 }
 
@@ -130,7 +143,12 @@ export function linePriceText(l: DraftLine): string {
   if (per && per > 0 && l.is_mixed_carton_fill) {
     return `MVR ${(l.unit_price_mvr * per).toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton`;
   }
-  return `MVR ${l.unit_price_mvr.toLocaleString()}/${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
+  // Two decimals, never three. A joined line carries a BLENDED rate — a carton
+  // at MVR 300 a pack plus loose packs at MVR 305 averages 301.6666… — and
+  // `toLocaleString()` with no options prints "MVR 301.667/pack", which is not
+  // a figure anyone quotes or pays. The line total is exact to the rufiyaa;
+  // this is the per-unit rate it works out at.
+  return `MVR ${l.unit_price_mvr.toLocaleString(undefined, { maximumFractionDigits: 2 })}/${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
 }
 
 // ── The cart ─────────────────────────────────────────────────────────────────
