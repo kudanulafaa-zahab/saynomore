@@ -124,6 +124,15 @@ export interface ReorderSuggestion {
    *  understated 2x. Surface this wherever the suggestion is shown: a number
    *  that silently doubles needs its reason attached. */
   demand_censored: boolean;
+  /** Cartons already bought and not yet on the shelf — ordered, on the water,
+   *  or landed but not yet received in (0187). `suggested_cartons` is already
+   *  net of this; the figure comes back so the screen can say WHY the number is
+   *  small. Draft shipments are excluded: a draft is usually the purchase order
+   *  being built from this very list. */
+  incoming_cartons: number;
+  incoming_pieces: number;
+  /** Earliest expected arrival across those shipments; null when none. */
+  incoming_eta: string | null;
 }
 
 export async function listReorderSuggestions(
