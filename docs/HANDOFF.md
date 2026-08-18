@@ -3,10 +3,10 @@
 **Read this first when continuing in a new chat.** Pair it with `CLAUDE.md` and
 `skills.md` (the standing laws), which load automatically.
 
-> **THE NEWEST SECTION IS §15 (2026-08-16), AND IT WINS OVER EVERY EARLIER ONE.**
-> The dated index sections stack — §7 → §11 → §13 → §14 → §15 — and each one
+> **THE NEWEST SECTION IS §16 (2026-08-17/18), AND IT WINS OVER EVERY EARLIER ONE.**
+> The dated index sections stack — §7 → §11 → §13 → §14 → §15 → §16 — and each one
 > overrides the ones before it where they disagree. Read the newest first; the
-> older ones are history, not instructions. **What is still open lives in §15g,
+> older ones are history, not instructions. **What is still open lives in §16f,
 > not in §7a.** The session-start hook still points at "§7, then §11" and is out
 > of date on that one point; when the next dated section is written, add it to
 > this line.
@@ -1304,7 +1304,7 @@ deployed. Nothing is half-finished. **Where §7 and §11 disagree, §11 is newer
 
 > **STOP — this section is eleven days old.** Everything below was true on
 > 2026-08-05 and much of it has since been done. The live list of what is still
-> open is **§15g**. Read that first and treat this section as history.
+> open is **§16f**. Read that first and treat this section as history.
 
 ### 7a. Ali's, not mine — do not start these without his word
 
@@ -2918,3 +2918,199 @@ card, three sentences on brand choice).
 - The nav "Setup" grouping (Godowns, Suppliers, Price Simulator into one
   section in More) — recommended by the panel, deliberately deferred so the
   Today list PR stayed one change. Small, still worth doing.
+
+---
+
+## 16. COMPLETE index of 2026-08-17 → 08-18 — every change, in order
+
+**This section is newer than §15 and every section before it. Where they
+disagree, this wins.** What is still open lives in **§16f**.
+
+Three PRs, **#104 → #106**, each squash-merged, deployed and verified with
+`npm run shipped`. Migration **0187**. The gate grew from 17 audits / 364 checks
+to **19 audits / 385 checks**, and pgTAP from 289 to **309 tests across 31
+files**.
+
+Every one of these came from Ali using the app, and two of them are corrections
+to things I had told him. Read 16d first.
+
+### 16a. Every error message clears the Dynamic Island — PR #104
+
+Ali, with a screenshot of the New Sale flow: *"I get this error message on top
+which is obscured by the Dynamic Island in iOS. All such error messages are
+always obscured."*
+
+Every module, because it was one setting in one place. Sonner puts a mobile
+toast **16px from the top of the VIEWPORT**, and the viewport starts behind the
+status bar — so on a Dynamic Island iPhone (~59px inset) the message is painted
+about 40px inside the hardware. The toast fired, animated and timed out exactly
+as designed, under the Island, leaving a form that had silently refused him.
+
+Now `calc(env(safe-area-inset-top, 0px) + 12px)`, the rule the top bar, the
+sheets and the pull-to-refresh spinner already followed.
+
+**The check asserts the DECLARED offset, not the computed one.**
+`getComputedStyle` resolves `env(safe-area-inset-top, 0px)` down to
+`calc(0px + 12px)` on a machine with no inset — it would pass on the arithmetic
+while proving nothing about the expression. Headless Chromium has no safe area,
+so the real pixel gap is the browser's job; what a test can hold is that the app
+still asks for it. Lives in the journey audit because that is the one flow that
+reliably raises a toast, and the toaster element does not exist in the DOM until
+one fires.
+
+### 16b. A carton and some loose packs, on one order — PR #105
+
+Ali: *"I try to sell 1 carton and 2 packs… I have to add one carton, set the
+price manually since I'm giving a discount and again press add to order and add
+2 packs."* The second add was **refused outright** — the sale could not be
+entered at all.
+
+**He had already asked for this on 2026-08-09** (quoted at the top of
+`cart-math.ts`), and it was built — for DIFFERENT products. The same product in
+two units stayed blocked behind the `UNIQUE (order_id, sku_id)` added in
+migration **0060**, whose own header files it under *"Known limitation
+(accepted)"*. Accepted by me, never put to him. That is the failure: not a
+forgotten feature, a technical convenience that quietly narrowed the business.
+
+**The constraint is still right and stays.** `stock_movements` records (order,
+sku) and not which LINE, so two lines of one product would make a return or a
+line edit reverse the wrong stock. What was wrong was the answer to it.
+
+So the two adds JOIN: pieces add up, money adds up, the unit becomes the finer
+of the two (a carton is a whole number of packs, so the quantity always lands
+whole, which is what `enforce_sol_qty_pieces` demands). The line reads
+**"1 ctn + 2 pack"** via `formatQtyInTradeUnits`, not the flat pack count the
+arithmetic collapses to. One blended rate; the total is exact.
+
+**Two defects found by testing my own fix, both mine:**
+
+- The audit's quantity check was passing against a deliberately broken build:
+  "1 ctn + 2 pack" is also how the SKU card states stock, so a page-wide search
+  matched the STOCK badge. Now scoped to the cart text between "ORDER ITEMS" and
+  "Total".
+- My guard had a hole. It refused only the mixed-carton CLASH, which let two
+  mixed-carton fills through to a UNIQUE violation at the final tap. It is now
+  one test: **either we join, or we refuse — never a second line.**
+
+**And the audit only checked the CART, not the sale.** It now presses Place
+Order and reads the ledger: one row, the full 6 packs, the exact total, and the
+shelf giving up exactly that much stock.
+
+### 16c. Damage and write-offs had almost no test — PR #106
+
+Ali: *"Make sure everything is intact and works as before. Money math,
+arithmetic, stock options including call back, returns, damage etc."*
+
+Returns had four test files. Write-offs had **one line**, testing
+`stock_signed_delta('damage_out', 10) = -10` — the helper, not the RPC anyone
+calls. The path from "a carton got crushed in the godown" to "the month's profit
+is lower by what it cost" had never been checked end to end.
+
+That gap matters more than it looks: a write-off is the one stock movement with
+**no revenue beside it**, so every piece is a loss, and a sale that deducts
+wrong shows up as a margin oddity while a write-off that misses the P&L simply
+never happened as far as the accounts are concerned.
+
+`write_off.test.sql` — nine tests, **two batches at different costs** so the
+FIFO order is observable at all: refuses more than is on hand, demands a reason,
+values the loss at what each batch actually landed at (oldest first: MVR 1,500,
+where a flat average would say 2,100), empties the old batch before touching the
+new, records it as damage rather than a sale, reaches the P&L to the rufiyaa,
+leaves an audit row, and is not anon-executable.
+
+### 16d. The purchase list was asking him to buy what he had already bought
+
+**The most expensive thing found this month, and it was live.** On 2026-08-17
+the Reorder screen was asking for **49 cartons of goods sitting in
+SH-2026-002**, a container already paid for and arriving 16 August:
+
+| product | it said buy | already afloat |
+|---|---|---|
+| Xtra Kering XL | 10 | **13** |
+| Xtra Kering L | 5 | **13** |
+| Xtra Kering NB/S | 4 | **20** |
+| Sosoft Blue | 9 | **16** |
+| Xtra Kering XXXL | 2 | **15** |
+| Sosoft Green / Pink | 12 | **18** |
+
+Freight is charged by volume, so a duplicated carton pays its own CBM twice, and
+the cash leaves months before the stock can be sold.
+
+**The missing idea has a name.** Inventory practice reorders against the
+**inventory position** — on hand PLUS on order — never the shelf alone.
+`get_reorder_suggestions` used on-hand only, which is the textbook way to
+double-order. The list drops to **21 genuinely needed**.
+
+Counts: `ordered`, `in_transit`, `arrived`. **Not** `grn_confirmed` (that is the
+shelf now; counting twice halves every future suggestion). **Not `draft`** — the
+subtle one: a draft is usually the purchase order being built from this very
+list, so counting it would suppress the suggestion that prompted it and the
+screen would argue with the person typing.
+
+**It reports the figure, it does not only subtract it.** Each row reads
+"13 ctn already on the way · arrives 16 Aug". A number that shrinks for reasons
+the reader cannot see is a number they stop believing.
+
+**The empty state was lying too.** "Every product has healthy stock cover" is
+false when the shelf is nearly bare and only a container covers it — and it is
+what he would read the day after being told to buy ten cartons of XL.
+
+**Stock health is deliberately untouched.** `get_sku_reorder_alerts` still
+answers from the shelf: an empty shelf is empty today whatever is on the water.
+Same split 0180 drew, and what the dashboard's stock-out row (0184) reads.
+
+**I HAD REPEATED THE SAME ERROR TO HIM, TWICE**, in the closing summaries of two
+sessions: *"X-Tra Kering L and XL are at ZERO packs — his best seller, out in
+two big sizes"*, phrased as something to act on. 13 cartons of each were on that
+container. The shelf figure was right and the conclusion was not, because I was
+reading the same blind engine. **When reporting stock, read the position, not
+the shelf** — §16f's open list now says so.
+
+### 16e. What the audits taught about audits
+
+Three separate times this stretch, a check passed alone and failed inside the
+suite — or worse, passed against a broken build. All three causes are worth
+carrying forward:
+
+1. **Shared fixture state.** `carton-and-packs` used the fixture customer, who
+   by then had order history from journey.mjs and offline.mjs, so a "Repeat last
+   order" banner and a cross-sell prompt intercepted the taps. Every new audit
+   creates and cleans up **its own** customer.
+2. **Hardcoded money.** Its prices were constants; `sell-new-product.mjs`
+   receives stock of the same SKU at its own cost, so by the time it ran, MVR
+   300 a pack was **below cost** and the below-cost sheet correctly swallowed
+   the tap. Prices are now read off the shelf and set above it. *The guard was
+   doing its job.*
+3. **Absolute assertions against a fixture that already had data.**
+   `on-the-water` asserted `incoming == 37`; the fixture already carried 10
+   cartons of that SKU, so the honest answer was 47. Measured as a **delta**
+   now. Wrong in the direction that would have had me "fixing" correct
+   arithmetic.
+
+The general rule, and it is the same one three ways: **an audit must depend on
+nothing but what it created itself.**
+
+### 16f. Open — start here
+
+**Ali's, not mine:**
+- **Two Supabase Auth settings**, dashboard config not database: leaked-password
+  protection is off, and OTP expiry is long. Both worth turning on; neither was
+  changed without asking because both alter how his team signs in.
+- Carried from §15g: the Merries carton photo, the ~18,700-piece stock check,
+  monthly running costs, `npm run backup`, the five carton measurements, and the
+  marketing assets.
+
+**Known and not yet done:**
+- **When reporting stock to Ali, read the POSITION, not the shelf.** Twice I
+  told him a best seller was at zero and needed ordering while 13 cartons of it
+  were in a container. `get_reorder_suggestions` now returns
+  `incoming_cartons`/`incoming_eta` — use them in any summary that mentions
+  running out.
+- Attribution: per-platform links + a "where did you hear about us" field.
+- The WhatsApp-paste order entry idea — proposed, never approved, not built.
+- The nav "Setup" grouping (Godowns, Suppliers, Price Simulator) — recommended
+  by the panel, still deferred. Small.
+- **Itemised split lines** (a carton and loose packs as two priced rows) would
+  need `stock_movements` to learn about lines. Not needed unless Ali says his
+  customers want the two prices broken out — he has not been asked to decide
+  since the joined line shipped.
