@@ -273,6 +273,11 @@ was verified by putting its bug back:
 | the join keeps the carton's money but drops the loose packs' | carton-and-packs — "the total is the two prices he typed, added — expected 1810, got 1200" |
 | the join keeps the money but drops the loose packs' quantity | carton-and-packs — the quantity check, showing `1 ctn · MVR 452.5/pack` |
 | the joined line shown as its flat pack count instead of trade units | carton-and-packs — "reads as 1 carton + 2 packs", printing what the cart actually said |
+| `get_reorder_suggestions` blind to stock on order again — the live bug, 49 cartons of duplicate buying | pgTAP `reorder_sees_the_water` — "stock already bought and afloat is not bought again" |
+| DRAFT shipments counted as stock on order, so writing a PO deletes the reason for writing it | pgTAP `reorder_sees_the_water` — 2 checks, the draft one and the suggestion returning |
+| a received (`grn_confirmed`) shipment counted as incoming as well as on the shelf | pgTAP `reorder_sees_the_water` — "once received, a shipment stops being on the way" |
+| the incoming figure subtracted but never reported back | pgTAP `reorder_sees_the_water` — the "SAYS how much is coming" and ETA checks |
+| the "already on the way" line deleted from the Reorder row | on-the-water — 2 of 6, naming the carton count the screen should have shown |
 | `recalculate_order_payment_status` adding the returned amount to the paid amount again | pgTAP `settled_not_paid` — 2 of 16, both about the WORD: an unpaid return and a refunded order each read "paid" |
 | the trigger dropped from `sales_returns`, so only `record_customer_return` keeps the flag current | pgTAP `settled_not_paid` — "the returns ledger keeps the flag current by itself" |
 | `void_sales_order` / `delete_sales_order` losing the "already returned" guard | pgTAP `settled_not_paid` — the void mutation took 2 checks, because a void that succeeds also un-closes the order |

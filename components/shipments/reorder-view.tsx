@@ -156,6 +156,18 @@ export function ReorderView() {
     [skus, needsOrder],
   );
 
+  // What is bought and not yet here, across the whole catalogue (0187). Used
+  // only by the empty state, to explain an empty list truthfully rather than
+  // claiming healthy cover the shelf does not have.
+  const afloatCartons = useMemo(
+    () => rows.reduce((n, r) => n + Number(r.incoming_cartons ?? 0), 0),
+    [rows],
+  );
+  const afloatEta = useMemo(() => {
+    const dates = rows.map((r) => r.incoming_eta).filter(Boolean) as string[];
+    return dates.length > 0 ? dates.slice().sort()[0] : null;
+  }, [rows]);
+
   // The "Needs ordering" lens narrows the SAME list — it never builds a second
   // copy of a row, so a SKU is only ever in one place on this screen.
   const visibleGroups = useMemo(() => {
@@ -249,8 +261,19 @@ export function ReorderView() {
             <p className="ios-subhead font-medium text-foreground">
               {lens === "need" ? "Nothing needs ordering" : "No products match"}
             </p>
+            {/* "Every product has healthy stock cover" is not always the true
+                reason, and saying it when it is false is how a list stops being
+                believed. After 0187 the common case is the opposite: the shelf
+                is nearly empty and the only thing covering it is a container
+                already on the water. He watched this screen ask for 10 cartons
+                of Xtra Kering XL yesterday; if it says "healthy" today with no
+                explanation, the honest conclusion is that it is broken. */}
             <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
-              {lens === "need" ? "Every product has healthy stock cover." : "Try a different search."}
+              {lens !== "need"
+                ? "Try a different search."
+                : afloatCartons > 0
+                ? `Nothing to buy — ${afloatCartons} cartons are already on the way${afloatEta ? `, arriving ${mvtPlainDay(afloatEta)}` : ""}.`
+                : "Every product has healthy stock cover."}
             </p>
           </div>
         ) : visibleGroups.map((g) => (
@@ -298,6 +321,21 @@ export function ReorderView() {
                         {needs && mv?.strong ? " · Top seller" : ""}
                         {over ? " · overstocked" : ""}
                       </p>
+                      {/* ALREADY BOUGHT, NOT YET HERE.
+                          On 2026-08-17 this list was asking Ali to buy 49
+                          cartons that were sitting in SH-2026-002 — 10 of Xtra
+                          Kering XL against 13 already afloat. The suggestion is
+                          now net of it (0187), and this line is why: a number
+                          that shrinks for reasons you cannot see is a number
+                          you stop trusting.
+                          systemBlue, because this is information and not a
+                          fault — stock arriving is good news. */}
+                      {sug && sug.incoming_cartons > 0 && (
+                        <p className="snm-num ios-footnote font-semibold truncate" style={{ color: "var(--snm-info)" }}>
+                          {sug.incoming_cartons} ctn already on the way
+                          {sug.incoming_eta ? ` · arrives ${mvtPlainDay(sug.incoming_eta)}` : ""}
+                        </p>
+                      )}
                       {/* Why a suggestion is bigger than raw sales imply. The
                           rate is measured over days stock was actually on the
                           shelf (0155), so an empty shelf no longer reads as
