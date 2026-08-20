@@ -4,6 +4,8 @@ import {
   getDailyRevenueServer,
   getSignedInFirstName,
   getTodayServer,
+  getFollowupQueueServer,
+  getFollowupResultsServer,
 } from "@/lib/queries/dashboard-server";
 import {
   TrendingUp,
@@ -23,8 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MorningBriefing } from "@/components/layout/morning-briefing";
-import { MessageButton } from "@/components/customers/message-button";
-import { switchDrafts } from "@/lib/wa";
+import { FollowupCard } from "@/components/customers/followup-round";
 import { RevenueTrendChart } from "@/components/dashboard/revenue-trend-chart";
 import { MarginCompositionChart } from "@/components/dashboard/margin-composition-chart";
 
@@ -68,7 +69,7 @@ export default async function DashboardPage() {
 
   // Every read goes through the server query layer — this page used to call
   // supabase.rpc(...) inline, against hard rule 4.
-  const [data, pnl, firstName, dailyRevenueData, today] = await Promise.all([
+  const [data, pnl, firstName, dailyRevenueData, today, followups, followupResults] = await Promise.all([
     getDashboardMetricsServer(),
     getPnlServer(firstOfMonth, tomorrow),
     getSignedInFirstName(),
@@ -78,6 +79,11 @@ export default async function DashboardPage() {
     // The worklist. Never let it break the dashboard: the money figures above
     // are vital signs and must render whatever this does.
     getTodayServer(5).catch(() => []),
+    // THE SECOND ORDER IS THE BUSINESS: 55 of 81 customers bought once, and a
+    // repeat customer is worth MVR 1,098 against MVR 485. Never let it break
+    // the dashboard — the money figures above are vital signs.
+    getFollowupQueueServer(10).catch(() => []),
+    getFollowupResultsServer(30).catch(() => null),
   ]);
   const netProfit    = Number(pnl?.net_profit_mvr ?? 0);
   const netMargin    = pnl?.net_margin_pct != null ? Number(pnl.net_margin_pct) : null;
@@ -231,6 +237,19 @@ export default async function DashboardPage() {
            action in the business would stay invisible.
 
            Silent when there is nobody to chase. */}
+      {/* ── The follow-up round ────────────────────────────────────────────
+           55 of 81 customers bought once, and one who comes back is worth
+           MVR 1,098 against MVR 485. The app has known who was due for months;
+           what it could not do was ACT. This is a queue, not a list: it ends,
+           it remembers who was contacted, and it can be asked whether it
+           worked (0188).
+
+           Above the worklist deliberately. The worklist is money already at
+           stake; this is money that walks away quietly if nobody asks.
+
+           Silent when there is nobody to chase, which is most days. */}
+      <FollowupCard queue={followups} results={followupResults} />
+
       {/* ── What to do today ───────────────────────────────────────────────
            One ranked list of everything worth doing, from every module.
 
@@ -253,52 +272,24 @@ export default async function DashboardPage() {
 
           <div className="space-y-2">
             {today.map((t, i) => (
-              // A ROW THAT CAN ACT, NOT ONLY NAVIGATE. The card this list
-              // replaces carried a Message button with three drafts, and
-              // swapping that for a link would have been a downgrade dressed
-              // as an upgrade. So the customer rows keep it, right here — the
-              // button is a sibling of the link rather than inside it, because
-              // a button nested in an anchor is invalid and taps unpredictably.
-              <div
+              <Link
                 key={`${t.kind}-${t.ref_id ?? i}`}
-                className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+                href={t.href}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 snm-pressable"
                 style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
               >
-                <Link href={t.href} className="flex items-center gap-3 min-w-0 flex-1 snm-pressable">
-                  <div className="min-w-0 flex-1">
-                    <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
-                      {t.title}
-                    </p>
-                    {/* --foreground at 0.7, never muted: this line is the reason
-                        the row is here, not a decorative caption. */}
-                    <p className="ios-footnote truncate" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-                      {t.detail}
-                    </p>
-                  </div>
-                  {!t.phone && (
-                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                  )}
-                </Link>
-
-                {/* The words differ, the interaction does not. A customer whose
-                    range we stopped stocking must not be asked "are you running
-                    low?" — that invites them to ask for something we will not
-                    have. switchDrafts leads with what we CAN send, in their own
-                    size. MessageButton renders nothing at all when the stored
-                    number is not one we trust. */}
-                {t.phone && (
-                  <MessageButton
-                    name={t.title}
-                    phone={t.phone}
-                    tone="quiet"
-                    drafts={
-                      t.kind === "stranded" && t.swap_label
-                        ? switchDrafts(t.title, t.swap_label, t.swap_size)
-                        : undefined
-                    }
-                  />
-                )}
-              </div>
+                <div className="min-w-0 flex-1">
+                  <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                    {t.title}
+                  </p>
+                  {/* --foreground at 0.7, never muted: this line is the reason
+                      the row is here, not a decorative caption. */}
+                  <p className="ios-footnote truncate" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                    {t.detail}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+              </Link>
             ))}
           </div>
         </div>

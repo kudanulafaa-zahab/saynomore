@@ -12,7 +12,7 @@
     "audit:contrast": "node scripts/audit/contrast.mjs",
     "audit:material": "node scripts/audit/material.mjs",
     "audit:journey": "node scripts/audit/journey.mjs",
-    "audit:ui": "npm run audit:wa && npm run audit:journey && npm run audit:grn && npm run audit:offline && npm run audit:running-costs && npm run audit:reorder && npm run audit:direct && npm run audit:newsku && npm run audit:card && npm run audit:sellnew && npm run audit:stranded && npm run audit:identity && npm run audit:crosssell && npm run audit:returned && npm run audit:cartonpacks && npm run audit:water && npm run audit:reach && npm run audit:material && npm run audit:contrast",
+    "audit:ui": "npm run audit:wa && npm run audit:journey && npm run audit:grn && npm run audit:offline && npm run audit:running-costs && npm run audit:reorder && npm run audit:direct && npm run audit:newsku && npm run audit:card && npm run audit:sellnew && npm run audit:stranded && npm run audit:identity && npm run audit:crosssell && npm run audit:returned && npm run audit:cartonpacks && npm run audit:water && npm run audit:followup && npm run audit:reach && npm run audit:material && npm run audit:contrast",
     "audit:offline": "node scripts/audit/offline.mjs",
     "backup": "bash scripts/backup.sh",
     "audit:grn": "node scripts/audit/grn.mjs",
@@ -30,7 +30,8 @@
     "shipped": "node scripts/verify-deploy.mjs",
     "audit:returned": "node scripts/audit/returned-order.mjs",
     "audit:cartonpacks": "node scripts/audit/carton-and-packs.mjs",
-    "audit:water": "node scripts/audit/on-the-water.mjs"
+    "audit:water": "node scripts/audit/on-the-water.mjs",
+    "audit:followup": "node scripts/audit/followup-round.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

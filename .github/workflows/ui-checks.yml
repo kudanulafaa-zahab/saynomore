@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same nineteen audits he can run locally (`npm run audit:ui`):
+# This runs the same twenty audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
@@ -21,7 +21,7 @@ name: UI checks
 #             the biggest money calculation in the app
 #   offline   records a sale with the network cut and proves it is not lost
 #   running   the P&L never claims a net profit it has no running costs for
-#   reorder   customers who have run out reach the dashboard, with one tap to act
+#   reorder   the At risk lens: who has run out vs who is merely late, with one tap to act
 #   direct    stock bought locally or carried in can be received, and reads right
 #   newsku    a product with no carton can be created, even after a failed try
 #   card      the Product Card: every figure on it reconciles to the ledger
@@ -39,6 +39,9 @@ name: UI checks
 #             discounted price, go on one order — the add that used to be refused
 #   water     the purchase list counts stock already bought and afloat, and SAYS
 #             so — it was asking for 49 cartons already paid for and in transit
+#   followup  the round that chases the second order runs itself: one customer
+#             at a time, and every send or skip is remembered so nobody is
+#             asked twice. 55 of 81 customers bought once — this is the lever
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -46,7 +49,7 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All nineteen are proven to fail when the bug they guard is reintroduced; that
+# All twenty are proven to fail when the bug they guard is reintroduced; that
 # was checked by putting each one back deliberately. The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
@@ -147,7 +150,7 @@ jobs:
       - name: Running costs — the P&L tells the truth about them
         run: npm run audit:running-costs
 
-      - name: Reorder nudge — the app asks for the second order
+      - name: At risk lens — the destination is worth arriving at
         run: npm run audit:reorder
 
       - name: Direct receipt — stock that never travelled in a container
@@ -179,6 +182,9 @@ jobs:
 
       - name: On the water — never buy what is already in a container
         run: npm run audit:water
+
+      - name: Follow-up round — the app asks for the second order itself
+        run: npm run audit:followup
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

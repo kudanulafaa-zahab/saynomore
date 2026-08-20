@@ -153,3 +153,21 @@ export async function getTodayServer(limit = 5): Promise<TodayItem[]> {
   if (error) throw error;
   return (data ?? []) as TodayItem[];
 }
+
+/** The follow-up round, fetched on the server so the dashboard's first paint
+ *  already knows whether there is anyone to chase (0188). The client component
+ *  only handles the send/skip decisions. */
+export async function getFollowupQueueServer(limit = 10) {
+  const supabase = await getSupabaseServer();
+  const { data, error } = await supabase.rpc("get_followup_queue", { p_limit: limit });
+  if (error) throw error;
+  return (data ?? []) as import("@/lib/queries/followups").FollowupCandidate[];
+}
+
+export async function getFollowupResultsServer(days = 30) {
+  const supabase = await getSupabaseServer();
+  const { data, error } = await supabase.rpc("get_followup_results", { p_days: days });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row ?? null) as import("@/lib/queries/followups").FollowupResults | null;
+}
