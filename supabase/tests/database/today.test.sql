@@ -25,7 +25,7 @@
 -- its own catalogue, so what is proven is the MECHANISM.
 
 begin;
-select plan(19);
+select plan(17);
 
 -- ── Silent when healthy ────────────────────────────────────────────────────
 -- Asserted BEFORE the fixture exists, because "no rows" is the correct and
@@ -204,50 +204,44 @@ select is(
   'a range we stopped buying running out is the plan, never an alert'
 );
 
--- ── People ─────────────────────────────────────────────────────────────────
-
+-- ── The people are NOT here, and that is the point ─────────────────────────
+-- 0188 moved customers due a message into the follow-up round, which can
+-- actually send one. Leaving them here as well would put the same name on the
+-- dashboard twice, with the weaker of the two unable to act — the exact
+-- duplication Ali called out on 2026-08-12 that cost the morning briefing its
+-- customer lines.
+--
+-- The fixture still builds a run-out customer and a stranded one, so this is a
+-- real absence rather than an empty fixture agreeing with itself. What they
+-- must now do instead is proven in followup_round.test.sql.
 select is(
-  (select impact_mvr from get_today(50) where kind = 'ranout' and title = 'TD Ran Out'),
-  300::numeric,
-  'a customer who has run out is worth ONE order, not their lifetime MVR 600'
+  (select count(*)::int from get_today(50)
+    where title in ('TD Ran Out', 'TD Stranded')),
+  0,
+  'customers due a message are not ALSO on the worklist — the round owns them'
 );
 
 select is(
-  (select count(*)::int from get_today(50) where kind = 'stranded' and title = 'TD Stranded'),
-  1,
-  'a customer with nothing left to reorder reaches the list, with a swap in stock'
+  (select coalesce(string_agg(distinct kind, ',' order by kind), 'none') from get_today(50)),
+  'deadstock,owed,stockout',
+  'what is left is the work that is not a person: money owed, stock out, capital still'
 );
 
--- ── It carries the message with it ─────────────────────────────────────────
--- The card this list replaces could ACT: one tap, three drafts, WhatsApp open
--- with the text in the box. A ranked list that can only navigate would be a
--- downgrade wearing the clothes of an upgrade. The button renders from these
--- columns, so a NULL here is a missing button on the phone.
-select is(
-  (select phone from get_today(50) where kind = 'ranout' and title = 'TD Ran Out'),
-  '7713002',
-  'a customer who has run out arrives with their number, so the row can message them'
-);
-
-select is(
-  (select swap_label from get_today(50) where kind = 'stranded' and title = 'TD Stranded'),
-  'TDBrand TD Swap L',
-  'and a stranded one arrives with the replacement, because their message names it'
-);
-
-select is(
-  (select swap_size from get_today(50) where kind = 'stranded' and title = 'TD Stranded'),
-  'L',
-  'with the size — "same size as before" is the whole of what makes a swap easy to accept'
+-- The fixture really does contain both kinds of person, so the check above is
+-- an absence and not a vacuum.
+select cmp_ok(
+  (select count(*)::int from get_followup_queue(50)
+    where name in ('TD Ran Out', 'TD Stranded')),
+  '>=', 1,
+  'and they really exist — they are in the follow-up queue instead'
 );
 
 -- A shelf has nobody to text, and a debtor must never be sent "are you running
 -- low?" — asking for another order is how a debt becomes a bigger debt.
 select is(
-  (select count(*)::int from get_today(50)
-    where kind in ('stockout','deadstock','owed') and phone is not null),
+  (select count(*)::int from get_today(50) where phone is not null),
   0,
-  'no message is offered from a stock row or an unpaid invoice'
+  'nothing left on the worklist offers a message, because nothing left is a person'
 );
 
 -- ── Money sitting still ────────────────────────────────────────────────────
@@ -301,7 +295,7 @@ select is(
 select is(
   (select array_agg(distinct h order by h)
      from (select regexp_replace(href, '^(/[a-z-]+).*$', '\1') as h from get_today(50)) x),
-  array['/competitors','/customers','/reorder','/sales'],
+  array['/competitors','/reorder','/sales'],
   'every row lands on a route this app actually has'
 );
 

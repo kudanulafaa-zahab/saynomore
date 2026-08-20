@@ -1,4 +1,4 @@
-// Customers who have run out — does the app actually ASK for the second order?
+// The At risk lens — is the destination worth arriving at?
 //
 // THE BUSINESS FACT THIS GUARDS. 52 of 73 customers have never bought twice,
 // on a product a household finishes in about a fortnight (measured: the median
@@ -12,14 +12,28 @@
 // the people who are out of nappies today. A brain nobody hears is not
 // intelligence, which is what this audit exists to keep true.
 //
-// It checks the whole path: the section appears, names people, says how long
-// it has been and how long what they bought should have lasted, offers ONE TAP
-// to WhatsApp with a first-name draft, and the "See all" link lands on the At
-// risk lens rather than dumping you on A-Z. Plus the standing units rule: no
-// piece count ever reaches this screen.
+// This file checks the screen a person lands on when they want the whole list
+// rather than today's round: it separates who has RUN OUT from who is merely
+// late, names them, says how long it has been and why, and offers the same one
+// tap to WhatsApp. Plus the standing units rule: no piece count reaches it.
 //
 // The link SAFETY (never guess a phone number) is checked separately and
 // without a browser by audit:wa — a bug there messages a stranger.
+//
+// ── WHAT MOVED, 2026-08-20 ────────────────────────────────────────────────
+// The dashboard half of this audit is gone, and deliberately. Migration 0188
+// gave the follow-up job a QUEUE that can act — one customer at a time, send or
+// skip, every decision remembered — and took those people off the worklist so
+// nobody is named twice on one screen. followup-round.mjs owns that half now,
+// and asserts more than this ever did: that the round ends, that a skip is
+// recorded, and that the same person is not offered again tomorrow.
+//
+// What is left here is the DESTINATION, and it is worth keeping on its own.
+// "See all" has to land somewhere useful, and this file exists because it once
+// did not: the link was correct while the page behind it ranked people by
+// profit, showed no reason and offered no way to act. A check that tests the
+// link instead of the destination is how a half-built feature gets reported as
+// done.
 //
 // Usage:  node scripts/audit/reorder-nudge.mjs
 
@@ -63,80 +77,9 @@ q(`update sales_orders set created_at = now() - make_interval(days => (
 
 import { launch, signedInPage, checklist, finish, BASE } from "./lib.mjs";
 const b = await launch();
-const list = checklist("Dashboard — the worklist asks for the second order");
+const list = checklist("At risk — the destination is worth arriving at");
 const { ctx, page } = await signedInPage(b, { device: "phone", scheme: "light" });
 try {
-  await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(6000);
-  const txt = await page.locator("body").innerText();
-
-  // THE CARD BECAME A ROW, AND THE ROW MUST STILL BE ABLE TO ACT.
-  // "Probably out of stock at home" was its own card among four other doors:
-  // money owed, stock about to run out, customers stranded on a dropped range,
-  // dead stock. get_today (0184) ranks all five in Postgres by money at stake
-  // in the next seven days and the dashboard renders the top few.
-  //
-  // The risk in that trade is losing the one thing the card could DO. Every
-  // check below the first two is unchanged from when this was a card, on
-  // purpose: same name, same fact, same one-tap message, same three drafts,
-  // same "we". A worklist that can only navigate would be a downgrade wearing
-  // the clothes of an upgrade, and this is what would catch it.
-  list.ok(/worth doing today/i.test(txt), "the worklist appears when there is something to do");
-  list.ok(/Ahmed Ziyad/.test(txt), "and names the customer who has run out");
-  list.ok(/probably out/i.test(txt), "saying why they are on the list");
-  list.ok(/last ordered \d+ days ago/i.test(txt), "with how long it has been");
-  list.ok(!/\bpcs\b|pieces/i.test(txt), "no piece counts anywhere on the dashboard");
-
-  // THREE DRAFTS, AND THE WORD IS "WE".
-  // Ali, 2026-08-12: "I need to be able to select a message from 3 options.
-  // Don't use 'I'. Use 'we'." One canned line is a form letter, and the same
-  // form letter twice to one customer is worse than not writing.
-  // ONE OWNER FOR THE FOLLOW-UP JOB.
-  // The morning briefing below this card used to list the SAME customers as
-  // sentences — same names, same two facts, and a worse action ("Worth a call
-  // (9409259)", a phone number you cannot tap). Ali, 2026-08-12: "In dashboard
-  // you're also duplicating the same stuff for which you gave the better option
-  // to message. Below it is a list of same people."
-  // A name may appear ONCE on this screen.
-  const nameHits = (await page.locator("body").innerText()).match(/Ahmed Ziyad/g) ?? [];
-  list.is(nameHits.length, 1, `a customer is named ONCE on the dashboard, not repeated in the briefing (found ${nameHits.length})`);
-  list.ok(!/worth a call/i.test(txt), "no 'Worth a call' sentence duplicating the Message button");
-
-  const msg = page.getByRole("button", { name: /message ahmed ziyad on whatsapp/i }).first();
-  list.ok(await msg.count() > 0, "a one-tap Message button is offered");
-  await msg.click();
-  await page.waitForTimeout(1200);
-
-  const links = page.locator('a[href^="https://wa.me/"]');
-  const n = await links.count();
-  list.is(n, 3, "the picker offers THREE drafts to choose from");
-
-  const hrefs = [];
-  for (let i = 0; i < n; i++) hrefs.push(await links.nth(i).getAttribute("href"));
-  list.ok(hrefs.every((h) => h?.startsWith("https://wa.me/960")),
-    `every draft opens WhatsApp with a Maldives number (${hrefs[0]?.slice(0, 26)}…)`);
-  list.ok(hrefs.every((h) => h?.includes("?text=Hi%20Ahmed")), "each carries a first-name draft, not auto-sent");
-  list.is(new Set(hrefs).size, 3, "the three drafts are actually DIFFERENT, not one text three times");
-
-  // "I can deliver today" makes the business sound like one man with a scooter,
-  // and stops being true the moment a driver delivers. Checked on the decoded
-  // text, since the href is percent-encoded.
-  const decoded = hrefs.map((h) => decodeURIComponent(h ?? ""));
-  list.ok(decoded.every((t) => !/\bI\b|\bI'|\bmy\b/.test(t)),
-    `no draft speaks as "I" (${decoded.find((t) => /\bI\b|\bI'|\bmy\b/.test(t))?.slice(0, 60) ?? ""})`);
-  list.ok(decoded.some((t) => /\bwe\b/i.test(t)), 'the drafts speak as "we"');
-
-  await page.keyboard.press("Escape").catch(() => {});
-  await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
-  await page.waitForTimeout(800);
-
-  // The row IS the link now — there is no separate "See all", because a
-  // worklist of five things does not need a footer telling you where they came
-  // from. Tapping the person opens the lens that lists everyone like them.
-  const seeAll = page.getByRole("link", { name: /Ahmed Ziyad/i }).first();
-  list.ok(await seeAll.count() > 0, "and the row itself is the way through");
-  list.is(await seeAll.getAttribute("href"), "/customers?lens=risk", "which deep-links to the At risk lens");
-
   // THE DESTINATION HAS TO BE USEFUL, NOT MERELY CORRECT.
   // This used to assert the href and then that the word "At risk" appeared —
   // both true while the page it landed on ranked people by PROFIT, showed no
@@ -144,8 +87,8 @@ try {
   // see who's at risk of running out or who ran out already." A check that
   // tests the link instead of the destination is how a half-built feature gets
   // reported as done.
-  await seeAll.click();
-  await page.waitForTimeout(4000);
+  await page.goto(`${BASE}/customers?lens=risk`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(5000);
   const cust = await page.locator("body").innerText();
   list.ok(/at risk/i.test(cust), "the Customers screen opens on At risk, not A–Z");
   list.ok(/probably out of stock at home/i.test(cust), "it separates who has RUN OUT from who is merely late");
@@ -153,7 +96,7 @@ try {
   list.ok(/last ordered \d+ days ago/i.test(cust), "with how long it has been");
   list.ok(/days' worth|usually every \d+ days/i.test(cust), "and the reason they are on the list");
   list.ok(await page.getByRole("button", { name: /message ahmed ziyad on whatsapp/i }).count() > 0,
-    "and the SAME Message button as the dashboard — the list is actionable, not a report");
+    "and the same one-tap Message button the round offers — a list that can act, not a report");
   list.ok(!/\bpcs\b|pieces/i.test(cust), "no piece counts on the At risk list either");
   list.is(page.errors.length, 0, `no page errors (${page.errors.slice(0,2).join(" | ")})`);
 } catch (e) {

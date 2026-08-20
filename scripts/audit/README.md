@@ -278,6 +278,11 @@ was verified by putting its bug back:
 | a received (`grn_confirmed`) shipment counted as incoming as well as on the shelf | pgTAP `reorder_sees_the_water` — "once received, a shipment stops being on the way" |
 | the incoming figure subtracted but never reported back | pgTAP `reorder_sees_the_water` — the "SAYS how much is coming" and ETA checks |
 | the "already on the way" line deleted from the Reorder row | on-the-water — 2 of 6, naming the carton count the screen should have shown |
+| the follow-up cooldown removed, so the same names return every morning | pgTAP `followup_round` — 2 checks, the send and the skip |
+| a SKIP no longer holding the cooldown — "nothing happened, so ask again" | pgTAP `followup_round` — "a skip is an answer" |
+| debtors queued for "are you running low?" again | pgTAP `followup_round` — "somebody who still owes money is not asked to buy more" |
+| the queue re-sorted alphabetically instead of by money | pgTAP `followup_round` — after the check was rewritten as sortedness; the first version SURVIVED this, because "Big" precedes "Small" |
+| `get_followup_results` no longer counting the revenue it produced | pgTAP `followup_round` — "what that was worth, to the rufiyaa" |
 | `recalculate_order_payment_status` adding the returned amount to the paid amount again | pgTAP `settled_not_paid` — 2 of 16, both about the WORD: an unpaid return and a refunded order each read "paid" |
 | the trigger dropped from `sales_returns`, so only `record_customer_return` keeps the flag current | pgTAP `settled_not_paid` — "the returns ledger keeps the flag current by itself" |
 | `void_sales_order` / `delete_sales_order` losing the "already returned" guard | pgTAP `settled_not_paid` — the void mutation took 2 checks, because a void that succeeds also un-closes the order |
