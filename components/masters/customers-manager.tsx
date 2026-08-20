@@ -369,7 +369,7 @@ export function CustomersManager() {
                 </p>
                 {s.swap_label ? (
                   <p className="ios-footnote mt-0.5" style={{ color: "var(--snm-success)" }}>
-                    Offer {s.swap_label}
+                    Offer {s.swap_label}{s.dropped_size ? ` in ${s.dropped_size}` : ""}
                     {s.swap_packs_avail != null ? ` · ${s.swap_packs_avail} packs in stock` : ""}
                   </p>
                 ) : (

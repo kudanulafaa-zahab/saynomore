@@ -3114,3 +3114,181 @@ nothing but what it created itself.**
   need `stock_movements` to learn about lines. Not needed unless Ali says his
   customers want the two prices broken out — he has not been asked to decide
   since the joined line shipped.
+
+---
+
+## 17. COMPLETE index of 2026-08-19 → 08-20 — every change, in order
+
+**This section is newer than §16 and every section before it. Where they
+disagree, this wins.** What is still open lives in **§17g**.
+
+Three PRs, **#107 → #109**. Migrations **0188** and **0189**. The gate grew from
+19 audits / 385 checks to **20 audits / 386 checks**, and pgTAP from 309 to
+**324 tests across 32 files**. The check count barely moved because one audit
+lost half of itself in the same change — see 17c.
+
+This stretch is one feature and two corrections to it, both of which Ali found
+within minutes of opening the screen. Read **17e** before designing anything
+that presents a list of people.
+
+### 17a. The follow-up round — PR #108, migration 0188
+
+**The business fact.** 43 days of real trading, to 20 August: 118 orders, MVR
+55,250, 81 customers. **55 of them bought once.** A repeat customer is worth
+MVR 1,098 against MVR 485, and the 26 repeaters are 52% of everything. The
+median gap between two orders is 14 days, on a product a household finishes in
+about a week. In this business the second order *is* the business.
+
+The app already knew who was due — `get_customer_insights` had computed
+`expected_supply_days` and `ran_out` for months, and 0180 added the stranded
+lens. All of it sat behind a screen you had to think to open. **Intelligence
+nobody hears is not intelligence.** The round is the part that speaks first.
+
+`get_followup_queue(p_limit)` returns the people worth a message today, ordered
+by `avg_order_mvr desc` — most money first — after three exclusions:
+
+| Excluded | Why |
+|---|---|
+| contacted in the last 7 days | a nag is ignored inside a fortnight; that is how the old "Worth a call" briefing line died |
+| **owing money** (via `get_receivables_aging`) | see 17c — this one was a real bug |
+| no phone number | there is nothing to do about them here |
+
+`log_customer_followup(...)` records **both** outcomes — sent *and* skipped —
+into `customer_followups`. Skipping has to be remembered or the same name comes
+back tomorrow, which is the failure mode that kills this kind of screen.
+
+`get_followup_results(p_days)` is the answer to *"did this work"*: messaged,
+came back, revenue. A round that cannot be audited is a busywork generator.
+
+**Nothing is sent by the app.** Every draft opens WhatsApp with the text in the
+box; Ali reads it, edits it, presses send. 86% of orders already arrive that
+way.
+
+**`get_today` was trimmed in the same migration.** The `ranout` and `stranded`
+kinds came out of it, because the round now owns people and naming the same
+customer on two screens is how both get ignored.
+
+### 17b. What mutation testing DELETED
+
+Every check must be provable able to fail. Two survived their mutation, and the
+survivors were the interesting part:
+
+- **The `answered` CTE survived** — and the reason was that it was both
+  redundant *and* harmful. It suppressed anyone who had ordered recently, but
+  someone who just ordered is not `at_risk` in the first place, so it never
+  changed a result it was meant to change. What it *would* have done is
+  suppress a customer who became due again inside 30 days. **Deleted, not
+  patched.** A surviving mutation means one of two things and the second is the
+  one people forget: either the test is missing, or the rule is wrong.
+- **An ordering assertion survived** because the fixture names sorted the same
+  way by accident — "Big" < "Small". Renamed to `FU Anna Small` / `FU Zoya Big`
+  so alphabetical order is the *opposite* of value order, and rewritten as a
+  **sortedness** assertion with `lead() over ()` rather than a check on two
+  hardcoded rows.
+
+### 17c. Debtors were being asked whether they were running low
+
+Found by the audit fixture, not by reading the code: the customer it created
+owed MVR 5,000 and the round queued them for *"are you running low?"*.
+
+That message to someone who has not paid for the last order is worse than
+silence — it reads as though nobody at this company talks to anybody else, and
+it spends the goodwill that the actual collection conversation needs. The
+`owing` exclusion and two tests came out of it. **Money owed outranks money
+hoped for**, and the receivables engine already knew; the round simply was not
+asking it.
+
+`reorder-nudge.mjs` lost its dashboard half in the same change — the round
+asserts more about those people than that audit ever did (that it ends, that a
+skip is recorded, that the same person is not offered tomorrow). What is left
+there is the *destination*, which is worth keeping alone: "See all" has to land
+somewhere useful, and this file exists because it once did not.
+
+### 17d. "What's mamypoko M of M?" — migration 0189
+
+Ali, opening the round: *"What's mamypoko m of m? What does that even mean?"*
+
+Nothing. It was a size printed twice, in a message about to go to a **customer**:
+
+> "Hi Luhaa! We now stock Mamypoko Xtra Kering M in M. Same size as before."
+
+`get_stranded_customers` built `swap_label` as brand + model + **size**, and
+returned the size again in its own column. Every caller pairs the two —
+`switchDrafts(name, label, size)` appends `" in M"` — so it was always doubled.
+The round did not introduce this. It has been in the At risk lens since **0180**
+and simply had fewer readers.
+
+**The fix is at the SOURCE, not at the two call sites.** A label that contains a
+field which is also its own column is a trap set for every future caller: the
+next screen to use it prints "M in M" again and looks correct in review.
+`swap_label` is now the product — brand and model — and the size travels in
+`swap_size`.
+
+Rewritten with `pg_get_functiondef` + `replace()` + `execute` rather than
+retyped: 0180's function is long, the label is one line of it, and re-declaring
+the other forty lines to change one is how an unrelated clause gets silently
+dropped.
+
+### 17e. It is a LIST, not a queue — and that is a design law now
+
+It shipped as a one-at-a-time queue. Ali, within minutes:
+
+> *"The UI is terrible. There's no way if I refuse to send message it
+> disappears and moves to next customer. I only can see each customer after I
+> choose or refuse. It's terrible."*
+
+He is right and the mistake was mine. **A queue is the correct shape for work
+that is identical and interchangeable** — a stack of invoices to approve. These
+are *people*, and he knows things about them the app never will: who he spoke to
+yesterday, who is travelling, who is annoyed with him. Deciding requires seeing
+them together, and a design that hides the next name until the current one is
+dealt with takes his judgement away and calls it focus.
+
+What survived from the queue, because it was the useful half: **it remembers**
+(send and skip both logged), and **it can be asked whether it worked** (the
+30-day footer).
+
+**Nothing disappears.** A handled row stays exactly where it is at
+`opacity: 0.55`, marked *Messaged* or *Not today*. A row that vanishes when you
+touch it leaves no way to check what you just did.
+
+Two audit checks now hold this shape, and they are the ones to keep if this file
+is ever refactored:
+
+- **every person due is on screen at once**
+- **the row stays on screen after being handled, marked rather than removed**
+
+### 17f. `MessageButton` gained `onPick`, and did not gain a twin
+
+The row needs to know *which* draft was chosen so it can be recorded. The wrong
+fix is a second picker inside the round; the right one is `onPick?: (draftKey:
+string) => void` on the single canonical component. One implementation per
+pattern — the same rule that keeps `ConfirmSheet`, `SpendSheet` and
+`lib/push.ts` singular.
+
+### 17g. Open — start here
+
+Everything in **§16f** is still open and still correct. Unchanged from it:
+
+**Ali's, not mine:**
+- Two Supabase **Auth** settings (dashboard config, not database): leaked-password
+  protection off, OTP expiry long. Both worth turning on; neither changed
+  without asking, because both alter how his team signs in.
+- The Merries carton photo, the ~18,700-piece stock check, monthly running
+  costs, `npm run backup`, the five carton measurements, the marketing assets.
+
+**Known and not yet done:**
+- **When reporting stock to Ali, read the POSITION, not the shelf** (§16d).
+- Attribution: per-platform links + a "where did you hear about us" field.
+- The WhatsApp-paste order entry idea — proposed, never approved, not built.
+- The nav "Setup" grouping (Godowns, Suppliers, Price Simulator).
+- Itemised split lines would need `stock_movements` to learn about lines.
+
+**New from this stretch:**
+- **The round has no results yet.** `get_followup_results` will read zero until
+  messages have actually been sent and orders have come back. Do not read an
+  empty footer as a broken engine — ask again after a week of use.
+- **The eight stranded customers have a deadline** (CLAUDE.md): eight people buy
+  *only* a discontinued line. The round surfaces them with a swap offer, but
+  nothing yet tracks whether the swap took. That is the first thing to measure
+  once there is data.
