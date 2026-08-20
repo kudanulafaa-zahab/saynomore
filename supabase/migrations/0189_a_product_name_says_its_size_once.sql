@@ -27,18 +27,36 @@
 -- Rewritten by replacement rather than retyped: 0180's function is long, the
 -- label is one line of it, and re-declaring the other forty lines to change one
 -- is how an unrelated clause gets silently dropped.
+--
+-- BUT A `replace()` THAT MATCHES NOTHING IS A NO-OP THAT REPORTS SUCCESS. That
+-- is the whole hazard of this technique: if 0180's whitespace ever differs by a
+-- character, this migration recreates the function EXACTLY as it was, applies
+-- cleanly, and leaves "M in M" going out to customers with a green tick beside
+-- it. So it asserts the source actually changed, and raises if it did not.
 do $$
-declare v_src text;
+declare
+  v_src text;
+  v_new text;
 begin
   select pg_get_functiondef(oid) into v_src
   from pg_proc where proname = 'get_stranded_customers';
 
-  v_src := replace(v_src,
+  if v_src is null then
+    raise exception 'get_stranded_customers not found — 0180 has not been applied';
+  end if;
+
+  v_new := replace(v_src,
     'b2.name || '' '' || pm2.name
            || coalesce('' '' || (v2.attributes->>''size''), '''') as label',
     'b2.name || '' '' || pm2.name as label');
 
-  execute v_src;
+  if v_new = v_src then
+    raise exception
+      'the swap_label expression did not match — get_stranded_customers was NOT '
+      'changed. Re-read its current source before editing this migration.';
+  end if;
+
+  execute v_new;
 end $$;
 
 comment on function get_stranded_customers() is

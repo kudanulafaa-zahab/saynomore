@@ -3123,9 +3123,9 @@ nothing but what it created itself.**
 disagree, this wins.** What is still open lives in **§17g**.
 
 Three PRs, **#107 → #109**. Migrations **0188** and **0189**. The gate grew from
-19 audits / 385 checks to **20 audits / 384 checks** (one audit lost checks
-because half of it moved — see 17c), and pgTAP from 309 to **324 tests across
-32 files**.
+19 audits / 385 checks to **20 audits / 386 checks**, and pgTAP from 309 to
+**324 tests across 32 files**. The check count barely moved because one audit
+lost half of itself in the same change — see 17c.
 
 This stretch is one feature and two corrections to it, both of which Ali found
 within minutes of opening the screen. Read **17e** before designing anything
