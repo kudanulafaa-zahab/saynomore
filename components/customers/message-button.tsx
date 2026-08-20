@@ -47,12 +47,18 @@ export function MessageButton({
   drafts: providedDrafts,
   /** Overrides the button caption when the message is not a reorder nudge. */
   label = "Message",
+  /** Fired with the chosen draft's key when he picks one. The follow-up round
+   *  uses it to record that this customer was messaged (0188) — the picker
+   *  itself stays the single implementation, rather than a second copy growing
+   *  beside it, which is how the unit noun ended up with four versions. */
+  onPick,
 }: {
   name: string;
   phone: string | null | undefined;
   tone?: "solid" | "quiet";
   drafts?: ReorderDraft[];
   label?: string;
+  onPick?: (draftKey: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -97,7 +103,7 @@ export function MessageButton({
               href={whatsappLink(phone, d.text) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => { haptic("success"); setOpen(false); }}
+              onClick={() => { haptic("success"); setOpen(false); onPick?.(d.key); }}
               className="block rounded-2xl px-4 py-3 snm-pressable"
               style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
             >

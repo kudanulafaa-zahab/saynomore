@@ -103,14 +103,25 @@ try {
   await page.waitForTimeout(1500);
   const sheet = await page.locator("body").innerText();
 
-  list.ok(sheet.includes(NAME), "the round opens on a person, by name");
-  list.ok(/follow up · 1 of \d+/i.test(sheet), "one at a time, with an end in sight");
+  list.ok(sheet.includes(NAME), "the list names the customer");
   list.ok(/probably out · last ordered \d+ days ago/i.test(sheet), "saying why they are due");
-  list.ok(/an order from them is usually MVR [\d,]+/i.test(sheet),
-    "and what one order from them is worth");
+  list.ok(/usually MVR [\d,]+ an order/i.test(sheet),
+    "and what an order from them is worth");
+
+  // EVERY NAME IS VISIBLE AT ONCE. It was a one-at-a-time queue for about an
+  // hour. Ali: "I only can see each customer after I choose or refuse. It's
+  // terrible." He was right — these are people, and he knows things about them
+  // the app never will, which needs seeing them together.
+  const namesShown = await page.getByRole("button", { name: /^Not today for /i }).count();
+  list.ok(namesShown >= 1, `every person due is on screen at once (${namesShown} rows)`);
+  list.ok(!/follow up · 1 of/i.test(sheet), "not a one-at-a-time queue that hides the next name");
 
   // Three drafts, "we" not "I", a real Maldives number. Same promise as every
-  // other message door in the app.
+  // other message door in the app — because it IS the same component: the list
+  // hands MessageButton the right words and is told which draft was picked, so
+  // there is no second picker growing beside the first.
+  await page.getByRole("button", { name: new RegExp(`Message ${NAME} on WhatsApp`, "i") }).first().click();
+  await page.waitForTimeout(1200);
   const links = page.locator('a[href^="https://wa.me/"]');
   const n = await links.count();
   list.is(n, 3, "three drafts to choose from");
@@ -126,8 +137,18 @@ try {
   // clicking a wa.me link navigates the browser away mid-audit — and a skip is
   // the harder case anyway: it is the one a careless implementation forgets to
   // record, on the grounds that "nothing happened".
-  await page.getByRole("button", { name: /not today/i }).first().click();
+  // Close the draft picker before acting on the row behind it.
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
+  await page.waitForTimeout(900);
+
+  await page.getByRole("button", { name: new RegExp(`^Not today for ${NAME}$`, "i") }).first().click();
   await page.waitForTimeout(2500);
+
+  // MARKED, NOT VANISHED. A row that disappears when touched leaves no way to
+  // check what you just did — the other half of the same complaint.
+  const after = await page.locator("body").innerText();
+  list.ok(after.includes(NAME), "the row stays on screen after being handled, marked rather than removed");
 
   const logged = q1(`
     select outcome from customer_followups

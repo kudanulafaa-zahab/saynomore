@@ -22,7 +22,7 @@
 -- at all.
 
 begin;
-select plan(12);
+select plan(13);
 
 do $$
 declare v_cat uuid; v_other uuid; v_bA uuid; v_bB uuid;
@@ -179,8 +179,8 @@ select is(
 
 select is(
   (select swap_label from get_stranded_customers() where name = 'DC Stranded'),
-  'DCBrandA DC Kept L',
-  'the swap keeps their brand and their size when both are in stock'
+  'DCBrandA DC Kept',
+  'the swap keeps their brand when both are in stock (0189: the label is the product, the size is its own column)'
 );
 
 select is(
@@ -203,7 +203,7 @@ end $$;
 
 select is(
   (select swap_label from get_stranded_customers() where name = 'DC Stranded'),
-  'DCBrandB DC Rival L',
+  'DCBrandB DC Rival',
   'with their own brand out of stock the offer moves to one we can actually ship'
 );
 
@@ -212,6 +212,26 @@ select is(
   (select has_function_privilege('anon', 'public.get_stranded_customers()', 'execute')),
   false,
   'anon cannot read the customer list'
+);
+
+-- ── A product name says its size ONCE ──────────────────────────────────────
+-- Ali, 2026-08-20: *"What's mamypoko m of m? What does that even mean?"*
+--
+-- Nothing — it was a size printed twice, in a message to a CUSTOMER:
+--
+--     "We now stock Mamypoko Xtra Kering M in M. Same size as before."
+--
+-- `swap_label` was built as brand + model + SIZE while the size ALSO came back
+-- in its own column (`dropped_size` here, exposed as `swap_size` by the
+-- follow-up queue), and every caller pairs them — `switchDrafts(name, label, size)`
+-- appends " in M"). 0189 took the size out of the label. This holds it out:
+-- the trap was that a label containing one of its own columns looks perfectly
+-- correct in review, and the next screen to use it would print it twice again.
+select is(
+  (select swap_label || ' | ' || coalesce(dropped_size, 'none')
+     from get_stranded_customers() where name = 'DC Stranded'),
+  'DCBrandB DC Rival | L',
+  'the label is the PRODUCT and the size is its own column — never both in one string'
 );
 
 select * from finish();
