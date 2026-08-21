@@ -1466,6 +1466,23 @@ function NewSkuWizard({
   const [categoryId,  setCategoryId]  = useState("");
   const [variantAttrs, setVariantAttrs] = useState<Record<string, string>>({});
 
+  /** Extra values for the FIRST variant attribute, so one trip through this
+   *  form can create a whole size range.
+   *
+   *  WHY ONLY THE FIRST. Shopify, Odoo and NetSuite all generate the full
+   *  cartesian product of every option — three scents x four formats x two
+   *  volumes is 24 products in one tap. That is the right tool for a catalogue
+   *  team and the wrong one here: Ali would have no way to see what he was
+   *  about to create, and undoing 24 wrong SKUs by hand is a bad evening. One
+   *  axis gives him what he actually asked for — Single, Queen and King of one
+   *  pattern — and the number of products is always the number of chips he can
+   *  see on screen.
+   *
+   *  variantAttrs[firstKey] is kept in step with values[0] so the display name,
+   *  the code preview and the "filled in" check all keep working unchanged. */
+  const [multiVals, setMultiVals] = useState<string[]>([]);
+  const [multiDraft, setMultiDraft] = useState("");
+
   // ── Pack config
   const [pcsPerPack,  setPcsPerPack]  = useState("");
   const [packsPerCtn, setPacksPerCtn] = useState("");
@@ -1547,7 +1564,7 @@ function NewSkuWizard({
   // also reset variant attrs so stale selections from a previous pick don't bleed through
   useEffect(() => {
     if (!modelId) return;
-    setVariantAttrs({});
+    setVariantAttrs({}); setMultiVals([]); setMultiDraft("");
     const sib = existingSkus.find((s) => s.model_id === modelId);
     if (sib && !lenCm && !widCm && !htCm) {
       setLenCm(String(sib.carton_length_cm));
@@ -1555,6 +1572,21 @@ function NewSkuWizard({
       setHtCm(String(sib.carton_height_cm));
     }
   }, [modelId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** The SKU code for one set of variant attributes. Pulled out of the effect
+   *  below so a size range can build one code per size — `internal_code` is
+   *  UNIQUE, so three sizes sharing a code would fail on the second. */
+  //  Plain function, not useCallback. The React Compiler is on, and wrapping
+  //  this made it bail out of compiling the component entirely — "existing
+  //  memoization could not be preserved". Hand-memoizing without a measured
+  //  reason is against the house rule anyway.
+  function codeFor(attrs: Record<string, string>) {
+    const b = brandInput.replace(/\s/g, "").toUpperCase().slice(0, 4);
+    const m = modelInput.replace(/\s/g, "").toUpperCase().slice(0, 4);
+    const v = attrsToDisplayName(attrs, schema).replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 6);
+    const p = pcsPerPack && packsPerCtn ? `${pcsPerPack}x${packsPerCtn}` : "";
+    return [b, m, v, p].filter(Boolean).join("-");
+  }
 
   // Auto-generate internal code
   useEffect(() => {
@@ -1565,10 +1597,34 @@ function NewSkuWizard({
     if (b || m) setCode([b, m, v, p].filter(Boolean).join("-"));
   }, [brandInput, modelInput, variantAttrs, pcsPerPack, packsPerCtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The first attribute is the one a range can be built along.
+  const multiKey: AttrKey | null = schema[0] ?? null;
+
+  // Keep the single-value world in step with the chips. Everything downstream
+  // — the display name, the code preview, the "required fields" check — reads
+  // variantAttrs, and rewriting all of it to understand a list would be a much
+  // larger change for no gain.
+  useEffect(() => {
+    if (!multiKey) return;
+    setVariantAttrs((prev) => {
+      const first = multiVals[0];
+      if (multiVals.length === 0) return prev;         // typed-not-chipped: leave alone
+      if (prev[multiKey] === first) return prev;
+      return { ...prev, [multiKey]: first };
+    });
+  }, [multiVals, multiKey]);
+  /** Every value this save will create a SKU for. Falls back to the single
+   *  value in variantAttrs so a category with no chips behaves exactly as it
+   *  did before. */
+  const rangeValues = multiKey
+    ? (multiVals.length > 0 ? multiVals
+       : (variantAttrs[multiKey]?.trim() ? [variantAttrs[multiKey].trim()] : []))
+    : [];
+
   function reset() {
     setBrandInput(""); setBrandId("");
     setModelInput(""); setModelId(""); setCategoryId("");
-    setVariantAttrs({});
+    setVariantAttrs({}); setMultiVals([]); setMultiDraft("");
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm("");
     setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice(""); setFixedEntryUnit("bottle");
@@ -1591,9 +1647,29 @@ function NewSkuWizard({
       toast.error("Fill all required fields.");
       return;
     }
-    const variantDisplay = attrsToDisplayName(variantAttrs, schema) || modelInput.trim();
+    // One save can create a whole size range. With no range attribute — body
+    // butter, dishwashing — this is a single pass and behaves exactly as before.
+    const passes = rangeValues.length > 0 && multiKey
+      ? rangeValues.map((val) => ({ ...variantAttrs, [multiKey]: val }))
+      : [variantAttrs];
+
+    // Codes are UNIQUE, so each size needs its own. A single product keeps
+    // whatever is in the code box — including an edit he made by hand — while a
+    // range derives one code per size, because his one hand-typed code cannot
+    // be right for three different products.
+    const codes = passes.map((a) => passes.length === 1 ? code.trim() : codeFor(a));
+    const dupe = codes.find((c, i) => codes.indexOf(c) !== i);
+    if (dupe) {
+      toast.error(`Two sizes would share the code ${dupe}. Give them different names.`);
+      return;
+    }
+
     setSaving(true);
+    const made: { id: string; label: string }[] = [];
     try {
+      for (let i = 0; i < passes.length; i++) {
+      const attrs = passes[i];
+      const variantDisplay = attrsToDisplayName(attrs, schema) || modelInput.trim();
       // ONE transaction for the whole product — brand, model, variant, SKU.
       //
       // This used to be four sequential inserts, and a failure at the last step
@@ -1611,8 +1687,15 @@ function NewSkuWizard({
         category_id: categoryId,
         model: modelInput.trim(),
         variant: variantDisplay,
-        internal_code: code.trim(),
-        supplier_barcode: barcode.trim() || null,
+        // The structured attributes, not just the joined-up name. Without these
+        // every variant is {} and a model can hold only one, so the second size
+        // fails on the unique index (0193).
+        attributes: attrs,
+        internal_code: codes[i],
+        // A barcode identifies ONE product. Copying it onto three sizes would
+        // make three products claim the same article, so a range leaves it off
+        // and it can be added per size afterwards.
+        supplier_barcode: passes.length === 1 ? (barcode.trim() || null) : null,
         pcs_per_pack: parseInt(pcsPerPack),
         packs_per_carton: parseInt(packsPerCtn),
         // Blank or 0 means "no carton to measure" — a tub carried home in a
@@ -1647,12 +1730,26 @@ function NewSkuWizard({
       if (Object.values(pricePatch).some((v) => v != null)) {
         await updateSku(newSkuId, pricePatch);
       }
+      made.push({ id: newSkuId, label: variantDisplay });
+      }
 
       haptic("success");
-      toast.success("SKU created");
+      toast.success(made.length === 1
+        ? "SKU created"
+        : `${made.length} SKUs created — ${made.map((m) => m.label).join(", ")}`);
       onOpenChange(false);
       onSaved();
-    } catch (e) { haptic("error"); toast.error((e as Error).message); }
+    } catch (e) {
+      haptic("error");
+      // Say what DID get made. Each size is its own transaction, so a failure
+      // on the third leaves two real, usable products — and silently reporting
+      // only the error would send him back to create duplicates of them.
+      const msg = (e as Error).message;
+      toast.error(made.length > 0
+        ? `Created ${made.map((m) => m.label).join(", ")}, then stopped: ${msg}`
+        : msg);
+      if (made.length > 0) onSaved();
+    }
     finally { setSaving(false); }
   }
 
@@ -1857,6 +1954,64 @@ function NewSkuWizard({
                       </div>
                     );
                   }
+                  // The RANGE axis: type a size, press enter, it becomes a chip.
+                  // One SKU per chip, and the count is always what he can see.
+                  if (key === multiKey) {
+                    const add = (raw: string) => {
+                      const v = raw.trim();
+                      if (!v) return;
+                      setMultiVals((prev) => prev.some((x) => x.toLowerCase() === v.toLowerCase())
+                        ? prev : [...prev, v]);
+                      setMultiDraft("");
+                    };
+                    return (
+                      <div key={key} className="space-y-1 col-span-2">
+                        <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
+                          {spec?.label}{spec?.suffix ? ` (${spec.suffix})` : ""}
+                          <span className="ml-1">— add one per size you stock</span>
+                        </p>
+                        {multiVals.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {multiVals.map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setMultiVals((prev) => prev.filter((x) => x !== v))}
+                                aria-label={`Remove ${v}`}
+                                style={{
+                                  padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                                  border: "1px solid var(--snm-brand)",
+                                  background: "var(--snm-brand)", color: "var(--snm-brand-on)",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {v} ✕
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <input
+                          type={spec?.type === "number" ? "number" : "text"}
+                          value={multiDraft}
+                          onChange={(e) => setMultiDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(multiDraft); }
+                            // Backspace on an empty box takes the last chip off,
+                            // so a mistyped size is one key to undo.
+                            else if (e.key === "Backspace" && multiDraft === "") {
+                              setMultiVals((prev) => prev.slice(0, -1));
+                            }
+                          }}
+                          // Leaving the field must not silently drop what he
+                          // typed — tapping Create with text still in the box is
+                          // the obvious way to lose a size.
+                          onBlur={() => add(multiDraft)}
+                          placeholder={spec?.placeholder ?? ""}
+                          style={inp}
+                        />
+                      </div>
+                    );
+                  }
                   return (
                     <div key={key} className="space-y-1">
                       <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
@@ -1873,9 +2028,20 @@ function NewSkuWizard({
                   );
                 })}
               </div>
-              {variantFilled && (
+              {variantFilled && rangeValues.length <= 1 && (
                 <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                   Variant: <strong style={{ color: "var(--foreground)" }}>{attrsToDisplayName(variantAttrs, schema) || "—"}</strong>
+                </p>
+              )}
+              {/* Say exactly what this tap will create, and its codes. He is
+                  about to make several products at once; the count and the
+                  names have to be readable BEFORE he commits, not discovered
+                  afterwards in the catalogue. --foreground, not muted: this is
+                  the confirmation, not a hint. */}
+              {rangeValues.length > 1 && multiKey && (
+                <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+                  Creates <strong>{rangeValues.length} SKUs</strong> under one{" "}
+                  {modelInput.trim() || "model"} — {rangeValues.join(", ")}
                 </p>
               )}
             </div>

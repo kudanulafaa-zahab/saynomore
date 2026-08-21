@@ -15,7 +15,7 @@
 // unit is counted; the rest name the unit itself.
 export type UnitUom =
   | "pcs" | "ml" | "g"
-  | "tub" | "jar" | "tube" | "bar" | "sachet" | "bottle" | "unit";
+  | "tub" | "jar" | "tube" | "bar" | "sachet" | "bottle" | "unit" | "set";
 export type SellUnit = "piece" | "pack" | "carton";
 
 /** Label for one "pack"-level unit, based on the category's unit_uom.
@@ -39,6 +39,10 @@ export function containerLabel(uom: UnitUom | null | undefined): string {
     case "bar":    return "bar";
     case "sachet": return "sachet";
     case "bottle": return "bottle";
+    // A bedding set is a set. Without this it fell through to the diaper
+    // default and three duvet sets read as "3 packs" (0193). The Postgres twin
+    // unit_noun() carries the same word — these two must never disagree.
+    case "set":    return "set";
     case "unit":   return "unit";
     default:       return "pack";
   }
