@@ -3314,15 +3314,10 @@ every number already written against it stayed behind.
 
 **What it costs on screen.** The Product Card for that product reports:
 
-| | Card says | Against its own stated pack size | Error |
-|---|---|---|---|
-| Profit per carton | MVR 245.88 | **MVR 356.41** | understated **MVR 110.53** |
-| Margin per carton | 31.1% | **45.1%** | 14 points low |
-| Profit per pack | MVR 133.97 | **MVR 125.47** | overstated **MVR 8.50** |
-| Margin per pack | 49.6% | **46.5%** | 3.1 points high |
-
-Two figures from one batch, wrong in **opposite directions** — which is exactly
-why this class of fault is invisible by eye.
+**These figures were WRONG when first written here, and 18g corrects them.** The
+error was mine: I derived the "truth" column from the per-piece cost, which was
+itself the number the typo had corrupted. The solid figure is the carton — it is
+the money actually paid. See **18g** for what it really cost.
 
 **The money engines escaped it**, and that is worth knowing before anyone panics
 about past decisions. `get_pricing_health`, `get_promo_suggestions`,
@@ -3461,3 +3456,103 @@ Everything in **§17g** is still open. New from this sweep:
   entry for the stock difference.
 - ESLint 10 and TypeScript 7, as their own change.
 - The RLS `ALL`-policy narrowing, only if something measurably drags (18c).
+
+---
+
+## 18g. The XXXL typo, settled and corrected — migrations 0191 and 0192
+
+**This supersedes the figures in 18a**, which were wrong, and says why.
+
+Ali, 2026-08-21: *"There are 2 SKUs of x-tra kering xxxl. Xtra kering xxxl
+22pcs/pack comes in 4 packs per carton. Xtra kering xxxl 34pcs/carton comes in 3
+packs per carton. If there ever was a 32pcs/pack then it is my input mistake. It
+should be 34pcs/pack and comes in 3 packs per carton. Correct it absolutely."*
+
+Settled: **34 to a pack, 3 packs to a carton, 102 to a carton.**
+
+### What 18a got wrong, and the lesson in it
+
+18a said the card *understated* carton profit by MVR 110.53 and *overstated*
+pack profit by MVR 8.50 — "wrong in opposite directions". That was wrong, and it
+was wrong for an instructive reason: **I computed the "truth" column from the
+per-piece cost, which was the very number the typo had corrupted.**
+
+The figure that was never in doubt is the CARTON: MVR 544.1175 is the money
+actually paid (FOB 451.7431 + freight 83.6416 + local 8.7328, duty nil, at the
+8 July rate). Everything else is that total divided up. Dividing it 128 ways
+instead of 102 leaves the carton right and makes the pack and the piece wrong.
+
+**What the card really did:**
+
+| | Card said | Truth | Error |
+|---|---|---|---|
+| Cost per pack | MVR 136.03 | **MVR 181.37** | understated MVR 45.34 |
+| Profit per pack | MVR 133.97 | **MVR 88.63** | **overstated MVR 45.34** |
+| Margin per pack | 49.6% | **32.8%** | **16.8 points too high** |
+| Profit per carton | MVR 245.88 | MVR 245.88 | correct all along |
+| Margin per carton | 31.1% | 31.1% | correct all along |
+
+So it erred in ONE direction, and further than 18a claimed. **The business point:
+that pack makes 32.8%, not the 49.6% the app was showing** — it is a much thinner
+line than it looked.
+
+**The lesson, and it is general: when reconciling derived money, anchor on the
+figure that was directly observed — the money paid — not on one derived from the
+same broken input.** Two derived numbers agreeing proves nothing if they share a
+corrupted divisor.
+
+### What was corrected, and where
+
+The SKUs themselves were already right (`22x4` = 88 and `34x3` = 102, both
+verified) — the typo had been fixed on the product at some point, which is
+exactly why the damage was invisible: the product looked correct while every row
+recorded against it still carried 32x4.
+
+**0191** — batch, sold line, stock:
+
+| row | was | becomes |
+|---|---|---|
+| sale line `qty_pieces` | 64 | 68 (2 packs x 34) |
+| sale line landed cost/piece | 4.2509 | 5.3345 |
+| batch `qty_pieces_received` | 128 | 102 |
+| batch landed per piece | 4.2509 | 5.3345 |
+| batch landed per pack | 136.0294 | 181.3725 |
+| batch landed per carton | 544.1175 | unchanged |
+| stock on hand | 64 pcs | **34 pcs = exactly 1 pack** |
+
+The money on the sale is untouched: SO-2026-030 was 2 packs at MVR 255 = MVR 510
+and still is. **Stock is corrected by ADJUSTMENT, not by edit** — `reopen_grn`
+refuses this GRN (its stock has moved and been sold) and says in as many words
+*"Use a stock adjustment instead."* Two adjustments carry it, each naming its
+cause: −26 over-received on paper, −4 under-issued on the sale.
+
+That the answer lands on a whole pack is the confirmation the arithmetic is
+right: this SKU sells only by the pack, so any result with a part-pack in it
+would have been wrong.
+
+**0192 — the miss, caught by verifying rather than assuming.** After 0191 the
+Product Card was re-read to confirm. Stock, packs sold and gross profit had all
+moved correctly — **and the cost block had not moved at all.** Landed cost is
+stored **twice**, on the shipment line and on the batch it produced, and
+`get_product_card` reads the LINE, because that is where FOB, freight, duty and
+local charges live. The 32x4 split had survived in a second place.
+
+Fixing one instance and calling it done is exactly the failure CLAUDE.md rule 9
+names. The sweep now covers seven invariants and all read zero, including one
+that did not exist before: **a batch must agree with its own shipment line.**
+
+### What Ali sees move
+
+- Cost of that sale: MVR 272.06 → **362.75**; profit on it MVR 237.94 → **147.25**
+- Business gross profit: 19,669.68 → **19,578.99**; net 17,299.02 → **17,208.33**
+- Stock of XXXL 34s: 2 packs → **1 pack**
+- Margin on that pack: 49.6% → **32.8%**
+
+Nothing he charged anyone changed. Those figures were overstated before.
+
+### SH-2026-002 needs nothing
+
+Its 15 cartons of the same product carry null landed costs because they have not
+been received. `confirm_grn` computes them against the SKU's current 34x3 at GRN,
+which is now the right answer — **45 packs, not 60.** That shipment was why this
+was urgent, and it is now safe to receive.
