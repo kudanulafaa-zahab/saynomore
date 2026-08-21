@@ -3556,3 +3556,125 @@ Its 15 cartons of the same product carry null landed costs because they have not
 been received. `confirm_grn` computes them against the SKU's current 34x3 at GRN,
 which is now the right answer — **45 packs, not 60.** That shipment was why this
 was urgent, and it is now safe to receive.
+
+---
+
+## 19. Adding products: what was actually broken, 2026-08-21
+
+**Newer than §18. Where they disagree, this wins.**
+
+Two complaints, one root cause between them, and a research answer Ali asked for.
+
+### 19a. A product you own but never received was invisible — PR #112
+
+Ali, on the Body Shop tubs he carried back in his luggage: *"I added SKUs but
+there's no way to see what my stock is in inventory or anywhere."*
+
+Not a filter being slightly too strict — **the row could never match.** Inventory
+kept a SKU with stock, or one `get_sku_reorder_alerts` flagged `out`. That engine
+works from SALES history, so a product never received has never sold and gets no
+alert row. Zero stock AND no alert meant *absent*, not `0`.
+
+Both his SKUs exist and are priced (Dewberry MVR 380, Strawberry 50% target) with
+**zero batches**. The stock is genuinely not in the app; what was broken is that
+nothing said so.
+
+**Never received is not out of stock**, and they must never share a state:
+
+| state | means | fix |
+|---|---|---|
+| Out of stock | you sell this, the shelf is empty | reorder |
+| Never received | never been on a shelf | book in what is already here |
+
+Telling him to reorder something in his suitcase is not a smaller mistake than
+hiding it. It reads **NOT RECEIVED YET** in `--snm-info`, not red.
+
+**The signal is `v_skus.landed_per_piece_mvr is null`.** 0149 made that column
+fall back to the last known cost from ANY batch ever received, so null means no
+batch has ever existed — and a SKU sold down to zero still reports its old cost
+and is correctly not caught. Verified on production: exactly the two Body Shop
+SKUs are null.
+
+The same complaint was made **12 August** and answered for Products and Sales.
+Inventory was never covered. The audit now follows him there.
+
+### 19b. A model could hold only ONE variant — PR #113, migration 0193
+
+**This is the big one, and it had been silently shaping the catalogue.**
+
+`create_sku_full` threw away the variant attributes the wizard collected and
+stored `'{}'`. `variants` is UNIQUE on `(model_id, attributes)`, so every variant
+the wizard ever made was `{}` — and a model can hold exactly one of those.
+
+Adding a second size failed with `duplicate key value violates unique constraint
+"variants_model_id_attributes_key"`. **Proven by doing it.**
+
+**It explains data already in the app.** Ali's two Body Shop scents are two
+separate MODELS rather than two variants of one body butter, because two
+variants of one model was impossible through the wizard. The diapers escaped only
+because they were loaded before the wizard existed — which is why they have
+proper `{"size": "L"}` attributes and nothing created since does.
+
+**The old 13-argument signature is DROPPED, not left beside the new one.** Adding
+a parameter creates an OVERLOAD; both would match a 13-argument call and Postgres
+would refuse it as ambiguous — taking out product creation for the app version
+already running in someone's browser. The new parameter has a default, so an old
+caller still resolves against the new function.
+
+### 19c. How professionals do it, and what was already here
+
+Ali asked how professional FMCG and selling platforms add a category, models and
+variants "in the simplest and most efficient way". The answer is uniform:
+**define the product once, name its options, let the system make the
+combinations** — Shopify options/variants, Odoo attributes on a template,
+NetSuite matrix items (which name *home goods* as the case they exist for).
+
+**This app was already built that way.** `product_categories.variant_attributes`
+IS the per-category attribute set, and the wizard already renders a field per
+attribute. Only the storage link was broken (19b).
+
+**One axis takes a range, deliberately — this is a departure from Shopify and
+Odoo and it is on purpose.** They generate the full cartesian product; three
+scents × four formats × two volumes is 24 products from one tap with no preview,
+and undoing 24 wrong SKUs by hand is a bad evening. One axis means **the number
+of products is always the number of chips on screen**, and the form says
+"Creates 3 SKUs" before he commits. Revisit only if he asks for a second axis.
+
+Each size is its own transaction, so a failure on the third leaves two real
+usable products — and the error names **what did get made**, rather than sending
+him back to create duplicates.
+
+### 19d. Bedding, as agreed with Ali
+
+He confirmed: **he BUYS bedsheets and pillowcases from IKEA as their own items**
+— he does not open a set and sell the pieces. So no kitting, no bill of
+materials. Each article is its own model:
+
+- **Brand** IKEA · **Category** Bedding · **Model** the pattern (Blåvinda…) ·
+  **Variant** the size (Single / Queen / King)
+- Sheets and pillowcases are their own models under the same category, with
+  their own sizes, costs and prices
+- `unit_uom = 'set'` so it reads "3 sets", never "3 packs" — added to
+  `unit_noun` and `containerLabel` together, since those two must never disagree
+- Luggage goes in via Stock Ops → Receive; freight via Shipments → GRN. Both
+  already worked; nothing new was needed for either.
+
+### 19e. Two environment traps that cost time here
+
+Recorded because both wasted a cycle and both look like app bugs:
+
+1. **`pkill -f "next start"` / `pgrep -f next-server` matches its own shell**,
+   whose command line contains the string. The kill takes out the shell (exit
+   144) and the server survives. Use `pgrep -f "[n]ext-server"`.
+2. **Two `next start` processes served different builds**, so the browser got
+   HTML from one and asked for chunks the other had replaced —
+   `ChunkLoadError`, presenting as "This screen didn't load". It looked exactly
+   like a broken page and was not. Always confirm exactly one server before
+   trusting an audit failure.
+
+### 19f. Open
+
+- Schema drift: production `sales_orders` has a `godown_id` column that no
+  migration creates (local has only `source_godown_id`). Harmless today, worth
+  reconciling.
+- Everything in §18f and §17g that is still open.
