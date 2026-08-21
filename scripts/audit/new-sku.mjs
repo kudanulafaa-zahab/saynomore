@@ -174,6 +174,41 @@ try {
   list.ok(/no shipment, no freight/i.test(ops), "the Receive tab actually opens (not Verify Count)");
   list.ok(/how many tubs/i.test(ops), "asking in the product's own unit — tubs, never packs");
   list.ok(/cost of one/i.test(ops), "and for what one cost");
+
+  // ── AND WHERE HE ACTUALLY WENT LOOKING ──────────────────────────────────
+  // The checks above were written for the same complaint in August and cover
+  // Products and Sales. They did not cover INVENTORY, which is where Ali went
+  // the second time. Ali, 2026-08-21, about the Body Shop tubs in his luggage:
+  // "I added SKUs but there's no way to see what my stock is in inventory or
+  // anywhere."
+  //
+  // He was right, and it was not a filter being slightly too strict — the row
+  // could never match. Inventory kept a SKU with stock, or one the reorder
+  // engine flagged 'out'; that engine works from SALES history, so a product
+  // never received has never sold and gets no alert. Zero stock AND no alert
+  // meant absent, not "0". A product you own vanishing from the stock screen
+  // is worse than one showing zero, because zero is a fact and absence looks
+  // like the product was never saved.
+  await page.goto(`${BASE}/inventory`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(3000);
+  await fillVisible(page, /search/i, "Dewberry");
+  await page.waitForTimeout(1800);
+
+  const inv = await page.locator("body").innerText();
+  list.ok(/Dewberry/i.test(inv),
+    "a product never received is ON the Inventory screen, not missing from it");
+  list.ok(/not received yet/i.test(inv),
+    "and says so — never received is its own state");
+  // The distinction that matters: one needs receiving, the other needs
+  // reordering. Telling him to reorder something sitting in his suitcase is
+  // the wrong instruction, so the two states must not be collapsed.
+  list.ok(!/out of stock/i.test(inv),
+    "never received is NOT reported as out of stock — different fix, different words");
+  // The whole instruction, not just the words "stock ops" — those also appear
+  // in the nav on every screen, so matching them alone would pass whatever the
+  // row said, including nothing at all. A check that cannot fail is not a check.
+  list.ok(/never received\s*[—-]\s*add it in stock ops/i.test(inv),
+    "and tells him where to fix it, in the row rather than only in the menu");
 } catch (e) {
   list.ok(false, `flow failed: ${String(e).split("\n")[0].slice(0,190)}`);
 }
