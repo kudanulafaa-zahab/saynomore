@@ -3292,3 +3292,172 @@ Everything in **§16f** is still open and still correct. Unchanged from it:
   *only* a discontinued line. The round surfaces them with a swap offer, but
   nothing yet tracks whether the swap took. That is the first thing to measure
   once there is data.
+
+---
+
+## 18. COMPLETE index of 2026-08-21 — the audit sweep
+
+**This section is newer than §17 and every section before it. Where they
+disagree, this wins.** What is still open lives in **§18f**.
+
+Ali asked for the whole codebase to be gone through, debugged and optimised, and
+the stack brought up to date. This is what that found. Read **18a** first — it is
+the only one that costs money, and it has a deadline.
+
+### 18a. One batch has been re-specced underneath its own history — migration 0190
+
+`MAMY-XTRA-XXXL-34x3` says 34 to a pack and 3 packs to a carton: **102**. Its
+only batch, received 8 July, recorded 1 carton as **128 pieces**, and its stored
+costs work out at **32 to a pack, 4 packs to a carton**. That carton was
+received, costed *and sold* as 32x4. The SKU was later re-specced to 34x3, and
+every number already written against it stayed behind.
+
+**What it costs on screen.** The Product Card for that product reports:
+
+| | Card says | Against its own stated pack size | Error |
+|---|---|---|---|
+| Profit per carton | MVR 245.88 | **MVR 356.41** | understated **MVR 110.53** |
+| Margin per carton | 31.1% | **45.1%** | 14 points low |
+| Profit per pack | MVR 133.97 | **MVR 125.47** | overstated **MVR 8.50** |
+| Margin per pack | 49.6% | **46.5%** | 3.1 points high |
+
+Two figures from one batch, wrong in **opposite directions** — which is exactly
+why this class of fault is invisible by eye.
+
+**The money engines escaped it**, and that is worth knowing before anyone panics
+about past decisions. `get_pricing_health`, `get_promo_suggestions`,
+`apply_target_prices`, `get_pnl` and `post_sale` all work from
+`landed_per_piece_mvr` against the SKU's *current* pack config. Margin, promo
+floors and repricing were never driven by the stale columns. Only
+`get_product_card` reads them, which is why this surfaced as a screen
+disagreeing with itself rather than as a bad price.
+
+**The guard is on the WRITE, not the read.** Patching the card would have hidden
+it. The fault is that a product's pack size can be rewritten underneath the
+history recorded against it. 0190 fixes the pack size from the first receipt or
+first sale onward; before that it stays freely editable, so correcting a typo on
+a brand-new product still works. The Edit SKU dialog no longer offers the change
+and says why; the database is what guarantees it.
+
+**Which number is TRUE is not settled, and 15 cartons are in transit.**
+SH-2026-002 carries 15 cartons of it, expected 16 August. Received at 34x3 that
+is **45 packs**; at 32x4 it is **60 packs** — a 15-pack difference on one
+delivery, about MVR 4,050 at the MVR 270 pack price, and it locks the landed
+cost per pack for the whole batch.
+
+The strongest evidence is the stock itself: **64 nappies on the shelf**, which is
+exactly 2 packs of 32 and 1.88 packs of 34 — and this SKU sells only by the
+pack, so a part-pack should not exist. CLAUDE.md's standing rule says the code
+wins over a piece count, but here the code and the physical ledger disagree and
+the answer is a thirty-second count. Ali has been asked to open one carton.
+
+**If the answer is 32, the fix is a data correction, not a dialog edit** — config,
+batch piece count and the sold line together. A bare config edit was never a
+complete fix; it is what caused this.
+
+### 18b. What the sweep did NOT find, which is most of it
+
+Stated plainly because "we audited everything" is worthless without the negative
+results:
+
+- **Order-line arithmetic is exact.** All 206 lines: zero drift beyond half a
+  laari between `line_total_mvr` and `qty * unit_price`. Worst case MVR 0.0036,
+  net MVR -0.016 across the whole business.
+- **There is no stored order total to drift.** `sales_orders` has no total
+  column at all; it is always summed from lines. That is the correct design and
+  it removes the entire class.
+- **The P&L reconciles to the laari.** Revenue 55,655.9904 minus COGS 35,986.31
+  is exactly the reported gross 19,669.68; minus marketing, opex, write-offs and
+  returns is exactly the reported net 17,299.02; both margins recompute to the
+  printed 35.3% and 31.1%.
+- **The ledger is sound.** No negative stock bucket, no overdrawn batch, no
+  non-positive payment, no null or negative landed cost, no overpaid order.
+- **No N+1 and no sequential-await problem.** The dashboard fans out seven
+  queries with `Promise.all`; the one `await` inside a `.map` is itself inside a
+  `Promise.all`.
+- **Divisors are guarded.** Every money division either falls back (`|| 1`,
+  `|| perLine`) or divides by a column the database constrains to >= 1.
+
+### 18c. The app is not slow, measured rather than assumed
+
+Measured on production with `pg_stat_statements` before changing anything:
+
+| function | calls | mean | max |
+|---|---|---|---|
+| `get_dashboard_metrics` | 776 | 90.7 ms | 398 ms |
+| `get_sales_orders` | 246 | 93.9 ms | 298 ms |
+| `get_sales_orders_count` | 445 | 83.5 ms | 588 ms |
+| `get_morning_briefing` | 1188 | 37.0 ms | 267 ms |
+| `get_pnl` | 578 | 33.1 ms | 205 ms |
+| `v_skus` | 878 | 24.9 ms | 48.5 ms |
+
+**The single biggest consumer of database time is not the app at all** —
+`SELECT name FROM pg_timezone_names`, 387 calls, 189 seconds total, which is the
+Supabase dashboard.
+
+So no optimisation surgery was done, deliberately. The advisor's 170
+`multiple_permissive_policies` warnings are real — every table has a `_read`
+policy and a `_write` policy declared `ALL`, so both are evaluated on SELECT —
+but on a database of 267 stock movements and 206 order lines the saving is
+noise, and rewriting RLS on a live money app to chase noise is how data gets
+exposed. **Revisit if a screen ever measurably drags**, and if so, change the
+`_write` policies from `ALL` to explicit INSERT/UPDATE/DELETE, verifying per
+table that the `_read` policy is at least as permissive for SELECT.
+
+The three unindexed foreign keys are on tables with a handful of rows, where an
+index costs more on write than it saves on read. Left alone on purpose.
+
+### 18d. The stack, and one thing that should never have been shipped
+
+Every dependency to the latest version its range allows: **Next 16.3.2**,
+Supabase JS 2.112.3, `@supabase/ssr` 0.12.4, base-ui 1.7.0, lucide 1.33.0,
+sonner 2.0.8, Playwright 1.62.1, supabase CLI 2.115.0.
+
+**`shadcn` was a runtime dependency.** It is a build-time CLI, and through
+`@modelcontextprotocol/sdk` it was pulling an entire MCP server and an Express
+stack — hono, `@hono/node-server`, express-rate-limit, ip-address, qs,
+body-parser — into the production install. Six of the fourteen vulnerabilities
+were from a code generator that never runs in production. Moved to
+devDependencies, with `@types/qrcode` (types are dev-only by definition).
+
+It cannot simply be deleted: `app/globals.css` does `@import "shadcn/tailwind.css"`,
+which is a real 629-line file of `@custom-variant` rules that base-ui components
+depend on. devDependencies is correct — Vercel installs them at build time.
+
+**Vulnerabilities: 14 to zero**, whole tree.
+
+**Three majors deliberately NOT taken**, with reasons:
+- **`@types/node` 22 -> 26.** The types must match the runtime, and CI and
+  Vercel both run Node 22. Newer types advertise APIs that are not there.
+- **ESLint 9 -> 10** and **TypeScript 6 -> 7**: both satisfy
+  `eslint-config-next`'s peer ranges on paper. Left for their own change so a
+  toolchain break is not tangled up with a money fix.
+
+### 18e. `stock_signed_delta` can drift away from what the ledger accepts
+
+`stock_signed_delta(movement_type, qty)` ends in `ELSE 0`, so a movement type it
+does not recognise contributes **nothing** to stock rather than failing. Today
+the CHECK constraint on `stock_movements.movement_type` allows exactly seven
+types and the function handles all seven, so `ELSE 0` is unreachable. Nothing
+keeps them in step: add an eighth type to the constraint, forget the function,
+and that stock silently does not exist.
+
+Now enumerated from the catalogue in `pack_config_is_fixed.test.sql`, so a type
+added next year is covered without anyone remembering the file. Proven: adding
+`write_off` to the constraint fails the test **by name**.
+
+### 18f. Open — start here
+
+Everything in **§17g** is still open. New from this sweep:
+
+**Ali's, not mine — and one has a deadline:**
+- **Count the packs in one carton of X-Tra Kering XXXL before receiving
+  SH-2026-002.** See 18a. It decides 45 packs versus 60 on a delivery already
+  overdue.
+
+**Known and not yet done:**
+- If that count says 32, write the data correction: SKU config, the 8 July
+  batch's piece count, and the sold line, in one migration with a reversing
+  entry for the stock difference.
+- ESLint 10 and TypeScript 7, as their own change.
+- The RLS `ALL`-policy narrowing, only if something measurably drags (18c).

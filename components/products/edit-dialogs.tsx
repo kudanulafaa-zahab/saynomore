@@ -105,6 +105,17 @@ export function EditSkuDialog({
   // Which pricing method is active?
   const usingFixed = fixedPrice.trim() !== "";
 
+  /** Has stock ever been received against this product?
+   *
+   *  `landed_per_piece_mvr` comes from its batches, so a value means at least
+   *  one receipt exists — which is exactly when 0190 fixes the pack size. It is
+   *  a read the row already carries, so this costs no extra query.
+   *
+   *  Deliberately belt AND braces: this only stops him typing something that
+   *  cannot be saved. The database is what actually guarantees it, so if this
+   *  ever reads wrong the save still refuses with a message that explains why. */
+  const packSizeLocked = sku?.landed_per_piece_mvr != null;
+
   async function save() {
     if (!sku) return;
     // Friendly bounds checks — otherwise these surface as raw Postgres
@@ -225,17 +236,34 @@ export function EditSkuDialog({
             </div>
           )}
 
-          {/* Pack config */}
+          {/* Pack config.
+              Fixed once stock has been received, because every batch cost and
+              every past sale of this product was recorded against the size it
+              had at the time. Changing it re-specs all of them silently — one
+              product's Product Card was reporting MVR 110.53 a carton of profit
+              that was not there, from exactly this. Migration 0190 refuses the
+              write; this stops him typing a change that cannot be saved. */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Pieces per {unit} *</Label>
-              <Input type="number" min="1" value={pcsPerPack} onChange={(e) => setPcsPerPack(e.target.value)} />
+              <Input type="number" min="1" value={pcsPerPack} disabled={packSizeLocked}
+                onChange={(e) => setPcsPerPack(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Packs per Carton *</Label>
-              <Input type="number" min="1" value={packsPerCarton} onChange={(e) => setPacksPerCarton(e.target.value)} />
+              <Input type="number" min="1" value={packsPerCarton} disabled={packSizeLocked}
+                onChange={(e) => setPacksPerCarton(e.target.value)} />
             </div>
           </div>
+          {packSizeLocked && (
+            /* --foreground at 0.75, not --muted-foreground: this explains why two
+               fields stopped working, so it has to be readable on the sheet. */
+            <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+              Pack size is fixed — stock has already been received and costed at{" "}
+              {sku?.pcs_per_pack} per {unit.toLowerCase()}, {sku?.packs_per_carton} per carton.
+              A different pack size is a different product: add it as a new SKU.
+            </p>
+          )}
           <div className="space-y-2">
             <Label>Carton Dimensions (cm) *</Label>
             <div className="grid grid-cols-3 gap-2">
