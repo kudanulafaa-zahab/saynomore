@@ -82,6 +82,10 @@ interface SkuStock {
   isOut: boolean;
   isLow: boolean;
   isOverstock: boolean;
+  /** Defined in the catalogue but never once received — no batch has ever
+   *  existed for it. NOT the same as sold down to zero, and the two must never
+   *  share a state: one needs reordering, the other needs receiving. */
+  neverReceived: boolean;
   alert: ReorderSuggestion | null;
 }
 
@@ -163,7 +167,23 @@ function BatchRow({ batch, idx, pcsPerPack, pcsPerCtn, unitUom }: {
 // actually drives a reorder decision, so it stays visible at a glance
 // instead of only appearing once something's already wrong (inventory-
 // warehouse + FMCG-import review: DIR-first, not alert-first).
-function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
+function DirBadge({ alert, neverReceived = false }: { alert: ReorderSuggestion | null; neverReceived?: boolean }) {
+  // Its own badge, before the alert logic, because a never-received product has
+  // no alert to read — that is precisely why it used to be invisible.
+  if (neverReceived) {
+    return (
+      <span
+        className="ios-subhead font-bold px-2 py-0.5 rounded-full shrink-0"
+        style={{
+          background: "color-mix(in srgb, var(--snm-info) 15%, transparent)",
+          color: "var(--snm-info)",
+          border: "1px solid color-mix(in srgb, var(--snm-info) 25%, transparent)",
+        }}
+      >
+        NOT RECEIVED YET
+      </span>
+    );
+  }
   if (!alert) return null;
   const isOut = alert.status === "out";
   const isCritical = alert.status === "critical";
@@ -200,7 +220,7 @@ function DirBadge({ alert }: { alert: ReorderSuggestion | null }) {
 
 const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hideModel = false }: { row: SkuStock; searchActive: boolean; showBrand?: boolean; hideModel?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, alert } = row;
+  const { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, neverReceived, alert } = row;
   const pcsPerCtn       = sku.pcs_per_pack * sku.packs_per_carton;
   const totalCtns       = toCtns(totalPieces, pcsPerCtn);
   const totalPacks      = remPacks(totalPieces, sku.pcs_per_pack, pcsPerCtn);
@@ -220,7 +240,11 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
     : { n: totalPacks, u: pkAbbr };
   const remainderQty = (totalCtns > 0 && totalPacks > 0) ? { n: totalPacks, u: pkAbbr } : null;
 
-  const accent = (isOut || isCritical) ? "var(--snm-error)"
+  // Never received is INFORMATION, not an alarm. Nothing is wrong — the product
+  // simply has not been booked in yet — so it gets the neutral info colour, not
+  // the red that means "you are losing sales right now".
+  const accent = neverReceived ? "var(--snm-info)"
+    : (isOut || isCritical) ? "var(--snm-error)"
     : isLow ? "var(--snm-warning)"
     : isOverstock ? "var(--muted-foreground)"
     : "var(--snm-success)";
@@ -232,7 +256,12 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
   // reads OUT OF STOCK, and the card is outlined red with a red dot and a red
   // 0 — repeating the words here just cost the space that the actual
   // instruction ("reorder now") needed, and got truncated for its trouble.
-  const godownLine = isOut
+  const godownLine = neverReceived
+    // Says what to DO, and names the door. Ali carries these back in his
+    // luggage, so the answer is never "reorder" — it is to book in what is
+    // already here. Stock Ops → Receive stock is that door.
+    ? "Never received — add it in Stock Ops"
+    : isOut
     ? "Reorder now"
     : sortedGodowns.length === 0 ? "No stock on hand"
     : sortedGodowns.length === 1 ? sortedGodowns[0].godown.name
@@ -299,7 +328,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
               space fight — a clipped godown list still tells you what you need,
               a clipped status does not. */}
           <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-            <DirBadge alert={alert} />
+            <DirBadge alert={alert} neverReceived={neverReceived} />
             <p className="ios-subhead truncate" style={{ color: isOut ? "var(--snm-error)" : "var(--muted-foreground)" }}>
               {metaLine}
             </p>
@@ -570,13 +599,38 @@ export function InventoryView() {
           ? alert.status === "critical" || alert.status === "low"
           : toCtns(totalPieces, pcsPerCtn) < 5;
         const isOverstock         = alert?.status === "overstock";
+        // v_skus carries the LAST KNOWN landed cost — 0149 made it fall back to
+        // any batch ever received, not just one still holding stock. So null
+        // means no batch has EVER existed, which is exactly "never received",
+        // and a SKU sold down to zero still reports its old cost and is
+        // correctly not caught here.
+        const neverReceived       = sku.landed_per_piece_mvr == null;
 
-        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, alert };
+        return { sku, totalPieces, totalValue, byGodown, fifoLandedPerPiece, isOut, isLow, isOverstock, neverReceived, alert };
       })
       // Keep in-stock SKUs, plus zero-stock ones the engine flagged 'out' (a
       // seller with nothing on the shelf) — those must NOT vanish just because
       // their on-hand hit zero; that was the whole bug.
-      .filter((r) => r.sku.is_active && (r.totalPieces > 0 || r.isOut));
+      //
+      // AND products that have never been received at all. Ali, 2026-08-21, on
+      // the Body Shop tubs he carried back in his luggage: *"I added SKUs but
+      // there's no way to see what my stock is in inventory or anywhere."*
+      //
+      // He was right and neither of the two conditions above could ever match
+      // them. `totalPieces` is 0 because nothing was received, and `isOut`
+      // comes from get_sku_reorder_alerts, which works from SALES history — a
+      // product that has never been received has never been sold either, so it
+      // gets no alert row. The product did not read "0 in stock"; it was absent
+      // from the screen entirely, which is why he went looking for it "anywhere".
+      //
+      // NEVER RECEIVED IS NOT OUT OF STOCK, and they must not share a state.
+      // Out of stock means "you sell this and the shelf is empty" — the action
+      // is reorder. Never received means "you defined this and it has never
+      // been on a shelf" — the action is to receive it, which for luggage goods
+      // is Stock Ops → Receive stock. Collapsing the two would tell him to
+      // reorder something he already has in a suitcase.
+      .filter((r) => r.sku.is_active
+        && (r.totalPieces > 0 || r.isOut || r.neverReceived));
   }, [skus, batches, godowns, alertMap]);
 
   const filtered = useMemo(() => {
