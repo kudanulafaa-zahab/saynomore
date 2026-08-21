@@ -523,6 +523,14 @@ export interface CreateSkuFullInput {
   carton_height_cm?: number | null;
   carton_weight_kg?: number | null;
   supplier_barcode?: string | null;
+  /** The category's variant attributes, structured — `{ size: "Queen" }`.
+   *
+   *  WITHOUT THESE A MODEL CAN HOLD ONLY ONE VARIANT. `variants` is unique on
+   *  (model_id, attributes), and this used to send nothing, so every variant
+   *  the wizard ever made was `{}` and the second size of anything failed on
+   *  the unique index. The wizard has always collected them; they just stopped
+   *  here. Migration 0193. */
+  attributes?: Record<string, string>;
 }
 
 export async function createSkuFull(input: CreateSkuFullInput): Promise<string> {
@@ -540,6 +548,7 @@ export async function createSkuFull(input: CreateSkuFullInput): Promise<string> 
     p_height_cm:        input.carton_height_cm ?? null,
     p_weight_kg:        input.carton_weight_kg ?? null,
     p_barcode:          input.supplier_barcode ?? null,
+    p_attributes:       input.attributes ?? {},
   });
   if (error) throw error;
   invalidate("skus:");
