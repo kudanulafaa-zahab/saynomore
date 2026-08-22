@@ -3678,3 +3678,181 @@ Recorded because both wasted a cycle and both look like app bugs:
   migration creates (local has only `source_godown_id`). Harmless today, worth
   reconciling.
 - Everything in §18f and §17g that is still open.
+
+## 20. Exhaustive debug and optimisation pass, 2026-08-22
+
+**Newer than §19. Where they disagree, this wins.**
+
+Ali: *"Do exhaustive debug, code optimization and ui/UX optimization for the
+entire app in steps. Plan the steps first and then proceed. Summon top experts
+to help you with the most advanced skills. Update the backend and front end to
+latest available options. Go through code and money math. Make sure all modules
+are optimized."*
+
+Six steps were planned and stated before any work started. Steps 1-5 are shipped.
+
+| | Step | Outcome |
+|---|---|---|
+| 1 | Money and arithmetic | PRs #109-#112 — the XXXL pack-size typo corrected at every row it touched |
+| 2 | Every form | PRs #113-#114 — one question instead of five, size ranges in one pass |
+| 3 | Backend hardening and performance | PR #115 — ledger self-check, duplicate rules removed, row security 16× faster |
+| 4 | Toolchain to latest | Both remaining majors blocked upstream; reverted cleanly, see 20a |
+| 5 | Duplication, dead code, and the slowest function | 20b-20d below |
+| 6 | The four biggest screens | not started |
+
+### 20a. The toolchain is at its latest SUPPORTED version, not its latest version
+
+Recorded so nobody spends the afternoon again. Both were attempted, both failed
+for reasons outside this repo, both were reverted with a clean `git status`:
+
+- **TypeScript 7** — `typescript-eslint does not support TS 7.0 … see issue
+  #10940 for tracking support for TS >=7.1`
+- **ESLint 10** — `Error while loading rule 'react/display-name':
+  contextOrFilename.getFilename is not a function`, from the `eslint-plugin-react`
+  bundled *inside* `eslint-config-next`, so it cannot be fixed from here
+
+Current and correct: Next 16.3.2, React 19.2.8, TypeScript 6.0.3, ESLint 9.39.5,
+**0 vulnerabilities** (down from 14 at the start of this pass).
+
+### 20b. One concept, defined once — the bug class behind "adding IKEA is complicated"
+
+Three types were declared in two modules each. None of them failed a build; both
+copies compiled and both looked right in review:
+
+| type | the two homes | what it cost |
+|---|---|---|
+| `UnitUom` | `lib/trade-units.ts` (11 units) vs `lib/queries/products.ts` (**3**) | the New Category form could not offer "set" or "tub" at all — Bodybutter's tub had to be set by a migration because the form could not express it. **This is what Ali hit.** |
+| `SellUnit` | the same two files, identical | nothing yet — and identical is exactly how `UnitUom` started |
+| `FobCurrency` | `shipments.ts` (`IDR\|USD\|MVR`) vs `costing.ts` (`USD\|IDR\|MVR`) | same members, different order, one edit from not being the same type |
+
+All three now have ONE declaration, re-exported where the second used to be
+(`export type { SellUnit }`, not a second `export type SellUnit = …`).
+
+**`npm run audit:onedef` keeps it that way.** It reads every export in `lib/`,
+`components/`, `app/` and `scripts/` and fails if any name is *declared* in two
+modules. A re-export never matches, because it has a brace where a declaration
+has a name. Two deliberate exemptions, both narrow:
+
+- Next.js owns `GET`/`POST`/`metadata`/`dynamic`/… **but only inside a
+  `route`/`page`/`layout`/… file**, where the framework actually reads them
+- a TYPE and a COMPONENT may share a name — `MorningBriefing` the shape and
+  `MorningBriefing` the thing that renders it is ordinary React
+
+It is **proven able to fail**: putting `SellUnit` back as a second declaration
+turns it red naming both files. It runs in under a second with no browser and no
+database, so it sits second in `audit:ui`, right after `audit:wa`.
+
+### 20c. get_dashboard_metrics — 64.10 ms → 51.38 ms, from deleting two lines
+
+It is the single biggest consumer of database time in the app: **796 calls,
+73.7 seconds total**, more than any other statement, on every dashboard load.
+
+**Measured, and one hypothesis was wrong before the right one was found.** The
+first guess was that the four sub-functions it calls duplicate each other's work
+— and they partly do, since `get_reorder_suggestions` itself calls
+`get_sku_reorder_alerts`, so the 90-day demand grid is built twice. **That was
+NOT fixed, deliberately**: `get_reorder_suggestions` filters out discontinued
+models and `get_sku_reorder_alerts` does not, so sourcing the out-of-stock count
+from the other would silently change a number Ali reads. A performance fix must
+not smuggle in a behaviour change.
+
+The real cause was smaller and entirely mechanical. Postgres **inlines** a simple
+SQL function — substitutes the body into the calling query so no call survives —
+and **refuses to inline any function carrying a SET clause**, because the setting
+has to be established around the call. So `SET search_path` on two pure CASE
+expressions cost a GUC save and restore **per row**:
+
+```
+select sum(stock_signed_delta(movement_type, qty_pieces))   1.669 ms
+the same CASE written out by hand                           0.204 ms
+```
+
+Eight times, on 279 rows, for nothing — and `stock_signed_delta` is on the
+hottest path there is, because stock is `SUM(stock_movements)`.
+
+Migration 0197 removes it from `stock_signed_delta` and `unit_noun`. Verified on
+production inside a transaction and rolled back before being believed, exactly as
+0196 was:
+
+```
+get_dashboard_metrics    64.10 ms -> 49.49 ms      (51.38 ms live after apply)
+get_sku_reorder_alerts   15.35 ms -> 12.49 ms
+get_reorder_suggestions  26.35 ms -> 22.21 ms
+```
+
+and **every row of all three came back byte-identical** — `EXCEPT ALL` against a
+snapshot taken before the change, 0 differing rows on each.
+
+**Why this does not weaken the search_path rule.** skills.md requires `SET
+search_path` on every SECURITY DEFINER function, because a definer function runs
+as its OWNER and an unqualified `skus` can be made to mean a table the caller
+controls. **Neither of these two is SECURITY DEFINER**, and neither names a
+table, view or function at all — they are pure expressions over their arguments.
+There was nothing for a search_path to resolve. `rls_surface.test.sql` still
+enumerates every definer function and fails if any lacks a pinned path; nothing
+there changed.
+
+**`normalise_island` looks identical and was deliberately left alone.** It is the
+third function matching the same catalogue shape, and it was in the first draft
+of 0197 until it was measured: **2.087 ms → 2.058 ms, i.e. nothing.** Its body
+has a FROM clause (two CTEs) and inlining requires a single SELECT with no FROM,
+so it could never be inlined either way. Changing it "for consistency" would have
+been churn dressed as optimisation.
+
+**The Supabase advisor now reports two `function_search_path_mutable` warnings,
+and they are expected.** That advisor does not distinguish a definer function
+from a pure invoker-rights expression. Do not "fix" it — putting the SET back
+returns the dashboard to 64 ms with nothing failing to say so. That is precisely
+why `supabase/tests/database/helpers_can_inline.test.sql` exists, enumerated from
+the catalogue rather than by name, and it goes red if anyone does.
+
+### 20d. Dead code
+
+Deleted, with nothing anywhere referencing either: `components/layout/page-header.tsx`
+(48 lines) and `components/layout/coming-soon.tsx` (23 lines). Both were built on
+patterns the app has since replaced, which is the real argument for removing them
+— a dead file is a live invitation to copy the wrong thing.
+
+**`components/labels/snm-assets.tsx` (249 lines) is unreferenced and was KEPT.**
+It is SVG artwork extracted from CorelDRAW source files and it is not
+recreatable from anything in this repo. Deleting it because a search says nothing
+imports it would be the one irreversible mistake available in a cleanup pass.
+**Ask Ali before touching it.**
+
+### 20e. Two pgTAP rules the catalogue has outgrown — OPEN, not yet fixed
+
+Found while running the gate, and worth care because both are about the units
+rule. `money_rules.test.sql` tests 6 and 7 assert:
+
+- *"no SKU is sellable by the piece — packs and cartons only"*
+- *"no sale line is recorded in a unit its SKU does not sell"*
+
+**Both are violated on production today, and in both cases the DATA looks
+right and the RULE looks stale:**
+
+1. Five Body Shop tubs carry `sellable_units = {piece}`. That is not a "piece"
+   on screen: `pcs_per_pack = 1`, so `sellUnitLabel` renders the product's own
+   noun and Ali reads **tub**. The `piece` tier here means *one whole item*.
+2. **108 sale lines** across the five Sosoft SKUs are recorded `uom = 'piece'`
+   while those SKUs sell only by the `carton`. These are the loose bottles in a
+   mixed carton — a real event the units rule explicitly allows, and one of the
+   four reasons pieces exist in the database at all.
+
+They pass in CI only because the fixture database contains neither shape. They
+fail the moment a browser audit leaves a Body Shop SKU behind, which is how this
+was noticed. **The likely correct rule** is not "no SKU sells piece" but "no SKU
+sells a piece unless one piece IS one whole item (`pcs_per_pack = 1`), because
+only then is the word shown the product's own noun". That has not been written —
+it changes what a money test asserts, so it wants deciding rather than guessing.
+
+### 20f. The 4 gate failures that were NOT real
+
+`npx supabase test db` showed 4 failures (money_rules 6-7, post_sale_fifo 9 and
+11) that vanished entirely after `npx supabase db reset`: **351 tests, 35 files,
+all pass on a clean fixture.** The browser audits write real rows, and
+post_sale_fifo counts orders globally rather than scoping to its own fixture, so
+leftovers inflate its counts.
+
+The order in §12 is not a style preference: **run `supabase test db` BEFORE the
+browser audits, and reset in between if the audits have run.** After a reset,
+`npm run audit:seed` must be re-run or every browser audit fails at the login.

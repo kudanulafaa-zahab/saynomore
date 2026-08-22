@@ -12,9 +12,12 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same twenty-two audits he can run locally (`npm run audit:ui`):
+# This runs the same twenty-three audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
+#   onedef    no concept is DECLARED in two modules — the bug class that made
+#             adding a new kind of product impossible, because one file knew
+#             eleven units and another knew three
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
 #             things that cost money or make the screen unusable
 #   grn       receives a shipment and checks the landed cost that comes out —
@@ -53,7 +56,7 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All twenty-two are proven to fail when the bug they guard is reintroduced; that
+# All twenty-three are proven to fail when the bug they guard is reintroduced; that
 # was checked by putting each one back deliberately. The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
@@ -141,6 +144,13 @@ jobs:
       # expensive. A bug here messages the wrong person.
       - name: WhatsApp links — never guess a phone number
         run: npm run audit:wa
+
+      # Also pure logic, also no browser and no database. Reads every export in
+      # the source tree and fails if one name is DECLARED in two modules — the
+      # bug class that left UnitUom saying eleven units in one file and three in
+      # another, so the New Category form could offer neither "set" nor "tub".
+      - name: One concept, defined once
+        run: npm run audit:onedef
 
       - name: Journey — a real sale on phone, tablet and desktop
         run: npm run audit:journey

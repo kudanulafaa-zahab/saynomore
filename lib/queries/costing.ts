@@ -10,7 +10,11 @@
 
 import { supabase } from "@/lib/supabase";
 
-export type FobCurrency = "USD" | "IDR" | "MVR";
+// Re-exported from shipments, which owns shipment_lines and therefore this
+// column. The two copies listed the same three currencies in a different order
+// — identical in meaning and one edit away from not being.
+import type { FobCurrency } from "@/lib/queries/shipments";
+export type { FobCurrency };
 
 /** Shipment-level costs. These are shared across every line in a container,
  *  which is why they are entered once and apportioned, never per SKU.
