@@ -3926,3 +3926,128 @@ presents as the browser audits timing out at `page.waitForURL` on the login —
 identical to an app bug. **After any `supabase start`, re-run `npm run
 audit:seed`** or every audit fails at the login screen. Check `docker info` and
 `pg_isready -h 127.0.0.1 -p 54322` before believing an audit failure.
+
+## 21. LUMEN — the sixth palette, and a second material law, 2026-08-22
+
+Ali: *"Create a brand new totally different theme that is totally different from
+current themes… super slick and the latest 2026 design guidelines… so advanced
+that it will be the new trend in design. Do not use anything from the current
+design language… It must be an automated workflow… It must not break anything
+current."*
+
+### 21a. Why it is a MATERIAL, not a fifth colour scheme
+
+The app already had two materials, and both describe depth as a property of the
+SURFACE:
+
+| material | palettes | depth comes from |
+|---|---|---|
+| glass | sunrise, aurora, ember | translucency + blur over a coloured bokeh field |
+| carved | soft | opacity + two opposing shadows, lit from up-left |
+| **edge-lit** | **lumen** | **the SEAM — a 1px luminous ring and a brighter top rim** |
+
+A sixth palette in either existing idiom would only have been a recolour. Lumen
+moves the depth cue off the surface: the panel is flat, opaque and almost
+exactly the value of the page, legible only because light collects along its
+edge, as though lit from behind rather than above. **No translucency, no blur,
+no bokeh, and no drop shadow anywhere in the content plane.** Nothing floats and
+nothing is carved — things are outlined by light.
+
+The page is a STRUCTURE rather than a picture: one even field ruled by a 64px
+hairline grid with a single cold horizon glow. A bokeh blob is decoration; a
+grid is a coordinate system, and reads as an instrument.
+
+Dark is the primary scheme — a true near-black page (`#0a0b0e`) is where an edge
+light reads as *emitted*. Light inverts the idea rather than copying it: the
+seam becomes a fine dark rule with a white top rim, so the panel looks cut from
+a lit sheet.
+
+### 21b. The three standing rules it still obeys
+
+Freedom on the design language is not freedom on the rules that keep this app
+usable, so:
+
+1. **Colour still means money.** The accent is a cold cyan-white that reads as
+   LIGHT rather than a hue, so green/red/orange keep their monopoly on meaning.
+2. **Contrast is measured, not judged.** Every value was computed before it was
+   written and re-measured on the rendered page. Margins are deliberately
+   generous rather than just-passing:
+   dark — foreground 15.3:1, muted **7.5:1 on a NESTED surface**, accent-as-text
+   10.8:1; light — 17.7:1, muted 5.7:1, accent-as-text 7.0:1,
+   white-on-accent-fill 7.2:1. It ships `--snm-brand-text` from day one instead
+   of discovering the fill/text split in a later audit, which is how the other
+   three acquired theirs.
+3. **It is cheaper than what it replaces.** Opaque fills mean
+   `--glass-blur-content: none` and every content backdrop-filter stops
+   rasterising; the seam is a 1px spread shadow with no blur radius.
+
+Nothing current can break: every rule is scoped to `[data-palette="lumen"]`, the
+same construction that seals the Soft block. The dark values are declared once
+as `--lum-d-*` and mapped by BOTH dark selectors (`.dark[...]` and the
+`prefers-color-scheme` block) so the pair cannot drift — the source-order bug
+the sunrise block documents.
+
+### 21c. A second material needs a second LAW, not an exemption
+
+`material.mjs` encodes ONE material's physics. The carve's law flags a single
+drop shadow and a varying gradient — run over Lumen it would flag the seam and
+the top-rim bar as defects, i.e. measure the wrong physics.
+
+So the law is now selected from the palette's own declared material in
+`lib/palette.ts`:
+
+    carved   no blur, opaque, no varying gradient, never a single drop shadow
+    edge     no blur, opaque, and NO BLURRED drop shadow in the content plane —
+             depth lives in the seam, so any blurred shadow is the glass or
+             carve vocabulary hardcoded past the theme
+
+A palette declaring no material is a GLASS palette, whose in-flow surfaces are
+legitimately translucent and blurred; the audit **refuses to run** rather than
+inventing a law for it. Soft's result is byte-identical: 20/20 before and after.
+
+### 21d. What Lumen's law found — including one that is Soft's problem too
+
+**`.glass-panel` hardcoded `0 4px 14px rgba(0,0,0,0.08)`.** It is a THIRD
+content-surface class beside `.snm-card` and `.glass`, and it paints its own
+fill, so a palette that repaints only the other two leaves the dashboard
+briefing, the financials tabs and the competitors header wearing the previous
+theme.
+
+**SOFT HAS THE SAME LEAK AND ITS LAW CANNOT SEE IT** — that law only fires on a
+SINGLE non-inset shadow, and this list has two (one inset + one drop). Verified
+directly on the rendered page: under Soft, `.glass-panel` composites
+`rgba(0,0,0,0.08) 0px 4px 14px` exactly as it does under Lumen.
+
+Tokenised as `--glass-panel-shadow` with the default **byte-identical** to what
+was there, so the three glass palettes and Soft are visually untouched; only
+Lumen overrides it. **The Soft finding is OPEN and deliberately not fixed** —
+giving Soft its carve there is almost certainly right, but it is a visible
+change to a theme Ali already uses and he did not ask for it.
+
+**The segmented control** carries Tailwind's own `shadow-sm` on the active thumb
+(`group-data-[variant=default]/tabs-list:data-active:shadow-sm`) — unreachable
+by any token. Note for future work: this project uses **Base UI, not Radix**, so
+the attribute is `data-active`, not `data-state="active"`. The first fix used
+the Radix spelling, matched nothing, and the audit correctly kept failing.
+
+**The shipments floating action button** was judged as though it sat on the page.
+An element taken out of flow IS floating whatever tag it uses, so `position:
+fixed`/`sticky` now counts as chrome alongside the structural selectors. That
+only ever REMOVES checks, so it cannot make a passing palette fail, and Soft's
+result was verified unchanged.
+
+### 21e. The automated workflow
+
+Registration is **one line per list** — `lib/palette.ts` for the app,
+`scripts/audit/lib.mjs` for the gate. From that:
+
+    contrast   5 palettes x 2 schemes x 20 screens = 200 cases
+    material   one run per MATERIAL (soft's carve, lumen's seam)
+
+so the theme arrived already measured and stays measured on every future change,
+rather than being eyeballed once. Gate total: **24 audits, 561 checks.**
+
+`audit:material:lumen` went into the npm chain and not the CI workflow first —
+the **third** instance in one day of a list a human must remember to extend
+(nav-config, the CI audit steps, this). Caught by looking for it rather than by
+it failing.
