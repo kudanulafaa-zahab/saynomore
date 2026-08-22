@@ -3856,3 +3856,73 @@ leftovers inflate its counts.
 The order in §12 is not a style preference: **run `supabase test db` BEFORE the
 browser audits, and reset in between if the audits have run.** After a reset,
 `npm run audit:seed` must be re-run or every browser audit fails at the login.
+
+### 20g. Step 6 — a third of the app had never been measured
+
+The step was meant to be "the four biggest screens". The first thing it found is
+that the audits could not have told me whether those screens were sound, because
+**seven of the app's twenty screens were on neither audit's list**:
+
+    competitors · costing · customers · deliveries · dispatch · godowns · stock-ops
+
+35% of the app had never had a single word's contrast measured or a single
+surface checked against the theme. The list was hand-kept, separately, in
+`material.mjs` and `contrast.mjs`.
+
+**This is hard rule 8's pattern for the third time.** Nav grouping became DATA
+after a second hardcoded list of hrefs shipped the Price Simulator built,
+routable and invisible. The CI workflow named each audit by hand, so
+`audit:onedef` ran locally and not in CI (caught the same day, §20b). A list a
+human must remember to extend is not a gate — it is a comment that happens to
+execute.
+
+**`appRoutes()` in `scripts/audit/lib.mjs` now reads the routes off disk.** Add a
+page and both audits measure it on the next run, with nobody doing anything.
+Dynamic segments (`[id]`) are skipped: they need a real row to render, and the
+journey audits already cover them by creating the row first.
+
+Coverage went **12 screens → 20**, and contrast from 96 cases to **160**
+(4 palettes × 2 schemes × 20 screens).
+
+### 20h. What the seven unmeasured screens were hiding
+
+Two real defects, both invisible to review and both caught the first time the
+screens were measured. Both are failures of rules this project had already
+written down — which is the point: the rules were right, nothing was enforcing
+them here.
+
+**Costing — the container pills, failing in all four palettes and both schemes.**
+
+    "28 CBM"   2.75:1 – 3.01:1     (11px/600, needs 4.5)
+    "20 ft"    3.95:1              (13px/700, needs 4.5)
+
+The unselected pill painted its text `--muted-foreground` and then put
+`opacity-70` on top of the CBM figure — muted, muted again. CLAUDE.md says it
+in as many words: *"An unselected pill that carries a CHOICE is content, not a
+hint."* 20 ft versus 40 HQ is the choice that sets the whole freight
+apportionment. Now `--foreground`, with hierarchy from opacity on a real
+foreground rather than from muting an already-muted token.
+
+**Dispatch — "Awaiting dispatch" at 4.32:1 in ember/light.**
+
+The status colour was `--snm-brand`, which is the **FILL** variant. skills.md:
+*"Text tokens are sacred … never swap them for the fill variants."* In ember
+light the fill is `#d6337a` and its text twin `--snm-brand-text` is `#9c1150` —
+7.0:1, deepened for exactly this reason back in the accent overhaul. The fix
+separates the two uses: `statusColor` still paints the border, the 15% tint and
+the icon (none of which carry a reading floor), and a new `statusTextColor`
+paints the word. `--snm-warning` and `--snm-info` already carry deepened
+light-mode text values, so they need no twin and are untouched.
+
+**Both were caught by measurement, not by looking.** The costing failure is
+below 3:1 — that is not a subtle miss, and it survived every visual review this
+screen ever had. `npm run audit:contrast` composites the real backdrop through
+every translucent ancestor; there is no substitute for it.
+
+### 20i. Environment note, again
+
+`npx supabase start` had to be re-run mid-session: Docker had died, which
+presents as the browser audits timing out at `page.waitForURL` on the login —
+identical to an app bug. **After any `supabase start`, re-run `npm run
+audit:seed`** or every audit fails at the login screen. Check `docker info` and
+`pg_isready -h 127.0.0.1 -p 54322` before believing an audit failure.

@@ -11,6 +11,8 @@
 // laptop and in CI, and its output is meant to be read by a person.
 
 import { chromium } from "playwright";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 export const BASE = process.env.AUDIT_BASE_URL || "http://localhost:3000";
 export const EMAIL = process.env.AUDIT_EMAIL || "fixture@test.local";
@@ -31,6 +33,44 @@ export const DEVICES = {
 /** Palettes the audits sweep. Kept in step with lib/palette.ts by hand — a
  *  mismatch shows up immediately as an audit that skips a theme. */
 export const PALETTES = ["sunrise", "aurora", "ember", "soft"];
+
+// ── Every screen in the app, read from the routes on disk ──────────────────
+//
+// WHY THIS IS DERIVED AND NOT A LIST. It used to be a list, hand-kept in BOTH
+// material.mjs and contrast.mjs, and on 2026-08-22 a route audit found that
+// SEVEN of the app's twenty screens were on neither: competitors, costing,
+// customers, deliveries, dispatch, godowns, stock-ops. Thirty-five per cent of
+// the app had never had a single word's contrast measured or a single surface
+// checked against the theme — and `components/sales/my-deliveries.tsx` was
+// carrying a hand-typed `box-shadow` that no palette can reach, which is
+// exactly the defect the material audit exists to catch. It sat there because
+// the screen was not on the list.
+//
+// This is hard rule 8's pattern for the third time: nav grouping was DATA once
+// a second hardcoded list of hrefs shipped the Price Simulator invisible, and
+// the CI workflow named each audit by hand so a new one ran locally and not in
+// CI. A list a human must remember to extend is not a gate; it is a comment
+// that happens to execute.
+//
+// So the routes come from the filesystem. Add a page, and it is measured on the
+// next run by both audits, with nobody doing anything.
+export function appRoutes({ skip = [] } = {}) {
+  const dir = new URL("../../app/(app)/", import.meta.url).pathname;
+  const out = [];
+  const walk = (abs, rel) => {
+    for (const entry of readdirSync(abs, { withFileTypes: true })) {
+      // A dynamic segment needs a real id to render, so it cannot be visited
+      // blind. Those screens are covered by the journey audits, which create
+      // the row first and then open it.
+      if (entry.name.startsWith("[")) continue;
+      const nextAbs = join(abs, entry.name);
+      if (entry.isDirectory()) walk(nextAbs, `${rel}/${entry.name}`);
+      else if (entry.name === "page.tsx" && rel) out.push([rel.slice(1), rel]);
+    }
+  };
+  walk(dir, "");
+  return out.filter(([name]) => !skip.includes(name)).sort((a, b) => a[0].localeCompare(b[0]));
+}
 
 export async function launch() {
   const fs = await import("node:fs");

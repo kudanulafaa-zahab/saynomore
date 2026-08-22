@@ -14,28 +14,13 @@
 //
 // Usage:  node scripts/audit/contrast.mjs [--palette soft] [--quiet]
 
-import { launch, signedInPage, PALETTES, checklist, finish, BASE } from "./lib.mjs";
+import { launch, signedInPage, PALETTES, checklist, finish, BASE, appRoutes } from "./lib.mjs";
 
-const SCREENS = [
-  ["dashboard",  "/dashboard"],
-  ["sales",      "/sales"],
-  ["inventory",  "/inventory"],
-  ["financials", "/financials"],
-  ["reorder",    "/reorder"],
-  ["pricelists", "/pricelists"],
-  ["products",   "/products"],
-  ["shipments",  "/shipments"],
-  ["settings",   "/settings"],
-  // Added 2026-08-10: the P&L's running costs are entered here, and the
-  // screen was never measured because it was not on this list.
-  ["expenses",   "/expenses"],
-  // Added 2026-08-10 with the jargon sweep: Reports was never measured either.
-  ["reports",    "/reports"],
-  // Added 2026-08-12 with the new screen itself. A page dense with money is
-  // exactly where a low-contrast number is dangerous — it is the figure he
-  // prices against.
-  ["product-card", "/product-card"],
-];
+// Every screen the app has, read from the routes on disk rather than listed
+// here — see appRoutes() in lib.mjs for why. Seven screens used to be on
+// neither this list nor the material audit's, and one of them was carrying the
+// exact defect the material audit exists to catch.
+const SCREENS = appRoutes();
 
 // Runs inside the page. Kept as one self-contained function because it is
 // serialised across the CDP boundary — it cannot close over anything here.
