@@ -128,6 +128,22 @@ else**. A wrong number does not fail visibly; it opens a chat with somebody
 else and hands them a message meant for a customer. No link is a small
 inconvenience; the wrong link is an embarrassing message to a stranger.
 
+**`one-definition.mjs`** — one concept, defined once. Also pure logic, no
+browser and no database, so it runs second. It reads every export in `lib/`,
+`components/`, `app/` and `scripts/` and fails if any name is *declared* in two
+modules. Three types were, and none of them failed a build: `UnitUom` said
+eleven units in `lib/trade-units.ts` and **three** in `lib/queries/products.ts`,
+which is why the New Category form could offer neither "set" nor "tub" and a
+body butter's tub had to be set by a migration — that is the defect Ali hit as
+*"How do I add ikea? It's very complicated."* `SellUnit` was declared
+identically in both files, which is exactly how `UnitUom` started, and
+`FobCurrency` listed the same three currencies in a different order in two
+query modules. A re-export never trips it, because `export type { X }` has a
+brace where a declaration has a name. Two exemptions, both narrow: Next.js owns
+`GET`/`POST`/`metadata`/`dynamic` but only inside the `route`/`page`/`layout`
+files the framework actually reads, and a TYPE may share a name with the
+COMPONENT that renders it.
+
 **`reorder-nudge.mjs`** — does the app actually ask for the second order? 52 of
 73 customers have never bought twice, on a product a household finishes in
 about a fortnight (measured: the median pack lasts 6.8 days, a typical order is
@@ -258,6 +274,7 @@ was verified by putting its bug back:
 | the out-of-stock card put back as a `disabled` dead end reading "Out of stock" | sell-new-product — "it invites the fix rather than reading 'Out of stock' as a dead end", then the flow cannot proceed at all |
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
+| `SellUnit` declared a second time in `lib/queries/products.ts` instead of re-exported — the shape all three duplicate types had | one-definition — 1 of 5 checks, naming both files: "type SellUnit is declared in 2 modules" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
 | the stranded block never rendered (`segment === "risk"` → `false`) — the feature shipped but invisible, which is how it actually reached Ali the first time | stranded — 7 of 9 checks and the click timed out, incl. "the At risk lens has a block for people with nothing left to reorder" |
 | one switch draft rewritten to "I now stock" instead of "we" | stranded — exactly 2 checks, "each one speaks as 'we'" and "and none of them says 'I'", and nothing else moved |
