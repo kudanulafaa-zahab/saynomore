@@ -274,6 +274,8 @@ was verified by putting its bug back:
 | the out-of-stock card put back as a `disabled` dead end reading "Out of stock" | sell-new-product — "it invites the fix rather than reading 'Out of stock' as a dead end", then the flow cannot proceed at all |
 | `canSave` requiring L × W × H again | new-sku — the Create button never becomes clickable and the run times out on it |
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
+| `.glass-panel`'s hardcoded `0 4px 14px` drop shadow left in place — a third content-surface class no palette could reach | material (lumen) — 3 of 20 screens: "BLURRED drop shadow in the content plane (blur 14px, not a seam)" on dashboard, financials, competitors |
+| the carve's law applied to Lumen instead of the edge law — measuring the wrong physics | material (lumen) — flags the seam and top-rim bar themselves, i.e. the theme's own definition reported as the defect |
 | `SellUnit` declared a second time in `lib/queries/products.ts` instead of re-exported — the shape all three duplicate types had | one-definition — 1 of 5 checks, naming both files: "type SellUnit is declared in 2 modules" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
 | the stranded block never rendered (`segment === "risk"` → `false`) — the feature shipped but invisible, which is how it actually reached Ali the first time | stranded — 7 of 9 checks and the click timed out, incl. "the At risk lens has a block for people with nothing left to reorder" |

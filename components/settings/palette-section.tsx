@@ -75,7 +75,21 @@ export function PaletteSection() {
                       grey bokeh ball advertised a colour scheme instead. */}
                   <div
                     className="absolute inset-0"
-                    style={material === "carved" ? {
+                    style={material === "edge" ? {
+                      // Lumen previews its SEAM. Literal values for the same
+                      // reason as Soft below: the --lum-* tokens only exist
+                      // while Lumen is active, so on any other palette the
+                      // preview would draw flat — exactly when you most need to
+                      // see what you are about to switch to.
+                      inset: 0,
+                      background: "#0a0b0e",
+                      backgroundImage:
+                        "linear-gradient(to right, rgba(140,190,225,0.10) 1px, transparent 1px)," +
+                        "linear-gradient(to bottom, rgba(140,190,225,0.10) 1px, transparent 1px)",
+                      backgroundSize: "8px 8px, 8px 8px",
+                      boxShadow: "inset 0 0 0 1px rgba(150,214,255,0.55), inset 0 2px 0 -1px rgba(190,232,255,0.75)",
+                      borderRadius: "9999px",
+                    } : material === "carved" ? {
                       // Literal values, not the --soft-* tokens: those only
                       // exist while Soft is ACTIVE, so on any other palette the
                       // preview would have drawn flat — exactly when you most

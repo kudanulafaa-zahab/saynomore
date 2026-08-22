@@ -366,10 +366,21 @@ export function DispatchView() {
             {active.map((item) => {
               const isExpanded  = expanded === item.order.id;
               const totalMvr    = item.lines.reduce((a, l) => a + Number(l.line_total_mvr), 0);
+              // CHROME colour — borders, tints and the icon. The fill variant
+              // is correct here; none of these carry a reading floor.
               const statusColor =
                 item.order.status === "confirmed"        ? "var(--snm-brand)"
                 : item.order.status === "out_for_delivery" ? "var(--snm-warning)"
                 : "var(--snm-info)";
+              // TEXT colour — the same status, said in the variant that was
+              // contrast-verified for reading. skills.md: "never swap them for
+              // the fill variants". --snm-brand is the FILL (ember light
+              // #d6337a) and measured 4.32:1 behind "Awaiting dispatch";
+              // --snm-brand-text is its deepened twin (#9c1150, 7.0:1).
+              // --snm-warning and --snm-info already carry deepened light-mode
+              // text values, so they need no twin.
+              const statusTextColor =
+                item.order.status === "confirmed" ? "var(--snm-brand-text)" : statusColor;
               const statusLabel =
                 item.order.status === "confirmed"        ? "Awaiting dispatch"
                 : item.order.status === "picked"          ? "Picked"
@@ -437,7 +448,8 @@ export function DispatchView() {
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
                         <p className="text-[14px] font-bold text-foreground snm-num">MVR {totalMvr.toFixed(0)}</p>
-                        <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: rowBorderColor }}>{statusLabel}</p>
+                        <p className="text-[12px] font-bold uppercase tracking-wider"
+                           style={{ color: hasIssue ? "var(--snm-error)" : statusTextColor }}>{statusLabel}</p>
                       </div>
                       <ChevronDown
                         className="h-4 w-4 transition-transform duration-200"

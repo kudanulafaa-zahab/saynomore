@@ -266,6 +266,7 @@
      tokens (correct as-is for content cards, which are meant to blend). */
   --tabbar-bg:       rgba(255, 255, 255, calc(0.97 * var(--frost-fill-tab)));
   --tabbar-border:   rgba(0, 0, 0, calc(0.16 * var(--frost-edge-tab)));
+  --glass-panel-shadow: 0 4px 14px rgba(0,0,0,0.08);
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-edge)));
@@ -1613,7 +1614,15 @@
     backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
     -webkit-backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
     border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
-    box-shadow: inset 0 1px 1px var(--glass-specular), 0 4px 14px rgba(0,0,0,0.08);
+    /* TOKENISED 2026-08-22, with the value unchanged. This drop shadow was
+       hand-typed here, so no palette could reach it: Soft and Lumen both
+       repaint .snm-card and .glass but this class kept the glass vocabulary
+       underneath them. Found by Lumen's material law, which flags a blurred
+       drop shadow in the content plane; Soft's law could not see it, because
+       that law only fires on a SINGLE non-inset shadow and this list has two.
+       The default below is byte-identical to what was here, so the three glass
+       palettes are untouched. */
+    box-shadow: inset 0 1px 1px var(--glass-specular), var(--glass-panel-shadow);
     transition: background var(--glass-transition), border-color var(--glass-transition);
   }
   .glass-panel--sm {
@@ -2273,4 +2282,355 @@
 [data-palette="soft"] .glass-modal,
 [data-palette="soft"] .glass-bottom-nav {
   /* inherits the untouched definitions above — listed here as documentation */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LUMEN — the sixth palette (2026-08-22).  STRUCTURAL LIGHT.
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Ali, 2026-08-22: "Create a brand new totally different theme... super slick
+   and the latest 2026 design guidelines... so advanced that it will be the new
+   trend in design. Do not use anything from the current design language...
+   super slick and minimal but very futuristic... It must not break anything
+   current."
+
+   Every rule below is scoped to [data-palette="lumen"]. Sunrise, Aurora, Ember
+   and Soft cannot be touched by anything in this block — not by care, but by
+   construction, exactly as the Soft block above is scoped.
+
+   ── WHY THIS IS A DIFFERENT LANGUAGE, NOT A NEW SET OF HUES ────────────────
+
+   The app already has two materials, and both describe depth as a PROPERTY OF
+   THE SURFACE:
+
+     GLASS  (sunrise/aurora/ember)  the surface is translucent and blurred; you
+                                    see a coloured bokeh field through it.
+     CARVED (soft)                  the surface is opaque and lit from up-left
+                                    by two opposing shadows.
+
+   A third palette in either idiom would only be a recolour. So Lumen moves the
+   depth cue OFF the surface and INTO THE SEAM:
+
+     EDGE-LIT (lumen)   the surface is flat, opaque and almost exactly the value
+                        of the page. It is legible only because LIGHT COLLECTS
+                        ALONG ITS EDGE — a 1px luminous ring plus a brighter
+                        bar on the top rim, as though the panel were lit from
+                        behind rather than above.
+
+   That is the 2026 instrument-panel idiom — visionOS ornaments, automotive
+   HMI, Teenage Engineering — and it is the opposite of both existing
+   materials: no translucency, no blur, no bokeh, and no drop shadow anywhere
+   in the content plane. Nothing floats and nothing is carved; things are
+   OUTLINED BY LIGHT.
+
+   The page underneath is not a picture but a STRUCTURE: one even field ruled
+   by a 64px hairline grid, with a single cold horizon glow above the fold. A
+   bokeh blob is a decorative image; a grid is a coordinate system, and reads
+   as an instrument rather than a wallpaper.
+
+   ── THE THREE LAWS IT STILL OBEYS ──────────────────────────────────────────
+
+   Ali gave freedom on the design language, not on the rules that keep this app
+   usable and honest. So:
+
+   LAW 1  COLOUR STILL MEANS MONEY. Lumen's accent is a cold cyan-white that
+          reads as LIGHT rather than as a hue, so green/red/orange keep their
+          monopoly on meaning. It is used for structure and selection, never to
+          decorate a number.
+   LAW 2  CONTRAST IS MEASURED, NOT JUDGED. Every value below was computed
+          before it was written and then re-measured on the rendered page by
+          `npm run audit:contrast`, which now runs 5 palettes x 2 schemes x 20
+          screens = 200 cases. The margins are deliberately generous rather
+          than just-passing:
+              dark   foreground 15.3:1   muted 7.5:1 on a NESTED surface
+                     accent-as-text 10.8:1
+              light  foreground 17.7:1   muted 5.7:1 on a nested surface
+                     accent-as-text 7.0:1, white-on-accent-fill 7.2:1
+          Tuned against the LIGHTEST surface each token can land on (a card
+          inside a card), never against the page — the lesson --muted-foreground
+          and Soft both had to learn twice.
+   LAW 3  IT IS CHEAPER THAN WHAT IT REPLACES. Opaque fills mean
+          --glass-blur-content is none and every content backdrop-filter stops
+          rasterising. The seam is a 1px spread box-shadow with NO blur radius,
+          which is the cheapest shadow a compositor can draw. The grid is two
+          repeating linear-gradients on one already-composited fixed layer.
+
+   ── DARK IS THE PRIMARY SCHEME ─────────────────────────────────────────────
+
+   This look is designed OLED-first: a true near-black page (#0a0b0e) is where
+   an edge light actually reads as emitted. Light mode inverts the idea rather
+   than copying it — there the seam is a fine dark rule with a white top rim,
+   so the panel looks cut from a lit sheet instead of glowing on a dark one.
+
+   ── SOURCE ORDER ───────────────────────────────────────────────────────────
+
+   The dark values are written ONCE as --lum-d-* on the theme-independent
+   selector, then mapped by both dark selectors: `.dark[data-palette="lumen"]`
+   for an explicit choice, and `:root[data-palette="lumen"]:not(.light)` inside
+   the prefers-color-scheme block for a user who has never chosen. Both are
+   required — see the note at the sunrise media-query block for the live bug
+   where the media query beat an explicit .light override on source order. One
+   definition, two mappings, so the pair cannot drift.                        */
+
+[data-palette="lumen"] {
+  /* ---- Dark values, declared once and mapped by both dark selectors ---- */
+  --lum-d-page:     #0a0b0e;
+  --lum-d-surface:  #121419;
+  --lum-d-nested:   #171a20;
+  --lum-d-fg:       #e8eaee;
+  --lum-d-muted:    #a4abb7;   /* 7.5:1 on the nested surface */
+  --lum-d-accent:   #7fd7ff;   /* 10.8:1 as text on the nested surface */
+  --lum-d-seam:     rgba(150, 214, 255, 0.22);
+  --lum-d-rim:      rgba(190, 232, 255, 0.30);
+  --lum-d-grid:     rgba(140, 190, 225, 0.055);
+  --lum-d-horizon:  rgba(70, 150, 205, 0.16);
+
+  /* ---- The seam. No blur radius anywhere: an edge light is a hard edge, and
+     a hard 1px spread is the cheapest shadow there is. ---- */
+  --lum-ring:    0 0 0 1px var(--lum-seam);
+  --lum-ring-lg: 0 0 0 1px var(--lum-seam), 0 24px 60px -20px rgba(0,0,0,0.55);
+  --lum-rim:     inset 0 1px 0 var(--lum-rim-c);
+  --lum-well:    inset 0 0 0 1px var(--lum-seam);
+}
+
+/* ---- LIGHT ---- */
+[data-palette="lumen"]:not(.dark) {
+  --wallpaper-base: #eef1f5;
+  /* The bokeh machinery is kept and pulled to nothing rather than removed, so
+     this palette uses exactly the same four-field plumbing as every other one
+     and a future change to that plumbing cannot leave Lumen behind. The grid
+     below replaces what it draws. */
+  --wallpaper-field-1: #eef1f5;
+  --wallpaper-field-2: #eef1f5;
+  --wallpaper-field-3: #eef1f5;
+  --wallpaper-field-4: #ffffff;
+  --wallpaper-opacity-1: 0.02;
+  --wallpaper-opacity-2: 0.02;
+  --wallpaper-opacity-3: 0.02;
+  --wallpaper-opacity-4: 0.10;
+
+  --lum-page:    #eef1f5;
+  --lum-surface: #fafbfd;
+  --lum-nested:  #f2f4f7;
+  --lum-seam:    rgba(23, 44, 61, 0.13);
+  --lum-rim-c:   rgba(255, 255, 255, 0.95);
+  --lum-grid:    rgba(31, 62, 84, 0.045);
+  --lum-horizon: rgba(120, 175, 210, 0.15);
+
+  --foreground: #12151a;          /* 17.7:1 on the surface */
+  --muted-foreground: #565d6a;    /* 5.7:1 on a NESTED surface */
+  /* Fill that must carry white text: 7.2:1 under white. */
+  --glass-accent: #0b5f79;
+}
+/* The accent said as TEXT, deepened the way every other palette's is.
+   7.0:1 on the nested surface. skills.md: never swap the text token for the
+   fill variant — so Lumen ships both from the first day rather than
+   discovering the difference in an audit later, which is how the other three
+   acquired theirs. */
+[data-palette="lumen"]:not(.dark) { --snm-brand-text: #0a5a75; }
+
+/* ---- DARK (explicit) ---- */
+.dark[data-palette="lumen"] {
+  --wallpaper-base: var(--lum-d-page);
+  --wallpaper-field-1: var(--lum-d-page);
+  --wallpaper-field-2: var(--lum-d-page);
+  --wallpaper-field-3: var(--lum-d-page);
+  --wallpaper-field-4: #1d3b52;
+  --wallpaper-opacity-1: 0.02;
+  --wallpaper-opacity-2: 0.02;
+  --wallpaper-opacity-3: 0.02;
+  --wallpaper-opacity-4: 0.16;
+
+  --lum-page:    var(--lum-d-page);
+  --lum-surface: var(--lum-d-surface);
+  --lum-nested:  var(--lum-d-nested);
+  --lum-seam:    var(--lum-d-seam);
+  --lum-rim-c:   var(--lum-d-rim);
+  --lum-grid:    var(--lum-d-grid);
+  --lum-horizon: var(--lum-d-horizon);
+
+  --foreground: var(--lum-d-fg);
+  --muted-foreground: var(--lum-d-muted);
+  --tabbar-fg: var(--lum-d-muted);
+  --glass-accent: var(--lum-d-accent);
+}
+
+/* ---- DARK (OS preference, no explicit choice) — see SOURCE ORDER above ---- */
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="lumen"]:not(.light) {
+    --wallpaper-base: var(--lum-d-page);
+    --wallpaper-field-1: var(--lum-d-page);
+    --wallpaper-field-2: var(--lum-d-page);
+    --wallpaper-field-3: var(--lum-d-page);
+    --wallpaper-field-4: #1d3b52;
+    --wallpaper-opacity-1: 0.02;
+    --wallpaper-opacity-2: 0.02;
+    --wallpaper-opacity-3: 0.02;
+    --wallpaper-opacity-4: 0.16;
+
+    --lum-page:    var(--lum-d-page);
+    --lum-surface: var(--lum-d-surface);
+    --lum-nested:  var(--lum-d-nested);
+    --lum-seam:    var(--lum-d-seam);
+    --lum-rim-c:   var(--lum-d-rim);
+    --lum-grid:    var(--lum-d-grid);
+    --lum-horizon: var(--lum-d-horizon);
+
+    --foreground: var(--lum-d-fg);
+    --muted-foreground: var(--lum-d-muted);
+    --tabbar-fg: var(--lum-d-muted);
+    --glass-accent: var(--lum-d-accent);
+  }
+}
+
+/* ── The token bridge ───────────────────────────────────────────────────────
+   Most screens do NOT use .snm-card — they set style={{...CARD}} inline from
+   these tokens. Overriding the TOKENS is what makes a palette reach every
+   screen including ones not written yet; overriding only classes would repaint
+   about six components and leave two hundred untouched. Learned on Soft.
+
+   An opaque fill also neutralises the backdrop-filter behind it — blur is only
+   visible through translucency — so the inline blur(14px * --frost-b) on
+   content cards stops showing without reaching into every component.        */
+[data-palette="lumen"] {
+  --glass-fill-top:    var(--lum-surface);
+  --glass-fill-bottom: var(--lum-surface);
+  --glass-1:           var(--lum-surface);
+  --glass-bg-1:        var(--lum-surface);
+  --glass-bg-2:        var(--lum-surface);
+
+  --glass-shadow:    var(--lum-ring);
+  --glass-shadow-lg: var(--lum-ring-lg);
+  --glass-inner:     var(--lum-rim);
+  --glass-specular:  var(--lum-rim-c);
+  /* The top-rim bar. Far tighter than glass's specular (which fades over 62%)
+     because this reads as an EDGE catching light, not a curved surface. */
+  --glass-sheen: linear-gradient(180deg,
+                   color-mix(in srgb, var(--lum-rim-c) 55%, transparent) 0%,
+                   transparent 22%);
+  --glass-border:    var(--lum-seam);
+  --glass-border-lo: var(--lum-seam);
+  --glass-blur-content: none;
+  --snm-float-shadow: var(--lum-ring-lg);
+  --snm-thumb-shadow: var(--lum-ring);
+  /* .glass-panel's drop shadow, now that it is a token. An edge-lit panel
+     casts nothing — the seam IS the depth. */
+  --glass-panel-shadow: var(--lum-ring);
+}
+
+/* .glass-panel is a THIRD content surface class alongside .snm-card and
+   .glass, and it paints its own gradient fill and border rather than reading
+   --glass-bg-1. Repainted here for the same reason the other two are: a
+   palette that only reaches two of the three leaves whole screens — the
+   dashboard's briefing, the financials tabs, the competitors header — wearing
+   the previous theme. */
+[data-palette="lumen"] .glass-panel,
+[data-palette="lumen"] .glass-panel--sm {
+  background: var(--lum-surface);
+  background-image: var(--glass-sheen);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--lum-ring), var(--lum-rim);
+}
+
+/* The segmented control ships Tailwind's own `shadow-sm` on the active thumb
+   (`group-data-[variant=default]/tabs-list:data-active:shadow-sm`) — a
+   hardcoded blurred shadow, unreachable by any token, which is the exact
+   defect class this palette's law was written to catch. Under Lumen the active
+   segment is marked by a lit seam instead.
+
+   Base UI, not Radix: the attribute is `data-active`, not
+   `data-state="active"`. Worth stating, because the first attempt used the
+   Radix spelling, matched nothing, and the audit correctly kept failing. */
+[data-palette="lumen"] [data-slot="tabs-trigger"][data-active] {
+  box-shadow: var(--lum-ring), var(--lum-rim);
+}
+
+/* ---- The page: a coordinate system, not a picture. ---- */
+[data-palette="lumen"] .glass-wallpaper::before {
+  background-image:
+    linear-gradient(to right,  var(--lum-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--lum-grid) 1px, transparent 1px),
+    radial-gradient(120vmax 70vmax at 50% 0%, var(--lum-horizon), transparent 62%);
+  background-size: 64px 64px, 64px 64px, 100% 100%;
+  background-position: 0 0, 0 0, 0 0;
+  background-repeat: repeat, repeat, no-repeat;
+}
+
+/* ---- EDGE-LIT: in-flow content. Flat, opaque, outlined by light. ---- */
+[data-palette="lumen"] .snm-card,
+[data-palette="lumen"] .glass {
+  background-color: var(--lum-surface);
+  background-image: var(--glass-sheen);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--lum-ring), var(--lum-rim);
+}
+
+/* A surface nested inside a lit surface steps DOWN and loses its rim — you
+   cannot stack two lit planes and still read a hierarchy. The edge-lit form of
+   the standing "never place a surface on itself" rule. */
+[data-palette="lumen"] .snm-card .snm-card,
+[data-palette="lumen"] .snm-card-l2,
+[data-palette="lumen"] .glass-flat {
+  background-color: var(--lum-nested);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--lum-well);
+}
+
+/* ---- Inputs are recessed: the seam runs INSIDE, so the field reads as a
+   channel cut into the panel rather than another panel on top of it. ---- */
+[data-palette="lumen"] .glass-input,
+[data-palette="lumen"] .snm-input,
+[data-palette="lumen"] input[type="text"],
+[data-palette="lumen"] input[type="number"],
+[data-palette="lumen"] input[type="search"],
+[data-palette="lumen"] input[type="email"],
+[data-palette="lumen"] input[type="password"],
+[data-palette="lumen"] textarea,
+[data-palette="lumen"] select {
+  background-color: var(--lum-nested);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--lum-well);
+}
+
+/* Focus is the one place the accent is allowed to bloom — the seam brightens
+   rather than a ring being added, which keeps the geometry identical and
+   avoids the 1px layout shift a border-on-focus causes. */
+[data-palette="lumen"] :is(input, textarea, select):focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--glass-accent),
+              0 0 0 3px color-mix(in srgb, var(--glass-accent) 22%, transparent);
+}
+
+/* Press feedback: light collects harder rather than the surface moving. */
+[data-palette="lumen"] .snm-pressable:active,
+[data-palette="lumen"] .snm-btn:active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--glass-accent) 55%, transparent),
+              var(--lum-rim);
+}
+
+/* Reduced transparency: nothing here is transparent to begin with, so the
+   only thing to strengthen is the seam. Kept explicit so the accessibility
+   fallbacks that exist for the other palettes are not silently absent here. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  [data-palette="lumen"] .snm-card,
+  [data-palette="lumen"] .glass,
+  [data-palette="lumen"] .snm-card-l2,
+  [data-palette="lumen"] .glass-flat,
+  [data-palette="lumen"] .glass-input,
+  [data-palette="lumen"] .snm-input,
+  [data-palette="lumen"] input,
+  [data-palette="lumen"] textarea,
+  [data-palette="lumen"] select {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground) 45%, transparent);
+  }
 }
