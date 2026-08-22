@@ -266,6 +266,7 @@
      tokens (correct as-is for content cards, which are meant to blend). */
   --tabbar-bg:       rgba(255, 255, 255, calc(0.97 * var(--frost-fill-tab)));
   --tabbar-border:   rgba(0, 0, 0, calc(0.16 * var(--frost-edge-tab)));
+  --glass-panel-shadow: 0 4px 14px rgba(0,0,0,0.08);
   --glass-shadow:    0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
   --glass-inner:     inset 0 1px 0 rgba(255, 255, 255, calc(1 * var(--frost-edge))), inset 0 -1px 0 rgba(0, 0, 0, calc(0.04 * var(--frost-edge)));
@@ -1613,7 +1614,15 @@
     backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
     -webkit-backdrop-filter: blur(calc(22px * var(--frost-b))) saturate(var(--glass-saturate));
     border: 1px solid var(--glass-border, rgba(255,255,255,0.65));
-    box-shadow: inset 0 1px 1px var(--glass-specular), 0 4px 14px rgba(0,0,0,0.08);
+    /* TOKENISED 2026-08-22, with the value unchanged. This drop shadow was
+       hand-typed here, so no palette could reach it: Soft and Lumen both
+       repaint .snm-card and .glass but this class kept the glass vocabulary
+       underneath them. Found by Lumen's material law, which flags a blurred
+       drop shadow in the content plane; Soft's law could not see it, because
+       that law only fires on a SINGLE non-inset shadow and this list has two.
+       The default below is byte-identical to what was here, so the three glass
+       palettes are untouched. */
+    box-shadow: inset 0 1px 1px var(--glass-specular), var(--glass-panel-shadow);
     transition: background var(--glass-transition), border-color var(--glass-transition);
   }
   .glass-panel--sm {
@@ -2504,6 +2513,38 @@
   --glass-blur-content: none;
   --snm-float-shadow: var(--lum-ring-lg);
   --snm-thumb-shadow: var(--lum-ring);
+  /* .glass-panel's drop shadow, now that it is a token. An edge-lit panel
+     casts nothing — the seam IS the depth. */
+  --glass-panel-shadow: var(--lum-ring);
+}
+
+/* .glass-panel is a THIRD content surface class alongside .snm-card and
+   .glass, and it paints its own gradient fill and border rather than reading
+   --glass-bg-1. Repainted here for the same reason the other two are: a
+   palette that only reaches two of the three leaves whole screens — the
+   dashboard's briefing, the financials tabs, the competitors header — wearing
+   the previous theme. */
+[data-palette="lumen"] .glass-panel,
+[data-palette="lumen"] .glass-panel--sm {
+  background: var(--lum-surface);
+  background-image: var(--glass-sheen);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: var(--lum-ring), var(--lum-rim);
+}
+
+/* The segmented control ships Tailwind's own `shadow-sm` on the active thumb
+   (`group-data-[variant=default]/tabs-list:data-active:shadow-sm`) — a
+   hardcoded blurred shadow, unreachable by any token, which is the exact
+   defect class this palette's law was written to catch. Under Lumen the active
+   segment is marked by a lit seam instead.
+
+   Base UI, not Radix: the attribute is `data-active`, not
+   `data-state="active"`. Worth stating, because the first attempt used the
+   Radix spelling, matched nothing, and the audit correctly kept failing. */
+[data-palette="lumen"] [data-slot="tabs-trigger"][data-active] {
+  box-shadow: var(--lum-ring), var(--lum-rim);
 }
 
 /* ---- The page: a coordinate system, not a picture. ---- */

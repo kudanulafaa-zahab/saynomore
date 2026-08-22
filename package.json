@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit",
     "audit:seed": "node scripts/audit/seed.mjs",
     "audit:contrast": "node scripts/audit/contrast.mjs",
-    "audit:material": "node scripts/audit/material.mjs",
+    "audit:material": "node --experimental-strip-types --no-warnings scripts/audit/material.mjs",
     "audit:journey": "node scripts/audit/journey.mjs",
-    "audit:ui": "npm run audit:wa && npm run audit:onedef && npm run audit:journey && npm run audit:grn && npm run audit:offline && npm run audit:running-costs && npm run audit:reorder && npm run audit:direct && npm run audit:newsku && npm run audit:range && npm run audit:ikea && npm run audit:card && npm run audit:sellnew && npm run audit:stranded && npm run audit:identity && npm run audit:crosssell && npm run audit:returned && npm run audit:cartonpacks && npm run audit:water && npm run audit:followup && npm run audit:reach && npm run audit:material && npm run audit:contrast",
+    "audit:ui": "npm run audit:wa && npm run audit:onedef && npm run audit:journey && npm run audit:grn && npm run audit:offline && npm run audit:running-costs && npm run audit:reorder && npm run audit:direct && npm run audit:newsku && npm run audit:range && npm run audit:ikea && npm run audit:card && npm run audit:sellnew && npm run audit:stranded && npm run audit:identity && npm run audit:crosssell && npm run audit:returned && npm run audit:cartonpacks && npm run audit:water && npm run audit:followup && npm run audit:reach && npm run audit:material && npm run audit:material:lumen && npm run audit:contrast",
     "audit:offline": "node scripts/audit/offline.mjs",
     "backup": "bash scripts/backup.sh",
     "audit:grn": "node scripts/audit/grn.mjs",
@@ -35,7 +35,8 @@
     "audit:range": "node scripts/audit/size-range.mjs",
     "audit:ikea": "node scripts/audit/add-ikea.mjs",
     "ledger": "node scripts/check-ledger.mjs",
-    "audit:onedef": "node scripts/audit/one-definition.mjs"
+    "audit:onedef": "node scripts/audit/one-definition.mjs",
+    "audit:material:lumen": "node --experimental-strip-types --no-warnings scripts/audit/material.mjs --palette lumen"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
