@@ -20,7 +20,7 @@
 -- anyone doing anything.
 
 begin;
-select plan(4);
+select plan(7);
 
 -- ── Every view respects the caller's row level security ────────────────────
 -- `security_invoker` accepts both `true` and `on`; the app has used both
@@ -79,6 +79,76 @@ select cmp_ok(
     where n.nspname = 'public' and c.relkind = 'v'),
   '>', 5,
   'and there really are views being checked, not an empty schema passing by default'
+);
+
+-- ── No rule is declared twice ──────────────────────────────────────────────
+-- Six CHECK constraints existed in duplicate on sales_order_lines and
+-- shipment_lines, with byte-identical definitions — one from the original
+-- CREATE TABLE and one from a later hardening migration that re-added rules
+-- already present (0195 removed them). Both were evaluated on every write, and
+-- when a write was refused either could be the one named.
+--
+-- Enumerated, like everything else in this file: a pair added next year is
+-- caught without anyone remembering this test exists.
+select is(
+  (select coalesce(string_agg(format('%s: %s', tbl, names), ' | ' order by tbl), 'none')
+     from (
+       select c.relname as tbl,
+              string_agg(con.conname, ' = ' order by con.conname) as names
+         from pg_constraint con
+         join pg_class c on c.oid = con.conrelid
+         join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+        where con.contype = 'c'
+        group by c.relname, pg_get_constraintdef(con.oid)
+       having count(*) > 1
+     ) dupes),
+  'none',
+  'no table declares the same CHECK rule twice'
+);
+
+-- ── No policy asks who you are once per row ────────────────────────────────
+-- A bare function call inside a policy expression is evaluated FOR EVERY ROW
+-- considered. `is_admin_or_manager()` calls `current_user_role()`, which SELECTs
+-- from user_profiles — so a query touching five tables asked "who is this
+-- person?" against a table, over and over, for every row of every table.
+--
+-- Measured on production before 0196 fixed it:
+--     row security bypassed   1.75 ms
+--     row security enforced  52.85 ms      — 97% of the cost
+-- and wrapping five policies took it to 3.26 ms.
+--
+-- Wrapping as `(select f())` makes Postgres hoist it to an InitPlan: once per
+-- query, same answer, because all three helpers are STABLE.
+--
+-- Case-INSENSITIVE, and that matters: Postgres renders a wrapped call back as
+-- "( SELECT is_admin_or_manager() AS ...)" in upper case. A lower-case check
+-- reports every policy it just fixed as still broken, which is exactly what
+-- happened the first time this was written.
+select is(
+  (select coalesce(string_agg(format('%s.%s', c.relname, p.polname), ', '
+                              order by c.relname, p.polname), 'none')
+     from pg_policy p
+     join pg_class c on c.oid = p.polrelid
+     join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+    where coalesce(pg_get_expr(p.polqual, p.polrelid), '')
+            ~* '(?<!select )(is_admin_or_manager|is_admin_manager_or_viewer|current_user_role)\(\)'
+       or coalesce(pg_get_expr(p.polwithcheck, p.polrelid), '')
+            ~* '(?<!select )(is_admin_or_manager|is_admin_manager_or_viewer|current_user_role)\(\)'),
+  'none',
+  'no policy calls a role helper once per row — every one is hoisted to an InitPlan'
+);
+
+-- The guard is guarding something. "none" is also the answer if the policies
+-- stopped calling these helpers at all, which would mean something far worse.
+select cmp_ok(
+  (select count(*)::int
+     from pg_policy p
+     join pg_class c on c.oid = p.polrelid
+     join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+    where coalesce(pg_get_expr(p.polqual, p.polrelid), '') ~* '(is_admin_or_manager|is_admin_manager_or_viewer|current_user_role)\('
+       or coalesce(pg_get_expr(p.polwithcheck, p.polrelid), '') ~* '(is_admin_or_manager|is_admin_manager_or_viewer|current_user_role)\('),
+  '>', 20,
+  'and the role helpers are still doing the guarding, on a real number of policies'
 );
 
 select * from finish();
