@@ -22,7 +22,13 @@ export type { UnitUom };
 export type CostBasis = "piece" | "per_100ml" | "per_100g";
 
 // Which tiers a product may be SOLD in (costing is always in pieces — separate).
-export type SellUnit = "piece" | "pack" | "carton";
+//
+// Re-exported, not re-declared — same reason as UnitUom above. Two identical
+// copies of a type are harmless right up until one of them is extended, which
+// is exactly how the unit list ended up stuck at three values while the rest of
+// the app knew eleven.
+import type { SellUnit } from "@/lib/trade-units";
+export type { SellUnit };
 
 // Variant attribute keys our UI knows how to render
 export type AttrKey =
