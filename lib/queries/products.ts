@@ -5,7 +5,20 @@ import { swrFetch, invalidate } from "@/lib/swr-lite";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-export type UnitUom = "pcs" | "ml" | "g";
+// ONE definition of what a unit is, re-exported rather than re-declared.
+//
+// This file used to carry its own `"pcs" | "ml" | "g"` while lib/trade-units.ts
+// carried the real eleven, and the two silently disagreed. The narrow copy is
+// why the New Category form could only ever offer three units: the type would
+// not permit a fourth, so a body butter could not be called a tub and a bedding
+// item could not be called a set — through the app, at least. Bodybutter's
+// "tub" had to be set by a migration, because the form could not say it.
+//
+// The database has always allowed all eleven (0193 added 'set'). Postgres
+// `unit_noun` and `containerLabel` are already twins; this makes the TYPE a
+// third view of the same one truth rather than a competing one.
+import type { UnitUom } from "@/lib/trade-units";
+export type { UnitUom };
 export type CostBasis = "piece" | "per_100ml" | "per_100g";
 
 // Which tiers a product may be SOLD in (costing is always in pieces — separate).
@@ -460,6 +473,12 @@ export interface CreateCategoryInput {
   variant_attributes: AttrKey[];
   sort_order?: number;
   duty_rate_pct?: number;
+  /** Which tiers products of this kind are sold in. Derived from the unit word
+   *  when a category is created — a set, a tub or a bar is sold one at a time,
+   *  so there is nothing to ask. Without this the column defaults to
+   *  pack+carton and the New SKU form then demands a pack size for a bedding
+   *  set, which is the busywork Ali complained about. */
+  default_sellable_units?: SellUnit[];
 }
 export async function createCategory(input: CreateCategoryInput) {
   const { data, error } = await supabase
