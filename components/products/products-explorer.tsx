@@ -1483,6 +1483,11 @@ function NewSkuWizard({
   const [multiVals, setMultiVals] = useState<string[]>([]);
   const [multiDraft, setMultiDraft] = useState("");
 
+  /** Does this product arrive in packs and cartons, or one at a time?
+   *  Defaults from the category the way the rest of the form does: a kind whose
+   *  default selling units include 'pack' or 'carton' comes in them. */
+  const [comesInPacks, setComesInPacks] = useState(true);
+
   // ── Pack config
   const [pcsPerPack,  setPcsPerPack]  = useState("");
   const [packsPerCtn, setPacksPerCtn] = useState("");
@@ -1534,6 +1539,19 @@ function NewSkuWizard({
   const brandModels  = allModels.filter((m) => m.brand_id === brandId);
   const category     = allCategories.find((c) => c.id === categoryId);
   const schema: AttrKey[] = (category?.variant_attributes ?? []) as AttrKey[];
+  // What this kind calls one of itself — "set", "tub", "bottle". containerLabel
+  // is the one place that mapping lives, and the twin of Postgres unit_noun.
+  const unitWordHere = containerLabel(category?.unit_uom as UnitUom | undefined);
+
+  // Default "how it comes" from the kind of product. A category that sells by
+  // the piece only — bedding, body butter — comes one at a time, so the pack
+  // numbers are 1 x 1 and he is never asked for them.
+  useEffect(() => {
+    if (!category) return;
+    const packs = (category.default_sellable_units ?? []).some((u) => u === "pack" || u === "carton");
+    setComesInPacks(packs);
+    if (!packs) { setPcsPerPack("1"); setPacksPerCtn("1"); }
+  }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Default the sellable units from the category (until the user picks manually).
   useEffect(() => {
@@ -1625,6 +1643,7 @@ function NewSkuWizard({
     setBrandInput(""); setBrandId("");
     setModelInput(""); setModelId(""); setCategoryId("");
     setVariantAttrs({}); setMultiVals([]); setMultiDraft("");
+    setComesInPacks(true);
     setPcsPerPack(""); setPacksPerCtn("");
     setLenCm(""); setWidCm(""); setHtCm("");
     setCode(""); setBarcode(""); setMarginPct(""); setFixedPrice(""); setFixedPackPrice(""); setFixedCartonPrice(""); setFixedEntryUnit("bottle");
@@ -2050,10 +2069,47 @@ function NewSkuWizard({
           {/* ── Divider ── */}
           <div style={{ borderTop: "0.5px solid var(--glass-border-lo)" }} />
 
-          {/* ── Pack config ── */}
+          {/* ── How it comes ──
+              Ali, 2026-08-21, with a screenshot: "It's very complicated."
+              Both these numbers were REQUIRED with a star, for every product.
+              A bedding set, a body butter tub and a bar of soap all come one at
+              a time, and the only way past the form was to type 1 and 1 — two
+              meaningless numbers demanded before he could save anything.
+              So the form asks the real question first, and the numbers appear
+              only for the answer that needs them. */}
           <div className="space-y-3">
-            <SectionHead>Pack Configuration</SectionHead>
+            <SectionHead>How it comes</SectionHead>
 
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { many: false, label: `One ${unitWordHere} at a time`, hint: "bedding, tubs, bars" },
+                { many: true,  label: "In packs and cartons",           hint: "nappies, detergent" },
+              ] as const).map((opt) => (
+                <button
+                  key={String(opt.many)}
+                  type="button"
+                  onClick={() => {
+                    setComesInPacks(opt.many);
+                    // Sold singly IS 1 x 1 — the app still needs the numbers, it
+                    // just should not make him type them.
+                    if (!opt.many) { setPcsPerPack("1"); setPacksPerCtn("1"); }
+                    else if (pcsPerPack === "1" && packsPerCtn === "1") { setPcsPerPack(""); setPacksPerCtn(""); }
+                  }}
+                  aria-pressed={comesInPacks === opt.many}
+                  className="text-left rounded-xl px-3 py-2 border transition"
+                  style={{
+                    background: comesInPacks === opt.many ? "var(--snm-brand)" : "var(--glass-bg-1)",
+                    borderColor: comesInPacks === opt.many ? "var(--snm-brand)" : "var(--glass-border)",
+                    color: comesInPacks === opt.many ? "var(--snm-brand-on)" : "var(--foreground)",
+                  }}
+                >
+                  <span className="ios-subhead font-semibold block">{opt.label}</span>
+                  <span className="ios-footnote block" style={{ opacity: 0.7 }}>{opt.hint}</span>
+                </button>
+              ))}
+            </div>
+
+            {comesInPacks && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="ios-subhead">Pcs per Pack *</Label>
@@ -2070,6 +2126,7 @@ function NewSkuWizard({
                   placeholder="e.g. 4" style={inp} />
               </div>
             </div>
+            )}
 
             {/* Echo the pack config back in the units this business trades in.
                 This line used to read "{n} pcs per carton total" — a piece

@@ -7,14 +7,6 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -33,16 +25,22 @@ import {
   type AttrKey,
   type UnitUom,
   type CostBasis,
+  type SellUnit,
 } from "@/lib/queries/products";
+import { containerLabel } from "@/lib/trade-units";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { useOnMount } from "@/lib/use-on-mount";
 
 // Human-readable summary of category configuration — no raw field codes shown to user
 function humanMeta(c: CategoryRow): string {
+  // Says what one of them is called, from the one place that knows — the twin
+  // of Postgres unit_noun. This used to collapse everything that was not a
+  // liquid or a powder into "Pieces", so a bedding category would have
+  // described itself as pieces on the very screen where its unit was chosen.
   const uomLabel =
     c.unit_uom === "ml" ? "Liquid" :
     c.unit_uom === "g"  ? "Powder" :
-                          "Pieces";
+    `Sold by the ${containerLabel(c.unit_uom)}`;
   const costLabel =
     c.cost_basis === "per_100ml" ? "per 100 ml" :
     c.cost_basis === "per_100g"  ? "per 100 g"  :
@@ -56,15 +54,6 @@ function humanMeta(c: CategoryRow): string {
   return [uomLabel, costLabel, attrs, duty].filter(Boolean).join(" · ");
 }
 
-const ATTR_OPTIONS: { key: AttrKey; label: string }[] = [
-  { key: "size",      label: "Size" },
-  { key: "scent",     label: "Scent" },
-  { key: "format",    label: "Format (Bottle/Pouch/etc.)" },
-  { key: "volume_ml", label: "Volume (ml)" },
-  { key: "weight_g",  label: "Weight (g)" },
-  { key: "colour",    label: "Colour" },
-  { key: "other",     label: "Other (free text)" },
-];
 
 export function CategoriesManager() {
   const [rows, setRows] = useState<CategoryRow[]>([]);
@@ -153,32 +142,76 @@ export function CategoriesManager() {
   );
 }
 
+/** The ONE question this dialog asks, and everything it decides.
+ *
+ *  Ali, 2026-08-21, with a screenshot of the New SKU sheet: *"How do I add ikea
+ *  and set it up? It's very complicated."*
+ *
+ *  It was. Creating a kind of product asked for a Unit of Measure, a Cost Basis
+ *  and a set of Variant Attributes — three pieces of database vocabulary, none
+ *  of which mean anything to the person selling the thing. Worse, the Unit of
+ *  Measure list offered only pcs / ml / g, so there was NO WAY to say that one
+ *  IKEA bedding item is a "set". The database has supported eleven unit words
+ *  for months; the form could reach three of them.
+ *
+ *  So it asks the only question a shopkeeper can actually answer — WHAT DO YOU
+ *  CALL ONE OF THEM — and derives the rest:
+ *
+ *    unit_uom            the word he picked
+ *    cost_basis          per_100ml for a liquid, per_100g for a powder,
+ *                        otherwise per piece. It only ever had three values and
+ *                        each one follows from the unit; asking twice invited
+ *                        the pair to disagree.
+ *    variant_attributes  ['size'], because sizes are OPTIONAL at the point of
+ *                        adding a product — leave the size box empty and the
+ *                        product simply has none. Nothing is gained by making
+ *                        him declare in advance which fields he might use.
+ *
+ *  Every word here is one `containerLabel`/`unit_noun` already knows, so a
+ *  category can never be created with a unit the rest of the app cannot say. */
+const UNIT_WORDS: { uom: UnitUom; word: string; hint: string }[] = [
+  { uom: "pcs",    word: "Pack",   hint: "nappies, wipes" },
+  { uom: "set",    word: "Set",    hint: "bedding, cutlery" },
+  { uom: "bottle", word: "Bottle", hint: "cleaner, drinks" },
+  { uom: "tub",    word: "Tub",    hint: "body butter" },
+  { uom: "jar",    word: "Jar",    hint: "jam, cream" },
+  { uom: "tube",   word: "Tube",   hint: "toothpaste" },
+  { uom: "bar",    word: "Bar",    hint: "soap, chocolate" },
+  { uom: "sachet", word: "Sachet", hint: "single-use" },
+  { uom: "unit",   word: "Item",   hint: "anything else" },
+  { uom: "ml",     word: "Liquid", hint: "priced per 100ml" },
+  { uom: "g",      word: "Powder", hint: "priced per 100g" },
+];
+
+/** Cost basis follows from the unit word — it is not a separate decision. */
+function basisFor(uom: UnitUom): CostBasis {
+  return uom === "ml" ? "per_100ml" : uom === "g" ? "per_100g" : "piece";
+}
+
+/** So does how it is sold. Only a "pack" of loose pieces, a liquid or a powder
+ *  arrives in packs and cartons; a set, a tub, a bottle or a bar is bought and
+ *  sold one at a time. Getting this right here is what stops the New SKU form
+ *  asking for a pack size that does not exist. */
+function sellableFor(uom: UnitUom): SellUnit[] {
+  return uom === "pcs" || uom === "ml" || uom === "g"
+    ? ["pack", "carton"]
+    : ["piece"];
+}
+
 function CategoryDialog({
   open, onOpenChange, onSaved,
 }: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [uom, setUom] = useState<UnitUom>("pcs");
-  const [basis, setBasis] = useState<CostBasis>("piece");
-  const [attrs, setAttrs] = useState<Set<AttrKey>>(new Set(["size"]));
   const [duty, setDuty] = useState("");
+  const [showDuty, setShowDuty] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setName(""); setDescription("");
-      setUom("pcs"); setBasis("piece");
-      setAttrs(new Set(["size"]));
-      setDuty("");
+      setName(""); setUom("pcs"); setDuty(""); setShowDuty(false);
     }
   }, [open]);
-
-  function toggleAttr(k: AttrKey) {
-    const next = new Set(attrs);
-    if (next.has(k)) next.delete(k);
-    else next.add(k);
-    setAttrs(next);
-  }
 
   async function save() {
     if (!name.trim()) return;
@@ -186,10 +219,12 @@ function CategoryDialog({
     try {
       await createCategory({
         name: name.trim(),
-        description: description.trim() || null,
+        description: null,
         unit_uom: uom,
-        cost_basis: basis,
-        variant_attributes: Array.from(attrs),
+        cost_basis: basisFor(uom),
+        // Sizes are optional per product, so nothing has to be declared here.
+        variant_attributes: ["size"] as AttrKey[],
+        default_sellable_units: sellableFor(uom),
         duty_rate_pct: duty ? parseFloat(duty) : 0,
       });
       toast.success("Category created");
@@ -206,75 +241,67 @@ function CategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New Category</DialogTitle>
-          <DialogDescription>e.g. Shampoo, Toothpaste, Snacks.</DialogDescription>
+          <DialogTitle>New kind of product</DialogTitle>
+          <DialogDescription>e.g. Bedding, Shampoo, Snacks.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Label>What kind of thing is it? *</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Bedding" />
           </div>
 
+          {/* THE ONE QUESTION. It decides the unit word, the cost basis and how
+              every screen in the app will name this thing. Asked in the words a
+              shopkeeper uses, because "Unit of Measure" is not one of them. */}
           <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[60px]" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Unit of Measure *</Label>
-              <Select value={uom} onValueChange={(v) => v && setUom(v as UnitUom)}>
-                <SelectTrigger><SelectValue>{uom}</SelectValue></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pcs">pcs (pieces)</SelectItem>
-                  <SelectItem value="ml">ml (millilitres)</SelectItem>
-                  <SelectItem value="g">g (grams)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Cost Basis *</Label>
-              <Select value={basis} onValueChange={(v) => v && setBasis(v as CostBasis)}>
-                <SelectTrigger><SelectValue>{basis}</SelectValue></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="piece">Per piece</SelectItem>
-                  <SelectItem value="per_100ml">Per 100ml</SelectItem>
-                  <SelectItem value="per_100g">Per 100g</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Customs Duty %</Label>
-            <Input type="number" step="0.01" min="0" placeholder="0" value={duty} onChange={(e) => setDuty(e.target.value)} />
-            <p className="ios-subhead text-muted-foreground">
-              e.g. Tobacco is 200% in the Maldives. Every brand and pack size in this category inherits this rate automatically. Leave at 0 if this category has no duty.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Variant Attributes</Label>
-            <p className="ios-subhead text-muted-foreground">
-              These fields will appear when adding a variant in this category.
-            </p>
-            <div className="grid grid-cols-2 gap-1">
-              {ATTR_OPTIONS.map(({ key, label }) => (
+            <Label>What do you call ONE of them? *</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {UNIT_WORDS.map(({ uom: u, word, hint }) => (
                 <button
-                  key={key}
+                  key={u}
                   type="button"
-                  onClick={() => toggleAttr(key)}
-                  className={`text-left text-xs rounded-lg px-3 py-2 border transition ${
-                    attrs.has(key)
-                      ? "bg-primary/15 border-primary/30 text-foreground"
-                      : "bg-card/40 border-border text-muted-foreground hover:bg-secondary"
-                  }`}
+                  onClick={() => setUom(u)}
+                  aria-pressed={uom === u}
+                  className="text-left rounded-xl px-3 py-2 border transition"
+                  style={{
+                    background: uom === u ? "var(--snm-brand)" : "var(--glass-bg-1)",
+                    borderColor: uom === u ? "var(--snm-brand)" : "var(--glass-border)",
+                    // Unselected pills carry a CHOICE, so they are content and
+                    // get real foreground — never muted-on-transparent.
+                    color: uom === u ? "var(--snm-brand-on)" : "var(--foreground)",
+                  }}
                 >
-                  {label}
+                  <span className="ios-subhead font-semibold block">{word}</span>
+                  <span className="ios-footnote block" style={{ opacity: 0.7 }}>{hint}</span>
                 </button>
               ))}
             </div>
+            <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+              Stock and prices will read “3 {UNIT_WORDS.find((x) => x.uom === uom)?.word.toLowerCase()}s”
+              everywhere in the app.
+            </p>
           </div>
+
+          {/* Duty matters for tobacco and almost nothing else, so it is out of
+              the way until asked for. It is not a decision most kinds need. */}
+          {!showDuty ? (
+            <button
+              type="button"
+              onClick={() => setShowDuty(true)}
+              className="ios-subhead underline"
+              style={{ color: "var(--foreground)", opacity: 0.75 }}
+            >
+              Does it pay customs duty?
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <Label>Customs duty %</Label>
+              <Input type="number" step="0.01" min="0" placeholder="0" value={duty} onChange={(e) => setDuty(e.target.value)} />
+              <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                Tobacco is 200% in the Maldives. Everything in this kind inherits the rate. Leave blank for none.
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

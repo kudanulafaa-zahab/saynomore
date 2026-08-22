@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same twenty-one audits he can run locally (`npm run audit:ui`):
+# This runs the same twenty-two audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   journey   drives a real sale on phone, tablet and desktop, and asserts the
@@ -26,6 +26,8 @@ name: UI checks
 #   newsku    a product with no carton can be created, even after a failed try
 #   range     one trip through New SKU makes a whole size range — three sizes
 #             under ONE model, which the second size used to make impossible
+#   ikea      a whole new KIND of product, set up from nothing on a phone: no
+#             jargon, no pack size for something sold one at a time
 #   card      the Product Card: every figure on it reconciles to the ledger
 #   sellnew   a product you own but never received can be stocked mid-sale —
 #             and still cannot be sold from nothing
@@ -51,7 +53,7 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All twenty-one are proven to fail when the bug they guard is reintroduced; that
+# All twenty-two are proven to fail when the bug they guard is reintroduced; that
 # was checked by putting each one back deliberately. The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
@@ -163,6 +165,9 @@ jobs:
 
       - name: Size range — one trip through New SKU makes a whole size range
         run: npm run audit:range
+
+      - name: Add IKEA — a whole new kind of product, set up from nothing
+        run: npm run audit:ikea
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card
