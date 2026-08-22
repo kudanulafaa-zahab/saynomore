@@ -202,3 +202,44 @@ export function marginAtPrice(cost: number, price: number): number | null {
   if (!(price > 0) || !(cost >= 0)) return null;
   return (1 - cost / price) * 100;
 }
+
+/** The unit words a kind of product can be counted in, in the language a
+ *  shopkeeper uses — and everything that follows from the choice.
+ *
+ *  ONE list, because there are two places that create a category: the New
+ *  Category dialog and the "+ New" button inside the New SKU form. The second
+ *  one used to hardcode `unit_uom: "pcs"` with NO variant attributes, so a
+ *  category created there was always called a "pack" and could never show a
+ *  size field — which is precisely the trap Ali would have hit adding Bedding
+ *  from the screen he was already on.
+ *
+ *  Every `uom` here is one containerLabel() knows, which is the twin of
+ *  Postgres unit_noun(), so a category can never be created with a unit the
+ *  rest of the app cannot say. */
+export const UNIT_WORDS: { uom: UnitUom; word: string; hint: string }[] = [
+  { uom: "pcs",    word: "Pack",   hint: "nappies, wipes" },
+  { uom: "set",    word: "Set",    hint: "bedding, cutlery" },
+  { uom: "bottle", word: "Bottle", hint: "cleaner, drinks" },
+  { uom: "tub",    word: "Tub",    hint: "body butter" },
+  { uom: "jar",    word: "Jar",    hint: "jam, cream" },
+  { uom: "tube",   word: "Tube",   hint: "toothpaste" },
+  { uom: "bar",    word: "Bar",    hint: "soap, chocolate" },
+  { uom: "sachet", word: "Sachet", hint: "single-use" },
+  { uom: "unit",   word: "Item",   hint: "anything else" },
+  { uom: "ml",     word: "Liquid", hint: "priced per 100ml" },
+  { uom: "g",      word: "Powder", hint: "priced per 100g" },
+];
+
+/** Cost basis follows from the unit word — it is not a separate decision, and
+ *  asking twice only invited the pair to disagree. */
+export function costBasisFor(uom: UnitUom): "piece" | "per_100ml" | "per_100g" {
+  return uom === "ml" ? "per_100ml" : uom === "g" ? "per_100g" : "piece";
+}
+
+/** So does how it is sold. Only loose pieces, a liquid or a powder arrive in
+ *  packs and cartons; a set, a tub, a bottle or a bar is bought and sold one at
+ *  a time. This is what stops the New SKU form demanding a pack size that does
+ *  not exist. */
+export function sellableUnitsFor(uom: UnitUom): ("piece" | "pack" | "carton")[] {
+  return uom === "pcs" || uom === "ml" || uom === "g" ? ["pack", "carton"] : ["piece"];
+}

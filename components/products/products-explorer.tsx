@@ -25,7 +25,7 @@ import {
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
   type SkuFullRow, type AttrKey, type SellUnit,
 } from "@/lib/queries/products";
-import { containerLabel, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, UNIT_WORDS, costBasisFor, sellableUnitsFor, type UnitUom } from "@/lib/trade-units";
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
 } from "./edit-dialogs";
@@ -1237,12 +1237,21 @@ function Combobox({
                   {o.label}
                 </button>
                 {onDeleteOption && (
+                  /* A row action at the row's edge is the right place for this,
+                     but it was ~16px wide against a 44pt standard — small enough
+                     to catch with a thumb aimed at the row. Sized properly and
+                     labelled, so a screen reader and a fingertip both find the
+                     right thing. It stays (unlike the category pill's) because
+                     this is the only way to remove a model. */
                   <button
                     onClick={(e) => { e.stopPropagation(); onDeleteOption(o.id, o.label); }}
                     title={`Delete ${o.label}`}
+                    aria-label={`Delete ${o.label}`}
                     style={{
                       background: "none", border: "none", cursor: "pointer",
-                      padding: "0 12px 0 4px", color: "var(--muted-foreground)",
+                      width: 44, height: 44, display: "flex",
+                      alignItems: "center", justifyContent: "center",
+                      color: "var(--muted-foreground)",
                       fontSize: 15, lineHeight: 1, flexShrink: 0,
                     }}
                   >
@@ -1297,18 +1306,17 @@ function attrsToDisplayName(attrs: Record<string, string>, schema: AttrKey[]): s
 
 /* ── CategoryPills — select existing + inline create + delete non-system ── */
 function CategoryPills({
-  categories, selectedId, onSelect, onCreated, onDeleted,
+  categories, selectedId, onSelect, onCreated,
 }: {
   categories: CategoryRow[];
   selectedId: string;
   onSelect: (id: string) => void;
   onCreated: (cat: CategoryRow) => void;
-  onDeleted?: (id: string) => void;
 }) {
   const [adding, setAdding]   = useState(false);
   const [name, setName]       = useState("");
+  const [uom, setUom]         = useState<UnitUom>("pcs");
   const [saving, setSaving]   = useState(false);
-  const [confirmCat, setConfirmCat] = useState<{ id: string; name: string } | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (adding) setTimeout(() => inputRef.current?.focus(), 50); }, [adding]);
@@ -1318,21 +1326,28 @@ function CategoryPills({
     if (!n) return;
     setSaving(true);
     try {
+      // THE SAME ANSWER THE FULL DIALOG DERIVES, from the same one place.
+      //
+      // This used to hardcode `unit_uom: "pcs"`, `cost_basis: "piece"` and —
+      // worst of all — `variant_attributes: []`. A kind of product created from
+      // this button was therefore always called a "pack" and could NEVER show a
+      // size field, so the very next step of the form was missing the box the
+      // product needed. Adding "Bedding" from the screen he was already on would
+      // have produced something that could not hold Single, Queen and King.
       const created = await createCategory({
         name: n,
         description: null,
-        unit_uom: "pcs",
-        cost_basis: "piece",
-        variant_attributes: [],
+        unit_uom: uom,
+        cost_basis: costBasisFor(uom),
+        // Sizes are optional per product, so declaring 'size' costs nothing and
+        // its absence costs the whole feature.
+        variant_attributes: ["size"],
+        default_sellable_units: sellableUnitsFor(uom),
       }) as CategoryRow;
       onCreated(created);
-      setName(""); setAdding(false);
+      setName(""); setUom("pcs"); setAdding(false);
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
-  }
-
-  function remove(id: string, catName: string) {
-    setConfirmCat({ id, name: catName });
   }
 
   const pill: React.CSSProperties = {
@@ -1360,21 +1375,18 @@ function CategoryPills({
             >
               {c.name}
             </button>
-            {/* Delete only non-system categories */}
-            {!c.is_system && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); remove(c.id, c.name); }}
-                title="Delete category"
-                style={{
-                  background: "none", border: "none", cursor: "pointer", padding: "0 2px",
-                  color: active ? "rgba(255,255,255,0.7)" : "var(--muted-foreground)",
-                  lineHeight: 1, fontSize: 13,
-                }}
-              >
-                ×
-              </button>
-            )}
+            {/* NO DELETE HERE, DELIBERATELY.
+                There used to be a "×" inside this pill: a 13px destructive
+                control sitting beside the label, in a picker, on a phone, where
+                this app's own standard is a 44pt touch target. Ali's screenshot
+                of this screen shows three of them — "Dishwashing ×",
+                "Tobacco ×", "Bodybutter ×" — one slightly-off tap away from
+                being asked to delete a whole kind of product while trying to
+                choose one.
+                Nothing is lost by removing it. Categories are deleted on the
+                Categories tab, from a full-size button with a confirm sheet,
+                which is where managing them belongs. This form is for CHOOSING.
+                A creation screen should not be able to destroy anything. */}
           </span>
         );
       })}
@@ -1401,11 +1413,37 @@ function CategoryPills({
               opacity: !name.trim() ? 0.5 : 1 }}>
             {saving ? "…" : "Add"}
           </button>
-          <button type="button" onClick={() => { setAdding(false); setName(""); }}
+          <button type="button" onClick={() => { setAdding(false); setName(""); setUom("pcs"); }}
             style={{ height: 26, padding: "0 8px", borderRadius: 999, fontSize: 11,
               background: "transparent", color: "var(--muted-foreground)", border: "0.5px solid var(--glass-border-lo)", cursor: "pointer" }}>
             Cancel
           </button>
+          {/* The same one question the full New Category dialog asks, because a
+              kind of product created here is no less real than one created
+              there. Without it this button silently made everything a "pack". */}
+          <span style={{ display: "flex", flexWrap: "wrap", gap: 4, width: "100%", marginTop: 4 }}>
+            <span className="ios-footnote" style={{ width: "100%", color: "var(--foreground)", opacity: 0.75 }}>
+              What do you call one of them?
+            </span>
+            {UNIT_WORDS.map(({ uom: u, word }) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setUom(u)}
+                aria-pressed={uom === u}
+                style={{
+                  height: 26, padding: "0 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+                  border: "1px solid",
+                  background:  uom === u ? "var(--snm-brand)" : "transparent",
+                  borderColor: uom === u ? "var(--snm-brand)" : "var(--glass-border)",
+                  color:       uom === u ? "var(--snm-brand-on)" : "var(--foreground)",
+                  cursor: "pointer",
+                }}
+              >
+                {word}
+              </button>
+            ))}
+          </span>
         </span>
       ) : (
         <button
@@ -1418,23 +1456,6 @@ function CategoryPills({
         </button>
       )}
 
-      <ConfirmSheet
-        open={confirmCat !== null}
-        onClose={() => setConfirmCat(null)}
-        title="Delete category?"
-        message={confirmCat ? `"${confirmCat.name}" will be permanently deleted.` : ""}
-        confirmLabel="Delete"
-        onConfirm={async () => {
-          if (!confirmCat) return;
-          try {
-            await deleteCategory(confirmCat.id);
-            haptic("success");
-            if (selectedId === confirmCat.id) onSelect("");
-            onDeleted?.(confirmCat.id);
-            setConfirmCat(null);
-          } catch (e) { haptic("error"); toast.error((e as Error).message); }
-        }}
-      />
     </div>
   );
 }
@@ -1868,11 +1889,6 @@ function NewSkuWizard({
                   setLocalCategories((prev) => [...prev, newCat]);
                   setCategoryId(newCat.id);
                   setVariantAttrs({});
-                }}
-                onDeleted={(id) => {
-                  setLocalCategories((prev) => prev.filter((c) => c.id !== id));
-                  setDeletedCategoryIds((prev) => new Set([...prev, id]));
-                  if (categoryId === id) { setCategoryId(""); setVariantAttrs({}); }
                 }}
               />
             </div>

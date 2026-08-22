@@ -27,7 +27,7 @@ import {
   type CostBasis,
   type SellUnit,
 } from "@/lib/queries/products";
-import { containerLabel } from "@/lib/trade-units";
+import { containerLabel, UNIT_WORDS, costBasisFor, sellableUnitsFor } from "@/lib/trade-units";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { useOnMount } from "@/lib/use-on-mount";
 
@@ -169,34 +169,8 @@ export function CategoriesManager() {
  *
  *  Every word here is one `containerLabel`/`unit_noun` already knows, so a
  *  category can never be created with a unit the rest of the app cannot say. */
-const UNIT_WORDS: { uom: UnitUom; word: string; hint: string }[] = [
-  { uom: "pcs",    word: "Pack",   hint: "nappies, wipes" },
-  { uom: "set",    word: "Set",    hint: "bedding, cutlery" },
-  { uom: "bottle", word: "Bottle", hint: "cleaner, drinks" },
-  { uom: "tub",    word: "Tub",    hint: "body butter" },
-  { uom: "jar",    word: "Jar",    hint: "jam, cream" },
-  { uom: "tube",   word: "Tube",   hint: "toothpaste" },
-  { uom: "bar",    word: "Bar",    hint: "soap, chocolate" },
-  { uom: "sachet", word: "Sachet", hint: "single-use" },
-  { uom: "unit",   word: "Item",   hint: "anything else" },
-  { uom: "ml",     word: "Liquid", hint: "priced per 100ml" },
-  { uom: "g",      word: "Powder", hint: "priced per 100g" },
-];
 
-/** Cost basis follows from the unit word — it is not a separate decision. */
-function basisFor(uom: UnitUom): CostBasis {
-  return uom === "ml" ? "per_100ml" : uom === "g" ? "per_100g" : "piece";
-}
 
-/** So does how it is sold. Only a "pack" of loose pieces, a liquid or a powder
- *  arrives in packs and cartons; a set, a tub, a bottle or a bar is bought and
- *  sold one at a time. Getting this right here is what stops the New SKU form
- *  asking for a pack size that does not exist. */
-function sellableFor(uom: UnitUom): SellUnit[] {
-  return uom === "pcs" || uom === "ml" || uom === "g"
-    ? ["pack", "carton"]
-    : ["piece"];
-}
 
 function CategoryDialog({
   open, onOpenChange, onSaved,
@@ -221,10 +195,10 @@ function CategoryDialog({
         name: name.trim(),
         description: null,
         unit_uom: uom,
-        cost_basis: basisFor(uom),
+        cost_basis: costBasisFor(uom),
         // Sizes are optional per product, so nothing has to be declared here.
         variant_attributes: ["size"] as AttrKey[],
-        default_sellable_units: sellableFor(uom),
+        default_sellable_units: sellableUnitsFor(uom),
         duty_rate_pct: duty ? parseFloat(duty) : 0,
       });
       toast.success("Category created");

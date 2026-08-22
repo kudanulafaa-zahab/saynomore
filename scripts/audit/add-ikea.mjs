@@ -38,6 +38,7 @@ const scalar = (sql) => execFileSync("psql", [DB, "-tAc", sql], { encoding: "utf
 
 const BRAND = "IkeaAudit";
 const CAT   = "Audit Bedding";
+const CAT2  = "Audit Inline Bedding";
 const MODEL = "Blavinda";
 
 function wipe() {
@@ -48,7 +49,7 @@ function wipe() {
        select pm.id from product_models pm join brands b on b.id=pm.brand_id where b.name='${BRAND}');`);
   q(`delete from product_models where brand_id in (select id from brands where name='${BRAND}');`);
   q(`delete from brands where name='${BRAND}';`);
-  q(`delete from product_categories where name='${CAT}';`);
+  q(`delete from product_categories where name in ('${CAT}', '${CAT2}');`);
 }
 wipe();
 
@@ -131,6 +132,41 @@ try {
     "nothing invisible was still required — it saved without a pack size");
   list.ok(!/duplicate key value/i.test(after), "no duplicate-key error");
   list.is(page.errors.length, 0, `no page errors (${page.errors.slice(0,2).join(" | ")})`);
+
+  // ── 3. The OTHER door, which used to lead somewhere worse ─────────────────
+  // There is a "+ New" beside the category pills, and it is the one Ali would
+  // reach for — he was already on this form. It used to hardcode unit "pcs"
+  // with NO variant attributes, so a kind of product created there was always
+  // called a "pack" and could never show a size box. Adding Bedding from here
+  // would have produced something that could not hold Single, Queen and King.
+  await page.goto(`${BASE}/products`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.getByRole("button", { name: "New SKU" }).first().click();
+  await page.waitForTimeout(1500);
+
+  const pills = await page.locator("body").innerText();
+  // A creation form must not be able to destroy anything. The pills used to
+  // carry a 13px "×" beside the label — Ali's screenshot shows three.
+  list.ok(!/Dishwashing\s*×|Tobacco\s*×|Bodybutter\s*×/.test(pills),
+    "the category pills carry no delete — a picker cannot destroy a kind of product");
+
+  await page.getByRole("button", { name: /^\+ New$/ }).first().click();
+  await page.waitForTimeout(700);
+  const inline = await page.locator("body").innerText();
+  list.ok(/what do you call one of them/i.test(inline),
+    "the inline '+ New' asks the SAME question the full dialog asks");
+  list.ok(/\bSet\b/.test(inline),
+    "and offers Set there too, not just in the other screen");
+
+  // THE OUTCOME, not just the wording. A check on the label alone still passes
+  // if the button ignores the answer and writes "pcs" anyway — which is exactly
+  // what it used to do.
+  await page.getByPlaceholder(/name/i).last().fill(CAT2);
+  await page.waitForTimeout(300);
+  await page.getByRole("button", { name: /^Set$/ }).last().click();
+  await page.waitForTimeout(300);
+  await page.getByRole("button", { name: /^Add$/ }).first().click();
+  await page.waitForTimeout(2500);
 } catch (e) {
   list.ok(false, `flow failed: ${String(e).split("\n")[0].slice(0,190)}`);
 }
@@ -148,12 +184,19 @@ const packcfg  = scalar(`select string_agg(distinct s.pcs_per_pack || 'x' || s.p
                           join product_models pm on pm.id=v.model_id
                           join brands b on b.id=pm.brand_id where b.name='${BRAND}';`);
 const noun     = scalar(`select unit_noun(unit_uom) from product_categories where name='${CAT}';`);
+// The inline "+ New" must produce the SAME thing the full dialog does.
+const inlineUom  = scalar(`select unit_uom from product_categories where name='${CAT2}';`);
+const inlineAttr = scalar(`select variant_attributes::text from product_categories where name='${CAT2}';`);
 
 list.is(models,   "1", "ONE pattern holds all three sizes");
 list.is(variants, "3", "three sizes under it");
 list.is(sizes, "King,Queen,Single", `each carrying its own size (${sizes})`);
 list.is(packcfg, "1x1", `sold one at a time, filled in for him (${packcfg})`);
 list.is(noun,  "set", "and the whole app calls one of them a set");
+list.is(inlineUom, "set",
+  `the inline "+ New" stores the unit he PICKED, not a hardcoded default (${inlineUom || "nothing"})`);
+list.ok(/size/.test(inlineAttr || ""),
+  `and gives it a size field, which it never used to (${inlineAttr || "nothing"})`);
 
 wipe();
 finish(list.report());

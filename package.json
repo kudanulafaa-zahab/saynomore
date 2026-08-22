@@ -33,7 +33,8 @@
     "audit:water": "node scripts/audit/on-the-water.mjs",
     "audit:followup": "node scripts/audit/followup-round.mjs",
     "audit:range": "node scripts/audit/size-range.mjs",
-    "audit:ikea": "node scripts/audit/add-ikea.mjs"
+    "audit:ikea": "node scripts/audit/add-ikea.mjs",
+    "ledger": "node scripts/check-ledger.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
