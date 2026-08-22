@@ -499,12 +499,20 @@ export function CostingSimulator() {
                         className="h-11 rounded-xl text-[13px] font-bold"
                         style={{
                           background: on ? "var(--foreground)" : "var(--glass-bg-2)",
-                          color:      on ? "var(--background)" : "var(--muted-foreground)",
+                          // An unselected pill that carries a CHOICE is content,
+                          // not a hint (CLAUDE.md). Muted here measured 3.95:1
+                          // on "20 ft" and, compounded with the opacity below,
+                          // 2.75:1 on the CBM figure — against a 4.5 floor, in
+                          // all four palettes. This screen had never been
+                          // measured; it was on neither audit's list.
+                          color:      on ? "var(--background)" : "var(--foreground)",
                           border:     on ? "none" : "0.5px solid var(--glass-border-lo)",
                         }}
                       >
                         {sz === "20ft" ? "20 ft" : "40 HQ"}
-                        <span className="ml-1.5 text-[11px] font-semibold opacity-70">
+                        {/* Hierarchy comes from opacity on a real foreground,
+                            never from muting an already-muted token. */}
+                        <span className="ml-1.5 text-[11px] font-semibold opacity-80">
                           {CONTAINER_CAPACITY_CBM[sz]} CBM
                         </span>
                       </button>

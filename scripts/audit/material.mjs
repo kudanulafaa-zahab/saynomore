@@ -17,27 +17,13 @@
 //
 // Usage:  node scripts/audit/material.mjs [--palette soft]
 
-import { launch, signedInPage, checklist, finish, BASE } from "./lib.mjs";
+import { launch, signedInPage, checklist, finish, BASE, appRoutes } from "./lib.mjs";
 
-const SCREENS = [
-  ["dashboard",  "/dashboard"],
-  ["sales",      "/sales"],
-  ["inventory",  "/inventory"],
-  ["financials", "/financials"],
-  ["products",   "/products"],
-  ["shipments",  "/shipments"],
-  ["settings",   "/settings"],
-  // Added 2026-08-10: the P&L's running costs are entered here, and the
-  // screen was never measured because it was not on this list.
-  ["expenses",   "/expenses"],
-  // Added 2026-08-10 with the jargon sweep: Reports was never measured either.
-  ["reports",    "/reports"],
-  ["reorder",    "/reorder"],
-  ["pricelists", "/pricelists"],
-  // Added 2026-08-12 with the new screen itself, so its cards wear the theme
-  // like every other surface. A new page is the easiest one to forget here.
-  ["product-card", "/product-card"],
-];
+// Every screen the app has, read from the routes on disk rather than listed
+// here — see appRoutes() in lib.mjs for why. Seven screens used to be on
+// neither this list nor the material audit's, and one of them was carrying the
+// exact defect the material audit exists to catch.
+const SCREENS = appRoutes();
 
 // Settings shows a preview swatch per palette; those are gradients ON PURPOSE —
 // they advertise the colour schemes. Excluded by selector, not by screen, so the
