@@ -32,7 +32,11 @@ export const DEVICES = {
 
 /** Palettes the audits sweep. Kept in step with lib/palette.ts by hand — a
  *  mismatch shows up immediately as an audit that skips a theme. */
-export const PALETTES = ["sunrise", "aurora", "ember", "soft"];
+// Adding a palette here is the whole registration for the automated gate:
+// audit:contrast measures every screen in every palette in both schemes, so a
+// new theme arrives already measured (5 x 2 x 20 = 200 cases) rather than
+// being checked by eye once and then never again.
+export const PALETTES = ["sunrise", "aurora", "ember", "soft", "lumen"];
 
 // ── Every screen in the app, read from the routes on disk ──────────────────
 //
