@@ -4,20 +4,14 @@
 // nothing financial. Liquid Glass palette: COGS/expenses read as neutral
 // (structural, not a status), net profit reads green/red by sign — color
 // still only carries real meaning, same law as everywhere else in the app.
+import { mvrShort } from "@/lib/money";
+
 interface MarginCompositionProps {
   revenueMvr: number;
   cogsMvr: number;      // revenue - grossProfit
   otherCostsMvr: number; // grossProfit - netProfit (marketing + opex)
   netProfitMvr: number;
   netMarginPct: number | null;
-}
-
-function mvrShort(n: number): string {
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1)}K`;
-  return `${sign}${abs.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
 // Describes an SVG arc for a donut segment given a start/end fraction (0-1).

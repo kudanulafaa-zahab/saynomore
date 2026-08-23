@@ -33,11 +33,12 @@ import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 import { containerLabel } from "@/lib/trade-units";
 import { CONTAINER_CAPACITY_CBM, type ContainerSizeHint } from "@/lib/queries/shipments";
+import { mvr, mvrUpTo } from "@/lib/money";
 
 /* ── Formatting ─────────────────────────────────────────────────────────── */
 
 const money = (n: number | null | undefined, dp = 2) =>
-  n == null ? "—" : n.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  n == null ? "—" : mvr(n, dp);
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(1)}%`);
 
 /* ── Local editing state ────────────────────────────────────────────────── */
@@ -935,7 +936,7 @@ function LineEditor({ row, onPatch }: { row: Row; onPatch: (id: string, p: Parti
 
           {qtyN > 0 && (
             <p className="snm-num text-[11.5px] -mt-1" style={{ color: "var(--muted-foreground)" }}>
-              = {(qtyN * row.packs_per_carton).toLocaleString()} {unitNoun}
+              = {mvrUpTo((qtyN * row.packs_per_carton), 3)} {unitNoun}
               {qtyN * row.packs_per_carton === 1 ? "" : "s"}
               {cbmN > 0 && ` · ${(qtyN * cbmN).toFixed(4)} CBM`}
             </p>
@@ -1003,7 +1004,7 @@ function LineEditor({ row, onPatch }: { row: Row; onPatch: (id: string, p: Parti
 
             {row.fobBasis === "pack" && fobN > 0 && row.packs_per_carton > 0 && (
               <p className="snm-num text-[11.5px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
-                = {(fobN * row.packs_per_carton).toLocaleString(undefined, { maximumFractionDigits: 2 })} {row.currency} / carton
+                = {mvrUpTo((fobN * row.packs_per_carton), 2)} {row.currency} / carton
               </p>
             )}
           </div>
@@ -1470,7 +1471,7 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
                 style={inputSty} />
               {qtyN > 0 && ppc > 0 && (
                 <Hint>
-                  = {(qtyN * ppc).toLocaleString()} {noun}s
+                  = {mvrUpTo((qtyN * ppc), 3)} {noun}s
                   {cbm > 0 && ` · ${(qtyN * cbm).toFixed(4)} CBM`}
                 </Hint>
               )}
@@ -1507,11 +1508,11 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
               <Hint>
                 {fobN > 0
                   ? <>
-                      {t.currency} {fobN.toLocaleString()} for one {t.fobBasis === "pack" ? noun : "carton"}
+                      {t.currency} {mvrUpTo(fobN, 3)} for one {t.fobBasis === "pack" ? noun : "carton"}
                       {t.fobBasis === "pack" && ppc > 0 &&
-                        ` = ${t.currency} ${fobPerCarton.toLocaleString(undefined, { maximumFractionDigits: 2 })} per carton`}
+                        ` = ${t.currency} ${mvrUpTo(fobPerCarton, 2)} per carton`}
                       {qtyN > 0 &&
-                        ` · ${t.currency} ${(fobPerCarton * qtyN).toLocaleString(undefined, { maximumFractionDigits: 0 })} for the whole order`}
+                        ` · ${t.currency} ${mvr((fobPerCarton * qtyN))} for the whole order`}
                     </>
                   : <>The price of ONE {t.fobBasis === "pack" ? noun : "carton"} — not the order total.</>}
               </Hint>
@@ -1608,8 +1609,7 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
                       style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
                       <span className="text-[12.5px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
                         {refPrice.competitor_name} charges MVR{" "}
-                        {(t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr)
-                          .toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        {mvrUpTo((t.sellUnit === "pack" ? refPrice.price_per_pack_mvr : refPrice.price_per_carton_mvr), 2)}{" "}
                         per {t.sellUnit === "pack" ? noun : "carton"}
                       </span>
                       <button type="button"
@@ -1634,7 +1634,7 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
                           TYPED IN
                         </span>
                         {t.manualCompetitorName.trim() || "Rival"} charges MVR{" "}
-                        {manualN.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        {mvrUpTo(manualN, 2)}{" "}
                         per {t.sellUnit === "pack" ? noun : "carton"}
                       </span>
                       <button type="button"

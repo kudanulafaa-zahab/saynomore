@@ -16,6 +16,7 @@ import type { TierPrice } from "@/lib/queries/sales";
 import { CARD } from "@/lib/surfaces";
 import { containerLabel, type UnitUom } from "@/lib/trade-units";
 import { type DraftLine } from "./cart/cart-math";
+import { mvr } from "@/lib/money";
 
 // second time cannot oversell what the first visit reserved.
 export type MixedCartonAdd = {
@@ -276,7 +277,7 @@ export function MixedCartonSheet({
                     {soldOut
                       ? (singleMode ? "No full carton in this warehouse" : "None in this warehouse")
                       : singleMode
-                        ? `${cap} carton${cap === 1 ? "" : "s"} available${price != null ? ` · MVR ${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton` : ""}`
+                        ? `${cap} carton${cap === 1 ? "" : "s"} available${price != null ? ` · MVR ${mvr(price)}/carton` : ""}`
                         : `${cap} ${noun}${cap === 1 ? "" : "s"} available`}
                   </p>
                   {/* Owned, just not here. Says which godown and how much, in
@@ -342,8 +343,8 @@ export function MixedCartonSheet({
             {mode === "single"
               ? (singleCartons === 0
                   ? "Add cartons"
-                  : `Add ${singleCartons} carton${singleCartons === 1 ? "" : "s"} · MVR ${singleTotalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}`)
-              : `Add ${targetCartons} mixed carton${targetCartons === 1 ? "" : "s"}${canAddMixed ? ` · MVR ${mixedTotalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ""}`}
+                  : `Add ${singleCartons} carton${singleCartons === 1 ? "" : "s"} · MVR ${mvr(singleTotalMvr)}`)
+              : `Add ${targetCartons} mixed carton${targetCartons === 1 ? "" : "s"}${canAddMixed ? ` · MVR ${mvr(mixedTotalMvr)}` : ""}`}
           </button>
         </div>
       </div>

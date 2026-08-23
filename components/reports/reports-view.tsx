@@ -330,7 +330,7 @@ export function ReportsView() {
         {/* Hero: Total Revenue — full width */}
         <SummaryCard
           label="Total Revenue"
-          value={`MVR ${totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+          value={`MVR ${mvr(totals.revenue)}`}
           sublabel="revenue for the period shown"
           icon={TrendingUp}
           tokenColor="var(--snm-success)"
@@ -361,8 +361,8 @@ export function ReportsView() {
           />
           <SummaryCard
             label="Total Campaign Spend"
-            value={totals.totalSpend > 0 ? `MVR ${totals.totalSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
-            sublabel={totals.totalSpend > 0 ? `MVR ${totals.periodSpend.toLocaleString(undefined, { maximumFractionDigits: 0 })} this period` : undefined}
+            value={totals.totalSpend > 0 ? `MVR ${mvr(totals.totalSpend)}` : "—"}
+            sublabel={totals.totalSpend > 0 ? `MVR ${mvr(totals.periodSpend)} this period` : undefined}
             icon={Megaphone}
             tokenColor="var(--snm-warning)"
           />
@@ -858,7 +858,7 @@ function AbcTable({ rows }: { rows: AbcRow[] }) {
                     </span>
                   </td>
                   <td className="px-3 py-3 text-right text-foreground font-medium snm-num">
-                    {r.total_revenue_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {mvr(r.total_revenue_mvr)}
                   </td>
                   <td className="px-3 py-3 text-right text-muted-foreground snm-num">{r.revenue_share_pct.toFixed(1)}%</td>
                   <td className="px-3 py-3 text-right text-muted-foreground snm-num">{r.cumulative_pct.toFixed(1)}%</td>
@@ -980,7 +980,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
               <div className="flex justify-between ios-subhead">
                 <span className="text-foreground">{CHANNEL_LABELS[channel] ?? channel}</span>
                 <span className="text-muted-foreground font-medium snm-num">
-                  MVR {total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  MVR {mvr(total)}
                   <span className="ios-subhead ml-1">({pct.toFixed(0)}%)</span>
                 </span>
               </div>
@@ -996,7 +996,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
         <div className="pt-2 border-t border-border flex justify-between ios-subhead">
           <span className="text-muted-foreground">Total</span>
           <span className="font-semibold text-foreground">
-            MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            MVR {mvr(grandTotal)}
           </span>
         </div>
       </div>
@@ -1027,7 +1027,7 @@ function MarketingSpendSection({ spend }: { spend: MarketingSpendRow[] }) {
                     {s.start_date}{s.end_date ? ` → ${s.end_date}` : ""}
                   </td>
                   <td className="px-3 py-3 text-right font-medium text-foreground">
-                    {s.amount_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {mvr(s.amount_mvr)}
                   </td>
                 </tr>
               ))}

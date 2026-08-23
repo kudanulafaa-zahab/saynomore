@@ -21,6 +21,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 import { sellUnitLabel, type SellUnit } from "@/lib/trade-units";
+import { mvr, mvr2, mvrUpTo } from "@/lib/money";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -186,7 +187,7 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, delivererId,
         notifyDelivered(
           {
             title: "Delivery completed",
-            body: `${customerName ?? "Walk-in"} · ${order.order_number} · MVR ${collected.toLocaleString()} collected.`,
+            body: `${customerName ?? "Walk-in"} · ${order.order_number} · MVR ${mvrUpTo(collected, 3)} collected.`,
             url: "/dispatch",
           },
           delivererId,
@@ -203,7 +204,7 @@ function CashCollectSheet({ open, order, customerName, expectedMvr, delivererId,
       <div style={{ marginBottom: 20, padding: "16px 20px", borderRadius: 16, background: "color-mix(in srgb, var(--snm-success) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
         <p style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Expected</p>
         <p className="snm-num" style={{ fontSize: 36, fontWeight: 800, color: "var(--snm-success)", letterSpacing: "-0.02em", lineHeight: 1 }}>
-          MVR {expectedMvr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          MVR {mvr2(expectedMvr)}
         </p>
       </div>
 
@@ -589,7 +590,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
               Cash to collect
             </span>
             <span className="snm-num" style={{ fontSize: 22, fontWeight: 800, color: "var(--snm-success)", letterSpacing: "-0.02em" }}>
-              MVR {totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              MVR {mvr(totalMvr)}
             </span>
           </div>
         )}
@@ -643,7 +644,7 @@ function DeliveryCard({ item, skus, onAction, onIssue, onCash }: {
                 }}
               >
                 <span className="snm-num" style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", lineHeight: 1 }}>
-                  MVR {dueMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  MVR {mvr(dueMvr)}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.9, display: "flex", alignItems: "center", gap: 4 }}>
                   <CheckCircle2 size={13} />

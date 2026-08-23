@@ -41,14 +41,11 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 
 /** Money, the way a trader reads it: thousands separated, two decimals only
  *  when they carry meaning. */
-function mvr(n: number | null | undefined, dp = 2): string {
-  if (n == null) return "—";
-  return Number(n).toLocaleString("en-MV", { minimumFractionDigits: dp, maximumFractionDigits: dp });
-}
-function num(n: number | null | undefined, dp = 0): string {
-  if (n == null) return "—";
-  return Number(n).toLocaleString("en-MV", { minimumFractionDigits: dp, maximumFractionDigits: dp });
-}
+import { mvr } from "@/lib/money";
+
+/** Same formatter, named for a COUNT rather than money — the two differ only
+ *  in their default decimals, which each call site passes anyway. */
+const num = mvr;
 function day(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" });

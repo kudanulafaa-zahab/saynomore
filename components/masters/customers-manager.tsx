@@ -24,6 +24,7 @@ import { switchDrafts } from "@/lib/wa";
 import { haptic } from "@/lib/haptics";
 import { useOnMount } from "@/lib/use-on-mount";
 import { MessageButton } from "@/components/customers/message-button";
+import { count, mvr, mvrUpTo } from "@/lib/money";
 
 const CHANNELS: { value: CustomerChannel; label: string }[] = [
   { value: "whatsapp",  label: "WhatsApp" },
@@ -279,7 +280,7 @@ export function CustomersManager() {
         >
           <p className="label-caps text-[12px] text-muted-foreground">Active Clients</p>
           <div className="flex items-baseline gap-2">
-            <span className="snm-num text-4xl font-semibold text-foreground">{rows.length.toLocaleString()}</span>
+            <span className="snm-num text-4xl font-semibold text-foreground">{count(rows.length)}</span>
           </div>
         </div>
         <div
@@ -449,12 +450,12 @@ export function CustomersManager() {
                 <div className="text-right shrink-0">
                   {segment === "owes" ? (
                     <p className="snm-num ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>
-                      MVR {Number(i.outstanding_mvr).toLocaleString("en-MV", { maximumFractionDigits: 0 })}
+                      MVR {mvr(Number(i.outstanding_mvr))}
                     </p>
                   ) : (
                     <>
                       <p className="snm-num ios-subhead font-semibold text-foreground">
-                        +MVR {Number(i.profit_mvr).toLocaleString("en-MV", { maximumFractionDigits: 0 })}
+                        +MVR {mvr(Number(i.profit_mvr))}
                       </p>
                       <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>profit</p>
                     </>
@@ -567,7 +568,7 @@ export function CustomersManager() {
                       return (
                         <p className="ios-footnote snm-num mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                           {i.orders_count} order{i.orders_count !== 1 ? "s" : ""} · +MVR{" "}
-                          {Number(i.profit_mvr).toLocaleString("en-MV", { maximumFractionDigits: 0 })} profit
+                          {mvr(Number(i.profit_mvr))} profit
                           {i.days_since_last != null ? ` · last ${i.days_since_last === 0 ? "today" : `${i.days_since_last}d ago`}` : ""}
                           {i.at_risk ? (i.risk_reason === "ran_out" ? " · probably run out" : " · overdue to order") : ""}
                         </p>

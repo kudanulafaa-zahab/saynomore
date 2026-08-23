@@ -14,9 +14,10 @@
 import { useMemo } from "react";
 import { Package } from "lucide-react";
 import type { ShipmentSummaryRow } from "@/lib/queries/shipments";
+import { mvr } from "@/lib/money";
 
-const int = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+const int = (n: number) => mvr(n);
+const money = (n: number) => mvr(n);
 
 export function ShipmentSummary({
   rows, confirmed,

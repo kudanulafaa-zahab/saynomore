@@ -39,7 +39,7 @@ import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/
 import { haptic } from "@/lib/haptics";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 import { CARD_ROUNDED as CARD } from "@/lib/surfaces";
-import { mvr, mvr2 } from "@/lib/money";
+import { count, mvr, mvr2, mvrUpTo } from "@/lib/money";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
@@ -477,7 +477,7 @@ export function ShipmentDetail({ id }: { id: string }) {
         // Was "{pieces_on_hand} pcs". This is the number Ali weighs before an
         // irreversible action; in cartons he can judge it at a glance, in
         // pieces he cannot (migration 0147 does the per-SKU conversion).
-        { label: "Stock still in the godown", value: `${impact.cartons_on_hand.toLocaleString()} cartons` },
+        { label: "Stock still in the godown", value: `${count(impact.cartons_on_hand)} cartons` },
         ...(impact.orders_affected > 0
           ? [
               { label: "Customer orders deleted", value: `${impact.orders_affected}` },
@@ -1088,7 +1088,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                   <div className="flex items-center justify-between px-4 pb-3 gap-4">
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
                       FOB <span className="font-semibold snm-num" style={{ color: "var(--foreground)", fontSize: 14 }}>
-                        {l.fob_per_carton.toLocaleString()} {l.fob_currency}/ctn
+                        {mvrUpTo(l.fob_per_carton, 3)} {l.fob_currency}/ctn
                       </span>
                     </p>
                     {estCarton != null && estCarton > 0 ? (
@@ -2123,7 +2123,7 @@ function LineDialog({
               </div>
               <p className="ios-subhead mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                 {fobEntryUnit === "pack" && sku && fobPerCarton && !isNaN(parseFloat(fobPerCarton))
-                  ? `= ${(parseFloat(fobPerCarton) * sku.packs_per_carton).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fobCurrency} / carton`
+                  ? `= ${mvrUpTo((parseFloat(fobPerCarton) * sku.packs_per_carton), 2)} ${fobCurrency} / carton`
                   : "Price on this shipment's invoice — can differ from previous shipments."}
               </p>
             </div>

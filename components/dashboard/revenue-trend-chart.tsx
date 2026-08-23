@@ -3,17 +3,13 @@
 // what the RPC already computed. Liquid Glass palette: the accent line/area
 // use --glass-accent (purple), everything else stays neutral so the accent
 // reads as the one thing worth looking at, not decoration everywhere.
+import { mvrShort } from "@/lib/money";
+
 interface DayPoint {
   day_label: string;
   day_date: string;
   revenue_mvr: number;
   orders_count: number;
-}
-
-function mvrShort(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 // Catmull-Rom → cubic-bezier smoothing so the trend line curves gently

@@ -20,6 +20,7 @@ import {
   containerLabel, sellUnitLabel, formatQtyInTradeUnits,
   type TradeUnitConfig, type UnitUom,
 } from "@/lib/trade-units";
+import { mvr, mvrUpTo } from "@/lib/money";
 
 /** Cart lines need a key that survives a merge, a split and a re-add, so it
  *  cannot be the SKU id. It lived at the bottom of sales-list.tsx next to the
@@ -141,14 +142,14 @@ export function lineStepUnit(l: DraftLine): { value: number; word: string } {
 export function linePriceText(l: DraftLine): string {
   const per = l.sku.mixed_carton_pieces;
   if (per && per > 0 && l.is_mixed_carton_fill) {
-    return `MVR ${(l.unit_price_mvr * per).toLocaleString(undefined, { maximumFractionDigits: 0 })}/carton`;
+    return `MVR ${mvr(l.unit_price_mvr * per)}/carton`;
   }
   // Two decimals, never three. A joined line carries a BLENDED rate — a carton
   // at MVR 300 a pack plus loose packs at MVR 305 averages 301.6666… — and
   // `toLocaleString()` with no options prints "MVR 301.667/pack", which is not
   // a figure anyone quotes or pays. The line total is exact to the rufiyaa;
   // this is the per-unit rate it works out at.
-  return `MVR ${l.unit_price_mvr.toLocaleString(undefined, { maximumFractionDigits: 2 })}/${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
+  return `MVR ${mvrUpTo(l.unit_price_mvr, 2)}/${sellUnitLabel(l.uom, tradeCfg(l.sku))}`;
 }
 
 // ── The cart ─────────────────────────────────────────────────────────────────

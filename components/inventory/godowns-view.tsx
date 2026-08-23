@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { mvtInstant } from "@/lib/mvt-date";
-import { mvrShort } from "@/lib/money";
+import { mvrShort, mvrUpTo } from "@/lib/money";
 
 /* ── Helpers ── */
 
@@ -265,7 +265,7 @@ function GodownCard({
           </div>
           {hasStock && (
             <div className="text-right shrink-0 ml-2">
-              <p className="text-[14px] font-bold text-foreground snm-num">{totalCartons.toLocaleString()} ctn</p>
+              <p className="text-[14px] font-bold text-foreground snm-num">{mvrUpTo(totalCartons, 3)} ctn</p>
               <p className="ios-subhead snm-num" style={{ color: "var(--muted-foreground)" }}>MVR {fmtMvr(totalValue)}</p>
             </div>
           )}

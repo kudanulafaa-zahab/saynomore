@@ -15,6 +15,7 @@ import { SwipeActions, type SwipeAction } from "@/components/ui/swipe-actions";
 import { mvtDayKey, mvtInstant, mvtToday, mvtYesterday } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
 import { NewSaleSheet } from "./new-sale-sheet";
+import { mvr, mvrUpTo } from "@/lib/money";
 
 // ── Styling constants ─────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ const OrderRow = memo(function OrderRow({ order: o }: { order: SalesOrderRow }) 
             // country code or it silently opens an empty chat.
             const intl = digits.length <= 7 ? `960${digits}` : digits;
             const msg = isOwed
-              ? `Hello${custName ? ` ${custName}` : ""}, about order ${o.order_number} — MVR ${owed.toLocaleString(undefined, { maximumFractionDigits: 2 })} is still outstanding.`
+              ? `Hello${custName ? ` ${custName}` : ""}, about order ${o.order_number} — MVR ${mvrUpTo(owed, 2)} is still outstanding.`
               : `Hello${custName ? ` ${custName}` : ""}, about your order ${o.order_number}.`;
             window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
           },
@@ -121,7 +122,7 @@ const OrderRow = memo(function OrderRow({ order: o }: { order: SalesOrderRow }) 
           </p>
           {total > 0 && (
             <p className="text-[16px] font-bold text-foreground snm-num shrink-0">
-              {total >= 10000 ? `${(total / 1000).toFixed(1)}K` : total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              {total >= 10000 ? `${(total / 1000).toFixed(1)}K` : mvr(total)}
               <span className="text-[11px] font-semibold ml-0.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
             </p>
           )}
@@ -157,7 +158,7 @@ const OrderRow = memo(function OrderRow({ order: o }: { order: SalesOrderRow }) 
           {isOwed && (
             <span className="text-[10px] uppercase tracking-wider font-bold rounded-full px-2 py-0.5 shrink-0 snm-num"
               style={{ background: "color-mix(in srgb, var(--snm-error) 15%, transparent)", color: "var(--snm-error)" }}>
-              Owes {owed.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              Owes {mvr(owed)}
             </span>
           )}
         </div>

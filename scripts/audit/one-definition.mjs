@@ -111,43 +111,48 @@ const list = checklist("One concept, defined once");
 // whatever the viewer's phone is set to.
 //
 // They all delegate to lib/money.ts now. This stops the twenty-fourth.
-// Matched by taking each declaration's OWN body rather than by letting a regex
-// run on for a few lines: the first version of this check spanned from a
-// delegating `const fmt0 = mvr;` to an unrelated inline toLocaleString six
-// lines below it and reported a false positive. A gate that cries wolf gets
-// switched off, so it reads the balanced braces.
-function bodyOf(src, from) {
-  const at = (needle) => { const i = src.indexOf(needle, from); return i === -1 ? Infinity : i; };
-  const open = at("{"), semi = at(";");
-  // A SEMICOLON FIRST means the declaration ends there and has no block at all:
-  // `const fmt0 = mvr;` is an alias, and the fix rather than the fault. Missing
-  // this was the second false positive — it ran the brace matcher on from the
-  // alias and swallowed half the file.
-  if (semi < open) return src.slice(from, semi);
-  if (open === Infinity) return src.slice(from);
+// STATED AS AN INVARIANT OVER THE WHOLE FILE, not over each declaration.
+//
+// Two earlier shapes of this check both failed, and the reasons are worth
+// keeping. Looking only for helpers named `fmt*` walked straight past six more
+// called `mvr`, `mvrShort`, `num`, `int` and `money`. Widening it to ANY name
+// then flagged whole components, because a 900-line component's body contains
+// an inline call somewhere and brace-matching swallows all of it.
+//
+// The invariant that is actually true, now that every money call goes through
+// lib/money.ts, is simpler than either: OUTSIDE lib/, no toLocaleString with
+// NUMBER options exists at all — not in a helper, not inline. Date formatting
+// is untouched and legitimate, so an argument list carrying date options is
+// not money and is skipped.
+const DATE_OPTS = /\b(month|weekday|day|year|hour|minute|second|timeZone|dateStyle|timeStyle|era)\b/;
+const NUMBER_OPTS = /\b(minimumFractionDigits|maximumFractionDigits|minimumIntegerDigits|notation|currency)\b/;
+
+function argsOf(src, callIndex) {
+  const open = src.indexOf("(", callIndex);
   let depth = 0;
   for (let i = open; i < src.length; i++) {
-    if (src[i] === "{") depth++;
-    else if (src[i] === "}" && --depth === 0) return src.slice(from, i + 1);
+    if (src[i] === "(") depth++;
+    else if (src[i] === ")" && --depth === 0) return src.slice(open + 1, i);
   }
-  return src.slice(from);
+  return "";
 }
 
-const DECL_START = /(?:^|\n)\s*(?:export\s+)?(?:function|const)\s+(fmt[A-Za-z0-9]*)\s*[=(]/g;
 const offenders = [];
 for (const file of files) {
   if (file.startsWith("lib/")) continue;          // lib/money.ts is the one home
   const src = readFileSync(file, "utf8");
-  for (const m of src.matchAll(DECL_START)) {
-    if (/toLocaleString\s*\(\s*(?:undefined|["']en-[A-Z]{2}["'])\s*,/.test(bodyOf(src, m.index))) {
-      offenders.push(`${file}:${m[1]}`);
-    }
+  let at = -1;
+  while ((at = src.indexOf(".toLocaleString", at + 1)) !== -1) {
+    const args = argsOf(src, at + ".toLocaleString".length);
+    if (DATE_OPTS.test(args)) continue;           // a date, not money
+    if (!NUMBER_OPTS.test(args) && args.trim() !== "" && args.trim() !== "undefined") continue;
+    offenders.push(`${file}:${src.slice(0, at).split("\n").length}`);
   }
 }
 list.ok(offenders.length === 0,
   offenders.length
-    ? `${offenders.length} module(s) still declare their own money formatter: ${offenders.slice(0, 6).join(", ")}`
-    : "no module declares its own money formatter — every one delegates to lib/money.ts");
+    ? `${offenders.length} money toLocaleString call(s) outside lib/money.ts: ${offenders.slice(0, 6).join(", ")}`
+    : "money is formatted only in lib/money.ts — no number formatting anywhere else");
 
 // ── And that module behaves ───────────────────────────────────────────────
 // A missing value must read "—", never "0" and never "NaN". Postgres numerics
