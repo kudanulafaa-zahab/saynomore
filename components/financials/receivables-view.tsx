@@ -4,14 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ShieldCheck, Phone, Undo2 } from "lucide-react";
+import { mvr } from "@/lib/money";
 import {
   getReceivablesAging, getCustomerCredits,
   type ReceivableRow, type CustomerCreditRow,
 } from "@/lib/queries/intelligence";
 
-function fmt(n: number) {
-  return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmt = mvr;
 
 const BUCKET_STYLE: Record<ReceivableRow["bucket"], { label: string; color: string }> = {
   overdue: { label: "Over 60 days", color: "var(--snm-error)" },

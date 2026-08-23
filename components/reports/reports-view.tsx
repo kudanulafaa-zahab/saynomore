@@ -15,6 +15,7 @@ import { TopBrandsChart } from "./top-brands-chart";
 import { MarginDistributionChart } from "./margin-distribution-chart";
 import { TopContributorsChart } from "./top-contributors-chart";
 import { useOnMount } from "@/lib/use-on-mount";
+import { mvr } from "@/lib/money";
 
 // ── Date helpers ─────────────────────────────────────────────────────────
 
@@ -563,7 +564,7 @@ function SortTh({ label, sortKey, active, onSort }: {
 // are sums of already-audited per-SKU numbers (see lib/group-by-brand) — no
 // financial math happens here.
 
-const fmt0 = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+const fmt0 = mvr;
 
 // ── Profit by brand ───────────────────────────────────────────────────────
 // The "which product LINES make me the most money" glance. Rolls the per-SKU
@@ -747,7 +748,6 @@ function ContributionTable({ rows }: { rows: ContributionRow[] }) {
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((r) => {
-              const fmt0 = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
               return (
                 <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                   <td className="px-3 py-3">

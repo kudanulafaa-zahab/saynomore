@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { mvtInstant } from "@/lib/mvt-date";
+import { mvrShort } from "@/lib/money";
 
 /* ── Helpers ── */
 
@@ -25,11 +26,7 @@ function remPacks(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
   const rem = pcsPerCtn > 0 ? pcs % pcsPerCtn : pcs;
   return pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
 }
-function fmtMvr(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmtMvr = mvrShort;
 function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
   const ctns  = toCtns(pcs, pcsPerCtn);
   const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);

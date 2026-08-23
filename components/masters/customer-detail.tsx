@@ -11,11 +11,10 @@ import {
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
+import { mvr } from "@/lib/money";
 
 
-function fmt(n: number) {
-  return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmt = mvr;
 /** Quantities in the unit the product sells in — never loose pieces. */
 function qtyLabel(p: CustomerProduct) {
   if (p.pcs_per_carton > 0 && p.qty_pieces >= p.pcs_per_carton) {

@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getMorningBriefing, type MorningBriefing as Briefing } from "@/lib/queries/intelligence";
+import { mvr } from "@/lib/money";
 
-function fmt(n: number) {
-  return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmt = mvr;
 
 /** The daily briefing — yesterday's business in one readable paragraph plus
  *  the watch list. A dashboard should brief you, not just show tiles. */

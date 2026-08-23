@@ -18,16 +18,11 @@ import { MarginWatch } from "./margin-watch";
 import { ReceivablesView } from "./receivables-view";
 import { CashFlowView } from "./cash-flow-view";
 import { CARD } from "@/lib/surfaces";
+import { mvr, mvrShort } from "@/lib/money";
 
 
-function fmt(n: number, decimals = 0) {
-  return n.toLocaleString("en-MV", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-function fmtShort(n: number) {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000)     return (n / 1_000).toFixed(1) + "K";
-  return n.toFixed(0);
-}
+const fmt = mvr;
+const fmtShort = mvrShort;
 
 /* ─── COD Reconciliation ──────────────────────────────────────────────────── */
 
