@@ -57,7 +57,7 @@ import { supabase } from "@/lib/supabase";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { notifyAdmins } from "@/lib/push";
 import { mvtInstant } from "@/lib/mvt-date";
-import { mvr } from "@/lib/money";
+import { mvr, mvrUpTo } from "@/lib/money";
 
 /** Keeps the chosen selling unit on a tier the SKU is actually sold in.
  *  Switching from a diaper (pack + carton) to a carton-only Sosoft must not
@@ -378,7 +378,7 @@ export function SaleDetail({ id }: { id: string }) {
       // Money events reach the office like delivery events do.
       notifyAdmins({
         title: amt < 0 ? "Refund recorded" : "Payment received",
-        body: `MVR ${Math.abs(amt).toLocaleString()} ${payMethod} on ${order.order_number}`,
+        body: `MVR ${mvrUpTo(Math.abs(amt), 3)} ${payMethod} on ${order.order_number}`,
         url: `/sales`,
       }, "money");
       setPanel(null);
@@ -544,10 +544,10 @@ export function SaleDetail({ id }: { id: string }) {
       haptic("success");
       toast.success(
         res.settlement === "refund"
-          ? `Return recorded — MVR ${Number(res.refund_mvr).toLocaleString()} to refund.`
+          ? `Return recorded — MVR ${mvrUpTo(Number(res.refund_mvr), 3)} to refund.`
           : res.settlement === "replace"
           ? "Return recorded — a replacement has gone out of stock. Nothing changes on the bill."
-          : `Return recorded — MVR ${Number(res.refund_mvr).toLocaleString()} off what they owe.`,
+          : `Return recorded — MVR ${mvrUpTo(Number(res.refund_mvr), 3)} off what they owe.`,
       );
       setPanel(null); setRetSkuId(""); setRetQty(""); setRetNotes("");
       load();
@@ -1722,7 +1722,7 @@ function LineList({
                 {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : l.sku_id}
               </p>
               <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
-                {l.qty} {l.uom} · MVR {Number(l.unit_price_mvr).toLocaleString()}
+                {l.qty} {l.uom} · MVR {mvrUpTo(Number(l.unit_price_mvr), 3)}
               </p>
               {/* Silent for an ordinary line. Shown only when this one is
                   picked somewhere else, because that is the difference between
@@ -1735,7 +1735,7 @@ function LineList({
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
               <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600, marginRight: 4 }}>
-                MVR {Number(l.line_total_mvr).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                MVR {mvr(Number(l.line_total_mvr))}
               </span>
               {editable && (onEdit || onDelete) && (
                 <div style={{ display: "flex" }}>
@@ -2281,7 +2281,7 @@ function LineDialog({
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>Line total</span>
-              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700 }}>MVR {mvrUpTo(lineTotal, 2)}</span>
             </div>
           </div>
         )}

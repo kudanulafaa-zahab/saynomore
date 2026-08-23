@@ -41,6 +41,7 @@ import { receiveDirectStock } from "@/lib/queries/inventory";
 import { updateSku, type SkuFullRow } from "@/lib/queries/products";
 import { containerLabel, sellableTiers, type UnitUom, type SellUnit } from "@/lib/trade-units";
 import { haptic } from "@/lib/haptics";
+import { mvr2 } from "@/lib/money";
 
 const INPUT = "w-full h-12 rounded-xl px-4 ios-subhead";
 const INPUT_STYLE: React.CSSProperties = {
@@ -166,7 +167,7 @@ export function StockInSheet({
               becomes the cost basis of every future sale from this batch. */}
           {total != null && (
             <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
-              = MVR {total.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for all {qtyNum}
+              = MVR {mvr2(total)} for all {qtyNum}
             </p>
           )}
         </div>
@@ -180,7 +181,7 @@ export function StockInSheet({
             placeholder="380" className={INPUT} style={INPUT_STYLE} />
           {profitPer != null && (
             <p className="ios-footnote" style={{ color: "var(--snm-success)" }}>
-              You keep MVR {profitPer.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per {noun}
+              You keep MVR {mvr2(profitPer)} per {noun}
               {marginPct != null ? ` · ${marginPct.toFixed(1)}% margin` : ""}
             </p>
           )}
@@ -190,7 +191,7 @@ export function StockInSheet({
           <div className="rounded-xl px-4 py-3"
             style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)" }}>
             <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>
-              This price loses MVR {lossPer.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} on every {noun}
+              This price loses MVR {mvr2(lossPer)} on every {noun}
             </p>
             <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.8 }}>
               You are selling below what it cost you. Change the price, or continue if that is deliberate.

@@ -24,7 +24,7 @@ import { toPieces, type SaleUom } from "@/lib/queries/sales";
 import { sellableTiers, sellUnitLabel, type SellUnit, type UnitUom } from "@/lib/trade-units";
 import { mvtInstant } from "@/lib/mvt-date";
 import { useOnMount } from "@/lib/use-on-mount";
-import { mvr } from "@/lib/money";
+import { mvr, mvr2, mvrUpTo } from "@/lib/money";
 
 /* ── qty helpers (pieces → carton/pack, matches inventory-view) ── */
 function toCtns(pcs: number, pcsPerCtn: number) {
@@ -435,7 +435,7 @@ function ReceiveTab({
                 the cost basis of every future sale of this batch. */}
             {totalMvr != null && (
               <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.85 }}>
-                = MVR {totalMvr.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for {qtyNum} {unitWord.toLowerCase()}{qtyNum === 1 ? "" : "s"}
+                = MVR {mvr2(totalMvr)} for {qtyNum} {unitWord.toLowerCase()}{qtyNum === 1 ? "" : "s"}
               </p>
             )}
 
@@ -1102,7 +1102,7 @@ function WriteOffTab({
       loadHistory();
       setSkuId(""); setQty(""); setQ(""); setNotes(""); setConfirming(false);
       haptic("success");
-      toast.success(`Written off — MVR ${loss.toLocaleString(undefined, { maximumFractionDigits: 2 })} recorded as a loss.`);
+      toast.success(`Written off — MVR ${mvrUpTo(loss, 2)} recorded as a loss.`);
     } catch (e) {
       haptic("error");
       toast.error((e as Error).message);
@@ -1227,7 +1227,7 @@ function WriteOffTab({
                     </p>
                   </div>
                   <p className="snm-num ios-subhead font-semibold shrink-0" style={{ color: "var(--snm-error)" }}>
-                    −MVR {Number(w.cost_mvr).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    −MVR {mvrUpTo(Number(w.cost_mvr), 2)}
                   </p>
                 </div>
               );

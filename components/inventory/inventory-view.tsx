@@ -11,7 +11,7 @@ import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { mvtInstant } from "@/lib/mvt-date";
 import { costPerTradeUnit, containerLabel, type UnitUom } from "@/lib/trade-units";
-import { mvrShort } from "@/lib/money";
+import { count, mvrShort, mvrUpTo } from "@/lib/money";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
 type SortDir  = "desc" | "asc";
@@ -49,7 +49,7 @@ function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number, unitUom?: st
   // itself. "24 tubs", never "24 ctn".
   if (isSingleUnit(pcsPerPack, pcsPerCtn)) {
     const w = containerLabel(unitUom as UnitUom | null | undefined);
-    return pcs > 0 ? `${pcs.toLocaleString("en-MV")} ${w}${pcs === 1 ? "" : "s"}` : "0";
+    return pcs > 0 ? `${count(pcs)} ${w}${pcs === 1 ? "" : "s"}` : "0";
   }
   const ctns  = toCtns(pcs, pcsPerCtn);
   const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);
@@ -800,7 +800,7 @@ export function InventoryView() {
           full cards, per inventory-warehouse + mobile-UX review: only
           Value/Alerts/Overstock actually change what you do next. */}
       <p className="ios-subhead px-1" style={{ color: "var(--muted-foreground)" }}>
-        {stockList.length} SKU{stockList.length !== 1 ? "s" : ""} · {totalCartons.toLocaleString()} ctn · {activeBatches} active batch{activeBatches !== 1 ? "es" : ""}
+        {stockList.length} SKU{stockList.length !== 1 ? "s" : ""} · {count(totalCartons)} ctn · {activeBatches} active batch{activeBatches !== 1 ? "es" : ""}
       </p>
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="Inventory Value" value={`MVR ${fmtMvr(totalValue)}`} sub="at landed cost" />
@@ -975,7 +975,7 @@ export function InventoryView() {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                      {brandData.totalCartons.toLocaleString()}{" "}
+                      {count(brandData.totalCartons)}{" "}
                       {brandData.unitWord
                         ? `${brandData.unitWord}${brandData.totalCartons === 1 ? "" : "s"}`
                         : "ctn"}

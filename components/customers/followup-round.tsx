@@ -42,7 +42,7 @@ import {
   logFollowup, type FollowupCandidate, type FollowupResults,
 } from "@/lib/queries/followups";
 
-const mvr = (n: number) => Math.round(n).toLocaleString();
+import { mvr } from "@/lib/money";
 
 function reasonLine(c: FollowupCandidate): string {
   if (c.reason === "stranded") {

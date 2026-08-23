@@ -99,6 +99,34 @@ export function mvr2(n: Money): string {
   return mvr(n, 2);
 }
 
+/** Grouped, at MOST `max` decimals, trailing zeros dropped.
+ *
+ *  This exists because `mvr2` is not a drop-in for every two-decimal call.
+ *  `{ maximumFractionDigits: 2 }` with no minimum prints 1,234.5 — while
+ *  `mvr2` forces 1,234.50. Those are different text on Ali's screen, so a
+ *  find-and-replace across the inline calls would have silently changed real
+ *  figures. Counted before writing this: nine calls use max-2-no-minimum and
+ *  sixteen are a bare `toLocaleString()`, which is max 3 by definition.
+ *
+ *  Use it only to PRESERVE an existing display. For anything new, money is
+ *  either whole rufiyaa (`mvr`) or rufiyaa and laari (`mvr2`) — a price that
+ *  sometimes shows one decimal and sometimes two is a column that will not
+ *  line up. */
+export function mvrUpTo(n: Money, max: number): string {
+  const v = toNumber(n);
+  if (v === null) return NO_VALUE;
+  return v.toLocaleString(LOCALE, { maximumFractionDigits: max });
+}
+
+/** A COUNT, not money — cartons, pieces, customers, batches. Same grouping and
+ *  the same "—" for a missing value, but named for what it is so a reader is
+ *  not told that a carton count is rufiyaa. Grouped at up to 3 decimals because
+ *  that is what a bare toLocaleString() did at the call sites this replaces,
+ *  and a part-carton is a real thing this app displays. */
+export function count(n: Money): string {
+  return mvrUpTo(n, 3);
+}
+
 /** Abbreviated for a tile or a chart axis, where the full figure would not fit.
  *  Never use it where the exact number is the point — a price, an invoice line,
  *  anything Ali types against. */

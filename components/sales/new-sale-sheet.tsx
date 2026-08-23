@@ -53,6 +53,7 @@ import { CartLines } from "./cart/cart-lines";
 import { type DraftLine, packLabel, defaultUom, tradeCfg, cartShortfalls, nextCartLineKey } from "./cart/cart-math";
 import { GlassSelect, WarehouseSelect } from "./warehouse-select";
 import { MixedCartonSheet } from "./mixed-carton-sheet";
+import { mvr, mvrUpTo } from "@/lib/money";
 
 type PaymentMethod = "bank_transfer" | "cod";
 
@@ -695,7 +696,7 @@ export function NewSaleSheet({
       toast.success(
         `Added to ${selectedSku.brand_name} ${selectedSku.model_name} — now `
         + `${formatQtyInTradeUnits(pieces, tradeCfg(selectedSku))}, `
-        + `MVR ${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+        + `MVR ${mvr(total)}`,
       );
     } else {
       // Same confirmation as the carton sheet — every add says so, whatever the
@@ -1298,7 +1299,7 @@ export function NewSaleSheet({
                         <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1 }}>
                           <div className="flex items-baseline gap-1.5">
                             <span className="font-semibold" style={{ fontSize: 22, letterSpacing: "-0.02em", color: cartonPrice != null ? "var(--foreground)" : "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
-                              {cartonPrice != null ? cartonPrice.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "No GRN"}
+                              {cartonPrice != null ? mvr(cartonPrice) : "No GRN"}
                             </span>
                             {cartonPrice != null && <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>MVR / carton</span>}
                           </div>
@@ -1473,7 +1474,7 @@ export function NewSaleSheet({
                             <div className="min-w-0">
                               <div className="flex items-baseline gap-1.5 flex-wrap">
                                 <span className="font-semibold" style={{ fontSize: 22, letterSpacing: "-0.02em", color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
-                                  {hasPrice ? cardPrice!.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "No GRN"}
+                                  {hasPrice ? mvr(cardPrice!) : "No GRN"}
                                 </span>
                                 {hasPrice && <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>MVR / {cardUomLabel}</span>}
                                 {hasPrice && cardProvenance.source && (
@@ -1816,7 +1817,7 @@ export function NewSaleSheet({
                             sellableUnits: selectedSku.sellable_units,
                           })} in total
                       </span>
-                      <span className="text-[18px] font-bold text-foreground">MVR {lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                      <span className="text-[18px] font-bold text-foreground">MVR {mvrUpTo(lineTotal, 2)}</span>
                     </div>
                   )}
                   {insufficient && (
@@ -2188,7 +2189,7 @@ export function NewSaleSheet({
                     </p>
                     {/* --foreground, not muted: this is the reason to tap. */}
                     <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
-                      MVR {crossSell.price_mvr.toLocaleString()} a {crossSell.sell_unit}
+                      MVR {mvrUpTo(crossSell.price_mvr, 3)} a {crossSell.sell_unit}
                       {crossSell.buyers > 0 ? ` · ${crossSell.buyers} other customers buy it` : ""}
                       {` · ${crossSell.packs_on_hand} packs here`}
                     </p>
@@ -2231,7 +2232,7 @@ export function NewSaleSheet({
             <div className="rounded-2xl p-5" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
               <p className="text-[12px] uppercase tracking-widest mb-1" style={{ color: "var(--muted-foreground)" }}>Order Total</p>
               <p className="text-[36px] font-bold tracking-tight text-foreground leading-none mb-1 tabular-nums">
-                {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                {mvr(grandTotal)}
                 <span className="text-[16px] ml-1.5" style={{ color: "var(--muted-foreground)" }}>MVR</span>
               </p>
               <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>

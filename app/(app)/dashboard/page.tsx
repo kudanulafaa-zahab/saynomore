@@ -29,11 +29,7 @@ import { FollowupCard } from "@/components/customers/followup-round";
 import { RevenueTrendChart } from "@/components/dashboard/revenue-trend-chart";
 import { MarginCompositionChart } from "@/components/dashboard/margin-composition-chart";
 
-function mvr(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+import { mvrShort as mvr } from "@/lib/money";
 
 interface Metrics {
   revenue_today_mvr:           number;

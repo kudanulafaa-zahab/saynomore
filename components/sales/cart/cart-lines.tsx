@@ -11,6 +11,7 @@ import { Trash2 } from "lucide-react";
 import { formatMixedCartonQty, containerLabel } from "@/lib/trade-units";
 import { CARD } from "@/lib/surfaces";
 import { type DraftLine, groupCartLines, cartonShortfall, lineQtyText, linePriceText, lineStepUnit } from "./cart-math";
+import { mvr } from "@/lib/money";
 
 /** One item in the cart. Its own card with air around it — Ali, 2026-08-09:
  *  "Each product must have a line break so it's easier for me." Dense divided
@@ -58,7 +59,7 @@ export function CartItemRow({
           )}
         </div>
         <span className="ios-subhead font-bold snm-num shrink-0 text-foreground">
-          MVR {l.line_total_mvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          MVR {mvr(l.line_total_mvr)}
         </span>
       </div>
 
@@ -171,7 +172,7 @@ export function CartLines({
                 </p>
               </div>
               <span className="ios-subhead font-bold snm-num shrink-0 text-foreground">
-                MVR {g.totalMvr.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                MVR {mvr(g.totalMvr)}
               </span>
             </div>
 
@@ -213,7 +214,7 @@ export function CartLines({
       <div className="flex justify-between items-center px-3.5 py-3 rounded-2xl ios-subhead font-bold"
         style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
         <span style={{ color: "var(--muted-foreground)" }}>Total</span>
-        <span className="text-foreground snm-num">MVR {grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+        <span className="text-foreground snm-num">MVR {mvr(grandTotal)}</span>
       </div>
     </div>
   );
