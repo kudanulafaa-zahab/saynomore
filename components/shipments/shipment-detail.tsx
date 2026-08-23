@@ -39,6 +39,7 @@ import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/
 import { haptic } from "@/lib/haptics";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 import { CARD_ROUNDED as CARD } from "@/lib/surfaces";
+import { containerLabel, type UnitUom } from "@/lib/trade-units";
 import { count, mvr, mvr2, mvrUpTo } from "@/lib/money";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
@@ -1098,7 +1099,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                         </p>
                         {estPack != null && estPack > 0 && sku && sku.packs_per_carton > 1 && (
                           <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
-                            {fmt2(estPack)}/{sku.unit_uom === "ml" ? "bottle" : sku.unit_uom === "g" ? "pouch" : "pack"}
+                            {fmt2(estPack)}/{containerLabel(sku.unit_uom as UnitUom | null | undefined)}
                           </p>
                         )}
                       </div>

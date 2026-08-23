@@ -44,12 +44,16 @@ declare v_cat uuid; v_b uuid; v_m uuid;
 begin
   delete from skus where internal_code = 'BODY-DEWB-1x1';
 
+  -- 'pack', not 'piece'. This fixture used to write the very defect 0200/0201
+  -- fixed: a piece-only tub is a product assert_whole_mixed_cartons refuses to
+  -- sell, so the audit was setting up something Ali could create and never sell.
+  -- 0201 now refuses a piece-only default outright.
   select id into v_cat from product_categories where name = 'Bodybutter';
   if v_cat is null then
     insert into product_categories (name, unit_uom, cost_basis, default_sellable_units)
-    values ('Bodybutter', 'tub', 'piece', array['piece']) returning id into v_cat;
+    values ('Bodybutter', 'tub', 'piece', array['pack']) returning id into v_cat;
   else
-    update product_categories set unit_uom = 'tub', default_sellable_units = array['piece'] where id = v_cat;
+    update product_categories set unit_uom = 'tub', default_sellable_units = array['pack'] where id = v_cat;
   end if;
 
   -- The orphans, exactly as a failed attempt leaves them.

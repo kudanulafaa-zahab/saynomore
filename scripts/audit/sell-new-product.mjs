@@ -50,7 +50,7 @@ begin
   select id into v_cat from product_categories where name = 'Bodybutter';
   if v_cat is null then
     insert into product_categories (name, unit_uom, cost_basis, default_sellable_units)
-    values ('Bodybutter', 'tub', 'piece', array['piece']) returning id into v_cat;
+    values ('Bodybutter', 'tub', 'piece', array['pack']) returning id into v_cat;
   end if;
 
   select id into v_b from brands where lower(name) = 'auditbrand';
@@ -65,7 +65,7 @@ begin
   end if;
 
   insert into skus (variant_id, internal_code, pcs_per_pack, packs_per_carton, sellable_units)
-  values (v_v, 'AUDIT-NEVER-1x1', 1, 1, array['piece']);
+  values (v_v, 'AUDIT-NEVER-1x1', 1, 1, array['pack']);
 end $$;`);
 
 const skuId = q(`select id from skus where internal_code = 'AUDIT-NEVER-1x1';`);
@@ -161,8 +161,21 @@ try {
   const cost = q(`select round(landed_per_piece_mvr, 2) from inventory_batches where sku_id = '${skuId}'::uuid limit 1;`);
   list.is(Number(cost), 175, `the batch carries the cost he typed (MVR ${cost})`);
 
-  const price = q(`select round(fixed_selling_price_mvr, 2) from skus where id = '${skuId}'::uuid;`);
-  list.is(Number(price), 380, `and the selling price was saved (MVR ${price})`);
+  // THE PRICE LANDS ON THE COLUMN THAT MATCHES THE UNIT SOLD. This used to read
+  // fixed_selling_price_mvr — the PER-PIECE column — and passed only because a
+  // tub was piece-only, which migration 0201 established is a product the ledger
+  // refuses to sell. A tub now sells by the pack (one pack IS one tub), so the
+  // price belongs on the pack column, and that is not a detail: migration 0139
+  // was written because margin measured against a per-piece price nobody is
+  // charged was wrong on 21 of 29 SKUs.
+  const price = q(`select round(fixed_price_per_pack_mvr, 2) from skus where id = '${skuId}'::uuid;`);
+  list.is(Number(price), 380, `and the selling price was saved against the unit sold (MVR ${price})`);
+
+  // And NOT also onto the per-piece column, which would give Margin Watch and
+  // the Product Card two prices for one tub and let them disagree.
+  const piecePrice = q(`select coalesce(fixed_selling_price_mvr::text, 'none') from skus where id = '${skuId}'::uuid;`);
+  list.is(piecePrice, "none",
+    `and no per-piece price was written beside it (${piecePrice})`);
 
   // ── And the product is now sellable, in the same sale ─────────────────────
   const after = await page.locator("body").innerText();

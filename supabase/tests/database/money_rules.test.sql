@@ -10,7 +10,7 @@
 --   * migration 0124 -- returns were not netted off what an order still owes.
 
 begin;
-select plan(11);
+select plan(13);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000030', 'test-money@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-000000000030';
@@ -193,6 +193,30 @@ select lives_ok(
     values ('00000000-0000-0000-0000-0000000300a1',
             '00000000-0000-0000-0000-000000000005', 'pack', 1, 34, 700, 700)$$,
   'while the same product sells fine by the pack -- the tier the catalogue should offer'
+);
+
+-- ── AND THE NEXT ONE CANNOT BE CREATED (migration 0201) ────────────────────
+-- The two rules above describe the catalogue as it is. They would both stay
+-- green while the app quietly minted a sixth unsellable tub tomorrow, because
+-- the New SKU sheet seeds a product's units from its CATEGORY and Bodybutter
+-- still defaulted to {piece} after 0200 repaired the rows.
+--
+-- So 'piece may never be the only unit a thing sells in' is now a CHECK on both
+-- tables, and these two cases prove it refuses rather than merely exists.
+select throws_ok(
+  $$insert into product_categories (name, unit_uom, cost_basis, default_sellable_units)
+    values ('Piece Only Audit', 'tub', 'piece', array['piece'])$$,
+  '23514',
+  null,
+  'a KIND of product cannot default to piece-only -- that is what mints an unsellable SKU'
+);
+
+select throws_ok(
+  $$update skus set sellable_units = array['piece']::text[]
+     where id = '00000000-0000-0000-0000-000000000005'$$,
+  '23514',
+  null,
+  'and no product can be moved to a piece-only tier the ledger would refuse to sell'
 );
 
 -- ── Debt ages on the Maldives calendar too (migration 0152) ───────────────

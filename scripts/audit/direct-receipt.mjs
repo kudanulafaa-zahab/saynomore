@@ -48,12 +48,15 @@ declare v_cat uuid; v_b uuid; v_m uuid; v_v uuid;
 begin
   if exists (select 1 from skus where internal_code = 'BODYSHOP-BUTTER-200-1x1') then return; end if;
 
+  -- 'pack', not 'piece' — see 0200/0201. A piece-only tub is a product the
+  -- ledger refuses to sell, so this fixture was reproducing the defect rather
+  -- than testing around it.
   select id into v_cat from product_categories where name = 'Bodybutter';
   if v_cat is null then
     insert into product_categories (name, unit_uom, cost_basis, default_sellable_units)
-    values ('Bodybutter', 'tub', 'piece', array['piece']) returning id into v_cat;
+    values ('Bodybutter', 'tub', 'piece', array['pack']) returning id into v_cat;
   else
-    update product_categories set unit_uom = 'tub', default_sellable_units = array['piece'] where id = v_cat;
+    update product_categories set unit_uom = 'tub', default_sellable_units = array['pack'] where id = v_cat;
   end if;
 
   insert into brands (name) values ('Body Shop') returning id into v_b;
@@ -61,7 +64,7 @@ begin
   insert into variants (model_id, display_name, attributes) values (v_m, '200ml Shea', '{}'::jsonb) returning id into v_v;
   insert into skus (variant_id, internal_code, pcs_per_pack, packs_per_carton,
                     carton_length_cm, carton_width_cm, carton_height_cm, sellable_units)
-  values (v_v, 'BODYSHOP-BUTTER-200-1x1', 1, 1, 10, 10, 10, array['piece']);
+  values (v_v, 'BODYSHOP-BUTTER-200-1x1', 1, 1, 10, 10, 10, array['pack']);
 end $$;`);
 
 // Start from "nothing received yet" whatever the last run did.
