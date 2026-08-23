@@ -239,7 +239,33 @@ export function costBasisFor(uom: UnitUom): "piece" | "per_100ml" | "per_100g" {
 /** So does how it is sold. Only loose pieces, a liquid or a powder arrive in
  *  packs and cartons; a set, a tub, a bottle or a bar is bought and sold one at
  *  a time. This is what stops the New SKU form demanding a pack size that does
- *  not exist. */
+ *  not exist.
+ *
+ *  ── WHY A SINGLE ITEM IS 'pack' AND NOT 'piece' (2026-08-23) ──────────────
+ *
+ *  This returned ["piece"] and it made every such product UNSELLABLE. The
+ *  database trigger `assert_whole_mixed_cartons` refuses any line recorded in
+ *  pieces unless it is part of a mixed carton on a brand that has
+ *  `mixed_carton_pieces` set:
+ *
+ *      uom = 'piece' AND (b.mixed_carton_pieces IS NULL
+ *                         OR NOT sol.is_mixed_carton_fill)   ->  REFUSED
+ *
+ *  So the five Body Shop tubs — sixteen in stock, MVR 380 each, about MVR 6,000
+ *  of goods — offered exactly one button, "piece", and the app then refused the
+ *  sale with "Bodyshop is not sold in single pieces. Sell it by the pack or the
+ *  carton." It named units it had never offered. Sold zero times since they were
+ *  added, and now it is clear why. Every tub, jar, bar, tube, bottle AND SET
+ *  created since was born the same way — including the IKEA bedding.
+ *
+ *  'pack' is the correct tier for a single item, and the displayed word does
+ *  not change: sellUnitLabel('pack', cfg) is containerLabel(unitUom), so a tub
+ *  still reads "tub" and a bedding set still reads "set". What changes is that
+ *  the line is recorded as a pack, which the trigger allows.
+ *
+ *  'piece' is left in the type because it remains legitimate for a mixed-carton
+ *  fill — the loose bottles that make up a Sosoft carton — which is the one
+ *  case the trigger permits. */
 export function sellableUnitsFor(uom: UnitUom): ("piece" | "pack" | "carton")[] {
-  return uom === "pcs" || uom === "ml" || uom === "g" ? ["pack", "carton"] : ["piece"];
+  return uom === "pcs" || uom === "ml" || uom === "g" ? ["pack", "carton"] : ["pack"];
 }

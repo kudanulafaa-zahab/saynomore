@@ -144,6 +144,51 @@ begin
          ('00000000-0000-0000-0000-0000000f0033', '00000000-0000-0000-0000-0000000f0031',
           (function_prefix || '3999')::uuid, 10, 0.080, 40, 'USD', v_godown);
 
+  -- ── A product sold ONE AT A TIME — the Body Shop shape ────────────────────
+  -- ADDED 2026-08-23 for the same reason. money_rules allows a 'piece' tier
+  -- only when ONE PIECE IS ONE WHOLE ITEM (pcs_per_pack = 1), which is what
+  -- makes the app print the product's own noun — "tub" — instead of the word
+  -- "piece". Five real Body Shop tubs are exactly this, and the fixture had
+  -- none, so the exception went untested.
+  insert into brands (id, name, mixed_carton_pieces)
+  values ('00000000-0000-0000-0000-0000000fc106', 'Fixture Bodycare', null);
+  insert into product_categories (id, name, unit_uom, cost_basis)
+  values ('00000000-0000-0000-0000-0000000fc100', 'Fixture Tubs', 'tub', 'piece');
+  insert into product_models (id, category_id, brand_id, name)
+  values ('00000000-0000-0000-0000-0000000fc101', '00000000-0000-0000-0000-0000000fc100',
+          '00000000-0000-0000-0000-0000000fc106', 'Body Butter');
+  insert into variants (id, model_id, display_name)
+  values ('00000000-0000-0000-0000-0000000fc102', '00000000-0000-0000-0000-0000000fc101', '200ml Shea');
+  insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
+                    carton_length_cm, carton_width_cm, carton_height_cm,
+                    fixed_selling_price_mvr, sellable_units)
+  values ('00000000-0000-0000-0000-0000000fc103', '00000000-0000-0000-0000-0000000fc102',
+          'FIXTURE-TUB-1x1', 1, 1, 10, 10, 12, 380, array['pack']);
+
+  -- …and give it stock. A priced product with no batch is legitimately WORK —
+  -- today.test.sql asserts "a business with nothing wrong is given nothing to
+  -- do", and adding the tub without stock handed the briefing a real task and
+  -- broke that test. The app was right and the fixture was wrong: a fixture
+  -- product should be healthy unless it exists to be unhealthy.
+  insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
+                              fob_per_carton, fob_currency, destination_godown_id)
+  -- FOUR, not twelve. Twelve tubs against a single sale is 990 days of cover,
+  -- which the Promo Advisor rightly calls dead stock — and that broke
+  -- today.test.sql's "a business with nothing wrong is given nothing to do".
+  -- Four in and one sold is 270 days: a real product, moving slowly, not a
+  -- problem. A fixture product should be healthy unless it exists to be sick.
+  values ('00000000-0000-0000-0000-0000000fc104', v_ship,
+          '00000000-0000-0000-0000-0000000fc103', 4, 0.0012, 14, 'USD', v_godown);
+  insert into inventory_batches (id, shipment_line_id, sku_id, godown_id, received_at,
+                                 qty_cartons_received, qty_pieces_received,
+                                 landed_per_piece_mvr, landed_per_pack_mvr, landed_per_carton_mvr)
+  values ('00000000-0000-0000-0000-0000000fc105', '00000000-0000-0000-0000-0000000fc104',
+          '00000000-0000-0000-0000-0000000fc103', v_godown, now() - interval '5 days',
+          4, 4, 216.00, 216.00, 216.00);
+  insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
+  values ('00000000-0000-0000-0000-0000000fc105', '00000000-0000-0000-0000-0000000fc103',
+          v_godown, 'in', 4, 'shipment');
+
   -- ── One confirmed, unpaid, undispatched order ─────────────────────────────
   -- Confirmed so it carries a status badge; no driver so the dashboard raises
   -- "waiting for a driver"; unpaid so Owed is non-zero. Between them those three
@@ -159,7 +204,34 @@ begin
   insert into sales_order_lines (id, order_id, sku_id, uom, qty, qty_pieces,
                                  unit_price_mvr, line_total_mvr)
   values ('00000000-0000-0000-0000-0000000f9002', '00000000-0000-0000-0000-0000000f9001',
-          (function_prefix || '3999')::uuid, 'carton', 1, 168, 776, 776);
+          (function_prefix || '3999')::uuid, 'carton', 1, 168, 776, 776),
+         -- ── A MIXED CARTON FILL — two loose bottles ─────────────────────────
+         -- ADDED 2026-08-23, because money_rules asserts that a piece line on a
+         -- carton-only SKU is ALWAYS a mixed-carton fill, and the fixture
+         -- contained no mixed carton at all. The rule was therefore satisfied
+         -- by absence — the same way the old blanket rules stayed green in CI
+         -- while failing on production. Sosoft's brand carries
+         -- mixed_carton_pieces = 6, so this is the real shape: single bottles
+         -- of DIFFERENT colours bought loose to make up one full carton, at the
+         -- carton rate of 220 ÷ 6.
+         --
+         -- Three of each, not two of one: assert_whole_mixed_cartons() refuses
+         -- a part carton — "This order has 2 bottles, which is 4 short of a
+         -- full carton" — and it is right to. A mixed carton is still a whole
+         -- carton; only its contents are mixed. The first draft of this fixture
+         -- was rejected by that guard, which is the guard doing its job.
+         ('00000000-0000-0000-0000-0000000f9003', '00000000-0000-0000-0000-0000000f9001',
+          (function_prefix || '3001')::uuid, 'piece', 3, 3, 36.67, 110.01),
+         ('00000000-0000-0000-0000-0000000f9004', '00000000-0000-0000-0000-0000000f9001',
+          (function_prefix || '3002')::uuid, 'piece', 3, 3, 36.67, 110.01),
+         -- One tub, sold singly. Without a sale the tub is DEADSTOCK and the
+         -- briefing rightly raises it, which broke today.test.sql's "a business
+         -- with nothing wrong is given nothing to do". A fixture product should
+         -- be healthy unless it exists to be unhealthy.
+         ('00000000-0000-0000-0000-0000000f9005', '00000000-0000-0000-0000-0000000f9001',
+          '00000000-0000-0000-0000-0000000fc103', 'pack', 1, 1, 380, 380);
+  update sales_order_lines set is_mixed_carton_fill = true
+   where id in ('00000000-0000-0000-0000-0000000f9003', '00000000-0000-0000-0000-0000000f9004');
   perform post_sale('00000000-0000-0000-0000-0000000f9001');
 
   -- ── A rival, with a logged price on every product ─────────────────────────

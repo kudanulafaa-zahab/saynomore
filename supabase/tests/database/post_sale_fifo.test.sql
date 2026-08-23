@@ -123,8 +123,18 @@ select throws_ok(
   'a sale larger than available stock is refused'
 );
 
+-- SCOPED TO THIS TEST'S OWN ORDERS, not to the whole table. Counting every row
+-- in sales_orders made the assertion depend on what else happens to be in the
+-- database: it passed in CI (which runs pgTAP on a bare migration replay) and
+-- failed locally the moment the UI fixture or a browser audit had left an order
+-- behind. A test that fails for a reason unrelated to what it checks trains
+-- people to ignore it, and it cost real time across several sessions before
+-- being fixed here.
+--
+-- `created_by` is this test's own user, so the count is exactly the orders this
+-- file made.
 select is(
-  (select count(*) from sales_orders),
+  (select count(*) from sales_orders where created_by = '00000000-0000-0000-0000-000000000020'),
   1::bigint,
   'the refused sale left NO orphan order behind -- order, lines and stock move as one transaction (migration 0128)'
 );
@@ -150,7 +160,7 @@ select create_and_post_sale(
 );
 
 select is(
-  (select count(*) from sales_orders),
+  (select count(*) from sales_orders where created_by = '00000000-0000-0000-0000-000000000020'),
   2::bigint,
   'replaying the same offline key returns the existing order instead of creating a second one'
 );

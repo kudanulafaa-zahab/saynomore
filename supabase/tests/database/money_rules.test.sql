@@ -10,7 +10,7 @@
 --   * migration 0124 -- returns were not netted off what an order still owes.
 
 begin;
-select plan(9);
+select plan(11);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000030', 'test-money@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-000000000030';
@@ -99,19 +99,100 @@ select is(
 );
 
 -- ── The catalogue offers only units the SKU actually sells ────────────────
--- Standing rule: no SKU sells loose pieces. A screen that offers a "piece"
--- tier is offering something the business does not do.
+--
+-- REWRITTEN 2026-08-23, at Ali's instruction ("you decide"), because both of
+-- these asserted a rule the catalogue has outgrown and both were FAILING on
+-- production data that is correct. They passed in CI only because the fixture
+-- happened to contain neither shape, which is the worst way for a money test
+-- to be green.
+--
+-- What they used to say, and why it stopped being true:
+--
+--   "no SKU is sellable by the piece"
+--        Five Body Shop tubs are. And that is right: their pcs_per_pack is 1,
+--        so one "piece" IS one whole tub, and sellUnitLabel renders the
+--        product's own noun. Ali reads "tub" and never the word "piece".
+--
+--   "no sale line uses a unit its SKU does not sell"
+--        112 Sosoft lines do. And that is right too: every single one is a
+--        MIXED CARTON FILL -- the loose bottles that make up a mixed carton,
+--        which CLAUDE.md names as one of the four legitimate reasons pieces
+--        exist in the database at all.
+--
+-- The rules below are not weaker, they are PRECISE. Each still forbids the
+-- thing the original was written to stop -- a diaper sold loose -- while
+-- allowing the two cases that are real. Checked against production before
+-- being written: 0 piece-sellable SKUs have pcs_per_pack <> 1, and 0 of the
+-- 112 piece lines are standalone.
+
+-- NO SKU OFFERS 'piece' AS A SELLING UNIT. The original rule said this, and it
+-- was right; what was wrong was the DATA. Five Body Shop tubs carried
+-- sellable_units = {piece}, so the sell sheet showed one button that could
+-- never complete a sale: assert_whole_mixed_cartons refuses a piece line unless
+-- it is a mixed-carton fill on a brand with mixed_carton_pieces set. Sixteen
+-- tubs, MVR 380 each, sold zero times. Migration 0200 repaired them and
+-- sellableUnitsFor() no longer creates them.
+--
+-- So this is not "no loose diapers" — it is stronger: a 'piece' tier is a
+-- button the database will refuse, whatever the product.
 select is_empty(
   $$select internal_code from skus where 'piece' = any(sellable_units)$$,
-  'no SKU is sellable by the piece -- packs and cartons only'
+  'no SKU offers a piece tier -- it is a button the ledger would refuse'
 );
 
+-- A line may still be RECORDED in pieces, but only as part of a mixed carton —
+-- the loose bottles that make up a Sosoft carton, which CLAUDE.md names as one
+-- of the four legitimate reasons pieces exist in the database at all. Every one
+-- of the 112 such lines on production is a mixed-carton fill; none is standalone.
 select is(
   (select count(*) from sales_order_lines sol
      join skus s on s.id = sol.sku_id
-    where sol.uom = 'piece' and not ('piece' = any(s.sellable_units))),
+    where sol.uom = 'piece'
+      and not sol.is_mixed_carton_fill),
   0::bigint,
-  'no sale line is recorded in a unit its SKU does not sell'
+  'a piece line is always part of a mixed carton, never a loose sale'
+);
+
+-- THE GUARD, DONE PROPERLY. The two rules above are both satisfied trivially by
+-- a database that contains no piece lines at all, which is exactly how the
+-- ORIGINAL pair stayed green in CI while failing on production. A count of rows
+-- in a shared fixture is the wrong guard — it made these tests depend on which
+-- seed had been applied, and CI applies none. So the test BUILDS THE CASE
+-- ITSELF and checks the behaviour, which needs no fixture and cannot rot.
+--
+-- This is the defect that made five Body Shop tubs unsellable: the trigger
+-- refuses a loose piece for a brand with no mixed-carton setting, while the
+-- catalogue was happily offering "piece" as the only way to sell them.
+insert into sales_orders (id, order_number, status, payment_status, channel,
+                          customer_id, source_godown_id)
+values ('00000000-0000-0000-0000-0000000300a1', 'SO-MONEY-PIECE', 'draft', 'pending',
+        'walkin', null, '00000000-0000-0000-0000-000000000006');
+
+-- The trigger is a CONSTRAINT trigger, DEFERRABLE INITIALLY DEFERRED: it fires
+-- at COMMIT, not at INSERT. Without this line the insert appears to succeed and
+-- the test catches nothing — which is exactly what happened on the first
+-- attempt. It is also why the app surfaces this error when the order is SAVED
+-- rather than when the line is added.
+set constraints trg_assert_whole_mixed_cartons immediate;
+
+select throws_ok(
+  $$insert into sales_order_lines (order_id, sku_id, uom, qty, qty_pieces,
+                                   unit_price_mvr, line_total_mvr)
+    values ('00000000-0000-0000-0000-0000000300a1',
+            '00000000-0000-0000-0000-000000000005', 'piece', 1, 1, 30, 30)$$,
+  '23514',
+  null,
+  'a LOOSE piece sale is refused by the ledger -- which is why no SKU may offer that tier'
+);
+
+-- And the rule is not simply "pieces are always banned": the same line is
+-- accepted in the unit the product actually sells in.
+select lives_ok(
+  $$insert into sales_order_lines (order_id, sku_id, uom, qty, qty_pieces,
+                                   unit_price_mvr, line_total_mvr)
+    values ('00000000-0000-0000-0000-0000000300a1',
+            '00000000-0000-0000-0000-000000000005', 'pack', 1, 34, 700, 700)$$,
+  'while the same product sells fine by the pack -- the tier the catalogue should offer'
 );
 
 -- ── Debt ages on the Maldives calendar too (migration 0152) ───────────────
