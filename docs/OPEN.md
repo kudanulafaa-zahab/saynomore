@@ -47,8 +47,8 @@ fixed while his screen was still broken.
 |---|---|---|
 | E1 | **Schema drift**: production `sales_orders` has a `godown_id` column no migration creates (local has only `source_godown_id`). | Harmless today. Needs reconciling before it confuses a future migration. |
 | E2 | **Two Supabase Auth settings left alone deliberately**: leaked-password protection off, OTP expiry long. | Dashboard-only settings; flagged rather than changed without asking. |
-| E3 | ~~Money formatters are not total~~ — turned out to be **23 private formatters across 18 files**, not two. All delegate to `lib/money.ts` now; a missing figure reads "—" instead of "0" or "NaN". Locked by `audit:onedef`, mutation-proven both ways. | **DONE in code — NOT LIVE YET.** Closes only when `npm run shipped` passes. |
-| E4 | **73 INLINE `toLocaleString` calls remain**, a few on nullable database fields and therefore the same crash risk as the Pricing Tool. Not migrated with E3 because a bare `toLocaleString()` shows up to three decimals where `mvr()` shows zero — a bulk replace would silently round real money. Needs per-call analysis. | Open. |
+| E3 | ~~Money formatters are not total~~ — turned out to be **23 private formatters across 18 files**, not two. All delegate to `lib/money.ts` now; a missing figure reads "—" instead of "0" or "NaN". Locked by `audit:onedef`, mutation-proven both ways. | **CLOSED 2026-08-23** — live on `49461ad`, verified by `npm run shipped`. |
+| E4 | **68 inline `toLocaleString` calls remain.** Per-call analysis now DONE — eight distinct shapes, of which 40 map exactly onto `mvr`/`mvr2`/`mvr(n, dp)` and 25 do not: `{maximumFractionDigits: 2}` (9) shows `1,234.5` where `mvr2` forces `1,234.50`, and a bare `toLocaleString()` (16) shows up to three decimals. Those need a `mvrUpTo(n, max)` variant, not a find-and-replace. **Four are DATE calls on a `Date` object** (`{month:"long"}`, weekday formats) and must not be touched at all. | Analysed, not yet done. |
 
 ---
 
