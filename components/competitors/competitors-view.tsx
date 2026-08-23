@@ -37,7 +37,7 @@ import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
-import { priceForMargin } from "@/lib/trade-units";
+import { priceForMargin, sellableTiers } from "@/lib/trade-units";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
 import { useOnMount } from "@/lib/use-on-mount";
@@ -56,7 +56,19 @@ const BASIS_LABEL: Record<PriceBasis, string> = {
   per_carton: "Per carton",
 };
 
-function fmt2(n: number) { return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+// TOTAL BY CONSTRUCTION, 2026-08-22. This took `number` and was fed a null
+// through a `!` assertion in ten places in this file; the Customer Tier Prices
+// table did it with `tc.price_per_pack_mvr!`, which is null for every
+// carton-only SKU, and the whole Pricing Tool died with
+// "Cannot read properties of null (reading 'toLocaleString')" — the screen Ali
+// photographed. A `!` is a promise to the compiler that the runtime never made.
+//
+// Accepting null here retires the entire class rather than the one instance:
+// there is no longer a value this function can be handed that throws.
+function fmt2(n: number | null | undefined) {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 function fmtInt(n: number) { return Math.ceil(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 function fmt0(n: number) { return Math.round(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 
@@ -1205,21 +1217,33 @@ export function CompetitorsView() {
                             </span>
                           )}
                         </div>
-                        {/* Prices — per piece / pack / carton */}
+                        {/* Prices — only in the units this product is SOLD in.
+                            This is OUR price list, not a rival comparison, so
+                            the standing rule applies in full: never show a
+                            price in a unit the SKU does not sell. Sosoft sells
+                            by the carton only, and this table was printing a
+                            "Pk" column whose value is null for exactly that
+                            reason — which is both the crash and the wrong
+                            thing to show. sellableTiers() is the same single
+                            source every other door uses.
+                            (The Market exception that keeps per-piece figures
+                            is about COMPETITOR prices, where rivals' 30s/34s/48s
+                            make per-piece the only comparable unit. It does not
+                            reach our own tier prices.) */}
                         {hasAnyPrice ? (
                           <div className="flex items-center gap-3 text-right shrink-0">
-                            <div>
-                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Pc</p>
-                              <p className="text-[14px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_piece_mvr!)}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Pk</p>
-                              <p className="text-[14px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_pack_mvr!)}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Ctn</p>
-                              <p className="text-[14px] font-semibold text-foreground snm-num">{fmt2(tc.price_per_carton_mvr!)}</p>
-                            </div>
+                            {sellableTiers(simSku?.sellable_units).map((unit) => (
+                              <div key={unit}>
+                                <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                                  {unit === "carton" ? "Ctn" : unit === "pack" ? "Pk" : "Pc"}
+                                </p>
+                                <p className="text-[14px] font-semibold text-foreground snm-num">
+                                  {fmt2(unit === "carton" ? tc.price_per_carton_mvr
+                                      : unit === "pack"   ? tc.price_per_pack_mvr
+                                      :                     tc.price_per_piece_mvr)}
+                                </p>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <p className="ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>No price — tap Manage</p>
