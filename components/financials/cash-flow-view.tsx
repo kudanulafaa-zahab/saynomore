@@ -13,17 +13,11 @@ import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
+import { mvr, mvrShort } from "@/lib/money";
 
 
-function fmt(n: number, decimals = 0) {
-  return n.toLocaleString("en-MV", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-function fmtShort(n: number) {
-  const a = Math.abs(n);
-  if (a >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (a >= 1_000)     return (n / 1_000).toFixed(1) + "K";
-  return n.toFixed(0);
-}
+const fmt = mvr;
+const fmtShort = mvrShort;
 function weekLabel(iso: string) {
   return mvtPlainDay(iso);
 }

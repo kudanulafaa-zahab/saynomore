@@ -57,6 +57,7 @@ import { supabase } from "@/lib/supabase";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { notifyAdmins } from "@/lib/push";
 import { mvtInstant } from "@/lib/mvt-date";
+import { mvr } from "@/lib/money";
 
 /** Keeps the chosen selling unit on a tier the SKU is actually sold in.
  *  Switching from a diaper (pack + carton) to a carton-only Sosoft must not
@@ -88,7 +89,7 @@ function stepIndex(status: OrderStatus): number {
   return map[status] ?? 0;
 }
 
-function fmt(n: number) { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+const fmt = mvr;
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /*  Main component                                                              */

@@ -39,6 +39,7 @@ import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/
 import { haptic } from "@/lib/haptics";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 import { CARD_ROUNDED as CARD } from "@/lib/surfaces";
+import { mvr, mvr2 } from "@/lib/money";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
 
@@ -80,8 +81,8 @@ const STEP_IDX: Record<ShipmentStatus, number> = {
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-function fmt0(n: number) { return n.toLocaleString(undefined, { maximumFractionDigits: 0 }); }
-function fmt2(n: number) { return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+const fmt0 = mvr;
+const fmt2 = mvr2;
 
 /* ── Number input with local state ──────────────────────────────────────── */
 

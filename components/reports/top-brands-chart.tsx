@@ -1,6 +1,7 @@
 "use client";
 
 import type { BrandGroup } from "@/lib/group-by-brand";
+import { mvr } from "@/lib/money";
 
 // Top-brands horizontal bar chart — an executive glance above the detailed
 // collapsible brand list already in BestSellersTable. Monochrome bars by
@@ -14,9 +15,7 @@ function marginColor(pct: number | null): string {
   return "var(--snm-error)";
 }
 
-function fmt0(n: number) {
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+const fmt0 = mvr;
 
 export function TopBrandsChart({ groups }: { groups: BrandGroup[] }) {
   const top = [...groups]

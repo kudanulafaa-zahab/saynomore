@@ -11,6 +11,7 @@ import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { mvtInstant } from "@/lib/mvt-date";
 import { costPerTradeUnit, containerLabel, type UnitUom } from "@/lib/trade-units";
+import { mvrShort } from "@/lib/money";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
 type SortDir  = "desc" | "asc";
@@ -24,11 +25,7 @@ function remPacks(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
   const rem = pcsPerCtn > 0 ? pcs % pcsPerCtn : pcs;
   return pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
 }
-function fmtMvr(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmtMvr = mvrShort;
 /** Compact chip word for one pack-level unit: a Sosoft 500ml is a bottle.
  *
  *  Derives from containerLabel so there is ONE place that knows what a unit is

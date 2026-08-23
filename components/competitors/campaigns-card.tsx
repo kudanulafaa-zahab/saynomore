@@ -12,10 +12,9 @@ import { listSkusFlat, getCurrentUserRole, type SkuFullRow } from "@/lib/queries
 import { SpendSheet } from "@/components/expenses/expenses-view";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { mvtPlainDay } from "@/lib/mvt-date";
+import { mvr } from "@/lib/money";
 
-function fmt(n: number) {
-  return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmt = mvr;
 
 /** Campaigns — the acting half of the promotion loop. The Promo Advisor
  *  above suggests what to promote; this is where the campaign gets logged.

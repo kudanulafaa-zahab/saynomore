@@ -41,6 +41,7 @@ import { priceForMargin, sellableTiers } from "@/lib/trade-units";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
 import { useOnMount } from "@/lib/use-on-mount";
+import { mvr, mvr2, mvrCeil } from "@/lib/money";
 
 // Liquid Glass content surface (2026-07-15) — matches .glass-panel's recipe
 // (fill + specular inset highlight + border) without needing 21 JSX call
@@ -65,12 +66,9 @@ const BASIS_LABEL: Record<PriceBasis, string> = {
 //
 // Accepting null here retires the entire class rather than the one instance:
 // there is no longer a value this function can be handed that throws.
-function fmt2(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function fmtInt(n: number) { return Math.ceil(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
-function fmt0(n: number) { return Math.round(n).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+const fmt2 = mvr2;
+const fmtInt = mvrCeil;
+const fmt0 = mvr;
 
 /* ── Price Book tab ──────────────────────────────────────────────────────
    Platform-adaptive margin ledger. Mobile: a prioritized LIST — margin leads,

@@ -6,10 +6,9 @@ import { toast } from "sonner";
 import { Megaphone, ChevronDown, ChevronUp } from "lucide-react";
 import { getPromoSuggestions, type PromoSuggestionRow } from "@/lib/queries/intelligence";
 import { mvtInstant } from "@/lib/mvt-date";
+import { mvr } from "@/lib/money";
 
-function fmt(n: number) {
-  return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmt = mvr;
 
 /** Promo Advisor — stock that genuinely isn't moving, crossed with margin
  *  headroom. Suggests a clearance price that still keeps a 10% margin at the

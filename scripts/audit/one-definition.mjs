@@ -91,6 +91,88 @@ const clashes = [...seen.entries()]
 
 const list = checklist("One concept, defined once");
 
+// ── Money is formatted in ONE module ───────────────────────────────────────
+//
+// Twenty-three private money formatters existed across twenty-one files —
+// `fmt`, `fmt0`, `fmt2`, `fmtMvr`, `fmtMoney`, `fmtShort`, `fmtInt` — each
+// taking a bare `number`. They were invisible to the export check above
+// because they are module-PRIVATE: `function fmt(...)` with no `export`, so
+// two files never clash.
+//
+// What they cost, measured on the values the app actually hands them:
+//
+//     fmt0(null)       ->  "0"     a missing figure displayed as MVR 0
+//     fmt0(undefined)  ->  "NaN"   shown to the user, on screen
+//
+// "0" is the dangerous one: a number Ali can read, sanity-check and price
+// against, where the truth is "we do not know". The same class crashed the
+// Pricing Tool outright when a null reached `.toLocaleString` — that one at
+// least failed loudly. They also disagreed on LOCALE, half formatting money in
+// whatever the viewer's phone is set to.
+//
+// They all delegate to lib/money.ts now. This stops the twenty-fourth.
+// Matched by taking each declaration's OWN body rather than by letting a regex
+// run on for a few lines: the first version of this check spanned from a
+// delegating `const fmt0 = mvr;` to an unrelated inline toLocaleString six
+// lines below it and reported a false positive. A gate that cries wolf gets
+// switched off, so it reads the balanced braces.
+function bodyOf(src, from) {
+  const at = (needle) => { const i = src.indexOf(needle, from); return i === -1 ? Infinity : i; };
+  const open = at("{"), semi = at(";");
+  // A SEMICOLON FIRST means the declaration ends there and has no block at all:
+  // `const fmt0 = mvr;` is an alias, and the fix rather than the fault. Missing
+  // this was the second false positive — it ran the brace matcher on from the
+  // alias and swallowed half the file.
+  if (semi < open) return src.slice(from, semi);
+  if (open === Infinity) return src.slice(from);
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    if (src[i] === "{") depth++;
+    else if (src[i] === "}" && --depth === 0) return src.slice(from, i + 1);
+  }
+  return src.slice(from);
+}
+
+const DECL_START = /(?:^|\n)\s*(?:export\s+)?(?:function|const)\s+(fmt[A-Za-z0-9]*)\s*[=(]/g;
+const offenders = [];
+for (const file of files) {
+  if (file.startsWith("lib/")) continue;          // lib/money.ts is the one home
+  const src = readFileSync(file, "utf8");
+  for (const m of src.matchAll(DECL_START)) {
+    if (/toLocaleString\s*\(\s*(?:undefined|["']en-[A-Z]{2}["'])\s*,/.test(bodyOf(src, m.index))) {
+      offenders.push(`${file}:${m[1]}`);
+    }
+  }
+}
+list.ok(offenders.length === 0,
+  offenders.length
+    ? `${offenders.length} module(s) still declare their own money formatter: ${offenders.slice(0, 6).join(", ")}`
+    : "no module declares its own money formatter — every one delegates to lib/money.ts");
+
+// ── And that module behaves ───────────────────────────────────────────────
+// A missing value must read "—", never "0" and never "NaN". Postgres numerics
+// arrive as STRINGS through PostgREST, so a string must still format — nine of
+// the helpers replaced here wrapped their argument in Number() for exactly that
+// reason, and a module that only took `number` would have turned every real
+// figure into "—", a worse bug than the one being fixed.
+const { mvr, mvr2, mvrShort, mvrCeil } = await import("../../lib/money.ts");
+const cases = [
+  [mvr(1234567.891), "1,234,568",     "a plain number is grouped"],
+  [mvr("1234.50"),   "1,235",         "a Postgres numeric STRING still formats"],
+  [mvr2("1234.50"),  "1,234.50",      "and keeps its laari at two decimals"],
+  [mvr(0),           "0",             "a real zero is still a zero"],
+  [mvr(null),        "—",             "null reads as unknown, NOT as 0"],
+  [mvr(undefined),   "—",             "undefined reads as unknown, not NaN"],
+  [mvr(NaN),         "—",             "NaN never reaches the screen"],
+  [mvr(""),          "—",             "an empty string is not a confident zero"],
+  [mvr(Infinity),    "—",             "a divide-by-zero does not print an infinity sign"],
+  [mvrShort(-2500000), "-2.5M",       "a NEGATIVE abbreviates — the old helpers printed it in full"],
+  [mvrShort(2500000),  "2.5M",        "millions abbreviate everywhere (Expenses used to say 2500.0K)"],
+  [mvrShort(null),   "—",             "and an absent figure stays absent when abbreviated"],
+  [mvrCeil(2.1),     "3",             "a part unit still costs a whole one"],
+];
+for (const [got, want, why] of cases) list.is(got, want, why);
+
 for (const [key, where] of clashes) {
   list.ok(false, `${key} is declared in ${where.length} modules — ${where.join(", ")}. ` +
     `Keep the one that owns the concept and re-export from the other: export type { X } from "…".`);

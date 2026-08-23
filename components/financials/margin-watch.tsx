@@ -10,10 +10,9 @@ import {
   type PricingHealthRow,
 } from "@/lib/queries/pricing";
 import { getCurrentUserRole } from "@/lib/queries/products";
+import { mvr } from "@/lib/money";
 
-function fmt(n: number) {
-  return n.toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmt = mvr;
 
 // The one price a drifted SKU should move to — prefer the smallest UOM in use.
 function suggestionLabel(r: PricingHealthRow): string | null {

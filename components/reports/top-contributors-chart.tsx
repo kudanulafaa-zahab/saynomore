@@ -1,13 +1,12 @@
 "use client";
 
 import type { ContributionRow } from "@/lib/queries/reports";
+import { mvr } from "@/lib/money";
 
 // Top-6 SKUs by true contribution margin (revenue - landed cost - allocated
 // marketing) for the loaded period — the same audited numbers already in
 // ContributionTable, just the executive-glance chart above the detail rows.
-function fmt0(n: number) {
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+const fmt0 = mvr;
 
 export function TopContributorsChart({ rows }: { rows: ContributionRow[] }) {
   const top = [...rows]

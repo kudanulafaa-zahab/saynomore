@@ -24,6 +24,7 @@ import { toPieces, type SaleUom } from "@/lib/queries/sales";
 import { sellableTiers, sellUnitLabel, type SellUnit, type UnitUom } from "@/lib/trade-units";
 import { mvtInstant } from "@/lib/mvt-date";
 import { useOnMount } from "@/lib/use-on-mount";
+import { mvr } from "@/lib/money";
 
 /* ── qty helpers (pieces → carton/pack, matches inventory-view) ── */
 function toCtns(pcs: number, pcsPerCtn: number) {
@@ -1332,9 +1333,7 @@ function EmptyState({ text }: { text: string }) {
 /* problem.                                                                     */
 /* ════════════════════════════════════════════════════════════════════════ */
 
-function fmtMoney(n: number) {
-  return Number(n).toLocaleString("en-MV", { maximumFractionDigits: 0 });
-}
+const fmtMoney = mvr;
 
 function VerificationHistory() {
   const [summary, setSummary]   = useState<StockCountSummary | null>(null);

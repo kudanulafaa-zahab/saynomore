@@ -33,6 +33,7 @@ import { haptic } from "@/lib/haptics";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { useOnMount } from "@/lib/use-on-mount";
+import { mvr2, mvrShort } from "@/lib/money";
 
 const CHANNEL_LABEL: Record<SpendChannel, string> = {
   meta_boost: "Meta Boost",
@@ -41,13 +42,8 @@ const CHANNEL_LABEL: Record<SpendChannel, string> = {
   other:      "Other",
 };
 
-function fmt(n: number) {
-  return n.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function fmtShort(n: number) {
-  if (n >= 1000) return (n / 1000).toFixed(1) + "K";
-  return n.toFixed(0);
-}
+const fmt = mvr2;
+const fmtShort = mvrShort;
 
 export function ExpensesView() {
   const [rows, setRows] = useState<MarketingSpendRow[]>([]);
