@@ -39,7 +39,7 @@ import { Loader2 } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { receiveDirectStock } from "@/lib/queries/inventory";
 import { updateSku, type SkuFullRow } from "@/lib/queries/products";
-import { containerLabel, sellableTiers, type UnitUom, type SellUnit } from "@/lib/trade-units";
+import { sellUnitLabel, sellableTiers, type UnitUom, type SellUnit } from "@/lib/trade-units";
 import { haptic } from "@/lib/haptics";
 import { mvr2 } from "@/lib/money";
 
@@ -77,9 +77,17 @@ export function StockInSheet({
   const tiers = sellableTiers(sku.sellable_units as SellUnit[] | null);
   const uom: "piece" | "pack" | "carton" =
     tiers.includes("pack") ? "pack" : tiers.includes("carton") ? "carton" : "piece";
-  const noun = uom === "piece"
-    ? containerLabel(sku.unit_uom as UnitUom | undefined)
-    : uom;
+  // ONE SOURCE FOR THE WORD. This used to reach for the product's own noun only
+  // when the tier was 'piece', and print the literal "pack" otherwise — which
+  // was invisible while body butter was piece-only and became "How many packs"
+  // the moment 0201 moved single items onto the pack tier. A tub is never a
+  // pack (CLAUDE.md, the units rule), and sellUnitLabel already knows that: a
+  // pack tier renders the container's own noun, a carton renders "carton".
+  const noun = sellUnitLabel(uom, {
+    unitUom: sku.unit_uom as UnitUom | undefined,
+    pcsPerPack: sku.pcs_per_pack,
+    packsPerCarton: sku.packs_per_carton,
+  });
 
   const qtyNum   = Math.max(0, Math.floor(Number(qty) || 0));
   const costNum  = Number(cost);

@@ -55,7 +55,7 @@ wipe();
 
 // A bedding category: sized variants, sold one set at a time, unit word "set".
 q(`insert into product_categories (name, unit_uom, cost_basis, variant_attributes, default_sellable_units)
-   values ('${CAT}', 'set', 'piece', '["size"]'::jsonb, array['piece']::text[]);`);
+   values ('${CAT}', 'set', 'piece', '["size"]'::jsonb, array['pack']::text[]);`);
 
 import { launch, signedInPage, checklist, finish, BASE } from "./lib.mjs";
 const b = await launch();

@@ -1564,12 +1564,23 @@ function NewSkuWizard({
   // is the one place that mapping lives, and the twin of Postgres unit_noun.
   const unitWordHere = containerLabel(category?.unit_uom as UnitUom | undefined);
 
-  // Default "how it comes" from the kind of product. A category that sells by
-  // the piece only — bedding, body butter — comes one at a time, so the pack
-  // numbers are 1 x 1 and he is never asked for them.
+  // Default "how it comes" from the kind of product. A category sold one at a
+  // time — bedding, body butter — has pack numbers of 1 x 1 and he is never
+  // asked for them.
+  //
+  // THE TEST IS THE CARTON, NOT THE PACK. This used to ask "does it sell by the
+  // pack OR the carton", which worked only because a single item was marked
+  // 'piece' — and 'piece' turned out to be a unit the ledger refuses, leaving
+  // five Body Shop tubs unsellable (0200). Single items are now 'pack', so that
+  // question started answering "yes" for a bedding set and the form began
+  // demanding a pack size for something that comes one at a time.
+  //
+  // A CARTON is what makes the pack layer real: a carton holds packs, so a
+  // product with one has both numbers to give. A product without one is a
+  // single item whose "pack" IS the item.
   useEffect(() => {
     if (!category) return;
-    const packs = (category.default_sellable_units ?? []).some((u) => u === "pack" || u === "carton");
+    const packs = (category.default_sellable_units ?? []).some((u) => u === "carton");
     setComesInPacks(packs);
     if (!packs) { setPcsPerPack("1"); setPacksPerCtn("1"); }
   }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps

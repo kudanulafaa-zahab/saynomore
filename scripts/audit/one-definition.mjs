@@ -201,4 +201,49 @@ for (const t of ["UnitUom", "SellUnit"]) {
     `${t} is still declared in lib/trade-units.ts, which owns it`);
 }
 
+// ── THE UNIT NOUN IS NOT RE-DERIVED ANYWHERE ───────────────────────────────
+//
+// The exported-name check above cannot see this one, because the copies are not
+// exported and not named — they are the mapping itself, inlined:
+//
+//     sku.unit_uom === "ml" ? "bottle" : sku.unit_uom === "g" ? "pouch" : "pack"
+//
+// FOUR copies of that expression were live at once (price-lists-view,
+// competitors-view ×2, shipment-detail), plus a fifth shape in stock-in-sheet
+// that reached for the product's own noun only when the tier was 'piece'. Each
+// knew three units where containerLabel knows eleven, and each fell through to
+// the literal "pack" — so the moment migration 0201 moved single items off the
+// piece tier, a body butter started reading "How many packs" in the Add-stock
+// sheet, and the below-cost warning in Price Lists would have named a unit the
+// product is not sold in. CLAUDE.md's rule, verbatim: "Where does each unit
+// WORD come from? sellable_units and the unit noun — never a hardcoded 'pack'."
+//
+// "pouch" is the tell. It exists in this app for exactly one reason — it is the
+// noun for a category measured in grams — so outside the module that owns the
+// mapping, any occurrence is a second copy of it.
+//
+// The costing simulator is the one legitimate exception and is listed by name:
+// its trial sheet PICKS a noun for a product that does not exist yet, so there
+// is no unit_uom to read. (That picker offers three of the eleven words and
+// cannot describe a tub or a bedding set — recorded in docs/OPEN.md, not
+// silently allowed.)
+const NOUN_OWNERS = new Set([
+  "lib/trade-units.ts",                      // containerLabel: the mapping itself
+  "components/sales/cart/cart-math.ts",      // renders a noun the user already picked
+  "components/costing/costing-simulator.tsx" // picks a noun for a product with no SKU
+]);
+const nounCopies = files
+  .filter((f) => !NOUN_OWNERS.has(f))
+  .filter((f) => /["']pouch["']/.test(readFileSync(f, "utf8")));
+
+list.ok(nounCopies.length === 0,
+  "the unit noun is derived in one place — no file re-maps unit_uom to a word" +
+  (nounCopies.length ? ` (found in ${nounCopies.join(", ")} — use containerLabel)` : ""));
+
+// And the mapping it points at must still be the eleven-value one. A check that
+// forbids copies is worthless if the original quietly shrinks back to three.
+const nouns = (canon.match(/case "(?:pcs|ml|g|tub|jar|tube|bar|sachet|bottle|unit|set)":/g) ?? []).length;
+list.ok(nouns >= 8,
+  `and containerLabel still knows every unit, not three (${nouns} cases)`);
+
 finish(list.report());

@@ -37,7 +37,7 @@ import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
-import { priceForMargin, sellableTiers } from "@/lib/trade-units";
+import { priceForMargin, sellableTiers, containerLabel, type UnitUom } from "@/lib/trade-units";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
 import { useOnMount } from "@/lib/use-on-mount";
@@ -583,10 +583,10 @@ export function CompetitorsView() {
       const cleared = { fixed_selling_price_mvr: null, fixed_price_per_pack_mvr: null, fixed_price_per_carton_mvr: null, target_margin_pct: null };
       if (mode === "fixed") {
         await updateSku(simSku.id, { ...cleared, fixed_selling_price_mvr: piecePrice });
-        toast.success(`Fixed price saved — MVR ${fmt2(packPrice)}/${simSku.unit_uom === "ml" ? "bottle" : simSku.unit_uom === "g" ? "pouch" : "pack"}`);
+        toast.success(`Fixed price saved — MVR ${fmt2(packPrice)}/${containerLabel(simSku.unit_uom as UnitUom | null | undefined)}`);
       } else {
         await updateSku(simSku.id, { ...cleared, target_margin_pct: impliedMarginPct });
-        toast.success(`${impliedMarginPct}% margin saved — MVR ${fmt2(packPrice)}/${simSku.unit_uom === "ml" ? "bottle" : simSku.unit_uom === "g" ? "pouch" : "pack"}`);
+        toast.success(`${impliedMarginPct}% margin saved — MVR ${fmt2(packPrice)}/${containerLabel(simSku.unit_uom as UnitUom | null | undefined)}`);
       }
       await load();
     } catch (e) { toast.error((e as Error).message); }

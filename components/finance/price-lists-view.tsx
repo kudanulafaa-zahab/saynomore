@@ -14,6 +14,7 @@ import {
   type PriceListRow, type PriceListItemRow,
 } from "@/lib/queries/pricelists";
 import type { PriceTier } from "@/lib/queries/masters";
+import { containerLabel, type UnitUom } from "@/lib/trade-units";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
@@ -864,7 +865,13 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
   // sold, per migration 0139, not a per-piece price nobody is charged.
   const belowCostTiers = (() => {
     if (!landed || !sku) return [] as { unit: string; price: number; cost: number }[]
-    const noun = sku.unit_uom === "ml" ? "bottle" : sku.unit_uom === "g" ? "pouch" : "pack";
+    // A THIRD open-coded copy of containerLabel, found by sweeping the class
+    // after stock-in-sheet printed "How many packs" for a tub. It knew only
+    // pcs/ml/g and fell through to "pack", so the below-cost warning on a body
+    // butter would have named a unit the product is not sold in — in the one
+    // message whose whole job is to be believed. containerLabel is the single
+    // source, and the twin of Postgres unit_noun.
+    const noun = containerLabel(sku.unit_uom as UnitUom | null | undefined);
     const out: { unit: string; price: number; cost: number }[] = [];
     const pk = parseFloat(packStr), ctn = parseFloat(cartonStr);
     const costPack = landed * pcsPerPack, costCtn = landed * pcsPerCarton;
