@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same twenty-four audits he can run locally (`npm run audit:ui`):
+# This runs the same twenty-five audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -32,6 +32,9 @@ name: UI checks
 #   ikea      a whole new KIND of product, set up from nothing on a phone: no
 #             jargon, no pack size for something sold one at a time
 #   card      the Product Card: every figure on it reconciles to the ledger
+#   pricing   the Pricing Tool opens for EVERY product, not just the one that
+#             loads by default — it died on every carton-only SKU, and a
+#             carton-only product is never offered a per-pack price
 #   sellnew   a product you own but never received can be stocked mid-sale —
 #             and still cannot be sold from nothing
 #   stranded  customers whose whole history is a range we stopped buying are
@@ -58,7 +61,7 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All twenty-four are proven to fail when the bug they guard is reintroduced; that
+# All twenty-five are proven to fail when the bug they guard is reintroduced; that
 # was checked by putting each one back deliberately. The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
@@ -183,6 +186,13 @@ jobs:
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card
+
+      # A screen with a product picker is not one screen — it is one per
+      # product, and the first in the list is the only one anybody ever tests.
+      # The Pricing Tool crashed on every carton-only SKU and not on the one
+      # that loads by default.
+      - name: Pricing Tool — survives every product in the catalogue
+        run: npm run audit:pricing
 
       - name: Sell new product — stock it mid-sale, never sell from nothing
         run: npm run audit:sellnew

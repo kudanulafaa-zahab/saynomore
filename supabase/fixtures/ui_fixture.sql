@@ -161,4 +161,31 @@ begin
   values ('00000000-0000-0000-0000-0000000f9002', '00000000-0000-0000-0000-0000000f9001',
           (function_prefix || '3999')::uuid, 'carton', 1, 168, 776, 776);
   perform post_sale('00000000-0000-0000-0000-0000000f9001');
+
+  -- ── A rival, with a logged price on every product ─────────────────────────
+  -- ADDED 2026-08-22, AFTER A CRASH THIS ABSENCE MADE UNCATCHABLE.
+  --
+  -- The fixture had ZERO competitors and ZERO competitor prices, so every block
+  -- in Market that is gated on `prices.length` — the Cheapest card, the
+  -- competitive-gap panel, the per-piece comparison table — rendered as nothing
+  -- in every audit that has ever run. /competitors passed contrast and material
+  -- because the half of the screen that carries the money was never on screen.
+  --
+  -- Ali then hit `Cannot read properties of null (reading 'toLocaleString')` on
+  -- the Pricing Tool for every Sosoft SKU. A gate that cannot see a feature
+  -- cannot guard it, and this is what "the audits were blind to every screen
+  -- that needs data to exist" looks like when it happens to a whole module.
+  --
+  -- per_pack basis with their_pcs_per_pack set, which is the shape every real
+  -- logged price has.
+  insert into competitors (id, name)
+  values ('00000000-0000-0000-0000-0000000fc001', 'Fixture Rival')
+  on conflict (name) do nothing;
+
+  insert into competitor_prices (competitor_id, variant_id, their_pcs_per_pack,
+                                 price_mvr, price_basis)
+  select '00000000-0000-0000-0000-0000000fc001', s.variant_id, s.pcs_per_pack,
+         180.00, 'per_pack'
+    from skus s
+   where s.is_active;
 end $$;
