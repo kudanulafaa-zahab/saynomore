@@ -37,7 +37,8 @@
     "ledger": "node scripts/check-ledger.mjs",
     "audit:onedef": "node scripts/audit/one-definition.mjs",
     "audit:material:lumen": "node --experimental-strip-types --no-warnings scripts/audit/material.mjs --palette lumen",
-    "audit:pricing": "node scripts/audit/pricing-tool.mjs"
+    "audit:pricing": "node scripts/audit/pricing-tool.mjs",
+    "drift": "node scripts/check-drift.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
