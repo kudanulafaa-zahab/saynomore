@@ -48,7 +48,7 @@ fixed while his screen was still broken.
 | E1 | **Schema drift**: production `sales_orders` has a `godown_id` column no migration creates (local has only `source_godown_id`). | Harmless today. Needs reconciling before it confuses a future migration. |
 | E2 | **Two Supabase Auth settings left alone deliberately**: leaked-password protection off, OTP expiry long. | Dashboard-only settings; flagged rather than changed without asking. |
 | E3 | ~~Money formatters are not total~~ — turned out to be **23 private formatters across 18 files**, not two. All delegate to `lib/money.ts` now; a missing figure reads "—" instead of "0" or "NaN". Locked by `audit:onedef`, mutation-proven both ways. | **CLOSED 2026-08-23** — live on `49461ad`, verified by `npm run shipped`. |
-| E4 | ~~68 inline `toLocaleString` calls~~ — all migrated, plus **six more private formatters** named `mvr`/`mvrShort`/`num`/`int`/`money` that E3's check could not see because it only looked for names starting with `fmt`. The gate now states the invariant over the whole file rather than per declaration: **outside `lib/`, no `toLocaleString` with number options exists at all**. Dates untouched. | **DONE in code — NOT LIVE YET.** |
+| E4 | ~~68 inline `toLocaleString` calls~~ — all migrated, plus **six more private formatters** named `mvr`/`mvrShort`/`num`/`int`/`money` that E3's check could not see because it only looked for names starting with `fmt`. The gate now states the invariant over the whole file rather than per declaration: **outside `lib/`, no `toLocaleString` with number options exists at all**. Dates untouched. | **CLOSED 2026-08-23** — live on `f13ced9`, verified by `npm run shipped`. |
 
 ---
 
