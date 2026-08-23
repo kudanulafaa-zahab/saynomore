@@ -177,6 +177,14 @@ export interface CostingResultRow {
   container_cbm_total: number;
   container_fill_pct: number | null;
   my_freight_share_usd: number;
+  /** Which unit this SKU's margin is measured against — 'pack' when it sells by
+   *  the pack, 'carton' for a carton-only product like Sosoft. RETURNED by the
+   *  RPC since 0199 rather than inferred: the function already decides this to
+   *  pick the price it measures margin against, and a screen that guessed would
+   *  be able to offer a per-pack figure for a product sold only by the carton —
+   *  the standing units rule, and the exact defect that crashed the Pricing
+   *  Tool. */
+  price_unit: "pack" | "carton" | null;
 }
 
 /** FX rates and shipment charges from the most recent real shipment. */
