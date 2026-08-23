@@ -169,7 +169,6 @@ export function CostingSimulator() {
   const [results, setResults] = useState<CostingResultRow[] | null>(null);
   const [running, setRunning] = useState(false);
   const [search, setSearch] = useState("");
-  const [showCosts, setShowCosts] = useState(true);
 
   const [scenarios, setScenarios] = useState<CostingScenario[]>([]);
   const [scenarioId, setScenarioId] = useState<string | null>(null);
@@ -725,18 +724,13 @@ export function CostingSimulator() {
             <Total label="Landed total" value={totals.landed} strong />
           </div>
 
-          <div className="flex items-center justify-between px-1">
-            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-              Per product, versus what you pay and charge today
-            </p>
-            <button
-              onClick={() => setShowCosts((s) => !s)}
-              className="text-[13px] font-semibold snm-pressable"
-              style={{ color: "var(--foreground)" }}
-            >
-              {showCosts ? "Show margins" : "Show costs"}
-            </button>
-          </div>
+          {/* The toggle that used to live here is gone. It swapped the whole
+              row between costs and margins, so cost, price and margin could
+              never be read together — and comparison is the entire job of this
+              screen. Every figure it hid was already being returned. */}
+          <p className="text-[13px] px-1" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+            What each product costs you now and on this shipment, against the price you charge
+          </p>
 
           {resultGroups.map((g) => (
             <div key={g.title} className="snm-card rounded-2xl p-4 space-y-2">
@@ -744,7 +738,7 @@ export function CostingSimulator() {
                 {g.title}
               </p>
               {g.rows.map((r) => (
-                <ResultRow key={r.sku_id} r={r} showCosts={showCosts} />
+                <ResultRow key={r.sku_id} r={r} />
               ))}
             </div>
           ))}
@@ -1048,100 +1042,186 @@ function Total({ label, value, strong }: { label: string; value: number; strong?
   );
 }
 
-function ResultRow({ r, showCosts }: { r: CostingResultRow; showCosts: boolean }) {
-  // The RPC compares cost per piece (the only unit comparable across pack
-  // configurations); it is converted to a per-pack figure for display, because
-  // that is the unit Ali buys and sells in.
-  const delta = r.delta_per_piece_mvr;
-  const deltaPack = delta == null ? null : delta * r.pcs_per_pack;
-  // Cheaper than today is good news; the app's colour law says green means money.
-  const deltaColour = delta == null || Math.abs(delta) < 0.005
-    ? "var(--muted-foreground)"
-    : delta < 0 ? "var(--snm-success)" : "var(--snm-error)";
+/* ── One product, one card ──────────────────────────────────────────────────
+   Ali, 2026-08-23, with a screenshot: *"The design of the pricing simulator is
+   a very complex ui/UX not fit for mobile. It is missing key functions where I
+   cannot see the price I sell now or landed cost now with the simulation so
+   that I can compare."*
 
-  const margin = r.simulated_margin_pct;
-  const marginColour = margin == null
-    ? "var(--muted-foreground)"
-    : margin < 0 ? "var(--snm-error)"
-    : r.target_margin_pct != null && margin < r.target_margin_pct ? "var(--snm-warning)"
+   WHAT WAS WRONG. A single `showCosts` toggle swapped the whole row between
+   costs and margins, so cost, price and margin could never be on screen at the
+   same time — and comparison is the entire job of a costing simulator. Nothing
+   was missing from the DATA: current landed cost, current selling price and
+   current margin were all already returned by simulate_landed_costs and simply
+   not rendered. The toggle is gone.
+
+   THE SHAPE, taken from components/sales/stock-in-sheet.tsx, which already asks
+   the same three questions in one column with no toggle: what it cost, what you
+   sell it for, what you keep. Three labelled rows, two columns — NOW and THIS
+   SHIPMENT — read top to bottom on a phone. Ali gave explicit permission to
+   grow vertically, which is the cheap direction on a phone; horizontal is the
+   expensive one.
+
+   MONEY FIRST, PERCENTAGE SECOND (skills.md Seat 4). "You keep MVR 36" leads;
+   "15%" follows in the same line. A margin percentage alone is not something he
+   can sanity-check against his own business.
+
+   UNITS come from `price_unit`, returned by the RPC since 0199. A carton-only
+   product like Sosoft reads "per carton" on every line of this card; it is
+   never offered a per-pack figure it does not have.                          */
+function ResultRow({ r }: { r: CostingResultRow }) {
+  // The unit this product is actually sold in — never assumed.
+  const byCarton  = r.price_unit === "carton";
+  const unitWord  = byCarton ? "carton" : "pack";
+  const perCarton = r.packs_per_carton || 1;
+
+  // Everything below is stated in that one unit, so the three rows compare.
+  const sellNow = byCarton ? r.selling_price_per_carton_mvr : r.selling_price_per_pack_mvr;
+  const costNew = byCarton ? r.landed_per_carton_mvr : r.landed_per_pack_mvr;
+  // Current landed cost is returned per PIECE (the only unit comparable across
+  // pack configurations); converted here to the unit he trades in.
+  const costNow = r.current_landed_per_piece_mvr == null
+    ? null
+    : r.current_landed_per_piece_mvr * r.pcs_per_pack * (byCarton ? perCarton : 1);
+
+  const keepNow = sellNow != null && costNow != null ? sellNow - costNow : null;
+  const keepNew = sellNow != null && costNew != null ? sellNow - costNew : null;
+  const costUp  = costNow != null && costNew != null ? costNew - costNow : null;
+
+  const marginColour = (m: number | null) =>
+    m == null ? "var(--muted-foreground)"
+    : m < 0 ? "var(--snm-error)"
+    : r.target_margin_pct != null && m < r.target_margin_pct ? "var(--snm-warning)"
     : "var(--snm-success)";
 
+  // A deal that cannot work AT ANY SUPPLIER PRICE. Before 0199 the max FOB was
+  // clamped at zero and this read "pay at most USD 0.00", which looks like a
+  // rounding error; the truth is that freight and duty alone already exceed
+  // what this unit can carry at the margin, so no quote can rescue it.
+  const impossible = r.max_fob_per_carton_usd != null && r.max_fob_per_carton_usd <= 0;
+  const shortfallPerCarton = r.max_fob_per_carton_mvr == null ? null : -r.max_fob_per_carton_mvr;
+
   return (
-    <div className="py-1.5">
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0 flex-1">
-        <p className="text-[15px] font-medium truncate flex items-center gap-1.5" style={{ color: "var(--foreground)" }}>
-          {r.variant_display || r.model_name}
+    <div className="py-3" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+      {/* Which product, and how it is packed */}
+      <div className="mb-2.5">
+        <p className="text-[15px] font-semibold flex items-center gap-1.5"
+           style={{ color: "var(--foreground)" }}>
+          <span className="truncate">{r.variant_display || r.model_name}</span>
           {r.is_new && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
-              style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-              NEW
-            </span>
+              style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>NEW</span>
           )}
         </p>
-        <p className="snm-num text-[12.5px]" style={{ color: "var(--muted-foreground)" }}>
-          {showCosts
-            ? <>{r.packs_per_carton} packs of {r.pcs_per_pack} · MVR {money(r.landed_per_carton_mvr, 0)}/carton</>
-            : r.selling_price_per_pack_mvr
-              ? <>Sells at MVR {money(r.selling_price_per_pack_mvr, 0)}/pack</>
-              : <>No selling price set</>}
+        {/* On its OWN line, not beside the name: a long product name and the
+            pack config were colliding on a phone.
+            And never "6 packs of 1" — a Sosoft carton holds six BOTTLES, not
+            six packs of one. When a pack is a single item the pack layer is not
+            real and saying it out loud is the units rule being broken in a
+            place nobody thought to look. */}
+        <p className="snm-num text-[12px] mt-0.5" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+          {r.pcs_per_pack === 1
+            ? `${r.packs_per_carton} per carton`
+            : `${r.packs_per_carton} packs of ${r.pcs_per_pack}`}
         </p>
       </div>
 
-      <div className="text-right shrink-0">
-        {showCosts ? (
-          <>
-            <p className="snm-num text-[16px] font-semibold" style={{ color: "var(--foreground)" }}>
-              MVR {money(r.landed_per_pack_mvr, 0)}
-              <span className="ml-1 text-[11px] font-semibold" style={{ color: "var(--muted-foreground)" }}>/pack</span>
-            </p>
-            <p className="snm-num text-[12px]" style={{ color: deltaColour }}>
-              {deltaPack == null || Math.abs(deltaPack) < 0.005
-                ? "same as now"
-                : `${deltaPack < 0 ? "−" : "+"}MVR ${money(Math.abs(deltaPack), 0)}/pack vs now`}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="snm-num text-[16px] font-semibold" style={{ color: marginColour }}>
-              {pct(margin)}
-            </p>
-            <p className="snm-num text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-              {r.price_for_target_pack_mvr != null
-                ? `charge MVR ${money(r.price_for_target_pack_mvr, 0)}/pack ${r.price_basis === "target" ? "for target" : "to hold it"}`
-                : r.current_margin_pct != null ? `${pct(r.current_margin_pct)} today` : "—"}
-            </p>
-          </>
-        )}
-      </div>
-    </div>
+      {/* NOW vs THIS SHIPMENT. Column headers once, then three labelled rows. */}
+      <div className="grid gap-x-3 gap-y-1.5" style={{ gridTemplateColumns: "1fr auto auto" }}>
+        <span />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-right"
+              style={{ color: "var(--foreground)", opacity: 0.6, minWidth: 78 }}>Now</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-right"
+              style={{ color: "var(--foreground)", opacity: 0.6, minWidth: 92 }}>This shipment</span>
 
-    {/* REVERSE COSTING — the number you take into a negotiation. "It lands at
-        446" is an observation; "don't pay more than USD 13.68 a carton" is a
-        decision. Shown whenever there is a price and a margin to work back
-        from, which for a prospective product is exactly what was entered. */}
-    {r.max_fob_per_carton_usd != null && (
-      <div className="mt-1.5 rounded-lg px-2.5 py-2 flex items-baseline justify-between gap-2"
-        style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}>
-        <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-          Pay at most{r.price_basis === "target" ? " for your target margin" : " to hold this margin"}
+        <span className="text-[13px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+          Costs you
         </span>
-        <span className="text-right shrink-0">
-          <span className="snm-num text-[14px] font-semibold" style={{ color: "var(--foreground)" }}>
-            USD {money(r.max_fob_per_carton_usd)}
+        <div className="text-right snm-num"><span className="text-[14px]" style={{ color: "var(--foreground)", opacity: 0.8 }}>{money(costNow, 0)}</span></div>
+        <div className="text-right snm-num">
+          <span className="text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>{money(costNew, 0)}</span>
+          {costUp != null && Math.abs(costUp) >= 0.5 && (
+            <span className="block text-[11.5px]"
+                  style={{ color: costUp < 0 ? "var(--snm-success)" : "var(--snm-error)" }}>
+              {costUp < 0 ? "−" : "+"}{money(Math.abs(costUp), 0)}
+            </span>
+          )}
+        </div>
+
+        <span className="text-[13px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+          You sell at
+        </span>
+        <div className="text-right snm-num"><span className="text-[14px]" style={{ color: "var(--foreground)", opacity: 0.8 }}>{money(sellNow, 0)}</span></div>
+        <div className="text-right snm-num">
+          <span className="text-[14px]" style={{ color: "var(--foreground)", opacity: 0.55 }}>
+            {sellNow == null ? "—" : "unchanged"}
           </span>
-          <span className="snm-num text-[11px] ml-1" style={{ color: "var(--muted-foreground)" }}>/carton</span>
-          {r.fob_headroom_pct != null && (
-            <span className="snm-num block text-[11.5px]"
-              style={{ color: r.fob_headroom_pct < 0 ? "var(--snm-error)" : "var(--snm-success)" }}>
-              {r.fob_headroom_pct < 0
-                ? `quote is ${Math.abs(r.fob_headroom_pct).toFixed(0)}% too dear`
-                : `${r.fob_headroom_pct.toFixed(0)}% room on the quote`}
-            </span>
-          )}
+        </div>
+
+        <span className="text-[13px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+          You keep
         </span>
+        <div className="text-right snm-num">
+          <span className="text-[14px]" style={{ color: "var(--foreground)", opacity: 0.8 }}>{money(keepNow, 0)}</span>
+          <span className="block text-[11.5px]" style={{ color: "var(--foreground)", opacity: 0.55 }}>
+            {pct(r.current_margin_pct)}
+          </span>
+        </div>
+        <div className="text-right snm-num">
+          <span className="text-[15px] font-semibold" style={{ color: marginColour(r.simulated_margin_pct) }}>
+            {money(keepNew, 0)}
+          </span>
+          <span className="block text-[11.5px]" style={{ color: marginColour(r.simulated_margin_pct) }}>
+            {pct(r.simulated_margin_pct)}
+          </span>
+        </div>
       </div>
-    )}
+
+      {/* The columns carry bare numbers, which are only money once something
+          says so. One caption under the block rather than "MVR" repeated on
+          nine figures — the same reason a bank statement labels the column, not
+          every row. */}
+      <p className="text-[11.5px] mt-1.5" style={{ color: "var(--foreground)", opacity: 0.55 }}>
+        MVR per {unitWord}
+      </p>
+
+      {/* THE DECISION. "It lands at 446" is an observation; "do not pay more
+          than USD 13.68 a carton" is something to say to a supplier. */}
+      {r.max_fob_per_carton_usd != null && (
+        impossible ? (
+          <div className="mt-2.5 rounded-lg px-3 py-2.5"
+               style={{ background: "color-mix(in srgb, var(--snm-error) 12%, transparent)" }}>
+            <p className="text-[13px] font-semibold" style={{ color: "var(--snm-error)" }}>
+              No supplier price works here
+            </p>
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+              Freight and duty alone are MVR {money(shortfallPerCarton, 0)} a carton more than
+              this {unitWord} price can carry at {pct(r.target_margin_pct ?? r.current_margin_pct)}.
+              {r.price_for_target_pack_mvr != null && !byCarton && (
+                <> Charge MVR {money(r.price_for_target_pack_mvr, 0)} a pack, or leave it out.</>
+              )}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-2.5 rounded-lg px-3 py-2.5 flex items-baseline justify-between gap-2"
+               style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
+            <span className="text-[12.5px]" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+              Pay at most{r.price_basis === "target" ? " for your target" : " to hold this margin"}
+            </span>
+            <span className="text-right shrink-0">
+              <span className="snm-num text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
+                USD {money(r.max_fob_per_carton_usd)}
+              </span>
+              <span className="snm-num text-[11px] ml-1" style={{ color: "var(--foreground)", opacity: 0.6 }}>/carton</span>
+              {r.fob_headroom_pct != null && (
+                <span className="snm-num block text-[11.5px]" style={{ color: "var(--snm-success)" }}>
+                  {r.fob_headroom_pct.toFixed(0)}% room on the quote
+                </span>
+              )}
+            </span>
+          </div>
+        )
+      )}
     </div>
   );
 }
