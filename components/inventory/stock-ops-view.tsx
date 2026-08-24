@@ -87,9 +87,28 @@ function uomAbbr(u: SaleUom, unitUom: string | null | undefined) {
 function UnitToggle({ sku, value, onChange, tradeOnly = false }: {
   sku: SkuFullRow; value: SaleUom; onChange: (u: SaleUom) => void; tradeOnly?: boolean;
 }) {
+  // WHAT IT TRADES IN COMES FROM sellable_units, NOT FROM THE PACK NUMBERS.
+  //
+  // The trade tiers used to be inferred — carton if packs_per_carton > 1, pack
+  // if pcs_per_pack > 1 — and that inference is wrong for exactly the product
+  // Ali asked about. Sosoft is 1 x 6: ONE PIECE IS ONE WHOLE BOTTLE, so
+  // pcs_per_pack is 1 and the "pack" tier was hidden, even once the SKU
+  // declared it sells that way. He would have been unable to give away a single
+  // bottle on the one screen built for giving things away.
+  //
+  // sellable_units is the single source the sell sheet already uses
+  // (new-sale-sheet, sale-detail), so this is the third screen agreeing rather
+  // than a fourth opinion.
+  const trade = tradeOnly
+    ? (sellableTiers(sku.sellable_units) as SaleUom[])
+    : ([
+        ...(sku.packs_per_carton > 1 ? (["carton"] as const) : []),
+        ...(sku.pcs_per_pack > 1 ? (["pack"] as const) : []),
+      ] as SaleUom[]);
   const options: SaleUom[] = [
-    ...(sku.packs_per_carton > 1 ? (["carton"] as const) : []),
-    ...(sku.pcs_per_pack > 1 ? (["pack"] as const) : []),
+    ...trade,
+    // The LOOSE tier stays for ledger events — a write-off or a count — because
+    // a torn pack is real (CLAUDE.md). It is never offered on a trade sheet.
     ...(tradeOnly ? [] : (["piece"] as const)),
   ];
   if (options.length <= 1) return null;
@@ -1621,8 +1640,9 @@ function GiveawayTab({
     const sku = skuMap.get(id);
     // Never the loose tier here — see UnitToggle's `tradeOnly`. defaultUnitFor
     // can return "piece" for a single-item product, which is right for a
-    // write-off and wrong for a prize.
-    if (sku) setUnit(sku.packs_per_carton > 1 ? "carton" : sku.pcs_per_pack > 1 ? "pack" : "pack");
+    // write-off and wrong for a prize. sellableTiers puts the largest unit
+    // first, which is the one he most often gives away.
+    if (sku) setUnit((sellableTiers(sku.sellable_units)[0] ?? "pack") as SaleUom);
   }
 
   async function submit() {
