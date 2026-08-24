@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Search, MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight,
-  Check, AlertTriangle, Loader2, History, PackageX, PackagePlus,
+  Check, AlertTriangle, Loader2, History, PackageX, PackagePlus, Gift,
 } from "lucide-react";
 import { listSkusFlat, compareSkusForDisplay, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
@@ -15,6 +15,7 @@ import {
   getStockCountSummary, listStockCountSessions, listStockCountVariance,
   type StockCountSummary, type StockCountSession, type StockCountVariance,
   writeOffStock, type WriteOffReason,
+  giveAwayStock,
   listRecentWriteoffs, type WriteoffRow,
   receiveDirectStock,
 } from "@/lib/queries/inventory";
@@ -72,12 +73,24 @@ function uomAbbr(u: SaleUom, unitUom: string | null | undefined) {
 }
 
 /** Compact segmented Carton/Pack/Piece switch — hides tiers that don't apply
- * to this SKU (e.g. no Carton option if packs_per_carton is 1). */
-function UnitToggle({ sku, value, onChange }: { sku: SkuFullRow; value: SaleUom; onChange: (u: SaleUom) => void }) {
+ * to this SKU (e.g. no Carton option if packs_per_carton is 1).
+ *
+ *  `tradeOnly` DROPS THE LOOSE TIER, and the distinction is the units rule
+ *  rather than a preference. CLAUDE.md allows a loose tier in Stock Ops
+ *  specifically because a write-off or a count adjustment is a LEDGER event —
+ *  a torn pack is real, and refusing to record it would be worse than the word.
+ *
+ *  A GIVEAWAY IS NOT A LEDGER EVENT. It is a trade event: Ali gives away packs
+ *  and cartons, exactly as he sells them, and nobody hands a stranger loose
+ *  diapers. Offering "pcs" there is the same defect as offering it on the sell
+ *  sheet, which migration 0201 spent a whole day removing. */
+function UnitToggle({ sku, value, onChange, tradeOnly = false }: {
+  sku: SkuFullRow; value: SaleUom; onChange: (u: SaleUom) => void; tradeOnly?: boolean;
+}) {
   const options: SaleUom[] = [
     ...(sku.packs_per_carton > 1 ? (["carton"] as const) : []),
     ...(sku.pcs_per_pack > 1 ? (["pack"] as const) : []),
-    "piece",
+    ...(tradeOnly ? [] : (["piece"] as const)),
   ];
   if (options.length <= 1) return null;
   return (
@@ -100,7 +113,7 @@ function UnitToggle({ sku, value, onChange }: { sku: SkuFullRow; value: SaleUom;
   );
 }
 
-type Tab = "receive" | "verify" | "transfer" | "writeoff";
+type Tab = "receive" | "verify" | "transfer" | "writeoff" | "giveaway";
 
 /* ════════════════════════════════════════════════════════════════════════ */
 
@@ -189,6 +202,11 @@ export function StockOpsView() {
           { id: "verify", label: "Verify Count", icon: ClipboardCheck },
           { id: "transfer", label: "Transfer", icon: ArrowLeftRight },
           { id: "writeoff", label: "Write-off", icon: PackageX },
+          // A GIVEAWAY IS NOT A WRITE-OFF, and it gets its own tab for exactly
+          // that reason. The write-off line in the P&L means SHRINKAGE — damage,
+          // expiry, theft — and putting promotions in it would mean a rise next
+          // month could not distinguish a storage problem from a campaign.
+          { id: "giveaway", label: "Giveaway", icon: Gift },
         ] as { id: Tab; label: string; icon: typeof Check }[]).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -222,6 +240,8 @@ export function StockOpsView() {
         <VerifyTab skus={skus} godowns={godowns} levels={levels} onDone={reloadLevels} canWrite={canWrite} />
       ) : tab === "transfer" ? (
         <TransferTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
+      ) : tab === "giveaway" ? (
+        <GiveawayTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
       ) : (
         <WriteOffTab godowns={godowns} levels={levels} skuMap={skuMap} onDone={reloadLevels} canWrite={canWrite} />
       )}
@@ -1534,6 +1554,212 @@ function VerificationHistory() {
                   )}
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Giveaway: stock issued as a promotional prize ────────────────────────
+//
+// Ali, 2026-08-24: *"I launched an Instagram giveaway promotion for a case of
+// diapers. Now I have chosen a winner... Since it's not a sale I will still
+// have to enter it to the system and deduct from stock. Where will it go into
+// the system and what's the best way professionals do it?"*
+//
+// A COPY OF WriteOffTab, deliberately and almost line for line: same godown
+// picker, same search, same unit toggle, same quantity field, same confirm.
+// Ali has used that sheet; making him learn a second layout for the same
+// physical act — stock leaving a godown for a reason that is not a sale —
+// would be a tax on him for no gain.
+//
+// What differs is only what must: the reason pills are replaced by the CAMPAIGN
+// NAME (required — stock leaving for a promotion nobody named is
+// indistinguishable from stock going missing), the tone is neutral rather than
+// destructive because this was a decision and not a loss, and the toast says
+// where the money went.
+function GiveawayTab({
+  godowns, levels, skuMap, onDone, canWrite,
+}: {
+  godowns: GodownRow[]; levels: StockLevel[];
+  skuMap: Map<string, SkuFullRow>; onDone: () => Promise<void>;
+  canWrite: boolean;
+}) {
+  const [godownId, setGodownId] = useState<string>(godowns.find((g) => g.is_default)?.id ?? godowns[0]?.id ?? "");
+  const [skuId, setSkuId] = useState<string>("");
+  const [q, setQ] = useState("");
+  const [qty, setQty] = useState("");
+  const [unit, setUnit] = useState<SaleUom>("piece");
+  const [campaign, setCampaign] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const available = useMemo(() => {
+    const inG = levels.filter((l) => l.godown_id === godownId && l.qty_pieces > 0);
+    const list = inG
+      .map((l) => { const s = skuMap.get(l.sku_id); return s ? { sku: s, avail: l.qty_pieces } : null; })
+      .filter((x): x is { sku: SkuFullRow; avail: number } => x !== null);
+    const term = q.trim().toLowerCase();
+    const filtered = term
+      ? list.filter((r) => skuLabel(r.sku).toLowerCase().includes(term) || (r.sku.internal_code ?? "").toLowerCase().includes(term))
+      : list;
+    return filtered.sort((a, b) => compareSkusForDisplay(a.sku, b.sku));
+  }, [levels, godownId, skuMap, q]);
+
+  const selected = skuId ? skuMap.get(skuId) : undefined;
+  const availForSelected = skuId ? (levels.find((l) => l.godown_id === godownId && l.sku_id === skuId)?.qty_pieces ?? 0) : 0;
+  const qtyEnteredNum = Math.max(0, Math.floor(Number(qty) || 0));
+  const qtyNum = selected ? toPieces(unit, qtyEnteredNum, selected.pcs_per_pack, selected.packs_per_carton) : 0;
+  const overAvailable = qtyNum > availForSelected;
+  const canSubmit = !!skuId && qtyEnteredNum > 0 && !overAvailable && campaign.trim() !== "" && !saving;
+
+  function pickSku(id: string) {
+    if (id === skuId) { setSkuId(""); setQty(""); return; }
+    setSkuId(id); setQty("");
+    const sku = skuMap.get(id);
+    // Never the loose tier here — see UnitToggle's `tradeOnly`. defaultUnitFor
+    // can return "piece" for a single-item product, which is right for a
+    // write-off and wrong for a prize.
+    if (sku) setUnit(sku.packs_per_carton > 1 ? "carton" : sku.pcs_per_pack > 1 ? "pack" : "pack");
+  }
+
+  async function submit() {
+    if (!canSubmit || !selected) return;
+    setSaving(true);
+    try {
+      const cost = await giveAwayStock({
+        sku_id: skuId, godown_id: godownId, qty_pieces: qtyNum,
+        campaign_name: campaign.trim(), notes,
+      });
+      await onDone();
+      setSkuId(""); setQty(""); setQ(""); setNotes(""); setCampaign("");
+      haptic("success");
+      // Says where the money WENT, not just that something happened — the whole
+      // point is that this is marketing, at cost, on a named campaign.
+      toast.success(`Given away — MVR ${mvrUpTo(cost, 2)} charged to "${campaign.trim()}" as marketing.`);
+    } catch (e) {
+      haptic("error");
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <GodownPicker godowns={godowns} value={godownId} onChange={(v) => { setGodownId(v); setSkuId(""); }} label="Warehouse" />
+      <p className="ios-footnote px-1" style={{ color: "var(--muted-foreground)" }}>
+        For prizes and samples. Takes the stock out and charges what it COST you to
+        that campaign&apos;s marketing — not to sales, and not to write-offs.
+      </p>
+
+      <div
+        className="flex items-center gap-2.5 px-4 rounded-2xl"
+        style={{ background: "var(--glass-1)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
+      >
+        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Find the item you gave away…"
+          aria-label="Search items to give away"
+          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+
+      {selected && (() => {
+        const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
+        return (
+          <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
+                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{selected.pcs_per_pack}/pk × {selected.packs_per_carton}/ctn</p>
+              </div>
+              <p className="snm-num ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
+                {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} on hand
+              </p>
+            </div>
+
+            {/* THE CAMPAIGN, AND IT IS REQUIRED. A label above the field, not a
+                placeholder — a field's name never lives in its placeholder
+                (CLAUDE.md), and this one decides where the money is charged. */}
+            <div className="space-y-1.5">
+              <p className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>Which promotion</p>
+              <input
+                value={campaign} onChange={(e) => setCampaign(e.target.value)}
+                placeholder="Instagram giveaway August"
+                aria-label="Campaign name"
+                className="w-full h-12 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="ios-subhead font-medium" style={{ color: "var(--muted-foreground)" }}>How many given away</p>
+              <UnitToggle sku={selected} value={unit} onChange={(u) => setUnit(u)} tradeOnly />
+            </div>
+            <input
+              type="number" inputMode="numeric"
+              placeholder={`How many ${selected ? uomAbbr(unit, selected.unit_uom) : "units"}?`}
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+              onFocus={(e) => e.target.select()}
+              className="w-full h-12 rounded-xl px-4 text-[16px] font-semibold text-foreground outline-none"
+              style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: `1px solid ${overAvailable ? "color-mix(in srgb, var(--snm-error) 45%, transparent)" : "var(--glass-border-lo)"}` }}
+            />
+            {overAvailable && (
+              <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} on hand here.</p>
+            )}
+
+            <input
+              value={notes} onChange={(e) => setNotes(e.target.value)}
+              placeholder="Note (optional) — e.g. winner @username"
+              className="w-full h-11 rounded-xl px-3 ios-subhead text-foreground outline-none"
+              style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
+            />
+
+            {/* NOT the destructive red of the write-off button. This was a
+                marketing decision, not a loss, and the colour should not tell
+                him otherwise (skills.md Seat 1: red means loss or destructive). */}
+            <button
+              onClick={submit}
+              disabled={!canSubmit || !canWrite}
+              className="w-full rounded-2xl flex items-center justify-center gap-2 text-[15px] font-semibold active:opacity-80 disabled:opacity-50"
+              style={{ background: "var(--foreground)", color: "var(--background)", height: 52 }}
+            >
+              <Gift className="h-4.5 w-4.5" /> {saving ? "Recording…" : "Record giveaway"}
+            </button>
+          </div>
+        );
+      })()}
+
+      {available.length === 0 ? (
+        <EmptyState text="No stock in this warehouse to give away." />
+      ) : (
+        <div className="space-y-2 max-h-[42vh] overflow-y-auto overscroll-contain">
+          {available.map((r) => {
+            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
+            const active = skuId === r.sku.id;
+            return (
+              <button
+                key={r.sku.id}
+                onClick={() => pickSku(r.sku.id)}
+                className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3 active:opacity-70"
+                style={{ background: "var(--glass-1)", border: active ? "1px solid color-mix(in srgb, var(--foreground) 35%, transparent)" : "0.5px solid var(--glass-border-lo)" }}
+              >
+                <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center" style={{ border: active ? "none" : "1.5px solid var(--glass-border-lo)", background: active ? "var(--foreground)" : "transparent" }}>
+                  {active && <Check className="h-3 w-3" style={{ color: "var(--background)" }} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
+                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)} on hand
+                  </p>
+                </div>
+              </button>
             );
           })}
         </div>
