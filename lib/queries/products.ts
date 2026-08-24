@@ -579,3 +579,42 @@ export async function createSkuFull(input: CreateSkuFullInput): Promise<string> 
   invalidate("skus:");
   return data as string;
 }
+
+// ── Correcting a mistyped name (migration 0205) ──────────────────────────
+//
+// Ali, 2026-08-24: *"I entered a product name by mistake... How can I correct
+// this and any other future mistakes? Like spelling mistakes or a different
+// name by mistake?"*
+//
+// He could not. `updateBrand`, `updateModel` and `updateVariant` above have
+// been in this file the whole time and are called from NOWHERE — the dialogs
+// that used them were deleted as dead code in August with a note saying names
+// are edited through products-explorer's own sheets. They are not.
+//
+// This goes through an RPC rather than three table updates for three reasons,
+// none of them style: the audit row and the change must be one transaction
+// (a rename rewrites what every past document appears to say); a name clash
+// must come back as a sentence rather than "duplicate key value violates
+// unique constraint"; and one door cannot drift from another.
+//
+// THE SKU CODE DOES NOT CHANGE. That is deliberate and is the universal
+// convention — the code is the permanent reference that ends up on labels and
+// paperwork, the name is the description. See migration 0205.
+
+export type CataloguePart = "brand" | "model" | "variant";
+
+/** Corrects a mistyped brand, product or size name. History stays attached:
+ *  every past batch, movement and order line keeps pointing at the same row,
+ *  so they simply start reading the corrected name. Returns the OLD name, so
+ *  the screen can say exactly what changed. Admin or manager only — enforced
+ *  in Postgres, not here. */
+export async function renameCataloguePart(
+  kind: CataloguePart, id: string, name: string,
+): Promise<string> {
+  const { data, error } = await supabase.rpc("rename_catalogue_part", {
+    p_kind: kind, p_id: id, p_name: name,
+  });
+  if (error) throw error;
+  invalidate("skus:");
+  return data as string;
+}

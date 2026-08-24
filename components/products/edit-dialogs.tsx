@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { containerLabel, type UnitUom } from "@/lib/trade-units";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateSku, adminDeleteBrandCascade, adminDeleteModelCascade, adminDeleteVariantCascade, adminDeleteSku, type SkuFullRow, type SellUnit } from "@/lib/queries/products";
+import { updateSku, renameCataloguePart, adminDeleteBrandCascade, adminDeleteModelCascade, adminDeleteVariantCascade, adminDeleteSku, type SkuFullRow, type SellUnit } from "@/lib/queries/products";
 
 // ── Brand editor ────────────────────────────────────────────────────────
 
@@ -45,6 +45,20 @@ export function EditSkuDialog({
   const perPiece = sku?.fixed_selling_price_mvr;
   const initialFixedPrice = perPiece != null
     ? (perPiece * (sku?.pcs_per_pack ?? 1)).toFixed(2) : "";
+
+  // ── The NAMES, which had no editor anywhere in the app until 0205 ────────
+  //
+  // Ali, 2026-08-24: *"I entered a product name by mistake... How can I correct
+  // this and any other future mistakes?"* He could not: the product had stock,
+  // so delete was correctly blocked, and nothing in the app renamed anything.
+  //
+  // They live at the TOP of this dialog on purpose. Everything below is
+  // numbers — pack size, dimensions, prices — and a wrong NAME is the mistake
+  // he is most likely to be here to fix, because a product is created in a
+  // hurry, on a phone, the day he hears about it.
+  const [brandName, setBrandName] = useState(sku?.brand_name ?? "");
+  const [modelName, setModelName] = useState(sku?.model_name ?? "");
+  const [variantName, setVariantName] = useState(sku?.variant_display ?? "");
 
   const [code, setCode] = useState(sku?.internal_code ?? "");
   const [barcode, setBarcode] = useState(sku?.supplier_barcode ?? "");
@@ -131,6 +145,23 @@ export function EditSkuDialog({
     }
     setSaving(true);
     try {
+      // RENAMES FIRST, and only the ones that actually changed.
+      //
+      // Before the numbers, because a rename can be REFUSED — a brand name
+      // already in use, a blank field — and if that happens he should get the
+      // sentence explaining it with nothing else half-saved. Each is skipped
+      // when untouched, so the audit log records renames and not every visit to
+      // this dialog.
+      if (brandName.trim() && brandName.trim() !== sku.brand_name) {
+        await renameCataloguePart("brand", sku.brand_id, brandName.trim());
+      }
+      if (modelName.trim() && modelName.trim() !== sku.model_name) {
+        await renameCataloguePart("model", sku.model_id, modelName.trim());
+      }
+      if (variantName.trim() && variantName.trim() !== sku.variant_display) {
+        await renameCataloguePart("variant", sku.variant_id, variantName.trim());
+      }
+
       await updateSku(sku.id, {
         internal_code: code.trim(),
         supplier_barcode: barcode.trim() || null,
@@ -170,9 +201,51 @@ export function EditSkuDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Edit Pack Configuration</DialogTitle>
+          <DialogTitle>Edit Product</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+
+          {/* ── The NAMES ────────────────────────────────────────────────────
+              FIRST, because a mistyped name is the likeliest reason he opened
+              this sheet, and until migration 0205 there was no way to fix one
+              anywhere in the app — a product with stock could not be deleted
+              (correctly) and nothing could rename it.
+
+              Names, not numbers, so no unit word appears here and none is
+              needed. The SKU code below is deliberately NOT regenerated: it is
+              the permanent reference that ends up on labels and paperwork,
+              while the name is the description. */}
+          <div className="rounded-xl p-3 space-y-3"
+            style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
+            <p className="text-[12px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted-foreground)" }}>
+              Name
+            </p>
+            <div className="space-y-2">
+              <Label>Brand</Label>
+              <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="Bodyshop" />
+              {/* The blast radius, stated rather than discovered. Renaming a
+                  brand is one edit that changes many screens. */}
+              <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                Renames it on every product of this brand.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Product</Label>
+              <Input value={modelName} onChange={(e) => setModelName(e.target.value)} placeholder="Body Butter" />
+              <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                Renames it on every size of this product.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Size</Label>
+              <Input value={variantName} onChange={(e) => setVariantName(e.target.value)} placeholder="200ml" />
+            </div>
+            <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+              Every past order, batch and stock movement stays attached and starts
+              reading the corrected name. The code below does not change — it is
+              what is printed on labels.
+            </p>
+          </div>
 
           {/* ── Current live prices (read-only summary) ── */}
           {sku?.landed_per_piece_mvr != null && (
