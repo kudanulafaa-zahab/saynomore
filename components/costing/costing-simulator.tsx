@@ -31,7 +31,7 @@ import { listCompetitorReferencePrices, type CompetitorReferencePrice } from "@/
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
-import { containerLabel } from "@/lib/trade-units";
+import { containerLabel, UNIT_WORDS, type UnitUom } from "@/lib/trade-units";
 import { CONTAINER_CAPACITY_CBM, type ContainerSizeHint } from "@/lib/queries/shipments";
 import { mvr, mvrUpTo } from "@/lib/money";
 
@@ -74,9 +74,16 @@ interface Trial {
   lenCm: string;
   widCm: string;
   hgtCm: string;
-  /** What one pack-level unit is called for this product. A 700ml bottle is a
-   *  bottle, not a "pack" — the same containerLabel rule as everywhere else. */
-  unitNoun: "pack" | "bottle" | "pouch";
+  /** WHAT ONE OF THEM IS, not what it is called. The trial used to store one of
+   *  three NOUNS — "pack" | "bottle" | "pouch" — which meant a tub, a jar, a bar
+   *  and a bedding set could not be described at all. It was the same shape as
+   *  the blocker Ali hit adding IKEA, in the one screen where a product has no
+   *  SKU to read its word from: a trial is a product he has not bought yet.
+   *
+   *  Storing the UNIT and deriving the word through containerLabel makes all
+   *  eleven describable and removes a twelfth place that had its own opinion
+   *  about what a unit is called. */
+  unitUom: UnitUom;
   /** Whether it is sold by the pack as well as the carton. Drives which units
    *  the price fields offer, so the screen can never ask for a price in a unit
    *  the product isn't sold in. */
@@ -110,7 +117,7 @@ function emptyTrial(): Trial {
     name: "", variant: "", categoryId: "",
     pcsPerPack: "", packsPerCarton: "",
     lenCm: "", widCm: "", hgtCm: "",
-    unitNoun: "pack", sellsPack: true,
+    unitUom: "pcs", sellsPack: true,
     qty: "", fob: "", fobBasis: "carton", currency: "USD",
     sellUnit: "pack", sellPrice: "", targetMargin: "", dutyPct: "0",
     manualCompetitorName: "", manualCompetitorPrice: "",
@@ -628,7 +635,7 @@ export function CostingSimulator() {
                     </p>
                     <p className="snm-num text-[12.5px]" style={{ color: ready ? "var(--muted-foreground)" : "var(--snm-warning)" }}>
                       {ready
-                        ? `${num(t.qty)} cartons · ${num(t.packsPerCarton)} ${t.unitNoun}s of ${num(t.pcsPerPack)} · ${t.currency} ${t.fob} per ${t.fobBasis === "pack" ? t.unitNoun : "carton"}`
+                        ? `${num(t.qty)} cartons · ${num(t.packsPerCarton)} ${containerLabel(t.unitUom)}s of ${num(t.pcsPerPack)} · ${t.currency} ${t.fob} per ${t.fobBasis === "pack" ? containerLabel(t.unitUom) : "carton"}`
                         : "Tap to finish — needs quantity, carton size and price"}
                     </p>
                   </button>
@@ -1349,7 +1356,8 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
   const manualN = num(t.manualCompetitorPrice);
   const category = categories.find((c) => c.id === t.categoryId) ?? null;
 
-  const noun = t.unitNoun;
+  // ONE SOURCE for the word, the twin of Postgres unit_noun.
+  const noun = containerLabel(t.unitUom);
   const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
   const cbm = trialCbm(t);
   const qtyN = num(t.qty);
@@ -1465,16 +1473,31 @@ function TrialSheet({ draft, boxes, categories, onClose, onSave }: {
             {/* What it is and how it's sold — drives every unit word below */}
             <div className="mb-4">
               <Caps>HOW YOU&apos;D SELL IT *</Caps>
-              <div className="flex flex-wrap gap-2 mb-2">
-                <Pills
-                  options={[
-                    { v: "pack" as const, l: "Packs" },
-                    { v: "bottle" as const, l: "Bottles" },
-                    { v: "pouch" as const, l: "Pouches" },
-                  ]}
-                  value={t.unitNoun}
-                  onChange={(v) => set({ unitNoun: v })}
-                />
+              {/* ALL ELEVEN WORDS, laid out exactly as the New Category form
+                  lays them out — same markup, same hints, same source. This
+                  offered three, so a trial for a tub or a bedding set could not
+                  be described; the fix is to copy the screen that already does
+                  this job rather than to invent a second way of asking. */}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {UNIT_WORDS.map(({ uom: u, word, hint }) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => set({ unitUom: u })}
+                    aria-pressed={t.unitUom === u}
+                    className="text-left rounded-xl px-3 py-2 border transition"
+                    style={{
+                      background: t.unitUom === u ? "var(--snm-brand)" : "var(--glass-bg-1)",
+                      borderColor: t.unitUom === u ? "var(--snm-brand)" : "var(--glass-border)",
+                      // An unselected pill carries a CHOICE, so it is content
+                      // and gets real foreground — never muted-on-transparent.
+                      color: t.unitUom === u ? "var(--snm-brand-on)" : "var(--foreground)",
+                    }}
+                  >
+                    <span className="ios-subhead font-semibold block">{word}</span>
+                    <span className="ios-footnote block" style={{ opacity: 0.7 }}>{hint}</span>
+                  </button>
+                ))}
               </div>
               <Pills
                 options={[

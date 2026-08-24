@@ -20,7 +20,7 @@
 -- anyone doing anything.
 
 begin;
-select plan(8);
+select plan(9);
 
 -- ── Every view respects the caller's row level security ────────────────────
 -- `security_invoker` accepts both `true` and `on`; the app has used both
@@ -135,6 +135,41 @@ select is(
      ) dupes),
   'none',
   'no table declares the same CHECK rule twice'
+);
+
+-- ── No table enforces the same rule from two triggers (migration 0207) ─────
+--
+-- The CHECK-constraint version of this is two tests above, and it was written
+-- after migration 0195 found six rules declared twice. Triggers had no such
+-- guard, and production was running one twice: `trg_guard_sku_pack_config`
+-- (present on production, created by NO migration) alongside
+-- `trg_block_pack_config_change` from 0190. Both BEFORE UPDATE on `skus`, both
+-- raising on the same condition, and a legitimate pack-size correction wrote
+-- TWO audit rows.
+--
+-- It surfaced by accident: 0203 named the function in a REVOKE and the replay
+-- from empty refused because it does not exist here. `npm run drift` compared
+-- COLUMNS only and could never have seen it — now widened to functions and
+-- triggers, and this is the CI half of that.
+--
+-- Keyed on the RULE the trigger enforces, not on its name, because two copies
+-- of one rule never share a name — that is what makes them hard to see.
+select is(
+  (select coalesce(string_agg(format('%s: %s', tbl, names), ' | ' order by tbl), 'none')
+     from (
+       select c.relname as tbl,
+              string_agg(t.tgname, ' = ' order by t.tgname) as names
+         from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+         join pg_proc p on p.oid = t.tgfoid
+        where not t.tgisinternal
+          and pg_get_functiondef(p.oid) like '%pcs_per_pack%'
+        group by c.relname
+       having count(*) > 1
+     ) dupes),
+  'none',
+  'no table enforces the pack-size rule from more than one trigger -- production ran it twice, and a refused write could be blamed on either'
 );
 
 -- ── No policy asks who you are once per row ────────────────────────────────

@@ -222,19 +222,26 @@ for (const t of ["UnitUom", "SellUnit"]) {
 // noun for a category measured in grams — so outside the module that owns the
 // mapping, any occurrence is a second copy of it.
 //
-// The costing simulator is the one legitimate exception and is listed by name:
-// its trial sheet PICKS a noun for a product that does not exist yet, so there
-// is no unit_uom to read. (That picker offers three of the eleven words and
-// cannot describe a tub or a bedding set — recorded in docs/OPEN.md, not
-// silently allowed.)
+// THE COSTING SIMULATOR USED TO BE EXEMPT AND IS NOT ANY MORE. Its trial sheet
+// picked a NOUN for a product that does not exist yet — one of three, so a tub
+// or a bedding set could not be described at all. It now stores the UNIT and
+// derives the word through containerLabel like everything else, so the
+// exemption came out and this check genuinely covers it.
+//
+// COMMENTS ARE STRIPPED BEFORE THE TEST, and that is the second time this
+// lesson has been learnt today: migration 0204's guard refused its own
+// migration because the new code's comment explained what it deliberately did
+// NOT use. A guard a comment can trip is a guard that will one day be silenced
+// by deleting the comment, which is the wrong repair. This one reads code.
 const NOUN_OWNERS = new Set([
-  "lib/trade-units.ts",                      // containerLabel: the mapping itself
-  "components/sales/cart/cart-math.ts",      // renders a noun the user already picked
-  "components/costing/costing-simulator.tsx" // picks a noun for a product with no SKU
+  "lib/trade-units.ts",                 // containerLabel: the mapping itself
+  "components/sales/cart/cart-math.ts", // renders a noun the user already picked
 ]);
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 const nounCopies = files
   .filter((f) => !NOUN_OWNERS.has(f))
-  .filter((f) => /["']pouch["']/.test(readFileSync(f, "utf8")));
+  .filter((f) => /["']pouch["']/.test(stripComments(readFileSync(f, "utf8"))));
 
 list.ok(nounCopies.length === 0,
   "the unit noun is derived in one place — no file re-maps unit_uom to a word" +
