@@ -31,6 +31,10 @@ export interface PricingHealthRow {
   suggested_pack_mvr: number | null;
   suggested_carton_mvr: number | null;
   status: PricingHealthStatus;
+  /** From the product's category (migration 0202). The screen needs it to
+   *  NAME the unit — a tub is not a "pack" — and must never infer the word
+   *  itself; containerLabel is the single source. */
+  unit_uom: string | null;
 }
 
 /** SKUs whose pricing needs attention: fixed prices whose real margin (vs the
@@ -81,4 +85,53 @@ export async function getPriceBook(): Promise<PriceBookRow[]> {
   const { data, error } = await supabase.rpc("get_price_book");
   if (error) throw error;
   return (data ?? []) as PriceBookRow[];
+}
+
+// ── Setup gaps (master-data completeness) ────────────────────────────────
+//
+// Ali, 2026-08-24: *"Solve the problems professionally so it doesn't repeat and
+// I will be able to add any new product without coming back and debugging every
+// time."*
+//
+// Margin Watch above answers "is this product priced WELL". It cannot answer
+// "is this product FINISHED", for a reason built into it: it inner-joins stock,
+// because its job is the money sitting in the godown. So a product with no
+// price and no stock is invisible to it — and stays invisible until the day a
+// container lands and someone tries to sell it. X-Tra Kering NB/S was in exactly
+// that state, with no price on any unit at all.
+//
+// get_setup_gaps (migration 0202) is the master-data completeness check every
+// ERP has. Every string it returns is already written for Ali IN TRADE UNITS by
+// Postgres — headline, blocks and stock_label are rendered as-is. Nothing here
+// composes a sentence or picks a unit word, which is the whole point: the unit
+// noun has been re-derived in the UI five times already, and each time it fell
+// through to a wrong "pack".
+
+/** What is unfinished. `no_price` blocks selling outright; `no_carton_size`
+ *  blocks RECEIVING, because a zero-CBM line has nothing for freight to be
+ *  apportioned on (hard rule 4). */
+export type SetupGap = "no_price" | "no_carton_price" | "no_carton_size" | "no_cost";
+
+export interface SetupGapRow {
+  sku_id: string;
+  internal_code: string;
+  full_path: string;
+  gap: SetupGap;
+  /** One plain sentence, already in trade units. Render as-is. */
+  headline: string;
+  /** What it stops him doing, already in trade units. Render as-is. */
+  blocks: string;
+  /** "6 tubs", "14 cartons" — never a piece count. Render as-is. */
+  stock_label: string;
+  stock_pieces: number;
+  severity: number;
+}
+
+/** Every active product with something unfinished that will block a sale, a
+ *  purchase or a receipt — worst first. An empty array means every product in
+ *  the catalogue is ready to trade, and the UI shows nothing at all. */
+export async function getSetupGaps(): Promise<SetupGapRow[]> {
+  const { data, error } = await supabase.rpc("get_setup_gaps");
+  if (error) throw error;
+  return (data ?? []) as SetupGapRow[];
 }
