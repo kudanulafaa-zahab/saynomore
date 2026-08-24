@@ -56,11 +56,37 @@ if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(localHost ?? "")) {
   process.exit(2);
 }
 
+// COLUMNS, FUNCTIONS **AND** TRIGGERS.
+//
+// This compared columns only, and that is exactly why it missed the one that
+// mattered. `guard_sku_pack_config` existed on production and in no migration —
+// with a LIVE TRIGGER on `skus`, so every SKU update ran the pack-size rule
+// twice. A column-only check could never see it, and it surfaced by accident
+// when migration 0203 named the function in a REVOKE and the replay from empty
+// refused. Migration 0207 removed it; this makes the next one findable on
+// purpose.
+//
+// Function BODIES are deliberately not compared, only their signatures. Bodies
+// differ for legitimate reasons — comments, whitespace, the order Postgres
+// chooses to print a clause — and a check that cries wolf is one that gets
+// ignored. What matters is that a function or trigger EXISTS on one side and
+// not the other.
 const SHAPE = `
-  select table_name || '.' || column_name || ' :: ' || data_type
+  select 'column   ' || table_name || '.' || column_name || ' :: ' || data_type
     from information_schema.columns
    where table_schema = 'public'
-   order by 1;
+  union all
+  select 'function ' || p.oid::regprocedure::text
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prokind in ('f', 'p')
+  union all
+  select 'trigger  ' || c.relname || '.' || t.tgname || ' -> ' || p.proname
+    from pg_trigger t
+    join pg_class c on c.oid = t.tgrelid
+    join pg_namespace n on n.oid = c.relnamespace
+    join pg_proc p on p.oid = t.tgfoid
+   where n.nspname = 'public' and not t.tgisinternal
+  order by 1;
 `;
 
 const shapeOf = (url) =>
@@ -79,7 +105,7 @@ try {
 // THE GUARD IS GUARDING SOMETHING. Two empty lists also compare equal, which is
 // how a check like this quietly stops checking.
 if (local.length < 100 || prod.length < 100) {
-  console.error(`REFUSING: read ${local.length} local and ${prod.length} production columns — too few to be a real schema.`);
+  console.error(`REFUSING: read ${local.length} local and ${prod.length} production objects — too few to be a real schema.`);
   process.exit(2);
 }
 
@@ -88,10 +114,10 @@ const prodSet  = new Set(prod);
 const onlyProd  = prod.filter((c) => !localSet.has(c));
 const onlyLocal = local.filter((c) => !prodSet.has(c));
 
-console.log(`  migrations build ${local.length} columns · production has ${prod.length}\n`);
+console.log(`  migrations build ${local.length} objects · production has ${prod.length}\n`);
 
 if (onlyProd.length === 0 && onlyLocal.length === 0) {
-  console.log("✓ No drift — production is exactly what the migrations build.\n");
+  console.log("✓ No drift — production is exactly what the migrations build (columns, functions and triggers).\n");
   process.exit(0);
 }
 
