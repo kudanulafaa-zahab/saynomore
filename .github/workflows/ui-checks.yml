@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-one audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -44,6 +44,10 @@ name: UI checks
 #             that container, once — never as a reason to order it again. The
 #             home screen was telling him to re-buy MVR 1,043 a week of goods
 #             already paid for and on the water
+#   atcost    a cost typed as the SELLING price is caught at both receiving
+#             doors. `price < cost` is strictly less-than, so equal slid through
+#             — under a green "You keep MVR 0.00". Three Body Shop tubs are in
+#             the ledger at cost = price because of it
 #   card      the Product Card: every figure on it reconciles to the ledger
 #   pricing   the Pricing Tool opens for EVERY product, not just the one that
 #             loads by default — it died on every carton-only SKU, and a
@@ -220,6 +224,9 @@ jobs:
 
       - name: Late shipment — the home screen never says buy what is already bought
         run: npm run audit:late
+
+      - name: At cost — a cost typed as the selling price is caught, both doors
+        run: npm run audit:atcost
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card

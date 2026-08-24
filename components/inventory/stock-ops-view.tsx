@@ -377,6 +377,31 @@ function ReceiveTab({
     : "unit";
   const totalMvr = qtyNum > 0 && costOk ? qtyNum * costNum : null;
 
+  // ── THE SAME GUARD, THE OTHER DOOR ────────────────────────────────────────
+  //
+  // "One guard, every door" (skills.md, Seat 4). The Stock In sheet in the
+  // sales flow asks for a cost AND a price, so it can compare them. This door
+  // asks for a cost only — and therefore never compared the figure to anything
+  // at all, which made a cost typed as the selling price completely invisible
+  // here.
+  //
+  // It does not need to ask. The product already HAS a selling price, and it is
+  // on the row: the check is the entered cost against that price, IN THE UNIT
+  // THE PILL IS SET TO. Comparing a per-carton cost to a per-pack price would
+  // invent a fake alarm on every carton receipt, which is worse than no alarm,
+  // because an alarm that cries wolf gets ignored on the day it is right.
+  //
+  // The incident: 2026-08-22, five Body Shop tubs received in one sitting —
+  // two at MVR 123 and three at MVR 380, which is exactly their selling price.
+  // Those three now show 0% margin, and because the Promo Advisor must clear a
+  // 10% floor over cost, they are the only dead stock in the business it cannot
+  // suggest a clearance price for.
+  const priceForUnit = !selected ? null
+    : unit === "carton" ? selected.selling_price_per_carton_mvr
+    : unit === "pack"   ? selected.selling_price_per_pack_mvr
+    :                     selected.selling_price_per_piece_mvr;
+  const costIsPrice = costOk && costNum > 0 && priceForUnit != null && costNum === priceForUnit;
+
   return (
     <div className="space-y-4">
       <div className="snm-card rounded-2xl p-4 space-y-4">
@@ -478,6 +503,22 @@ function ReceiveTab({
               </p>
             )}
 
+            {/* Not a loss, so not red, and never blocked — buying at cost can
+                be a real decision. It names the likely cause rather than a
+                number, because that is the part he can check. */}
+            {costIsPrice && (
+              <div className="rounded-xl px-4 py-3"
+                style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)" }}>
+                <p className="ios-subhead font-semibold" style={{ color: "var(--snm-warning)" }}>
+                  That is exactly what this sells for — it would earn nothing
+                </p>
+                <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+                  Usually the selling price has been typed into the cost box. Check what you paid
+                  for one {unitWord.toLowerCase()}, or continue if you really did buy it at MVR {mvr2(costNum)}.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>Note (optional)</p>
               <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Carried in baggage"
@@ -505,6 +546,13 @@ function ReceiveTab({
         title="Add this to stock?"
         message={selected
           ? `${skuLabel(selected)} — ${qtyNum} ${unitWord.toLowerCase()}${qtyNum === 1 ? "" : "s"} at MVR ${costNum.toFixed(2)} each (MVR ${(totalMvr ?? 0).toFixed(2)}). This is not a shipment, so no freight or duty is added.`
+            // The confirm sheet is the last chance to catch a wrong price — its
+            // own comment says so — so the warning has to survive to here. A
+            // caution that only lives on the form behind the sheet is a caution
+            // the last tap never sees.
+            + (costIsPrice
+                ? ` That is exactly what it sells for, so it would earn nothing — usually the selling price typed into the cost box.`
+                : "")
           : ""}
         confirmLabel="Add to stock"
       />

@@ -145,7 +145,33 @@ try {
   list.ok(/loses MVR 75\.00 on every tub/i.test(loss), "a price below cost is named in rufiyaa, not hinted at");
   list.ok(/add at a loss/i.test(loss), "and the button says exactly what it is about to do");
 
-  // Back to a sane price and commit.
+  // ── AND THE CASE THE LOSS GUARD LET THROUGH ──────────────────────────────
+  //
+  // `price < cost` is strictly less-than, so cost EXACTLY equal to price passed
+  // in silence — and the sheet then said "You keep MVR 0.00 per tub · 0.0%
+  // margin" in the SUCCESS colour. Green means good money in this app; zero is
+  // not good money.
+  //
+  // It is in the ledger. On 2026-08-22 five Body Shop tubs were received in one
+  // sitting: two at MVR 123, three at MVR 380 — exactly their selling price.
+  // Those three carry a 0% margin, and because the Promo Advisor must clear a
+  // 10% floor over cost, they are the only dead stock in the business it cannot
+  // offer a clearance price for. Their two identical siblings get one.
+  await nums.nth(2).fill("380");
+  await nums.nth(1).fill("380");
+  await page.waitForTimeout(800);
+  const same = await page.locator("body").innerText();
+  list.ok(/cost and price are the same number/i.test(same),
+    "a cost equal to the selling price is caught — the gap the below-cost guard left open");
+  list.ok(!/you keep MVR 0\.00/i.test(same),
+    "and it is NOT reported as 'You keep MVR 0.00' in the green that means good money");
+  list.ok(/selling price was typed into the cost box/i.test(same),
+    "it names the likely cause, which is the part he can check");
+  list.ok(await page.getByRole("button", { name: /^add stock$/i }).first().isEnabled(),
+    "still allowed, because buying at cost can be deliberate — a caution, not a block");
+
+  // Back to a sane cost and price, and commit.
+  await nums.nth(1).fill("175");
   await nums.nth(2).fill("380");
   await page.waitForTimeout(600);
   await page.getByRole("button", { name: /^add stock$/i }).first().click();

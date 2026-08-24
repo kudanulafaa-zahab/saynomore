@@ -104,6 +104,28 @@ export function StockInSheet({
   const belowCost = costOk && priceOk && priceNum < costNum;
   const lossPer = belowCost ? costNum - priceNum : 0;
 
+  // ── AND THE CASE THE LOSS GUARD LETS THROUGH ──────────────────────────────
+  //
+  // `priceNum < costNum` is strictly less-than, so cost EXACTLY equal to price
+  // passed silently — and worse, the line below reported it as
+  // "You keep MVR 0.00 per tub · 0.0% margin" in --snm-success GREEN. Green
+  // means good money in this app (skills.md, Seat 1). Zero is not good money.
+  //
+  // It happened. On 2026-08-22 five Body Shop tubs were received in one
+  // sitting: two at MVR 123 and three at MVR 380 — MVR 380 being exactly the
+  // selling price. Those three now show a 0% margin, and because the Promo
+  // Advisor must clear a 10% floor over cost, they are the only dead stock in
+  // the business it cannot offer a clearance price for. Their two identical
+  // siblings, entered correctly, get one.
+  //
+  // Narrow on purpose. A general "your margin is thin" nag would fire on lines
+  // Ali runs thin deliberately and become wallpaper. Equal-to-the-penny is not
+  // a thin margin; it is a number typed into the wrong box.
+  // One condition, not two: on this sheet "earns nothing" and "cost equals the
+  // price" are the same arithmetic, so a second flag for zero profit would be a
+  // branch that can never run.
+  const costIsPrice = costOk && priceOk && costNum === priceNum && costNum > 0;
+
   const profitPer = costOk && priceOk && !belowCost ? priceNum - costNum : null;
   const marginPct = profitPer != null && priceNum > 0 ? (profitPer / priceNum) * 100 : null;
 
@@ -187,13 +209,32 @@ export function StockInSheet({
           <input type="number" inputMode="decimal" min="0" step="0.01" value={price}
             onChange={(e) => setPrice(e.target.value)} onFocus={(e) => e.target.select()}
             placeholder="380" className={INPUT} style={INPUT_STYLE} />
-          {profitPer != null && (
+          {/* GREEN ONLY WHEN THERE IS SOMETHING TO BE GREEN ABOUT. "You keep
+              MVR 0.00 · 0.0% margin" in the success colour is the sentence that
+              waved three Body Shop tubs through at cost. */}
+          {profitPer != null && profitPer > 0 && (
             <p className="ios-footnote" style={{ color: "var(--snm-success)" }}>
               You keep MVR {mvr2(profitPer)} per {noun}
               {marginPct != null ? ` · ${marginPct.toFixed(1)}% margin` : ""}
             </p>
           )}
         </div>
+
+        {/* Not a loss, so not red, and not blocked — buying at cost can be a
+            real decision. But it is almost never the one being made here, so it
+            names the likely cause instead of a number. */}
+        {costIsPrice && (
+          <div className="rounded-xl px-4 py-3"
+            style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)" }}>
+            <p className="ios-subhead font-semibold" style={{ color: "var(--snm-warning)" }}>
+              This earns you nothing — cost and price are the same number
+            </p>
+            <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+              Usually that means the selling price was typed into the cost box. Check what you
+              actually paid for one {noun}, or continue if you really did buy it at MVR {mvr2(costNum)}.
+            </p>
+          </div>
+        )}
 
         {belowCost && (
           <div className="rounded-xl px-4 py-3"
