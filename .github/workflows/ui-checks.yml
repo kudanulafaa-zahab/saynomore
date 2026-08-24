@@ -73,6 +73,14 @@ on:
       - "lib/**"
       - "scripts/audit/**"
       - "supabase/fixtures/**"
+      # A MIGRATION CHANGES WHAT A SCREEN SHOWS. This list once stopped at the
+      # fixtures, so a change touching only `supabase/migrations/**` skipped
+      # every browser audit — and migration 0204 is the proof: it rewrote
+      # get_setup_gaps, which is the entire content of a panel on the Products
+      # screen, and CI ran the database tests alone. All the money and stock
+      # engines are in Postgres by hard rule 1, so "SQL only" is never "no UI
+      # impact" in this app.
+      - "supabase/migrations/**"
       - "package.json"
       - ".github/workflows/ui-checks.yml"
   workflow_dispatch: {}

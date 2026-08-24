@@ -28,7 +28,7 @@
 -- worse than the bug.
 
 begin;
-select plan(13);
+select plan(15);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000200', 'test-gaps@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-000000000200';
@@ -116,6 +116,57 @@ select is(
   (select blocks from get_setup_gaps() where sku_id = '00000000-0000-0000-0000-000000000205'),
   'Cannot be sold',
   'and it says what that stops him doing, not just that something is missing'
+);
+
+-- ── A TARGET MARGIN IS A PRICE (migration 0204) ────────────────────────────
+--
+-- THE FIRST VERSION OF THIS REPORT WAS WRONG ON PRODUCTION, and it was wrong in
+-- the way that costs trust: plausibly. X-Tra Kering NB/S carries no fixed price
+-- on any column but does carry target_margin_pct = 44.90, and the sell sheet
+-- quotes it at MVR 170 a pack and MVR 680 a carton — computed from that margin
+-- against its last known landed cost, as v_skus has always done. The report
+-- announced "No price for a carton — sells by the pack, but a carton cannot be
+-- quoted". Both halves false.
+--
+-- 0202's header claimed to remove a second opinion about what a price is. It
+-- removed one and built a third: it asked "is a FIXED price stored" when the
+-- question that matters is "can a number be quoted today". 0204 makes the report
+-- read v_skus — the sell sheet's own columns — so it cannot contradict what a
+-- customer would actually be charged.
+insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
+                  carton_length_cm, carton_width_cm, carton_height_cm,
+                  target_margin_pct, sellable_units)
+values ('00000000-0000-0000-0000-00000000020a', '00000000-0000-0000-0000-000000000004',
+        'TEST-MARGINPRICED-44x4', 44, 4, 40, 30, 30, 44.90, array['pack','carton']);
+
+insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
+                            fob_per_carton, fob_currency, destination_godown_id)
+values ('00000000-0000-0000-0000-00000000020b', '00000000-0000-0000-0000-000000000201',
+        '00000000-0000-0000-0000-00000000020a', 1, 0.036, 10, 'USD',
+        '00000000-0000-0000-0000-000000000006');
+insert into inventory_batches (id, shipment_line_id, sku_id, godown_id, received_at,
+                               qty_cartons_received, qty_pieces_received,
+                               landed_per_piece_mvr, landed_per_pack_mvr, landed_per_carton_mvr)
+values ('00000000-0000-0000-0000-00000000020c', '00000000-0000-0000-0000-00000000020b',
+        '00000000-0000-0000-0000-00000000020a', '00000000-0000-0000-0000-000000000006',
+        now() - interval '2 days', 1, 176, 2.13, 93.72, 374.88);
+insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
+values ('00000000-0000-0000-0000-00000000020c', '00000000-0000-0000-0000-00000000020a',
+        '00000000-0000-0000-0000-000000000006', 'in', 176, 'shipment');
+
+-- The premise, asserted rather than assumed: the sell sheet really can quote it.
+-- Without this the test below would pass for the wrong reason if v_skus ever
+-- stopped deriving from a target margin.
+select isnt(
+  (select selling_price_per_carton_mvr from v_skus where id = '00000000-0000-0000-0000-00000000020a'),
+  null,
+  'the sell sheet CAN quote a carton of a target-margin product, from its landed cost'
+);
+
+select is_empty(
+  $$select gap from get_setup_gaps()
+     where sku_id = '00000000-0000-0000-0000-00000000020a'$$,
+  'so the report says nothing about it -- a target margin IS a price, and calling it unfinished was a false alarm on real production data'
 );
 
 -- ── No carton size: hard rule 4, found before the container, not after ─────
