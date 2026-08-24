@@ -114,20 +114,49 @@ list.is(nocbmGap, "no_carton_size",
 try {
   await page.goto(`${BASE}/products`, { waitUntil: "networkidle" });
   await page.waitForTimeout(3500);
-  const body = await page.locator("body").innerText();
+  let body = await page.locator("body").innerText();
 
-  list.ok(/not ready to trade/i.test(body),
-    "the panel is on the Products screen, where products are added");
+  // COLLAPSED FIRST. Ali's screenshot of the first version showed five expanded
+  // rows pushing the tabs and the search box off the bottom of the phone — the
+  // panel warning him about products he could not receive was standing between
+  // him and finding a product at all.
+  list.ok(/products need one more thing/i.test(body),
+    "collapsed, the panel is ONE line — it does not bury the search box");
+  list.ok(!/cannot be received/i.test(body),
+    "and the detail is not on screen until he asks for it");
+
+  // The screen's own job must still be reachable without scrolling past a
+  // report. This is the check that would have failed on the first version.
+  const searchBox = page.locator('input[placeholder*="Search" i]:visible').first();
+  list.ok(await searchBox.isVisible(), "the search box is still on the first screen");
+
+  await page.locator("button:visible").filter({ hasText: /needs? one more thing/i }).first().click();
+  await page.waitForTimeout(900);
+  body = await page.locator("body").innerText();
   list.ok(/GapAudit\s*›\s*Butter\s*›\s*Unpriced/i.test(body.replace(/\s+/g, " ")),
     "it names the product in full -- brand, model and size, not a SKU code");
   list.ok(/No selling price yet/i.test(body),
-    "it says what is missing, in words");
+    "opened, it says what is missing, in words");
   list.ok(/Cannot be sold/i.test(body),
     "and what that stops him doing -- a gap with no consequence is not worth a row");
   list.ok(/No carton measurements/i.test(body),
     "the unmeasured carton is listed too");
   list.ok(/cannot be received/i.test(body),
     "named as a RECEIVING problem, which is the one nothing warned about until the container arrived");
+
+  // THE SENTENCE APPEARS ONCE, NOT ONCE PER PRODUCT. Ali, on the first version:
+  // *"the message is confusing"* — one problem across five products was drawn
+  // as five identical problems, so he had to read the same two lines five times
+  // to discover it was one thing.
+  const repeats = (body.match(/A shipment carrying it cannot be received/gi) ?? []).length;
+  list.is(String(repeats), "1",
+    `the consequence is stated ONCE for the group, not once per product (${repeats})`);
+
+  // AND THE PRODUCTS ARE A WAY IN. An alert you cannot act on is one you learn
+  // to scroll past (skills.md Seat 6).
+  const link = page.locator('a[href*="editSku="]:visible').first();
+  list.ok(await link.count() > 0,
+    "each product is a link into its edit sheet, where the missing figure is typed");
 
   // THE PRICED TUB MUST NOT APPEAR. This is the whole regression: it is the
   // shape every single item now has, so if it shows up here the panel would be
@@ -136,7 +165,12 @@ try {
     "the PRICED tub is absent -- it used to read as unpriced while the till charged MVR 380");
 
   // NEVER A PIECE COUNT (CLAUDE.md: the rule covers every word Ali reads).
-  const panel = await page.locator("text=/not ready to trade/i").locator("xpath=ancestor::div[1]").innerText();
+  // The panel is the glass card containing the collapsed header line. Anchored
+  // on that header rather than on the old "not ready to trade" label, which the
+  // redesign removed — Ali found it confusing, and it was a judgement on the
+  // product rather than a statement of what it needs.
+  const panel = await page.locator("div.glass-panel")
+    .filter({ hasText: /needs? one more thing/i }).first().innerText();
   list.ok(!/\bpcs\b|\bpieces?\b/i.test(panel),
     `no piece count anywhere in the panel (${panel.replace(/\s+/g, " ").slice(0, 80)})`);
 
