@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same twenty-seven audits he can run locally (`npm run audit:ui`):
+# This runs the same twenty-eight audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -197,6 +197,9 @@ jobs:
 
       - name: Rename — a name typed wrong can be typed right, keeping the stock
         run: npm run audit:rename
+
+      - name: Giveaway — a prize is marketing at cost, not a sale and not a loss
+        run: npm run audit:giveaway
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card

@@ -559,3 +559,45 @@ export async function voidDirectReceipt(batchId: string): Promise<void> {
   if (error) throw error;
   invalidate("stock:");
 }
+
+// ── Promotional giveaway (migration 0206) ────────────────────────────────
+//
+// Ali, 2026-08-24: *"I launched an Instagram giveaway promotion for a case of
+// diapers. Now I have chosen a winner... Since it's not a sale I will still
+// have to enter it to the system and deduct from stock. Where will it go into
+// the system and what's the best way professionals do it?"*
+//
+// Goods given away to win customers are ADVERTISING EXPENSE AT COST — credit
+// inventory, debit marketing. That is the treatment in SAP, Oracle and NetSuite
+// and standard FMCG practice, and it decides everything: the prize is valued at
+// what it LANDED at, never at the shelf price, and the cost is charged to the
+// named campaign so the promotion's real cost is the ad spend PLUS the goods.
+//
+// NOT a sale at MVR 0 (it would put the winner in customer history, so the
+// follow-up round chases them; drop average order value; and show COGS with no
+// revenue). NOT a write-off (that line means SHRINKAGE — damage, expiry, theft
+// — and mixing promotions in destroys the signal). Full reasoning: 0206.
+
+export interface GiveawayInput {
+  sku_id: string;
+  godown_id: string;
+  qty_pieces: number;   // positive
+  campaign_name: string;
+  notes?: string | null;
+}
+
+/** Issues stock as a promotional prize: deducts FIFO at locked landed cost and
+ *  charges that cost to the named campaign as marketing spend. Returns the MVR
+ *  the prize cost. Admin/manager only — enforced in Postgres. */
+export async function giveAwayStock(input: GiveawayInput): Promise<number> {
+  const { data, error } = await supabase.rpc("give_away_stock", {
+    p_sku_id: input.sku_id,
+    p_godown_id: input.godown_id,
+    p_qty_pieces: input.qty_pieces,
+    p_campaign_name: input.campaign_name,
+    p_notes: input.notes ?? null,
+  });
+  if (error) throw error;
+  invalidate("stock:");
+  return Number(data); // total landed cost charged to marketing
+}
