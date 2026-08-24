@@ -11,17 +11,29 @@ import {
 } from "@/lib/queries/pricing";
 import { getCurrentUserRole } from "@/lib/queries/products";
 import { mvr } from "@/lib/money";
+import { containerLabel, type UnitUom } from "@/lib/trade-units";
 
 const fmt = mvr;
 
 // The one price a drifted SKU should move to — prefer the smallest UOM in use.
+//
+// THE UNIT WORD COMES FROM THE PRODUCT, NOT FROM THE TIER'S NAME. This printed
+// a literal "/pack" and, on a branch kept alive only because no SKU sells by
+// the piece, "/pc" — a unit that must never reach Ali at all (CLAUDE.md, the
+// units rule). Since migration 0201 every single item — tub, jar, bar, bedding
+// set — sells on the `pack` tier, so this screen was one product away from
+// telling him to price his body butter at "MVR 400/pack". containerLabel is the
+// single source for the word, and 0202 makes get_pricing_health return the
+// unit_uom it needs; inferring the noun here is the mistake five other files
+// made, each falling through to a wrong "pack".
 function suggestionLabel(r: PricingHealthRow): string | null {
+  const unit = containerLabel(r.unit_uom as UnitUom | null | undefined);
   if (r.margin_piece_pct != null && r.suggested_piece_mvr != null)
-    return `${fmt(r.suggested_piece_mvr)}/pc`;
+    return `${fmt(r.suggested_piece_mvr)}/${unit}`;
   if (r.margin_pack_pct != null && r.suggested_pack_mvr != null)
-    return `${fmt(r.suggested_pack_mvr)}/pack`;
+    return `${fmt(r.suggested_pack_mvr)}/${unit}`;
   if (r.margin_carton_pct != null && r.suggested_carton_mvr != null)
-    return `${fmt(r.suggested_carton_mvr)}/ctn`;
+    return `${fmt(r.suggested_carton_mvr)}/carton`;
   return null;
 }
 

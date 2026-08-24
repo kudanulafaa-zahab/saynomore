@@ -20,7 +20,7 @@
 -- anyone doing anything.
 
 begin;
-select plan(7);
+select plan(8);
 
 -- ── Every view respects the caller's row level security ────────────────────
 -- `security_invoker` accepts both `true` and `on`; the app has used both
@@ -51,6 +51,37 @@ select is(
       and has_function_privilege('anon', p.oid, 'execute')),
   'none',
   'no SECURITY DEFINER function can be executed without signing in'
+);
+
+-- ── ...AND NOTHING ELSE EITHER (migration 0203) ────────────────────────────
+--
+-- THE CHECK ABOVE IS TOO NARROW, AND ITS NARROWNESS IS WHY A HOLE SURVIVED IT.
+-- It asks only about SECURITY DEFINER functions, because those run as their
+-- owner and are the worst case. But `simulate_landed_costs` — the whole Cost
+-- Simulator engine — is SECURITY INVOKER, so it passed this test while being
+-- callable by anyone holding the publishable key. So were three trigger
+-- functions and `price_per_unit`.
+--
+-- Two grants exist on a new function and they are not the same grant: Postgres
+-- gives EXECUTE to PUBLIC, and Supabase's default privileges give it to `anon`
+-- EXPLICITLY. Revoking PUBLIC does nothing to the second. That is what made the
+-- gap invisible — and invisible LOCALLY in particular, since the local stack
+-- carries no such default-privileges setting, so a single revoke really is
+-- enough here and really is not enough on production.
+--
+-- ENUMERATED, NOT LISTED. A guard naming specific functions stops covering the
+-- surface the moment one is added, which is how this happened. `keepalive` is
+-- the one stated exception: it exists to be pinged unauthenticated.
+select is(
+  (select coalesce(string_agg(p.proname, ', ' order by p.proname), 'none')
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prokind = 'f'
+      and p.proname <> 'keepalive'
+      and has_function_privilege('anon', p.oid, 'execute')),
+  'none',
+  'no function at all is callable without signing in, definer or not -- keepalive alone is meant to be'
 );
 
 -- ── Every elevated function pins its search_path ───────────────────────────

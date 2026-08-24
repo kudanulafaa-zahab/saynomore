@@ -2,6 +2,7 @@ import { ProductsExplorer } from "@/components/products/products-explorer";
 import { ProductsList } from "@/components/products/products-list";
 import { CategoriesManager } from "@/components/products/categories-manager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SetupGaps } from "@/components/products/setup-gaps";
 
 export default function ProductsPage() {
   return (
@@ -10,6 +11,11 @@ export default function ProductsPage() {
         <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Product Catalogue</p>
         <h1 className="ios-page-title">Products</h1>
       </div>
+
+      {/* Above the tabs on purpose: it is about the catalogue as a whole, not
+          about any one view of it, and it renders nothing at all when every
+          product is ready — so it costs no space on a normal day. */}
+      <SetupGaps />
 
       <Tabs defaultValue="tree" className="space-y-4">
         <TabsList className="bg-secondary border border-border">
