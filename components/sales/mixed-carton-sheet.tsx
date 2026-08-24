@@ -14,13 +14,25 @@ import type { GodownRow } from "@/lib/queries/masters";
 import type { StockLevel } from "@/lib/queries/inventory";
 import type { TierPrice } from "@/lib/queries/sales";
 import { CARD } from "@/lib/surfaces";
-import { containerLabel, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, sellableTiers, type UnitUom } from "@/lib/trade-units";
 import { type DraftLine } from "./cart/cart-math";
 import { mvr } from "@/lib/money";
 
 // second time cannot oversell what the first visit reserved.
 export type MixedCartonAdd = {
-  sku: SkuFullRow; pieces: number; mixed: boolean;
+  sku: SkuFullRow; pieces: number;
+  /** THREE PURCHASES, NOT TWO. `mixed: boolean` could not express the third
+   *  Ali asked for — Ali, 2026-08-24: *"I also must have an option to sell the
+   *  sosoft bottle individually if I want."*
+   *
+   *    carton  N whole cartons of one colour
+   *    mix     bottles chosen across colours to fill whole cartons
+   *    single  LOOSE bottles, priced per bottle, part of no carton
+   *
+   *  They are genuinely different money — a mix bottle is billed at the carton
+   *  rate ÷ 6, a single at its own bottle price — so a boolean was one bit
+   *  short of the question. */
+  kind: "carton" | "mix" | "single";
   /** Set only when the chosen warehouse has none and this comes from another. */
   godownId?: string; godownName?: string;
 };
@@ -44,9 +56,10 @@ export function MixedCartonSheet({
   // Ali, 2026-08-09: "Create mix carton is default." It is the common sale —
   // a customer picking six bottles across colours — so it should not cost a
   // tap to reach.
-  const [mode, setMode] = useState<"single" | "mixed">("mixed");
+  const [mode, setMode] = useState<"single" | "mixed" | "loose">("mixed");
   const [cartons, setCartons] = useState<Record<string, number>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [loose, setLoose] = useState<Record<string, number>>({});
   const [targetCartons, setTargetCartons] = useState(1);
 
   /** Bottles still on the shelf AFTER what this order already holds. */
@@ -101,6 +114,27 @@ export function MixedCartonSheet({
     return tp ? tp.price_per_carton_mvr : s.selling_price_per_carton_mvr;
   };
 
+  /** And per BOTTLE for a loose one, which is NOT the carton rate ÷ 6.
+   *  A single sells for more than a sixth of a case; that is the whole reason
+   *  it is a separate price and a separate tier. Falls back to the sell
+   *  sheet's own figure, so this screen can never quote something the rest of
+   *  the app would not. */
+  const bottlePriceOf = (s: SkuFullRow) =>
+    !sellsSingle(s) ? null
+      : (tierPrices.get(s.id)?.price_per_pack_mvr ?? s.selling_price_per_pack_mvr) ?? null;
+
+  /** Whether THIS product sells one at a time. Asked per SKU, not once for the
+   *  brand: `sellable_units` lives on the SKU, so a brand could legitimately
+   *  sell one colour singly and another only by the case, and reading the first
+   *  row's answer for all of them would offer a bottle of something that is not
+   *  sold that way. `sellable_units` is the only input — the same rule the sell
+   *  sheet and Stock Ops follow — so a carton-only brand never sees the tab at
+   *  all. */
+  function sellsSingle(s: SkuFullRow) {
+    return sellableTiers(s.sellable_units).includes("pack");
+  }
+  const sellsSingles = skus.some(sellsSingle);
+
   // ── Single colour ──
   const singleCartons = skus.reduce((a, s) => a + (cartons[s.id] ?? 0), 0);
   const singleTotalMvr = skus.reduce(
@@ -126,6 +160,16 @@ export function MixedCartonSheet({
   function setBottleCount(s: SkuFullRow, next: number) {
     setCounts((prev) => ({ ...prev, [s.id]: Math.max(0, Math.min(next, usablePieces(s))) }));
   }
+  function setLooseCount(s: SkuFullRow, next: number) {
+    setLoose((prev) => ({ ...prev, [s.id]: Math.max(0, Math.min(next, usablePieces(s))) }));
+  }
+
+  // ── Loose singles ──
+  const looseBottles = skus.reduce((a, s) => a + (loose[s.id] ?? 0), 0);
+  const loosePriced  = skus.every((s) => (loose[s.id] ?? 0) === 0 || bottlePriceOf(s) != null);
+  const looseTotalMvr = skus.reduce(
+    (a, s) => a + (loose[s.id] ?? 0) * (bottlePriceOf(s) ?? 0), 0);
+  const canAddLoose = looseBottles > 0 && loosePriced;
 
   function handleAdd() {
     const adds: MixedCartonAdd[] = [];
@@ -133,18 +177,24 @@ export function MixedCartonSheet({
       const src = sourceFor(s);
       if (mode === "single") {
         const n = cartons[s.id] ?? 0;
-        if (n > 0) adds.push({ sku: s, pieces: n * piecesPerCarton, mixed: false,
+        if (n > 0) adds.push({ sku: s, pieces: n * piecesPerCarton, kind: "carton",
+                              godownId: src?.id, godownName: src?.name });
+      } else if (mode === "loose") {
+        const n = loose[s.id] ?? 0;
+        if (n > 0) adds.push({ sku: s, pieces: n, kind: "single",
                               godownId: src?.id, godownName: src?.name });
       } else {
         const n = counts[s.id] ?? 0;
-        if (n > 0) adds.push({ sku: s, pieces: n, mixed: true,
+        if (n > 0) adds.push({ sku: s, pieces: n, kind: "mix",
                               godownId: src?.id, godownName: src?.name });
       }
     }
     if (adds.length > 0) onAdd(adds);
   }
 
-  const canAdd = mode === "single" ? canAddSingle : canAddMixed;
+  const canAdd = mode === "single" ? canAddSingle
+               : mode === "loose"  ? canAddLoose
+               : canAddMixed;
 
   return (
     // role="dialog" + aria-modal: a bottom sheet IS a modal dialog, and until
@@ -154,7 +204,7 @@ export function MixedCartonSheet({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${skus[0]?.brand_name ?? "Product"} — add cartons`}
+      aria-label={`${skus[0]?.brand_name ?? "Product"} — add to sale`}
       className="fixed inset-0 z-[80] flex items-end snm-scrim-in"
       style={{ background: "var(--scrim-bg)", touchAction: "none" }}
       onClick={onClose}
@@ -176,10 +226,10 @@ export function MixedCartonSheet({
           <div className="flex items-center justify-between">
             <div className="min-w-0">
               <h2 className="text-lg font-semibold text-foreground truncate">
-                {skus[0]?.brand_name} · Add cartons
+                {skus[0]?.brand_name} · Add to sale
               </h2>
               <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-                Sold by the carton · {piecesPerCarton} {noun}s in a carton
+                {sellsSingles ? `By the carton or one ${noun} at a time` : "Sold by the carton"} · {piecesPerCarton} {noun}s in a carton
               </p>
             </div>
             <button onClick={onClose} className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }} aria-label="Close">
@@ -189,10 +239,16 @@ export function MixedCartonSheet({
 
           {/* A choice, so it is content: real foreground text on a filled
               surface, never muted-on-transparent. */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          {/* THREE WAYS TO BUY, and the third only appears for a brand that
+              actually sells one at a time — `sellable_units`, the same rule the
+              sell sheet follows, so a carton-only brand is unchanged. */}
+          <div className={`mt-3 grid gap-2 ${sellsSingles ? "grid-cols-3" : "grid-cols-2"}`}>
             {([
               { key: "single" as const, label: "One colour" },
               { key: "mixed" as const,  label: "Mixed carton" },
+              ...(sellsSingles
+                ? [{ key: "loose" as const, label: `Single ${noun}s` }]
+                : []),
             ]).map((m) => {
               const on = mode === m.key;
               return (
@@ -260,10 +316,13 @@ export function MixedCartonSheet({
         {/* Scrollable body — one row per colour, the ONLY scroll region */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4 space-y-2" style={{ touchAction: "pan-y" }}>
           {skus.map((s) => {
-            const price = cartonPriceOf(s);
+            const looseMode = mode === "loose";
+            const price = looseMode ? bottlePriceOf(s) : cartonPriceOf(s);
             const singleMode = mode === "single";
             const cap = singleMode ? availableCartons(s) : usablePieces(s);
-            const count = singleMode ? (cartons[s.id] ?? 0) : (counts[s.id] ?? 0);
+            const count = singleMode ? (cartons[s.id] ?? 0)
+                        : looseMode  ? (loose[s.id] ?? 0)
+                        : (counts[s.id] ?? 0);
             const soldOut = availablePieces(s) <= 0;
             return (
               <div key={s.id} className="rounded-2xl p-4 flex items-center justify-between gap-3"
@@ -278,7 +337,11 @@ export function MixedCartonSheet({
                       ? (singleMode ? "No full carton in this warehouse" : "None in this warehouse")
                       : singleMode
                         ? `${cap} carton${cap === 1 ? "" : "s"} available${price != null ? ` · MVR ${mvr(price)}/carton` : ""}`
-                        : `${cap} ${noun}${cap === 1 ? "" : "s"} available`}
+                        : looseMode
+                          // The BOTTLE price, said out loud. A single is not a
+                          // sixth of a carton and the row must not imply it is.
+                          ? `${cap} ${noun}${cap === 1 ? "" : "s"} available${price != null ? ` · MVR ${mvr(price)}/${noun}` : ""}`
+                          : `${cap} ${noun}${cap === 1 ? "" : "s"} available`}
                   </p>
                   {/* Owned, just not here. Says which godown and how much, in
                       the unit he trades in — a warehouse he cannot sell from
@@ -295,13 +358,21 @@ export function MixedCartonSheet({
                       })()}
                     </p>
                   )}
+                  {/* TWO DIFFERENT PROBLEMS, and sending him to the wrong one
+                      wastes a trip to Products. "Not sold on its own" is the
+                      catalogue's decision and there is no field to fill; "no
+                      price set" is a field waiting for him. */}
                   {price == null && (
-                    <p className="ios-footnote font-semibold" style={{ color: "var(--snm-error)" }}>No carton price set</p>
+                    <p className="ios-footnote font-semibold" style={{ color: "var(--snm-error)" }}>
+                      {!looseMode ? "No carton price set"
+                        : !sellsSingle(s) ? `Not sold on its own — cartons only`
+                        : `No price set for one ${noun}`}
+                    </p>
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <button
-                    onClick={() => singleMode ? setCartonCount(s, count - 1) : setBottleCount(s, count - 1)}
+                    onClick={() => singleMode ? setCartonCount(s, count - 1) : looseMode ? setLooseCount(s, count - 1) : setBottleCount(s, count - 1)}
                     disabled={count <= 0}
                     aria-label={`One fewer ${s.model_name}`}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
@@ -310,7 +381,7 @@ export function MixedCartonSheet({
                   </button>
                   <span className="w-6 text-center ios-subhead font-bold tabular-nums text-foreground">{count}</span>
                   <button
-                    onClick={() => singleMode ? setCartonCount(s, count + 1) : setBottleCount(s, count + 1)}
+                    onClick={() => singleMode ? setCartonCount(s, count + 1) : looseMode ? setLooseCount(s, count + 1) : setBottleCount(s, count + 1)}
                     disabled={count >= cap || price == null}
                     aria-label={`One more ${s.model_name}`}
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
@@ -334,6 +405,14 @@ export function MixedCartonSheet({
                   : "Set a carton price on these products first"}
             </p>
           )}
+          {/* The loose tab's own blocker, in its own words: a single cannot be
+              sold for a price nobody has set, and saying "carton price" here
+              would send him to the wrong field. */}
+          {mode === "loose" && looseBottles > 0 && !loosePriced && (
+            <p className="ios-footnote mb-2 text-center" style={{ color: "var(--snm-warning)" }}>
+              Set a price for one {noun} on these products first
+            </p>
+          )}
           <button
             onClick={handleAdd}
             disabled={!canAdd}
@@ -344,7 +423,11 @@ export function MixedCartonSheet({
               ? (singleCartons === 0
                   ? "Add cartons"
                   : `Add ${singleCartons} carton${singleCartons === 1 ? "" : "s"} · MVR ${mvr(singleTotalMvr)}`)
-              : `Add ${targetCartons} mixed carton${targetCartons === 1 ? "" : "s"}${canAddMixed ? ` · MVR ${mvr(mixedTotalMvr)}` : ""}`}
+              : mode === "loose"
+                ? (looseBottles === 0
+                    ? `Add ${noun}s`
+                    : `Add ${looseBottles} ${noun}${looseBottles === 1 ? "" : "s"}${canAddLoose ? ` · MVR ${mvr(looseTotalMvr)}` : ""}`)
+                : `Add ${targetCartons} mixed carton${targetCartons === 1 ? "" : "s"}${canAddMixed ? ` · MVR ${mvr(mixedTotalMvr)}` : ""}`}
           </button>
         </div>
       </div>

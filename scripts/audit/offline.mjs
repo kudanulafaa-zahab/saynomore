@@ -68,7 +68,7 @@ await page.waitForTimeout(1500);
 
 await page.locator("button", { hasText: "Sosoft" }).first().click();
 await page.waitForTimeout(900);
-const sheet = page.getByRole("dialog", { name: /add cartons/i });
+const sheet = page.getByRole("dialog", { name: /add to sale/i });
 for (const c of ["Blue", "Blue", "Pink", "Pink", "Purple", "Red"]) {
   await sheet.getByRole("button", { name: `One more ${c}` }).click();
   await page.waitForTimeout(110);

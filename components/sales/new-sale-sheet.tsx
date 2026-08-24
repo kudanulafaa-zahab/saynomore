@@ -33,7 +33,7 @@ import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { type StockLevel } from "@/lib/queries/inventory";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
-import { formatQtyInTradeUnits, formatMixedCartonQty, priceForMargin, sellableTiers, sellUnitLabel, costPerTradeUnit, type UnitUom } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, formatMixedCartonQty, priceForMargin, sellableTiers, sellUnitLabel, costPerTradeUnit, containerLabel, type UnitUom } from "@/lib/trade-units";
 import { StockInSheet } from "@/components/sales/stock-in-sheet";
 import { CARD_L2 } from "@/lib/surfaces";
 import { mvtInstant } from "@/lib/mvt-date";
@@ -50,7 +50,7 @@ const CHANNELS: { value: OrderChannel; label: string }[] = [
 ];
 import { getCrossSellSuggestion, type CrossSellSuggestion } from "@/lib/queries/sales";
 import { CartLines } from "./cart/cart-lines";
-import { type DraftLine, packLabel, defaultUom, tradeCfg, cartShortfalls, nextCartLineKey } from "./cart/cart-math";
+import { type DraftLine, packLabel, defaultUom, tradeCfg, cartShortfalls, cartMixConflicts, nextCartLineKey } from "./cart/cart-math";
 import { GlassSelect, WarehouseSelect } from "./warehouse-select";
 import { MixedCartonSheet } from "./mixed-carton-sheet";
 import { mvr, mvrUpTo } from "@/lib/money";
@@ -593,6 +593,10 @@ export function NewSaleSheet({
    *  is blocked on this, so the shortfall is caught in the cart instead of
    *  coming back as a database error after the final tap (migration 0163). */
   const shortfalls = useMemo(() => cartShortfalls(draftLines), [draftLines]);
+  // A product cannot be BOTH part of a mixed carton and a loose single in one
+  // order — see cartMixConflicts. Blocked beside the shortfall, for the same
+  // reason and in the same place.
+  const mixConflicts = useMemo(() => cartMixConflicts(draftLines), [draftLines]);
 
   /**
    * Is the chosen warehouse actually the right one for this basket?
@@ -787,38 +791,72 @@ export function NewSaleSheet({
       // priced off the same carton rate, so the money is identical, and the
       // stock is the same pieces off the same shelf. Only the presentation
       // differs, and the presentation has already done its job by then.
-      const linePayloads = [...draftLines.reduce((acc, l) => {
-        const prev = acc.get(l.sku.id);
-        if (!prev) {
-          acc.set(l.sku.id, {
-            sku_id: l.sku.id, uom: l.uom, qty: l.qty,
-            unit_price_mvr: l.unit_price_mvr,
-            is_mixed_carton_fill: l.is_mixed_carton_fill,
-            source_godown_id: l.source_godown_id ?? null,
-            _pieces: l.qty_pieces,
-          });
-          return acc;
+      // ── ONE ROW PER PRODUCT, AND THE MONEY MUST SURVIVE IT ────────────
+      //
+      // `sales_order_lines_order_sku_uniq` allows one row per product per
+      // order, so a cart holding a whole carton AND loose bottles of the same
+      // colour has to be merged. How it merges decides two things that can
+      // both go wrong silently.
+      //
+      // THE MONEY. The old merge recomputed the price from the CARTON rate.
+      // That was safe while the only two kinds were a carton and a mixed fill,
+      // because both are billed at the carton rate — and it breaks the moment a
+      // third rate exists. Today the gap is small, because four of the five
+      // Sosoft quote MVR 37 a bottle and that IS the carton rate divided by six
+      // (220 + 74 = MVR 294 against 8 x 36.67 = MVR 293.33). It stops being
+      // small the day Ali sets a real single-bottle premium, which is exactly
+      // what register item D5 is waiting on: at MVR 40 a bottle the same basket
+      // is MVR 300 and the old merge would have billed MVR 293.33.
+      // So the merged price is now the BLEND that preserves the total, and
+      // Postgres stores line_total as round(qty x unit_price, 2) — exactly what
+      // this produces.
+      //
+      // THE UNIT. `assert_whole_mixed_cartons` sums every line marked
+      // `is_mixed_carton_fill` per brand and refuses a total that is not a
+      // whole number of cartons. Merging loose singles into a fill row would
+      // therefore refuse a perfectly legitimate purchase — "4 short of a full
+      // carton" for a carton plus two bottles. A merge with no fill in it is
+      // written as a PACK line instead, which that rule never looks at.
+      const bySku = new Map<string, DraftLine[]>();
+      for (const l of draftLines) {
+        const g = bySku.get(l.sku.id);
+        if (g) g.push(l); else bySku.set(l.sku.id, [l]);
+      }
+      const linePayloads = [...bySku.values()].map((group) => {
+        const first = group[0];
+        if (group.length === 1) {
+          return {
+            sku_id: first.sku.id, uom: first.uom, qty: first.qty,
+            unit_price_mvr: first.unit_price_mvr,
+            is_mixed_carton_fill: first.is_mixed_carton_fill,
+            source_godown_id: first.source_godown_id ?? null,
+          };
         }
-        // Two entries for one product: express the total in bottles, the only
-        // unit that can describe a carton plus loose bottles.
-        const perMix = l.sku.mixed_carton_pieces
-          || l.sku.pcs_per_pack * l.sku.packs_per_carton || 1;
-        const pieces = prev._pieces + l.qty_pieces;
-        acc.set(l.sku.id, {
-          sku_id: l.sku.id,
-          uom: "piece" as SaleUom,
-          qty: pieces,
-          unit_price_mvr: (l.sku.selling_price_per_carton_mvr
-            ?? (prev.unit_price_mvr * (prev.uom === "carton" ? perMix : 1))) / perMix,
-          is_mixed_carton_fill: true,
-          source_godown_id: prev.source_godown_id ?? l.source_godown_id ?? null,
-          _pieces: pieces,
-        });
-        return acc;
-      }, new Map<string, {
-        sku_id: string; uom: SaleUom; qty: number; unit_price_mvr: number;
-        is_mixed_carton_fill: boolean; source_godown_id: string | null; _pieces: number;
-      }>()).values()].map(({ _pieces, ...line }) => line);
+        const pieces = group.reduce((a, l) => a + l.qty_pieces, 0);
+        const total  = group.reduce((a, l) => a + l.line_total_mvr, 0);
+        const anyMixed = group.some((l) => l.is_mixed_carton_fill);
+        // A merge never silently moves stock to a different warehouse.
+        const godown = group.find((l) => l.source_godown_id)?.source_godown_id ?? null;
+
+        if (anyMixed) {
+          // Unchanged behaviour: a mixed fill plus whole cartons of the same
+          // colour. The cartons' pieces are a multiple of the carton size, so
+          // adding them leaves the whole-carton check exactly where it was.
+          return {
+            sku_id: first.sku.id, uom: "piece" as SaleUom, qty: pieces,
+            unit_price_mvr: total / pieces,
+            is_mixed_carton_fill: true,
+            source_godown_id: godown,
+          };
+        }
+        const perPack = first.sku.pcs_per_pack || 1;
+        return {
+          sku_id: first.sku.id, uom: "pack" as SaleUom, qty: pieces / perPack,
+          unit_price_mvr: total / (pieces / perPack),
+          is_mixed_carton_fill: false,
+          source_godown_id: godown,
+        };
+      });
 
       // One RPC = one transaction: the order, its lines and the FIFO stock
       // deduction all commit together or not at all. The old three-step
@@ -2386,6 +2424,12 @@ export function NewSaleSheet({
             />
           )}
 
+          {mixConflicts.length > 0 && (
+            <p className="ios-footnote mb-2 text-center" style={{ color: "var(--snm-warning)" }}>
+              {mixConflicts[0].label} is in a mixed carton AND as loose {mixConflicts[0].noun}s —
+              one order can only hold it one way. Remove one of them.
+            </p>
+          )}
           {shortfalls.length > 0 && (
             <p className="ios-footnote font-semibold px-1" style={{ color: "var(--snm-error)" }}>
               {shortfalls[0].short} more {shortfalls[0].noun} needed to fill the carton
@@ -2465,10 +2509,11 @@ export function NewSaleSheet({
                   ? <><Plus className="h-4 w-4 shrink-0" /> Add product</>
                   : <><ArrowLeft className="h-4 w-4 shrink-0" /> Back</>}
               </button>
-              <button disabled={draftLines.length === 0 || shortfalls.length > 0} onClick={() => setStep(3)}
+              <button disabled={draftLines.length === 0 || shortfalls.length > 0 || mixConflicts.length > 0} onClick={() => setStep(3)}
                 className="flex-[2] lg:flex-none lg:px-14 h-14 rounded-xl ios-subhead font-bold transition disabled:opacity-40 flex items-center justify-center gap-2 whitespace-nowrap"
                 style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                 {draftLines.length === 0 ? "Add at least 1 item"
+                  : mixConflicts.length > 0 ? "Remove the mix or the singles"
                   : shortfalls.length > 0 ? `Add ${shortfalls[0].short} more ${shortfalls[0].noun}`
                   : <>Review & Confirm <ArrowRight className="h-4 w-4" /></>}
               </button>
@@ -2606,17 +2651,40 @@ export function NewSaleSheet({
                 // stored order are identical either way — both sides are
                 // priced off the same carton rate — so this is presentation,
                 // not a change to anything that counts.
-                const kind = a.mixed ? "mix" : "ctn";
-                const key = `${a.sku.id}-${kind}`;
+                // THREE KINDS, THREE CART LINES. They stay apart for the same
+                // reason a full carton and a mixed fill always have — Ali,
+                // 2026-08-09: "You cannot say for example 7 bottles blue
+                // because I chose a mix carton with 1 bottle blue and the other
+                // 6 bottles merged with this." A loose single is a third such
+                // purchase, at its own price.
+                const key = `${a.sku.id}-${a.kind}`;
                 const i = next.findIndex((l) => l.key === key);
                 const pieces = (i === -1 ? 0 : next[i].qty_pieces) + a.pieces;
-                const mixed = a.mixed || pieces % perLine !== 0;
+                // A LOOSE SINGLE IS NEVER COERCED INTO A MIX. The old rule was
+                // `mixed = a.mixed || pieces % perLine !== 0`, which turned any
+                // non-whole-carton quantity into a mixed-carton fill — and that
+                // is precisely why loose bottles could not exist.
+                const mixed = a.kind === "mix" || (a.kind === "carton" && pieces % perLine !== 0);
 
                 // Keep whichever godown is already on the line; a merge never
                 // silently moves stock to a different warehouse.
                 const gId = (i === -1 ? undefined : next[i].source_godown_id) ?? a.godownId;
                 const gName = (i === -1 ? undefined : next[i].source_godown_name) ?? a.godownName;
-                const line: DraftLine = mixed
+                // A loose single is billed at the BOTTLE price, which is not
+                // the carton rate divided by six — that is the whole reason it
+                // is a separate tier and a separate price.
+                const bottlePrice = (tp?.price_per_pack_mvr ?? a.sku.selling_price_per_pack_mvr) ?? 0;
+                const perPack = a.sku.pcs_per_pack || 1;
+
+                const line: DraftLine = a.kind === "single"
+                  ? {
+                      key, sku: a.sku, uom: "pack", qty: pieces / perPack, qty_pieces: pieces,
+                      unit_price_mvr: bottlePrice,
+                      line_total_mvr: bottlePrice * (pieces / perPack),
+                      is_mixed_carton_fill: false,
+                      source_godown_id: gId, source_godown_name: gName,
+                    }
+                  : mixed
                   ? {
                       key, sku: a.sku, uom: "piece", qty: pieces, qty_pieces: pieces,
                       unit_price_mvr: cartonPrice / perMix,
@@ -2641,8 +2709,13 @@ export function NewSaleSheet({
             const per = adds[0].sku.mixed_carton_pieces || 1;
             const pieces = adds.reduce((a, x) => a + x.pieces, 0);
             const ctns = Math.round(pieces / per);
+            const noun = containerLabel(adds[0].sku.unit_uom as UnitUom | null | undefined);
             toast.success(
-              `Added ${ctns} ${adds[0].mixed ? "mixed " : ""}carton${ctns === 1 ? "" : "s"} of ${adds[0].sku.brand_name}`,
+              adds[0].kind === "single"
+                // Loose singles are counted in what they ARE, not converted to
+                // a fraction of a carton nobody bought.
+                ? `Added ${pieces} ${noun}${pieces === 1 ? "" : "s"} of ${adds[0].sku.brand_name}`
+                : `Added ${ctns} ${adds[0].kind === "mix" ? "mixed " : ""}carton${ctns === 1 ? "" : "s"} of ${adds[0].sku.brand_name}`,
             );
             setMixedCartonBrandId(null);
           }}

@@ -153,14 +153,24 @@ export function PromoAdvisor() {
                     style={{ background: "color-mix(in srgb, var(--snm-success) 15%, transparent)", color: "var(--snm-success)" }}>
                     −{r.discount_pct}%
                   </span>
+                  {/* BOTH CHIPS ARE CONTENT, so both are --foreground. They read
+                      as qualifiers, which is why they were muted — but "keeps
+                      10%" is the margin floor Ali is being promised and the
+                      other is the diagnosis, and neither is decoration. Measured
+                      at 12px/600 they came back 4.27:1 (sunrise), 4.26 (aurora)
+                      and 4.15 (ember) against the 4.5 floor: below it in three
+                      of the five light palettes. Invisible until the fixture
+                      gained a slow mover, because a quiet Promo Advisor renders
+                      nothing at all — the same blind spot pricing-tool.mjs was
+                      written about. */}
                   <span className="ios-caption1 font-semibold px-1.5 py-0.5 rounded-md"
-                    style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+                    style={{ background: "var(--muted)", color: "var(--foreground)" }}>
                     keeps 10%
                   </span>
                   {/* The diagnosis, so two products at the same discount don't
                       read as the same problem. Same chip shape as "keeps 10%". */}
                   <span className="ios-caption1 font-semibold px-1.5 py-0.5 rounded-md"
-                    style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+                    style={{ background: "var(--muted)", color: "var(--foreground)" }}>
                     {REASON_LABEL[r.reason]}
                   </span>
                 </div>
