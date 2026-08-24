@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same twenty-nine audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -40,6 +40,10 @@ name: UI checks
 #   bottlesale a mixed-carton brand can also be sold ONE at a time. Its own
 #             sheet never read `sellable_units`, so a data change enabling the
 #             tier was real and invisible — Ali found it with a screenshot
+#   late      a product waiting on a LATE or LANDED container is reported as
+#             that container, once — never as a reason to order it again. The
+#             home screen was telling him to re-buy MVR 1,043 a week of goods
+#             already paid for and on the water
 #   card      the Product Card: every figure on it reconciles to the ledger
 #   pricing   the Pricing Tool opens for EVERY product, not just the one that
 #             loads by default — it died on every carton-only SKU, and a
@@ -71,9 +75,9 @@ name: UI checks
 #             RENDERED page rather than read off a token
 #
 # Every one is proven to fail when the bug it guards is reintroduced; that was
-# checked by putting each one back deliberately. (The count used to be written
-# out here in words and went stale twice — the list above is the record.) The table of which mutation
-# each one caught is in scripts/audit/README.md.
+# checked by putting each one back deliberately, and the table of which mutation
+# each one caught is in scripts/audit/README.md. (The count used to be written
+# out here in words as well and went stale twice — the list above is the record.)
 
 on:
   pull_request:
@@ -213,6 +217,9 @@ jobs:
 
       - name: One bottle — the sale path for a mixed-carton brand
         run: npm run audit:bottlesale
+
+      - name: Late shipment — the home screen never says buy what is already bought
+        run: npm run audit:late
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card
