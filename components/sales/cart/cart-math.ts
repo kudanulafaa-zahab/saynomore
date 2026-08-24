@@ -233,6 +233,39 @@ export function cartonShortfall(g: CartGroup): number {
   return rem === 0 ? 0 : g.piecesPerCarton - rem;
 }
 
+/** Products held BOTH as a mixed-carton fill and as loose singles.
+ *
+ *  THIS COMBINATION CANNOT BE EXPRESSED, and the reason is a database rule
+ *  rather than a preference. `sales_order_lines_order_sku_uniq` allows one row
+ *  per product per order, and that row carries ONE `is_mixed_carton_fill` flag.
+ *  `assert_whole_mixed_cartons` then sums every flagged line per brand and
+ *  refuses a total that is not a whole number of cartons — so loose bottles
+ *  merged into a fill row would be counted as part of a carton nobody bought,
+ *  and a legitimate order would be refused with "4 short of a full carton".
+ *
+ *  Ali identified the same ambiguity himself, 2026-08-09: "You cannot say for
+ *  example 7 bottles blue because I chose a mix carton with 1 bottle blue and
+ *  the other 6 bottles merged with this." A seventh bottle is either part of a
+ *  new mixed carton or a single — it cannot be both, and the order has to say
+ *  which.
+ *
+ *  Caught in the CART rather than at save, so he is told while he can still
+ *  fix it, in the same place the incomplete-mix warning already appears. */
+export function cartMixConflicts(lines: DraftLine[]): { label: string; noun: string }[] {
+  const bySku = new Map<string, DraftLine[]>();
+  for (const l of lines) {
+    const g = bySku.get(l.sku.id);
+    if (g) g.push(l); else bySku.set(l.sku.id, [l]);
+  }
+  return [...bySku.values()]
+    .filter((g) => g.some((l) => l.is_mixed_carton_fill)
+                && g.some((l) => !l.is_mixed_carton_fill && l.uom === "pack"))
+    .map((g) => ({
+      label: [g[0].sku.model_name, g[0].sku.variant_display].filter(Boolean).join(" · "),
+      noun: containerLabel(g[0].sku.unit_uom as UnitUom | null),
+    }));
+}
+
 /** Every mixed-carton group that is not yet a whole number of cartons. */
 export function cartShortfalls(lines: DraftLine[]): { brand: string; short: number; noun: string }[] {
   return groupCartLines(lines)

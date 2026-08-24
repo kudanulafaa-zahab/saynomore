@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same twenty-eight audits he can run locally (`npm run audit:ui`):
+# This runs the same twenty-nine audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -31,6 +31,15 @@ name: UI checks
 #             under ONE model, which the second size used to make impossible
 #   ikea      a whole new KIND of product, set up from nothing on a phone: no
 #             jargon, no pack size for something sold one at a time
+#   gaps      a half-finished product says what is missing and what it blocks,
+#             before the gap costs money at a GRN or a till
+#   rename    a name typed wrong can be typed right without losing the stock —
+#             the SKU code, the permanent reference, never moves
+#   giveaway  a prize leaves stock as marketing at COST: not revenue, not COGS,
+#             not the write-off line that means shrinkage
+#   bottlesale a mixed-carton brand can also be sold ONE at a time. Its own
+#             sheet never read `sellable_units`, so a data change enabling the
+#             tier was real and invisible — Ali found it with a screenshot
 #   card      the Product Card: every figure on it reconciles to the ledger
 #   pricing   the Pricing Tool opens for EVERY product, not just the one that
 #             loads by default — it died on every carton-only SKU, and a
@@ -61,8 +70,9 @@ name: UI checks
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
-# All twenty-five are proven to fail when the bug they guard is reintroduced; that
-# was checked by putting each one back deliberately. The table of which mutation
+# Every one is proven to fail when the bug it guards is reintroduced; that was
+# checked by putting each one back deliberately. (The count used to be written
+# out here in words and went stale twice — the list above is the record.) The table of which mutation
 # each one caught is in scripts/audit/README.md.
 
 on:
@@ -200,6 +210,9 @@ jobs:
 
       - name: Giveaway — a prize is marketing at cost, not a sale and not a loss
         run: npm run audit:giveaway
+
+      - name: One bottle — the sale path for a mixed-carton brand
+        run: npm run audit:bottlesale
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card

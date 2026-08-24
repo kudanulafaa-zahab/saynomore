@@ -25,6 +25,8 @@ declare
   v_godown   uuid := '00000000-0000-0000-0000-0000000f0002';
   v_customer uuid := '00000000-0000-0000-0000-0000000f0003';
   v_cat_liq  uuid := '00000000-0000-0000-0000-0000000f0010';
+  v_cat_det  uuid := '00000000-0000-0000-0000-0000000f0012';
+  v_brand_dt uuid := '00000000-0000-0000-0000-0000000f0013';
   v_cat_dia  uuid := '00000000-0000-0000-0000-0000000f0011';
   v_brand_so uuid := '00000000-0000-0000-0000-0000000f0020';
   v_brand_mp uuid := '00000000-0000-0000-0000-0000000f0021';
@@ -51,13 +53,27 @@ begin
   insert into customers (id, name, phone, price_tier)
     values (v_customer, 'Ahmed Ziyad', '7771234', 'retail');
 
-  insert into product_categories (id, name, unit_uom, cost_basis)
-  values (v_cat_liq, 'Fixture Liquid', 'ml', 'per_100ml'),
-         (v_cat_dia, 'Fixture Diapers', 'pcs', 'piece');
+  insert into product_categories (id, name, unit_uom, cost_basis, default_sellable_units)
+  values (v_cat_liq, 'Fixture Liquid', 'ml', 'per_100ml', array['pack','carton']),
+         (v_cat_dia, 'Fixture Diapers', 'pcs', 'piece', array['pack','carton']),
+         -- CARTON-ONLY, and it has to be a real one. Sosoft used to be the
+         -- fixture's only carton-only product; migration 0208 gave it a bottle
+         -- tier because that is what production has, and that quietly removed
+         -- the shape `audit:pricing` exists to guard — a product with a carton
+         -- price and NO pack price, which once crashed the Pricing Tool
+         -- outright. The gate caught the removal, which is the gate working.
+         --
+         -- Detergent is what carton-only actually IS in this business: both
+         -- detergent categories on production still default to {carton}, so
+         -- Ali can create one of these tomorrow even though none is stocked
+         -- today. The fixture keeps the shape reachable rather than pretending
+         -- it cannot happen.
+         (v_cat_det, 'Fixture Detergent', 'ml', 'per_100ml', array['carton']);
 
   insert into brands (id, name, mixed_carton_pieces)
   values (v_brand_so, 'Sosoft', 6),
-         (v_brand_mp, 'Mamypoko', null);
+         (v_brand_mp, 'Mamypoko', null),
+         (v_brand_dt, 'Fixture Detergent Co', null);
 
   insert into shipments (id, reference, supplier_id, rate_usd_to_mvr, rate_usd_to_idr)
   values (v_ship, 'SH-FIXTURE', v_supplier, 15.4, 15400);
@@ -74,11 +90,21 @@ begin
       values (v_model, v_cat_liq, v_brand_so, colours[i][1]);
     insert into variants (id, model_id, display_name)
       values (v_variant, v_model, colours[i][2]);
+    -- SOLD BY THE CARTON **AND** ONE BOTTLE AT A TIME, as production is since
+    -- migration 0208. This said `array['carton']` and re-wrote what the
+    -- migration had just set, so every browser audit ran against a Sosoft that
+    -- could not be sold singly — the fixture quietly undoing the change it was
+    -- meant to exercise, exactly like the audit fixtures that kept writing the
+    -- piece-only shape 0200 had repaired.
+    --
+    -- MVR 40 a bottle, NOT 220/6. A single sells for more than a sixth of a
+    -- case; a fixture that prices it at the carton rate would let a screen
+    -- charge the wrong figure and still pass.
     insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
                       carton_length_cm, carton_width_cm, carton_height_cm,
-                      fixed_price_per_carton_mvr, sellable_units)
+                      fixed_price_per_pack_mvr, fixed_price_per_carton_mvr, sellable_units)
       values (v_sku, v_variant, 'SOSO-' || upper(colours[i][1]) || '-1x6',
-              1, 6, 40, 30, 30, 220, array['carton']);
+              1, 6, 40, 30, 30, 40, 220, array['pack', 'carton']);
     insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
                                 fob_per_carton, fob_currency, destination_godown_id)
       values (v_line, v_ship, v_sku, 20, 0.036, 10, 'USD', v_godown);
@@ -117,6 +143,37 @@ begin
             10, 1680, 3.05, 128.1, 512.4);
   insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
     values (v_batch, v_sku, v_godown, 'in', 1680, 'shipment');
+
+  -- ── A CARTON-ONLY product, priced only by the carton ─────────────────────
+  -- The shape `audit:pricing` guards: a carton price, NO pack price. Reaching
+  -- the Pricing Tool with one of these once crashed it outright, and the fix
+  -- is only proven while the fixture still contains one. Sosoft used to be it;
+  -- 0208 gave Sosoft a bottle tier to match production, so this took over.
+  v_model   := (function_prefix || '6000')::uuid;
+  v_variant := (function_prefix || '6001')::uuid;
+  v_sku     := (function_prefix || '6002')::uuid;
+  v_line    := (function_prefix || '6003')::uuid;
+  v_batch   := (function_prefix || '6004')::uuid;
+
+  insert into product_models (id, category_id, brand_id, name)
+    values (v_model, v_cat_det, v_brand_dt, 'Power Clean');
+  insert into variants (id, model_id, display_name)
+    values (v_variant, v_model, '1L');
+  insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
+                    carton_length_cm, carton_width_cm, carton_height_cm,
+                    fixed_price_per_carton_mvr, sellable_units)
+    values (v_sku, v_variant, 'DETG-POWER-1L-1x12', 1, 12, 40, 30, 30, 480,
+            array['carton']);
+  insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
+                              fob_per_carton, fob_currency, destination_godown_id)
+    values (v_line, v_ship, v_sku, 5, 0.036, 20, 'USD', v_godown);
+  insert into inventory_batches (id, shipment_line_id, sku_id, godown_id, received_at,
+                                 qty_cartons_received, qty_pieces_received,
+                                 landed_per_piece_mvr, landed_per_pack_mvr, landed_per_carton_mvr)
+    values (v_batch, v_line, v_sku, v_godown, now() - interval '5 days',
+            5, 60, 26.00, 26.00, 312.00);
+  insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
+    values (v_batch, v_sku, v_godown, 'in', 60, 'shipment');
 
   -- ── A SECOND shipment, arrived and waiting to be received ─────────────────
   -- The first shipment's batches were inserted directly, which is fine for

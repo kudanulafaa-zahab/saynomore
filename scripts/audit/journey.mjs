@@ -56,7 +56,10 @@ async function openPicker(page, brand) {
   await page.waitForFunction(() => document.querySelectorAll('[role="dialog"][aria-modal="true"]:not([aria-label="New sale"])').length > 0,
     null, { timeout: 15_000 });
   await page.waitForTimeout(600);
-  return page.getByRole("dialog", { name: /add cartons/i });
+  // "add to sale", not "add cartons": the sheet sells single bottles as
+  // well now, and an accessible name that says cartons would be wrong for
+  // anyone who cannot see the three tabs.
+  return page.getByRole("dialog", { name: /add to sale/i });
 }
 
 const wanted = process.argv.includes("--device")

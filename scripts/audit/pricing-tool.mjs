@@ -55,11 +55,30 @@ const list = checklist("The Pricing Tool survives every product in the catalogue
 // THE GUARD IS GUARDING SOMETHING. The whole point of this file is that the
 // crashing shape exists in the fixture; if it ever stops existing, this audit
 // keeps passing while testing nothing.
+//
+// AND IT IS ASKED FOR BY SHAPE, NEVER BY NAME. This first read the fixture's
+// Sosoft, by brand, because Sosoft was carton-only when the audit was written.
+// Migration 0208 gave every Sosoft SKU a bottle tier — correctly, at Ali's
+// request — and the audit went on demanding that a bottle-selling product show
+// no bottle price. It failed for being RIGHT, which is the worst way for a
+// guard to fail: the honest fix looks like weakening the test.
+//
+// Carton-only is a shape (`sellable_units = {carton}` and no pack price), and a
+// shape is what the crash was about. So the product is looked up by that shape
+// and the picker option is found from its own brand · model · variant text.
 const cartonOnly = scalar(`select count(*) from v_skus
    where is_active and sellable_units = array['carton']::text[]
      and selling_price_per_pack_mvr is null;`);
 list.ok(Number(cartonOnly) > 0,
   `the fixture still contains a carton-only SKU with no pack price — the shape that crashed (${cartonOnly})`);
+
+// The picker labels an option `brand · model · variant (n/pk × m/ctn)`, so the
+// first three parts are enough to find it.
+const cartonOnlyPath = scalar(`select concat_ws(' · ', brand_name, model_name, variant_display)
+    from v_skus
+   where is_active and sellable_units = array['carton']::text[]
+     and selling_price_per_pack_mvr is null
+   order by internal_code limit 1;`);
 
 const rivalPrices = scalar(`select count(*) from competitor_prices;`);
 list.ok(Number(rivalPrices) > 0,
@@ -102,7 +121,9 @@ try {
 
   // The units rule, at this door. A carton-only product must not be shown a
   // per-pack price, which is both what crashed and what was wrong to display.
-  const cartonSku = opts.find((o) => /Sosoft/i.test(o.t));
+  const cartonSku = opts.find((o) => cartonOnlyPath && o.t.startsWith(cartonOnlyPath));
+  list.ok(Boolean(cartonSku),
+    `the carton-only product is reachable in the picker (${cartonOnlyPath || "none in the catalogue"})`);
   if (cartonSku) {
     await sel.selectOption(cartonSku.v);
     await page.waitForTimeout(1800);
@@ -112,6 +133,24 @@ try {
       `and offers no per-PACK price for a product sold only by the carton (${tierBlock.replace(/\s+/g, " ").slice(0, 90)})`);
     list.ok(/\bCtn\b/.test(tierBlock),
       "while still showing the carton price, which is the one he actually charges");
+  }
+
+  // AND THE MIRROR, which is what 0208 changed. A product that genuinely sells
+  // one at a time must show that price here too — otherwise "no per-pack price"
+  // could be satisfied by never showing one anywhere, and the tier table would
+  // quietly stop pricing the bottle Ali now sells.
+  const singlePath = scalar(`select concat_ws(' · ', brand_name, model_name, variant_display)
+      from v_skus
+     where is_active and 'pack' = any(sellable_units) and 'carton' = any(sellable_units)
+       and selling_price_per_pack_mvr is not null
+     order by internal_code limit 1;`);
+  const singleSku = opts.find((o) => singlePath && o.t.startsWith(singlePath));
+  if (singleSku) {
+    await sel.selectOption(singleSku.v);
+    await page.waitForTimeout(1800);
+    const tierBlock = await page.locator("text=Customer Tier Prices").locator("xpath=../..").innerText().catch(() => "");
+    list.ok(/\bPk\b/.test(tierBlock) && /\bCtn\b/.test(tierBlock),
+      `a product sold BOTH singly and by the carton is priced both ways (${singlePath})`);
   }
 
   list.is(page.errors.length, 0, `no page errors (${page.errors.slice(0, 2).join(" | ")})`);
