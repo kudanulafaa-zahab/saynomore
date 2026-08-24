@@ -28,19 +28,33 @@ const q      = (sql) => execFileSync("psql", [DB, "-q", "-c", sql], { encoding: 
 const scalar = (sql) => execFileSync("psql", [DB, "-tAc", sql], { encoding: "utf8" }).trim();
 
 const BRAND    = "GiveawayAudit";
+// A SECOND PRODUCT, SOSOFT-SHAPED: 1 x 6, so one piece IS one whole bottle.
+// Ali, 2026-08-24: *"I'm also giving away sosoft bottles. I must be able to give
+// away sosoft individual bottles too."* The unit toggle used to infer its trade
+// tiers from the pack numbers — `pcs_per_pack > 1 ? pack : none` — which hides
+// the bottle for exactly this shape, so the one screen built for giving things
+// away could not give away one bottle.
+const BOTTLE   = "GIVE-BOTL-700-1x6";
 const CAMPAIGN = "Instagram giveaway audit";
 const CODE     = "GIVE-DIAP-M-48x4";
 
 function wipe() {
+  // DEPENDENCY ORDER, and it matters: `inventory_batches` points at
+  // `shipment_lines`, which points at `shipments`. The first version of this
+  // cleaned one product, then deleted the shipment, then cleaned the second —
+  // whose lines still hung off that shipment, so the foreign key refused and
+  // the audit died before it ran. Both products are cleaned to the same depth
+  // first, and only then is the shipment removed.
+  const codes = `'${CODE}', '${BOTTLE}'`;
   q(`delete from marketing_spend_skus where spend_id in
-       (select id from marketing_spend where campaign_name = '${CAMPAIGN}');`);
-  q(`delete from marketing_spend where campaign_name = '${CAMPAIGN}';`);
+       (select id from marketing_spend where campaign_name like '${CAMPAIGN}%');`);
+  q(`delete from marketing_spend where campaign_name like '${CAMPAIGN}%';`);
   q(`delete from audit_log where action = 'giveaway' and reason like '%${CAMPAIGN}%';`);
-  q(`delete from stock_movements where sku_id in (select id from skus where internal_code = '${CODE}');`);
-  q(`delete from inventory_batches where sku_id in (select id from skus where internal_code = '${CODE}');`);
-  q(`delete from shipment_lines where sku_id in (select id from skus where internal_code = '${CODE}');`);
+  q(`delete from stock_movements   where sku_id in (select id from skus where internal_code in (${codes}));`);
+  q(`delete from inventory_batches where sku_id in (select id from skus where internal_code in (${codes}));`);
+  q(`delete from shipment_lines    where sku_id in (select id from skus where internal_code in (${codes}));`);
   q(`delete from shipments where reference = 'SH-GIVEAWAY-AUDIT';`);
-  q(`delete from skus where internal_code = '${CODE}';`);
+  q(`delete from skus where internal_code in (${codes});`);
   q(`delete from variants where model_id in (
        select pm.id from product_models pm join brands b on b.id=pm.brand_id where b.name='${BRAND}');`);
   q(`delete from product_models where brand_id in (select id from brands where name='${BRAND}');`);
@@ -83,6 +97,35 @@ begin
     returning id into v_ba;
   insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
   values (v_ba, v_s, v_g, 'in', 384, 'shipment');
+
+  -- The Sosoft shape: 1 x 6, sold by the bottle AND the carton.
+  --
+  -- ITS OWN MODEL UNDER AN ml CATEGORY. The first version hung this variant off
+  -- the diaper model above, so its unit_uom was pcs and the toggle rendered
+  -- "pk" — the check failed and it read as the tier being missing when the tier
+  -- was fine and the fixture was wrong. A bottle needs a category that says
+  -- bottle. (No backticks in here: this whole block is a JS template literal,
+  -- and the first attempt closed the string with one.)
+  select id into v_cat from product_categories where unit_uom = 'ml' order by sort_order limit 1;
+  insert into product_models (brand_id, category_id, name) values (v_b, v_cat, 'Cleaning Liquid')
+    returning id into v_m;
+  insert into variants (model_id, display_name, attributes)
+  values (v_m, '700ml', '{"size":"700ml"}'::jsonb) returning id into v_v;
+  insert into skus (variant_id, internal_code, pcs_per_pack, packs_per_carton,
+                    carton_length_cm, carton_width_cm, carton_height_cm,
+                    fixed_selling_price_mvr, fixed_price_per_carton_mvr, sellable_units)
+  values (v_v, '${BOTTLE}', 1, 6, 40, 30, 30, 37, 220, array['pack','carton'])
+    returning id into v_s;
+  insert into shipment_lines (shipment_id, sku_id, qty_cartons, cbm_per_carton,
+                              fob_per_carton, fob_currency, destination_godown_id)
+  values (v_sh, v_s, 2, 0.036, 10, 'USD', v_g) returning id into v_sl;
+  insert into inventory_batches (shipment_line_id, sku_id, godown_id, received_at,
+                                 qty_cartons_received, qty_pieces_received,
+                                 landed_per_piece_mvr, landed_per_pack_mvr, landed_per_carton_mvr)
+  values (v_sl, v_s, v_g, now() - interval '5 days', 2, 12, 17.50, 17.50, 105.00)
+    returning id into v_ba;
+  insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
+  values (v_ba, v_s, v_g, 'in', 12, 'shipment');
 end $$;`);
 
 const stockBefore = scalar(`select coalesce(sum(stock_signed_delta(movement_type, qty_pieces)),0)
@@ -148,6 +191,35 @@ try {
 
   const after = await page.locator("body").innerText();
   list.ok(!/violates|constraint|duplicate key/i.test(after), "no raw database error reached the screen");
+
+  // ── AND ONE SINGLE BOTTLE ────────────────────────────────────────────────
+  // The whole of Ali's second request. A 1 x 6 product's trade tiers must come
+  // from `sellable_units`, not from the pack numbers — inferring them hides the
+  // bottle, because pcs_per_pack is 1.
+  const search2 = page.locator('input[placeholder*="gave away" i]:visible').first();
+  await search2.scrollIntoViewIfNeeded();
+  await search2.fill("700ml");
+  await page.waitForTimeout(1500);
+  await page.locator("button:visible").filter({ hasText: /700ml/i }).first().click();
+  await page.waitForTimeout(1200);
+
+  const bottleSheet = await page.locator("body").innerText();
+  list.ok(/\bbtl\b|\bbottle\b/i.test(bottleSheet),
+    "a 1x6 product offers its own unit — a BOTTLE — beside the carton");
+  list.ok(!/\bpcs\b/i.test(bottleSheet.split("Recent")[0]),
+    "and still never says pcs");
+
+  await page.locator('input[aria-label="Campaign name"]:visible').first().fill(CAMPAIGN + " bottle");
+  await page.waitForTimeout(400);
+  const btlPill = page.locator("button:visible").filter({ hasText: /^btl$|^bottle$/i }).first();
+  if (await btlPill.count() > 0) { await btlPill.click(); await page.waitForTimeout(400); }
+  await page.locator('input[type="number"]:visible').first().fill("1");
+  await page.waitForTimeout(400);
+  const go2 = page.locator("button:visible").filter({ hasText: /Record giveaway/i }).first();
+  await go2.scrollIntoViewIfNeeded();
+  await go2.click({ timeout: 15000 });
+  await page.waitForTimeout(4000);
+
   list.is(page.errors.length, 0, `no page errors (${page.errors.slice(0, 2).join(" | ")})`);
 } catch (e) {
   list.ok(false, `flow failed: ${String(e).split("\n")[0].slice(0, 190)}`);
@@ -178,6 +250,16 @@ list.is(orders, "0",
   "NO sales order was created -- the winner is not a customer, and the follow-up round must not chase them");
 list.is(source, "promotion",
   `the movement is marked as a promotion (${source}), so the P&L write-off line stays clean`);
+
+// ── THE SINGLE BOTTLE LANDED ───────────────────────────────────────────────
+const btlLeft = scalar(`select coalesce(sum(stock_signed_delta(movement_type, qty_pieces)),0)
+  from stock_movements sm join skus s on s.id = sm.sku_id where s.internal_code = '${BOTTLE}';`);
+const btlSpend = scalar(`select round(amount_mvr, 2) from marketing_spend
+  where campaign_name = '${CAMPAIGN} bottle';`);
+
+list.is(btlLeft, "11", `exactly ONE bottle left the godown of twelve (${btlLeft} remain)`);
+list.is(btlSpend, "17.50",
+  `costed at the bottle's landed cost, MVR ${btlSpend} — not the MVR 37 it sells for, and not a whole carton`);
 
 wipe();
 finish(list.report());
