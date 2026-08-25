@@ -37,9 +37,10 @@ name: UI checks
 #             the SKU code, the permanent reference, never moves
 #   giveaway  a prize leaves stock as marketing at COST: not revenue, not COGS,
 #             not the write-off line that means shrinkage
-#   bottlesale a mixed-carton brand can also be sold ONE at a time. Its own
-#             sheet never read `sellable_units`, so a data change enabling the
-#             tier was real and invisible — Ali found it with a screenshot
+#   bottlesale the THREE ways Ali sells Sosoft, in one order: a mixed carton of
+#             6, a whole carton of one colour, and loose bottles. All 204 Sosoft
+#             bottles ever sold are recorded as mixed fills, and NO audit had
+#             ever driven the whole-carton path — a third of the trade untested
 #   late      a product waiting on a LATE or LANDED container is reported as
 #             that container, once — never as a reason to order it again. The
 #             home screen was telling him to re-buy MVR 1,043 a week of goods
@@ -228,7 +229,7 @@ jobs:
       - name: Giveaway — a prize is marketing at cost, not a sale and not a loss
         run: npm run audit:giveaway
 
-      - name: One bottle — the sale path for a mixed-carton brand
+      - name: Sosoft — all three ways he sells it, in one order
         run: npm run audit:bottlesale
 
       - name: Late shipment — the home screen never says buy what is already bought

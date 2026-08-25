@@ -37,7 +37,7 @@
     "audit:gaps": "node scripts/audit/setup-gaps.mjs",
     "audit:rename": "node scripts/audit/rename-product.mjs",
     "audit:giveaway": "node scripts/audit/giveaway.mjs",
-    "audit:bottlesale": "node scripts/audit/single-bottle-sale.mjs",
+    "audit:bottlesale": "node scripts/audit/sosoft-three-ways.mjs",
     "audit:late": "node scripts/audit/late-shipment.mjs",
     "audit:atcost": "node scripts/audit/cost-equals-price.mjs",
     "audit:picker": "node scripts/audit/giveaway-picker.mjs",
