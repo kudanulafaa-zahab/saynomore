@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-two audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-three audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -52,6 +52,11 @@ name: UI checks
 #             back, and never prints one unit's word twice. The list used to keep
 #             every other product under the form in its OWN scroll region, and
 #             Sosoft's toggle read `ctn | btl | btl`
+#   clearance a line he has STOPPED restocking is cleared to customers who
+#             already buy it, never advertised publicly — 7 of the 12 products
+#             on the Promo Advisor are dropped lines and every one offered a
+#             Facebook post. Read through the CLIPBOARD, because the caption
+#             exists only between the tap and the paste
 #   card      the Product Card: every figure on it reconciles to the ledger
 #   pricing   the Pricing Tool opens for EVERY product, not just the one that
 #             loads by default — it died on every carton-only SKU, and a
@@ -234,6 +239,9 @@ jobs:
 
       - name: Picker — one product on screen, one word per unit, a way back
         run: npm run audit:picker
+
+      - name: Clearance — a dropped line is offered to buyers, never to strangers
+        run: npm run audit:clearance
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card

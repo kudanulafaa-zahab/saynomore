@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Megaphone, ChevronDown, ChevronUp } from "lucide-react";
+import { Megaphone, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { getPromoSuggestions, type PromoSuggestionRow } from "@/lib/queries/intelligence";
 import { mvtInstant } from "@/lib/mvt-date";
 import { mvr } from "@/lib/money";
@@ -69,31 +69,63 @@ export function PromoAdvisor() {
   // pure dead stock leads with the saving. Warm, order-now, no fake claims.
   function buildCaption(r: PromoSuggestionRow): string {
     const name = r.full_path.replace(/ › /g, " ");
-    const priceLine = `Now just MVR ${fmt(r.promo_pack_mvr)}/pack — was MVR ${fmt(r.current_pack_mvr)}, you save ${r.discount_pct}%.`;
-    const packLine  = `${r.pcs_per_pack} pieces in every pack.`;
-    const order     = `📱 Message us on WhatsApp or Viber to order — delivery across Malé.`;
+    // THE UNIT SOLD, NOT THE WORD "PACK". `/pack` was a literal, so a Body Shop
+    // TUB was offered "MVR 137/pack" — and a tub is never a pack (CLAUDE.md).
+    // The noun comes from the product's category, the same source the ledger
+    // uses.
+    const noun = r.unit_noun || "pack";
+    const priceLine = `Now just MVR ${fmt(r.promo_pack_mvr)}/${noun} — was MVR ${fmt(r.current_pack_mvr)}, you save ${r.discount_pct}%.`;
+    // WHAT IS IN ONE, and only when there is more than one thing in it. This
+    // said "${pcs_per_pack} pieces in every pack", which for the three products
+    // whose pack IS one item printed "1 pieces in every pack" — a piece count
+    // AND broken grammar, in the most public text this app produces. Pack SIZE
+    // is kept deliberately (it is how a diaper variant is identified) but a tub
+    // has no pack size to state.
+    const packLine  = r.pcs_per_pack > 1 ? `${r.pcs_per_pack} in every ${noun}.` : "";
 
+    // ── WHO THIS IS FOR, WHICH IS THE WHOLE DIFFERENCE ─────────────────────
+    //
+    // CLAUDE.md on the discontinued lines: "anything aimed at winning a NEW
+    // customer must never feature a line that will not be restocked — winning
+    // someone for a product about to vanish is worse than not winning them. But
+    // a clearance offer to EXISTING customers is exactly right."
+    //
+    // Seven of the twelve products on this list are discontinued, and the
+    // caption invited a public post for every one of them. The clearance is
+    // right; the audience was wrong. So a dropped line gets a message written
+    // to someone who already buys it, and it never claims there will be more.
+    if (r.discontinued) {
+      const head = `Hi! We have a last batch of ${name} going at a special price.`;
+      const tail = `Once this is gone we won't be bringing it in again, so let us know if you'd like some put aside.`;
+      return [head, priceLine, packLine, tail].filter(Boolean).join("\n");
+    }
+
+    const order = `📱 Message us on WhatsApp or Viber to order — delivery across Malé.`;
     const expiring = r.expiry_days_left != null && r.expiry_days_left <= 180;
     if (expiring) {
-      return (
-        `✨ ${name} — special price this month\n` +
-        `${priceLine}\n` +
-        `Best before ${expiryMonth(r.expiry_days_left!)} — stock up while it lasts. ${packLine}\n` +
-        order
-      );
+      return [
+        `✨ ${name} — special price this month`,
+        priceLine,
+        `Best before ${expiryMonth(r.expiry_days_left!)} — stock up while it lasts. ${packLine}`.trim(),
+        order,
+      ].join("\n");
     }
-    return (
-      `✨ ${name} — this week's deal\n` +
-      `${priceLine}\n` +
-      `${packLine} Limited stock — first come, first served.\n` +
-      order
-    );
+    return [
+      `✨ ${name} — this week's deal`,
+      priceLine,
+      `${packLine} Limited stock — first come, first served.`.trim(),
+      order,
+    ].join("\n");
   }
 
   async function copyCaption(r: PromoSuggestionRow) {
     try {
       await navigator.clipboard.writeText(buildCaption(r));
-      toast.success("Caption copied — paste it on Facebook/Instagram/Viber");
+      // The toast named Facebook and Instagram for every row — a public channel
+      // for a product he is discontinuing. It now says where each kind goes.
+      toast.success(r.discontinued
+        ? "Message copied — send it to customers who already buy it, not to a public post"
+        : "Caption copied — paste it on Facebook/Instagram/Viber");
     } catch {
       toast.error("Could not copy — long-press to select instead");
     }
@@ -111,7 +143,15 @@ export function PromoAdvisor() {
       <p className="ios-footnote mb-4" style={{ color: "var(--muted-foreground)" }}>
         {rows.length === 1 ? "This product isn't" : `These ${rows.length} products aren't`} selling — the money is stuck on the shelf.
         Clear {rows.length === 1 ? "it" : "them"} at the promo price below and it still earns 10% on today&apos;s cost.
-        Tap <span style={{ color: "var(--foreground)", fontWeight: 600 }}>Copy post</span> for a ready caption.
+        Tap <span style={{ color: "var(--foreground)", fontWeight: 600 }}>Copy post</span> for a ready caption
+        {rows.some((r) => r.discontinued) && (
+          <>
+            {" — or "}
+            <span style={{ color: "var(--foreground)", fontWeight: 600 }}>Copy message</span> on a line
+            you&apos;ve stopped restocking, which goes to customers who already buy it rather than to a
+            public post
+          </>
+        )}.
         Products you simply over-ordered aren&apos;t here — those show on{" "}
         <Link href="/reorder" style={{ color: "var(--foreground)", fontWeight: 600 }}>Reorder</Link>, where the fix is to order less, not to cut the price.
       </p>
@@ -173,6 +213,18 @@ export function PromoAdvisor() {
                     style={{ background: "var(--muted)", color: "var(--foreground)" }}>
                     {REASON_LABEL[r.reason]}
                   </span>
+                  {/* WHO IT IS FOR, before he taps rather than after. Seven of
+                      the twelve products here are lines he has stopped
+                      reordering, and for those the offer goes to people who
+                      already buy it — never to a public post (0180). Neutral
+                      grey: this is information, not a status. Semantic colour
+                      in this app means money. */}
+                  {r.discontinued && (
+                    <span className="ios-caption1 font-semibold px-1.5 py-0.5 rounded-md"
+                      style={{ background: "var(--muted)", color: "var(--foreground)" }}>
+                      Not restocking
+                    </span>
+                  )}
                 </div>
               </div>
               <button
@@ -180,8 +232,12 @@ export function PromoAdvisor() {
                 className="snm-pressable shrink-0 flex items-center gap-1.5 rounded-full px-3 py-2 ios-footnote font-semibold"
                 style={{ background: "var(--foreground)", color: "var(--background)" }}
               >
-                <Megaphone className="h-3.5 w-3.5" />
-                Copy post
+                {/* A megaphone is a PUBLIC symbol, and half these rows must not
+                    go anywhere public. The word and the icon both change with
+                    the audience, so the button cannot promise the wrong one. */}
+                {r.discontinued
+                  ? <><Send className="h-3.5 w-3.5" /> Copy message</>
+                  : <><Megaphone className="h-3.5 w-3.5" /> Copy post</>}
               </button>
             </div>
           </div>

@@ -65,6 +65,15 @@ export interface PromoSuggestionRow {
   discount_pct: number;
   pcs_per_pack: number;
   reason: PromoReason;
+  /** A line Ali has stopped reordering (0180). It still sells, is still priced
+   *  and still counted — but it must never be advertised to strangers, because
+   *  winning a new customer for a product about to vanish is worse than not
+   *  winning them. A clearance offer to people who ALREADY buy it is exactly
+   *  right, and that is the only difference between the two. */
+  discontinued: boolean;
+  /** What ONE of them is called — "tub", "bottle", "pack". The caption used to
+   *  say "/pack" as a literal, so a tub of body butter was offered by the pack. */
+  unit_noun: string;
 }
 
 /** Stock that genuinely isn't moving, with margin headroom for a clearance
