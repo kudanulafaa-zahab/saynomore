@@ -105,6 +105,10 @@ begin
                       fixed_price_per_pack_mvr, fixed_price_per_carton_mvr, sellable_units)
       values (v_sku, v_variant, 'SOSO-' || upper(colours[i][1]) || '-1x6',
               1, 6, 40, 30, 30, 40, 220, array['pack', 'carton']);
+    -- Exactly production's tiers since 0210: carton and pack, and NOT piece.
+    -- Sosoft carried {carton,pack,piece} on production for weeks, which made
+    -- every unit toggle print "btl" twice — a bottle is a pack here, so the
+    -- piece tier was the same choice under a second name.
     insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
                                 fob_per_carton, fob_currency, destination_godown_id)
       values (v_line, v_ship, v_sku, 20, 0.036, 10, 'USD', v_godown);

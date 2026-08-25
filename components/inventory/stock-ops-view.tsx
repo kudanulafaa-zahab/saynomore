@@ -105,12 +105,38 @@ function UnitToggle({ sku, value, onChange, tradeOnly = false }: {
         ...(sku.packs_per_carton > 1 ? (["carton"] as const) : []),
         ...(sku.pcs_per_pack > 1 ? (["pack"] as const) : []),
       ] as SaleUom[]);
-  const options: SaleUom[] = [
+  const withLoose: SaleUom[] = [
     ...trade,
     // The LOOSE tier stays for ledger events — a write-off or a count — because
     // a torn pack is real (CLAUDE.md). It is never offered on a trade sheet.
     ...(tradeOnly ? [] : (["piece"] as const)),
   ];
+
+  // ── NEVER THE SAME WORD TWICE ─────────────────────────────────────────────
+  //
+  // Ali, 2026-08-25, with a screenshot: *"there is 2 bottles option when I
+  // choose sosoft."* The toggle read `ctn | btl | btl`.
+  //
+  // For a product whose pack IS one unit — Sosoft is 1 x 6 — `pack` and `piece`
+  // are the same physical thing, and `sellUnitLabel` deliberately gives them the
+  // same word: a bottle is never called a piece. So any SKU carrying both tiers
+  // renders one choice twice, and the second button is indistinguishable from
+  // the first while meaning something different to the ledger.
+  //
+  // Migration 0210 removed the duplicate tier from the five Sosoft SKUs and
+  // added a CHECK so it cannot return. This is the same rule at the render
+  // layer, because the data was wrong for weeks with nothing watching, and a
+  // toggle that can print one word twice is a toggle that will.
+  //
+  // Keeps the FIRST, which is the trade tier: sellableTiers orders carton →
+  // pack → piece, so the survivor is always the one the product is SOLD in.
+  const seen = new Set<string>();
+  const options = withLoose.filter((u) => {
+    const word = uomAbbr(u, sku.unit_uom);
+    if (seen.has(word)) return false;
+    seen.add(word);
+    return true;
+  });
   if (options.length <= 1) return null;
   return (
     <div className="flex rounded-lg overflow-hidden shrink-0" style={{ border: "0.5px solid var(--glass-border-lo)" }}>
@@ -132,7 +158,10 @@ function UnitToggle({ sku, value, onChange, tradeOnly = false }: {
   );
 }
 
-type Tab = "receive" | "verify" | "transfer" | "writeoff" | "giveaway";
+// ONE LIST OF THE TABS, and the type is derived from it. Two hand-written
+// lists is how `?tab=giveaway` came to land on Verify Count.
+const TABS = ["receive", "verify", "transfer", "writeoff", "giveaway"] as const;
+type Tab = (typeof TABS)[number];
 
 /* ════════════════════════════════════════════════════════════════════════ */
 
@@ -150,11 +179,13 @@ export function StockOpsView() {
   // `?sku=<id>` preselects the product, so "Receive stock" on a product page
   // lands on a form that is already about that product.
   const tabParam = searchParams.get("tab");
-  const initialTab: Tab =
-      tabParam === "receive"  ? "receive"
-    : tabParam === "transfer" ? "transfer"
-    : tabParam === "writeoff" ? "writeoff"
-    : "verify";
+  // DERIVED FROM THE TAB LIST, NOT RETYPED FROM IT. This was a hand-written
+  // chain of four comparisons, and `giveaway` was missing from it — so
+  // `?tab=giveaway` silently landed on Verify Count, which is exactly the bug
+  // the comment above describes happening to `receive`. The same defect, in the
+  // same expression, twice: a second list of the tab names is a second thing to
+  // remember, and it was forgotten both times a tab was added.
+  const initialTab: Tab = TABS.includes(tabParam as Tab) ? (tabParam as Tab) : "verify";
   const [tab, setTab] = useState<Tab>(initialTab);
   const presetSkuId = searchParams.get("sku");
   const [skus, setSkus] = useState<SkuFullRow[]>([]);
@@ -1086,10 +1117,25 @@ function TransferTab({
         );
       })()}
 
-      {available.length === 0 ? (
+      {/* ── THE PICKER HIDES ONCE HE HAS PICKED ────────────────────────────
+           Ali, 2026-08-25: *"when I select a product the other products are
+           scrolling behind. There no way to go back."*
+
+           Two separate faults in one list. It kept rendering every OTHER
+           product underneath the form, and it owned its own scroll — a
+           height-capped `overflow-y-auto` inside a page that also scrolls,
+           which is the nested double-scroll CLAUDE.md forbids outright ("the
+           page scrolls, not inner panes"; only a full-screen takeover may own
+           its scroll). So the form he was filling in and a list he had finished
+           with were fighting for the same gesture.
+
+           Now: nothing is selected, the whole list flows in the page like the
+           Receive tab's does; something is selected, the list is gone and the
+           form's "Choose a different product" is the way back. */}
+      {selected ? null : available.length === 0 ? (
         <EmptyState text="No stock in the source warehouse." />
       ) : (
-        <div className="space-y-2 max-h-[46vh] overflow-y-auto overscroll-contain">
+        <div className="space-y-2">
           {available.map((r) => {
             const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
             const active = skuId === r.sku.id;
@@ -1240,6 +1286,21 @@ function WriteOffTab({
               </p>
             </div>
 
+            {/* THE WAY BACK. Ali, 2026-08-25: *"when I select a product the
+                other products are scrolling behind. There no way to go back."*
+                Tapping the chosen row again has always cleared it — but that row
+                is now the only one left and it sits below this form, which makes
+                it an undiscoverable gesture on a screen he has to scroll. A
+                named control says it in a word. */}
+            <button
+              type="button"
+              onClick={() => { setSkuId(""); setQty(""); }}
+              className="ios-footnote font-semibold snm-pressable"
+              style={{ color: "var(--foreground)", opacity: 0.75 }}
+            >
+              ← Choose a different product
+            </button>
+
             {/* Reason code — reason-coded shrinkage is the standard */}
             <div className="flex flex-wrap gap-1.5">
               {reasons.map((r) => (
@@ -1323,10 +1384,25 @@ function WriteOffTab({
         </div>
       )}
 
-      {available.length === 0 ? (
+      {/* ── THE PICKER HIDES ONCE HE HAS PICKED ────────────────────────────
+           Ali, 2026-08-25: *"when I select a product the other products are
+           scrolling behind. There no way to go back."*
+
+           Two separate faults in one list. It kept rendering every OTHER
+           product underneath the form, and it owned its own scroll — a
+           height-capped `overflow-y-auto` inside a page that also scrolls,
+           which is the nested double-scroll CLAUDE.md forbids outright ("the
+           page scrolls, not inner panes"; only a full-screen takeover may own
+           its scroll). So the form he was filling in and a list he had finished
+           with were fighting for the same gesture.
+
+           Now: nothing is selected, the whole list flows in the page like the
+           Receive tab's does; something is selected, the list is gone and the
+           form's "Choose a different product" is the way back. */}
+      {selected ? null : available.length === 0 ? (
         <EmptyState text="No stock in this warehouse to write off." />
       ) : (
-        <div className="space-y-2 max-h-[42vh] overflow-y-auto overscroll-contain">
+        <div className="space-y-2">
           {available.map((r) => {
             const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
             const active = skuId === r.sku.id;
@@ -1751,6 +1827,21 @@ function GiveawayTab({
               </p>
             </div>
 
+            {/* THE WAY BACK. Ali, 2026-08-25: *"when I select a product the
+                other products are scrolling behind. There no way to go back."*
+                Tapping the chosen row again has always cleared it — but that row
+                is now the only one left and it sits below this form, which makes
+                it an undiscoverable gesture on a screen he has to scroll. A
+                named control says it in a word. */}
+            <button
+              type="button"
+              onClick={() => { setSkuId(""); setQty(""); }}
+              className="ios-footnote font-semibold snm-pressable"
+              style={{ color: "var(--foreground)", opacity: 0.75 }}
+            >
+              ← Choose a different product
+            </button>
+
             {/* THE CAMPAIGN, AND IT IS REQUIRED. A label above the field, not a
                 placeholder — a field's name never lives in its placeholder
                 (CLAUDE.md), and this one decides where the money is charged. */}
@@ -1804,10 +1895,25 @@ function GiveawayTab({
         );
       })()}
 
-      {available.length === 0 ? (
+      {/* ── THE PICKER HIDES ONCE HE HAS PICKED ────────────────────────────
+           Ali, 2026-08-25: *"when I select a product the other products are
+           scrolling behind. There no way to go back."*
+
+           Two separate faults in one list. It kept rendering every OTHER
+           product underneath the form, and it owned its own scroll — a
+           height-capped `overflow-y-auto` inside a page that also scrolls,
+           which is the nested double-scroll CLAUDE.md forbids outright ("the
+           page scrolls, not inner panes"; only a full-screen takeover may own
+           its scroll). So the form he was filling in and a list he had finished
+           with were fighting for the same gesture.
+
+           Now: nothing is selected, the whole list flows in the page like the
+           Receive tab's does; something is selected, the list is gone and the
+           form's "Choose a different product" is the way back. */}
+      {selected ? null : available.length === 0 ? (
         <EmptyState text="No stock in this warehouse to give away." />
       ) : (
-        <div className="space-y-2 max-h-[42vh] overflow-y-auto overscroll-contain">
+        <div className="space-y-2">
           {available.map((r) => {
             const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
             const active = skuId === r.sku.id;
