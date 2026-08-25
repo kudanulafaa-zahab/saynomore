@@ -213,6 +213,57 @@ diapers moving anywhere in the business, it is packs or cartons.
   29 SKUs (migration 0139). Margin, promo floors and price suggestions all use
   the pack/carton price.
 
+### Sosoft sells THREE ways, and all three are regular. (Ali, 2026-08-25)
+
+> *"Sosoft my regular sales are mixed carton of 6 bottles. Same color carton of
+> 6 bottles and also individual bottles sales."*
+
+Permanent, and written down because three separate defects this week all came
+from one of the three being forgotten. **A carton is always 6 bottles.** Every
+Sosoft SKU is `1 × 6`, so ONE PIECE IS ONE WHOLE BOTTLE and the `pack` tier is a
+single bottle — that is why none of this breaks the units rule.
+
+| # | The sale | Where he does it | What the ledger records |
+|---|---|---|---|
+| 1 | **Mixed carton** — 6 bottles, colours mixed | New Sale → Sosoft → **Mixed carton** | one `uom='piece'` line per colour, `is_mixed_carton_fill = true`, and the brand's total must be a whole multiple of 6 |
+| 2 | **Whole carton, one colour** — 6 of the same | New Sale → Sosoft → **One colour** | `uom='carton'`, qty in cartons |
+| 3 | **Individual bottles** — loose, any number | New Sale → Sosoft → **Single bottles** | `uom='pack'`, qty in bottles, `is_mixed_carton_fill = false` |
+
+**They are three different prices, not one price expressed three ways.** A mixed
+bottle and a whole carton are both billed off the carton rate; a single bottle
+is billed at its own bottle price. That is the whole reason `MixedCartonAdd`
+carries `kind: "carton" | "mix" | "single"` rather than a boolean — a boolean
+was one bit short of the question, and merging the three at save time both
+mis-priced the order and got it refused (register E20).
+
+**What the ledger showed on 2026-08-25, and what it really means.** All 204
+Sosoft bottles ever sold — MVR 7,480 across 112 lines — are recorded as
+**mixed-carton fills**: not one `uom='carton'` line, not one loose `pack`. That
+reads like a contradiction of what Ali just said, and it is not. Broken down by
+how many colours each order actually contained:
+
+| Colours in the order | Orders | Bottles | What it really was |
+|---|---|---|---|
+| 2–5 | 26 | 186 | genuine mixed cartons — way 1 |
+| **1** | **3** | **18** | **a same-colour carton, entered on the Mixed tab — way 2 wearing way 1's clothes** |
+
+So **way 2 has happened, three times, and the record does not say so.** The
+money is identical either way (a mixed bottle and a whole carton are both billed
+off the carton rate), so nothing is mis-priced — but every report reads those
+three as mixed cartons. The "One colour" tab records them correctly and takes
+one tap instead of six. Way 3 only became possible on 2026-08-24, which is why
+it has no history at all.
+
+**Do not read the ledger as evidence that ways 2 and 3 are rare.** Ali is
+describing his trade, not his data. A screen, a report or a test that covers
+only the mixed carton is covering a third of his Sosoft business — and until
+2026-08-25 no audit drove way 2 at all.
+
+**One order cannot hold a mixed fill AND loose singles of the same colour**
+(register D6) — one row per product per order, and that row carries one
+mixed-fill flag. The cart says so and blocks Continue rather than failing at
+save. Different colours in one order are fine.
+
 ### SKU code convention — read it, it tells you the pack config
 `BRAND-MODEL-SIZE-{pcs_per_pack}x{packs_per_carton}`
 
