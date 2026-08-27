@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-three audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-four audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -58,6 +58,10 @@ name: UI checks
 #             on the Promo Advisor are dropped lines and every one offered a
 #             Facebook post. Read through the CLIPBOARD, because the caption
 #             exists only between the tap and the paste
+#   followup2 the round never chases a customer who just ordered, and the card
+#             never vanishes on a failed refresh. Both were live: three
+#             customers who had bought within ten days were still queued, and a
+#             swallowed fetch error looked exactly like "nobody to chase"
 #   card      the Product Card: every figure on it reconciles to the ledger
 #   pricing   the Pricing Tool opens for EVERY product, not just the one that
 #             loads by default — it died on every carton-only SKU, and a
@@ -243,6 +247,9 @@ jobs:
 
       - name: Clearance — a dropped line is offered to buyers, never to strangers
         run: npm run audit:clearance
+
+      - name: Follow-up — never chase someone who just bought, never go quiet
+        run: npm run audit:followup2
 
       - name: Product Card — every figure reconciles to the ledger
         run: npm run audit:card

@@ -44,14 +44,28 @@ import {
 
 import { mvr } from "@/lib/money";
 
+/** HOW OVERDUE, not just how long ago. "49 days ago" says nothing on its own —
+ *  a customer who buys twice a year is not late at 49 days and one who buys
+ *  weekly is very late. `overdue_days` (0212) counts from the point THIS
+ *  customer became due, which is also what the list is ordered by, so the order
+ *  Ali sees on screen is explained by a number on the same row. */
+function overdueLine(c: FollowupCandidate): string {
+  const d = c.overdue_days ?? 0;
+  if (d <= 0) return "due about now";
+  if (d === 1) return "1 day past due";
+  if (d < 21) return `${d} days past due`;
+  const weeks = Math.round(d / 7);
+  return `about ${weeks} weeks past due`;
+}
+
 function reasonLine(c: FollowupCandidate): string {
   if (c.reason === "stranded") {
-    return `Nothing left to reorder · last ordered ${c.days_since_last} days ago`;
+    return `Nothing left to reorder · ${overdueLine(c)}`;
   }
   if (c.reason === "rhythm") {
-    return `Later than they usually order · ${c.days_since_last} days ago`;
+    return `Later than they usually order · ${overdueLine(c)}`;
   }
-  return `Probably out · last ordered ${c.days_since_last} days ago`;
+  return `Probably out · ${overdueLine(c)}`;
 }
 
 /** A stranded customer's message NAMES the replacement and its size — "are you
@@ -226,7 +240,12 @@ export function FollowupSheet({
 export function FollowupCard({
   queue, results,
 }: {
-  queue: FollowupCandidate[];
+  /** `null` means the queue could not be LOADED — not that it is empty. Ali,
+   *  2026-08-25: *"The card disappears when I pull down."* The dashboard used
+   *  to swallow a failed fetch into `[]`, and an empty queue renders nothing,
+   *  so a hiccup on refresh was indistinguishable from "nobody needs chasing".
+   *  A retention list going quiet by accident is the worst failure it has. */
+  queue: FollowupCandidate[] | null;
   results: FollowupResults | null;
 }) {
   // Refreshes ITSELF rather than taking an onDone from the caller. The
@@ -234,8 +253,36 @@ export function FollowupCard({
   // — a stub like `onDone={() => {}}` type-checks and then throws at run time.
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const atStake = queue.reduce((n, c) => n + Number(c.avg_order_mvr ?? 0), 0);
-  if (queue.length === 0) return null;
+  const rows = queue ?? [];
+  const atStake = rows.reduce((n, c) => n + Number(c.avg_order_mvr ?? 0), 0);
+
+  // COULD NOT LOAD — say so, and offer the retry. Silence here reads as "you
+  // have nobody to chase", which is a lie that costs orders.
+  if (queue === null) {
+    return (
+      <button
+        type="button"
+        onClick={() => { haptic("light"); router.refresh(); }}
+        className="w-full text-left glass-panel rounded-2xl snm-pressable flex items-center gap-3"
+        style={{ padding: 18 }}
+      >
+        <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "color-mix(in srgb, var(--snm-warning) 12%, transparent)", color: "var(--snm-warning)" }}>
+          <MessageCircle className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
+            Follow-up list didn&apos;t load
+          </p>
+          <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+            Tap to try again — this is not the same as having nobody to follow up with.
+          </p>
+        </div>
+      </button>
+    );
+  }
+
+  if (rows.length === 0) return null; // genuinely nobody — correct to be silent
 
   return (
     <>
@@ -251,7 +298,7 @@ export function FollowupCard({
         </div>
         <div className="min-w-0 flex-1">
           <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
-            Follow up with {queue.length} customer{queue.length === 1 ? "" : "s"}
+            Follow up with {rows.length} customer{rows.length === 1 ? "" : "s"}
           </p>
           <p className="ios-footnote snm-num" style={{ color: "var(--foreground)", opacity: 0.75 }}>
             About MVR {mvr(atStake)} of orders at stake
@@ -260,7 +307,7 @@ export function FollowupCard({
       </button>
 
       <FollowupSheet
-        queue={queue}
+        queue={rows}
         results={results}
         open={open}
         onClose={() => { setOpen(false); router.refresh(); }}

@@ -18,6 +18,12 @@ export interface FollowupCandidate {
    *  offer is not a "are you running low" nudge. */
   reason: FollowupReason;
   days_since_last: number;
+  /** Whole days past the point this customer became DUE — 0 means they fell due
+   *  today, 40 means long past their own rhythm and a message is a long shot.
+   *  Derived from the same thresholds `at_risk` is computed from (0212), so the
+   *  two cannot drift apart. Drives the order: the biggest order still likely
+   *  to come back, rather than the biggest order full stop. */
+  overdue_days: number;
   /** ONE typical order from this customer — what is at stake this cycle, not
    *  their lifetime value, which would put every old customer at the top. */
   avg_order_mvr: number;

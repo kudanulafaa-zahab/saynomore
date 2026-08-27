@@ -78,7 +78,14 @@ export default async function DashboardPage() {
     // THE SECOND ORDER IS THE BUSINESS: 55 of 81 customers bought once, and a
     // repeat customer is worth MVR 1,098 against MVR 485. Never let it break
     // the dashboard — the money figures above are vital signs.
-    getFollowupQueueServer(10).catch(() => []),
+    // NULL ON FAILURE, NOT AN EMPTY LIST. Ali, 2026-08-25: *"The card
+    // disappears when I pull down."* This caught to `[]`, and the card renders
+    // nothing for an empty queue — so a transient failure on refresh looked
+    // exactly like "there is nobody to follow up with", which is the one
+    // sentence a retention list must never say by accident. `null` is now
+    // "could not load" and `[]` is "genuinely nobody", and the card tells them
+    // apart.
+    getFollowupQueueServer(10).catch(() => null),
     getFollowupResultsServer(30).catch(() => null),
   ]);
   const netProfit    = Number(pnl?.net_profit_mvr ?? 0);
