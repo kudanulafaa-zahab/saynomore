@@ -104,7 +104,16 @@ try {
   const sheet = await page.locator("body").innerText();
 
   list.ok(sheet.includes(NAME), "the list names the customer");
-  list.ok(/probably out · last ordered \d+ days ago/i.test(sheet), "saying why they are due");
+  // WHY, AND HOW OVERDUE. This asserted "last ordered N days ago", which 0212
+  // deliberately replaced: a raw age says nothing on its own, because 41 days
+  // is not late for a customer who buys twice a year. The row now carries the
+  // reason AND the distance past THIS customer's own due point, which is also
+  // what the queue is ordered by — so the order on screen is explained by a
+  // number on the same row. Both halves are asserted; dropping either would
+  // let the row go back to being uninformative.
+  list.ok(/probably out/i.test(sheet), "saying why they are due");
+  list.ok(/\d+ days? past due|due about now|weeks past due/i.test(sheet),
+    "and how far past THEIR OWN due point, not just how long ago they bought");
   list.ok(/usually MVR [\d,]+ an order/i.test(sheet),
     "and what an order from them is worth");
 
