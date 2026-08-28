@@ -4,7 +4,7 @@
 // immediately; the page listens for controllerchange and reloads ONCE to the
 // latest version automatically (no manual unregister, no stale JS after deploys).
 
-const CACHE_VERSION = "snm-v5";
+const CACHE_VERSION = "snm-v6";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -101,32 +101,67 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
-// Navigation requests get special treatment: try network, fall back to a
-// cached copy of the page, then to the offline shell, and only as a last
-// resort a minimal inline HTML page (never a bare 503 string).
+// Navigations: ask the network state, never infer it from a failure.
+//
+// ── THE BUG THIS REPLACES ───────────────────────────────────────────────────
+//
+// Ali, 2026-08-28, on 4G with full signal, opening Financials minutes after a
+// deploy: **"You're offline"**. He was not. This handler treated every failed
+// fetch as proof of a dead connection, and there are two ways to fail while
+// perfectly connected:
+//
+//   1. AN 8-SECOND CAP, imposed here and nowhere else. /financials is
+//      server-rendered; a cold serverless start on a Maldivian mobile
+//      connection can pass 8 seconds, and the cap turned "slow" into "offline".
+//   2. THE DEPLOY RELOAD. A new service worker claims the page, the app
+//      reloads to pick it up, and the navigation already in flight is ABORTED.
+//      An abort rejects exactly like a dead network.
+//
+// Telling a business owner he has no signal when he has four bars is worse than
+// showing nothing: it sends him to check his phone instead of the app.
+//
+// ── WHAT IT DOES NOW ────────────────────────────────────────────────────────
+//
+// Offline (the browser says so): don't even try — go straight to a cached page
+// or the shell. That is also FASTER than the old path, which sat for 8 seconds
+// waiting for a network that was not there.
+//
+// Online: no artificial cap at all — the browser has its own — plus one retry,
+// because the single most likely failure here is a one-off abort. Only if both
+// attempts fail do we fall back, and the shell then works out its own wording
+// from `navigator.onLine` rather than asserting something false.
 async function navigationHandler(request) {
   const cache = await caches.open(STATIC_CACHE);
-  try {
-    const res = await fetchWithTimeout(request, 8000);
-    if (res.ok) cache.put(request, res.clone());
-    return res;
-  } catch {
-    const cachedPage = await cache.match(request);
-    if (cachedPage) return cachedPage;
 
-    const offlineShell = await cache.match("/offline");
-    if (offlineShell) return offlineShell;
-
-    // Absolute last resort — inline HTML so Safari always shows *something*.
-    return new Response(
-      "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>" +
-      "<title>Offline</title><body style='font-family:-apple-system,system-ui,sans-serif;display:flex;" +
-      "min-height:100vh;align-items:center;justify-content:center;margin:0;background:#000;color:#fff;text-align:center'>" +
-      "<div style='padding:24px'><div style='font-size:40px'>📶</div><h1 style='font-size:20px'>You're offline</h1>" +
-      "<p style='color:#999;font-size:15px'>Reconnect to load SayNoMore. Your saved changes will sync automatically.</p></div>",
-      { headers: { "Content-Type": "text/html; charset=utf-8" }, status: 200 }
-    );
+  if (navigator.onLine !== false) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(request);
+        if (res.ok) cache.put(request, res.clone());
+        return res;
+      } catch {
+        /* try once more, then fall through to the cache */
+      }
+    }
   }
+
+  const cachedPage = await cache.match(request);
+  if (cachedPage) return cachedPage;
+
+  const offlineShell = await cache.match("/offline");
+  if (offlineShell) return offlineShell;
+
+  // Absolute last resort — inline HTML so Safari always shows *something*.
+  // Deliberately says nothing about the connection: this is the one branch
+  // that cannot run JavaScript to find out, so it must not guess.
+  return new Response(
+    "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>" +
+    "<title>SayNoMore</title><body style='font-family:-apple-system,system-ui,sans-serif;display:flex;" +
+    "min-height:100vh;align-items:center;justify-content:center;margin:0;background:#000;color:#fff;text-align:center'>" +
+    "<div style='padding:24px'><div style='font-size:40px'>📶</div><h1 style='font-size:20px'>That didn't load</h1>" +
+    "<p style='color:#999;font-size:15px'>Pull down to try again. Anything you entered is saved and will sync.</p></div>",
+    { headers: { "Content-Type": "text/html; charset=utf-8" }, status: 200 }
+  );
 }
 
 // ─── Strategies ─────────────────────────────────────────────────────────────

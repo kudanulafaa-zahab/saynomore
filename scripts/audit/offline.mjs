@@ -117,6 +117,28 @@ await page.goto(`${BASE}/sales`, { waitUntil: "networkidle" });
 await page.waitForTimeout(2500);
 const orders = await page.locator("body").innerText();
 list.ok(/SO-\d{4}-\d+/.test(orders), "an order number is on the sales list afterwards");
+
+// ── A FAILED REQUEST IS NOT A DEAD CONNECTION ──────────────────────────────
+//
+// Ali, 2026-08-28, on 4G with four bars, opening Financials minutes after a
+// deploy: **"You're offline"**. He was not. The service worker treated every
+// failed navigation as proof of no signal, and there are two ways to fail while
+// perfectly connected — an 8-second cap it imposed on itself, and the deploy
+// reload ABORTING the navigation already in flight. Telling a business owner
+// his signal is gone when it is not sends him to check his phone instead of
+// the app, and there is nothing on the screen to suggest otherwise.
+//
+// Simulated the way it really happens: the browser stays ONLINE and the request
+// is aborted underneath it. Everything above this line covers genuinely losing
+// signal; this covers being told you have.
+await page.route("**/financials", (route) => route.abort());
+await page.goto(`${BASE}/financials`, { waitUntil: "domcontentloaded" }).catch(() => {});
+await page.waitForTimeout(2500);
+const failedText = await page.locator("body").innerText();
+list.ok(!/you.{0,3}re offline/i.test(failedText),
+  `a request that fails while ONLINE never claims the connection is gone (screen said: ${failedText.replace(/\s+/g, " ").slice(0, 90)})`);
+await page.unroute("**/financials");
+
 list.is(page.errors.length, 0, `no uncaught page errors (${page.errors.slice(0, 2).join(" | ")})`);
 
 } catch (err) {
