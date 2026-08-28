@@ -3,8 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Settings } from "lucide-react";
-import { navForRole, NAV_SECTIONS, type NavItem } from "./nav-config";
+import { navForRole, NAV_SECTIONS, activeItem, type NavItem } from "./nav-config";
 import { ThemeToggle } from "./theme-toggle";
 
 // Headings come from NAV_SECTIONS and each item's own `section` — see the
@@ -34,6 +33,8 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 export function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const items    = navForRole(role);
+  // ONE definition of "which screen is open", shared with the tab bar.
+  const current  = activeItem(items, pathname);
 
   return (
     <aside
@@ -78,32 +79,15 @@ export function Sidebar({ role }: { role: string }) {
                 {section}
               </p>
               <div className="space-y-0.5">
-                {sectionItems.map((item) => {
-                  const active = pathname === item.href || pathname.startsWith(item.href + "/");
-                  return <NavLink key={item.href} item={item} active={active} />;
-                })}
+                {sectionItems.map((item) => (
+                  <NavLink key={item.href} item={item} active={item.href === current?.href} />
+                ))}
               </div>
             </div>
           );
         })}
       </nav>
 
-      {/* Settings footer */}
-      {role !== "staff" && (
-        <div className="px-3 py-3 shrink-0" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
-          <Link
-            href="/settings"
-            className={`snm-navlink flex items-center gap-3 rounded-xl px-3 py-2 ios-subhead font-medium active:scale-[0.97] ${pathname === "/settings" ? "snm-navlink-active" : ""}`}
-            style={{ color: pathname === "/settings" ? undefined : "var(--muted-foreground)" }}
-          >
-            <Settings
-              className="h-[15px] w-[15px] shrink-0"
-              style={{ opacity: pathname === "/settings" ? 1 : 0.55 }}
-            />
-            Settings
-          </Link>
-        </div>
-      )}
     </aside>
   );
 }

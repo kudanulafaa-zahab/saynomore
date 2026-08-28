@@ -211,7 +211,9 @@ async function measure(page, kb) {
 
     // The tab bar is fixed and IS covered by the keyboard — on purpose. You are
     // typing, not navigating, and every native iOS app behaves this way.
-    const inTabBar = (el) => !!el.closest("nav") || !!el.closest('[aria-label="More navigation options"]');
+    // Named by its own class, not by "nav": the section switcher at the top
+    // of every page is a <nav> too, and excluding that would be an accident.
+    const inTabBar = (el) => !!el.closest("nav.glass-tabbar");
 
     const stranded = [];
     for (const el of sheet.querySelectorAll('button, [role="button"], a[href]')) {
@@ -219,9 +221,10 @@ async function measure(page, kb) {
       if (!r.width || !r.height) continue;                 // not rendered
       if (getComputedStyle(el).visibility === "hidden") continue;
       // Entirely below the viewport = a CLOSED layer parked off-screen, not a
-      // stranded control. The More sheet sits at translateY(100%) with real
-      // geometry at y=1679; judging it reported 18 phantom failures per screen.
-      // A footer the keyboard covers is a different shape: still ON screen
+      // stranded control. The old "More" sheet sat at translateY(100%) with
+      // real geometry at y=1679 and produced 18 phantom failures per screen;
+      // that sheet is gone (0218) but any closed bottom layer has the shape.
+      // A footer the keyboard covers is different: still ON screen
       // (top < viewport height) but below the reachable line.
       if (r.top >= vh) continue;
       if (r.bottom <= reachable + 0.5) continue;           // above the line: fine

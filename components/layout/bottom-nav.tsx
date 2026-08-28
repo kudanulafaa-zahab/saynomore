@@ -2,207 +2,76 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings, X, MoreHorizontal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { navForRole, NAV_SECTIONS, type NavItem } from "./nav-config";
-import { ThemeToggle } from "./theme-toggle";
-import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { navForRole, tabsForRole, activeItem } from "./nav-config";
 
-// Headings come from NAV_SECTIONS and each item's own `section`. This used to
-// be a second hardcoded list of hrefs, which meant a page added to nav-config
-// silently never appeared here — that is how the Price Simulator shipped
-// unreachable. Do not reintroduce a local list.
+/* Five tabs, and no "More".
+ *
+ * Ali, 2026-08-28: *"No proper navigation hierarchy. It's poorly designed."*
+ *
+ * This used to be four screens plus an overflow sheet holding the other
+ * sixteen. Apple's guidance is three to five tabs and NO overflow tab — a
+ * "More" sheet is the pattern to avoid rather than a way to fit more in — and
+ * the sheet was where the app's real structure went to hide.
+ *
+ * Every tab is now a SECTION and every screen belongs to one, so the sheet has
+ * nothing left to hold and is gone. The section switcher at the top of the page
+ * moves between screens inside a tab.
+ *
+ * A ROLE WITH FEW ENOUGH SCREENS STILL GETS THEM DIRECTLY. A driver has one
+ * screen; giving them a tab labelled with a section name would be a heading
+ * over a single row, which is the noise this whole change removes. So at five
+ * screens or fewer the items themselves are the tabs — which is exactly what
+ * the driver has always seen.
+ *
+ * Headings and destinations both come from nav-config. Never reintroduce a
+ * local list of hrefs here: that is how the Price Simulator once shipped built,
+ * routable and unreachable. */
 
 export function BottomNav({ role }: { role: string }) {
-  const pathname    = usePathname();
-  const all         = navForRole(role);
-  const primary     = all.filter((i) => i.primary).slice(0, 4);
-  const overflow    = all.filter((i) => !i.primary);
-  const hasOverflow = overflow.length > 0 || role !== "staff";
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const pathname = usePathname();
+  const items    = navForRole(role);
 
-  useEffect(() => { setSheetOpen(false); }, [pathname]);
-  useBodyScrollLock(sheetOpen);
+  // Under six screens, the screens ARE the tabs. Otherwise the sections are.
+  const tabs = items.length <= 5
+    ? items.map((i) => ({ key: i.href, label: i.label, href: i.href, icon: i.icon }))
+    : tabsForRole(role).map((t) => ({ key: t.section, label: t.section, href: t.href, icon: t.icon }));
 
-  const startY = useRef<number | null>(null);
-  function onTouchStart(e: React.TouchEvent) { startY.current = e.touches[0].clientY; }
-  function onTouchEnd(e: React.TouchEvent) {
-    if (startY.current !== null && e.changedTouches[0].clientY - startY.current > 60) setSheetOpen(false);
-    startY.current = null;
-  }
-
-  const overflowActive =
-    overflow.some((i) => pathname === i.href || pathname.startsWith(i.href + "/")) ||
-    (pathname === "/settings" && role !== "staff");
-
+  // WHICH TAB IS LIT is decided by the screen you are on, not by the tab's own
+  // href — otherwise opening Godowns would light nothing, because no tab points
+  // at it. A nested route (/sales/abc123) resolves to its parent screen, so the
+  // tab stays lit three levels into an order.
+  const current    = activeItem(items, pathname);
+  const activeKey  = items.length <= 5 ? current?.href : current?.section;
 
   return (
-    <>
-      {/* ── Floating tab bar — Liquid Glass pinned/translucent layer (z-axis
-             anatomy layer 4). glass-tabbar carries the fill/blur/specular
-             recipe from the new palette; active tab uses --glass-accent. ── */}
-      <nav
-        className="fixed left-4 right-4 z-40 lg:hidden glass-tabbar"
-        style={{
-          bottom: "max(14px, env(safe-area-inset-bottom, 0px))",
-          borderRadius: "var(--glass-radius-pill)",
-          height: 64,
-          paddingLeft: 6,
-          paddingRight: 6,
-        }}
-      >
-        {primary.map((item: NavItem) => {
-          const Icon   = item.icon;
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150 glass-tab${active ? " glass-tab--active" : ""}`}
-            >
-              <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.6} />
-              <span style={{ fontSize: 11 }}>{item.label}</span>
-            </Link>
-          );
-        })}
-
-        {hasOverflow && (
-          <button
-            onClick={() => setSheetOpen(true)}
-            aria-label="More navigation options"
-            aria-expanded={sheetOpen}
-            className={`flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150 glass-tab${overflowActive ? " glass-tab--active" : ""}`}
+    /* ── Floating tab bar — Liquid Glass pinned/translucent layer (z-axis
+          anatomy layer 4). glass-tabbar carries the fill/blur/specular recipe
+          from the palette; the active tab uses --glass-accent. ── */
+    <nav
+      className="fixed left-4 right-4 z-40 lg:hidden glass-tabbar"
+      style={{
+        bottom: "max(14px, env(safe-area-inset-bottom, 0px))",
+        borderRadius: "var(--glass-radius-pill)",
+        height: 64,
+        paddingLeft: 6,
+        paddingRight: 6,
+      }}
+    >
+      {tabs.map((tab) => {
+        const Icon   = tab.icon;
+        const active = activeKey === tab.key;
+        return (
+          <Link
+            key={tab.key}
+            href={tab.href}
+            aria-current={active ? "page" : undefined}
+            className={`flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150 glass-tab${active ? " glass-tab--active" : ""}`}
           >
-            <MoreHorizontal className="h-[22px] w-[22px]" strokeWidth={overflowActive ? 2.2 : 1.6} />
-            <span style={{ fontSize: 11 }}>More</span>
-          </button>
-        )}
-      </nav>
-
-      {/* ── Sheet backdrop ── */}
-      {sheetOpen && (
-        <div
-          className="fixed inset-0 z-50 lg:hidden snm-scrim-in"
-          style={{ background: "var(--scrim-bg)", backdropFilter: "var(--scrim-blur)", WebkitBackdropFilter: "var(--scrim-blur)" }}
-          onClick={() => setSheetOpen(false)}
-        />
-      )}
-
-      {/* ── Slide-up sheet ── */}
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 lg:hidden transition-transform duration-300 ease-out ${sheetOpen ? "translate-y-0" : "translate-y-full"}`}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
-      >
-        <div
-          className="mx-2 mb-2 rounded-3xl overflow-hidden glass-panel--strong"
-          style={{ boxShadow: "var(--glass-shadow-lg)" }}
-        >
-          {/* Drag handle */}
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-9 h-[3px] rounded-full" style={{ background: "var(--muted-foreground)", opacity: 0.30 }} />
-          </div>
-
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-2.5">
-            <p className="ios-subhead font-semibold text-foreground">More</p>
-            <div className="flex items-center gap-1">
-              <ThemeToggle />
-              <button
-                onClick={() => setSheetOpen(false)}
-                aria-label="Close menu"
-                className="h-9 w-9 rounded-full flex items-center justify-center transition active:scale-90"
-                style={{ background: "var(--glass-bg-1)", color: "var(--foreground)" }}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Sectioned nav items */}
-          <div className="px-2 pb-3 space-y-3">
-            {NAV_SECTIONS.map((section) => {
-              const sectionItems = overflow.filter((i) => i.section === section);
-              if (sectionItems.length === 0) return null;
-
-              return (
-                <div key={section}>
-                  <p
-                    className="px-3 mb-1.5 text-[12px] font-bold uppercase tracking-widest"
-                    style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
-                  >
-                    {section}
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {sectionItems.map((item) => {
-                      const Icon   = item.icon;
-                      const active = pathname === item.href || pathname.startsWith(item.href + "/");
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setSheetOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-all active:scale-[0.96]"
-                          style={{
-                            background: active ? "var(--snm-brand-muted)" : "var(--glass-bg-1)",
-                            color:      active ? "var(--snm-brand)"       : "var(--muted-foreground)",
-                            border:     active ? "1px solid var(--snm-brand-border)" : "0.5px solid var(--glass-border-lo)",
-                          }}
-                        >
-                          <div
-                            className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ background: active ? "var(--snm-brand)" : "var(--glass-bg-2)" }}
-                          >
-                            <Icon
-                              className="h-[15px] w-[15px]"
-                              style={{ color: active ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
-                            />
-                          </div>
-                          <span className="ios-subhead font-medium">{item.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Settings */}
-            {role !== "staff" && (
-              <div>
-                <p
-                  className="px-3 mb-1.5 text-[12px] font-bold uppercase tracking-widest"
-                  style={{ color: "var(--muted-foreground)", opacity: 0.6 }}
-                >
-                  Account
-                </p>
-                <Link
-                  href="/settings"
-                  onClick={() => setSheetOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-3 rounded-2xl transition-all active:scale-[0.96]"
-                  style={{
-                    background: pathname === "/settings" ? "var(--snm-brand-muted)" : "var(--glass-bg-1)",
-                    color:      pathname === "/settings" ? "var(--snm-brand)"       : "var(--muted-foreground)",
-                    border:     pathname === "/settings" ? "1px solid var(--snm-brand-border)" : "0.5px solid var(--glass-border-lo)",
-                  }}
-                >
-                  <div
-                    className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: pathname === "/settings" ? "var(--snm-brand)" : "var(--glass-bg-2)" }}
-                  >
-                    <Settings
-                      className="h-[15px] w-[15px]"
-                      style={{ color: pathname === "/settings" ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
-                    />
-                  </div>
-                  <span className="ios-subhead font-medium">Settings</span>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+            <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.6} />
+            <span style={{ fontSize: 11 }}>{tab.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
