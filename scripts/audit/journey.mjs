@@ -143,7 +143,7 @@ for (const device of wanted) {
     // was the defect. The toaster element does not exist until one fires, so
     // waiting for it IS the assertion; the ok() below still reports it.
     await page.waitForSelector("[data-sonner-toaster]", { timeout: 8000 }).catch(() => {});
-    const island = await page.evaluate(() => {
+    const probe = await page.evaluate(() => {
       const el = document.querySelector("[data-sonner-toaster]");
       // WHEN THIS FAILS, SAY WHAT WAS ON SCREEN INSTEAD. A bare "no toast"
       // sends the next reader guessing at a screen they cannot see, which is
@@ -153,16 +153,24 @@ for (const device of wanted) {
       if (!el) return {
         missing: true,
         toasts: document.querySelectorAll("[data-sonner-toast]").length,
-        cart: (document.body.innerText.match(/Sosoft[^\n]*/g) || []).slice(0, 3).join(" | "),
+        // DID THE ADD EVEN HAPPEN? The mixed-carton sheet closes on a
+        // successful add, so a sheet still open means onAdd never ran and the
+        // missing toast is a symptom, not the fault. These two facts have
+        // opposite fixes, and one line of output separates them.
+        sheetStillOpen: document.querySelectorAll('[role="dialog"][aria-modal="true"]').length,
+        dialogs: [...document.querySelectorAll('[role="dialog"]')]
+          .map((d) => d.getAttribute("aria-label") || "?").join(" / ") || "none",
       };
       return {
         mobile: el.style.getPropertyValue("--mobile-offset-top").trim(),
         desktop: el.style.getPropertyValue("--offset-top").trim(),
       };
     });
-    list.ok(!island?.missing,
+    const island = probe?.missing ? null : probe;
+    list.ok(!probe?.missing,
       `${tag} adding to the order raises a toast at all `
-      + `(toasts in DOM: ${island?.toasts ?? "n/a"}; on screen: ${island?.cart || "no Sosoft line"})`);
+      + `(toasts: ${probe?.toasts ?? "n/a"}; open dialogs: ${probe?.sheetStillOpen ?? "n/a"} `
+      + `[${probe?.dialogs ?? "n/a"}])`);
     if (island) {
       list.ok(/env\(\s*safe-area-inset-top/.test(island.mobile),
         `${tag} the toast clears the Dynamic Island (offset "${island.mobile}")`);
