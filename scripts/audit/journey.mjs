@@ -134,6 +134,15 @@ for (const device of wanted) {
   // toast is reliably still on screen when we look — the toaster element does
   // not exist in the DOM at all until one fires.
   if (device === "phone") {
+    // WAIT FOR THE TOAST, do not sample for it. This read the DOM the instant
+    // after the click, so it was asserting "a toast exists right now" rather
+    // than "adding raises a toast" -- a race that passed for months and then
+    // failed on a change that touched neither toasts nor the sale sheet (the
+    // navigation rework, 0218). Every later assertion about the cart passed in
+    // that run, which is how we know the add itself was fine and the sampling
+    // was the defect. The toaster element does not exist until one fires, so
+    // waiting for it IS the assertion; the ok() below still reports it.
+    await page.waitForSelector("[data-sonner-toaster]", { timeout: 8000 }).catch(() => {});
     const island = await page.evaluate(() => {
       const el = document.querySelector("[data-sonner-toaster]");
       if (!el) return null;
