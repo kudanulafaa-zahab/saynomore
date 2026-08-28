@@ -241,6 +241,38 @@ Two things it took three wrong versions to get right, both worth keeping:
   a plain page and passed. Fixed, full width, on the bottom edge, with something
   to press inside it — that also covers whatever the fourth one turns out to be.
 
+**`price-review.mjs`** — the price review a container triggers. Ali, the morning
+after SH-2026-002 landed at MVR 5,133 per CBM against SH-2026-001's MVR 2,392:
+*"For me to set the selling price with the best profit how do I see it? … Also
+how do I know compared the 001 shipment price."* He could not: Margin Watch can
+only compare a price with a target margin, a target margin is set on two
+products out of thirty-six, and so on the day Sosoft fell from 40% margin to 10%
+that panel said **"No price is below cost"** — true, and useless.
+
+Four things, and each was a live defect or a live gap:
+
+- **The comparison names both arrivals.** "Cost per pack MVR 128.10 → 147.32 ·
+  SH-FIXTURE → SH-FIXTURE-PRICE". His second question had no answer anywhere in
+  the app.
+- **The market cap is rendered, not merely computed.** Restoring a margin is
+  arithmetic; whether the price is sellable is not. Restoring Sosoft's 40% needs
+  MVR 56 a bottle and Ali reports the shops at MVR 36, so the panel must say so
+  and offer no button. A verdict column nobody renders is not a refusal.
+- **The ratchet.** Accepting a suggestion re-anchored "the margin this price
+  used to earn" on the price just accepted, so the next render asked for more —
+  199 → 255 → 322 → … Nothing looked out of balance; the screen simply never
+  said done. The tap is driven for real and the row is checked afterwards.
+- **Bottles and packs, never pieces**, each noun from the product's category.
+
+**It reads its expected figures back from `get_price_review` rather than typing
+them.** The GRN audit runs earlier in the same job and gives these two products
+a newer batch at a cost `confirm_grn` worked out, so a hardcoded "previous cost"
+would pass or fail on which audits ran first. Whether the figures are *right* is
+`price_review.test.sql`'s job; this audit's job is that the screen shows them,
+in the right unit, with a button that works. **It also runs before the material
+and contrast sweeps on purpose** — it creates the arrival that makes the panel
+appear, so those two then measure it.
+
 **`contrast.mjs`** — every readable word, every palette, both schemes, measured
 on the **rendered page**. It composites the real backdrop through every
 translucent ancestor, because a token's colour tells you nothing until you know
@@ -307,6 +339,21 @@ was verified by putting its bug back:
 | `void_sales_order` / `delete_sales_order` losing the "already returned" guard | pgTAP `settled_not_paid` — the void mutation took 2 checks, because a void that succeeds also un-closes the order |
 | `complete_order_if_fully_returned` made a no-op, then made too eager (firing on a partial return) | pgTAP `settled_not_paid` — one check each, in opposite directions |
 | `get_sales_orders_count` put back on its own idea of "unpaid" | pgTAP `settled_not_paid` — "the unpaid list and the number printed above it are the same set of orders" |
+
+**The four price-review checks below are NOT yet in that table, and this is the
+honest reason.** They were written against bugs that were real — the ratchet and
+the floating-price anchor were both found and fixed during the build, before
+anything shipped — but the mutations have not been *run*, because the session
+that wrote them had no Docker and therefore no local database or browser. CI
+proves they pass; nobody has yet proved they fail. Until someone puts each bug
+back and watches the check go red, treat them as unproven:
+
+| Put back… | should be caught by |
+|---|---|
+| the `already_reviewed` anchor dropped, so accepting a price re-anchors on the price just set | `price-review` — "the screen stops offering to raise it"; and pgTAP `price_review` twice more, on the verdict and on the suggestion |
+| the market cap removed, so an unsellable MVR 56 bottle price is offered as the answer | `price-review` — "no button offers the unsellable price" |
+| `margin_before` computed against the old cost for a FLOATING price too | pgTAP `price_review` — the NB/S case: a 57% margin it never earned, and a demand for MVR 279 |
+| `price_point` rounding to nearest instead of up | pgTAP `price_review` — a "restored" margin that comes back short, with nothing on screen saying so |
 
 **One mutation attempt was a no-op and is worth recording**, because stopping
 there would have bought false confidence. The first attempt at breaking the
