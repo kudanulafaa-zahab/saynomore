@@ -15,6 +15,7 @@ import Link from "next/link";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
 import { listRecentWriteoffs, writeoffLabel, type WriteoffRow, listReturns, returnLabel, type ReturnRow } from "@/lib/queries/inventory";
 import { MarginWatch } from "./margin-watch";
+import { PriceReview } from "./price-review";
 import { ReceivablesView } from "./receivables-view";
 import { CashFlowView } from "./cash-flow-view";
 import { CARD } from "@/lib/surfaces";
@@ -499,7 +500,14 @@ export function FinancialsView() {
       {/* ── P&L tab ── */}
       {tab === "profit" && <>
 
-        {/* ── 0. Margin watch — prices that stopped earning their target ── */}
+        {/* ── 0. Price review — what the last container did to every margin ──
+            Above Margin Watch deliberately: a cost rise that halves a margin
+            without taking it below cost is invisible to Margin Watch, so on
+            the day it matters most that panel says "No price is below cost"
+            and this one carries the news. */}
+        <PriceReview />
+
+        {/* ── 0b. Margin watch — prices below cost, and stock with no price ── */}
         <MarginWatch />
 
         {/* ── 1. P&L Waterfall card ── */}

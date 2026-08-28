@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-four audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-five audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -83,6 +83,11 @@ name: UI checks
 #   followup  the round that chases the second order runs itself: one customer
 #             at a time, and every send or skip is remembered so nobody is
 #             asked twice. 55 of 81 customers bought once — this is the lever
+#   pricereview a container that landed dearer is compared with the arrival
+#             before it, product by product, in packs and bottles — with a
+#             one-tap price that restores the margin, a refusal where that price
+#             is above what the shops charge, and no second, higher price
+#             waiting behind the first
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -284,6 +289,13 @@ jobs:
 
       - name: Follow-up round — the app asks for the second order itself
         run: npm run audit:followup
+
+      # BEFORE the contrast and material sweeps, deliberately: this audit
+      # creates the arrival that makes the Price Review panel appear, so those
+      # two then measure it. Run after them and it would be the one panel in the
+      # app whose words nobody has measured.
+      - name: Price review — what the container did to every margin
+        run: npm run audit:pricereview
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

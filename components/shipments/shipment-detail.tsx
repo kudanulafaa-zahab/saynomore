@@ -33,6 +33,7 @@ import { ShipmentSummary } from "@/components/shipments/shipment-summary";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { notifyAdmins } from "@/lib/push";
 import { getPricingHealth } from "@/lib/queries/pricing";
+import { PriceReview } from "@/components/financials/price-review";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
@@ -1454,6 +1455,14 @@ export function ShipmentDetail({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {/* ── Post-GRN: the price review ──────────────────────────────────────
+          A price review belongs at the moment stock arrives, not on a calendar
+          (CLAUDE.md — landed cost is a property of an ARRIVAL, so margin is
+          never stable). This is the same panel as on Financials, pinned to the
+          shipment it is about, so the comparison against the previous arrival
+          is one screen away from the Confirm button that created it. */}
+      {locked && shipment && <PriceReview shipmentId={shipment.id} />}
 
       {/* ── Post-GRN: price change alerts ── */}
       {locked && priceChanges.length > 0 && (
