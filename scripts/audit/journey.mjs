@@ -145,13 +145,24 @@ for (const device of wanted) {
     await page.waitForSelector("[data-sonner-toaster]", { timeout: 8000 }).catch(() => {});
     const island = await page.evaluate(() => {
       const el = document.querySelector("[data-sonner-toaster]");
-      if (!el) return null;
+      // WHEN THIS FAILS, SAY WHAT WAS ON SCREEN INSTEAD. A bare "no toast"
+      // sends the next reader guessing at a screen they cannot see, which is
+      // how one failure costs three CI rounds. Report the cart, so the message
+      // distinguishes "the add silently did nothing" from "it worked and only
+      // the confirmation is missing" -- those have different causes entirely.
+      if (!el) return {
+        missing: true,
+        toasts: document.querySelectorAll("[data-sonner-toast]").length,
+        cart: (document.body.innerText.match(/Sosoft[^\n]*/g) || []).slice(0, 3).join(" | "),
+      };
       return {
         mobile: el.style.getPropertyValue("--mobile-offset-top").trim(),
         desktop: el.style.getPropertyValue("--offset-top").trim(),
       };
     });
-    list.ok(island !== null, `${tag} adding to the order raises a toast at all`);
+    list.ok(!island?.missing,
+      `${tag} adding to the order raises a toast at all `
+      + `(toasts in DOM: ${island?.toasts ?? "n/a"}; on screen: ${island?.cart || "no Sosoft line"})`);
     if (island) {
       list.ok(/env\(\s*safe-area-inset-top/.test(island.mobile),
         `${tag} the toast clears the Dynamic Island (offset "${island.mobile}")`);
