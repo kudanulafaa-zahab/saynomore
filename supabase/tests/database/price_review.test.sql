@@ -30,7 +30,7 @@
 --     can forget it.
 
 begin;
-select plan(23);
+select plan(25);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000005a0', 'test-review@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000005a0';
@@ -184,8 +184,17 @@ select is(
 --    the old 42.9% needs MVR 56. The shops are at MVR 36. Arithmetic says
 --    raise; the business says you cannot.
 -- ══════════════════════════════════════════════════════════════════════════
+-- Its OWN category, so the unit noun is 'bottle' and not the seed's 'pack'.
+-- The variant also needs its own model: `variants_model_id_attributes_key` is
+-- unique on (model_id, attributes), and a second variant with default `{}`
+-- under the seed model collides.
+insert into product_categories (id, name, unit_uom, cost_basis)
+values ('00000000-0000-0000-0000-0000000005f0', 'Test Liquid', 'ml', 'per_100ml');
+insert into product_models (id, category_id, brand_id, name)
+values ('00000000-0000-0000-0000-0000000005f1', '00000000-0000-0000-0000-0000000005f0',
+        '00000000-0000-0000-0000-000000000002', 'Test Bottle Model');
 insert into variants (id, model_id, display_name)
-values ('00000000-0000-0000-0000-0000000005d9', '00000000-0000-0000-0000-000000000003', 'Test Bottle');
+values ('00000000-0000-0000-0000-0000000005d9', '00000000-0000-0000-0000-0000000005f1', 'Test Bottle');
 
 insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
                   carton_length_cm, carton_width_cm, carton_height_cm,
@@ -212,7 +221,30 @@ select is(
 select is(
   (select market_unit_mvr from get_price_review('00000000-0000-0000-0000-0000000005a2') where sku_id = '00000000-0000-0000-0000-0000000005d0'),
   36::numeric,
-  'and the shelf price is quoted in Ali own selling unit, so the two numbers are comparable at a glance'
+  'and the shelf price is quoted in his own selling unit, so the two numbers are comparable at a glance'
+);
+
+-- NEVER PIECES, AND NEVER A BLANKET "PACK". The noun comes from the category —
+-- five other files have re-derived it and every one fell through to "pack",
+-- which would have this row telling him the price of a bottle per pack.
+select is(
+  (select unit_noun from get_price_review('00000000-0000-0000-0000-0000000005a2') where sku_id = '00000000-0000-0000-0000-0000000005d0'),
+  'bottle',
+  'and the row calls the unit a BOTTLE, because that is what the product is'
+);
+
+-- ── A REVIEW MUST NOT SETTLE ON AN UNRELATED EDIT (0215) ──────────────────
+-- 0214 also accepted `skus.updated_at` as evidence the price had been dealt
+-- with. Any edit moves that column, so renaming a product or correcting its
+-- carton size silenced the review — a FALSE SETTLE, which is the exact failure
+-- 0213 exists to prevent, in a narrower form.
+update skus set notes = 'renamed after the container landed'
+ where id = '00000000-0000-0000-0000-0000000005d0';
+
+select is(
+  (select verdict from get_price_review('00000000-0000-0000-0000-0000000005a2') where sku_id = '00000000-0000-0000-0000-0000000005d0'),
+  'capped_by_market',
+  'editing something OTHER than the price leaves the review exactly where it was'
 );
 
 -- ══════════════════════════════════════════════════════════════════════════
