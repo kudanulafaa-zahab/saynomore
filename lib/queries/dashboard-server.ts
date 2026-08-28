@@ -126,7 +126,12 @@ export async function getRanOutCustomersServer(limit = 3): Promise<{ rows: AtRis
 // against one another by money at stake, so the screen only renders.
 
 export interface TodayItem {
-  kind: "owed" | "stockout" | "ranout" | "stranded" | "deadstock";
+  /** `ranout` and `stranded` were removed by 0188 — the follow-up round owns
+   *  customers, because it can act on them and a list cannot. `incoming`
+   *  (0209) and `pricereview` (0216) are the two shipment-shaped rows: goods
+   *  paid for and not on the shelf, and prices the newest arrival has left
+   *  behind. Both deep-link to the shipment, where the work happens. */
+  kind: "owed" | "stockout" | "incoming" | "pricereview" | "deadstock";
   title: string;
   detail: string;
   /** Money at stake in the next seven days — the basis every row is ranked on. */

@@ -22,7 +22,13 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     const onControllerChange = () => {
       if (reloading || !hadController) return;
       reloading = true;
-      window.location.reload();
+      // NEVER RELOAD OUT FROM UNDER A NAVIGATION THAT IS STILL IN FLIGHT. A
+      // reload aborts it, and an aborted request rejects exactly like a dead
+      // network — which is how a deploy showed Ali "You're offline" on 4G with
+      // full signal (2026-08-28). The service worker no longer draws that
+      // conclusion, and this no longer creates the situation.
+      if (document.readyState === "complete") window.location.reload();
+      else window.addEventListener("load", () => window.location.reload(), { once: true });
     };
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
 
