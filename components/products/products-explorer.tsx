@@ -310,7 +310,14 @@ function SkuPanel({
                     Market, where rivals' 30s/34s/48s make it the only
                     comparable unit. */}
               </div>
-              {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null ? (
+              {/* GATED ON THE MARGIN, NOT ON ONE OF THE THREE PRICE COLUMNS.
+                  It used to require `fixed_selling_price_mvr` — the per-PIECE
+                  price — so a product priced from its target margin showed no
+                  margin at all, and X-Tra Kering NB/S read 45% in the Price
+                  Book and blank here (0217). The margin is now computed from
+                  whatever price the app actually quotes, so its presence is
+                  the only question worth asking. */}
+              {sku.actual_margin_pct != null ? (
                 <div className="text-right">
                   <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Actual margin</p>
                   <p className="text-[17px] font-bold snm-num" style={{ color: sku.actual_margin_pct >= 0 ? "var(--snm-success)" : "var(--snm-error)" }}>

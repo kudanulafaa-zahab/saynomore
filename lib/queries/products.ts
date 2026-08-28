@@ -133,7 +133,7 @@ export interface SkuFullRow extends SkuRow {
   selling_price_per_piece_mvr: number | null;
   selling_price_per_pack_mvr: number | null;
   selling_price_per_carton_mvr: number | null;
-  actual_margin_pct: number | null; // only set when fixed_selling_price_mvr is used
+  actual_margin_pct: number | null;
   // Volume-break overrides (from v_skus, mirrors skus columns)
   fixed_price_per_pack_mvr: number | null;
   fixed_price_per_carton_mvr: number | null;

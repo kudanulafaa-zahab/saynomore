@@ -294,12 +294,17 @@ export function EditSkuDialog({
                       </div>
                     ))}
                   </div>
-                  {sku.fixed_selling_price_mvr != null && sku.actual_margin_pct != null && (
+                  {/* Gated on the margin itself, not on the per-PIECE price
+                      column — see the note in products-explorer (0217). */}
+                  {sku.actual_margin_pct != null && (
                     <p className="ios-subhead mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
                       Actual margin on current cost: <strong style={{ color: "var(--snm-success)" }}>{sku.actual_margin_pct}%</strong>
                     </p>
                   )}
-                  {sku.fixed_selling_price_mvr == null && sku.target_margin_pct != null && (
+                  {sku.fixed_selling_price_mvr == null
+                    && sku.fixed_price_per_pack_mvr == null
+                    && sku.fixed_price_per_carton_mvr == null
+                    && sku.target_margin_pct != null && (
                     <p className="ios-subhead mt-1.5 pt-1.5 border-t" style={{ borderColor: "var(--glass-border-lo)", color: "var(--muted-foreground)" }}>
                       Target margin: {sku.target_margin_pct}% — price updates automatically with each shipment
                     </p>
