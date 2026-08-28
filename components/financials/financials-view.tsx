@@ -15,7 +15,6 @@ import Link from "next/link";
 import { getCodReconciliation, getCodOrdersForDriver, type CodReconRow, type CodOrderRow } from "@/lib/queries/sales";
 import { listRecentWriteoffs, writeoffLabel, type WriteoffRow, listReturns, returnLabel, type ReturnRow } from "@/lib/queries/inventory";
 import { MarginWatch } from "./margin-watch";
-import { PriceReview } from "./price-review";
 import { ReceivablesView } from "./receivables-view";
 import { CashFlowView } from "./cash-flow-view";
 import { CARD } from "@/lib/surfaces";
@@ -500,14 +499,14 @@ export function FinancialsView() {
       {/* ── P&L tab ── */}
       {tab === "profit" && <>
 
-        {/* ── 0. Price review — what the last container did to every margin ──
-            Above Margin Watch deliberately: a cost rise that halves a margin
-            without taking it below cost is invisible to Margin Watch, so on
-            the day it matters most that panel says "No price is below cost"
-            and this one carries the news. */}
-        <PriceReview />
-
-        {/* ── 0b. Margin watch — prices below cost, and stock with no price ── */}
+        {/* ── 0. Margin watch — prices below cost, and stock with no price ──
+            The price review used to sit above this, and Ali asked the right
+            question about it: *"Is financials the proper place to have this?"*
+            No. Financials is a REPORT — he comes here to look at what happened.
+            A price review is a TASK: one arrival triggers it, and it finishes.
+            It lives on the shipment now, with a row on the daily list pointing
+            at it (0216). Margin Watch stays because it is genuinely a report —
+            a standing watch on prices below cost, with no end. */}
         <MarginWatch />
 
         {/* ── 1. P&L Waterfall card ── */}

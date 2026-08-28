@@ -150,28 +150,33 @@ begin
   -- looped so both figures are visible beside the prices they are judged against.
   insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
                               fob_per_carton, fob_currency, destination_godown_id)
-  values ('00000000-0000-0000-0000-00000000ec01', v_ship1, v_dia, 1, 0.08,  40, 'USD', v_god),
-         ('00000000-0000-0000-0000-00000000ec02', v_ship1, v_bot, 1, 0.036, 10, 'USD', v_god),
-         ('00000000-0000-0000-0000-00000000ec03', v_ship2, v_dia, 1, 0.08,  40, 'USD', v_god),
-         ('00000000-0000-0000-0000-00000000ec04', v_ship2, v_bot, 1, 0.036, 10, 'USD', v_god);
+  -- TWENTY CARTONS, NOT ONE. The daily list ranks every row against every
+  -- other by money at stake in the next seven days and shows the top five, so a
+  -- single carton of each would leave the price-review row ranked below the
+  -- fixture's dead stock and off the screen this audit is checking. A real
+  -- shipment line is twenty-odd cartons; one was the unrealistic number.
+  values ('00000000-0000-0000-0000-00000000ec01', v_ship1, v_dia, 20, 0.08,  40, 'USD', v_god),
+         ('00000000-0000-0000-0000-00000000ec02', v_ship1, v_bot, 20, 0.036, 10, 'USD', v_god),
+         ('00000000-0000-0000-0000-00000000ec03', v_ship2, v_dia, 20, 0.08,  40, 'USD', v_god),
+         ('00000000-0000-0000-0000-00000000ec04', v_ship2, v_bot, 20, 0.036, 10, 'USD', v_god);
 
   insert into inventory_batches (id, shipment_line_id, sku_id, godown_id, received_at,
                                  qty_cartons_received, qty_pieces_received,
                                  landed_per_piece_mvr, landed_per_pack_mvr, landed_per_carton_mvr)
   values ('00000000-0000-0000-0000-00000000ed01', '00000000-0000-0000-0000-00000000ec01',
-          v_dia, v_god, now() - interval '40 days', 1, 168,  3.05, 128.10,  512.40),
+          v_dia, v_god, now() - interval '40 days', 20, 3360,  3.05, 128.10,  512.40),
          ('00000000-0000-0000-0000-00000000ed02', '00000000-0000-0000-0000-00000000ec02',
-          v_bot, v_god, now() - interval '40 days', 1,   6, 22.16,  22.16,  132.96),
+          v_bot, v_god, now() - interval '40 days', 20, 120, 22.16,  22.16,  132.96),
          ('00000000-0000-0000-0000-00000000ed03', '00000000-0000-0000-0000-00000000ec03',
-          v_dia, v_god, now(),                     1, 168,  3.52, 147.84,  591.36),
+          v_dia, v_god, now(),                     20, 3360,  3.52, 147.84,  591.36),
          ('00000000-0000-0000-0000-00000000ed04', '00000000-0000-0000-0000-00000000ec04',
-          v_bot, v_god, now(),                     1,   6, 33.14,  33.14,  198.84);
+          v_bot, v_god, now(),                     20, 120, 33.14,  33.14,  198.84);
 
   insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
-  values ('00000000-0000-0000-0000-00000000ed01', v_dia, v_god, 'in', 168, 'shipment'),
-         ('00000000-0000-0000-0000-00000000ed02', v_bot, v_god, 'in',   6, 'shipment'),
-         ('00000000-0000-0000-0000-00000000ed03', v_dia, v_god, 'in', 168, 'shipment'),
-         ('00000000-0000-0000-0000-00000000ed04', v_bot, v_god, 'in',   6, 'shipment');
+  values ('00000000-0000-0000-0000-00000000ed01', v_dia, v_god, 'in', 3360, 'shipment'),
+         ('00000000-0000-0000-0000-00000000ed02', v_bot, v_god, 'in',  120, 'shipment'),
+         ('00000000-0000-0000-0000-00000000ed03', v_dia, v_god, 'in', 3360, 'shipment'),
+         ('00000000-0000-0000-0000-00000000ed04', v_bot, v_god, 'in',  120, 'shipment');
 
   -- The shelf price that makes the restoring price unsellable. Ali reported
   -- MVR 36 for a 700ml bottle on 2026-08-28 against his own 37.
@@ -213,8 +218,27 @@ try {
   list.is(expect.bottleWord, "bottle",
     `the bottle's unit noun comes from its category (${expect.bottleWord})`);
 
-  await page.goto(`${BASE}/financials?tab=profit`, { waitUntil: "networkidle" });
+  // ── THE DAILY LIST POINTS AT IT, AND HE ARRIVES BY TAPPING ──────────────
+  //
+  // Ali, 2026-08-28: *"Is financials the proper place to have this? What's
+  // expert view?"* No — Financials is a REPORT and a price review is a TASK
+  // that finishes, so it belongs on the daily list and on the shipment (0216).
+  // This audit follows the route he actually takes rather than typing the URL,
+  // because a row that does not deep-link to the right container is the whole
+  // failure and a direct `goto` would never see it.
+  await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
   await page.waitForTimeout(2500);
+  const home = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+  list.ok(/SH-AUDIT-PRICE-2 cost more than last time/.test(home),
+    "the daily list carries one row for the arrival that cost more");
+  list.ok(/2 products to reprice/.test(home),
+    "and counts the products behind it rather than listing them");
+  list.ok(!/\bpcs\b|\bpieces\b/i.test(home), "with nothing on the home screen counted in pieces");
+
+  await page.getByText(/SH-AUDIT-PRICE-2 cost more than last time/).first().click();
+  await page.waitForTimeout(3500);
+  list.ok(/SH-AUDIT-PRICE-2/.test(await page.locator("body").innerText()),
+    "and tapping it lands on that shipment, not on a list of all of them");
 
   const seen = await page.locator("body").innerText();
   const flat = seen.replace(/\s+/g, " ");
