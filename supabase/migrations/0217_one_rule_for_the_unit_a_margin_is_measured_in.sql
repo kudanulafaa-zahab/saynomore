@@ -206,10 +206,10 @@ as $function$
       s.landed_per_piece_mvr,
       s.selling_price_per_piece_mvr, s.selling_price_per_pack_mvr, s.selling_price_per_carton_mvr,
       s.target_margin_pct,
-      -- ONE RULE, READ NOT RESTATED. This was `default_sellable_units` (the
-      -- CATEGORY's suggestion for new products) with an override forcing any
-      -- mixed-carton brand to the carton -- which is how five Sosoft colours
-      -- read 9.6% here and 10.4% on every other screen.
+      -- ONE RULE, READ NOT RESTATED. This was the CATEGORY's suggestion for
+      -- new products, with an override forcing any mixed-carton brand to the
+      -- carton -- which is how five Sosoft colours read 9.6% here and 10.4% on
+      -- every other screen.
       public.margin_unit(s.sellable_units) as trade_unit
     from public.v_skus s
     where s.is_active
@@ -253,8 +253,15 @@ grant  execute on function public.get_price_book() to authenticated, service_rol
 -- ── PROVE IT LANDED ─────────────────────────────────────────────────────────
 do $$
 declare
-  v_book text := pg_get_functiondef('public.get_price_book()'::regprocedure);
-  v_view text := pg_get_viewdef('public.v_skus'::regclass, true);
+  -- COMMENTS STRIPPED BEFORE MATCHING. pg_get_functiondef returns the whole
+  -- body, comments included, and the note above explaining what was REMOVED
+  -- says the words `default_sellable_units` — so the first version of this
+  -- guard matched its own explanation and refused the migration that fixes the
+  -- thing it was describing. A textual assertion has to look at code only.
+  v_book text := regexp_replace(pg_get_functiondef('public.get_price_book()'::regprocedure),
+                                '--[^\n]*', '', 'g');
+  v_view text := regexp_replace(pg_get_viewdef('public.v_skus'::regclass, true),
+                                '--[^\n]*', '', 'g');
   v_bad  text;
 begin
   -- BOTH callers must READ the rule, not restate it. Asserting the outcome
