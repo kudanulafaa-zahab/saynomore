@@ -9,7 +9,7 @@
 // ── WHAT THIS GUARDS, AND WHY EACH LINE IS HERE ────────────────────────────
 //
 // 1. THE COMPARISON, NAMED ON BOTH SIDES. "Cost per pack MVR 128.10 → 147.32 ·
-//    SH-FIXTURE → SH-FIXTURE-PRICE". His second question has no answer anywhere
+//    SH-AUDIT-PRICE-1 → SH-AUDIT-PRICE-2". His second question has no answer
 //    else in the app, and a comparison that does not name which arrival it is
 //    against is not a comparison.
 //
@@ -30,26 +30,31 @@
 //    files have re-derived this noun and every one fell through to a wrong
 //    "pack".
 //
-// ── WHY THIS AUDIT BUILDS ITS OWN ARRIVAL ──────────────────────────────────
+// ── WHY THIS AUDIT BUILDS ITS OWN CATALOGUE ────────────────────────────────
 //
 // The shared fixture has ONE arrival, so there is nothing to compare against. A
 // second arrival could have gone into ui_fixture.sql, but every product it
 // touched would gain stock, and that file's own comments record twice that
 // extra stock turned a healthy fixture product into a slow mover and broke
-// unrelated audits. So the arrival is created here — and the workflow runs this
-// BEFORE the contrast sweep, so the panel it creates is measured there too
-// rather than being the one screen nobody has measured.
+// unrelated audits.
 //
-// ── AND WHY THE EXPECTED FIGURES ARE READ, NOT TYPED ───────────────────────
+// The first version borrowed the fixture's Sosoft and diaper and was wrong to.
+// The GRN audit runs earlier in the same job and confirms SH-FIXTURE-GRN, which
+// spreads MVR 2,000 of freight and MVR 15,400 of duty over two lines — so by
+// the time this ran, the fixture diaper's newest landed cost was MVR 1,083 a
+// pack against a MVR 199 price and every verdict came back `below_cost`,
+// correctly. The audit was measuring the GRN audit's arithmetic, not its own.
 //
-// The GRN audit runs earlier in the same run and confirms SH-FIXTURE-GRN, which
-// gives these same two products a NEWER batch at a cost confirm_grn worked out.
-// A hardcoded "previous cost" would therefore pass or fail on which audits ran
-// first. So the new cost is derived from whatever the current one actually is
-// (+15%, which keeps the verdict a `raise`), and the figures asserted on screen
-// are read back from get_price_review. Whether those figures are RIGHT is
-// price_review.test.sql's job; this audit's job is that the screen shows them,
-// in the right unit, with a button that works.
+// So it builds all of it: two categories, a brand, models, variants, SKUs and
+// two confirmed arrivals with costs chosen here. Nothing it asserts depends on
+// what ran before it. And the workflow runs this BEFORE the contrast sweep, so
+// the panel it creates is measured there too rather than being the one screen
+// nobody has measured.
+//
+// The figures asserted on screen are still READ BACK from get_price_review
+// rather than typed twice. Whether they are RIGHT is price_review.test.sql's
+// job; this audit's job is that the screen shows them, in the right unit, with
+// a button that works.
 //
 // Usage:  node scripts/audit/price-review.mjs
 
@@ -66,79 +71,121 @@ if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(host ?? "")) {
 const run    = (q) => execFileSync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-c", q], { encoding: "utf8" });
 const scalar = (q) => execFileSync("psql", [DB, "-v", "ON_ERROR_STOP=1", "-tAc", q], { encoding: "utf8" }).trim();
 
-const DIAPER = "MAMY-XTRA-L-42x4";   // 42 x 4, sold by pack and carton
-const BOTTLE = "SOSO-BLUE-1x6";      // 1 x 6, sold by the bottle and the carton
+const DIAPER = "AUDIT-PACK-42x4";   // 42 x 4, sold by pack and carton — noun "pack"
+const BOTTLE = "AUDIT-BOTT-1x6";    // 1 x 6, sold by the bottle and the carton
 
-// ── A second, dearer arrival ───────────────────────────────────────────────
-// The shape of SH-2026-002: the supplier price moved a little and the freight
-// moved a lot. +15% on whatever the current cost is, so the verdict is a raise
-// no matter which audits ran before this one.
+// ── Its own catalogue, and two arrivals ────────────────────────────────────
+// FIRST VERSION BORROWED THE FIXTURE'S OWN PRODUCTS AND WAS WRONG TO. The GRN
+// audit runs earlier in the same job and confirms SH-FIXTURE-GRN, which puts
+// MVR 2,000 of freight and MVR 15,400 of duty across two lines — so by the time
+// this audit ran, the fixture diaper's newest landed cost was MVR 1,083 a pack
+// against a MVR 199 price. Every verdict came back `below_cost`, correctly, and
+// the audit was measuring the GRN audit's arithmetic rather than its own.
+//
+// So it builds everything: two categories (one 'ml', so its noun really is
+// "bottle" and not a fallback "pack"), a brand, models, variants, SKUs, and two
+// grn_confirmed arrivals with costs chosen here. Nothing it asserts depends on
+// what ran before it, and because its second arrival is the newest confirmed
+// GRN in the database, the panel under test contains exactly these two rows.
+//
+//   pack   MVR 128.10 → 147.84 a pack, priced 199  → restores at 230, no rival
+//   bottle MVR  22.16 →  33.14 a bottle, priced 40 → restores at 60, shelf 36
 run(`
 do $$
 declare
-  v_ship uuid := '00000000-0000-0000-0000-00000000e001';
-  v_comp uuid := '00000000-0000-0000-0000-00000000e009';
-  v_sup  uuid := (select id from suppliers limit 1);
-  v_god  uuid := (select id from godowns where is_default limit 1);
-  v_dia  uuid := (select id from skus where internal_code = '${DIAPER}');
-  v_bot  uuid := (select id from skus where internal_code = '${BOTTLE}');
-  v_i    integer := 0;
-  r      record;
-  v_old  numeric;
-  v_new  numeric;
+  v_cat_d uuid := '00000000-0000-0000-0000-00000000ea01';
+  v_cat_l uuid := '00000000-0000-0000-0000-00000000ea02';
+  v_brand uuid := '00000000-0000-0000-0000-00000000ea03';
+  v_mod_d uuid := '00000000-0000-0000-0000-00000000ea04';
+  v_mod_l uuid := '00000000-0000-0000-0000-00000000ea05';
+  v_var_d uuid := '00000000-0000-0000-0000-00000000ea06';
+  v_var_l uuid := '00000000-0000-0000-0000-00000000ea07';
+  v_dia   uuid := '00000000-0000-0000-0000-00000000ea08';
+  v_bot   uuid := '00000000-0000-0000-0000-00000000ea09';
+  v_comp  uuid := '00000000-0000-0000-0000-00000000ea10';
+  v_ship1 uuid := '00000000-0000-0000-0000-00000000eb01';
+  v_ship2 uuid := '00000000-0000-0000-0000-00000000eb02';
+  v_sup   uuid := (select id from suppliers limit 1);
+  v_god   uuid := (select id from godowns where is_default limit 1);
 begin
-  delete from shipments where id = v_ship;
+  -- Idempotent: this audit can be run twice against one seeded database.
+  delete from stock_movements where sku_id in (v_dia, v_bot);
+  delete from inventory_batches where sku_id in (v_dia, v_bot);
+  delete from shipment_lines where sku_id in (v_dia, v_bot);
+  delete from shipments where id in (v_ship1, v_ship2);
+  delete from competitor_prices where competitor_id = v_comp;
+  delete from competitors where id = v_comp;
+  delete from audit_log where table_name = 'skus' and record_id in (v_dia, v_bot);
+  delete from skus where id in (v_dia, v_bot);
+  delete from variants where id in (v_var_d, v_var_l);
+  delete from product_models where id in (v_mod_d, v_mod_l);
+  delete from product_categories where id in (v_cat_d, v_cat_l);
+  delete from brands where id = v_brand;
+
+  insert into product_categories (id, name, unit_uom, cost_basis)
+  values (v_cat_d, 'Audit Diapers', 'pcs', 'piece'),
+         -- 'ml' is what makes unit_noun say BOTTLE. A category of 'pcs' would
+         -- fall through to "pack" and the noun assertion would pass for the
+         -- wrong reason -- which is how five other files got this wrong.
+         (v_cat_l, 'Audit Liquid', 'ml', 'per_100ml');
+  insert into brands (id, name, mixed_carton_pieces) values (v_brand, 'Audit Brand', null);
+  insert into product_models (id, category_id, brand_id, name)
+  values (v_mod_d, v_cat_d, v_brand, 'Audit Nappy'),
+         (v_mod_l, v_cat_l, v_brand, 'Audit Cleaner');
+  insert into variants (id, model_id, display_name)
+  values (v_var_d, v_mod_d, 'L'), (v_var_l, v_mod_l, 'Blue 700ml');
+
+  insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
+                    carton_length_cm, carton_width_cm, carton_height_cm,
+                    fixed_price_per_pack_mvr, fixed_price_per_carton_mvr, sellable_units)
+  values (v_dia, v_var_d, '${DIAPER}', 42, 4, 50, 40, 40, 199, 776, array['pack','carton']),
+         (v_bot, v_var_l, '${BOTTLE}',  1, 6, 40, 30, 30,  40, 240, array['pack','carton']);
+
   insert into shipments (id, reference, supplier_id, status, grn_confirmed_at,
                          rate_usd_to_mvr, rate_usd_to_idr)
-  values (v_ship, 'SH-FIXTURE-PRICE', v_sup, 'grn_confirmed', now(), 21.5, 16000);
+  values (v_ship1, 'SH-AUDIT-PRICE-1', v_sup, 'grn_confirmed', now() - interval '40 days', 20.5, 16000),
+         (v_ship2, 'SH-AUDIT-PRICE-2', v_sup, 'grn_confirmed', now(),                      21.5, 16000);
 
-  for r in select k.id, k.pcs_per_pack, k.packs_per_carton, k.cbm_per_carton
-             from skus k where k.id in (v_dia, v_bot) loop
-    v_i := v_i + 1;
-    select ib.landed_per_piece_mvr into v_old
-      from inventory_batches ib
-     where ib.sku_id = r.id and ib.landed_per_piece_mvr is not null
-     order by ib.received_at desc limit 1;
-    v_new := round(v_old * 1.15, 4);
+  -- Arrival 1, then arrival 2 at the dearer cost. Written out rather than
+  -- looped so both figures are visible beside the prices they are judged against.
+  insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
+                              fob_per_carton, fob_currency, destination_godown_id)
+  values ('00000000-0000-0000-0000-00000000ec01', v_ship1, v_dia, 1, 0.08,  40, 'USD', v_god),
+         ('00000000-0000-0000-0000-00000000ec02', v_ship1, v_bot, 1, 0.036, 10, 'USD', v_god),
+         ('00000000-0000-0000-0000-00000000ec03', v_ship2, v_dia, 1, 0.08,  40, 'USD', v_god),
+         ('00000000-0000-0000-0000-00000000ec04', v_ship2, v_bot, 1, 0.036, 10, 'USD', v_god);
 
-    insert into shipment_lines (id, shipment_id, sku_id, qty_cartons, cbm_per_carton,
-                                fob_per_carton, fob_currency, destination_godown_id)
-    values (('00000000-0000-0000-0000-00000000e1' || lpad(v_i::text, 2, '0'))::uuid,
-            v_ship, r.id, 1, r.cbm_per_carton, 40, 'USD', v_god);
-    insert into inventory_batches (id, shipment_line_id, sku_id, godown_id, received_at,
-                                   qty_cartons_received, qty_pieces_received,
-                                   landed_per_piece_mvr, landed_per_pack_mvr, landed_per_carton_mvr)
-    values (('00000000-0000-0000-0000-00000000e2' || lpad(v_i::text, 2, '0'))::uuid,
-            ('00000000-0000-0000-0000-00000000e1' || lpad(v_i::text, 2, '0'))::uuid,
-            r.id, v_god, now(), 1, r.pcs_per_pack * r.packs_per_carton,
-            v_new, v_new * r.pcs_per_pack, v_new * r.pcs_per_pack * r.packs_per_carton);
-    insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
-    values (('00000000-0000-0000-0000-00000000e2' || lpad(v_i::text, 2, '0'))::uuid,
-            r.id, v_god, 'in', r.pcs_per_pack * r.packs_per_carton, 'shipment');
-  end loop;
+  insert into inventory_batches (id, shipment_line_id, sku_id, godown_id, received_at,
+                                 qty_cartons_received, qty_pieces_received,
+                                 landed_per_piece_mvr, landed_per_pack_mvr, landed_per_carton_mvr)
+  values ('00000000-0000-0000-0000-00000000ed01', '00000000-0000-0000-0000-00000000ec01',
+          v_dia, v_god, now() - interval '40 days', 1, 168,  3.05, 128.10,  512.40),
+         ('00000000-0000-0000-0000-00000000ed02', '00000000-0000-0000-0000-00000000ec02',
+          v_bot, v_god, now() - interval '40 days', 1,   6, 22.16,  22.16,  132.96),
+         ('00000000-0000-0000-0000-00000000ed03', '00000000-0000-0000-0000-00000000ec03',
+          v_dia, v_god, now(),                     1, 168,  3.52, 147.84,  591.36),
+         ('00000000-0000-0000-0000-00000000ed04', '00000000-0000-0000-0000-00000000ec04',
+          v_bot, v_god, now(),                     1,   6, 33.14,  33.14,  198.84);
+
+  insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
+  values ('00000000-0000-0000-0000-00000000ed01', v_dia, v_god, 'in', 168, 'shipment'),
+         ('00000000-0000-0000-0000-00000000ed02', v_bot, v_god, 'in',   6, 'shipment'),
+         ('00000000-0000-0000-0000-00000000ed03', v_dia, v_god, 'in', 168, 'shipment'),
+         ('00000000-0000-0000-0000-00000000ed04', v_bot, v_god, 'in',   6, 'shipment');
 
   -- The shelf price that makes the restoring price unsellable. Ali reported
-  -- MVR 36 for a 700ml bottle on 2026-08-28; the fixture prices his at 40.
-  delete from competitors where id = v_comp;
+  -- MVR 36 for a 700ml bottle on 2026-08-28 against his own 37.
   insert into competitors (id, name) values (v_comp, 'Fixture Shelf');
   insert into competitor_prices (competitor_id, variant_id, their_pcs_per_pack,
                                  price_mvr, price_basis, observed_date)
-  select v_comp, k.variant_id, 1, 36, 'per_pack', current_date
-    from skus k where k.id = v_bot;
-
-  -- An earlier audit in the run may have edited these products, and the review
-  -- would then read them as already dealt with. Wind the clock back so this
-  -- audit does not pass or fail on what ran before it.
-  update skus set updated_at = now() - interval '1 hour' where id in (v_dia, v_bot);
-  delete from audit_log where table_name = 'skus' and field_name = 'selling_price'
-    and record_id in (v_dia, v_bot);
+  values (v_comp, v_var_l, 1, 36, 'per_pack', current_date);
 end $$;
 `);
 
 /** One row of the engine's own answer, so the screen is checked against what
  *  Postgres computed rather than against a number typed in this file. */
 const review = (code, col) => scalar(`select coalesce(${col}::text, '') from get_price_review(
-  (select id from shipments where reference = 'SH-FIXTURE-PRICE')) where internal_code = '${code}';`);
+  (select id from shipments where reference = 'SH-AUDIT-PRICE-2')) where internal_code = '${code}';`);
 const priceOf = (code, col) => scalar(`select coalesce(${col}::text, '') from skus where internal_code = '${code}';`);
 
 const expect = {
@@ -174,8 +221,8 @@ try {
 
   // ── 1. It is there, and it names BOTH arrivals ──────────────────────────
   list.ok(/Price review/i.test(seen), "the price review panel is on the Financials screen");
-  list.ok(/SH-FIXTURE-PRICE/.test(seen), "and it names the shipment it is reviewing");
-  list.ok(flat.includes(`${expect.diaperRef} → SH-FIXTURE-PRICE`),
+  list.ok(/SH-AUDIT-PRICE-2/.test(seen), "and it names the shipment it is reviewing");
+  list.ok(flat.includes(`${expect.diaperRef} → SH-AUDIT-PRICE-2`),
     `and the arrival it is comparing against (${expect.diaperRef}) -- the question that had no answer anywhere in the app`);
 
   // ── 2. The comparison, in money, in the unit the product is SOLD in ─────
