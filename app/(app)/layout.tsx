@@ -3,6 +3,7 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { SectionNav } from "@/components/layout/section-nav";
 import { OfflineBanner } from "@/components/layout/offline-banner";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { NotificationsBootstrap } from "@/components/layout/notifications-bootstrap";
@@ -55,6 +56,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <OfflineBanner />
         <main className="px-4 py-5 pb-32 lg:pb-10 max-w-5xl mx-auto lg:max-w-none lg:px-10 xl:px-14 2xl:max-w-[1440px] 2xl:mx-auto">
           <NotificationsBootstrap />
+          {/* The screens inside the tab you are on. Renders nothing when the
+              tab holds one screen. Sits INSIDE main so it scrolls with the
+              page -- this app has one scroll container per screen. */}
+          <SectionNav role={role} />
           {children}
         </main>
       </div>

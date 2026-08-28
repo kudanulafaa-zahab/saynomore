@@ -23,10 +23,21 @@ import { launch, signedInPage, checklist, finish, BASE, DEVICES } from "./lib.mj
 // Read the labels out of nav-config itself rather than hardcoding them here.
 // A copy would drift, and a stale copy would assert the wrong thing while
 // looking green — the same second-list problem hard rule 8 was written about.
-const NAV_LABELS = [...readFileSync("scripts/../components/layout/nav-config.ts", "utf8")
-  .matchAll(/href: "\/[a-z-]+",\s*label: "([^"]+)"/g)]
-  .map((m) => m[1])
-  .filter((l) => l !== "My Deliveries");   // staff-only nav, not in the admin menu
+// READ FROM nav-config, never retyped: which screens each tab holds, keyed by
+// the tab's home route (the first item in each section). A screen added to
+// nav-config is therefore checked here with nobody doing anything -- the same
+// property that stops a page shipping built, routable and unreachable
+// (hard rule 8, and the Price Simulator incident that produced it).
+const NAV_SRC = readFileSync("scripts/../components/layout/nav-config.ts", "utf8");
+const NAV_ITEMS = [...NAV_SRC.matchAll(/href: "(\/[a-z-]+)",\s*label: "([^"]+)",\s*icon: \w+,\s*section: "(\w+)"/g)]
+  .map((m) => ({ href: m[1], label: m[2], section: m[3] }))
+  .filter((i) => i.label !== "My Deliveries");   // staff-only nav
+
+const SECTION_SCREENS = {};
+for (const item of NAV_ITEMS) {
+  const home = NAV_ITEMS.find((i) => i.section === item.section).href;
+  (SECTION_SCREENS[home] ??= []).push(item.label);
+}
 
 /** Wait for any open bottom sheet to actually leave.
  *  Without this the next click lands on the brand card BEHIND the sheet and
@@ -123,15 +134,44 @@ for (const device of wanted) {
   // toast is reliably still on screen when we look — the toaster element does
   // not exist in the DOM at all until one fires.
   if (device === "phone") {
-    const island = await page.evaluate(() => {
-      const el = document.querySelector("[data-sonner-toaster]");
-      if (!el) return null;
-      return {
-        mobile: el.style.getPropertyValue("--mobile-offset-top").trim(),
-        desktop: el.style.getPropertyValue("--offset-top").trim(),
+    // WATCH FOR THE TOAST, do not sample for it -- and watch the RIGHT element.
+    //
+    // In sonner 2.x `data-sonner-toaster` is on the <ol>, which is guarded by
+    // `if (!filteredToasts.length) return null`. It therefore exists only WHILE
+    // a toast is on screen, so its absence says nothing about whether the
+    // Toaster is mounted. Four CI rounds went into that distinction. The outer
+    // <section aria-label="Notifications ..."> renders whenever the Toaster is
+    // mounted, toasts or not, and separates the two.
+    const probe = await page.evaluate(() => new Promise((resolve) => {
+      const seen = { toaster: false, maxToasts: 0 };
+      const t0 = Date.now();
+      const tick = () => {
+        seen.toaster ||= !!document.querySelector('[data-sonner-toaster]');
+        seen.maxToasts = Math.max(seen.maxToasts, document.querySelectorAll("[data-sonner-toast]").length);
+        if (seen.toaster || Date.now() - t0 > 6000) {
+          const ol = document.querySelector("[data-sonner-toaster]");
+          resolve({
+            missing: !seen.toaster,
+            // Mounted but silent is a completely different fault from not
+            // mounted, and only this line tells them apart.
+            mounted: !!document.querySelector('section[aria-label*="Notification"]'),
+            maxToasts: seen.maxToasts,
+            dialogs: [...document.querySelectorAll('[role="dialog"]')]
+              .map((d) => d.getAttribute("aria-label") || "?").join(" / ") || "none",
+            mobile: ol ? ol.style.getPropertyValue("--mobile-offset-top").trim() : "",
+            desktop: ol ? ol.style.getPropertyValue("--offset-top").trim() : "",
+          });
+          return;
+        }
+        requestAnimationFrame(tick);
       };
-    });
-    list.ok(island !== null, `${tag} adding to the order raises a toast at all`);
+      tick();
+    }));
+    list.ok(!probe.missing,
+      `${tag} adding to the order raises a toast at all `
+      + `(toaster mounted: ${probe.mounted}; most toasts seen: ${probe.maxToasts}; `
+      + `open dialogs: ${probe.dialogs})`);
+    const island = probe.missing ? null : probe;
     if (island) {
       list.ok(/env\(\s*safe-area-inset-top/.test(island.mobile),
         `${tag} the toast clears the Dynamic Island (offset "${island.mobile}")`);
@@ -236,14 +276,32 @@ for (const device of wanted) {
   // check by hand. Phone only: the More sheet is the mobile menu, and one pass
   // proves the data, which both menus share.
   if (device === "phone") {
-    await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
-    await page.waitForTimeout(2000);
-    await page.getByRole("button", { name: /more navigation options/i }).first().click();
-    await page.waitForTimeout(900);
-    const menu = await page.locator("body").innerText();
-    const missing = NAV_LABELS.filter((l) => !menu.includes(l));
-    list.is(missing.length, 0,
-      `${tag} every page is in the menu (missing: ${missing.join(", ") || "none"})`);
+    // THE MORE SHEET IS GONE (0218), so the check follows the route Ali now
+    // takes: open each tab, and the section switcher at the top must list
+    // every screen that tab holds. That is a STRONGER guarantee than the old
+    // one — the sheet only had to CONTAIN a label somewhere, whereas this
+    // proves each screen is reachable from the tab it was filed under.
+    const unreachable = [];
+    for (const [home, expected] of Object.entries(SECTION_SCREENS)) {
+      await page.goto(`${BASE}${home}`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(1400);
+      const switcher = await page.locator('nav[aria-label$="screens"]').first()
+        .innerText().catch(() => "");
+      for (const label of expected) {
+        if (!switcher.includes(label)) unreachable.push(`${label} (from ${home})`);
+      }
+    }
+    list.is(unreachable.length, 0,
+      `${tag} every screen is reachable from its own tab (missing: ${unreachable.join(", ") || "none"})`);
+
+    // And the tab bar itself offers exactly the five sections -- no overflow.
+    // Apple's guidance is three to five tabs and NO "More" tab; the sheet was
+    // where sixteen of twenty screens used to hide.
+    const tabBar = await page.locator("nav.glass-tabbar").first().innerText();
+    list.is(/more/i.test(tabBar), false, `${tag} the tab bar has no "More" overflow`);
+    for (const section of ["Today", "Sales", "Stock", "Prices", "Products"]) {
+      list.ok(tabBar.includes(section), `${tag} the ${section} tab is on the bar`);
+    }
   }
 
   // ── Nothing threw ─────────────────────────────────────────────────────────
