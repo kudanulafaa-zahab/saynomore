@@ -181,6 +181,18 @@ select
   p.mixed_carton_pieces, p.category_sort_order
 from priced p;
 
+-- ── RESTORE WHAT `create or replace view` SILENTLY THREW AWAY ──────────────
+-- CREATE OR REPLACE VIEW resets reloptions. 0186 set `security_invoker` on
+-- every view in this schema so a view runs as the CALLER and row security
+-- still applies; replacing v_skus above dropped it, and the view went back to
+-- running as its owner — reading every row regardless of who asked.
+--
+-- rls_surface.test.sql caught it, which is what it is for: it enumerates the
+-- catalogue rather than naming views, so it saw v_skus the first time this
+-- migration ran. Set here rather than left to that test, because a test that
+-- fails after the fact is a second chance, not a guard.
+alter view public.v_skus set (security_invoker = true);
+
 -- ── get_price_book: the same rule, read from the same place ────────────────
 create or replace function public.get_price_book()
 returns table (
@@ -303,5 +315,17 @@ begin
   if has_function_privilege('anon', 'public.margin_unit(text[])', 'execute')
      or has_function_privilege('anon', 'public.get_price_book()', 'execute') then
     raise exception 'anon can execute one of the pricing functions';
+  end if;
+
+  -- EVERY view, not just the one this migration touched. Rule 9: a fix for one
+  -- instance of a bug class is not done until the whole surface is swept. Any
+  -- future `create or replace view` in any migration hits the same trapdoor,
+  -- and this is the cheapest place to find out.
+  select string_agg(c.relname, ', ') into v_bad
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'v'
+     and not (coalesce(array_to_string(c.reloptions, ','), '') ~ 'security_invoker=(true|on)');
+  if v_bad is not null then
+    raise exception 'these views run as their owner, bypassing row security: %', v_bad;
   end if;
 end $$;
