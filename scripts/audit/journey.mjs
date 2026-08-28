@@ -134,43 +134,44 @@ for (const device of wanted) {
   // toast is reliably still on screen when we look — the toaster element does
   // not exist in the DOM at all until one fires.
   if (device === "phone") {
-    // WAIT FOR THE TOAST, do not sample for it. This read the DOM the instant
-    // after the click, so it was asserting "a toast exists right now" rather
-    // than "adding raises a toast" -- a race that passed for months and then
-    // failed on a change that touched neither toasts nor the sale sheet (the
-    // navigation rework, 0218). Every later assertion about the cart passed in
-    // that run, which is how we know the add itself was fine and the sampling
-    // was the defect. The toaster element does not exist until one fires, so
-    // waiting for it IS the assertion; the ok() below still reports it.
-    await page.waitForSelector("[data-sonner-toaster]", { timeout: 8000 }).catch(() => {});
-    const probe = await page.evaluate(() => {
-      const el = document.querySelector("[data-sonner-toaster]");
-      // WHEN THIS FAILS, SAY WHAT WAS ON SCREEN INSTEAD. A bare "no toast"
-      // sends the next reader guessing at a screen they cannot see, which is
-      // how one failure costs three CI rounds. Report the cart, so the message
-      // distinguishes "the add silently did nothing" from "it worked and only
-      // the confirmation is missing" -- those have different causes entirely.
-      if (!el) return {
-        missing: true,
-        toasts: document.querySelectorAll("[data-sonner-toast]").length,
-        // DID THE ADD EVEN HAPPEN? The mixed-carton sheet closes on a
-        // successful add, so a sheet still open means onAdd never ran and the
-        // missing toast is a symptom, not the fault. These two facts have
-        // opposite fixes, and one line of output separates them.
-        sheetStillOpen: document.querySelectorAll('[role="dialog"][aria-modal="true"]').length,
-        dialogs: [...document.querySelectorAll('[role="dialog"]')]
-          .map((d) => d.getAttribute("aria-label") || "?").join(" / ") || "none",
+    // WATCH FOR THE TOAST, do not sample for it -- and watch the RIGHT element.
+    //
+    // In sonner 2.x `data-sonner-toaster` is on the <ol>, which is guarded by
+    // `if (!filteredToasts.length) return null`. It therefore exists only WHILE
+    // a toast is on screen, so its absence says nothing about whether the
+    // Toaster is mounted. Four CI rounds went into that distinction. The outer
+    // <section aria-label="Notifications ..."> renders whenever the Toaster is
+    // mounted, toasts or not, and separates the two.
+    const probe = await page.evaluate(() => new Promise((resolve) => {
+      const seen = { toaster: false, maxToasts: 0 };
+      const t0 = Date.now();
+      const tick = () => {
+        seen.toaster ||= !!document.querySelector('[data-sonner-toaster]');
+        seen.maxToasts = Math.max(seen.maxToasts, document.querySelectorAll("[data-sonner-toast]").length);
+        if (seen.toaster || Date.now() - t0 > 6000) {
+          const ol = document.querySelector("[data-sonner-toaster]");
+          resolve({
+            missing: !seen.toaster,
+            // Mounted but silent is a completely different fault from not
+            // mounted, and only this line tells them apart.
+            mounted: !!document.querySelector('section[aria-label*="Notification"]'),
+            maxToasts: seen.maxToasts,
+            dialogs: [...document.querySelectorAll('[role="dialog"]')]
+              .map((d) => d.getAttribute("aria-label") || "?").join(" / ") || "none",
+            mobile: ol ? ol.style.getPropertyValue("--mobile-offset-top").trim() : "",
+            desktop: ol ? ol.style.getPropertyValue("--offset-top").trim() : "",
+          });
+          return;
+        }
+        requestAnimationFrame(tick);
       };
-      return {
-        mobile: el.style.getPropertyValue("--mobile-offset-top").trim(),
-        desktop: el.style.getPropertyValue("--offset-top").trim(),
-      };
-    });
-    const island = probe?.missing ? null : probe;
-    list.ok(!probe?.missing,
+      tick();
+    }));
+    list.ok(!probe.missing,
       `${tag} adding to the order raises a toast at all `
-      + `(toasts: ${probe?.toasts ?? "n/a"}; open dialogs: ${probe?.sheetStillOpen ?? "n/a"} `
-      + `[${probe?.dialogs ?? "n/a"}])`);
+      + `(toaster mounted: ${probe.mounted}; most toasts seen: ${probe.maxToasts}; `
+      + `open dialogs: ${probe.dialogs})`);
+    const island = probe.missing ? null : probe;
     if (island) {
       list.ok(/env\(\s*safe-area-inset-top/.test(island.mobile),
         `${tag} the toast clears the Dynamic Island (offset "${island.mobile}")`);
