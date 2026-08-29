@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-seven audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-eight audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -106,6 +106,13 @@ name: UI checks
 #             just typed it into: a working account nobody could enter. Adds a
 #             viewer, and checks the account is real and confirmed AND that the
 #             address, email and password are shown with one tap to copy
+#   touch     every interactive control on every screen measured against
+#             44x44 -- Apple's minimum, not WCAG's 24, because this is an
+#             installed iOS PWA used one-handed. The stock Button shipped at
+#             32px and every dialog's close button was 28px for a year without
+#             anyone catching it by eye: a small button looks fine and simply
+#             MISSES. Holds a per-screen baseline and fails if a number climbs,
+#             or if one falls without the baseline being tightened
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -326,6 +333,13 @@ jobs:
 
       - name: Team hand-over — a new member can be told how to get in
         run: npm run audit:handover
+
+      # STRICT FROM DAY ONE, and expected to fail its first run: the baseline
+      # starts empty, so the first failure IS the inventory of every control in
+      # the app that is under 44x44. Numbers get written down, then driven to
+      # zero one screen at a time.
+      - name: Touch targets — every control is at least 44x44
+        run: npm run audit:touch
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

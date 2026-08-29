@@ -1,0 +1,3 @@
+{
+  "_": "Controls under 44x44 per screen, as measured. STRICT ON PURPOSE: it starts empty so the first run reports every one of them, which is the module-by-module inventory. Every number here is a debt with a name; drive them to zero and delete the entry. A number may only ever go DOWN — touch-targets.mjs fails if one climbs, and also if one falls without the baseline being tightened, because the slack is where a regression would hide."
+}
