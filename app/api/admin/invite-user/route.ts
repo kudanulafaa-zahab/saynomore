@@ -37,13 +37,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: createError.message }, { status: 400 });
     }
 
+    // ── THE ROLE. Read this before changing anything here. ──────────────────
+    //
+    // A trigger on auth.users (handle_new_user) has ALREADY inserted a profile
+    // row by this point, hardcoded to 'staff'. This write is what turns it into
+    // the role that was actually chosen — so if it fails, the account silently
+    // becomes delivery staff and the screen says "added successfully".
+    //
+    // It was failing, every time. The upsert carried an `email` column that
+    // user_profiles does not have (the address lives on auth.users, which is
+    // where list-users reads it from), so PostgREST rejected the whole write —
+    // and the error was never checked. Picking Viewer produced Delivery Staff:
+    // MORE access than intended, and silent. Roles on production read correctly
+    // only because they were corrected afterwards through the Edit dialog,
+    // which is a different path.
+    //
+    // Two rules follow, and both matter more than the column fix:
+    //   1. NEVER report success on a write whose error you did not read.
+    //   2. An account whose role could not be set must not survive. Leaving it
+    //      is leaving a staff login nobody asked for.
     if (created.user) {
-      await admin
+      const { error: profileError } = await admin
         .from("user_profiles")
         .upsert(
-          { id: created.user.id, full_name: full_name ?? null, role, email },
+          { id: created.user.id, full_name: full_name ?? null, role },
           { onConflict: "id" }
         );
+
+      if (profileError) {
+        await admin.auth.admin.deleteUser(created.user.id);
+        return NextResponse.json(
+          { error: `Could not set the role, so the account was not created: ${profileError.message}` },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ success: true });
