@@ -240,14 +240,62 @@ try {
   list.ok(/SH-AUDIT-PRICE-2/.test(await page.locator("body").innerText()),
     "and tapping it lands on that shipment, not on a list of all of them");
 
+  // ── AND THE SHIPMENT HANDS HIM ON TO THE REVIEW ─────────────────────────
+  //
+  // The review used to be a PANEL on this page. It grew a pair of arrival
+  // menus, and a shipment page can only ever offer its own — so the review
+  // moved to Prices and the shipment links to it. Two copies of one screen is
+  // how the app got to ten doors onto "what should I charge?".
+  // Followed as a tap rather than a goto: a link that does not exist is the
+  // whole failure, and typing the URL would never see it.
+  const toReview = page.getByRole("link", { name: /price review/i }).first();
+  list.ok(await toReview.count() > 0,
+    "the shipment offers a way through to the price review");
+  await toReview.scrollIntoViewIfNeeded();
+  await toReview.click();
+  await page.waitForTimeout(3500);
+
   const seen = await page.locator("body").innerText();
   const flat = seen.replace(/\s+/g, " ");
 
   // ── 1. It is there, and it names BOTH arrivals ──────────────────────────
-  list.ok(/Price review/i.test(seen), "the price review panel is on the Financials screen");
+  list.ok(/Price review/i.test(seen), "the price review screen opened");
   list.ok(/SH-AUDIT-PRICE-2/.test(seen), "and it names the shipment it is reviewing");
   list.ok(flat.includes(`${expect.diaperRef} → SH-AUDIT-PRICE-2`),
     `and the arrival it is comparing against (${expect.diaperRef}) -- the question that had no answer anywhere in the app`);
+
+  // ── 1b. THE TWO MENUS HE ASKED FOR ──────────────────────────────────────
+  //
+  // Ali, 2026-08-29: *"select any shipments I have ordered to compare prices
+  // between them."* Both menus must be real controls listing real arrivals,
+  // not a fixed pair.
+  const costsFrom = page.getByLabel("Costs from");
+  const comparedWith = page.getByLabel("Compared with");
+  list.ok(await costsFrom.count() > 0 && await comparedWith.count() > 0,
+    "both arrival menus are on the screen");
+  list.ok((await costsFrom.locator("option").allInnerTexts())
+            .some((t) => /SH-AUDIT-PRICE-1/.test(t)),
+    "and every received shipment is offered, not just the newest two");
+
+  // Choosing the earlier arrival explicitly must name it on the rows. This is
+  // the whole point of the menus: without them the comparison is whatever
+  // landed last, which for five real products was a direct receipt.
+  const earlier = (await comparedWith.locator("option").allInnerTexts())
+    .find((t) => /SH-AUDIT-PRICE-1/.test(t));
+  await comparedWith.selectOption({ label: earlier });
+  await page.waitForTimeout(2500);
+  list.ok((await page.locator("body").innerText()).replace(/\s+/g, " ")
+            .includes("SH-AUDIT-PRICE-1 → SH-AUDIT-PRICE-2"),
+    "picking the earlier shipment compares against THAT arrival, named on the row");
+
+  // ── 1c. THE SHELF PRICE IS ON EVERY ROW, NOT ONLY THE BLOCKED ONE ───────
+  // Cost-plus sets the floor and the competitor price sets the ceiling; a
+  // worksheet that only shows the ceiling where it bites is half a worksheet.
+  // A product nobody has checked must SAY so — an unchecked price is not a
+  // low one.
+  const withMarket = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+  list.ok(/Shops charge MVR \d/.test(withMarket) || /Shop price not checked/.test(withMarket),
+    "every row carries the shop price, or says it has not been checked");
 
   // ── 2. The comparison, in money, in the unit the product is SOLD in ─────
   list.ok(flat.includes(`Cost per pack MVR ${expect.diaperPrev} → ${expect.diaperNow}`),
@@ -256,8 +304,12 @@ try {
     "and the Sosoft row says BOTTLE -- the noun comes from the product, never a hardcoded 'pack'");
 
   // ── 3. Never pieces ─────────────────────────────────────────────────────
-  const panelText = await page.locator("div.glass-panel").filter({ hasText: /Price review/i })
+  // Filtered on "Cost per", not on the heading: the title is now the page's
+  // own h1 and sits OUTSIDE the panel, so filtering on it would match nothing
+  // and quietly fall back to scanning the whole document.
+  const panelText = await page.locator("div.glass-panel").filter({ hasText: /Cost per/i })
     .first().innerText().catch(() => flat);
+  list.ok(/Cost per/.test(panelText), "the rows render inside the panel");
   list.ok(!/\bpcs\b|\bpieces\b/i.test(panelText),
     "nothing on the panel counts anything in pieces");
 
