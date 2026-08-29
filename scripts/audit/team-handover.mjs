@@ -83,10 +83,25 @@ try {
   // .first() reaches for a control on the page underneath -- which is exactly
   // what happened: the role stayed on its "staff" default and the audit
   // reported a viewer that had never been chosen.
-  await page.getByRole("dialog").getByRole("combobox").first().click();
-  await page.waitForTimeout(600);
+  const roleTrigger = page.getByRole("dialog").getByRole("combobox").first();
+  await roleTrigger.click();
+  await page.waitForTimeout(900);
+
+  // REPORT WHAT IS ON SCREEN, do not reason about it. The first two attempts
+  // at this step failed with the role still on its "staff" default, and both
+  // times the run said only "expected viewer, got staff" -- which describes
+  // the database and not the menu. These two checks name the options the menu
+  // actually offered and what the control ended up reading, so a third failure
+  // arrives with its own diagnosis attached.
+  const options = await page.getByRole("option").allInnerTexts();
+  list.ok(options.length > 0, `the role menu opens (options seen: ${JSON.stringify(options)})`);
+
   await page.getByRole("option", { name: /^viewer$/i }).first().click();
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(600);
+
+  const roleNow = (await roleTrigger.innerText().catch(() => "")).trim();
+  list.ok(/viewer/i.test(roleNow),
+    `and the control reads Viewer before saving (reads "${roleNow}")`);
 
   // Scoped to the dialog: the trigger behind it carries the same words, and an
   // unscoped .first() would click the button that opened this form.
