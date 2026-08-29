@@ -379,3 +379,35 @@ $function$;
 
 revoke execute on function public.get_price_review(uuid, uuid) from public, anon;
 grant  execute on function public.get_price_review(uuid, uuid) to authenticated, service_role;
+
+-- ── PROVE IT LANDED ─────────────────────────────────────────────────────────
+-- The same shape 0213/0214/0215 use. Comments are stripped before matching:
+-- pg_get_functiondef returns them, and 0217's guard once refused its own
+-- migration because a comment mentioned the very thing it was checking for.
+do $$
+declare
+  v_src text := regexp_replace(
+    pg_get_functiondef('public.get_price_review(uuid,uuid)'::regprocedure),
+    '--[^\n]*', '', 'g');
+begin
+  if v_src !~ 'compare_ship' then
+    raise exception 'the review cannot be pointed at a chosen arrival';
+  end if;
+  if v_src !~ 'not_compared' then
+    raise exception 'a product absent from the chosen shipment would report first_arrival';
+  end if;
+  -- The rule that makes two menus safe: the later arrival is what the money is
+  -- computed from, whichever order the caller passed them in.
+  if v_src !~ 'b_at > a_at' then
+    raise exception 'the two arrivals are no longer put in date order';
+  end if;
+
+  if to_regprocedure('public.get_price_review(uuid)') is not null then
+    raise exception 'the one-argument twin is back -- two versions of one answer';
+  end if;
+
+  if has_function_privilege('anon', 'public.get_price_review(uuid,uuid)', 'execute')
+     or has_function_privilege('anon', 'public.get_arrivals()', 'execute') then
+    raise exception 'anon can read the price review';
+  end if;
+end $$;

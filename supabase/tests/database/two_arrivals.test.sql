@@ -87,15 +87,19 @@ select pg_temp.land('00000000-0000-0000-0000-0000000006a1', '00000000-0000-0000-
                     10, 20, now() - interval '50 days');
 
 -- The direct receipt: stock that landed with no shipment line behind it.
-insert into inventory_batches (id, sku_id, godown_id, received_at,
+-- `source` must say 'direct' — inventory_batches_source_link_chk ties the two
+-- together, so a batch with no shipment line and source 'shipment' is refused.
+-- That constraint is the ledger doing its job; the batch is genuinely a
+-- different kind of arrival, which is the whole reason this test exists.
+insert into inventory_batches (id, sku_id, godown_id, received_at, source,
                                qty_cartons_received, qty_pieces_received, landed_per_piece_mvr,
                                landed_per_pack_mvr, landed_per_carton_mvr)
 values ('00000000-0000-0000-0000-0000000006b5', '00000000-0000-0000-0000-0000000006b0',
-        '00000000-0000-0000-0000-000000000006', now() - interval '10 days',
+        '00000000-0000-0000-0000-000000000006', now() - interval '10 days', 'direct',
         1, 20, 11, 110, 220);
 insert into stock_movements (batch_id, sku_id, godown_id, movement_type, qty_pieces, source_type)
 values ('00000000-0000-0000-0000-0000000006b5', '00000000-0000-0000-0000-0000000006b0',
-        '00000000-0000-0000-0000-000000000006', 'in', 20, 'adjustment');
+        '00000000-0000-0000-0000-000000000006', 'in', 20, 'direct_receipt');
 
 select pg_temp.land('00000000-0000-0000-0000-0000000006a2', '00000000-0000-0000-0000-0000000006b0',
                     '00000000-0000-0000-0000-0000000006b3', '00000000-0000-0000-0000-0000000006b4',

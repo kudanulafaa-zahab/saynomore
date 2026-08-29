@@ -271,7 +271,10 @@ select throws_ok(
 );
 
 select ok(
-  not has_function_privilege('anon', 'public.get_price_review(uuid)', 'execute')
+  -- Named by its full signature, so this assertion follows the function when
+  -- its arguments change (0218 added the arrival to compare against) instead
+  -- of silently checking a signature that no longer exists.
+  not has_function_privilege('anon', 'public.get_price_review(uuid,uuid)', 'execute')
   and not has_function_privilege('anon', 'public.set_selling_prices(uuid,numeric,numeric,boolean,text)', 'execute'),
   'anon can execute neither the review nor the writer'
 );
