@@ -46,7 +46,15 @@ export function SectionNav({ role }: { role: string }) {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className="snm-pressable shrink-0 rounded-full px-3.5 py-1.5 ios-footnote font-semibold whitespace-nowrap"
+            // 44pt tall. These pills were py-1.5 — 32px — and they are the
+            // switcher on EVERY screen, so they were the other half of the
+            // app's touch-target debt. I shipped them at 32px earlier the same
+            // day the audit that caught them was written, which is the case
+            // for measuring rather than reviewing: they look correct, and the
+            // measurement is the only thing that says otherwise.
+            // inline-flex + items-center keeps the label centred now that the
+            // pill is taller than its text.
+            className="snm-pressable shrink-0 inline-flex items-center rounded-full px-4 min-h-11 ios-footnote font-semibold whitespace-nowrap"
             style={{
               background: active ? "var(--foreground)" : "var(--glass-bg-1)",
               color:      active ? "var(--background)" : "var(--foreground)",

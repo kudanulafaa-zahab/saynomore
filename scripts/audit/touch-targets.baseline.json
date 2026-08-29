@@ -1,0 +1,28 @@
+{
+  "_": "Controls under 44x44 per screen, MEASURED (not estimated) on 2026-08-29. Every number is a debt with a name. It may only ever go DOWN: touch-targets.mjs fails if one climbs, and also if one falls without this file being tightened, because that slack is where a regression would hide. Drive a screen to 0 and it stays at 0 for ever.",
+  "_started_at": "233 across 21 screens. Three fixes in shared chrome took it to 128: the theme toggle (28px, on every screen), the section switcher (32px, on every screen, shipped by me that same morning) and the bottom tab bar (a 42px hit area inside a 64px bar, five times per screen).",
+  "_whats_left": "Three shapes, repeating. Segmented-control tabs at 23-37px (products, financials, competitors, inventory, reorder, reports). Search fields whose box is 20px tall inside a 44px-looking container (customers, inventory, sales, stock-ops, suppliers, product-card). Icon and pill buttons at 40px, four short (godowns, shipments, reports, pricelists).",
+  "_customers": "28 of these are the A-Z index rail: 27 letters at 22x19. That is Apple's own Contacts geometry -- it is a SCRUB control, not 27 discrete targets, and enlarging it would break the pattern it copies. It needs a documented exemption in the audit rather than a change to the rail, and until that exists it sits here as a number rather than being silently excluded.",
+
+  "customers": 28,
+  "costing": 25,
+  "products": 13,
+  "financials": 12,
+  "inventory": 11,
+  "competitors": 9,
+  "reports": 6,
+  "price-review": 4,
+  "settings": 4,
+  "godowns": 3,
+  "pricelists": 3,
+  "sales": 3,
+  "reorder": 2,
+  "dashboard": 1,
+  "product-card": 1,
+  "shipments": 1,
+  "stock-ops": 1,
+  "suppliers": 1,
+  "deliveries": 0,
+  "dispatch": 0,
+  "expenses": 0
+}
