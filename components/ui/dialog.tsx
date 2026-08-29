@@ -106,7 +106,11 @@ function DialogContent({
                 variant="ghost"
                 // z-20 keeps it above the now-sticky header (z-10).
                 className="absolute top-2 right-2 z-20"
-                size="icon-sm"
+                // Was "icon-sm" — 28px. The close button on every dialog in
+                // the app, at two-thirds of the minimum touch target, on a
+                // phone used one-handed. `icon` is 44pt square.
+                size="icon"
+                pill
               />
             }
           >
