@@ -108,7 +108,18 @@ const AUDIT = (knownGood) => {
     g.n++;
     if (!g.sample) {
       const cls = (el.className || "").toString().split(/\s+/).filter(Boolean).slice(0, 4).join(".");
-      g.sample = `${el.tagName.toLowerCase()}${cls ? "." + cls : ""} "${(el.innerText || "").slice(0, 26).replace(/\n/g, " ")}"`;
+      // SAY WHAT WAS SEEN, not just that something was wrong. A failure that
+      // reports only "unchanged" cannot distinguish a hand-typed blur from a
+      // token that failed to re-resolve — and guessing between those two is
+      // how two earlier audits in this repo wasted a CI round each.
+      const own = (el.getAttribute("style") || "").match(/backdrop-filter:[^;]*/i);
+      const cs2 = getComputedStyle(el);
+      g.sample =
+        `${el.tagName.toLowerCase()}${cls ? "." + cls : ""} "${(el.innerText || "").slice(0, 20).replace(/\n/g, " ")}"` +
+        `\n           inline: ${own ? own[0].slice(0, 60) : "(none — comes from a class)"}` +
+        `\n           at this element: --glass-frost=${cs2.getPropertyValue("--glass-frost").trim() || "(unset)"}` +
+        ` --frost-b=${cs2.getPropertyValue("--frost-b").trim() || "(unset)"}` +
+        ` --glass-blur-content=${cs2.getPropertyValue("--glass-blur-content").trim().slice(0, 40) || "(unset)"}`;
     }
   });
 
