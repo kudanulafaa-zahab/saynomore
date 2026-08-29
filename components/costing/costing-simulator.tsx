@@ -533,7 +533,9 @@ export function CostingSimulator() {
             hint={
               seededFrom?.freight_mvr_per_cbm != null
                 ? `Freight MVR ${mvr(seededFrom.freight_mvr_per_cbm)} per CBM${
-                    seededFrom.cbm_total ? ` · that container was ${seededFrom.cbm_total} CBM` : ""
+                    // Number(), so a whole container reads "8 CBM" and not
+                    // "8.00 CBM" while a real 8.01 keeps its decimals.
+                    seededFrom.cbm_total ? ` · that container was ${Number(seededFrom.cbm_total)} CBM` : ""
                   }`
                 : "No freight recorded on that arrival"
             }

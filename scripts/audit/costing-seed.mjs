@@ -94,38 +94,57 @@ try {
   const opened = (await page.locator("body").innerText()).replace(/\s+/g, " ");
   list.ok(!/didn.t load/i.test(opened), "the simulator opens");
 
-  // ── 1. IT SAYS WHICH CONTAINER, AND AT WHAT RATE ────────────────────────
+  // ── 1. IT SAYS WHICH CONTAINER IT IS COSTING LIKE ───────────────────────
   const picker = page.getByLabel("Costing like");
   list.ok(await picker.count() > 0, "the screen says which arrival it is costing like");
-  list.ok(/SH-SEED-SMALL/.test(opened),
-    "and opens on the most recent arrival, as it always has");
-  list.ok(/Freight MVR 5,?000 per CBM/.test(opened),
-    "naming the freight rate in MVR per CBM -- the figure that says whether a simulation is realistic");
-  list.ok(/1 CBM/.test(opened),
-    "with the container's own volume beside it, because a freight share means nothing without it");
 
-  // ── 2. CHOOSING ANOTHER ARRIVAL RE-SEEDS THE MONEY, NOT JUST THE LABEL ──
-  // The assertion that matters. A picker that moves a label and leaves the
-  // numbers behind would look fixed and be worse than nothing.
-  const before = await page.getByLabel(/USD . MVR/).first().inputValue().catch(() => "");
-  await picker.selectOption({ label: (await picker.locator("option").allInnerTexts())
-    .find((t) => /SH-SEED-BIG/.test(t)) });
-  await page.waitForTimeout(2500);
+  // Read the picker's VALUE against what the engine says the default is,
+  // rather than scanning the page for a reference. Every arrival appears in
+  // the menu's own <option> list, so a body-text match passes whichever one is
+  // actually selected -- which is how the first version of this audit talked
+  // itself into believing the screen had opened on the fixture when it had
+  // not. Other audits create shipments too, and any of them can be newest.
+  const defaultRef = q1(`select reference from get_costing_defaults();`);
+  const openedOn = await picker.inputValue()
+    .then((v) => q1(`select reference from shipments where id = '${v}';`)).catch(() => "");
+  list.is(openedOn, defaultRef,
+    `it opens on the most recent arrival, as it always has (${openedOn})`);
 
-  const after = (await page.locator("body").innerText()).replace(/\s+/g, " ");
-  list.ok(/Freight MVR 1,?000 per CBM/.test(after),
-    "picking the bigger container re-states the rate as MVR 1,000 per CBM");
-  const rateNow = await page.getByLabel(/USD . MVR/).first().inputValue().catch(() => "");
-  list.ok(rateNow !== before && Number(rateNow) === 20,
-    `and re-seeds the forex rate with that shipment's own (${before} -> ${rateNow})`);
+  // ── 2. EACH ARRIVAL BRINGS ITS OWN RATE, ITS OWN FOREX AND ITS OWN
+  //       CLEARING -- the assertion that matters. A picker that moves a label
+  //       and leaves the numbers behind would look fixed and be worse than
+  //       nothing. Both containers are driven, so neither result can be the
+  //       one the screen happened to open with.
+  async function pick(ref) {
+    await picker.selectOption({ label: (await picker.locator("option").allInnerTexts())
+      .find((t) => new RegExp(ref).test(t)) });
+    await page.waitForTimeout(2500);
+    return {
+      body: (await page.locator("body").innerText()).replace(/\s+/g, " "),
+      rate: await page.getByLabel(/USD . MVR/).first().inputValue().catch(() => ""),
+      mpl:  await page.getByLabel("MPL charges (MVR)").first().inputValue().catch(() => ""),
+    };
+  }
+
+  const small = await pick("SH-SEED-SMALL");
+  list.ok(/Freight MVR 5,?000 per CBM/.test(small.body),
+    "the small container states MVR 5,000 per CBM -- the figure that says whether a simulation is realistic");
+  list.ok(/was 1 CBM/.test(small.body),
+    "with its own volume beside it, because a freight share means nothing without it");
+
+  const big = await pick("SH-SEED-BIG");
+  list.ok(/Freight MVR 1,?000 per CBM/.test(big.body),
+    "and the big one restates it as MVR 1,000 per CBM -- a fifth of the rate for the same trade");
+  list.ok(/was 8 CBM/.test(big.body),
+    "over 8 CBM, whole rather than 8.00");
+  list.is(Number(big.rate), 20,
+    `switching re-seeds the forex rate with that shipment's own (${small.rate} -> ${big.rate})`);
 
   // Every shipment stands alone: the clearing charges move with it too. Forex
-  // from one container and clearing from another is a shipment that never was,
-  // so this reads the field rather than scanning the page for a number that
-  // could have come from anywhere.
-  const mpl = await page.getByLabel("MPL charges (MVR)").first().inputValue().catch(() => "");
-  list.is(Number(mpl), 100,
-    `and its own clearing charges come with it, not the other container's (MPL ${mpl})`);
+  // from one container and clearing from another is a shipment that never was.
+  // Read from the field, not from the page, so no stray number can satisfy it.
+  list.is(Number(big.mpl), 100,
+    `and its own clearing charges come with it, not the other container's (${small.mpl} -> ${big.mpl})`);
 
   list.is(page.errors.length, 0, `no page errors (${page.errors.slice(0, 2).join(" | ")})`);
 } catch (e) {
