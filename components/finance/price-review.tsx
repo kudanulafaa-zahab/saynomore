@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { TrendingDown, ShieldCheck, Store, Check, X } from "lucide-react";
+import { TrendingDown, ShieldCheck, Store, Check, X, ChevronDown } from "lucide-react";
 import {
+  getArrivals,
   getPriceReview,
   setSellingPrices,
+  type ArrivalRow,
   type PriceReviewRow,
 } from "@/lib/queries/price-review";
 import { getCurrentUserRole } from "@/lib/queries/products";
@@ -13,17 +15,38 @@ import { mvr, mvr2 } from "@/lib/money";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 
-/* ── Price review after an arrival ──────────────────────────────────────────
+/* ── Price review — two arrivals, the shops, and the price ──────────────────
  *
  * Ali, 2026-08-27, the morning after SH-2026-002 landed:
  *   *"For me to set the selling price with the best profit how do I see it?
  *    Is there an easy way? ... Also how do I know compared the 001 shipment
  *    price."*
  *
- * The answer was: he could not. Margin Watch sits directly below this panel
- * and reported "No price is below cost" on the day Sosoft went from 40% margin
- * to 10% — true, and useless, because it can only compare a price with a
- * target margin and a target margin is set on two products out of thirty-six.
+ * And 2026-08-29:
+ *   *"Where can I easily see and compare this shipment and previous shipment
+ *    prices along with competitor pricing so in one screen I can see clearly
+ *    how much I have to increase or decrease and set selling price... select
+ *    any shipments I have ordered to compare prices between them."*
+ *
+ * The answer was: he could not. Margin Watch reported "No price is below cost"
+ * on the day Sosoft went from 40% margin to 10% — true, and useless, because it
+ * can only compare a price with a target margin and a target margin is set on
+ * two products out of thirty-six.
+ *
+ * ── THE TWO MENUS ──────────────────────────────────────────────────────────
+ *
+ * Industry practice for this is a cost-change repricing worksheet, and its two
+ * halves are settled: COST-PLUS SETS THE FLOOR (the price that restores the
+ * margin) and THE COMPETITOR PRICE SETS THE CEILING. Cost-plus alone is
+ * entirely inward-looking — it knows what the goods cost and nothing about what
+ * a shopper will pay — which is why a suggestion above the shelf price is
+ * withheld rather than shown. Both numbers are on every row.
+ *
+ * The menus are kept in DATE ORDER, here and again in Postgres. The later
+ * arrival is always what the money is computed from, because landed cost is a
+ * property of an arrival: costing off the older one prices stock to replace
+ * itself at a cost that no longer exists. Set them either way round and the
+ * screen relabels rather than misprices.
  *
  * Every figure on this screen is computed in Postgres (get_price_review,
  * migration 0213), including the unit noun and the stock label. This file
@@ -205,8 +228,55 @@ function PriceSheet({
   );
 }
 
-/* ── The panel ────────────────────────────────────────────────────────────── */
-export function PriceReview({ shipmentId }: { shipmentId?: string }) {
+/* ── One arrival menu ──────────────────────────────────────────────────────
+ * The visible card is ours; the tapping is a native <select> laid transparently
+ * over it, which is the same primitive WarehouseSelect uses. On a phone that
+ * gives the real iOS wheel for free — no custom menu, nothing to get wrong. */
+function ArrivalPicker({ label, value, arrivals, allowNone, onChange }: {
+  label: string;
+  value: string | null;
+  arrivals: ArrivalRow[];
+  allowNone?: boolean;
+  onChange: (id: string) => void;
+}) {
+  const chosen = arrivals.find((a) => a.id === value);
+  return (
+    <div
+      className="relative rounded-2xl px-4 py-3 flex items-center gap-3 flex-1"
+      style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="label-caps text-[11px]" style={{ color: "var(--foreground)", opacity: 0.7 }}>{label}</p>
+        <p className="ios-subhead font-semibold truncate snm-num" style={{ color: "var(--foreground)" }}>
+          {chosen ? `${chosen.reference} · ${shortDate(chosen.received_on)}` : "The arrival before"}
+        </p>
+      </div>
+      <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "var(--foreground)", opacity: 0.7 }} />
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      >
+        {/* Choosing nothing is a real answer: it falls back to whatever landed
+            immediately before, per product, which is where a direct receipt
+            still counts. */}
+        {allowNone && <option value="">The arrival before</option>}
+        {arrivals.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.reference} · {shortDate(a.received_on)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/* ── The screen ───────────────────────────────────────────────────────────── */
+export function PriceReview() {
+  const [arrivals, setArrivals] = useState<ArrivalRow[]>([]);
+  const [thisId, setThisId] = useState<string | null>(null);
+  const [compareId, setCompareId] = useState<string | null>(null);
   const [rows, setRows] = useState<PriceReviewRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [canFix, setCanFix] = useState(false);
@@ -216,25 +286,44 @@ export function PriceReview({ shipmentId }: { shipmentId?: string }) {
   const [showSettled, setShowSettled] = useState(false);
 
   function load() {
-    return Promise.all([getPriceReview(shipmentId), getCurrentUserRole()])
-      .then(([r, role]) => {
-        setRows(r);
-        setCanFix(role === "admin" || role === "manager");
-      })
+    return getPriceReview(thisId ?? undefined, compareId ?? undefined)
+      .then(setRows)
       .catch(() => setFailed(true));
   }
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getPriceReview(shipmentId), getCurrentUserRole()])
-      .then(([r, role]) => {
+    Promise.all([getArrivals(), getCurrentUserRole()])
+      .then(([a, role]) => {
         if (cancelled) return;
-        setRows(r);
+        setArrivals(a);
+        setThisId(a[0]?.id ?? null);
         setCanFix(role === "admin" || role === "manager");
       })
       .catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
-  }, [shipmentId]);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPriceReview(thisId ?? undefined, compareId ?? undefined)
+      .then((r) => { if (!cancelled) setRows(r); })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [thisId, compareId]);
+
+  // KEEP THE TWO MENUS IN DATE ORDER. Postgres does this too and is the real
+  // guard; doing it here as well means the labels never LOOK wrong on the way.
+  // Picking the same arrival on both sides is not a comparison, so it clears.
+  function choose(side: "this" | "compare", id: string) {
+    const at = (x: string | null) => arrivals.find((a) => a.id === x)?.received_on ?? "";
+    let t = side === "this" ? id : thisId;
+    let c = side === "compare" ? (id || null) : compareId;
+    if (c && c === t) c = null;
+    if (t && c && at(c) > at(t)) { const s = t; t = c; c = s; }
+    setThisId(t);
+    setCompareId(c);
+  }
 
   async function accept(r: PriceReviewRow) {
     setApplying(r.sku_id);
@@ -256,58 +345,82 @@ export function PriceReview({ shipmentId }: { shipmentId?: string }) {
     }
   }
 
-  // A failure to load is stated, not hidden behind an empty panel that reads
+  // A failure to load is stated, not hidden behind an empty screen that reads
   // as "nothing to do" — the same fix the follow-up round needed (0212).
   if (failed) {
     return (
-      <div className="glass-panel p-4 mb-5">
-        <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>Price review didn&apos;t load</p>
-        <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.8 }}>
-          Pull down to try again — this is not the same as having nothing to reprice.
-        </p>
+      <div className="space-y-4">
+        <h1 className="ios-page-title">Price review</h1>
+        <div className="glass-panel p-4">
+          <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>This didn&apos;t load</p>
+          <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+            Pull down to try again — this is not the same as having nothing to reprice.
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (rows === null) {
-    return (
-      <div className="glass-panel p-5 mb-5">
-        <div className="snm-skel h-2.5 w-40 rounded-full mb-3" />
-        <div className="snm-skel h-9 rounded-xl" />
-      </div>
-    );
-  }
-
-  // Nothing has ever been received: not a state worth a panel.
-  if (rows.length === 0) return null;
-
-  const shipment = rows[0].this_reference;
-  const received = shortDate(rows[0].this_received_on);
-  const action = rows.filter((r) => NEEDS_ACTION.has(r.verdict));
-  const settled = rows.filter((r) => !NEEDS_ACTION.has(r.verdict));
-  const bothTiers = rows.some((r) => r.sells_pack) && rows.some((r) => r.sells_carton);
+  const action  = (rows ?? []).filter((r) => NEEDS_ACTION.has(r.verdict));
+  const settled = (rows ?? []).filter((r) => !NEEDS_ACTION.has(r.verdict));
+  const bothTiers = (rows ?? []).some((r) => r.sells_pack) && (rows ?? []).some((r) => r.sells_carton);
+  const compareRef = arrivals.find((a) => a.id === compareId)?.reference ?? null;
 
   return (
-    <div className="glass-panel p-5 mb-5">
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>Price review</p>
-        <span className="ios-caption1 font-semibold snm-num" style={{ color: "var(--foreground)", opacity: 0.75 }}>
-          {shipment} · {received}
-        </span>
+    <div className="space-y-4">
+      <div>
+        <h1 className="ios-page-title">Price review</h1>
+        <p className="ios-footnote mt-1" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+          What an arrival did to every margin, what the shops charge, and the price that puts it back.
+        </p>
       </div>
 
+      {/* THE TWO MENUS. Kept in date order, so "Costs from" is always the later
+          arrival and the price can never be set off a cost he can no longer
+          buy at. */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <ArrivalPicker
+          label="Costs from"
+          value={thisId}
+          arrivals={arrivals}
+          onChange={(id) => choose("this", id)}
+        />
+        <ArrivalPicker
+          label="Compared with"
+          value={compareId}
+          arrivals={arrivals}
+          allowNone
+          onChange={(id) => choose("compare", id)}
+        />
+      </div>
+
+      {rows === null ? (
+        <div className="glass-panel p-5">
+          <div className="snm-skel h-2.5 w-40 rounded-full mb-3" />
+          <div className="snm-skel h-9 rounded-xl" />
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="glass-panel p-5">
+          <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>Nothing has arrived yet</p>
+          <p className="ios-footnote mt-1" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+            A price review needs a landed cost. Receive a shipment and it appears here.
+          </p>
+        </div>
+      ) : (
+      <div className="glass-panel p-5">
       {action.length === 0 ? (
         <div className="flex items-center gap-3 mt-2">
           <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: "var(--snm-success)" }} />
           <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.85 }}>
-            Nothing to reprice after {shipment}. Every product that landed costs what it did last time,
-            or its price already moved with the cost.
+            Nothing to reprice on {rows[0].this_reference}. Every product that landed costs what it did
+            {compareRef ? ` on ${compareRef}` : " last time"}, or its price already moved with the cost.
           </p>
         </div>
       ) : (
         <p className="ios-footnote mb-3" style={{ color: "var(--foreground)", opacity: 0.85 }}>
-          {action.length} product{action.length === 1 ? "" : "s"} cost more than on the arrival before.
-          Your price stayed where it was, so the difference came out of your profit.
+          {action.length} product{action.length === 1 ? "" : "s"} cost more on {rows[0].this_reference} than
+          {compareRef ? ` on ${compareRef}` : " on the arrival before"}. Your price stayed where it was,
+          so the difference came out of your profit.
         </p>
       )}
 
@@ -388,6 +501,21 @@ export function PriceReview({ shipmentId }: { shipmentId?: string }) {
                     </p>
                   )}
 
+                  {/* THE CEILING, ON EVERY ROW. Cost-plus knows what the goods
+                      cost and nothing about what a shopper will pay, so the
+                      shelf price belongs beside the suggestion rather than only
+                      on the rows it blocks. No arithmetic here — both figures
+                      are printed and the comparison is his to make.
+                      A blank one says so: an unchecked price is not a low one,
+                      and 23 of 36 products have never been checked. */}
+                  {!capped && (
+                    <p className="ios-footnote snm-num mt-0.5" style={{ color: "var(--foreground)", opacity: 0.8 }}>
+                      {r.market_unit_mvr != null
+                        ? <>Shops charge MVR {mvr(r.market_unit_mvr)} per {word} · {r.market_competitor}, {shortDate(r.market_observed_on)}</>
+                        : <>Shop price not checked</>}
+                    </p>
+                  )}
+
                   {/* THE HONEST REFUSAL. Restoring the margin is arithmetic;
                       whether the price is sellable is not, and a suggestion
                       above the shelf price is worse than no suggestion. */}
@@ -458,12 +586,19 @@ export function PriceReview({ shipmentId }: { shipmentId?: string }) {
                   ? `price moved with the cost · ${r.margin_now_pct}%`
                   : r.verdict === "cheaper" ? "cheaper than last time"
                   : r.verdict === "no_change" ? "same cost as last time"
+                  // Absent from the shipment he chose is a different fact from
+                  // never having arrived — saying "first arrival" would read as
+                  // "this product is new", which it is not.
+                  : r.verdict === "not_compared"
+                    ? `not on ${compareRef ?? "that shipment"}`
                   : r.verdict === "first_arrival" ? "first arrival — nothing to compare"
                   : "no selling price"}
               </p>
             </div>
           ))}
         </div>
+      )}
+      </div>
       )}
 
       {editing && (

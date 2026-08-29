@@ -17,6 +17,7 @@ import {
   ClipboardList,
   ArrowLeftRight,
   Calculator,
+  Scale,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -110,7 +111,15 @@ export const FULL_NAV: NavItem[] = [
   // and the after-arrival review stays on the shipment, because both are read
   // in the middle of another job; everything you would open ON PURPOSE to
   // decide a price is here.
+  // Price book stays FIRST because the first item is the tab's home and its
+  // icon — reordering here would silently change what the Prices tab opens.
   { href: "/pricelists",   label: "Price book",  icon: Tags,            section: "Prices" },
+  // Price review is the only screen in this tab that asks him to DECIDE
+  // something, and the decision has a deadline: margin is not stable, and the
+  // moment to reprice is when stock lands. It used to be a panel buried inside
+  // the shipment page — the right moment at the wrong address. The shipment
+  // now links here instead of carrying its own copy.
+  { href: "/price-review", label: "Price review", icon: Scale,          section: "Prices" },
   { href: "/costing",      label: "Simulator",   icon: Calculator,      section: "Prices" },
   { href: "/competitors",  label: "Market",      icon: Tag,             section: "Prices" },
 

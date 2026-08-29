@@ -8,7 +8,7 @@ import {
   Loader2, ArrowLeft, Plus, Trash2, CheckCircle2, Lock,
   AlertTriangle, Truck, ChevronDown, RotateCcw, Calendar,
   ChevronRight, Minus, MoreHorizontal, Package, ScanLine, Warehouse, Pencil,
-  Container, Sparkles, Check,
+  Container, Sparkles, Check, Scale,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -33,7 +33,6 @@ import { ShipmentSummary } from "@/components/shipments/shipment-summary";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { notifyAdmins } from "@/lib/push";
 import { getPricingHealth } from "@/lib/queries/pricing";
-import { PriceReview } from "@/components/financials/price-review";
 import { SkuIdentity } from "@/components/ui/sku-identity";
 import { listSkusFlat, type SkuFullRow, getCurrentUserRole } from "@/lib/queries/products";
 import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/lib/queries/masters";
@@ -1456,13 +1455,36 @@ export function ShipmentDetail({ id }: { id: string }) {
         )}
       </div>
 
-      {/* ── Post-GRN: the price review ──────────────────────────────────────
+      {/* ── Post-GRN: the way in to the price review ────────────────────────
           A price review belongs at the moment stock arrives, not on a calendar
           (CLAUDE.md — landed cost is a property of an ARRIVAL, so margin is
-          never stable). This is the same panel as on Financials, pinned to the
-          shipment it is about, so the comparison against the previous arrival
-          is one screen away from the Confirm button that created it. */}
-      {locked && shipment && <PriceReview shipmentId={shipment.id} />}
+          never stable), so the prompt stays here on the Confirm button that
+          created it.
+          The REVIEW ITSELF now lives in Prices, because it grew a pair of
+          arrival menus and a shipment page can only ever show its own. Two
+          copies of one screen is how the app got to ten doors onto "what should
+          I charge?"; this is a link, not a second copy. */}
+      {locked && shipment && (
+        <Link
+          href="/price-review"
+          className="snm-pressable glass-panel p-4 mb-5 flex items-center gap-3"
+          style={{ display: "flex" }}
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "color-mix(in srgb, var(--snm-warning) 14%, transparent)", color: "var(--snm-warning)" }}
+          >
+            <Scale className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>Price review</p>
+            <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.85 }}>
+              What this arrival did to every margin, against any earlier shipment, with the shop prices beside it.
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0" style={{ color: "var(--foreground)", opacity: 0.6 }} />
+        </Link>
+      )}
 
       {/* ── Post-GRN: price change alerts ── */}
       {locked && priceChanges.length > 0 && (

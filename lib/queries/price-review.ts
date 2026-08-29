@@ -24,7 +24,12 @@ import { supabase } from "@/lib/supabase";
  *
  *  `repriced` ends the review for a product (migration 0214). Without it,
  *  accepting a suggestion re-anchors "the margin this price used to earn" on
- *  the price just set, and the screen asks for a higher one, for ever. */
+ *  the price just set, and the screen asks for a higher one, for ever.
+ *
+ *  `not_compared` is only possible once he picks the comparison arrival
+ *  himself: the product simply was not on that shipment. Saying
+ *  `first_arrival` there would read as "this product is new", which is a
+ *  different and untrue statement (migration 0218). */
 export type PriceReviewVerdict =
   | "below_cost"
   | "raise"
@@ -34,6 +39,7 @@ export type PriceReviewVerdict =
   | "no_change"
   | "auto_adjusted"
   | "first_arrival"
+  | "not_compared"
   | "no_price";
 
 export interface PriceReviewRow {
@@ -83,12 +89,38 @@ export interface PriceReviewRow {
   stock_value_mvr: number;
 }
 
+/** An arrival the two menus can offer: a shipment that has been received, so
+ *  it carries a landed cost to compare or to price from. */
+export interface ArrivalRow {
+  id: string;
+  reference: string;
+  received_on: string;
+  sku_count: number;
+}
+
+export async function getArrivals(): Promise<ArrivalRow[]> {
+  const { data, error } = await supabase.rpc("get_arrivals");
+  if (error) throw error;
+  return (data ?? []) as ArrivalRow[];
+}
+
 /** Every product that landed on a shipment, with what it cost on the arrival
- *  before it, what it costs now, and the price that restores the margin the
- *  current price used to earn. Pass no id for the most recent GRN. */
-export async function getPriceReview(shipmentId?: string): Promise<PriceReviewRow[]> {
+ *  being compared against, what it costs now, and the price that restores the
+ *  margin the current price used to earn. Pass no id for the most recent GRN.
+ *
+ *  THE TWO ARGUMENTS ARE NOT "current" AND "previous" — they are two arrivals,
+ *  and Postgres puts them in order (migration 0218). The later one is always
+ *  what the money is computed from, because landed cost is a property of an
+ *  arrival and pricing off the older one prices stock to replace itself at a
+ *  cost that no longer exists. Pass them either way round; the rows come back
+ *  labelled correctly. There is deliberately no ordering logic here. */
+export async function getPriceReview(
+  shipmentId?: string,
+  compareShipmentId?: string,
+): Promise<PriceReviewRow[]> {
   const { data, error } = await supabase.rpc("get_price_review", {
     p_shipment_id: shipmentId ?? null,
+    p_compare_shipment_id: compareShipmentId ?? null,
   });
   if (error) throw error;
   return (data ?? []) as PriceReviewRow[];
