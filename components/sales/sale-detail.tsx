@@ -949,6 +949,42 @@ export function SaleDetail({ id }: { id: string }) {
         </>
       )}
 
+      {/* ── Money in ──────────────────────────────────────────────────────
+          Shown from CONFIRMED onward, not only once delivered. Ali,
+          2026-08-28: *"when a customer places an order and delivery is for
+          example after 2 days I cannot enter paid. I have to follow
+          confirmed-dispatched-delivered. Then only I can enter as paid."*
+
+          PAYMENT AND DELIVERY ARE TWO DIFFERENT CLOCKS. A customer can pay on
+          order, on delivery, or weeks after it; the goods move on their own
+          schedule. Chaining one to the other left him marking an order
+          delivered before he could record money already sitting in his
+          account — a false delivery date, entered to get past a screen. Every
+          report that reads delivered_at is then wrong, and the reason is
+          invisible.
+
+          THE ENGINE NEVER REQUIRED IT. record_order_payment refuses exactly
+          two things: a draft (nothing confirmed to pay for) and a cancelled
+          order (nothing owed). Everything else it accepts. The screen and the
+          engine simply disagreed — the identical mistake, in this same file,
+          that stranded him on SO-2026-117 with a return he could not record.
+
+          COD is the one case that really is delivery-dependent, and it keeps
+          its own flow inside the Delivered card above. */}
+      {!isCOD && stockHasLeft && (
+        <div style={{ background: "var(--glass-1)", borderRadius: 16, padding: 20, marginBottom: 12, boxShadow: "var(--glass-shadow), var(--glass-inner)", border: "0.5px solid var(--glass-border-lo)" }}>
+          <PaymentLedger
+            balance={balance}
+            payments={payments}
+            orderTotal={totals.mvr}
+            paymentStatus={order.payment_status}
+            canWrite={canWrite}
+            onRecord={openRecordPayment}
+            onDeletePayment={(p) => { setPendingDeletePayment(p); setPanel("deletePayment"); }}
+          />
+        </div>
+      )}
+
       {/* ── STAGE: Out for delivery ──────────────────────────────────────── */}
       {isDispatched && (
         <>
@@ -1090,8 +1126,13 @@ export function SaleDetail({ id }: { id: string }) {
             )}
           </div>
 
-          {/* Payment action — context-aware */}
-          {isCOD ? (
+          {/* Payment action — COD only.
+              The payment ledger used to live in this `else` branch, which is
+              what made recording money depend on marking the order delivered.
+              It is now its own section above, shown from CONFIRMED onward.
+              Depositing collected cash genuinely IS delivery-dependent — a
+              driver cannot bank money he has not collected — so that stays. */}
+          {isCOD && (
             order.payment_status !== "deposited" ? (
               order.cash_collected_mvr == null ? (
                 // No amount on record — can't deposit money nobody logged.
@@ -1124,16 +1165,6 @@ export function SaleDetail({ id }: { id: string }) {
                 )}
               </div>
             )
-          ) : (
-            <PaymentLedger
-              balance={balance}
-              payments={payments}
-              orderTotal={totals.mvr}
-              paymentStatus={order.payment_status}
-              canWrite={canWrite}
-              onRecord={openRecordPayment}
-              onDeletePayment={(p) => { setPendingDeletePayment(p); setPanel("deletePayment"); }}
-            />
           )}
 
           {/* Driver issue note — shown on delivered orders as audit trail */}
