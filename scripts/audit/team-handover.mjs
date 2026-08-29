@@ -78,9 +78,14 @@ try {
   await page.getByLabel(/temporary password/i).first().fill(PW);
 
   // The role control is a shadcn Select, not a native one: open it, pick.
-  await page.getByRole("combobox").first().click();
+  // SCOPED TO THE DIALOG. The settings page behind it has comboboxes of its
+  // own and the dialog is portaled to the end of the body, so an unscoped
+  // .first() reaches for a control on the page underneath -- which is exactly
+  // what happened: the role stayed on its "staff" default and the audit
+  // reported a viewer that had never been chosen.
+  await page.getByRole("dialog").getByRole("combobox").first().click();
   await page.waitForTimeout(600);
-  await page.getByRole("option", { name: /viewer/i }).first().click();
+  await page.getByRole("option", { name: /^viewer$/i }).first().click();
   await page.waitForTimeout(400);
 
   // Scoped to the dialog: the trigger behind it carries the same words, and an
@@ -94,11 +99,6 @@ try {
   list.is(q1(`select p.role from user_profiles p join auth.users u on u.id = p.id
               where u.email = '${EMAIL}';`), "viewer",
     "with the role that was chosen");
-  // email_confirm: true is the point -- an unconfirmed account cannot sign in,
-  // and there is no email coming to confirm it with.
-  list.ok(q1(`select (email_confirmed_at is not null)::text from auth.users
-              where email = '${EMAIL}';`) === "t",
-    "and already confirmed, so they can sign in without an email they will never get");
 
   // ── 4. AND HE IS GIVEN SOMETHING TO SEND ────────────────────────────────
   // The half that was missing. Without this the dialog closed on save and the
@@ -115,6 +115,41 @@ try {
     "and one tap to copy the lot, ready to paste into WhatsApp");
 
   list.is(page.errors.length, 0, `no page errors (${page.errors.slice(0, 2).join(" | ")})`);
+
+  // ── 5. AND THE CREDENTIALS ACTUALLY WORK ────────────────────────────────
+  //
+  // The proof, done the only way that cannot be wrong: sign in as them, in a
+  // clean browser, with exactly what the hand-over card said.
+  //
+  // This replaces a check on auth.users.email_confirmed_at. That column is a
+  // GoTrue internal whose population differs between the hosted service and
+  // the local stack -- it is set on production, where the real viewer is
+  // confirmed and simply has never signed in, and reads differently here. The
+  // question was never "is a column set", it was "can they get in without an
+  // email that is never coming". So ask that.
+  const fresh = await browser.newContext();
+  const asThem = await fresh.newPage();
+  try {
+    await asThem.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+    await asThem.locator("input[type=email]").fill(EMAIL);
+    await asThem.locator("input[type=password]").fill(PW);
+    await asThem.getByRole("button", { name: /^sign in$/i }).click();
+    await asThem.waitForURL((u) => !/\/login/.test(u.pathname), { timeout: 45_000 });
+    list.ok(true, "the new viewer signs in with those exact details -- no email, no link, no wait");
+
+    // A viewer reads everything and changes nothing. Getting them in is only
+    // half the job; letting them in as something else would be worse than not
+    // letting them in at all. Checked on SALES, because that is where the
+    // canWrite gate actually is -- asserting it on whatever page they happen
+    // to land on would pass without testing anything.
+    await asThem.goto(`${BASE}/sales`, { waitUntil: "networkidle" });
+    await asThem.waitForTimeout(2500);
+    list.is(await asThem.getByRole("button", { name: /new sale/i }).count(), 0,
+      "and reads Sales without being offered New Sale -- the role took effect, not just stored");
+  } catch (e) {
+    list.ok(false, `the new viewer could not sign in: ${String(e).split("\n")[0].slice(0, 150)}`);
+  }
+  await fresh.close();
 } catch (e) {
   list.ok(false, `flow failed: ${String(e).split("\n")[0].slice(0, 190)}`);
 }
