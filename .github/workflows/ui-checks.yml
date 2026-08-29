@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-five audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-six audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -88,6 +88,10 @@ name: UI checks
 #             one-tap price that restores the margin, a refusal where that price
 #             is above what the shops charge, and no second, higher price
 #             waiting behind the first
+#   payfirst  money can be recorded the moment an order is confirmed, without
+#             walking it through dispatch and delivery first -- and recording it
+#             does NOT advance the delivery status. Payment and delivery are two
+#             clocks; the ledger always knew that and the screen did not
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -296,6 +300,9 @@ jobs:
       # app whose words nobody has measured.
       - name: Price review — what the container did to every margin
         run: npm run audit:pricereview
+
+      - name: Paid on order, delivered later — two clocks, not one
+        run: npm run audit:payfirst
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

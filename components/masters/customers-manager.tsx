@@ -183,9 +183,21 @@ export function CustomersManager() {
   const presentLetters = useMemo(() => new Set(grouped.map(([l]) => l)), [grouped]);
   const showRail = !q.trim() && grouped.length > 1;
   const secId = (l: string) => `cust-sec-${l === "#" ? "hash" : l}`;
+  // A letter with nobody under it still takes you somewhere — the next section
+  // down the alphabet, or the last one above it if you are past the end. This
+  // is what iOS Contacts does, and it is why the rail no longer has to SAY
+  // which letters are empty: a tap can never be a dead tap.
+  const nearestLetter = (l: string): string | null => {
+    const i = AZ_LETTERS.indexOf(l);
+    if (i < 0) return null;
+    for (let n = i; n < AZ_LETTERS.length; n++) if (presentLetters.has(AZ_LETTERS[n])) return AZ_LETTERS[n];
+    for (let n = i - 1; n >= 0; n--) if (presentLetters.has(AZ_LETTERS[n])) return AZ_LETTERS[n];
+    return null;
+  };
   const jumpToLetter = (l: string, smooth = true) => {
-    if (!presentLetters.has(l)) return;
-    document.getElementById(secId(l))?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+    const target = nearestLetter(l);
+    if (!target) return;
+    document.getElementById(secId(target))?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
   };
   // Active scrub state drives the magnified letter bubble + the enlarged
   // letter under the finger; lastHaptic gates the tap so it only fires once
@@ -196,7 +208,10 @@ export function CustomersManager() {
     const t = e.touches[0]; if (!t) return;
     const holder = (document.elementFromPoint(t.clientX, t.clientY) as HTMLElement | null)?.closest?.("[data-letter]") as HTMLElement | null;
     const l = holder?.getAttribute("data-letter");
-    if (l && presentLetters.has(l)) {
+    // The bubble shows the letter under the FINGER, not where the list landed —
+    // scrubbing should feel like running down the alphabet, not like the
+    // alphabet skipping under you.
+    if (l) {
       e.preventDefault();
       setScrub({ letter: l, y: t.clientY });
       if (lastHaptic.current !== l) { lastHaptic.current = l; haptic("light"); }
@@ -205,7 +220,6 @@ export function CustomersManager() {
   };
   const railEnd = () => { setScrub(null); lastHaptic.current = null; };
   const railTap = (l: string, ev: ReactMouseEvent) => {
-    if (!presentLetters.has(l)) return;
     jumpToLetter(l); haptic("light");
     setScrub({ letter: l, y: ev.clientY });
     window.setTimeout(() => setScrub((s) => (s?.letter === l ? null : s)), 520);
@@ -686,8 +700,18 @@ export function CustomersManager() {
             onTouchCancel={railEnd}
             aria-hidden="true"
           >
+            {/* EVERY LETTER IS LEGIBLE. Letters with nobody under them used to
+                render muted at opacity 0.3 — which composites to 1.53:1 in
+                light and 1.77:1 in dark, against a 4.5:1 floor. Twenty-five of
+                the twenty-seven letters failed, and the defect only surfaced
+                the day a second letter group existed in the audit database,
+                because the rail hides below two groups.
+                The fix is not a darker grey. "Empty" was being signalled by
+                making text unreadable, and the signal is not worth having:
+                iOS Contacts shows the whole alphabet in one tint and snaps a
+                tap on an empty letter to the nearest section, which is what
+                nearestLetter() now does. One colour, no dead taps. */}
             {AZ_LETTERS.map((l) => {
-              const on = presentLetters.has(l);
               const active = scrub?.letter === l;
               return (
                 <button
@@ -700,8 +724,7 @@ export function CustomersManager() {
                     width: 22, height: 19, lineHeight: 1,
                     fontSize: active ? 15 : 11.5,
                     fontWeight: active ? 800 : 600,
-                    color: active ? "var(--foreground)" : on ? "var(--snm-brand-text)" : "var(--muted-foreground)",
-                    opacity: on ? 1 : 0.3,
+                    color: active ? "var(--foreground)" : "var(--snm-brand-text)",
                     background: "transparent", border: "none", padding: 0,
                     transition: "font-size .12s ease, color .12s ease",
                   }}
