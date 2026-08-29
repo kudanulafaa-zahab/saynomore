@@ -187,9 +187,22 @@ export interface CostingResultRow {
   price_unit: "pack" | "carton" | null;
 }
 
-/** FX rates and shipment charges from the most recent real shipment. */
+/** FX rates and shipment charges from one real arrival.
+ *
+ *  WHICH arrival matters more than it looks. Freight is charged by VOLUME, and
+ *  SH-2026-001 carried 8.01 CBM at MVR 2,392 per CBM while SH-2026-002 carried
+ *  2.69 CBM at MVR 5,133 — more than double, because a small consignment has
+ *  less container to share. Seeding silently from the newest shipment meant
+ *  every simulation inherited whichever rate happened to be last, so the screen
+ *  now names it and lets Ali choose (migration 0220). */
 export interface CostingDefaults {
   reference: string;
+  received_on: string | null;
+  /** Volume the freight was spread over, and what that works out to per CBM.
+   *  The one figure that says whether a simulation is realistic — the freight
+   *  share in USD means nothing until you know the volume behind it. */
+  cbm_total: number | null;
+  freight_mvr_per_cbm: number | null;
   rate_usd_to_mvr: number;
   rate_usd_to_idr: number;
   shared_container: boolean;
@@ -204,8 +217,11 @@ export interface CostingDefaults {
   other_mvr: number;
 }
 
-export async function getCostingDefaults(): Promise<CostingDefaults | null> {
-  const { data, error } = await supabase.rpc("get_costing_defaults").maybeSingle();
+/** Pass no id for the most recent arrival — the long-standing behaviour. */
+export async function getCostingDefaults(shipmentId?: string): Promise<CostingDefaults | null> {
+  const { data, error } = await supabase
+    .rpc("get_costing_defaults", { p_shipment_id: shipmentId ?? null })
+    .maybeSingle();
   if (error) throw error;
   return (data as CostingDefaults) ?? null;
 }
