@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { TrendingDown, ShieldCheck, Store, Check, X, ChevronDown } from "lucide-react";
+import { TrendingDown, ShieldCheck, Store, Check, X } from "lucide-react";
+import { ArrivalPicker } from "@/components/ui/arrival-picker";
 import {
   getArrivals,
   getPriceReview,
@@ -228,50 +229,6 @@ function PriceSheet({
   );
 }
 
-/* ── One arrival menu ──────────────────────────────────────────────────────
- * The visible card is ours; the tapping is a native <select> laid transparently
- * over it, which is the same primitive WarehouseSelect uses. On a phone that
- * gives the real iOS wheel for free — no custom menu, nothing to get wrong. */
-function ArrivalPicker({ label, value, arrivals, allowNone, onChange }: {
-  label: string;
-  value: string | null;
-  arrivals: ArrivalRow[];
-  allowNone?: boolean;
-  onChange: (id: string) => void;
-}) {
-  const chosen = arrivals.find((a) => a.id === value);
-  return (
-    <div
-      className="relative rounded-2xl px-4 py-3 flex items-center gap-3 flex-1"
-      style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
-    >
-      <div className="min-w-0 flex-1">
-        <p className="label-caps text-[11px]" style={{ color: "var(--foreground)", opacity: 0.7 }}>{label}</p>
-        <p className="ios-subhead font-semibold truncate snm-num" style={{ color: "var(--foreground)" }}>
-          {chosen ? `${chosen.reference} · ${shortDate(chosen.received_on)}` : "The arrival before"}
-        </p>
-      </div>
-      <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "var(--foreground)", opacity: 0.7 }} />
-      <select
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label={label}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-      >
-        {/* Choosing nothing is a real answer: it falls back to whatever landed
-            immediately before, per product, which is where a direct receipt
-            still counts. */}
-        {allowNone && <option value="">The arrival before</option>}
-        {arrivals.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.reference} · {shortDate(a.received_on)}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 /* ── The screen ───────────────────────────────────────────────────────────── */
 export function PriceReview() {
   const [arrivals, setArrivals] = useState<ArrivalRow[]>([]);
@@ -390,6 +347,10 @@ export function PriceReview() {
           value={compareId}
           arrivals={arrivals}
           allowNone
+          // Choosing nothing is a real answer: it falls back to whatever landed
+          // immediately before, per product, which is where a direct receipt
+          // still counts.
+          noneLabel="The arrival before"
           onChange={(id) => choose("compare", id)}
         />
       </div>

@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-six audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-seven audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -303,6 +303,9 @@ jobs:
 
       - name: Paid on order, delivered later — two clocks, not one
         run: npm run audit:payfirst
+
+      - name: Costing seed — the simulator says which container it is costing like
+        run: npm run audit:costingseed
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach

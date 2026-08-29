@@ -24,8 +24,10 @@ import {
   saveScenario, deleteScenario, getCartonSizeReference,
   type CostingSeedRow, type CostingResultRow, type CostingShipmentInput,
   type CostingLineInput, type CostingScenario, type FobCurrency, type FobBasis,
-  type CartonSizeReference,
+  type CartonSizeReference, type CostingDefaults,
 } from "@/lib/queries/costing";
+import { getArrivals, type ArrivalRow } from "@/lib/queries/price-review";
+import { ArrivalPicker } from "@/components/ui/arrival-picker";
 import { listCategories, type CategoryRow } from "@/lib/queries/products";
 import { listCompetitorReferencePrices, type CompetitorReferencePrice } from "@/lib/queries/competitors";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
@@ -177,6 +179,15 @@ export function CostingSimulator() {
   const [running, setRunning] = useState(false);
   const [search, setSearch] = useState("");
 
+  // WHICH ARRIVAL THIS SIMULATION IS COSTING LIKE. Freight is charged by
+  // volume, so the rate is a property of one container and not of the trade:
+  // SH-2026-001 ran at MVR 2,392 per CBM over 8.01 CBM, SH-2026-002 at 5,133
+  // over 2.69. Seeding silently from the newest meant every simulation
+  // inherited whichever was last, unnamed.
+  const [arrivals, setArrivals] = useState<ArrivalRow[]>([]);
+  const [seedId, setSeedId] = useState<string | null>(null);
+  const [seededFrom, setSeededFrom] = useState<CostingDefaults | null>(null);
+
   const [scenarios, setScenarios] = useState<CostingScenario[]>([]);
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [scenarioName, setScenarioName] = useState("");
@@ -187,19 +198,23 @@ export function CostingSimulator() {
 
   const load = useCallback(async () => {
     try {
-      const [seed, saved, defaults, ref, cats] = await Promise.all([
+      const [seed, saved, defaults, ref, cats, arr] = await Promise.all([
         getCostingSeed(),
         listScenarios().catch(() => []),
         getCostingDefaults().catch(() => null),
         getCartonSizeReference().catch(() => []),
         listCategories().catch(() => []),
+        getArrivals().catch(() => []),
       ]);
       setRows(seed.map(toRow));
       setBoxes(ref);
       setCategories(cats);
       setScenarios(saved);
-      // Open on the real numbers: the most recent shipment's FX rates and
-      // charges. A saved scenario, if there is one, wins over them.
+      setArrivals(arr);
+      setSeededFrom(defaults);
+      setSeedId(arr.find((a) => a.reference === defaults?.reference)?.id ?? null);
+      // Open on the real numbers: the seeded shipment's FX rates and charges.
+      // A saved scenario, if there is one, wins over them.
       if (defaults) {
         setShip({
           rate_usd_to_mvr:   defaults.rate_usd_to_mvr   ?? 0,
@@ -227,6 +242,39 @@ export function CostingSimulator() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  /* ── Re-seed from a different arrival ─────────────────────────────────────
+   * Only the SHIPMENT-level assumptions move: forex, freight and the local
+   * charges. The product lines — what he is thinking of buying and how many
+   * cartons — are his and are left exactly as they are. */
+  async function reseed(id: string) {
+    try {
+      const d = await getCostingDefaults(id || undefined);
+      if (!d) return;
+      setSeedId(id || null);
+      setSeededFrom(d);
+      setShip((s) => ({
+        ...s,
+        rate_usd_to_mvr:   d.rate_usd_to_mvr   ?? 0,
+        rate_usd_to_idr:   d.rate_usd_to_idr   ?? 0,
+        shared_container:  d.shared_container ?? true,
+        container_capacity_cbm:
+          CONTAINER_CAPACITY_CBM[(d.container_size_hint ?? "40hq") as ContainerSizeHint],
+        total_container_freight_usd: d.total_container_freight_usd ?? 0,
+        freight_share_usd: d.freight_share_usd ?? 0,
+        customs_duty_mvr:  d.customs_duty_mvr  ?? 0,
+        mpl_charges_mvr:   d.mpl_charges_mvr   ?? 0,
+        agent_fee_mvr:     d.agent_fee_mvr     ?? 0,
+        last_mile_mvr:     d.last_mile_mvr     ?? 0,
+        insurance_mvr:     d.insurance_mvr     ?? 0,
+        other_mvr:         d.other_mvr         ?? 0,
+      }));
+      haptic("light");
+      setResults(null);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
 
   /* ── Derived ──────────────────────────────────────────────────────────── */
 
@@ -466,6 +514,32 @@ export function CostingSimulator() {
       {/* ── Shipment costs ─────────────────────────────────────────────── */}
       <section className="snm-card rounded-2xl p-4 space-y-4">
         <h2 className="text-[17px] font-semibold" style={{ color: "var(--foreground)" }}>The container</h2>
+
+        {/* WHICH CONTAINER THIS IS COSTING LIKE.
+            Ali, 2026-08-29: *"002 is much higher price than 001. So is this
+            tool accurate?"* The arithmetic always was; the ASSUMPTION was
+            picked silently. Freight is charged by volume, so the rate belongs
+            to one container and not to the trade — 8.01 CBM went at MVR 2,392
+            per CBM and 2.69 CBM at 5,133, because a small consignment has less
+            container to share. Simulating a full container at the small one's
+            rate over-costs every line and talks him out of good quotes.
+            Per CBM is on screen because the freight share in USD says nothing
+            until you know the volume behind it. */}
+        {arrivals.length > 0 && (
+          <ArrivalPicker
+            label="Costing like"
+            value={seedId}
+            arrivals={arrivals}
+            hint={
+              seededFrom?.freight_mvr_per_cbm != null
+                ? `Freight MVR ${mvr(seededFrom.freight_mvr_per_cbm)} per CBM${
+                    seededFrom.cbm_total ? ` · that container was ${seededFrom.cbm_total} CBM` : ""
+                  }`
+                : "No freight recorded on that arrival"
+            }
+            onChange={reseed}
+          />
+        )}
 
         <Field2
           a={{ label: "USD → MVR", value: ship.rate_usd_to_mvr, on: (v) => setShip({ ...ship, rate_usd_to_mvr: v }), step: "0.01" }}
