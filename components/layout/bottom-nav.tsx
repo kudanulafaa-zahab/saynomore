@@ -65,7 +65,13 @@ export function BottomNav({ role }: { role: string }) {
             key={tab.key}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`flex-1 flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150 glass-tab${active ? " glass-tab--active" : ""}`}
+            // h-full, and it is not cosmetic. .glass-tabbar is align-items:
+            // center, so each tab sized to its CONTENT — 42px — inside a 64px
+            // bar. The other 22px looked tappable, was not, and this is the
+            // primary navigation of the whole app: the single most-tapped
+            // control in it had dead space above and below every icon.
+            // Filling the bar makes each tab 49px after the bar's padding.
+            className={`flex-1 h-full flex flex-col items-center justify-center gap-[3px] transition-all active:scale-90 duration-150 glass-tab${active ? " glass-tab--active" : ""}`}
           >
             <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.6} />
             <span style={{ fontSize: 11 }}>{tab.label}</span>
