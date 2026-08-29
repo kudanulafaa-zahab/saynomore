@@ -36,10 +36,10 @@ Individually:
 npm run audit:journey                       # all three device sizes
 npm run audit:grn                           # receiving, and the landed cost
 node scripts/audit/journey.mjs --device phone
-npm run audit:material                      # defaults to the Soft palette
+npm run audit:material                      # drives the frost dial
 npm run audit:contrast                      # all palettes, both schemes
 npm run audit:running-costs                 # resets its own fixture first
-node scripts/audit/contrast.mjs --palette sunrise
+node scripts/audit/contrast.mjs --palette aurora
 ```
 
 Each exits `0` or `1` and prints what failed, with numbers.
@@ -308,6 +308,7 @@ was verified by putting its bug back:
 | a section removed from `NAV_SECTIONS`, hiding its pages from both menus while they still type-check and still route | journey — "every page is in the menu (missing: Products, Customers)" |
 | `.glass-panel`'s hardcoded `0 4px 14px` drop shadow left in place — a third content-surface class no palette could reach | material (lumen) — 3 of 20 screens: "BLURRED drop shadow in the content plane (blur 14px, not a seam)" on dashboard, financials, competitors |
 | the carve's law applied to Lumen instead of the edge law — measuring the wrong physics | material (lumen) — flags the seam and top-rim bar themselves, i.e. the theme's own definition reported as the defect |
+| *(the two rows above are HISTORY. Soft and Lumen were deleted on 2026-08-29, and with them the carve and seam laws. The material audit's law is now "drive the frost dial and flag any blur that does not move" — the invariant that outlived both materials. Neither mutation can be reproduced; both are kept because they are what proved the audit worked.)* | |
 | `SellUnit` declared a second time in `lib/queries/products.ts` instead of re-exported — the shape all three duplicate types had | one-definition — 1 of 5 checks, naming both files: "type SellUnit is declared in 2 modules" |
 | `waNumber` falling back to the raw digits instead of refusing an unknown shape — the "helpful" version that messages a stranger | wa-links — 4 checks, incl. "a foreign number -> NO GUESS" |
 | the stranded block never rendered (`segment === "risk"` → `false`) — the feature shipped but invisible, which is how it actually reached Ali the first time | stranded — 7 of 9 checks and the click timed out, incl. "the At risk lens has a block for people with nothing left to reorder" |

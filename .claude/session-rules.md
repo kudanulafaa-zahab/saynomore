@@ -30,20 +30,23 @@ out wrong twice.
 
 ## 3. Read `app/globals.css` before touching any UI
 
-It holds four palettes (sunrise / aurora / ember / soft, each light AND dark)
-in **two different materials** — Soft is carved and opaque where the other
-three are glass — plus the Liquid Glass frost dial and Display P3 wide-gamut
-tuning for Retina/OLED, including a deliberate carve-out where text colours
-were left in sRGB because their contrast was verified on Ali's device in
-daylight. None of this is visible from a component file. All of it is easy to
-destroy by being helpful.
+It holds two palettes (ember / aurora, each light AND dark) plus the Liquid
+Glass frost dial and Display P3 wide-gamut tuning for Retina/OLED, including a
+deliberate carve-out where text colours were left in sRGB because their
+contrast was verified on Ali's device in daylight. None of this is visible from
+a component file. All of it is easy to destroy by being helpful.
+
+Was five. Sunrise, Soft and Lumen were deleted on 2026-08-29 at Ali's request;
+Soft and Lumen were whole MATERIALS (carved, edge-lit) rather than colour
+schemes, so one physics is left and everything is Liquid Glass.
 
 **The specific way it breaks:** a hardcoded `blur(14px)` or a hand-typed
-`box-shadow` looks harmless in review and cannot be reached by any palette, so
-Soft silently stops being Soft on that surface. Use `--glass-blur-content`,
-`--snm-float-shadow` and `--snm-thumb-shadow`. `npm run audit:material` fails
-the build over it — run it, and `npm run audit:ui`, before saying a screen
-works.
+`box-shadow` looks harmless in review and no token owns it — so the frost dial
+cannot retune it and `prefers-reduced-transparency: reduce` cannot switch it
+off. Use `--glass-blur-content`, `--snm-float-shadow` and
+`--snm-thumb-shadow`. `npm run audit:material` fails the build over it: it
+drives the frost dial from clear to frosty and flags any blur that does not
+move. Run it, and `npm run audit:ui`, before saying a screen works.
 
 ## 4. Contrast is measured, not judged
 
@@ -55,9 +58,10 @@ lives in its placeholder. An unselected pill carrying a choice is content, not
 a hint.
 
 **Do not judge this by eye — measure it.** `npm run audit:contrast` composites
-the real backdrop through every translucent ancestor and checks 72 cases: 4
-palettes × 2 schemes × 9 screens. It has caught failures that were invisible in
-`globals.css`, including tab-bar labels failing in all four palettes at once.
+the real backdrop through every translucent ancestor and checks every
+palette × 2 schemes × every screen on disk. It has caught failures that were
+invisible in `globals.css`, including tab-bar labels failing in every palette
+at once.
 Tune a token against the **lightest** surface it can land on — a card inside a
 card — never against the page.
 

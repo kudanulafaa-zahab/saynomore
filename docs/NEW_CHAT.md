@@ -29,14 +29,14 @@ start building until I answer.
   have been overtaken. Naming which one wins costs one clause and saves a
   session from re-doing finished work.
 - **"then `app/globals.css` before touching any UI"** — this is the one that
-  protects the work that is easiest to destroy by accident: four palettes
-  (sunrise / aurora / ember / soft, each light and dark) in **two different
-  materials** — Soft is carved and opaque where the others are glass, so a
-  hardcoded blur or shadow silently breaks it — plus the Liquid Glass frost
-  dial, the Display P3 wide-gamut tuning for Retina, and a deliberate
-  carve-out where text colours were left in sRGB because their contrast was
-  verified on Ali's device in daylight. None of that is visible from a
-  component file.
+  protects the work that is easiest to destroy by accident: two palettes
+  (ember / aurora, each light and dark — it was five until 2026-08-29), the
+  Liquid Glass frost dial, the Display P3 wide-gamut tuning for Retina, and a
+  deliberate carve-out where text colours were left in sRGB because their
+  contrast was verified on Ali's device in daylight. A hardcoded blur or
+  shadow is the standing hazard: no token owns it, so neither the frost dial
+  nor `prefers-reduced-transparency` can reach it. None of that is visible
+  from a component file.
 - **"run `npm run audit:ui`"** — the screens have a test gate now, and it is
   the difference between "it looks right on my machine" and knowing. It takes
   minutes and it has caught things nobody could see.

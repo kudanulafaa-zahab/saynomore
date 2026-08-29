@@ -16,7 +16,7 @@ function subscribe(onChange: () => void) {
   return () => listeners.delete(onChange);
 }
 
-/** Reads/sets the current Liquid Glass palette (Sunrise/Aurora/Ember).
+/** Reads/sets the current Liquid Glass palette (Ember/Aurora).
  *  Mirrors next-themes' useTheme() shape but for the separate data-palette
  *  attribute — see lib/palette.ts for the pre-paint inline script that
  *  avoids a flash of the default palette on load. */
