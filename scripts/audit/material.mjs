@@ -88,13 +88,29 @@ const AUDIT = (knownGood) => {
     subjects.push(el);
   }
 
+  // The readings, and the token values BEHIND them, captured while the dial is
+  // actually moved. The first version of this diagnostic read the custom
+  // properties in the reporting loop — after the dial had been restored — so
+  // it reported the default at both ends and proved nothing either way.
+  const read = () => subjects.map((el) => {
+    const cs = getComputedStyle(el);
+    return {
+      blur: blurOf(cs),
+      frost: cs.getPropertyValue("--glass-frost").trim(),
+      frostB: cs.getPropertyValue("--frost-b").trim(),
+    };
+  });
+
   const prev = root.style.getPropertyValue("--glass-frost");
   root.style.setProperty("--glass-frost", "0");
-  const clear = subjects.map((el) => blurOf(getComputedStyle(el)));
+  const clearR = read();
   root.style.setProperty("--glass-frost", "1");
-  const frosty = subjects.map((el) => blurOf(getComputedStyle(el)));
+  const frostyR = read();
   if (prev) root.style.setProperty("--glass-frost", prev);
   else root.style.removeProperty("--glass-frost");
+
+  const clear = clearR.map((r) => r.blur);
+  const frosty = frostyR.map((r) => r.blur);
 
   const groups = new Map();
   subjects.forEach((el, i) => {
@@ -113,13 +129,13 @@ const AUDIT = (knownGood) => {
       // token that failed to re-resolve — and guessing between those two is
       // how two earlier audits in this repo wasted a CI round each.
       const own = (el.getAttribute("style") || "").match(/backdrop-filter:[^;]*/i);
-      const cs2 = getComputedStyle(el);
       g.sample =
         `${el.tagName.toLowerCase()}${cls ? "." + cls : ""} "${(el.innerText || "").slice(0, 20).replace(/\n/g, " ")}"` +
         `\n           inline: ${own ? own[0].slice(0, 60) : "(none — comes from a class)"}` +
-        `\n           at this element: --glass-frost=${cs2.getPropertyValue("--glass-frost").trim() || "(unset)"}` +
-        ` --frost-b=${cs2.getPropertyValue("--frost-b").trim() || "(unset)"}` +
-        ` --glass-blur-content=${cs2.getPropertyValue("--glass-blur-content").trim().slice(0, 40) || "(unset)"}`;
+        `\n           at clear:  --glass-frost=${clearR[i].frost || "(unset)"} --frost-b=${clearR[i].frostB || "(unset)"}` +
+        `\n           at frosty: --glass-frost=${frostyR[i].frost || "(unset)"} --frost-b=${frostyR[i].frostB || "(unset)"}` +
+        `\n           (if those two lines differ and the blur did not, the blur is hand-typed;` +
+        ` if they are identical, the dial is not reaching this element and the finding is the audit's)`;
     }
   });
 
