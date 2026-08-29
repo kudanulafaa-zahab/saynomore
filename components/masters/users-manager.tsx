@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2, Plus, UserCircle, Shield, Truck, Users, Eye, EyeOff,
-  AlertTriangle, Pencil, Trash2, Bell,
+  AlertTriangle, Pencil, Trash2, Bell, Copy, Check,
 } from "lucide-react";
 import { AdminNotificationsDialog } from "@/components/settings/notifications-section";
 import { Button } from "@/components/ui/button";
@@ -120,7 +120,7 @@ export function UsersManager() {
         </div>
         <Button onClick={() => setInviteDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Invite
+          Add member
         </Button>
       </div>
 
@@ -155,11 +155,19 @@ export function UsersManager() {
           </div>
           <h3 className="text-base font-medium text-foreground">No team members yet</h3>
           <p className="ios-subhead text-muted-foreground max-w-sm mx-auto">
-            Invite your manager and delivery staff. They will receive an email to set their password.
+            {/* NO EMAIL IS EVER SENT, and this line used to promise one.
+                The account is created straight away with the password you
+                type, already confirmed, so they can log in immediately — the
+                deliberate choice, because an email link is one more thing to
+                go wrong. But the screen said the opposite, so a new viewer sat
+                waiting for an invitation that was never coming while their
+                account worked perfectly. */}
+            Add your manager, delivery staff or a viewer. You set their password and pass it on —
+            nothing is emailed.
           </p>
           <Button onClick={() => setInviteDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Invite first member
+            Add first member
           </Button>
         </div>
       ) : (
@@ -378,11 +386,20 @@ function InviteDialog({
   const [fullName, setFullName] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("staff");
   const [tempPassword, setTempPassword] = useState("");
+  // Set once the account exists. Holds the three things the new user needs and
+  // has no other way of learning.
+  const [handover, setHandover] = useState<{ name: string; email: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [showTempPw, setShowTempPw] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) { setEmail(""); setFullName(""); setSelectedRole("staff"); setTempPassword(""); setShowTempPw(false); }
+    // handover and copied reset with everything else: without that, reopening
+    // the dialog would show the LAST person's password instead of a blank form.
+    if (open) {
+      setEmail(""); setFullName(""); setSelectedRole("staff"); setTempPassword("");
+      setShowTempPw(false); setHandover(null); setCopied(false);
+    }
   }, [open]);
 
   // The invite API creates the account with this password directly
@@ -396,7 +413,14 @@ function InviteDialog({
       await inviteUser(email.trim().toLowerCase(), fullName.trim(), selectedRole, tempPassword);
       haptic("success");
       toast.success(`${fullName.trim()} added successfully`);
-      onDone();
+      // DO NOT CLOSE YET. Nothing is emailed, so this dialog is the only place
+      // the password will ever exist in readable form — close on save and it is
+      // gone, and the new user has a working account nobody can get into.
+      setHandover({
+        name: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password: tempPassword,
+      });
     } catch (e) {
       haptic("error");
       toast.error((e as Error).message);
@@ -405,27 +429,114 @@ function InviteDialog({
     }
   }
 
+  /* ── The hand-over ────────────────────────────────────────────────────────
+   * Ali, 2026-08-29: *"when I add a new user as a viewer they don't get an
+   * email invitation"*.
+   *
+   * They never did — the account is created directly with the password he
+   * types, already confirmed, which is deliberate. What was missing is the
+   * other half: a way to actually TELL them. The dialog used to close on save,
+   * and the password only ever existed in the field he had just typed it into.
+   * The account worked; nobody could get into it.
+   *
+   * Copy rather than email: adding SMTP for three or four people a year means
+   * an email that can bounce, land in spam, or hit a send limit. He already
+   * shares a promo caption exactly this way, and WhatsApp is how he reaches
+   * everyone else in this business. */
+  if (handover) {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    // The address comes from the browser, never a hardcoded string, so this
+    // can never hand someone the wrong site.
+    const message =
+      `SayNoMore login\n${origin}\n\nEmail: ${handover.email}\nPassword: ${handover.password}\n\n` +
+      `Change the password after your first sign-in using "Forgot password".`;
+    return (
+      <Dialog open={open} onOpenChange={(o) => { if (!o) { setHandover(null); onDone(); } }}>
+        <DialogContent className="bg-popover border-border">
+          <DialogHeader>
+            <DialogTitle>Send {handover.name} their login</DialogTitle>
+            <DialogDescription>
+              Their account is ready now. Nothing is emailed, so send them this — it is the only
+              time the password is shown.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div
+            className="rounded-xl p-4 space-y-2"
+            style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}
+          >
+            {[
+              ["Address", origin],
+              ["Email", handover.email],
+              ["Password", handover.password],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-baseline justify-between gap-3">
+                <span className="ios-footnote shrink-0" style={{ color: "var(--foreground)", opacity: 0.7 }}>{label}</span>
+                <span className="ios-subhead font-semibold snm-num text-right break-all" style={{ color: "var(--foreground)" }}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => { setHandover(null); onDone(); }}
+            >
+              Done
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(message);
+                  setCopied(true);
+                  haptic("success");
+                  toast.success("Copied — paste it into WhatsApp");
+                  window.setTimeout(() => setCopied(false), 2500);
+                } catch {
+                  // A blocked clipboard is not a failure worth hiding: the
+                  // figures are on screen and can be typed.
+                  toast.error("Couldn't copy — the details are above");
+                }
+              }}
+            >
+              {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+              {copied ? "Copied" : "Copy login"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border">
         <DialogHeader>
-          <DialogTitle>Invite team member</DialogTitle>
+          <DialogTitle>Add team member</DialogTitle>
           <DialogDescription>
-            Set a temporary password and share it with them — they can change it later via Forgot password.
+            You set a temporary password and pass it on — nothing is emailed. They can change it
+            later via Forgot password.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Full name *</Label>
+            {/* htmlFor/id on every field here: the labels sat beside their
+                inputs with nothing tying them together, so a screen reader
+                announced three unnamed boxes. */}
+            <Label htmlFor="tm-name">Full name *</Label>
             <Input
+              id="tm-name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="e.g. Ahmed Hassan"
             />
           </div>
           <div className="space-y-2">
-            <Label>Email address *</Label>
+            <Label htmlFor="tm-email">Email address *</Label>
             <Input
+              id="tm-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -447,9 +558,10 @@ function InviteDialog({
             <p className="ios-subhead text-muted-foreground">{ROLE_DESC[selectedRole]}</p>
           </div>
           <div className="space-y-2">
-            <Label>Temporary password *</Label>
+            <Label htmlFor="tm-password">Temporary password *</Label>
             <div className="relative">
               <Input
+                id="tm-password"
                 type={showTempPw ? "text" : "password"}
                 value={tempPassword}
                 onChange={(e) => setTempPassword(e.target.value)}

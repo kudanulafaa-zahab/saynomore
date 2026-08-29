@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-seven audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-eight audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -92,6 +92,20 @@ name: UI checks
 #             walking it through dispatch and delivery first -- and recording it
 #             does NOT advance the delivery status. Payment and delivery are two
 #             clocks; the ledger always knew that and the screen did not
+#   costingseed the simulator SAYS which container it is costing like, and lets
+#             him choose another. Freight is charged by volume, so the rate
+#             belongs to one container: SH-2026-001 ran at MVR 2,392 per CBM
+#             over 8.01 CBM and SH-2026-002 at 5,133 over 2.69. Seeding
+#             silently from the newest meant every simulation after 27 August
+#             ran at more than double the earlier rate, unnamed — over-costing
+#             a full container and arguing him out of good quotes. Drives BOTH
+#             containers, so no result can be the one it opened with
+#   handover  a new team member can be TOLD how to get in. No email is ever
+#             sent — deliberate — but the screen promised one and the dialog
+#             closed on save, so the password existed only in the field he had
+#             just typed it into: a working account nobody could enter. Adds a
+#             viewer, and checks the account is real and confirmed AND that the
+#             address, email and password are shown with one tap to copy
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
@@ -306,6 +320,9 @@ jobs:
 
       - name: Costing seed — the simulator says which container it is costing like
         run: npm run audit:costingseed
+
+      - name: Team hand-over — a new member can be told how to get in
+        run: npm run audit:handover
 
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach
