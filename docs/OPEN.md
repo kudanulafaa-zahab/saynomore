@@ -30,7 +30,7 @@ fixed while his screen was still broken.
 
 | # | What | Why it needs him, not me |
 |---|---|---|
-| O1 | **Soft's `.glass-panel` still carries the old glass shadow.** Found by Lumen's material law; Soft's own law cannot see it (it fires only on a SINGLE non-inset shadow, and this list has two). The value is now a token, so the fix is one line: `--glass-panel-shadow: var(--soft-raised)`. | It changes how a theme he already uses looks. A visible change to existing work is his call, not mine. |
+| ~~O1~~ | **CLOSED 2026-08-29 — moot.** Soft's `.glass-panel` carried the old glass shadow, and the fix was held back because it changed how a theme Ali used looked. He then deleted the theme: *"Cut the five colors to 2."* Soft and Lumen are gone, so is the surface this was about. The underlying hazard it came from — a shadow or blur no token owns — is now guarded generally: the material audit drives the frost dial and flags any blur that does not move. |
 | ~~O2~~ | **CLOSED 2026-08-23 — and I had it backwards.** This was recorded as "a money test asserting a rule the catalogue has outgrown". It was the opposite: the test was right and the DATA was a defect. Those 5 Body Shop tubs — 16 in stock, ~MVR 6,000 — carried `sellable_units = {piece}`, and `assert_whole_mixed_cartons` refuses a piece line for a brand with no `mixed_carton_pieces`. The sell sheet offered one button that could never complete a sale. Not slow-moving: **impossible to sell**. Ali answered "you decide"; the decision was to keep the rule and fix the catalogue. Detail in E5 below. |
 | ~~O3~~ | **CLOSED 2026-08-23** — Ali: *"Delete"*. `components/labels/snm-assets.tsx` removed in `0965e79`. |
 | O4 | **Sosoft cannot be priced out of this container, and the number says why.** Per bottle, SH-2026-001 → SH-2026-002: supplier price 15.12 → 17.47, local charges 0.67 → 1.98, and **freight 6.38 → 13.69**. Two-thirds of the MVR 10.98 rise is freight, because SH-2026-002 was 2.69 CBM against 8.01 and freight is charged by volume, not value — MVR 5,133 per CBM against 2,392. At SH-2026-001's freight rate the same bottle would land at about **MVR 25.83** and still earn 30% at his MVR 37. It is a shipment problem, not a product problem. Three ways out and all three are his: hold at 37 and take ~10% on this batch, ship Sosoft only in a full container beside the diapers, or drop it. | It is a trading decision about a whole product line, with his supplier and his container, and no engineering can make it. What the app can now do — show him the damage the day it lands — it does. |
@@ -111,8 +111,8 @@ An item is not closed until every line is true:
    watched failing, not assumed to work.
 3. **The test is registered in all three places** — npm script, `audit:ui`
    chain, CI workflow. This has been missed three times in one week
-   (nav-config, `audit:onedef`, `audit:material:lumen`); a list a human must
-   remember to extend is not a gate.
+   (nav-config, `audit:onedef`, and the material audit's second palette run);
+   a list a human must remember to extend is not a gate.
 4. **The gate is green**: `npx supabase test db` AND `npm run audit:ui`.
 5. **`npm run shipped` passes** — the running site serves the merged commit.
 6. **Ali can open the app and use it.** A migration without its screen is not a

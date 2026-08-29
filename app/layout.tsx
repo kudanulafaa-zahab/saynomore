@@ -64,7 +64,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`h-full antialiased ${plusJakarta.variable}`}>
       <head>
-        {/* Applies the stored palette (Sunrise/Aurora/Ember) to <html> before
+        {/* Applies the stored palette (Ember/Aurora) to <html> before
             React hydrates, so there's no flash of the default palette —
             same reasoning as next-themes' own no-flash inline script. */}
         <script dangerouslySetInnerHTML={{ __html: PALETTE_INIT_SCRIPT }} />

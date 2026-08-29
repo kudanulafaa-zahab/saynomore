@@ -1,12 +1,29 @@
-// Monochrome removed 2026-08-10 at Ali's request ("You can delete the monochrome
-// theme"). Anyone whose phone still has it stored is handled for free: the init
-// script below only accepts a name that is in this list, so a stale value falls
-// back to Sunrise rather than leaving the app unstyled.
-export const PALETTES = ["sunrise", "aurora", "ember", "soft", "lumen"] as const;
+// TWO PALETTES. Ali, 2026-08-29: "Cut the five colors to 2 and delete all
+// related content to the deleted themes."
+//
+// Sunrise, Soft and Lumen are gone — every rule, swatch, audit and CI step that
+// belonged to them with it. Monochrome went the same way on 2026-08-10.
+//
+// The removal is safe on a phone that still has one of them stored: the init
+// script below only accepts a name in this list, so a stale value falls back to
+// the default rather than leaving the app unstyled.
+//
+// EMBER IS THE DEFAULT because Sunrise was, and Ember is the closer of the two
+// survivors to it — warm, light base. A phone that had Sunrise lands somewhere
+// familiar instead of on Aurora's teal.
+//
+// ── ONE MATERIAL NOW ────────────────────────────────────────────────────────
+//
+// Soft was CARVED (opaque, two shadows) and Lumen was EDGE-LIT (flat, a lit
+// seam). Both are gone, so every surface in the app is Liquid Glass and there
+// is no second physics to keep out of the first. The `material` field that used
+// to mark them is gone with them; so is the swatch special-casing that had to
+// preview a surface instead of a colour.
+export const PALETTES = ["ember", "aurora"] as const;
 export type Palette = (typeof PALETTES)[number];
 
 export const PALETTE_STORAGE_KEY = "snm-palette";
-export const DEFAULT_PALETTE: Palette = "sunrise";
+export const DEFAULT_PALETTE: Palette = "ember";
 
 /** Liquid Glass frost dial: 0–100 in steps of 5; 50 = the hand-tuned default
  *  look (the CSS multipliers are exactly 1.0 there — see --glass-frost in
@@ -18,35 +35,22 @@ export function isPalette(value: unknown): value is Palette {
   return typeof value === "string" && (PALETTES as readonly string[]).includes(value);
 }
 
-/** Small swatch previews for the picker — the 4 bokeh field colors per palette.
- *  A `material` means the swatch should preview the SURFACE instead of the
- *  colours: Soft's identity is how a surface is shaped and Lumen's is how its
- *  edge is lit, not what hue either one is, and a bokeh ball advertises a
- *  colour scheme neither has. */
+/** The four bokeh field colours each palette paints its page gradient from —
+ *  the same values as the CSS, so the picker previews the real thing. */
 export const PALETTE_SWATCHES: Record<Palette, {
   label: string;
   colors: [string, string, string, string];
-  material?: "carved" | "edge";
 }> = {
-  sunrise:    { label: "Sunrise",    colors: ["#ffd9a0", "#ffc4c9", "#bcd9f5", "#fff8ec"] },
-  aurora:     { label: "Aurora",     colors: ["#9fe3d0", "#9cc7f0", "#c0b0f0", "#ffffff"] },
-  ember:      { label: "Ember",      colors: ["#ff8a4d", "#e0568f", "#ffbe4d", "#fff0e0"] },
-  // Soft is a MATERIAL, not a colour scheme — its swatch shows the carve
-  // (light rim, base, shade) rather than four hues it doesn't have.
-  soft:       { label: "Soft",       colors: ["#ffffff", "#e6e9ee", "#dfe3ea", "#a0acbe"], material: "carved" },
-  // Lumen is a MATERIAL too, and an even worse fit for four bokeh balls than
-  // Soft: its whole identity is that the surface is almost invisible and the
-  // EDGE is what you see. The swatch previews the seam — a dark panel with a
-  // lit rim — so what you tap is what you get.
-  lumen:      { label: "Lumen",      colors: ["#0a0b0e", "#121419", "#7fd7ff", "#96d6ff"], material: "edge" },
+  ember:  { label: "Ember",  colors: ["#ff8a4d", "#e0568f", "#ffbe4d", "#fff0e0"] },
+  aurora: { label: "Aurora", colors: ["#9fe3d0", "#9cc7f0", "#c0b0f0", "#ffffff"] },
 };
 
 /**
  * Inline script source applied via <script dangerouslySetInnerHTML> in the
  * root layout, BEFORE React hydrates — reads the stored palette choice and
  * sets data-palette on <html> immediately, so there's no flash of the
- * default (Sunrise) palette on load. Mirrors how next-themes avoids a
- * flash for light/dark via its own inline script.
+ * default palette on load. Mirrors how next-themes avoids a flash for
+ * light/dark via its own inline script.
  */
 export const PALETTE_INIT_SCRIPT = `
 (function() {

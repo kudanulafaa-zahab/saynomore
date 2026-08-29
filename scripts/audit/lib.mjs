@@ -36,7 +36,7 @@ export const DEVICES = {
 // audit:contrast measures every screen in every palette in both schemes, so a
 // new theme arrives already measured (5 x 2 x 20 = 200 cases) rather than
 // being checked by eye once and then never again.
-export const PALETTES = ["sunrise", "aurora", "ember", "soft", "lumen"];
+export const PALETTES = ["ember", "aurora"];
 
 // ── Every screen in the app, read from the routes on disk ──────────────────
 //

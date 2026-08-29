@@ -45,9 +45,19 @@ export function PaletteSection() {
           <ThemeToggle />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {/* ── TWO PREVIEWS, NOT A SEGMENTED CONTROL ─────────────────────────
+             With two mutually exclusive options the reflex answer is a
+             segmented control, and it is the wrong one here. A segmented
+             control names its options in words, and no word tells you what a
+             palette looks like. Apple's own appearance picker (Settings →
+             Display & Brightness) is two labelled PREVIEW TILES with a
+             selected ring, for exactly this reason: when the thing being
+             chosen is an appearance, show the appearance.
+             Five options only ever fitted as small circles in a 4-up grid.
+             Two leave room to show the real page gradient, so they do. */}
+        <div className="grid grid-cols-2 gap-3">
           {PALETTES.map((p) => {
-            const { label, colors, material } = PALETTE_SWATCHES[p];
+            const { label, colors } = PALETTE_SWATCHES[p];
             const active = palette === p;
             return (
               <button
@@ -56,7 +66,7 @@ export function PaletteSection() {
                 onClick={() => setPalette(p)}
                 aria-pressed={active}
                 aria-label={`${label} palette`}
-                className="rounded-xl p-3 flex flex-col items-center gap-2 transition active:scale-95"
+                className="rounded-2xl p-2.5 flex flex-col items-center gap-2 transition active:scale-95"
                 style={{
                   background: active ? "var(--glass-bg-2)" : "var(--glass-bg-1)",
                   border: active ? "1.5px solid var(--glass-accent)" : "0.5px solid var(--glass-border-lo)",
@@ -67,40 +77,30 @@ export function PaletteSection() {
                     in the app allowed to paint in a vocabulary that is not the
                     current one. Marked rather than special-cased by screen, so
                     the rest of Settings stays audited. */}
-                <div data-palette-swatch className="relative h-12 w-12 rounded-full overflow-hidden" style={{ boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4)" }}>
-                  {/* A carved palette previews its MATERIAL, not a colour it
-                      does not have. Soft's whole identity is the emboss, so the
-                      swatch is a raised disc — the same two shadows the theme
-                      uses everywhere else, at swatch scale. Showing it as a
-                      grey bokeh ball advertised a colour scheme instead. */}
+                {/* data-palette-swatch: the material audit skips these. A
+                    preview is a picture of ANOTHER theme, so it is the one
+                    place in the app allowed to paint in a vocabulary that is
+                    not the current one. Marked rather than special-cased by
+                    screen, so the rest of Settings stays audited.
+                    Literal colours, not tokens: a palette's variables only
+                    exist while it is active, so a token-drawn preview would
+                    render flat on the palette you are switching AWAY from —
+                    exactly when you most need to see what you are getting. */}
+                <div
+                  data-palette-swatch
+                  className="relative w-full rounded-xl overflow-hidden"
+                  style={{
+                    aspectRatio: "16 / 10",
+                    boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4)",
+                    // The page's own base tone under the bokeh, so the tile
+                    // previews the whole surface rather than four floating
+                    // blobs on nothing.
+                    background: p === "ember" ? "#f8ede8" : "#eef3f4",
+                  }}
+                >
                   <div
                     className="absolute inset-0"
-                    style={material === "edge" ? {
-                      // Lumen previews its SEAM. Literal values for the same
-                      // reason as Soft below: the --lum-* tokens only exist
-                      // while Lumen is active, so on any other palette the
-                      // preview would draw flat — exactly when you most need to
-                      // see what you are about to switch to.
-                      inset: 0,
-                      background: "#0a0b0e",
-                      backgroundImage:
-                        "linear-gradient(to right, rgba(140,190,225,0.10) 1px, transparent 1px)," +
-                        "linear-gradient(to bottom, rgba(140,190,225,0.10) 1px, transparent 1px)",
-                      backgroundSize: "8px 8px, 8px 8px",
-                      boxShadow: "inset 0 0 0 1px rgba(150,214,255,0.55), inset 0 2px 0 -1px rgba(190,232,255,0.75)",
-                      borderRadius: "9999px",
-                    } : material === "carved" ? {
-                      // Literal values, not the --soft-* tokens: those only
-                      // exist while Soft is ACTIVE, so on any other palette the
-                      // preview would have drawn flat — exactly when you most
-                      // need to see what you are about to switch to. Inset by
-                      // 3px because the container clips, and an outer shadow
-                      // needs room to fall inside it.
-                      inset: 3,
-                      background: "#e6e9ee",
-                      boxShadow: "3px 3px 6px rgba(160,172,190,0.75), -3px -3px 6px rgba(255,255,255,0.95)",
-                      borderRadius: "9999px",
-                    } : {
+                    style={{
                       background: [
                         `radial-gradient(circle at 30% 25%, ${colors[0]} 0%, transparent 55%)`,
                         `radial-gradient(circle at 75% 30%, ${colors[1]} 0%, transparent 50%)`,
@@ -111,11 +111,18 @@ export function PaletteSection() {
                   />
                   {active && (
                     <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.15)" }}>
-                      <Check className="h-5 w-5" style={{ color: "#fff" }} />
+                      <Check className="h-6 w-6" style={{ color: "#fff" }} />
                     </div>
                   )}
                 </div>
-                <span className="ios-footnote font-semibold" style={{ color: active ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                {/* The name of the palette you are NOT on is a choice, not a
+                    hint, so it is real foreground text (CLAUDE.md). It was
+                    muted, which on this card measured as one of the greys the
+                    contrast rule exists to stop. */}
+                <span
+                  className="ios-footnote font-semibold"
+                  style={{ color: "var(--foreground)", opacity: active ? 1 : 0.85 }}
+                >
                   {label}
                 </span>
               </button>

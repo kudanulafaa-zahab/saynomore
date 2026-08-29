@@ -167,7 +167,7 @@ here.
 | `lib/wa.ts` | `waNumber`, `whatsappLink`, `reorderDrafts` | Follow-up links. Recognises two number shapes and **refuses everything else** — a guessed number opens a chat with a stranger and hands them a message meant for a customer. `reorderDrafts` owns the THREE message options and the house voice: the business says **"we"**, never "I" (§13j). |
 | `components/customers/message-button.tsx` | The Message button + its three-draft picker | Used by the dashboard card AND the Customers At risk lens. One file, both callers — the last three copy-pasted patterns here (card recipe, unit noun, blur) all drifted invisibly. |
 | `lib/use-on-mount.ts` | `useOnMount(fn)` | Replaced 12 copies of `useEffect(() => { load() }, [])`. **Read its doc comment** — it is honest that it hides the lint rule rather than fixing it, which is why it is not called `useSafeEffect`. |
-| `lib/palette.ts` | `PALETTES`, the pre-paint init script, swatches | Also maps a stored `"monochrome"` back to Sunrise. |
+| `lib/palette.ts` | `PALETTES`, the pre-paint init script, swatches | Validates the stored name; anything deleted falls back to the default. |
 | `lib/offline-write.ts` / `offline-queue.ts` | `withOfflineFallback` → `enqueue` → `drainQueue` | The IndexedDB write queue. Verified end-to-end for the first time on 2026-08-10 (§12). |
 | `lib/push.ts` | Every notification | One send path, admin fan-out, dedup, category gate. |
 | `lib/mvt-date.ts` | Maldives time | Every date bucket. |
@@ -190,33 +190,45 @@ knows what exists and does not damage it by accident. **Nothing here is
 optional polish — it was built and tuned over many sessions on Ali's real
 device.**
 
-### 3a. Four palettes, each with light AND dark — and TWO materials
+### 3a. Two palettes, each with light AND dark — ONE material
 
 `[data-palette]` in `app/globals.css`:
 
-| Palette | Material | Light | Dark |
-|---|---|---|---|
-| `sunrise` | glass | :360 / :371 | :375 / :665 |
-| `aurora` | glass | :389 | :401 / :673 |
-| `ember` | glass | :415 | :427 / :681 |
-| `soft` | **carved** | :1989 | :2076 |
+| Palette | Light | Dark |
+|---|---|---|
+| `ember` (default, and the no-palette fallback) | :393 | :405 / :649 |
+| `aurora` | :361 | :373 / :641 |
 
-**`monochrome` was DELETED on 2026-08-10** (Ali: *"You can delete the
-monochrome theme"*). `lib/palette.ts` maps any stored `"monochrome"` back to
-Sunrise, so a phone that still had it selected does not land on a blank theme.
-Do not resurrect it.
+**Was five. `sunrise`, `soft` and `lumen` were DELETED on 2026-08-29** (Ali:
+*"Cut the five colors to 2 and delete all related content to the deleted
+themes"*), as `monochrome` was on 2026-08-10. `lib/palette.ts` validates the
+stored name against `PALETTES`, so a phone holding any deleted palette falls
+back to the default rather than landing on a blank theme. Do not resurrect
+them.
+
+**Ember is the default** because Sunrise was, and Ember is the closer of the
+two survivors to it — warm, light base — so a phone that had Sunrise lands
+somewhere familiar instead of on Aurora's teal.
+
+**Soft and Lumen were MATERIALS, not colour schemes** — carved/opaque and
+edge-lit respectively. With both gone there is ONE physics: every surface is
+Liquid Glass, nothing has to be sealed off from a second vocabulary, and the
+material audit's carve/seam laws went with them (§12 — it now checks that the
+frost dial can reach every blur, which is the invariant that outlived them).
 
 Switched from **Settings → `components/settings/palette-section.tsx`**, applied
 pre-paint by the init script in **`lib/palette.ts`** (no flash of the wrong
-theme). Glass fill/blur/radius tokens are **identical across the three glass
-palettes** (:283) — only wallpaper, accent and status colours vary. A change to
-the glass material therefore hits all three at once; a change to an accent must
-be made in three places, plus Soft.
+theme). Glass fill/blur/radius tokens are **identical across both palettes**
+(:277 for the content blur) — only wallpaper, accent and status colours vary. A change to the glass
+material therefore hits both at once; a change to an accent must be made in
+two places.
 
-**Soft is not a colour variation — it is a different physics.** See §3f before
-touching it, and before adding any surface anywhere.
+The picker shows **two preview tiles, not a segmented control**: a segmented
+control names its options in words, and no word tells you what a palette looks
+like. Apple's own appearance picker is two labelled previews for the same
+reason.
 
-Dark mode has its own name and its own tuning: **"Void & Vapor"** (:539) — a
+Dark mode has its own name and its own tuning: **"Void & Vapor"** (:515) — a
 neutral graphite glow fading to true OLED black, so translucent cards have real
 depth to float above.
 
@@ -305,50 +317,18 @@ surface without them and it will not respond to the dial.**
   section 5k. It is now MEASURED on every PR by `contrast.mjs` (§12) rather
   than argued about; 72 checks, and the app passes all of them.
 
-### 3f. Soft — the carved palette (2026-08-10, :1911)
+### 3f. Soft and Lumen — deleted 2026-08-29
 
-**Soft is a different material, not a different colour scheme.** Read the
-block header at `app/globals.css:1911` before changing anything in it; it is
-the fullest statement of the reasoning and it is where the record lives.
+Both were whole materials rather than colour schemes: Soft was carved and
+opaque (emboss/deboss, no blur), Lumen was edge-lit (flat panels, depth in a
+lit seam). Ali cut the palettes to two and both went, along with ~710 lines of
+`globals.css` scoped to them, their swatch special-casing, and the material
+audit's two physics-specific laws.
 
-The short version, because it governs how you write *any* new surface:
-
-- **Soft UI and Liquid Glass are opposite physics.** Carved says "opaque, cut
-  out of the page": one flat base, light shadow up-left, dark shadow
-  down-right, zero transparency. Glass says "translucent, floating above the
-  page". They cannot both describe one surface, so they are split **by role** —
-  the same layering law the app already had, with one substitution:
-
-  | Role | Material |
-  |---|---|
-  | In-flow content that sits ON the page — cards, rows, buttons, inputs, pills, steppers, toggles | **carved** (emboss/deboss, no blur) |
-  | Chrome that floats ABOVE the page — tab bar, sheets, modals, topbar | **glass** (translucent, blurred) |
-
-- **It works through a token bridge (:2032), not through class overrides.**
-  Most screens in this app style *inline* from `--glass-*` tokens rather than
-  through `.snm-card`. So Soft redefines the tokens themselves — `--glass-1`,
-  `--glass-bg-1/2`, `--glass-fill-top/bottom` all become the flat base;
-  `--glass-shadow` becomes the carve; `--glass-sheen`, `--glass-inner`,
-  `--glass-specular` and `--glass-blur-content` go to `none`. **That is why a
-  hardcoded `blur(14px)` or a hand-typed `box-shadow` breaks the theme:** it
-  routes around the bridge, and no palette can reach it. `material.mjs` fails
-  the build over exactly that.
-- **Its three laws, because soft UI's known failure is contrast** (a control
-  the same colour as its background, marked by a 1–2% shadow, measures ~1.1:1
-  where WCAG 1.4.11 wants 3:1):
-  1. **Text is never carved** — full `--foreground`; the muted token is
-     deepened to `#585d69` / `#bcc1cb`.
-  2. **A control whose state is not carried by TEXT carries it by a
-     full-contrast FILL** — toggles, steppers, checkmarks. That is the
-     reference image's own trick.
-  3. **The fill is `--foreground`, never a hue** — colour still means money.
-- **Dark Soft raises the page to `#212327`,** not OLED black: the emboss needs
-  a mid-tone to push light off, and black has nothing to lighten.
-- **It is cheaper than what it replaces** — two box-shadows per card instead
-  of a per-card `backdrop-filter`.
-- Its swatch in Settings is drawn from **literal** values, not the `--soft-*`
-  tokens, since those only exist while Soft is the active palette. It carries
-  `data-palette-swatch` so the material audit skips it.
+Nothing references them any more. If a future palette ever introduces a second
+material again, the sealing pattern they used is in `git log` — every rule was
+scoped to `[data-palette="…"]` by construction so the glass palettes could not
+be touched by accident.
 
 ## 4. Hard rules (never break)
 
@@ -3928,6 +3908,13 @@ audit:seed`** or every audit fails at the login screen. Check `docker info` and
 `pg_isready -h 127.0.0.1 -p 54322` before believing an audit failure.
 
 ## 21. LUMEN — the sixth palette, and a second material law, 2026-08-22
+## *(DELETED 2026-08-29 — kept as the record of why it existed, not as current fact)*
+
+> Ali cut the five palettes to two on 2026-08-29. Lumen and Soft are gone, and
+> with them the second and third material laws. Everything below describes what
+> was built and why; none of it is live. The material-audit law that replaced
+> both is in §12 — it drives the frost dial and flags any blur that does not
+> move, which is the invariant that outlived every material.
 
 Ali: *"Create a brand new totally different theme that is totally different from
 current themes… super slick and the latest 2026 design guidelines… so advanced

@@ -11,13 +11,18 @@
 > `supabase/migrations/*.sql` (every money/stock rule with a why-header),
 > `skills.md`, and `git log`. Those are committed and cannot be lost when a
 > chat ends. A summary can only lose the *pointer*. **Read
-> `app/globals.css` before touching any UI** — it holds four palettes
-> (sunrise/aurora/ember/soft, each light+dark) in **two different materials**
-> (Soft is carved and opaque; the rest are glass), the Liquid Glass frost
-> dial, and the Display P3 wide-gamut tuning for Retina/OLED. None of that is
-> obvious from a component file, and all of it is easy to break by accident —
-> a hardcoded `blur()` or `box-shadow` is invisible in review and silently
-> breaks Soft. Use `--glass-blur-content` / `--snm-float-shadow` instead.
+> `app/globals.css` before touching any UI** — it holds two palettes
+> (ember/aurora, each light+dark), the Liquid Glass frost dial, and the
+> Display P3 wide-gamut tuning for Retina/OLED. None of that is obvious from a
+> component file, and all of it is easy to break by accident — a hardcoded
+> `blur()` or `box-shadow` is invisible in review and **cannot be reached by
+> the frost dial or by `prefers-reduced-transparency`**. Use
+> `--glass-blur-content` / `--snm-float-shadow` instead.
+>
+> Was five (sunrise/soft/lumen deleted 2026-08-29, at Ali's request). Soft was
+> carved and opaque and Lumen was edge-lit; both were whole MATERIALS rather
+> than colour schemes, so their removal leaves ONE physics — everything is
+> Liquid Glass and there is no second vocabulary to seal off any more.
 
 ## Behaviour
 - Plain English. One recommendation. Lead with the answer.

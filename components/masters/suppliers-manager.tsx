@@ -222,8 +222,15 @@ export function SuppliersManager() {
                     {featured.contact_email && (
                       <a
                         href={`mailto:${featured.contact_email}`}
-                        className="flex items-center gap-2 h-11 px-6 rounded-full text-sm font-bold transition"
-                        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+                        className="snm-pressable flex items-center gap-2 h-11 px-6 rounded-full text-sm font-bold transition"
+                        // A LINK IS NOT A CARD. This spread CARD — a content
+                        // surface, with a card's gradient fill, card border,
+                        // card shadow AND card blur — onto a 44px pill sitting
+                        // ON a card. That is the "two cards on one card"
+                        // misuse lib/surfaces.ts was written about, and it is
+                        // the same secondary-action shape the rest of this
+                        // file already uses.
+                        style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
                       >
                         <Mail className="h-4 w-4" />
                         Email
@@ -232,8 +239,16 @@ export function SuppliersManager() {
                     {canWrite && (
                       <button
                         onClick={() => setDialog({ open: true, editing: featured })}
-                        className="flex items-center gap-2 h-11 px-4 rounded-full ios-subhead transition"
-                        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--muted-foreground)" }}
+                        className="snm-pressable flex items-center gap-2 h-11 px-4 rounded-full transition"
+                        aria-label={`Edit ${featured.name}`}
+                        // The element the material audit caught. Same misuse as
+                        // the Email link above — CARD on a 44px icon button —
+                        // and it is now the icon-button surface the same file
+                        // already uses three times further down (:326, :336,
+                        // :345). It also had no accessible name at all: an
+                        // icon-only button with no label is an unnamed control
+                        // to a screen reader.
+                        style={{ background: "var(--glass-bg-2)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>

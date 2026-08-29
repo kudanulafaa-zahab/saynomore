@@ -12,7 +12,7 @@ name: UI checks
 # that stopped halfway through the app — was found by Ali, on his phone, after
 # it shipped. He was the only quality check the front end had.
 #
-# This runs the same thirty-eight audits he can run locally (`npm run audit:ui`):
+# This runs the same thirty-seven audits he can run locally (`npm run audit:ui`):
 #
 #   wa        the customer-follow-up links never guess a phone number
 #   onedef    no concept is DECLARED in two modules — the bug class that made
@@ -109,9 +109,12 @@ name: UI checks
 #   reach     EVERY sheet: the action stays touchable with the keyboard up, and
 #             nothing can drift sideways. The first audit that is an invariant
 #             across the app rather than a guard on one screen.
-#   material  every in-flow surface actually wears the current theme — run
-#             once per MATERIAL (soft's carve, lumen's seam), because the two
-#             have opposite physics and one law cannot describe both
+#   material  every in-flow surface is REACHABLE from the tokens. Drives the
+#             frost dial from clear to frosty and flags any blur that does not
+#             move: every blur token is blur(calc(Npx * var(--frost-b))), so a
+#             blur that ignores the dial was typed by hand, and neither the dial
+#             nor prefers-reduced-transparency can switch it off. Replaced the
+#             carve/seam laws on 2026-08-29 when Soft and Lumen were deleted
 #   contrast  every readable word, every theme, both schemes, measured on the
 #             RENDERED page rather than read off a token
 #
@@ -327,14 +330,13 @@ jobs:
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach
 
-      - name: Material — the carve reaches every surface (soft)
+      # ONE run now. It used to need one per MATERIAL, because Soft's carve
+      # and Lumen's seam are opposite physics and one law cannot describe both.
+      # Both palettes were deleted on 2026-08-29 and the law was rewritten to
+      # the thing that outlived them: whether a surface is reachable from the
+      # tokens at all.
+      - name: Material — the theme reaches every surface
         run: npm run audit:material
-
-      # A second material needs a second run: the audit encodes ONE material's
-      # physics, and Lumen's is the opposite of the carve's (depth lives in the
-      # seam, so a blurred drop shadow is the defect rather than the norm).
-      - name: Material — the seam reaches every surface (lumen)
-        run: npm run audit:material:lumen
 
       - name: Contrast — every word, every theme, both schemes
         run: npm run audit:contrast
