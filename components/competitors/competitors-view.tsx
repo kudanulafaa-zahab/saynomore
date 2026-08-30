@@ -1,14 +1,12 @@
 "use client";
 
+import { SearchField } from "@/components/ui/search-field";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { PromoAdvisor } from "./promo-advisor";
 import { CampaignsCard } from "./campaigns-card";
-import {
-  Loader2, Search, Store, Pencil, Trash2, AlertTriangle,
-  ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2,
-} from "lucide-react";
+import { Loader2, Store, Pencil, Trash2, AlertTriangle, ChevronDown, ChevronUp, Tag, TrendingUp, CheckCircle2 } from "lucide-react";
 import {
   listCompetitors,
   listCompetitorPrices,
@@ -1560,16 +1558,7 @@ export function CompetitorsView() {
           )}
         </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-3 rounded-xl px-4 h-11 mb-3" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search competitors…"
-            className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none"
-          />
-        </div>
+        <SearchField value={q} onChange={setQ} label="Search competitors" placeholder="Search competitors…" className="mb-3" />
 
         {filtered.length === 0 ? (
           <div className="rounded-2xl p-10 flex flex-col items-center text-center space-y-3" style={CARD}>

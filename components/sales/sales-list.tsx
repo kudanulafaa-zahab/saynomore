@@ -1,10 +1,11 @@
 "use client";
 
+import { SearchField } from "@/components/ui/search-field";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, ShoppingCart, CheckCircle2, Clock, Truck, Package, XCircle, ChevronRight, X, Users, List, ChevronDown, Phone, MessageCircle } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, CheckCircle2, Clock, Truck, Package, XCircle, ChevronRight, Users, List, ChevronDown, Phone, MessageCircle } from "lucide-react";
 
 import { listOrdersPage, countOrders, listOrderCustomersPage, ORDER_PAGE_SIZE, type SalesOrderRow, type OrderStatus, type OrderCursor, type OrderPageFilters, type OrderCustomerGroup, type CustomerCursor } from "@/lib/queries/sales";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
@@ -470,19 +471,7 @@ export function SalesList() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="flex items-center gap-3 rounded-2xl px-4 h-12" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order, customer…"
-          aria-label="Search orders"
-          className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none" />
-        {q && (
-          <button onClick={() => setQ("")} aria-label="Clear search" className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-            style={{ color: "var(--muted-foreground)" }}>
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search orders" placeholder="Search order, customer…" />
 
       {/* Status filter chips */}
       <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>

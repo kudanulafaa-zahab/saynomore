@@ -1,11 +1,12 @@
 "use client";
 
+import { SearchField } from "@/components/ui/search-field";
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, Phone, Mail, MapPin, X, MessageCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Phone, Mail, MapPin, MessageCircle } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -261,30 +262,7 @@ export function CustomersManager() {
         )}
       </div>
 
-      {/* Search */}
-      <div
-        className="flex items-center rounded-2xl px-4 gap-3"
-        style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", boxShadow: "var(--glass-shadow), var(--glass-inner)", height: 52 }}
-      >
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search by name, phone, island…"
-          aria-label="Search customers"
-          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
-        />
-        {q && (
-          <button
-            onClick={() => setQ("")}
-            aria-label="Clear search"
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search customers" placeholder="Search by name, phone, island…" />
 
       {/* Stats bento */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

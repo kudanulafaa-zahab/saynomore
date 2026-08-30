@@ -1,22 +1,10 @@
 "use client";
 
+import { SearchField } from "@/components/ui/search-field";
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Globe,
-  Phone,
-  Mail,
-  Package,
-  ShieldCheck,
-  ChevronRight,
-  X,
-} from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Globe, Phone, Mail, Package, ShieldCheck, ChevronRight } from "lucide-react";
 import {
   listSuppliers,
   createSupplier,
@@ -141,30 +129,7 @@ export function SuppliersManager() {
         )}
       </div>
 
-      {/* ── Search ── */}
-      <div
-        className="flex items-center gap-3 rounded-2xl px-4 h-12"
-        style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
-      >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search suppliers…"
-          aria-label="Search suppliers"
-          className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none"
-        />
-        {q && (
-          <button
-            onClick={() => setQ("")}
-            aria-label="Clear search"
-            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search suppliers" placeholder="Search suppliers…" />
 
       {/* ── Empty state ── */}
       {rows.length === 0 ? (

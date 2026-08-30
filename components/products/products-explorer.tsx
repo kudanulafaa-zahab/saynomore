@@ -1,14 +1,12 @@
 "use client";
 
+import { SearchField } from "@/components/ui/search-field";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
-import {
-  Plus, Trash2, Loader2, Search, X, ChevronRight, ChevronDown,
-  Package, Check, SlidersHorizontal, Pencil, ScanLine, PackagePlus, FileText,
-} from "lucide-react";
+import { Plus, Trash2, Loader2, X, ChevronRight, ChevronDown, Package, Check, SlidersHorizontal, Pencil, ScanLine, PackagePlus, FileText } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -934,24 +932,7 @@ export function ProductsExplorer() {
           </div>
         </div>
 
-        {/* Search */}
-        <div
-          className="flex items-center gap-2 px-3 rounded-xl h-11"
-          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}
-        >
-          <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search SKUs…"
-            className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
-          />
-          {q && (
-            <button onClick={() => setQ("")}>
-              <X className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
-            </button>
-          )}
-        </div>
+        <SearchField value={q} onChange={setQ} label="Search SKUs" placeholder="Search SKUs…" />
 
         {/* Brand filter */}
         {showFilters && (

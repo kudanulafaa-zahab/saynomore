@@ -13,10 +13,11 @@
 // picker and the order list no longer share one scope with it, so a change to
 // one can no longer quietly reach the others.
 
+import { SearchField } from "@/components/ui/search-field";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, ShoppingCart, UserPlus, ChevronRight, Banknote, Smartphone, ArrowRight, ArrowLeft, ChevronDown, ScanLine, X, RotateCcw, TrendingUp } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, UserPlus, ChevronRight, Banknote, Smartphone, ArrowRight, ArrowLeft, ChevronDown, ScanLine, X, RotateCcw, TrendingUp } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const BarcodeScanner = dynamic(
@@ -1042,20 +1043,8 @@ export function NewSaleSheet({
             {!customerId && !showNewCustomer && (
               <>
                 <div className="flex gap-2">
-                  <div className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                    <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                    <input autoFocus value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)}
-                      placeholder="Search name, phone…"
-                      className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none" />
-                    {customerSearch && (
-                      <button onClick={() => setCustomerSearch("")}
-                        aria-label="Clear search"
-                        className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-                        style={{ color: "var(--muted-foreground)" }}>
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
+                  <SearchField autoFocus value={customerSearch} onChange={setCustomerSearch}
+                    label="Search customers" placeholder="Search name, phone…" className="flex-1" />
                   <button onClick={() => setShowNewCustomer(true)}
                     className="flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold transition"
                     style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}>
@@ -1275,13 +1264,8 @@ export function NewSaleSheet({
             {!selectedSkuId ? (
               <div className="space-y-3" ref={productSearchRef}>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-3 rounded-xl px-4 h-12" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
-                    <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-                    <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)}
-                      placeholder="Search brand, product, variant…"
-                      aria-label="Search products"
-                      className="flex-1 bg-transparent ios-subhead text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
-                  </div>
+                  <SearchField value={skuSearch} onChange={setSkuSearch}
+                    label="Search products" placeholder="Search brand, product, variant…" className="flex-1" />
                   {/* Scan button */}
                   <button
                     onClick={() => setShowScanner(true)}

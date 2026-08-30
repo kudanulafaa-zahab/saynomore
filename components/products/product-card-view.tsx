@@ -27,11 +27,12 @@
  * price — which is the standing rule, and also simply how he thinks.
  */
 
+import { SearchField } from "@/components/ui/search-field";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Search, X, ChevronRight, PackagePlus, ArrowLeft } from "lucide-react";
+import { ChevronRight, PackagePlus, ArrowLeft } from "lucide-react";
 import { CARD_ROUNDED } from "@/lib/surfaces";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
@@ -363,17 +364,7 @@ export function ProductCardView() {
         </p>
       </div>
 
-      <div className="flex items-center gap-2 px-3 rounded-xl h-11"
-        style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: "0.5px solid var(--glass-border-lo)" }}>
-        <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products…"
-          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground" />
-        {q && (
-          <button onClick={() => setQ("")} aria-label="Clear search">
-            <X className="h-3.5 w-3.5" style={{ color: "var(--muted-foreground)" }} />
-          </button>
-        )}
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search products" placeholder="Search products…" />
 
       {grouped.length === 0 ? (
         <p className="ios-subhead px-1 py-8 text-center" style={{ color: "var(--muted-foreground)" }}>

@@ -1,12 +1,10 @@
 "use client";
 
+import { SearchField } from "@/components/ui/search-field";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import {
-  Search, MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight,
-  Check, AlertTriangle, Loader2, History, PackageX, PackagePlus, Gift,
-} from "lucide-react";
+import { MapPin, ArrowRight, ClipboardCheck, ArrowLeftRight, Check, AlertTriangle, Loader2, History, PackageX, PackagePlus, Gift } from "lucide-react";
 import { listSkusFlat, compareSkusForDisplay, getCurrentUserRole, type SkuFullRow } from "@/lib/queries/products";
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import {
@@ -719,19 +717,7 @@ function VerifyTab({
       </div>
 
       {/* Search */}
-      <div
-        className="flex items-center gap-2.5 px-4 rounded-2xl"
-        style={{ background: "var(--glass-1)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
-      >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Find an item…"
-          aria-label="Search items"
-          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
-        />
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search items" placeholder="Find an item…" />
 
       {/* Count sheet */}
       {rows.length === 0 ? (
@@ -1023,19 +1009,7 @@ function TransferTab({
       )}
 
       {/* SKU picker */}
-      <div
-        className="flex items-center gap-2.5 px-4 rounded-2xl"
-        style={{ background: "var(--glass-1)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
-      >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Find item to move…"
-          aria-label="Search items to transfer"
-          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
-        />
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search items to transfer" placeholder="Find item to move…" />
 
       {/* Qty + submit — shown immediately once an item is picked, right
           below the search bar. Previously this rendered AFTER the scrollable
@@ -1258,19 +1232,7 @@ function WriteOffTab({
         Removes unsellable stock and records its landed cost as a loss in your P&amp;L. Admin/manager only.
       </p>
 
-      <div
-        className="flex items-center gap-2.5 px-4 rounded-2xl"
-        style={{ background: "var(--glass-1)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
-      >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Find the damaged item…"
-          aria-label="Search items to write off"
-          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
-        />
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search items to write off" placeholder="Find the damaged item…" />
 
       {selected && (() => {
         const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
@@ -1799,19 +1761,7 @@ function GiveawayTab({
         that campaign&apos;s marketing — not to sales, and not to write-offs.
       </p>
 
-      <div
-        className="flex items-center gap-2.5 px-4 rounded-2xl"
-        style={{ background: "var(--glass-1)", height: 46, border: "0.5px solid var(--glass-border-lo)" }}
-      >
-        <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Find the item you gave away…"
-          aria-label="Search items to give away"
-          className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
-        />
-      </div>
+      <SearchField value={q} onChange={setQ} label="Search items to give away" placeholder="Find the item you gave away…" />
 
       {selected && (() => {
         const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
