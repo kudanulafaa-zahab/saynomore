@@ -15,7 +15,13 @@ export interface CompetitorPriceRow {
   id: string;
   competitor_id: string;
   variant_id: string;
+  /** Pieces in ONE of THEIR packs — always pack-level. It used to mean
+   *  pieces-per-CARTON on a per_carton row, which lost the pack structure and
+   *  made one field mean two things (migration 0223). */
   their_pcs_per_pack: number | null;
+  /** Packs in ONE of THEIR cartons. Theirs can differ from ours: a rival may
+   *  sell 3 packs of 34 where we sell 4 packs of 22. */
+  their_packs_per_carton: number | null;
   their_unit_size: number | null;
   their_unit_uom: "pcs" | "ml" | "g" | null;
   price_mvr: number;
@@ -29,6 +35,7 @@ export interface CompetitorPriceInput {
   competitor_id: string;
   variant_id: string;
   their_pcs_per_pack?: number | null;
+  their_packs_per_carton?: number | null;
   their_unit_size?: number | null;
   their_unit_uom?: "pcs" | "ml" | "g" | null;
   price_mvr: number;
@@ -146,11 +153,21 @@ export interface CompetitorReferencePrice {
   brand_name: string;
   model_name: string;
   variant_display: string | null;
-  competitor_name: string;
-  price_per_piece_mvr: number;
-  price_per_pack_mvr: number;
-  price_per_carton_mvr: number;
-  observed_date: string;
+  // SHELF — what a shopper pays them for one pack. Null when no shelf price
+  // has been logged for this product.
+  competitor_name: string | null;
+  price_per_piece_mvr: number | null;
+  price_per_pack_mvr: number | null;
+  price_per_carton_mvr: number | null;
+  observed_date: string | null;
+  // CARTON — what a shop pays them for a case. A carton is discounted per
+  // piece, so this is deliberately a SEPARATE number: comparing our pack
+  // price against a rival carton rate makes our margin read worse than it is
+  // (migration 0223). Null when no carton price has been logged.
+  carton_competitor_name: string | null;
+  carton_price_per_piece_mvr: number | null;
+  carton_price_per_carton_mvr: number | null;
+  carton_observed_date: string | null;
 }
 
 export async function listCompetitorReferencePrices(
