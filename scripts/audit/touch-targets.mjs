@@ -63,6 +63,17 @@ const AUDIT = (min) => {
       if (pr.height >= min && pr.width >= min) continue;
     }
 
+    // A LABEL IS A TAP TARGET. Clicking a <label> activates the control it
+    // wraps — that is HTML, not a convention — so a 20px checkbox inside a
+    // 44px label is a 44px target and reporting it is a false positive.
+    // The label still has to BE 44px: wrapping a small box in a small label
+    // buys nothing, and this is measured rather than assumed.
+    const lab = el.closest("label");
+    if (lab && lab !== el) {
+      const lr = lab.getBoundingClientRect();
+      if (lr.height >= min && lr.width >= min) continue;
+    }
+
     // The HIT AREA, not the ink. A 24px icon centred in 44px of padding is a
     // 44px target, and this is the box the browser actually routes taps to.
     if (r.width >= min && r.height >= min) continue;
