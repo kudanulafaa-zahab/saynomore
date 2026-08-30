@@ -618,3 +618,62 @@ export async function renameCataloguePart(
   invalidate("skus:");
   return data as string;
 }
+
+/* ── Correcting a pack size that was typed wrong (migrations 0224–0226) ─────
+ *
+ * `block_pack_config_change_with_history` refuses to change pcs_per_pack or
+ * packs_per_carton once a product has batches or sales, and it is right to: a
+ * different pack format is a different product. But it cannot tell that case
+ * apart from a plain typo, where no business event happened at all and only
+ * the number the app divides by was wrong.
+ *
+ * That is what these two are for. `getPackConfigChangeImpact` is read-only and
+ * says what would move, in packs and cartons and rufiyaa. `correctPackConfig`
+ * does it — as a restatement, with a written reason, re-deriving every piece
+ * figure from the packs and cartons that were actually transacted.
+ *
+ * Cost per pack is carton cost / packs per carton, so pcs_per_pack does not
+ * appear in it: correcting only the pack size moves no money at all, and
+ * `money_moves` says so before anyone agrees.
+ */
+export interface PackConfigImpact {
+  sku_id: string;
+  internal_code: string;
+  code_after: string;
+  from: { pcs_per_pack: number; packs_per_carton: number; pcs_per_carton: number };
+  to:   { pcs_per_pack: number; packs_per_carton: number; pcs_per_carton: number };
+  /** True only when packs-per-carton moves — the one change that re-costs. */
+  money_moves: boolean;
+  stock: { godown: string; packs: number; pieces_now: number; pieces_after: number }[];
+  cost: {
+    batches: number;
+    cost_per_carton_mvr: number | null;
+    cost_per_pack_now_mvr: number | null;
+    cost_per_pack_after_mvr: number | null;
+  };
+  sales: { lines: number; revenue_mvr: number; cogs_now_mvr: number; cogs_after_mvr: number };
+  /** Non-empty means the restatement is refused, and why. */
+  blockers: { godown: string; pieces: number; detail: string }[];
+}
+
+export async function getPackConfigChangeImpact(
+  skuId: string, pcsPerPack: number, packsPerCarton: number,
+): Promise<PackConfigImpact> {
+  const { data, error } = await supabase.rpc("get_pack_config_change_impact", {
+    p_sku_id: skuId, p_pcs_per_pack: pcsPerPack, p_packs_per_carton: packsPerCarton,
+  });
+  if (error) throw error;
+  return data as PackConfigImpact;
+}
+
+export async function correctPackConfig(
+  skuId: string, pcsPerPack: number, packsPerCarton: number, reason: string,
+): Promise<{ internal_code: string; ledger_entries: number }> {
+  const { data, error } = await supabase.rpc("correct_pack_config", {
+    p_sku_id: skuId, p_pcs_per_pack: pcsPerPack,
+    p_packs_per_carton: packsPerCarton, p_reason: reason,
+  });
+  if (error) throw error;
+  invalidate("skus:");
+  return data as { internal_code: string; ledger_entries: number };
+}

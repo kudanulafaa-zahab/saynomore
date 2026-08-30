@@ -170,6 +170,7 @@ export function ProductCardView() {
     const c = card.cost;
     const p = card.price;
     const r = card.rival;
+    const rc = card.rival_carton;
     const inc = card.incoming;
     const packsInStock = card.pack.pcs_per_pack > 0
       ? card.stock.pieces / card.pack.pcs_per_pack : 0;
@@ -288,6 +289,41 @@ export function ProductCardView() {
                 strong
                 tone={Number(r.we_are_cheaper_by_mvr) >= 0 ? "var(--snm-success)" : "var(--snm-warning)"}
                 hint={r.we_are_cheaper_by_pct == null ? undefined : `${num(Math.abs(Number(r.we_are_cheaper_by_pct)), 1)}%`}
+              />
+            )}
+          </Section>
+        )}
+
+        {/* ── THEIR CARTON RATE. A separate section on purpose.
+               Ali, 2026-08-30: rivals discount on carton sales. That is a
+               price for a different buyer — a shop buying a case, not a
+               shopper buying a pack — and it is discounted per piece by
+               definition. Folded into the section above it would drag the
+               headline down and argue for a price cut that was never needed
+               (migration 0223). Their carton composition is stated because
+               theirs can differ from ours. ── */}
+        {rc && (
+          <Section
+            title="Their carton rate"
+            note={`What ${rc.competitor} charges a shop for a case, seen ${day(rc.observed_date)}${rc.days_old > 45 ? ` — ${rc.days_old} days ago, worth checking again` : ""}. A carton is always cheaper per pack than a single pack, so this is compared only against your own carton price.`}
+          >
+            <Row
+              label="Their carton"
+              value={`${num(rc.their_packs_per_carton, 0)} × ${num(rc.their_pack_size, 0)}`}
+              hint={rc.their_packs_per_carton !== card.pack.packs_per_carton || rc.their_pack_size !== card.pack.pcs_per_pack
+                ? `Yours is ${num(card.pack.packs_per_carton, 0)} × ${num(card.pack.pcs_per_pack, 0)} — the figures below are converted to your carton so they are the same goods`
+                : undefined}
+            />
+            <Row label="Their carton price" value={`MVR ${mvr(rc.their_price_mvr)}`} />
+            <Row label="Their price for a carton your size" value={`MVR ${mvr(rc.their_price_at_our_carton_size)}`} />
+            <Row label="Your carton price" value={rc.our_price_mvr == null ? "Not set" : `MVR ${mvr(rc.our_price_mvr)}`} />
+            {rc.we_are_cheaper_by_mvr != null && (
+              <Row
+                label={Number(rc.we_are_cheaper_by_mvr) >= 0 ? "You are cheaper by" : "You are dearer by"}
+                value={`MVR ${mvr(Math.abs(Number(rc.we_are_cheaper_by_mvr)))}`}
+                strong
+                tone={Number(rc.we_are_cheaper_by_mvr) >= 0 ? "var(--snm-success)" : "var(--snm-warning)"}
+                hint={rc.we_are_cheaper_by_pct == null ? undefined : `${num(Math.abs(Number(rc.we_are_cheaper_by_pct)), 1)}%`}
               />
             )}
           </Section>

@@ -101,7 +101,7 @@ export function CashFlowView() {
             <button
               onClick={() => setEditing(true)}
               className="snm-pressable"
-              style={{ flexShrink: 0, minHeight: 40, padding: "0 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+              style={{ flexShrink: 0, minHeight: 44, padding: "0 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
                 background: hasOpening ? "var(--glass-1)" : "var(--foreground)",
                 color: hasOpening ? "var(--foreground)" : "var(--background)",
                 border: hasOpening ? "0.5px solid var(--glass-border-lo)" : "none" }}

@@ -68,6 +68,30 @@ export interface ProductCardRival {
   we_are_cheaper_by_pct: number | null;
 }
 
+/**
+ * What a rival charges a SHOP for a case — a different price to a different
+ * buyer, and never mixed with the shelf price above.
+ *
+ * A carton is discounted per piece by definition. Taking "the cheapest rival
+ * price" across both would compare our pack price against their carton rate,
+ * make our margin read worse than it is, and argue for a price cut that was
+ * never needed (migration 0223).
+ */
+export interface ProductCardRivalCarton {
+  competitor: string;
+  observed_date: string;
+  days_old: number;
+  their_pack_size: number;
+  /** Packs in ONE of THEIR cartons — theirs can differ from ours. */
+  their_packs_per_carton: number;
+  their_price_mvr: number;
+  /** Their carton rate restated at OUR carton size, so it is the same goods. */
+  their_price_at_our_carton_size: number;
+  our_price_mvr: number | null;
+  we_are_cheaper_by_mvr: number | null;
+  we_are_cheaper_by_pct: number | null;
+}
+
 export interface ProductCardIncoming {
   shipment_ref: string;
   status: string;
@@ -118,6 +142,7 @@ export interface ProductCard {
     last_sold_at: string | null;
   };
   rival: ProductCardRival | null;
+  rival_carton: ProductCardRivalCarton | null;
 }
 
 export async function getProductCard(skuId: string): Promise<ProductCard | null> {

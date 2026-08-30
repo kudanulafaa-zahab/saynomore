@@ -253,7 +253,7 @@ export function ReportsView() {
         <button
           onClick={exportCsv}
           disabled={tab === "contribution" ? contribFiltered.length === 0 : tab === "abc" ? abcFiltered.length === 0 : filtered.length === 0}
-          className="flex items-center gap-2 h-10 px-4 rounded-2xl ios-subhead font-semibold shrink-0 transition active:scale-95 disabled:opacity-40"
+          className="flex items-center gap-2 h-11 px-4 rounded-2xl ios-subhead font-semibold shrink-0 transition active:scale-95 disabled:opacity-40"
           style={{ background: "var(--foreground)", color: "var(--background)", marginTop: 4 }}
         >
           <Download className="h-4 w-4" />
@@ -380,7 +380,9 @@ export function ReportsView() {
               onClick={() => setTab(t.key)}
               className="shrink-0 px-4 rounded-lg ios-subhead font-medium transition active:scale-95"
               style={{
-                minHeight: 40,
+                // 44, not 40. A segmented control is the most-tapped thing on
+                // this screen and it sat four pixels under the HIG floor.
+                minHeight: 44,
                 background: tab === t.key ? "var(--background)" : "transparent",
                 color: tab === t.key ? "var(--foreground)" : "var(--muted-foreground)",
                 boxShadow: tab === t.key ? "var(--snm-thumb-shadow)" : "none",

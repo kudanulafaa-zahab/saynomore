@@ -33,6 +33,9 @@ import { launch, signedInPage, checklist, finish, BASE, appRoutes } from "./lib.
 
 const SCREENS = appRoutes();
 const MIN = 44;
+/** How many offenders to name per screen. Enough to work from, few enough that
+ *  the A–Z rail's 27 letters do not bury every other screen in the log. */
+const DETAIL = 8;
 
 const BASELINE = JSON.parse(
   readFileSync(new URL("./touch-targets.baseline.json", import.meta.url), "utf8")
@@ -95,11 +98,13 @@ const list = checklist(`Touch targets — every control is at least ${MIN}x${MIN
 const { ctx, page } = await signedInPage(browser, { device: "phone", scheme: "light" });
 
 const seen = {};
+const found = {};
 for (const [name, url] of SCREENS) {
   await page.goto(BASE + url, { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
   const small = await page.evaluate(AUDIT, MIN);
   seen[name] = small.length;
+  found[name] = small;
 
   if (report) continue;
   const allowed = BASELINE[name] ?? 0;
@@ -119,6 +124,27 @@ for (const [n, c] of Object.entries(seen).sort((a, b) => b[1] - a[1])) {
   const base = BASELINE[n] ?? 0;
   const mark = c === 0 ? "clean" : c > base ? `OVER baseline ${base}` : c < base ? `better than ${base}` : `at baseline`;
   console.log(`    ${String(c).padStart(3)}  ${n.padEnd(16)} ${mark}`);
+}
+
+// AND NAME THEM. The table above says a screen owes 12; it does not say which
+// twelve, and a screen sitting exactly AT its baseline is passing — so the
+// per-failure detail never printed for it. That made the debt unreadable
+// precisely when the gate was green, which is the only time anyone is free to
+// work on it: the next control to fix could not be found without re-running
+// the audit locally, and running it locally needs Docker.
+//
+// Same argument as the table itself, one level down. Capped per screen so the
+// log stays a log; the count above is always the whole truth.
+const withDebt = Object.entries(found).filter(([, list]) => list.length > 0);
+if (withDebt.length > 0) {
+  console.log(`\n  what they are (first ${DETAIL} per screen):`);
+  for (const [n, list] of withDebt.sort((a, b) => b[1].length - a[1].length)) {
+    console.log(`    ${n}`);
+    for (const s of list.slice(0, DETAIL)) {
+      console.log(`      ${s.size.padStart(7)}  ${s.what}${s.label ? `  "${s.label}"` : ""}`);
+    }
+    if (list.length > DETAIL) console.log(`      … and ${list.length - DETAIL} more`);
+  }
 }
 
 if (report) {

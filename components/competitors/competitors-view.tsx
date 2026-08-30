@@ -36,6 +36,7 @@ import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { priceForMargin, sellableTiers, containerLabel, type UnitUom } from "@/lib/trade-units";
+import { buysLike, perPiece, theirCartonLabel } from "@/lib/competitor-price";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
 import { useOnMount } from "@/lib/use-on-mount";
@@ -479,16 +480,19 @@ export function CompetitorsView() {
     if (!simSku) return null;
     const relevant = prices.filter((p) => p.variant_id === simSku.variant_id);
     if (!relevant.length) return null;
-    const normalized = relevant.map((p) => {
-      const comp = competitors.find((c) => c.id === p.competitor_id);
-      let perPiece: number | null = null;
-      if (p.price_basis === "per_piece")   perPiece = Number(p.price_mvr);
-      else if (p.price_basis === "per_pack")  perPiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? pcsPerPack);
-      else if (p.price_basis === "per_carton") perPiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? (pcsPerPack * packsPerCarton));
-      return { p, comp, perPiece };
-    }).filter((x) => x.perPiece != null).sort((a, b) => a.perPiece! - b.perPiece!);
+    // SHELF ONLY. The margin simulator prices a PACK, so the only fair
+    // opposite number is the pack a shopper buys from them — a carton rate is
+    // discounted per piece and would make our margin read worse than it is.
+    const normalized = relevant
+      .filter((p) => buysLike(p.price_basis) === "shelf")
+      .map((p) => {
+        const comp = competitors.find((c) => c.id === p.competitor_id);
+        return { p, comp, perPiece: perPiece(p) };
+      })
+      .filter((x) => x.perPiece != null)
+      .sort((a, b) => a.perPiece! - b.perPiece!);
     return normalized[0] ?? null;
-  }, [simSku, prices, competitors, pcsPerPack, packsPerCarton]);
+  }, [simSku, prices, competitors]);
 
   const topCompPerPiece   = topCompEntry?.perPiece ?? null;
   const topCompPerPack    = topCompPerPiece != null ? topCompPerPiece * pcsPerPack : null;
@@ -514,25 +518,66 @@ export function CompetitorsView() {
       const ourPcsPerPack   = sku.pcs_per_pack ?? 1;
       const ourPcsPerCarton = ourPcsPerPack * (sku.packs_per_carton ?? 1);
       const variantPrices = pricesByVariant.get(vid)!;
-      const normalized = variantPrices.map((p) => {
-        const competitor = competitorById.get(p.competitor_id);
-        let pricePiece: number | null = null;
-        if (p.price_basis === "per_piece")   pricePiece = Number(p.price_mvr);
-        else if (p.price_basis === "per_pack")  pricePiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? ourPcsPerPack);
-        else if (p.price_basis === "per_carton") pricePiece = Number(p.price_mvr) / (p.their_pcs_per_pack ?? ourPcsPerCarton);
-        return { price: p, competitor, pricePiece };
-      }).sort((a, b) => {
+      // Shelf and carton are kept apart all the way down: the headline
+      // comparison is pack-against-pack, and the carton rate gets its own row
+      // beside our own carton price.
+      const normalized = variantPrices
+        .filter((p) => buysLike(p.price_basis) === "shelf")
+        .map((p) => {
+          const competitor = competitorById.get(p.competitor_id);
+          return { price: p, competitor, pricePiece: perPiece(p) };
+        }).sort((a, b) => {
         if (a.pricePiece == null) return 1;
         if (b.pricePiece == null) return -1;
         return a.pricePiece - b.pricePiece;
       });
-      const ourPiece = sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) : null;
+      // THE OTHER BUYER. Their carton rate, kept entirely separate — it is
+      // never netted against the shelf figure and never allowed to replace it.
+      const cartons = variantPrices
+        .filter((p) => buysLike(p.price_basis) === "carton")
+        .map((p) => ({ price: p, competitor: competitorById.get(p.competitor_id), pricePiece: perPiece(p) }))
+        .filter((x) => x.pricePiece != null)
+        .sort((a, b) => a.pricePiece! - b.pricePiece!);
+      const cheapestCarton = cartons[0] ?? null;
+
+      // MEASURED IN THE UNIT HE SELLS, which is the pack — never a per-piece
+      // price. selling_price_per_piece_mvr is rounded to a whole rufiyaa in
+      // v_skus, which is correct for a Sosoft (a piece IS a bottle and MVR 37
+      // is what he charges) and badly wrong for a diaper: NB/S is MVR 3.64 a
+      // nappy and rounds to 4.00, 9.9% high before any rival is involved.
+      // 26 SKUs carry a distortion between -8.8% and +12.7% and not one of
+      // them is sold by the piece. It reported NB/S as MVR 12.90/pk PRICIER
+      // when he is 3.10/pk cheaper (Ali, 2026-08-30, with a screenshot).
+      //
+      // The card below already compared pack against pack. Now the verdict
+      // does too, off the same two numbers, so they cannot disagree again.
       const cheapestPiece = normalized[0]?.pricePiece ?? null;
-      const gapPct = ourPiece != null && cheapestPiece != null && cheapestPiece > 0
-        ? ((ourPiece - cheapestPiece) / cheapestPiece) * 100
+      const ourPackPrice = sku.selling_price_per_pack_mvr != null
+        ? Number(sku.selling_price_per_pack_mvr) : null;
+      const theirPackPrice = cheapestPiece != null ? cheapestPiece * ourPcsPerPack : null;
+      const gapPct = ourPackPrice != null && theirPackPrice != null && theirPackPrice > 0
+        ? ((ourPackPrice - theirPackPrice) / theirPackPrice) * 100
         : null;
-      return { vid, sku, normalized, gapPct };
-    }).filter(Boolean) as { vid: string; sku: SkuFullRow; normalized: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null }[]; gapPct: number | null }[];
+
+      // Our carton price against theirs, at OUR carton size so the two are
+      // the same quantity of goods.
+      const ourCarton = sku.selling_price_per_carton_mvr != null ? Number(sku.selling_price_per_carton_mvr) : null;
+      const theirCartonAtOurSize = cheapestCarton?.pricePiece != null
+        ? cheapestCarton.pricePiece * ourPcsPerCarton : null;
+      const cartonGapPct = ourCarton != null && theirCartonAtOurSize != null && theirCartonAtOurSize > 0
+        ? ((ourCarton - theirCartonAtOurSize) / theirCartonAtOurSize) * 100
+        : null;
+
+      return { vid, sku, normalized, gapPct, ourPackPrice, theirPackPrice,
+               cheapestCarton, ourCarton, theirCartonAtOurSize, cartonGapPct };
+    }).filter(Boolean) as {
+      vid: string; sku: SkuFullRow;
+      normalized: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null }[];
+      gapPct: number | null;
+      ourPackPrice: number | null; theirPackPrice: number | null;
+      cheapestCarton: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null } | null;
+      ourCarton: number | null; theirCartonAtOurSize: number | null; cartonGapPct: number | null;
+    }[];
     // Catalogue order — brand → model → natural size rank (NB/S, S, M, L, XL…)
     // — the same order every other list uses. A comparison table is scanned by
     // product, so sizes must read in order; sorting by gap% scattered L before
@@ -689,7 +734,7 @@ export function CompetitorsView() {
                     {g.brand_name} · {g.model_name}{g.variant_display ? ` · ${g.variant_display}` : ""}
                   </p>
                   <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    Ours {fmt2(g.our_price_mvr)} vs {g.cheapest_competitor_name} {fmt2(g.cheapest_competitor_mvr)}
+                    Ours {fmt2(g.our_price_mvr)}/pk vs {g.cheapest_competitor_name} {fmt2(g.cheapest_competitor_mvr)}/pk
                   </p>
                 </div>
                 <span className="ios-subhead font-bold shrink-0 snm-num" style={{ color: "var(--snm-warning)" }}>
@@ -1368,9 +1413,18 @@ export function CompetitorsView() {
             <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>Your price vs the cheapest competitor · in catalogue order</p>
           </div>
           <div className="divide-y divide-border">
-            {perPieceComparison.map(({ vid, sku, normalized, gapPct }) => {
-              const ourPiece = sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) : null;
-              const ourPack  = sku.selling_price_per_pack_mvr != null ? Number(sku.selling_price_per_pack_mvr) : (ourPiece != null ? ourPiece * sku.pcs_per_pack : null);
+            {perPieceComparison.map(({ vid, sku, normalized, gapPct, ourPackPrice, theirPackPrice, cheapestCarton, ourCarton, theirCartonAtOurSize, cartonGapPct }) => {
+              const ourPack  = ourPackPrice
+                ?? (sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) * sku.pcs_per_pack : null);
+              // DERIVED FROM THE PACK PRICE, not read from
+              // selling_price_per_piece_mvr. That column is rounded to a whole
+              // rufiyaa — right for a Sosoft bottle, and 9.9% high for a
+              // MVR 3.64 nappy. Per-piece is legitimate on THIS screen only
+              // (rivals sell 30s/34s/48s, so it is the one comparable unit),
+              // which makes it all the more important that it is the real
+              // figure and not a rounded one.
+              const ourPiece = ourPack != null && sku.pcs_per_pack > 0
+                ? ourPack / sku.pcs_per_pack : null;
               const ourCtn   = sku.selling_price_per_carton_mvr != null ? Number(sku.selling_price_per_carton_mvr) : null;
               const marginLabel = sku.fixed_selling_price_mvr != null
                 ? `Fixed · ${sku.actual_margin_pct != null ? `${sku.actual_margin_pct}% margin` : "no landed cost yet"}`
@@ -1381,11 +1435,13 @@ export function CompetitorsView() {
               const isExpanded = expandedComparisons.has(vid);
 
               let verdict: { deltaPack: number; color: string; bg: string; border: string; label: string } | null = null;
-              if (gapPct != null && ourPiece != null && cheapest?.pricePiece != null) {
+              if (gapPct != null && ourPackPrice != null && theirPackPrice != null) {
                 const isAlert = gapPct > 0 && gapPct > alertThreshold;
                 const color = gapPct <= 0 ? "var(--snm-success)" : isAlert ? "var(--snm-error)" : "var(--snm-warning)";
                 verdict = {
-                  deltaPack: (ourPiece - cheapest.pricePiece) * sku.pcs_per_pack,
+                  // The two numbers printed on the cards below, subtracted.
+                  // Nothing derived from a price he never charges.
+                  deltaPack: ourPackPrice - theirPackPrice,
                   color,
                   bg: `color-mix(in srgb, ${color} 10%, transparent)`,
                   border: `color-mix(in srgb, ${color} 25%, transparent)`,
@@ -1425,7 +1481,7 @@ export function CompetitorsView() {
                             MVR {fmt2(ourPack)}<span className="ios-footnote opacity-60">/pk</span>
                           </p>
                           <p className="ios-footnote snm-num mt-1" style={{ color: "var(--muted-foreground)" }}>
-                            {ourCtn != null && <>MVR {fmt2(ourCtn)}/ctn · </>}{fmt2(ourPiece!)}/pc
+                            {ourCtn != null && <>MVR {fmt2(ourCtn)}/ctn · </>}{ourPiece != null ? `${fmt2(ourPiece)}/pc` : ""}
                           </p>
                           {marginLabel && <p className="ios-footnote mt-1 truncate" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>}
                         </>
@@ -1478,9 +1534,50 @@ export function CompetitorsView() {
                       are shown in YOUR {sku.pcs_per_pack}-pc pack size so they're
                       directly comparable, not the competitor's real pack. */}
                   {cheapest?.price.their_pcs_per_pack != null && cheapest.price.their_pcs_per_pack !== sku.pcs_per_pack && (
-                    <p className="ios-footnote mt-2 text-center" style={{ color: "var(--muted-foreground)" }}>
-                      {cheapest.competitor?.name ?? "They"} sell {cheapest.price.their_pcs_per_pack} pcs/pack, not {sku.pcs_per_pack} — both prices above are converted to your pack size to compare fairly.
+                    <p className="ios-footnote mt-2 text-center" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                      {cheapest.competitor?.name ?? "They"} sell {cheapest.price.their_pcs_per_pack} per {containerLabel(sku.unit_uom as UnitUom | null | undefined)}, not {sku.pcs_per_pack} — both prices above are converted to your {containerLabel(sku.unit_uom as UnitUom | null | undefined)} size to compare fairly.
                     </p>
+                  )}
+
+                  {/* THEIR CARTON RATE — its own strip, below the shelf figures
+                      and never mixed into them. Ali, 2026-08-30: rivals discount
+                      on carton sales. A carton is cheaper per pack by
+                      definition, so folding it into the comparison above would
+                      drag the headline down and argue for a price cut that was
+                      never needed (migration 0223). */}
+                  {cheapestCarton && theirCartonAtOurSize != null && (
+                    <div className="mt-2.5 rounded-xl px-3 py-2.5" style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="ios-footnote font-semibold text-foreground">
+                            {cheapestCarton.competitor?.name ?? "Rival"} — carton rate
+                          </p>
+                          <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                            Their carton {theirCartonLabel(cheapestCarton.price, containerLabel(sku.unit_uom as UnitUom | null | undefined)) ?? "—"}
+                            {" · at your carton size"}
+                          </p>
+                        </div>
+                        <p className="ios-subhead font-bold snm-num shrink-0 text-foreground">
+                          MVR {fmt2(theirCartonAtOurSize)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 mt-1.5 pt-1.5" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+                        <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>Your carton price</p>
+                        <p className="ios-footnote font-semibold snm-num text-foreground">
+                          {ourCarton == null ? "Not set" : `MVR ${fmt2(ourCarton)}`}
+                        </p>
+                      </div>
+                      {cartonGapPct != null && (
+                        <p className="ios-footnote font-semibold text-center mt-1"
+                          style={{ color: cartonGapPct > 0.5 ? "var(--snm-warning)" : cartonGapPct < -0.5 ? "var(--snm-success)" : "var(--foreground)" }}>
+                          {cartonGapPct > 0.5
+                            ? `You are MVR ${fmt2(Math.abs(ourCarton! - theirCartonAtOurSize))} (${Math.abs(cartonGapPct).toFixed(1)}%) dearer per carton`
+                            : cartonGapPct < -0.5
+                            ? `You are MVR ${fmt2(Math.abs(ourCarton! - theirCartonAtOurSize))} (${Math.abs(cartonGapPct).toFixed(1)}%) cheaper per carton`
+                            : "Same price per carton"}
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {/* Other competitors on this SKU — collapsed, not equal-weight cards */}
@@ -1646,7 +1743,14 @@ export function CompetitorsView() {
                                 <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                                   <span className="snm-num text-foreground font-medium">MVR {fmt2(Number(p.price_mvr))}</span>
                                   {" "}{BASIS_LABEL[p.price_basis]}
-                                  {p.their_pcs_per_pack ? ` · ${p.their_pcs_per_pack} pcs/${p.price_basis === "per_carton" ? "ctn" : "pk"}` : ""}
+                                  {/* Their carton read as a composition, not a
+                                      flattened piece count: "3 packs of 34"
+                                      is checkable at a glance, "102" is not. */}
+                                  {p.price_basis === "per_carton"
+                                    ? (theirCartonLabel(p, containerLabel(sku?.unit_uom as UnitUom | null | undefined)) ? ` · ${theirCartonLabel(p, containerLabel(sku?.unit_uom as UnitUom | null | undefined))}` : "")
+                                    : p.their_pcs_per_pack
+                                      ? ` · ${p.their_pcs_per_pack} per ${containerLabel(sku?.unit_uom as UnitUom | null | undefined)}`
+                                      : ""}
                                   {" · "}{mvtPlainDay(p.observed_date, { day: "numeric", month: "short", year: "numeric" })}
                                 </p>
                                 {p.notes && <p className="ios-subhead mt-0.5 italic" style={{ color: "var(--muted-foreground)" }}>{p.notes}</p>}
@@ -1832,6 +1936,11 @@ function PriceModal({
   const [priceMvr, setPriceMvr] = useState(editing ? String(editing.price_mvr) : "");
   const [priceBasis, setPriceBasis] = useState<PriceBasis>(editing?.price_basis ?? "per_pack");
   const [theirPcsPerPack, setTheirPcsPerPack] = useState(editing?.their_pcs_per_pack ? String(editing.their_pcs_per_pack) : "");
+  // Ali, 2026-08-30: *"It must also know how many packs in a carton for
+  // competitor since it can vary from ours."* Their carton is recorded the way
+  // he describes it — 3 packs of 34 — rather than flattened to "102", which is
+  // what the single overloaded field used to do.
+  const [theirPacksPerCarton, setTheirPacksPerCarton] = useState(editing?.their_packs_per_carton ? String(editing.their_packs_per_carton) : "");
   // Was this field auto-filled by us (safe to keep overwriting as the
   // product/basis changes) or has Ali typed his own number (never touch it
   // again)? Starts true only when there's nothing already saved to protect.
@@ -1888,6 +1997,24 @@ function PriceModal({
 
   const selectedSku = skus.find((s) => s.variant_id === variantId);
 
+  // The unit NOUN comes from the product, never a hardcoded "pack": a Sosoft
+  // 700ml is a bottle, and asking for "pieces in their pack" about a bottle
+  // reads as a different product. Falls back to the generic word only while
+  // nothing is selected yet.
+  const theirPackWord = containerLabel(
+    (selectedSku?.unit_uom ?? null) as UnitUom | null | undefined,
+  );
+
+  // Their carton read back as a sentence — "3 bottles of 1" is exactly how Ali
+  // describes a rival's case, and it is the check that catches a mistyped box.
+  const theirCartonSentence = theirCartonLabel(
+    {
+      their_pcs_per_pack: parseInt(theirPcsPerPack) || null,
+      their_packs_per_carton: parseInt(theirPacksPerCarton) || null,
+    },
+    theirPackWord,
+  );
+
   // The pieces field always needs to hold a real number the moment it's
   // relevant (per_pack or per_carton basis) — leaving it blank invited a
   // silent "assume it matches ours" fallback that nobody could see, and
@@ -1899,8 +2026,13 @@ function PriceModal({
   // but only while still auto-filled — stops the moment Ali types his own.
   useEffect(() => {
     if (!selectedSku || !pcsAutoFilled) return;
-    if (priceBasis === "per_pack")   setTheirPcsPerPack(String(selectedSku.pcs_per_pack));
-    else if (priceBasis === "per_carton") setTheirPcsPerPack(String(selectedSku.pcs_per_carton));
+    // ALWAYS the pack size now. It used to switch to pcs_per_carton on a
+    // carton price, so one field meant two things and their carton's pack
+    // structure was lost (migration 0223).
+    if (priceBasis === "per_pack" || priceBasis === "per_carton") {
+      setTheirPcsPerPack(String(selectedSku.pcs_per_pack));
+      setTheirPacksPerCarton(String(selectedSku.packs_per_carton));
+    }
   }, [selectedSku, priceBasis, pcsAutoFilled]);
 
   // Live per-piece calculation preview. their_pcs_per_pack is the whole point
@@ -1911,15 +2043,26 @@ function PriceModal({
   // ours, editable), before it can be compared to our own price. Mirrors
   // get_competitor_price_gaps exactly (supabase/migrations) so this preview
   // and the Price Gaps dashboard never disagree.
-  const perPiecePreview = useMemo(() => {
-    const price = parseFloat(priceMvr);
-    if (!price || !selectedSku) return null;
-    const theirPcs = parseInt(theirPcsPerPack);
-    if (priceBasis === "per_piece")   return price;
-    if (priceBasis === "per_pack")    return price / (theirPcs || selectedSku.pcs_per_pack);
-    if (priceBasis === "per_carton")  return price / (theirPcs || selectedSku.pcs_per_carton);
-    return null;
-  }, [priceMvr, priceBasis, theirPcsPerPack, selectedSku]);
+  // Plain arithmetic, not useMemo. The React Compiler is on and memoizes this
+  // itself; the hand-written version stopped compiling once selectedSku was
+  // also read by containerLabel above, because the compiler cannot prove an
+  // imported function leaves its argument alone and so refuses to preserve a
+  // manual dependency on it. Seat 2's rule already says not to hand-memoize
+  // without a measured reason, and this is two divisions.
+  //
+  // Exactly what the database will compute — one shared helper, so this
+  // preview can never disagree with the figure that ends up on the Price Gaps
+  // screen. No fallback to our own pack size: a blank field is now refused at
+  // save, so a null here means the basis has no conversion.
+  const previewPrice = parseFloat(priceMvr);
+  const perPiecePreview = !previewPrice || !selectedSku
+    ? null
+    : perPiece({
+        price_mvr: previewPrice,
+        price_basis: priceBasis,
+        their_pcs_per_pack: parseInt(theirPcsPerPack) || null,
+        their_packs_per_carton: parseInt(theirPacksPerCarton) || null,
+      });
 
   // What this means for OUR price, in OUR own units — the auto-calculation
   // Ali actually asked for. Their per-piece price times our pack/carton size
@@ -1928,7 +2071,7 @@ function PriceModal({
   // Never writes anywhere — purely a read-only comparison in this sheet;
   // Ali still sets his own prices via the Margin Simulator (never auto-
   // overwritten, per the fixed-price rule).
-  const ourComparison = useMemo(() => {
+  const ourComparison = (() => {
     if (perPiecePreview == null || !selectedSku || selectedSku.selling_price_per_piece_mvr == null) return null;
     const ourPerPiece = selectedSku.selling_price_per_piece_mvr;
     const diff = ourPerPiece - perPiecePreview;
@@ -1940,7 +2083,7 @@ function PriceModal({
       matchPackPrice: perPiecePreview * selectedSku.pcs_per_pack,
       matchCartonPrice: perPiecePreview * selectedSku.pcs_per_pack * selectedSku.packs_per_carton,
     };
-  }, [perPiecePreview, selectedSku]);
+  })();
 
   async function save() {
     if (!selectedCompId || !variantId || !priceMvr) return;
@@ -1952,6 +2095,8 @@ function PriceModal({
         price_mvr: parseFloat(priceMvr),
         price_basis: priceBasis,
         their_pcs_per_pack: theirPcsPerPack ? parseInt(theirPcsPerPack) : null,
+        their_packs_per_carton:
+          priceBasis === "per_carton" && theirPacksPerCarton ? parseInt(theirPacksPerCarton) : null,
         observed_date: observedDate,
         notes: notes.trim() || null,
       };
@@ -2091,18 +2236,47 @@ function PriceModal({
               a carton; a per-piece price needs no conversion at all. */}
           {(priceBasis === "per_pack" || priceBasis === "per_carton") && (
             <div className="space-y-1.5">
-              <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                THEIR PIECES PER {priceBasis === "per_pack" ? "PACK" : "CARTON"}
-              </p>
-              <input
-                type="number" min="1" value={theirPcsPerPack}
-                onChange={(e) => { setTheirPcsPerPack(e.target.value); setPcsAutoFilled(false); }}
-                onFocus={(e) => e.target.select()}
-                className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none"
-                style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
-              />
-              <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                Pre-filled with ours — change it only if their {priceBasis === "per_pack" ? "pack" : "carton"} holds a different count.
+              <div className={priceBasis === "per_carton" ? "grid grid-cols-2 gap-3" : ""}>
+                <div className="space-y-1.5">
+                  <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    PIECES IN THEIR {theirPackWord.toUpperCase()}
+                  </p>
+                  <input
+                    type="number" min="1" value={theirPcsPerPack}
+                    onChange={(e) => { setTheirPcsPerPack(e.target.value); setPcsAutoFilled(false); }}
+                    onFocus={(e) => e.target.select()}
+                    aria-label={`Pieces in one of their ${theirPackWord}s`}
+                    className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                    style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
+                  />
+                </div>
+                {/* Their carton, built from THEIR packs. Ali's whole point: a
+                    rival may sell 3 packs of 34 where we sell 4 packs of 22,
+                    and flattening that to one piece count loses it. */}
+                {priceBasis === "per_carton" && (
+                  <div className="space-y-1.5">
+                    <p className="label-caps text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                      THEIR {theirPackWord.toUpperCase()}S PER CARTON
+                    </p>
+                    <input
+                      type="number" min="1" value={theirPacksPerCarton}
+                      onChange={(e) => { setTheirPacksPerCarton(e.target.value); setPcsAutoFilled(false); }}
+                      onFocus={(e) => e.target.select()}
+                      aria-label={`Their ${theirPackWord}s in one of their cartons`}
+                      className="w-full h-11 rounded-xl px-4 ios-subhead text-foreground outline-none"
+                      style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}
+                    />
+                  </div>
+                )}
+              </div>
+              {/* Read the two numbers back as a sentence. A figure whose unit a
+                  reader could guess wrong is a defect, not a detail. */}
+              <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                {priceBasis === "per_carton"
+                  ? theirCartonSentence
+                    ? `Their carton = ${theirCartonSentence}. Pre-filled with ours — change either if theirs differs.`
+                    : `Enter how their carton is built — pre-filled with ours.`
+                  : `Pre-filled with ours — change it only if their ${theirPackWord} holds a different count.`}
               </p>
             </div>
           )}
