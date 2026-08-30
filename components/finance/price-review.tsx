@@ -529,7 +529,7 @@ export function PriceReview() {
       {settled.length > 0 && (
         <button
           onClick={() => setShowSettled((v) => !v)}
-          className="snm-pressable mt-3 ios-footnote font-semibold"
+          className="snm-pressable mt-3 min-h-11 ios-footnote font-semibold"
           style={{ color: "var(--snm-brand-text)" }}
         >
           {showSettled ? "Hide" : `${settled.length} more that need nothing`}

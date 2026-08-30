@@ -227,7 +227,7 @@ export function MarginWatch() {
               // no_price / no_cost (or viewer role): resolve in Products
               <Link
                 href="/products"
-                className="shrink-0 flex items-center gap-0.5 ios-footnote font-semibold"
+                className="shrink-0 flex items-center min-h-11 gap-0.5 ios-footnote font-semibold"
                 style={{ color: "var(--snm-brand-text)" }}
               >
                 Open

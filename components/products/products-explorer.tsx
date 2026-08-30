@@ -980,7 +980,7 @@ export function ProductsExplorer() {
               <button
                 onClick={() => toggleBrand(brandId)}
                 aria-expanded={!collapsed}
-                className="w-full flex items-center gap-1.5 px-4 py-2.5 snm-pressable text-left"
+                className="w-full flex items-center gap-1.5 px-4 min-h-11 snm-pressable text-left"
                 style={{
                   background: "color-mix(in srgb, var(--glass-1) 95%, transparent)",
                   borderBottom: "0.5px solid var(--glass-border-lo)",

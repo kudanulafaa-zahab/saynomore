@@ -944,7 +944,7 @@ export function InventoryView() {
             return (
               <div key={brand}>
                 <button
-                  className="w-full flex items-center justify-between px-1 py-2 mb-2 active:opacity-70"
+                  className="w-full flex items-center justify-between px-1 min-h-11 mb-2 active:opacity-70"
                   aria-label={`${isOpen ? "Collapse" : "Expand"} ${brand}`}
                   aria-expanded={isOpen}
                   onClick={() => !searchActive && setExpandedBrand(isOpen ? null : brand)}

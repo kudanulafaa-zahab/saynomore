@@ -159,7 +159,12 @@ export function PaletteSection() {
               style={{ touchAction: "none" }}
             />
             <style>{`
-              .snm-frost-slider { -webkit-appearance: none; appearance: none; height: 32px; background: transparent; outline: none; cursor: pointer; }
+              /* 44px, not 32: the HIG floor applies to the input's own box,
+                 which is what a thumb-drag has to start inside. The visible
+                 track is a separate absolutely-centred element and the thumb
+                 stays 28px, so nothing about this looks different — there is
+                 simply 6px more grabbable above and below the line. */
+              .snm-frost-slider { -webkit-appearance: none; appearance: none; height: 44px; background: transparent; outline: none; cursor: pointer; }
               .snm-frost-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--snm-brand); border: 3px solid rgba(255,255,255,0.75); box-shadow: 0 2px 12px var(--snm-brand-muted); cursor: grab; }
               .snm-frost-slider::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--snm-brand); border: 3px solid rgba(255,255,255,0.75); box-shadow: 0 2px 12px var(--snm-brand-muted); cursor: grab; }
               .snm-frost-slider:active::-webkit-slider-thumb { cursor: grabbing; }
