@@ -260,15 +260,21 @@ select cmp_ok(
   'and the fixture really does hold more than one dead product'
 );
 
+-- COST, not the promo price. This assertion used to multiply stock by
+-- promo_pack_mvr, matching what get_today did — and both were wrong in the same
+-- direction, which is exactly why the test passed while the screen contradicted
+-- itself. The row calls this money "tied up"; money tied up is what it cost to
+-- put the stock there, not what it might fetch if every unit sold at the
+-- discount. On production that gap was MVR 49,408 against the MVR 44,475 the
+-- Needs-Attention card showed for the same 13 products, on the same screen.
+-- stock_value_mvr is the column the card and the Promo Advisor already use.
 select is(
   (select impact_mvr from get_today(50) where kind = 'deadstock'),
-  (select round(sum(coalesce(p.stock_pieces,0) * coalesce(p.promo_pack_mvr,0)
-                    / nullif(p.pcs_per_pack,0)) / 13.0, 2)
-     from get_promo_suggestions() p),
-  'a pile of capital is valued over a quarter — clearing it is months of work'
+  (select round(sum(p.stock_value_mvr) / 13.0, 2) from get_promo_suggestions() p),
+  'a pile of capital is valued at COST over a quarter — clearing it is months of work'
 );
 
--- The whole point of that quarter. Raw magnitude would put MVR 6,660 of
+-- The whole point of that quarter. Raw magnitude would put MVR 6,000 of
 -- stagnant stock above a best seller being out, which is how the first
 -- version of this list ranked itself and why it was wrong.
 select cmp_ok(
