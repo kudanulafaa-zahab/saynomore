@@ -161,8 +161,16 @@ export function MorningBriefing() {
 
       {watch.length > 0 && (
         <div className="mt-4 pt-4 space-y-2.5" style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}>
+          {/* min-h-11 on each row: these are the watch list's deep links —
+              Owed, Inventory, the Promo Advisor — and their height was
+              whatever the sentence wrapped to. One line was a 20px target, two
+              lines 40px, so the same row was a different size depending on how
+              many products happened to be behind it. That also made the
+              touch-target count on this screen flap between 0 and 1 with no
+              code change, which is a gate that cries wolf. A floor fixes both.
+              items-start stays: the dot aligns to the first line. */}
           {watch.map((w) => (
-            <Link key={w.text} href={w.href} className="flex items-start gap-2.5 ios-subhead font-medium">
+            <Link key={w.text} href={w.href} className="flex items-start gap-2.5 min-h-11 py-1 ios-subhead font-medium">
               <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[7px]" style={{ background: w.tone }} />
               <span style={{ color: "var(--foreground)" }}>{w.text}</span>
             </Link>
