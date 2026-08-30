@@ -412,6 +412,33 @@ rufiyaa/rupiah rate moves underneath it as well.
    neither is the turn: wait for it, merge it, deploy it, verify it.
    The one exception is work Ali has explicitly asked to hold back.
 
+   **When `shipped` fails, LOOK — it cannot tell "still building" from "never
+   started".** Both look identical from the running app: the old commit is
+   being served. Waiting fixes the first and never fixes the second.
+
+   2026-08-30, the second recurrence: PR #161 merged to `main` green, and
+   Vercel created **no deployment at all** — not queued, not building, none.
+   Fifteen minutes and two `--wait` runs said only "live is 8f5b7ec". The
+   listing is what settles it:
+
+   ```
+   list_deployments(projectId, teamId)   # Vercel MCP
+   ```
+
+   If no deployment carries `main`'s HEAD as its commit, the trigger was
+   missed and no amount of waiting will produce one. The likely cause here:
+   this is a **Hobby plan, one build at a time**, and the branch's two preview
+   builds were both CANCELED — a merge webhook arriving into that can be
+   dropped.
+
+   **Re-fire it by landing one more real commit through a PR** (the normal
+   branch → PR → merge flow), which is what this very paragraph was.
+   **Never reach for `deploy_to_vercel` with a file tree**: a file-upload
+   deployment is not attached to a commit, so `/api/version` would report
+   something that is not a git SHA at all and `shipped` would keep failing
+   even though the site had updated — trading a missing deploy for an
+   unverifiable one.
+
    **A MIGRATION IS NOT A DELIVERY. Never report a database-only deploy as
    progress.** Ali, 2026-08-15: *"You can't just half bake a build without
    frontend if I can't see the app working functions."* Migrations are applied
