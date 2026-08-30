@@ -911,7 +911,9 @@ export function ProductsExplorer() {
           <div className="flex gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="h-10 w-10 rounded-xl flex items-center justify-center transition active:scale-90"
+              // h-11 w-11, and shrink-0: this measured 33x40, narrower than
+              // its own w-10 because the flex row was squeezing it.
+              className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center transition active:scale-90"
               style={{
                 background: showFilters ? "var(--snm-brand-muted)" : "var(--secondary)",
                 color: showFilters ? "var(--snm-brand)" : "var(--muted-foreground)",
@@ -922,7 +924,7 @@ export function ProductsExplorer() {
             {canWrite && (
               <button
                 onClick={() => setNewSkuOpen(true)}
-                className="h-10 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
+                className="h-11 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
                 style={{ background: "var(--foreground)", color: "var(--background)" }}
               >
                 <Plus className="h-4 w-4" />

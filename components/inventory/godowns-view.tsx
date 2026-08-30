@@ -486,7 +486,7 @@ export function GodownsView() {
           {godowns.length > 1 && (
             <Link
               href="/stock-ops?tab=transfer"
-              className="h-10 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
+              className="h-11 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
               style={{ background: "var(--glass-bg-2)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
             >
               <ArrowLeftRight className="h-4 w-4" />
@@ -496,7 +496,7 @@ export function GodownsView() {
           {isAdmin && (
             <button
               onClick={() => { setShowNew(true); setEditingId(null); }}
-              className="h-10 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
+              className="h-11 px-4 rounded-xl ios-subhead font-semibold flex items-center gap-1.5 transition active:scale-95"
               style={{ background: "var(--foreground)", color: "var(--background)" }}
             >
               <Plus className="h-4 w-4" />
