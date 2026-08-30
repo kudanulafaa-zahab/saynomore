@@ -83,6 +83,12 @@ begin
     raise exception 'the per-piece expression is not the one 0228 was written against — refusing to patch a view it does not recognise';
   end if;
   execute 'create or replace view public.v_skus as ' || replace(v_def, v_old, v_new);
+  -- pg_get_viewdef RETURNS ONLY THE QUERY, never the view's options, so the
+  -- rebuild above drops security_invoker and v_skus silently starts running
+  -- with its OWNER's rights — bypassing row level security. Put it back in the
+  -- same breath. rls_surface.test.sql caught this the first time; it should
+  -- never have to catch it again.
+  execute 'alter view public.v_skus set (security_invoker = on)';
 end $mig$;
 
 do $$
