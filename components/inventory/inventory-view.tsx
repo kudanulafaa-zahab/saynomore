@@ -1,9 +1,10 @@
 "use client";
 
+import { SearchField } from "@/components/ui/search-field";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Search, AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, PackageX, ArrowLeftRight } from "lucide-react";
+import { AlertTriangle, AlertOctagon, Package, ChevronDown, MapPin, Layers, PackageX, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { listBatchStock, listReorderSuggestions, type BatchStock, type ReorderSuggestion } from "@/lib/queries/inventory";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
@@ -822,24 +823,7 @@ export function InventoryView() {
 
       {/* Search + sort */}
       <div className="space-y-2">
-        <div
-          className="flex items-center gap-2.5 px-4 rounded-2xl"
-          style={{
-            background: "var(--glass-1)",
-            boxShadow: "var(--glass-shadow), var(--glass-inner)",
-            height: 46,
-            border: "0.5px solid var(--glass-border-lo)",
-          }}
-        >
-          <Search className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search brand, SKU, code…"
-            aria-label="Search inventory"
-            className="flex-1 bg-transparent border-none outline-none ios-subhead text-foreground placeholder:text-muted-foreground"
-          />
-        </div>
+        <SearchField value={q} onChange={setQ} label="Search inventory" placeholder="Search brand, SKU, code…" />
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {([
