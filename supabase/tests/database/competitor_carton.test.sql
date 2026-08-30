@@ -26,7 +26,7 @@
 -- on screen. A number simply gets smaller.
 
 begin;
-select plan(12);
+select plan(14);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000009a0', 'test-carton@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000009a0';
@@ -48,12 +48,11 @@ values ('00000000-0000-0000-0000-0000000009b1', '00000000-0000-0000-0000-0000000
         'CartonTest L', '{"size":"L-carton"}'::jsonb);
 
 --
--- fixed_selling_price_mvr (the PIECE tier) is set as well as the pack and
--- carton prices, and it has to be: get_competitor_price_gaps compares against
--- v_skus.selling_price_per_piece_mvr, which stays null when only a pack price
--- is given — 'piece' is not in sellable_units, so nothing derives it. Without
--- it this fixture produced no gap row at all and every assertion below read
--- null. All three prices agree with each other: 10.00 x 25 = 250 a pack.
+-- All three price tiers are set and they agree: 10.00 x 25 = 250 a pack,
+-- 250 x 4 = 1000 against a 900 carton price (a genuine carton discount).
+-- The pack tier is the one that matters here — since 0227 the gap is measured
+-- in the unit he sells, so get_competitor_price_gaps reads
+-- selling_price_per_pack_mvr rather than a per-piece figure nobody is charged.
 insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
                   carton_length_cm, carton_width_cm, carton_height_cm,
                   fixed_selling_price_mvr, fixed_price_per_pack_mvr,
@@ -148,10 +147,10 @@ select cmp_ok(
   'the fixture really does make the carton cheaper per piece, or this proves nothing'
 );
 
--- Our fixed pack price is 250 for 25 pieces = 10.00 a piece, well above both.
--- Against the SHELF price the gap is (10.00 - 5.20) / 5.20 = 92.3%.
--- Against the CARTON rate it would read (10.00 - 4.00) / 4.00 = 150% — a
--- fictitious 58-point overstatement that would drive a real price cut.
+-- We charge MVR 250 a pack. Their shelf price at OUR 25-pack is 5.20 x 25 =
+-- MVR 130, so the gap is (250 - 130) / 130 = 92.3%. Against their CARTON rate
+-- it would read (250 - 100) / 100 = 150% — a fictitious 58-point overstatement
+-- that would drive a real price cut.
 select is(
   (select round(gap_pct, 1) from get_competitor_price_gaps(1)
     where sku_id = '00000000-0000-0000-0000-0000000009b2'),
@@ -159,11 +158,21 @@ select is(
   'the price gap is measured against their SHELF price, never their carton rate'
 );
 
+-- Both sides are PACK prices (0227): the gap used to be struck against
+-- selling_price_per_piece_mvr, which v_skus rounds to a whole rufiyaa and
+-- which nobody is ever charged for a product sold by the pack.
 select is(
-  (select round(cheapest_competitor_mvr, 4) from get_competitor_price_gaps(1)
+  (select round(our_price_mvr, 2) from get_competitor_price_gaps(1)
     where sku_id = '00000000-0000-0000-0000-0000000009b2'),
-  5.2000::numeric,
-  'and the rival figure quoted is the shelf one, so it can be checked in a shop'
+  250.00::numeric,
+  'our side of it is the pack price we actually charge'
+);
+
+select is(
+  (select round(cheapest_competitor_mvr, 2) from get_competitor_price_gaps(1)
+    where sku_id = '00000000-0000-0000-0000-0000000009b2'),
+  130.00::numeric,
+  'and theirs is their SHELF price at our pack size, checkable in a shop'
 );
 
 -- ══════════════════════════════════════════════════════════════════════════
