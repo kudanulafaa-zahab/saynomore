@@ -540,10 +540,23 @@ export function CompetitorsView() {
         .sort((a, b) => a.pricePiece! - b.pricePiece!);
       const cheapestCarton = cartons[0] ?? null;
 
-      const ourPiece = sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) : null;
+      // MEASURED IN THE UNIT HE SELLS, which is the pack — never a per-piece
+      // price. selling_price_per_piece_mvr is rounded to a whole rufiyaa in
+      // v_skus, which is correct for a Sosoft (a piece IS a bottle and MVR 37
+      // is what he charges) and badly wrong for a diaper: NB/S is MVR 3.64 a
+      // nappy and rounds to 4.00, 9.9% high before any rival is involved.
+      // 26 SKUs carry a distortion between -8.8% and +12.7% and not one of
+      // them is sold by the piece. It reported NB/S as MVR 12.90/pk PRICIER
+      // when he is 3.10/pk cheaper (Ali, 2026-08-30, with a screenshot).
+      //
+      // The card below already compared pack against pack. Now the verdict
+      // does too, off the same two numbers, so they cannot disagree again.
       const cheapestPiece = normalized[0]?.pricePiece ?? null;
-      const gapPct = ourPiece != null && cheapestPiece != null && cheapestPiece > 0
-        ? ((ourPiece - cheapestPiece) / cheapestPiece) * 100
+      const ourPackPrice = sku.selling_price_per_pack_mvr != null
+        ? Number(sku.selling_price_per_pack_mvr) : null;
+      const theirPackPrice = cheapestPiece != null ? cheapestPiece * ourPcsPerPack : null;
+      const gapPct = ourPackPrice != null && theirPackPrice != null && theirPackPrice > 0
+        ? ((ourPackPrice - theirPackPrice) / theirPackPrice) * 100
         : null;
 
       // Our carton price against theirs, at OUR carton size so the two are
@@ -555,11 +568,13 @@ export function CompetitorsView() {
         ? ((ourCarton - theirCartonAtOurSize) / theirCartonAtOurSize) * 100
         : null;
 
-      return { vid, sku, normalized, gapPct, cheapestCarton, ourCarton, theirCartonAtOurSize, cartonGapPct };
+      return { vid, sku, normalized, gapPct, ourPackPrice, theirPackPrice,
+               cheapestCarton, ourCarton, theirCartonAtOurSize, cartonGapPct };
     }).filter(Boolean) as {
       vid: string; sku: SkuFullRow;
       normalized: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null }[];
       gapPct: number | null;
+      ourPackPrice: number | null; theirPackPrice: number | null;
       cheapestCarton: { price: CompetitorPriceRow; competitor: CompetitorRow | undefined; pricePiece: number | null } | null;
       ourCarton: number | null; theirCartonAtOurSize: number | null; cartonGapPct: number | null;
     }[];
@@ -719,7 +734,7 @@ export function CompetitorsView() {
                     {g.brand_name} · {g.model_name}{g.variant_display ? ` · ${g.variant_display}` : ""}
                   </p>
                   <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    Ours {fmt2(g.our_price_mvr)} vs {g.cheapest_competitor_name} {fmt2(g.cheapest_competitor_mvr)}
+                    Ours {fmt2(g.our_price_mvr)}/pk vs {g.cheapest_competitor_name} {fmt2(g.cheapest_competitor_mvr)}/pk
                   </p>
                 </div>
                 <span className="ios-subhead font-bold shrink-0 snm-num" style={{ color: "var(--snm-warning)" }}>
@@ -1398,9 +1413,18 @@ export function CompetitorsView() {
             <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>Your price vs the cheapest competitor · in catalogue order</p>
           </div>
           <div className="divide-y divide-border">
-            {perPieceComparison.map(({ vid, sku, normalized, gapPct, cheapestCarton, ourCarton, theirCartonAtOurSize, cartonGapPct }) => {
-              const ourPiece = sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) : null;
-              const ourPack  = sku.selling_price_per_pack_mvr != null ? Number(sku.selling_price_per_pack_mvr) : (ourPiece != null ? ourPiece * sku.pcs_per_pack : null);
+            {perPieceComparison.map(({ vid, sku, normalized, gapPct, ourPackPrice, theirPackPrice, cheapestCarton, ourCarton, theirCartonAtOurSize, cartonGapPct }) => {
+              const ourPack  = ourPackPrice
+                ?? (sku.selling_price_per_piece_mvr != null ? Number(sku.selling_price_per_piece_mvr) * sku.pcs_per_pack : null);
+              // DERIVED FROM THE PACK PRICE, not read from
+              // selling_price_per_piece_mvr. That column is rounded to a whole
+              // rufiyaa — right for a Sosoft bottle, and 9.9% high for a
+              // MVR 3.64 nappy. Per-piece is legitimate on THIS screen only
+              // (rivals sell 30s/34s/48s, so it is the one comparable unit),
+              // which makes it all the more important that it is the real
+              // figure and not a rounded one.
+              const ourPiece = ourPack != null && sku.pcs_per_pack > 0
+                ? ourPack / sku.pcs_per_pack : null;
               const ourCtn   = sku.selling_price_per_carton_mvr != null ? Number(sku.selling_price_per_carton_mvr) : null;
               const marginLabel = sku.fixed_selling_price_mvr != null
                 ? `Fixed · ${sku.actual_margin_pct != null ? `${sku.actual_margin_pct}% margin` : "no landed cost yet"}`
@@ -1411,11 +1435,13 @@ export function CompetitorsView() {
               const isExpanded = expandedComparisons.has(vid);
 
               let verdict: { deltaPack: number; color: string; bg: string; border: string; label: string } | null = null;
-              if (gapPct != null && ourPiece != null && cheapest?.pricePiece != null) {
+              if (gapPct != null && ourPackPrice != null && theirPackPrice != null) {
                 const isAlert = gapPct > 0 && gapPct > alertThreshold;
                 const color = gapPct <= 0 ? "var(--snm-success)" : isAlert ? "var(--snm-error)" : "var(--snm-warning)";
                 verdict = {
-                  deltaPack: (ourPiece - cheapest.pricePiece) * sku.pcs_per_pack,
+                  // The two numbers printed on the cards below, subtracted.
+                  // Nothing derived from a price he never charges.
+                  deltaPack: ourPackPrice - theirPackPrice,
                   color,
                   bg: `color-mix(in srgb, ${color} 10%, transparent)`,
                   border: `color-mix(in srgb, ${color} 25%, transparent)`,
@@ -1455,7 +1481,7 @@ export function CompetitorsView() {
                             MVR {fmt2(ourPack)}<span className="ios-footnote opacity-60">/pk</span>
                           </p>
                           <p className="ios-footnote snm-num mt-1" style={{ color: "var(--muted-foreground)" }}>
-                            {ourCtn != null && <>MVR {fmt2(ourCtn)}/ctn · </>}{fmt2(ourPiece!)}/pc
+                            {ourCtn != null && <>MVR {fmt2(ourCtn)}/ctn · </>}{ourPiece != null ? `${fmt2(ourPiece)}/pc` : ""}
                           </p>
                           {marginLabel && <p className="ios-footnote mt-1 truncate" style={{ color: "var(--muted-foreground)" }}>{marginLabel}</p>}
                         </>
