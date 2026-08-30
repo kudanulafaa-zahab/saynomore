@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { containerLabel, type UnitUom } from "@/lib/trade-units";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateSku, renameCataloguePart, adminDeleteBrandCascade, adminDeleteModelCascade, adminDeleteVariantCascade, adminDeleteSku, type SkuFullRow, type SellUnit } from "@/lib/queries/products";
+import { updateSku, renameCataloguePart, adminDeleteBrandCascade, adminDeleteModelCascade, adminDeleteVariantCascade, adminDeleteSku, getPackConfigChangeImpact, type SkuFullRow, type SellUnit, type PackConfigImpact } from "@/lib/queries/products";
+import { PackSizeCorrectionSheet } from "./pack-size-correction";
 
 // ── Brand editor ────────────────────────────────────────────────────────
 
@@ -75,6 +76,10 @@ export function EditSkuDialog({
   const [sellUnits, setSellUnits] = useState<SellUnit[]>(
     sku?.sellable_units?.length ? sku.sellable_units : ["pack", "carton"]);
   const [saving, setSaving] = useState(false);
+  // A pack size that has already been received or sold cannot just be saved —
+  // the database refuses it, and rightly. When it changes we ask what it would
+  // move first, and only then offer the correction. Null means "not asked".
+  const [packChange, setPackChange] = useState<PackConfigImpact | null>(null);
 
 
   const cbm = useMemo(() => {
@@ -143,6 +148,25 @@ export function EditSkuDialog({
       toast.error("Pieces per pack and packs per carton must be at least 1");
       return;
     }
+    // THE PACK SIZE IS NOT AN ORDINARY FIELD once stock has moved through it.
+    // Everything else on this form describes the product; this one is the
+    // divisor behind every piece figure in the ledger, so changing it is a
+    // restatement and gets its own sheet with the money on it. Asked BEFORE
+    // anything is written, so a refusal leaves nothing half-saved.
+    const nextPcs = parseInt(pcsPerPack, 10);
+    const nextPpc = parseInt(packsPerCarton, 10);
+    if (nextPcs !== sku.pcs_per_pack || nextPpc !== sku.packs_per_carton) {
+      setSaving(true);
+      try {
+        setPackChange(await getPackConfigChangeImpact(sku.id, nextPcs, nextPpc));
+      } catch (err) {
+        toast.error((err as Error).message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     try {
       // RENAMES FIRST, and only the ones that actually changed.
@@ -198,6 +222,18 @@ export function EditSkuDialog({
   const unit = attrs?.format || (singular.charAt(0).toUpperCase() + singular.slice(1));
 
   return (
+    <>
+    {/* Sheet-over-dialog: the correction has its own z above the Dialog, so the
+        product being corrected stays visible behind it. It is only ever reached
+        by changing the pack size on the form below and pressing Save. */}
+    {packChange && sku && (
+      <PackSizeCorrectionSheet
+        impact={packChange}
+        unitUom={sku.unit_uom}
+        onClose={() => setPackChange(null)}
+        onDone={() => { setPackChange(null); onOpenChange(false); onSaved(); }}
+      />
+    )}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border sm:max-w-xl">
         <DialogHeader>
@@ -619,6 +655,7 @@ export function EditSkuDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 
