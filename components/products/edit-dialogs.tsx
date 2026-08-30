@@ -43,9 +43,19 @@ export function EditSkuDialog({
   // while a sku is selected, so opening a different one is a fresh mount with
   // fresh initial state, and closing genuinely discards. Same behaviour, no
   // effect, no stale frame.
-  const perPiece = sku?.fixed_selling_price_mvr;
-  const initialFixedPrice = perPiece != null
-    ? (perPiece * (sku?.pcs_per_pack ?? 1)).toFixed(2) : "";
+  // THE PACK PRICE IS THE PRICE (0228). Option B below is entered per pack and
+  // is now STORED per pack. It used to be divided by the pack size and stored
+  // per piece, which lost precision at two decimals and — because the pack
+  // price also has its own column — let one product hold two prices that
+  // disagreed. Six X-Tra Kering SKUs did, by about 8%.
+  //
+  // The per-piece column is still read as a fallback so a product priced
+  // before this change opens showing the price it already has.
+  const initialFixedPrice = sku?.fixed_price_per_pack_mvr != null
+    ? Number(sku.fixed_price_per_pack_mvr).toFixed(2)
+    : sku?.fixed_selling_price_mvr != null
+      ? (Number(sku.fixed_selling_price_mvr) * (sku?.pcs_per_pack ?? 1)).toFixed(2)
+      : "";
 
   // ── The NAMES, which had no editor anywhere in the app until 0205 ────────
   //
@@ -71,7 +81,6 @@ export function EditSkuDialog({
   const [kg, setKg] = useState(sku?.carton_weight_kg?.toString() ?? "");
   const [marginPct, setMarginPct] = useState(sku?.target_margin_pct?.toString() ?? "");
   const [fixedPrice, setFixedPrice] = useState(initialFixedPrice);
-  const [fixedPackPrice, setFixedPackPrice] = useState(sku?.fixed_price_per_pack_mvr?.toString() ?? "");
   const [fixedCartonPrice, setFixedCartonPrice] = useState(sku?.fixed_price_per_carton_mvr?.toString() ?? "");
   const [sellUnits, setSellUnits] = useState<SellUnit[]>(
     sku?.sellable_units?.length ? sku.sellable_units : ["pack", "carton"]);
@@ -91,7 +100,6 @@ export function EditSkuDialog({
   const landedPerPiece = sku?.landed_per_piece_mvr ?? null;
   const pcs = parseInt(pcsPerPack, 10);
   const packs = parseInt(packsPerCarton, 10);
-  const sellsPack = sellUnits.includes("pack");
 
   // Preview from margin formula
   const marginPreview = useMemo(() => {
@@ -197,10 +205,12 @@ export function EditSkuDialog({
         carton_weight_kg: kg ? parseFloat(kg) : null,
         sellable_units: sellUnits,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
-        // fixedPrice is entered per-pack; store per-piece (the DB's common denominator)
-        fixed_selling_price_mvr: fixedPrice && pcs > 0 ? parseFloat(fixedPrice) / pcs : null,
-        // Don't persist a pack volume-break for a carton-only product.
-        fixed_price_per_pack_mvr: sellsPack && fixedPackPrice ? parseFloat(fixedPackPrice) : null,
+        // Entered per pack, STORED per pack (0228). The per-piece column is
+        // cleared rather than written: it is derived from this number now, and
+        // leaving a stale value behind is exactly how the same product came to
+        // hold two prices that disagreed.
+        fixed_selling_price_mvr: null,
+        fixed_price_per_pack_mvr: fixedPrice ? parseFloat(fixedPrice) : null,
         fixed_price_per_carton_mvr: fixedCartonPrice ? parseFloat(fixedCartonPrice) : null,
       });
       toast.success("Saved");
@@ -589,62 +599,41 @@ export function EditSkuDialog({
             )}
           </div>
 
-          {/* ── Volume-break pricing ── */}
+          {/* ── Carton price ──
+               There used to be a "Pack price" field here too, offered as a
+               volume break. For a product sold BY THE PACK it was not a break
+               at all — it was Option B above, entered a second time into a
+               second column. That is how six X-Tra Kering SKUs came to hold two
+               prices about 8% apart, with the winner depending on which screen
+               you opened (0228). One price per tier, entered once.
+
+               A carton price IS a real break: Ali gives MVR 20 off a carton
+               across almost the whole catalogue. */}
           <div className="border-t border-border pt-4 space-y-3">
             <div>
-              <p className="ios-subhead font-semibold text-foreground">Volume-Break Pricing</p>
+              <p className="ios-subhead font-semibold text-foreground">Carton price</p>
               <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                Optional — set a lower price for {sellsPack ? "pack or carton" : "carton"} buyers. Overrides the base price above for that unit only.
+                Optional — what a whole carton sells for. Leave it blank and a carton is
+                {packs > 0 ? ` ${packs} × the ${unit.toLowerCase()} price` : " the pack price times the packs per carton"}.
               </p>
             </div>
-            <div className={`grid gap-3 ${sellsPack ? "grid-cols-2" : "grid-cols-1"}`}>
-              {/* Fixed pack price — only for products sold in packs */}
-              {sellsPack && (
-                <div className="space-y-1.5">
-                  <Label className="ios-subhead">Pack price (MVR)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number" inputMode="decimal" step="0.01" min="0.01"
-                      value={fixedPackPrice}
-                      onChange={(e) => setFixedPackPrice(e.target.value)}
-                      placeholder={marginPreview ? `Auto: ${marginPreview.pack.toFixed(2)}` : "e.g. 88.00"}
-                    />
-                  </div>
-                  {fixedPackPrice && landedPerPiece && pcs > 0 && (
-                    <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>
-                      MVR {(parseFloat(fixedPackPrice) / pcs).toFixed(2)}/pc · {(((parseFloat(fixedPackPrice) - landedPerPiece * pcs) / parseFloat(fixedPackPrice)) * 100).toFixed(1)}% margin
-                    </p>
-                  )}
-                </div>
-              )}
-              {/* Fixed carton price */}
-              <div className="space-y-1.5">
-                <Label className="ios-subhead">Carton price (MVR)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number" inputMode="decimal" step="0.01" min="0.01"
-                    value={fixedCartonPrice}
-                    onChange={(e) => setFixedCartonPrice(e.target.value)}
-                    placeholder={marginPreview && packs > 0 ? `Auto: ${(marginPreview.pack * packs).toFixed(2)}` : "e.g. 320.00"}
-                  />
-                </div>
-                {fixedCartonPrice && landedPerPiece && pcs > 0 && packs > 0 && (
-                  <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>
-                    MVR {(parseFloat(fixedCartonPrice) / (pcs * packs)).toFixed(2)}/pc · {(((parseFloat(fixedCartonPrice) - landedPerPiece * pcs * packs) / parseFloat(fixedCartonPrice)) * 100).toFixed(1)}% margin
-                  </p>
-                )}
-              </div>
-            </div>
-            {(fixedPackPrice || fixedCartonPrice) && (
-              <div className="rounded-lg px-3 py-2" style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
+            <div className="space-y-1.5">
+              <Label className="ios-subhead">Carton price (MVR)</Label>
+              <Input
+                type="number" inputMode="decimal" step="0.01" min="0.01"
+                value={fixedCartonPrice}
+                onChange={(e) => setFixedCartonPrice(e.target.value)}
+                placeholder={fixedPreview && packs > 0 ? `${fixedPreview.carton.toFixed(2)} with no discount` : "e.g. 320.00"}
+              />
+              {fixedCartonPrice && fixedPreview && packs > 0 && (
                 <p className="ios-subhead" style={{ color: "var(--snm-success)" }}>
-                  Volume-break active — customers buying
-                  {fixedPackPrice ? ` packs get MVR ${parseFloat(fixedPackPrice).toFixed(2)}/pack` : ""}
-                  {fixedPackPrice && fixedCartonPrice ? " ·" : ""}
-                  {fixedCartonPrice ? ` cartons get MVR ${parseFloat(fixedCartonPrice).toFixed(2)}/carton` : ""}
+                  MVR {(fixedPreview.carton - parseFloat(fixedCartonPrice)).toFixed(2)} off a carton
+                  {landedPerPiece && pcs > 0
+                    ? ` · ${(((parseFloat(fixedCartonPrice) - landedPerPiece * pcs * packs) / parseFloat(fixedCartonPrice)) * 100).toFixed(1)}% margin`
+                    : ""}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
         <DialogFooter>

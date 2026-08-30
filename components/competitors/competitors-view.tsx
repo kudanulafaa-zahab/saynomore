@@ -1949,6 +1949,31 @@ function PriceModal({
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [saving, setSaving] = useState(false);
 
+  // WHICH OF HIS PACK FORMATS EACH ENTRY COVERS.
+  //
+  // Ali, 2026-08-30: *"In products/catalogue I have 2 SKUs for xxxl but in
+  // prices/market/competitors when I go to log price I only see one xxxl."*
+  //
+  // One row is right: a rival's price is a fact about the nappy and its size,
+  // not about how WE package it — their pack count is captured on the
+  // observation itself and everything normalises per nappy. That is the whole
+  // reason a per-piece figure exists.
+  //
+  // What was wrong is that the row then printed ONE pack format, borrowed from
+  // whichever SKU happened to survive the dedupe, while standing for both. A
+  // row that names 22/pk x 4/ctn and silently also covers 32/pk x 3/ctn is
+  // worse than a row that explains itself.
+  const formatsByVariant = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const s of skus) {
+      const list = m.get(s.variant_id) ?? [];
+      const label = `${s.pcs_per_pack}${containerLabel(s.unit_uom as UnitUom | null | undefined).charAt(0)} x ${s.packs_per_carton}/ctn`;
+      if (!list.includes(label)) list.push(label);
+      m.set(s.variant_id, list);
+    }
+    return m;
+  }, [skus]);
+
   const uniqueVariants = useMemo(() => {
     const seen = new Set<string>();
     const deduped = skus.filter((s) => { if (seen.has(s.variant_id)) return false; seen.add(s.variant_id); return true; });
@@ -2181,19 +2206,38 @@ function PriceModal({
                                   {variants.length} size{variants.length !== 1 ? "s" : ""}
                                 </p>
                               </button>
-                              {expanded && variants.map((s) => (
-                                <button
-                                  key={s.variant_id}
-                                  onClick={() => setVariantId(s.variant_id)}
-                                  className="w-full text-left px-4 py-3 active:opacity-70"
-                                  style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}
-                                >
-                                  <SkuIdentity
-                                    brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                                    pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
-                                  />
-                                </button>
-                              ))}
+                              {expanded && variants.map((s) => {
+                                const formats = formatsByVariant.get(s.variant_id) ?? [];
+                                const shared = formats.length > 1;
+                                return (
+                                  <button
+                                    key={s.variant_id}
+                                    onClick={() => setVariantId(s.variant_id)}
+                                    className="w-full text-left px-4 py-3 active:opacity-70"
+                                    style={{ borderTop: "0.5px solid var(--glass-border-lo)" }}
+                                  >
+                                    {/* When he stocks the same nappy in two pack
+                                        formats, naming one of them would be a
+                                        lie. Name the size, then say what the
+                                        one entry covers. */}
+                                    {shared ? (
+                                      <>
+                                        <p className="ios-subhead font-medium text-foreground">
+                                          {s.brand_name} · {s.model_name} · {s.variant_display}
+                                        </p>
+                                        <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                                          One entry covers both your packs — {formats.join(" and ")}
+                                        </p>
+                                      </>
+                                    ) : (
+                                      <SkuIdentity
+                                        brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
+                                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                                      />
+                                    )}
+                                  </button>
+                                );
+                              })}
                             </div>
                           );
                         })}

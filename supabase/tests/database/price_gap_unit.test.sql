@@ -60,17 +60,23 @@ values ('00000000-0000-0000-0000-000000000b30', '00000000-0000-0000-0000-0000000
 -- ══════════════════════════════════════════════════════════════════════════
 -- THE DISTORTION IS REAL, AND IS THE THING BEING WORKED AROUND
 -- ══════════════════════════════════════════════════════════════════════════
+-- WRITTEN BEFORE 0228, AND 0228 FIXED THE THING IT DESCRIBED. The assertion
+-- used to read "the per-piece column rounds MVR 3.64 up to a whole rufiyaa"
+-- and expect 4. That rounding is gone: per-piece is now derived from the pack
+-- price at full precision. Kept rather than deleted, flipped to state the rule
+-- that replaced it — a test that documents a defect must not outlive the fix.
 select is(
-  (select selling_price_per_piece_mvr from v_skus where id = '00000000-0000-0000-0000-000000000b22'),
-  4::numeric,
-  'the per-piece column rounds MVR 3.64 up to a whole rufiyaa — 9.9% high'
+  (select round(selling_price_per_piece_mvr, 4) from v_skus
+    where id = '00000000-0000-0000-0000-000000000b22'),
+  3.6364::numeric,
+  'the per-piece figure is the pack price divided by the pack size, not rounded to a rufiyaa'
 );
 
 select is(
   (select round(selling_price_per_pack_mvr / pcs_per_pack, 4) from v_skus
     where id = '00000000-0000-0000-0000-000000000b22'),
   3.6364::numeric,
-  'while the pack price he actually charges works out at MVR 3.6364 a nappy'
+  'which is exactly what the pack price he charges works out at'
 );
 
 -- ══════════════════════════════════════════════════════════════════════════
