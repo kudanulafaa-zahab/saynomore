@@ -688,7 +688,7 @@ export function CostingSimulator() {
           </div>
           <button
             onClick={() => setTrialDraft(emptyTrial())}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[13px] font-semibold shrink-0 snm-pressable"
+            className="flex items-center gap-1.5 min-h-11 px-3 rounded-xl text-[13px] font-semibold shrink-0 snm-pressable"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Plus className="h-3.5 w-3.5" /> Add
@@ -747,7 +747,7 @@ export function CostingSimulator() {
           </div>
           <button
             onClick={() => { setRows((rs) => rs.map((r) => toRow(r))); setResults(null); }}
-            className="flex items-center gap-1.5 text-[13px] font-medium snm-pressable shrink-0"
+            className="flex items-center gap-1.5 min-h-11 text-[13px] font-medium snm-pressable shrink-0"
             style={{ color: "var(--muted-foreground)" }}
           >
             <RotateCcw className="h-3.5 w-3.5" /> Reset
@@ -870,7 +870,7 @@ export function CostingSimulator() {
                     : "0.5px solid var(--glass-border-lo)",
                 }}
               >
-                <button onClick={() => loadScenario(s)} className="flex-1 min-w-0 text-left">
+                <button onClick={() => loadScenario(s)} className="flex-1 min-w-0 min-h-11 text-left">
                   <p className="text-[15px] font-medium truncate" style={{ color: "var(--foreground)" }}>{s.name}</p>
                   <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                     {s.payload.lines?.length ?? 0} products
@@ -996,7 +996,7 @@ function LineEditor({ row, onPatch }: { row: Row; onPatch: (id: string, p: Parti
             style={{ color: "var(--foreground)" }}
           />
         </label>
-        <button onClick={() => setOpen((o) => !o)} className="flex-1 min-w-0 text-left">
+        <button onClick={() => setOpen((o) => !o)} className="flex-1 min-w-0 min-h-11 text-left">
           <p className="text-[15px] font-medium truncate" style={{ color: "var(--foreground)" }}>
             {row.variant_display}
           </p>

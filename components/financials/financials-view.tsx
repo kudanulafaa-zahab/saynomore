@@ -761,17 +761,32 @@ export function FinancialsView() {
                     const isCurrent = m.month_start.slice(0, 7) === today.toISOString().slice(0, 7);
                     const isTapped  = tappedBar === m.month_start;
                     return (
-                      <div key={m.month_start} style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end" }}>
+                      // THE TARGET IS THE MONTH, NOT THE INK.
+                      //
+                      // The bar itself used to be the button, so a month with
+                      // no revenue was a 45x6 dashed sliver and a small month
+                      // barely more — you had to hit the drawing to read its
+                      // value. The whole column is the button now: 45x96,
+                      // always, whatever the bar happens to be worth. This is
+                      // the standard way a bar chart takes a tap, and it is
+                      // the one change here that makes something genuinely
+                      // easier rather than merely compliant.
+                      <button
+                        key={m.month_start}
+                        onClick={() => setTappedBar(isTapped ? null : m.month_start)}
+                        aria-label={isEmpty
+                          ? `${m.month_label}: no revenue`
+                          : `${m.month_label}: MVR ${fmtShort(rev)}`}
+                        style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end",
+                          background: "transparent", border: "none", padding: 0,
+                          cursor: "pointer", touchAction: "manipulation" }}
+                      >
                         {/* Empty month → a short "ghost" placeholder that reads as
                             no-data, not a broken tiny bar. */}
                         {isEmpty ? (
-                          <button
-                            onClick={() => setTappedBar(isTapped ? null : m.month_start)}
-                            style={{ width: "100%", height: 6, background: "transparent",
-                              borderTop: "1.5px dashed color-mix(in srgb, var(--foreground) 18%, transparent)",
-                              borderLeft: "none", borderRight: "none", borderBottom: "none",
-                              cursor: "pointer", touchAction: "manipulation" }}
-                            aria-label={`${m.month_label}: no revenue`}
+                          <div
+                            style={{ width: "100%", height: 6,
+                              borderTop: "1.5px dashed color-mix(in srgb, var(--foreground) 18%, transparent)" }}
                           />
                         ) : (
                           <div style={{ position: "relative", width: "100%", height: `${revH}%` }}>
@@ -779,17 +794,15 @@ export function FinancialsView() {
                             <p style={{ position: "absolute", bottom: "100%", left: 0, right: 0, textAlign: "center", marginBottom: 4, fontSize: 10, fontWeight: 700, color: "var(--foreground)", opacity: isTapped ? 1 : 0, transition: "opacity 0.15s", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", pointerEvents: "none" }}>
                               {fmtShort(rev)}
                             </p>
-                            <button
-                              onClick={() => setTappedBar(isTapped ? null : m.month_start)}
+                            <div
                               style={{ width: "100%", height: "100%",
                                 background: isCurrent || isTapped ? "var(--foreground)" : "color-mix(in srgb, var(--foreground) 35%, transparent)",
-                                borderRadius: "4px 4px 0 0", border: "none", cursor: "pointer",
-                                transition: "background 0.15s, height 0.2s", touchAction: "manipulation" }}
-                              aria-label={`${m.month_label}: MVR ${fmtShort(rev)}`}
+                                borderRadius: "4px 4px 0 0",
+                                transition: "background 0.15s, height 0.2s" }}
                             />
                           </div>
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -820,7 +833,7 @@ export function FinancialsView() {
               <p style={{ color: "var(--muted-foreground)", fontSize: 11, marginTop: 2 }}>{monthName} · top 5 by profit</p>
             </div>
             <button onClick={() => router.push("/reports")}
-              style={{ color: "var(--foreground)", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, padding: "8px 0" }}>
+              style={{ color: "var(--foreground)", background: "none", border: "none", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, minHeight: 44 }}>
               Full Report <ArrowRight style={{ width: 14, height: 14 }} />
             </button>
           </div>

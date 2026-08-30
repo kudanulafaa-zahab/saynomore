@@ -232,7 +232,7 @@ function GodownCard({
       <div className="flex items-center px-4 py-3.5" style={{ borderBottom: open && hasStock ? "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" : "none" }}>
         {/* Icon + name — tappable to expand if has stock */}
         <button
-          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+          className="flex items-center gap-3 flex-1 min-w-0 min-h-11 text-left"
           onClick={() => hasStock && setOpen(!open)}
         >
           <div
