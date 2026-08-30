@@ -248,7 +248,7 @@ export function PromoAdvisor() {
       {(hidden > 0 || expanded) && rows.length > PREVIEW_COUNT && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="snm-pressable w-full mt-3 flex items-center justify-center gap-1 rounded-xl py-2.5 ios-footnote font-semibold"
+          className="snm-pressable w-full mt-3 flex items-center justify-center gap-1 rounded-xl min-h-11 ios-footnote font-semibold"
           style={{ background: "var(--muted)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
         >
           {expanded
