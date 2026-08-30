@@ -79,6 +79,15 @@ export function EditSkuDialog({
   const [w, setW] = useState(sku ? String(sku.carton_width_cm) : "");
   const [h, setH] = useState(sku ? String(sku.carton_height_cm) : "");
   const [kg, setKg] = useState(sku?.carton_weight_kg?.toString() ?? "");
+  // NET CONTENT of one piece — 700 for a 700ml bottle. Ali, 2026-08-30:
+  // *"Sosoft bottles are all 700ml."* It exists for one reason: a rival's
+  // detergent may come in 500ml, 1L or 700ml, and MVR 40 says nothing until
+  // you know how much is in it. Per 100ml is the standard shelf-comparison
+  // unit for exactly that, and it stayed uncomparable until now because
+  // nothing recorded our own size (0232).
+  const [unitSize, setUnitSize] = useState(sku?.unit_size?.toString() ?? "");
+  const [unitSizeUom, setUnitSizeUom] = useState<"ml" | "g">(
+    (sku?.unit_size_uom as "ml" | "g" | null) ?? "ml");
   const [marginPct, setMarginPct] = useState(sku?.target_margin_pct?.toString() ?? "");
   const [fixedPrice, setFixedPrice] = useState(initialFixedPrice);
   const [fixedCartonPrice, setFixedCartonPrice] = useState(sku?.fixed_price_per_carton_mvr?.toString() ?? "");
@@ -100,6 +109,9 @@ export function EditSkuDialog({
   const landedPerPiece = sku?.landed_per_piece_mvr ?? null;
   const pcs = parseInt(pcsPerPack, 10);
   const packs = parseInt(packsPerCarton, 10);
+  // A piece is a single container (a bottle, a tub) rather than one of many in
+  // a pack. Those are the products with a net content; a nappy has none.
+  const measured = pcs === 1 || sku?.unit_size != null;
 
   // Preview from margin formula
   const marginPreview = useMemo(() => {
@@ -203,6 +215,9 @@ export function EditSkuDialog({
         carton_width_cm: parseFloat(w),
         carton_height_cm: parseFloat(h),
         carton_weight_kg: kg ? parseFloat(kg) : null,
+        // Both or neither — the database refuses a size with no unit.
+        unit_size: unitSize ? parseFloat(unitSize) : null,
+        unit_size_uom: unitSize ? unitSizeUom : null,
         sellable_units: sellUnits,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         // Entered per pack, STORED per pack (0228). The per-piece column is
@@ -388,6 +403,45 @@ export function EditSkuDialog({
               A different pack size is a different product: add it as a new SKU.
             </p>
           )}
+          {/* HOW MUCH IS IN ONE, for products that are MEASURED rather than
+              counted. Shown only when a piece is a single container — a bottle
+              or a tub — because a pack of nappies has no net content and the
+              field would be noise on every diaper. */}
+          {measured && (
+            <div className="space-y-2">
+              <Label>How much is in one {unit.toLowerCase()}</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number" inputMode="decimal" step="1" min="1"
+                  value={unitSize}
+                  onChange={(e) => setUnitSize(e.target.value)}
+                  placeholder="e.g. 700"
+                  className="max-w-[140px]"
+                />
+                <div className="flex gap-1">
+                  {(["ml", "g"] as const).map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setUnitSizeUom(u)}
+                      className="snm-pressable h-11 px-4 rounded-xl ios-subhead font-semibold"
+                      style={unitSizeUom === u
+                        ? { background: "var(--foreground)", color: "var(--background)" }
+                        : { background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                {unitSize
+                  ? `${unitSize} ${unitSizeUom} a ${unit.toLowerCase()}. Lets a rival's price per 100${unitSizeUom} be compared against yours.`
+                  : `Only needed to compare against a rival selling a different size. Leave it blank and those prices stay uncomparable.`}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Carton Dimensions (cm) *</Label>
             <div className="grid grid-cols-3 gap-2">

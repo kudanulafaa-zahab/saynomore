@@ -130,6 +130,10 @@ export interface SkuFullRow extends SkuRow {
   mixed_carton_pieces: number | null;
   // Pricing — all computed by v_skus
   landed_per_piece_mvr: number | null;
+  /** Net content of ONE piece — 700 for a 700ml bottle. Null when the product
+   *  is counted rather than measured: a nappy has no net content (0232). */
+  unit_size: number | null;
+  unit_size_uom: "ml" | "g" | null;
   selling_price_per_piece_mvr: number | null;
   selling_price_per_pack_mvr: number | null;
   selling_price_per_carton_mvr: number | null;
@@ -403,6 +407,8 @@ export async function updateSku(
     supplier_barcode: string | null;
     pcs_per_pack: number;
     packs_per_carton: number;
+    unit_size: number | null;
+    unit_size_uom: string | null;
     carton_length_cm: number;
     carton_width_cm: number;
     carton_height_cm: number;
