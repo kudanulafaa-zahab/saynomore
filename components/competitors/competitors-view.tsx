@@ -677,7 +677,9 @@ export function CompetitorsView() {
           { key: "competitors", label: "Competitors" },
         ] as const).map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 11.5, fontWeight: 600, whiteSpace: "nowrap", transition: "all 0.15s",
+            // minHeight 44: a segmented control is the most-tapped thing on the
+            // screen and this one sat at 35px. Same floor as Reports' tabs.
+            style={{ flex: 1, minHeight: 44, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 11.5, fontWeight: 600, whiteSpace: "nowrap", transition: "all 0.15s",
               background: tab === t.key ? "var(--glass-accent)" : "transparent",
               color:      tab === t.key ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}
           >{t.label}</button>

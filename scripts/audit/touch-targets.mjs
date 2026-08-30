@@ -57,6 +57,27 @@ const AUDIT = (min) => {
     // tag — an inline-displayed anchor is running text.
     if (el.tagName === "A" && cs.display.startsWith("inline") && !cs.display.includes("block")) continue;
 
+    // A SCRUB RAIL IS ONE CONTROL, NOT N TARGETS.
+    //
+    // Customers' A–Z index is 27 letters at 22x19, and it was 27 of the 101
+    // findings — a quarter of the whole debt, from one control. Enlarging the
+    // letters to 44px each would need 1,188px of height on a phone that has
+    // about 700, so the only way to "fix" it is to delete the alphabet, which
+    // is the feature.
+    //
+    // It is exempt because it is not 27 discrete targets. It is a single
+    // continuous gesture surface: you press it and slide, and a HUD follows
+    // your thumb — the rail is ~500px tall and 22px wide, far past 44 in the
+    // axis that carries the gesture. A tap on an empty letter snaps to the
+    // nearest section, so there are no dead targets inside it either. This is
+    // Apple's own Contacts geometry, and WCAG 2.2 SC 2.5.8 makes the same
+    // allowance for a target whose presentation is essential.
+    //
+    // Keyed on an explicit data-scrub-rail marker rather than a guess about
+    // size or position, so nothing else is quietly swept in with it: a second
+    // rail would have to opt in, in its own markup, deliberately.
+    if (el.closest("[data-scrub-rail]")) continue;
+
     // A control whose PARENT is the real tap target is not itself a target —
     // an icon inside a row that is one big link, for instance. Judging both
     // would report the row's own chevron as a defect.

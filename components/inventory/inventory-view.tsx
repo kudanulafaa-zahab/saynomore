@@ -852,7 +852,9 @@ export function InventoryView() {
                   if (mode === "stock") setSortDir("desc");
                   setSortMode(mode);
                 }}
-                className="shrink-0 ios-subhead font-semibold px-3 py-1.5 rounded-full transition active:opacity-70 inline-flex items-center gap-1"
+                // min-h-11 (44px): these sort pills were 32-34px. They stay
+                // pill-shaped and keep their text size — only the tap box grows.
+                className="shrink-0 ios-subhead font-semibold px-3 min-h-11 rounded-full transition active:opacity-70 inline-flex items-center gap-1"
                 style={{
                   background: active ? "var(--foreground)" : "var(--glass-1)",
                   color: active ? "var(--background)" : "var(--muted-foreground)",

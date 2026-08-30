@@ -661,6 +661,12 @@ export function CustomersManager() {
           )}
 
           <div
+            // data-scrub-rail marks this as ONE gesture control, not 27
+            // targets, and the touch-target audit reads that attribute to
+            // exempt the letters. See scripts/audit/touch-targets.mjs for the
+            // reasoning; the marker lives here so the exemption is visible at
+            // the thing being exempted rather than only in the audit.
+            data-scrub-rail=""
             className="fixed top-1/2 -translate-y-1/2 z-30 lg:hidden flex flex-col items-center"
             style={{
               right: "max(6px, env(safe-area-inset-right, 0px))",
