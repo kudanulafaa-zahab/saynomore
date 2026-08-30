@@ -63,10 +63,15 @@ declare
   v_failed text[] := '{}';
   r        record;
 begin
+  -- ANY SKU will do — the guard is a property of the column, not of a product.
+  -- Whatever it currently holds (usually nothing at all) is put back at the
+  -- end. Asking for one that already has a size would fail on a fresh database
+  -- where none does, which is exactly the census mistake 0232 just made.
   select id, unit_size, unit_size_uom into v_sku, v_size, v_uom
-    from public.skus where unit_size is not null limit 1;
+    from public.skus order by internal_code limit 1;
   if v_sku is null then
-    raise exception 'no SKU carries a net content, so the guard cannot be driven';
+    raise notice 'no products yet — nothing to drive the net-content guard against';
+    return;
   end if;
 
   for r in
@@ -103,7 +108,12 @@ begin
     raise exception 'a half-filled net content survived the fix';
   end if;
 
-  if (select count(*) from public.skus where unit_size = 700 and unit_size_uom = 'ml') <> 5 then
-    raise exception 'the five bottles did not come back at 700ml';
+  -- The product used as a test bench must be exactly as it was found.
+  if exists (
+    select 1 from public.skus
+     where id = v_sku
+       and (unit_size is distinct from v_size or unit_size_uom is distinct from v_uom)
+  ) then
+    raise exception 'the product driven against was not restored to its own net content';
   end if;
 end $$;

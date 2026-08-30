@@ -26,9 +26,18 @@
 -- ── THE 700 IS NOT TAKEN ON TRUST ─────────────────────────────────────────
 --
 -- Every Sosoft variant already carries it in its own display name — "Rose &
--- Water Lily Bottle 700ml", and four more like it. The update asserts the name
--- says 700ml before writing 700, and refuses unless exactly five rows match,
--- so it cannot stamp a size onto a catalogue that has moved on.
+-- Water Lily Bottle 700ml", and four more like it. The update writes 700 only
+-- where the name says 700ml, so it cannot stamp a size onto a catalogue that
+-- has moved on, and it then refuses to finish if any Sosoft bottle was left
+-- without one.
+--
+-- That guard was first written as "refuse unless exactly five rows match",
+-- which is a fact about Ali's catalogue rather than about a database, and it
+-- failed CI on the seed — where there are no Sosoft products at all and
+-- updating none of them is the correct outcome. 0231 already had the right
+-- shape and it was not followed: ABSENCE IS FINE, a product that is present
+-- and disagrees is fatal. A migration has to replay on any database, so a
+-- guard must assert the RULE (no bottle left unsized) and never a census.
 --
 -- Body Shop's five tubs are deliberately left NULL. Ali gave a figure for
 -- Sosoft and not for those, and an invented net content would be worse than an
@@ -51,7 +60,9 @@ comment on column public.skus.unit_size_uom is
   'ml or g. Null exactly when unit_size is null.';
 
 do $$
-declare v_written int;
+declare
+  v_bottles int;
+  v_orphan  text;
 begin
   update public.skus s
      set unit_size = 700, unit_size_uom = 'ml'
@@ -59,9 +70,23 @@ begin
    where v.id = s.variant_id
      and s.internal_code like 'SOSO-%'
      and v.display_name ilike '%700ml%';
-  get diagnostics v_written = row_count;
-  if v_written <> 5 then
-    raise exception 'expected 5 Sosoft bottles naming 700ml, updated %', v_written;
+
+  select count(*) into v_bottles from public.skus where internal_code like 'SOSO-%';
+  if v_bottles = 0 then
+    raise notice 'no Sosoft bottles in this database — nothing to size';
+    return;
+  end if;
+
+  -- The real risk is not "how many" but "one we could not verify". A bottle
+  -- that is here and whose name does not state its size must stop the
+  -- migration rather than be guessed at.
+  select string_agg(s.internal_code, ', ' order by s.internal_code) into v_orphan
+    from public.skus s
+   where s.internal_code like 'SOSO-%' and s.unit_size is null;
+  if v_orphan is not null then
+    raise exception
+      'Sosoft bottle(s) carry no net content because their name does not say a '
+      'size: %. Check the real bottle before assuming 700ml.', v_orphan;
   end if;
 end $$;
 
@@ -177,13 +202,17 @@ grant select on public.v_competitor_price_normalized to authenticated, service_r
 
 do $$
 declare
-  v_n int;
   v_bad text;
 begin
-  select count(*) into v_n from public.skus where unit_size = 700 and unit_size_uom = 'ml';
-  if v_n <> 5 then raise exception 'expected 5 bottles at 700ml, found %', v_n; end if;
+  -- Stated as rules, not counts, so this replays anywhere: every Sosoft bottle
+  -- is sized, and v_skus shows exactly the sizes the table holds.
+  if exists (select 1 from public.skus
+              where internal_code like 'SOSO-%' and unit_size is null) then
+    raise exception 'a Sosoft bottle still carries no net content';
+  end if;
 
-  if (select count(*) from public.v_skus where unit_size = 700) <> 5 then
+  if (select count(*) from public.v_skus where unit_size is not null)
+     <> (select count(*) from public.skus where unit_size is not null) then
     raise exception 'v_skus does not carry the net content';
   end if;
 
