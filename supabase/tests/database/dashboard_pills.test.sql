@@ -30,7 +30,7 @@
 -- last test here holds that specific rule.
 
 begin;
-select plan(7);
+select plan(9);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000008a0', 'test-pills@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000008a0';
@@ -67,6 +67,39 @@ select is(
   (select pending_payments_count from get_dashboard_metrics()),
   (select coalesce(sum(orders_count), 0) from get_receivables_aging()),
   'the unpaid pill counts exactly what the receivables screen totals'
+);
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- THE DAILY LIST STATES MONEY TOO, AND IT MUST BE THE SAME MONEY.
+-- ══════════════════════════════════════════════════════════════════════════
+-- The deadstock row said "13 products · about MVR 49,408 tied up" while the
+-- Needs-Attention card directly beneath it said MVR 44,475 for the same 13.
+-- The row was valuing the stock at its PROMO SELLING PRICE while calling it
+-- "tied up". Money tied up is what it cost to put there.
+-- Compared as NUMBERS after stripping the thousands comma, and both sides fall
+-- back to -1 when the row is absent, so a fixture with no slow movers passes on
+-- agreement rather than failing on absence. The row is what Ali reads, so the
+-- money is pulled back out of the printed sentence rather than recomputed.
+select is(
+  (select case when exists (select 1 from get_today(20) where kind = 'deadstock')
+               then (select replace(substring(detail from 'MVR ([0-9,]+) tied up'), ',', '')::numeric
+                       from get_today(20) where kind = 'deadstock')
+               else -1 end),
+  (select case when exists (select 1 from get_today(20) where kind = 'deadstock')
+               then (select round(sum(stock_value_mvr)) from get_promo_suggestions())
+               else -1 end),
+  'the daily list quotes the same money tied up as the screen it opens'
+);
+
+select is(
+  (select case when exists (select 1 from get_today(20) where kind = 'deadstock')
+               then (select substring(detail from '^([0-9]+) product')::int
+                       from get_today(20) where kind = 'deadstock')
+               else -1 end),
+  (select case when exists (select 1 from get_today(20) where kind = 'deadstock')
+               then (select count(*)::int from get_promo_suggestions())
+               else -1 end),
+  'and the same number of products'
 );
 
 -- ══════════════════════════════════════════════════════════════════════════
