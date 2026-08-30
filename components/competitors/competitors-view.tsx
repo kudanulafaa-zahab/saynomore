@@ -748,7 +748,7 @@ export function CompetitorsView() {
           {priceGaps.length > 3 && (
             <button
               onClick={() => setGapsExpanded((v) => !v)}
-              className="w-full mt-2 flex items-center justify-center gap-1 rounded-xl py-2 ios-subhead font-semibold transition active:opacity-70"
+              className="w-full mt-2 flex items-center justify-center gap-1 rounded-xl min-h-11 ios-subhead font-semibold transition active:opacity-70"
               style={{ background: "var(--muted)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
             >
               {gapsExpanded

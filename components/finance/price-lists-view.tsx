@@ -165,7 +165,7 @@ export function PriceListsView() {
                 {canWrite && (
                   <button
                     onClick={() => { setNewListTier(tier); setCreatedList(null); }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full ios-subhead font-semibold active:opacity-70 active:scale-95"
+                    className="flex items-center gap-1.5 px-4 min-h-11 rounded-full ios-subhead font-semibold active:opacity-70 active:scale-95"
                     style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
                   >
                     <Plus className="h-3 w-3" /> New list
