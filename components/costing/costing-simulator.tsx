@@ -553,7 +553,10 @@ export function CostingSimulator() {
             add or remove cartons; a flat number could never show that. */}
         <div className="rounded-2xl p-3.5 space-y-3"
              style={{ background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)" }}>
-          <label className="flex items-center gap-2.5">
+          {/* min-h-11: the label already IS the target here — clicking it
+              toggles the box — it was just 20px tall, so the target was the
+              text line rather than a comfortable row. */}
+          <label className="flex items-center gap-2.5 min-h-11 cursor-pointer">
             <input
               type="checkbox"
               checked={ship.shared_container}
@@ -975,14 +978,24 @@ function LineEditor({ row, onPatch }: { row: Row; onPatch: (id: string, p: Parti
       }}
     >
       <div className="flex items-center gap-3 px-3 py-2.5">
-        <input
-          type="checkbox"
-          checked={active}
-          onChange={(e) => onPatch(row.sku_id, { include: e.target.checked })}
-          aria-label={`Include ${row.variant_display}`}
-          className="h-5 w-5 shrink-0 accent-current"
-          style={{ color: "var(--foreground)" }}
-        />
+        {/* THE BOX STAYS 20px; THE TARGET BECOMES 44. This is the control that
+            decides whether a product is in the shipment being costed, once per
+            catalogue row, and it was a bare 20x20 checkbox — the smallest
+            thing in the app and one of the most-tapped. It cannot join the
+            product name in one big label, because that name is a <button> that
+            expands the row and a button inside a label is invalid. So the
+            label wraps the box alone and is padded out to 44pt.
+            -ml-2 keeps the box optically where it was; the row grows to 44. */}
+        <label className="flex items-center justify-center shrink-0 min-h-11 min-w-11 -ml-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={active}
+            onChange={(e) => onPatch(row.sku_id, { include: e.target.checked })}
+            aria-label={`Include ${row.variant_display}`}
+            className="h-5 w-5 shrink-0 accent-current"
+            style={{ color: "var(--foreground)" }}
+          />
+        </label>
         <button onClick={() => setOpen((o) => !o)} className="flex-1 min-w-0 text-left">
           <p className="text-[15px] font-medium truncate" style={{ color: "var(--foreground)" }}>
             {row.variant_display}
