@@ -54,7 +54,7 @@ export function CampaignsCard() {
         {canWrite && (
           <button
             onClick={() => setSheet({ open: true })}
-            className="snm-pressable flex items-center gap-1.5 rounded-full px-3 py-1.5 ios-footnote font-semibold"
+            className="snm-pressable flex items-center gap-1.5 rounded-full px-3 min-h-11 ios-footnote font-semibold"
             style={{ background: "var(--foreground)", color: "var(--background)" }}
           >
             <Plus className="h-3.5 w-3.5" /> Log Campaign

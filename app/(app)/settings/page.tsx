@@ -49,7 +49,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSignOut}
               disabled={signingOut}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 active:opacity-70 disabled:opacity-40 shrink-0"
+              className="flex items-center gap-2 px-4 min-h-11 rounded-xl text-sm font-semibold transition active:scale-95 active:opacity-70 disabled:opacity-40 shrink-0"
               style={{
                 background: "color-mix(in srgb, var(--snm-error) 10%, transparent)",
                 color: "var(--snm-error)",

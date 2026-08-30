@@ -397,7 +397,7 @@ export function PriceReview() {
               <button
                 key={t}
                 onClick={() => setTier(t)}
-                className="snm-pressable rounded-full px-3.5 py-1.5 ios-footnote font-semibold flex items-center gap-1.5"
+                className="snm-pressable rounded-full px-3.5 min-h-11 ios-footnote font-semibold flex items-center gap-1.5"
                 style={{
                   background: on ? "var(--foreground)" : "var(--glass-bg-1)",
                   color: on ? "var(--background)" : "var(--foreground)",
@@ -501,7 +501,7 @@ export function PriceReview() {
                     {canFix && (
                       <button
                         onClick={() => { setTier(t); setEditing(r); }}
-                        className="snm-pressable rounded-full px-3.5 py-1.5 ios-footnote font-semibold"
+                        className="snm-pressable rounded-full px-3.5 min-h-11 ios-footnote font-semibold"
                         style={{ background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
                       >
                         {capped ? "Set a price" : "Choose another price"}

@@ -229,7 +229,7 @@ export function PromoAdvisor() {
               </div>
               <button
                 onClick={() => copyCaption(r)}
-                className="snm-pressable shrink-0 flex items-center gap-1.5 rounded-full px-3 py-2 ios-footnote font-semibold"
+                className="snm-pressable shrink-0 flex items-center gap-1.5 rounded-full px-3 min-h-11 ios-footnote font-semibold"
                 style={{ background: "var(--foreground)", color: "var(--background)" }}
               >
                 {/* A megaphone is a PUBLIC symbol, and half these rows must not
@@ -248,7 +248,7 @@ export function PromoAdvisor() {
       {(hidden > 0 || expanded) && rows.length > PREVIEW_COUNT && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="snm-pressable w-full mt-3 flex items-center justify-center gap-1 rounded-xl py-2.5 ios-footnote font-semibold"
+          className="snm-pressable w-full mt-3 flex items-center justify-center gap-1 rounded-xl min-h-11 ios-footnote font-semibold"
           style={{ background: "var(--muted)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)" }}
         >
           {expanded
