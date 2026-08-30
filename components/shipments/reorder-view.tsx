@@ -226,7 +226,8 @@ export function ReorderView() {
         <div className="flex gap-1" style={{ background: "var(--glass-bg-1)", borderRadius: 12, padding: 4 }}>
           {([["need", `Needs ordering${needCount ? ` · ${needCount}` : ""}`], ["all", "All products"]] as const).map(([m, label]) => (
             <button key={m} onClick={() => setLens(m)}
-              className="flex-1 rounded-[9px] py-2 text-[12.5px] font-semibold transition"
+              // min-h-11 (44px) rather than py-2, which left it at 35px.
+              className="flex-1 rounded-[9px] min-h-11 text-[12.5px] font-semibold transition"
               style={{ background: lens === m ? "var(--foreground)" : "transparent",
                        color: lens === m ? "var(--background)" : "var(--muted-foreground)" }}>
               {label}

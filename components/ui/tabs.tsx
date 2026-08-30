@@ -24,7 +24,13 @@ function Tabs({
 }
 
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
+  // h-[51px], not the stock h-8. The list carries p-[3px] and each trigger is
+  // h-[calc(100%-1px)], so a 32px list makes a 25px tab — the smallest control
+  // in the app and well under the 44px HIG floor the rest of it now meets.
+  // 51 - 6 (padding) - 1 = exactly 44. Only the box grows: the label keeps its
+  // text-sm, which is what the touch audit measures ("the hit area, not the
+  // ink").
+  "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-[51px] group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
   {
     variants: {
       variant: {

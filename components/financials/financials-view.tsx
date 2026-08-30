@@ -479,7 +479,9 @@ export function FinancialsView() {
           // each broke onto two lines, so the strip stood twice as tall as it
           // should and the four tabs no longer read as one control.
           <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer",
+            // minHeight 44: the strip was 37px. The nowrap note above still
+            // holds — this makes the box taller, never the label wider.
+            style={{ flex: 1, minHeight: 44, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer",
               fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", transition: "all 0.15s",
               background: tab === t.key ? "var(--glass-accent)" : "transparent",
               color:      tab === t.key ? "var(--snm-brand-on)" : "var(--muted-foreground)" }}

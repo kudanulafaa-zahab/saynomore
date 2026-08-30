@@ -505,7 +505,8 @@ export function SalesList() {
           { val: "customers", icon: Users, label: "Customers" },
         ] as const).map(({ val, icon: Icon, label }) => (
           <button key={val} onClick={() => setGroupBy(val)}
-            className="flex-1 flex items-center justify-center gap-2 h-10 text-[14px] font-semibold transition"
+            // h-11 (44px), not h-10 — four pixels short of the floor.
+            className="flex-1 flex items-center justify-center gap-2 h-11 text-[14px] font-semibold transition"
             style={groupBy === val
               ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
               : { background: "transparent", color: "var(--muted-foreground)" }}>
