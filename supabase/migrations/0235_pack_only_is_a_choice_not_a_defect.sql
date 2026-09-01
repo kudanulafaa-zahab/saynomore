@@ -171,7 +171,7 @@ as $function$
   order by 9, 8 desc, 3;
 $function$;
 
-revoke execute on function public.get_setup_gaps() from public;
+revoke execute on function public.get_setup_gaps() from public, anon;
 grant  execute on function public.get_setup_gaps() to authenticated, service_role;
 
 do $$

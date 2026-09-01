@@ -129,12 +129,12 @@ as $function$
   order by 9, 8 desc, 3;
 $function$;
 
--- FROM PUBLIC, not just anon. CREATE FUNCTION grants EXECUTE to PUBLIC by
--- default and every role inherits it, so revoking anon alone leaves the
--- function callable by anyone holding the publishable key. CREATE OR REPLACE
--- keeps existing grants, but this is stated on every rebuild so a future DROP
--- and CREATE cannot silently re-open it.
-revoke execute on function public.get_setup_gaps() from public;
+-- FROM BOTH, and this migration is why. Revoking PUBLIC alone was not enough:
+-- CREATE FUNCTION grants EXECUTE to PUBLIC, and Supabase's ALTER DEFAULT
+-- PRIVILEGES grants it to anon SEPARATELY, so anon kept its own grant and this
+-- block's own guard failed on a fresh replay. CREATE OR REPLACE preserves
+-- existing grants, which is how the anon grant survived from 0237.
+revoke execute on function public.get_setup_gaps() from public, anon;
 grant  execute on function public.get_setup_gaps() to authenticated, service_role;
 
 do $$

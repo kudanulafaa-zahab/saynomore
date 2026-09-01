@@ -112,10 +112,10 @@ comment on function public.set_category_sellable_units(uuid, text[]) is
   'and brings every active product of that type with it, audit-logged row by '
   'row. Inactive products are left alone — they are history (0238).';
 
--- FROM PUBLIC, not just anon. CREATE FUNCTION grants EXECUTE to PUBLIC by
--- default, and anon inherits it — so revoking anon alone leaves the
--- function callable by anyone holding the publishable key.
-revoke execute on function public.set_category_sellable_units(uuid, text[]) from public;
+-- FROM BOTH. There are two separate grants and removing either one alone
+-- leaves the function open: CREATE FUNCTION grants EXECUTE to PUBLIC, and
+-- Supabase's ALTER DEFAULT PRIVILEGES grants it to anon in its own right.
+revoke execute on function public.set_category_sellable_units(uuid, text[]) from public, anon;
 grant  execute on function public.set_category_sellable_units(uuid, text[]) to authenticated, service_role;
 
 do $$
