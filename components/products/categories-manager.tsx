@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ import {
   listCategories,
   createCategory,
   updateCategory,
+  setCategorySellableUnits,
   deleteCategory,
   getCurrentUserRole,
   type CategoryRow,
@@ -64,6 +66,17 @@ export function CategoriesManager() {
   const [canWrite, setCanWrite] = useState(false);
 
   useEffect(() => { getCurrentUserRole().then((r) => setCanWrite(r !== "viewer" && r !== null)).catch(() => {}); }, []);
+
+  // ARRIVING FROM A LINK. Setup Gaps' "sold differently from its type" row
+  // deep-links here with ?editCategory=<id>, because the type is where that is
+  // fixed. Opened once the rows are loaded — the id alone is not enough to
+  // render the sheet, it needs the row.
+  const wantedCategory = useSearchParams().get("editCategory");
+  useEffect(() => {
+    if (!wantedCategory) return;
+    const match = rows.find((c) => c.id === wantedCategory);
+    if (match) setEditingCat(match);
+  }, [wantedCategory, rows]);
 
   async function load() {
     try {
@@ -289,25 +302,63 @@ function CategoryDialog({
   );
 }
 
-// ── Category editor — mainly for adjusting the duty rate later (customs
-// rates change) since there's no other way to edit an existing category. ──
+// ── The product type editor — the ONE place a kind of product is defined ──
+//
+// Ali, 2026-09-01: *"I must be change product conditions when I want it at any
+// given time. It should not be complicated and must be at the correct module or
+// place. It shouldn't exist in multiple places."*
+//
+// It used to edit only the duty rate. HOW A KIND OF PRODUCT IS SOLD lived
+// nowhere he could reach: `default_sellable_units` was written once when the
+// type was created, derived from the unit word, and never shown again — while
+// every product carried its own hand-typed copy that could quietly differ. That
+// is how one XXXL diaper ended up unable to be sold by the carton, and how the
+// detergent type still said "cartons only" while every Sosoft sells bottles.
+//
+// So it is set here, and it BRINGS THE PRODUCTS WITH IT: one Postgres function
+// updates the type and every active product of that type, audit-logged row by
+// row (0238). Nothing to keep in sync by hand, and nowhere else to look.
 
 function EditCategoryDialog({
   category, onOpenChange, onSaved,
 }: { category: CategoryRow | null; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
   const [duty, setDuty] = useState("");
+  const [units, setUnits] = useState<SellUnit[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (category) setDuty(category.duty_rate_pct > 0 ? String(category.duty_rate_pct) : "");
+    if (category) {
+      setDuty(category.duty_rate_pct > 0 ? String(category.duty_rate_pct) : "");
+      setUnits(category.default_sellable_units ?? []);
+    }
   }, [category]);
+
+  // The word for one of them — "bottle", "tub", "pack" — from the type's own
+  // unit. Never hardcoded: a tub is not a pack, and this file has no unit word
+  // of its own anywhere.
+  const one = category ? containerLabel(category.unit_uom) : "pack";
+
+  function toggle(u: SellUnit) {
+    setUnits((cur) => (cur.includes(u) ? cur.filter((x) => x !== u) : [...cur, u]));
+  }
 
   async function save() {
     if (!category) return;
+    if (units.length === 0) {
+      toast.error("Choose at least one way this is sold");
+      return;
+    }
     setSaving(true);
     try {
       await updateCategory(category.id, { duty_rate_pct: duty ? parseFloat(duty) : 0 });
-      toast.success("Saved");
+      const changed = await setCategorySellableUnits(category.id, units);
+      toast.success(
+        changed === 0
+          ? "Saved"
+          : changed === 1
+            ? "Saved — 1 product updated to match"
+            : `Saved — ${changed} products updated to match`,
+      );
       onOpenChange(false);
       onSaved();
     } catch (err) {
@@ -322,9 +373,42 @@ function EditCategoryDialog({
       <DialogContent className="bg-popover border-border">
         <DialogHeader>
           <DialogTitle>{category?.name}</DialogTitle>
-          <DialogDescription>Adjust this category&apos;s customs duty rate.</DialogDescription>
+          <DialogDescription>How this kind of product is sold, and its customs duty.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label>How it&apos;s sold</Label>
+            {/* Real --foreground on a filled surface when unselected: these
+                pills carry a CHOICE, so they are content and not a hint. */}
+            <div className="flex gap-2">
+              {([
+                { u: "pack" as SellUnit, label: `Single ${one}` },
+                { u: "carton" as SellUnit, label: "Carton" },
+              ]).map(({ u, label }) => {
+                const on = units.includes(u);
+                return (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => toggle(u)}
+                    className="flex-1 min-h-11 rounded-xl ios-subhead font-semibold transition active:scale-95 flex items-center justify-center gap-1.5"
+                    style={on
+                      ? { background: "var(--foreground)", color: "var(--background)" }
+                      : { background: "var(--glass-bg-1)", color: "var(--foreground)",
+                          border: "0.5px solid var(--glass-border-lo)" }}
+                  >
+                    {on && <Check className="h-3.5 w-3.5" />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+              Every {category?.name.toLowerCase()} product follows this — the ones you
+              have now and the ones you add later. Saving brings existing products with it.
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label>Customs Duty %</Label>
             <Input type="number" step="0.01" min="0" placeholder="0" value={duty} onChange={(e) => setDuty(e.target.value)} />

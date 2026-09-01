@@ -4,7 +4,17 @@ import { CategoriesManager } from "@/components/products/categories-manager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SetupGaps } from "@/components/products/setup-gaps";
 
-export default function ProductsPage() {
+const TABS = ["tree", "all", "categories"] as const;
+type Tab = (typeof TABS)[number];
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
+  const active: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "tree";
+
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <div>
@@ -17,7 +27,14 @@ export default function ProductsPage() {
           product is ready — so it costs no space on a normal day. */}
       <SetupGaps />
 
-      <Tabs defaultValue="tree" className="space-y-4">
+      {/* `?tab=` so a link can land on the right tab — Setup Gaps sends the
+          "sold differently from its type" row straight to Categories, which is
+          the only screen that can fix it.
+          KEYED ON THE TAB because defaultValue is uncontrolled: Setup Gaps sits
+          on THIS page, so following its link is a same-page navigation and the
+          Tabs would otherwise keep whatever tab was already open. The key
+          remounts them, which is what makes the link actually arrive. */}
+      <Tabs key={active} defaultValue={active} className="space-y-4">
         <TabsList className="bg-secondary border border-border">
           <TabsTrigger value="tree">By Brand</TabsTrigger>
           <TabsTrigger value="all">All SKUs</TabsTrigger>

@@ -117,7 +117,7 @@ export type SetupGap =
   | "no_price"
   | "no_carton_price"
   | "no_unit_price"
-  | "carton_not_sellable"
+  | "units_differ_from_type"
   | "no_carton_size"
   | "no_cost";
 
@@ -134,6 +134,10 @@ export interface SetupGapRow {
   stock_label: string;
   stock_pieces: number;
   severity: number;
+  /** The product TYPE this product belongs to. Every gap so far is fixed on
+   *  the product itself, but `units_differ_from_type` is fixed on the type —
+   *  so the row has to carry where to go (0237). */
+  category_id: string;
 }
 
 /** Every active product with something unfinished that will block a sale, a
