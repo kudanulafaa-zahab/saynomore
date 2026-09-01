@@ -100,9 +100,25 @@ The standing laws, each with the incident that created it:
   `apply_target_prices`, `get_receivables_aging`, `get_promo_suggestions`,
   `get_morning_briefing`, `v_expiring_stock`, `v_batch_stock`, `v_skus`.
 - Every new SECURITY DEFINER function: `SET search_path`, wrap auth calls as
-  `(select auth.uid())` (initplan), and **REVOKE EXECUTE FROM anon in the
-  same migration** — get_pricing_health shipped anon-readable for half a day;
-  never again.
+  `(select auth.uid())` (initplan), and **REVOKE EXECUTE FROM PUBLIC in the
+  same migration** — not from `anon`.
+
+  **This rule said `anon` until 2026-09-01, and saying `anon` is what broke
+  it.** `CREATE FUNCTION` grants EXECUTE **to PUBLIC** by default, and every
+  role — `anon` included — inherits that grant. Revoking `anon` removes a
+  grant `anon` never held on its own, leaves the PUBLIC grant untouched, and
+  reads as if the function were locked. `get_setup_gaps` and
+  `set_category_sellable_units` shipped to production exactly that way, the
+  first of them SECURITY DEFINER with no role check of its own, so the whole
+  catalogue was readable by anyone holding the publishable key. Caught by
+  rls_surface.test.sql, which asks the real question —
+  `has_function_privilege('anon', …)` — rather than trusting the revoke.
+
+  The ACL tells you which you have: `{=X/postgres,…}` — a leading bare `=X`
+  — IS the PUBLIC grant. If it is there, the function is open.
+
+  66 migrations already revoke from PUBLIC and 23 follow the old wording;
+  the 23 are harmless only because a later migration re-secured them.
 - Migrations: file in `supabase/migrations/NNNN_*.sql` AND applied live via
   MCP in the same work unit. Run advisors after DDL.
 - Immutable once posted; corrections are reversing entries. Stock =

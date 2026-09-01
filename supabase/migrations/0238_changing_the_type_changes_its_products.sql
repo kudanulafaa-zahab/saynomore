@@ -112,7 +112,10 @@ comment on function public.set_category_sellable_units(uuid, text[]) is
   'and brings every active product of that type with it, audit-logged row by '
   'row. Inactive products are left alone — they are history (0238).';
 
-revoke execute on function public.set_category_sellable_units(uuid, text[]) from anon;
+-- FROM PUBLIC, not just anon. CREATE FUNCTION grants EXECUTE to PUBLIC by
+-- default, and anon inherits it — so revoking anon alone leaves the
+-- function callable by anyone holding the publishable key.
+revoke execute on function public.set_category_sellable_units(uuid, text[]) from public;
 grant  execute on function public.set_category_sellable_units(uuid, text[]) to authenticated, service_role;
 
 do $$

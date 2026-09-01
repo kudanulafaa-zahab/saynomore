@@ -1,26 +1,28 @@
--- 0237 — a gap carries the place it is fixed.
+-- 0239 — a carton holding one pack is not a second unit, so it cannot disagree.
 --
--- Ali, 2026-09-01:
---   *"It shouldn't exist in multiple places. And when something refers to it,
---    it must be able to take me to the correct place."*
+-- 0236 flags a product sold differently from its kind. Two existing suites
+-- stopped on it, and both were right:
 --
--- Every Setup Gaps row already deep-links to where it is fixed: tapping a
--- product opens its edit sheet, through the `?editSku=` link that already
--- existed. That works because every gap so far has been fixed ON THE PRODUCT —
--- a missing price, a missing measurement, a missing cost.
+--   setup_gaps.test.sql   a tub, 1 per pack and 1 per carton, sold by the pack,
+--                         in a type that says pack + carton. Reported as
+--                         "sold differently from other test category".
 --
--- `units_differ_from_type` (0236) is the first gap whose fix is somewhere else.
--- How a kind of product is sold now lives on the PRODUCT TYPE, so sending him
--- to the product's own sheet would be sending him to the one screen that cannot
--- fix it. The row therefore has to carry the type's id, and that means the
--- function has to return it.
+-- It is not sold differently. For that product a carton IS the pack — one tub
+-- either way — so "sells cartons too" and "does not" describe the same thing.
+-- Flagging it is noise on a panel whose whole discipline is that every line is
+-- actionable or absent, and the action here would be to tick a box that changes
+-- nothing about what can be bought.
 --
--- Appended at the end of the return, which needs a DROP first: Postgres cannot
--- change a function's OUT columns with CREATE OR REPLACE (42P13).
+-- This is the same reasoning already applied twice: 0234's constraint exempted
+-- `packs_per_carton <= 1`, and so did the gap 0235 introduced. 0236 generalised
+-- the rule and dropped the exemption on the way through — the generalisation
+-- was right, losing the exemption was not.
+--
+-- So the comparison is against the type's units MINUS the carton when a carton
+-- holds one pack. Everything else is untouched: a real multi-pack carton that
+-- the product refuses is still reported, which is Ali's actual case.
 
-drop function if exists public.get_setup_gaps();
-
-create function public.get_setup_gaps()
+create or replace function public.get_setup_gaps()
 returns table(sku_id uuid, internal_code text, full_path text, gap text,
               headline text, blocks text, stock_label text, stock_pieces integer,
               severity integer, category_id uuid)
@@ -43,7 +45,11 @@ as $function$
       coalesce(st.pieces, 0) as pieces, c.landed_per_piece_mvr as landed,
       s.sellable_units, s.pcs_per_pack, s.packs_per_carton,
       pc.unit_uom, pc.name as category_name, pc.id as cat_id,
-      pc.default_sellable_units as type_units,
+      -- THE TYPE, AS IT APPLIES TO THIS PRODUCT. A carton of one pack is the
+      -- pack, so the type's carton is not a unit this product can differ about.
+      case when s.packs_per_carton <= 1
+           then array_remove(pc.default_sellable_units, 'carton')
+           else pc.default_sellable_units end as type_units,
       coalesce(s.cbm_per_carton, 0) as cbm,
       case when 'pack'   = any(s.sellable_units) then vs.selling_price_per_pack_mvr   end as price_pack,
       case when 'carton' = any(s.sellable_units) then vs.selling_price_per_carton_mvr end as price_carton
@@ -87,9 +93,6 @@ as $function$
 
   union all
 
-  -- Names BOTH sides, because either one can be the mistake: the XXXL diaper
-  -- was the product, Liquid Detergent was the type. Whichever it is, cat_id
-  -- takes him to the one place that decides it.
   select id, internal_code, full_path, 'units_differ_from_type',
          'Sold differently from other ' || lower(category_name),
          lower(l.category_name) || ' normally sell by the '
@@ -127,22 +130,20 @@ as $function$
 $function$;
 
 -- FROM PUBLIC, not just anon. CREATE FUNCTION grants EXECUTE to PUBLIC by
--- default, and anon inherits it — so revoking anon alone leaves the
--- function callable by anyone holding the publishable key.
+-- default and every role inherits it, so revoking anon alone leaves the
+-- function callable by anyone holding the publishable key. CREATE OR REPLACE
+-- keeps existing grants, but this is stated on every rebuild so a future DROP
+-- and CREATE cannot silently re-open it.
 revoke execute on function public.get_setup_gaps() from public;
 grant  execute on function public.get_setup_gaps() to authenticated, service_role;
 
 do $$
 begin
-  if not exists (
-    select 1 from pg_proc p
-     where p.proname = 'get_setup_gaps' and p.pronamespace = 'public'::regnamespace
-       and 'category_id' = any(p.proargnames)
-  ) then
-    raise exception 'get_setup_gaps does not return the product type to fix it on';
+  if (select count(*) from public.get_setup_gaps() where gap = 'units_differ_from_type') <> 0 then
+    raise exception 'a product still disagrees with its type';
   end if;
 
-  if exists (select 1 from public.get_setup_gaps() where category_id is null) then
-    raise exception 'a gap came back with no product type to go to';
+  if has_function_privilege('anon', 'public.get_setup_gaps()', 'execute') then
+    raise exception 'get_setup_gaps is still callable without signing in';
   end if;
 end $$;

@@ -205,7 +205,10 @@ begin
 end;
 $function$;
 
-revoke execute on function public.create_sku_full(text, uuid, text, text, text, integer, integer, text[], numeric, numeric, numeric, numeric, text, jsonb) from anon;
+-- FROM PUBLIC, not just anon. CREATE FUNCTION grants EXECUTE to PUBLIC by
+-- default, and anon inherits it — so revoking anon alone leaves the
+-- function callable by anyone holding the publishable key.
+revoke execute on function public.create_sku_full(text, uuid, text, text, text, integer, integer, text[], numeric, numeric, numeric, numeric, text, jsonb) from public;
 grant  execute on function public.create_sku_full(text, uuid, text, text, text, integer, integer, text[], numeric, numeric, numeric, numeric, text, jsonb) to authenticated, service_role;
 
 -- ══════════════════════════════════════════════════════════════════════════
@@ -344,7 +347,10 @@ as $function$
   order by 9, 8 desc, 3;
 $function$;
 
-revoke execute on function public.get_setup_gaps() from anon;
+-- FROM PUBLIC, not just anon. CREATE FUNCTION grants EXECUTE to PUBLIC by
+-- default, and anon inherits it — so revoking anon alone leaves the
+-- function callable by anyone holding the publishable key.
+revoke execute on function public.get_setup_gaps() from public;
 grant  execute on function public.get_setup_gaps() to authenticated, service_role;
 
 do $$

@@ -24,7 +24,7 @@
 -- disagrees is said out loud with somewhere to go.
 
 begin;
-select plan(9);
+select plan(10);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000009a1', 'test-typeunits@example.test');
 update user_profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000009a1';
@@ -120,6 +120,33 @@ select throws_ok(
   '22023',
   null,
   'and a type must be sold as something'
+);
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- 5. A CARTON OF ONE PACK CANNOT DISAGREE ABOUT ANYTHING
+-- ══════════════════════════════════════════════════════════════════════════
+-- A tub is 1 to a pack and 1 to a carton, so for it a carton IS the pack —
+-- "sells cartons too" and "does not" describe the same object. Flagging that
+-- is noise on a panel whose discipline is that every line is actionable, and
+-- the action would be to tick a box that changes nothing anyone can buy.
+-- 0234 and 0235 both carved this out; 0236 generalised the rule and dropped
+-- the carve-out on the way past, which is what 0239 put back.
+insert into variants (id, model_id, display_name, attributes)
+values ('00000000-0000-0000-0000-0000000009a3',
+        (select id from product_models where name = 'Range A'
+          and category_id = '00000000-0000-0000-0000-0000000009a2' limit 1),
+        'Tub', '{"size":"tub-typeunits"}'::jsonb);
+insert into skus (id, variant_id, internal_code, pcs_per_pack, packs_per_carton,
+                  carton_length_cm, carton_width_cm, carton_height_cm,
+                  fixed_price_per_pack_mvr, sellable_units)
+values ('00000000-0000-0000-0000-0000000009a4', '00000000-0000-0000-0000-0000000009a3',
+        'TEST-TYPEUNITS-1x1', 1, 1, 20, 20, 20, 380, array['pack']);
+
+select is(
+  (select count(*)::int from get_setup_gaps()
+    where sku_id = '00000000-0000-0000-0000-0000000009a4' and gap = 'units_differ_from_type'),
+  0,
+  'a product whose carton holds one pack is never reported as sold differently'
 );
 
 select * from finish();
