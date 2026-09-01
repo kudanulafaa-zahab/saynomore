@@ -54,14 +54,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Tag, Ruler, Coins, PackageX, ChevronDown } from "lucide-react";
+import { Tag, Ruler, Coins, PackageX, Boxes, ChevronDown } from "lucide-react";
 import { getSetupGaps, type SetupGapRow, type SetupGap } from "@/lib/queries/pricing";
 
 function GapIcon({ gap }: { gap: SetupGap }) {
   const cls = "h-4 w-4";
-  if (gap === "no_price" || gap === "no_carton_price") return <Tag className={cls} />;
+  if (gap === "no_price" || gap === "no_carton_price" || gap === "no_unit_price") return <Tag className={cls} />;
   if (gap === "no_carton_size") return <Ruler className={cls} />;
   if (gap === "no_cost") return <Coins className={cls} />;
+  // Not a missing price — the product is priced and sellable, just not in the
+  // unit it arrives in. Its own icon so it does not read as another blank field.
+  if (gap === "carton_not_sellable") return <Boxes className={cls} />;
   return <PackageX className={cls} />;
 }
 
