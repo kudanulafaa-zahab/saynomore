@@ -512,6 +512,27 @@ export async function updateCategory(id: string, patch: Partial<CreateCategoryIn
   invalidate("skus:");
 }
 
+/** THE ONE PLACE how a kind of product is sold is decided (migration 0238).
+ *  Sets it on the product TYPE and brings every active product of that type
+ *  with it, audit-logged row by row in Postgres. Returns how many products
+ *  followed, so the screen can say so rather than claiming a silent success.
+ *
+ *  Not a plain `update` on the category: that would leave the type saying one
+ *  thing and its products another, which is the exact drift that let one XXXL
+ *  diaper sit un-sellable by the carton. */
+export async function setCategorySellableUnits(
+  categoryId: string,
+  units: SellUnit[],
+): Promise<number> {
+  const { data, error } = await supabase.rpc("set_category_sellable_units", {
+    p_category_id: categoryId,
+    p_units: units,
+  });
+  if (error) throw error;
+  invalidate("skus:");
+  return (data ?? 0) as number;
+}
+
 export async function deleteCategory(id: string) {
   const { error } = await supabase.from("product_categories").delete().eq("id", id);
   if (error) throw error;
@@ -573,7 +594,13 @@ export async function createSkuFull(input: CreateSkuFullInput): Promise<string> 
     p_internal_code:    input.internal_code,
     p_pcs_per_pack:     input.pcs_per_pack,
     p_packs_per_carton: input.packs_per_carton,
-    p_sellable_units:   input.sellable_units ?? ["pack", "carton"],
+    // null means "however this KIND of product is sold" — Postgres reads it
+    // from the product type (0236). It used to be `?? ["pack","carton"]`, a
+    // guess made here on top of the same guess made twice in the function, so
+    // the product type was never consulted and every new product was born with
+    // a hand-typed copy that could drift. Passing a value is still allowed and
+    // is a deliberate override for that one product.
+    p_sellable_units:   input.sellable_units ?? null,
     p_length_cm:        input.carton_length_cm ?? null,
     p_width_cm:         input.carton_width_cm ?? null,
     p_height_cm:        input.carton_height_cm ?? null,

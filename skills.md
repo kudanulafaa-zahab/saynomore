@@ -100,9 +100,33 @@ The standing laws, each with the incident that created it:
   `apply_target_prices`, `get_receivables_aging`, `get_promo_suggestions`,
   `get_morning_briefing`, `v_expiring_stock`, `v_batch_stock`, `v_skus`.
 - Every new SECURITY DEFINER function: `SET search_path`, wrap auth calls as
-  `(select auth.uid())` (initplan), and **REVOKE EXECUTE FROM anon in the
-  same migration** — get_pricing_health shipped anon-readable for half a day;
-  never again.
+  `(select auth.uid())` (initplan), and **`REVOKE EXECUTE … FROM public, anon`
+  in the same migration**. BOTH, always — this is the 84-migration house
+  pattern and the only spelling that actually closes the function.
+
+  **There are TWO independent grants, and removing either one alone leaves it
+  open.** This cost two attempts on 2026-09-01, so both halves are written
+  down:
+
+  1. `CREATE FUNCTION` grants EXECUTE **to PUBLIC** by default. Every role
+     inherits it, `anon` included.
+  2. Supabase's `ALTER DEFAULT PRIVILEGES` grants EXECUTE **to `anon` in its
+     own right** on top of that.
+
+  The rule used to say `anon` alone, which removes (2) and leaves (1) — so
+  `get_setup_gaps` and `set_category_sellable_units` reached production
+  callable by anyone holding the publishable key, the first of them SECURITY
+  DEFINER with no role check, exposing the whole catalogue. Revoking PUBLIC
+  alone removes (1) and leaves (2), which is what the second attempt did:
+  `CREATE OR REPLACE` preserves existing grants, so `anon`'s own grant
+  survived from an earlier migration and the new guard failed on a fresh
+  replay. Only `from public, anon` clears both.
+
+  **Never reason about the ACL — ask the question.** rls_surface.test.sql
+  asks `has_function_privilege('anon', …)`, which is the real question and
+  caught both attempts. The ACL is still worth reading when debugging: a
+  leading bare `=X` in `{=X/postgres,…}` IS the PUBLIC grant, and a separate
+  `anon=X/postgres` entry is the second one.
 - Migrations: file in `supabase/migrations/NNNN_*.sql` AND applied live via
   MCP in the same work unit. Run advisors after DDL.
 - Immutable once posted; corrections are reversing entries. Stock =

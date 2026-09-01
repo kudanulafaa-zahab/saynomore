@@ -110,7 +110,16 @@ export async function getPriceBook(): Promise<PriceBookRow[]> {
 /** What is unfinished. `no_price` blocks selling outright; `no_carton_size`
  *  blocks RECEIVING, because a zero-CBM line has nothing for freight to be
  *  apportioned on (hard rule 4). */
-export type SetupGap = "no_price" | "no_carton_price" | "no_carton_size" | "no_cost";
+/** Every gap get_setup_gaps() can return. It had drifted: `no_unit_price` has
+ *  existed in Postgres since 0208 and was never added here, so the one type
+ *  that is supposed to describe this contract silently under-described it. */
+export type SetupGap =
+  | "no_price"
+  | "no_carton_price"
+  | "no_unit_price"
+  | "units_differ_from_type"
+  | "no_carton_size"
+  | "no_cost";
 
 export interface SetupGapRow {
   sku_id: string;
@@ -125,6 +134,10 @@ export interface SetupGapRow {
   stock_label: string;
   stock_pieces: number;
   severity: number;
+  /** The product TYPE this product belongs to. Every gap so far is fixed on
+   *  the product itself, but `units_differ_from_type` is fixed on the type —
+   *  so the row has to carry where to go (0237). */
+  category_id: string;
 }
 
 /** Every active product with something unfinished that will block a sale, a

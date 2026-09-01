@@ -54,14 +54,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Tag, Ruler, Coins, PackageX, ChevronDown } from "lucide-react";
+import { Tag, Ruler, Coins, PackageX, Boxes, ChevronDown } from "lucide-react";
 import { getSetupGaps, type SetupGapRow, type SetupGap } from "@/lib/queries/pricing";
 
 function GapIcon({ gap }: { gap: SetupGap }) {
   const cls = "h-4 w-4";
-  if (gap === "no_price" || gap === "no_carton_price") return <Tag className={cls} />;
+  if (gap === "no_price" || gap === "no_carton_price" || gap === "no_unit_price") return <Tag className={cls} />;
   if (gap === "no_carton_size") return <Ruler className={cls} />;
   if (gap === "no_cost") return <Coins className={cls} />;
+  // Not a missing field at all — this product is sold differently from others
+  // of its kind. Its own icon so it does not read as something blank.
+  if (gap === "units_differ_from_type") return <Boxes className={cls} />;
   return <PackageX className={cls} />;
 }
 
@@ -171,7 +174,15 @@ export function SetupGaps() {
                 {g.rows.map((r) => (
                   <Link
                     key={`${r.sku_id}-${r.gap}`}
-                    href={`/products?editSku=${r.sku_id}`}
+                    // WHERE IT IS ACTUALLY FIXED. Every other gap is fixed on
+                    // the product — a price, a measurement, a cost — so it opens
+                    // that product's sheet. How a kind of product is sold lives
+                    // on the TYPE, so this one opens the type instead; sending
+                    // him to the product would be the one screen that cannot
+                    // change it.
+                    href={r.gap === "units_differ_from_type"
+                      ? `/products?tab=categories&editCategory=${r.category_id}`
+                      : `/products?editSku=${r.sku_id}`}
                     scroll={false}
                     className="block rounded-xl px-3 py-2 snm-pressable"
                     style={{ background: "var(--muted)", border: "0.5px solid var(--glass-border-lo)" }}

@@ -1687,7 +1687,10 @@ export function NewSaleSheet({
                         : one.charAt(0).toUpperCase() + one.slice(1);
                       return (
                         <button key={u} onClick={() => setLineUom(u)}
-                          className="flex-1 py-2.5 rounded-xl ios-subhead font-semibold transition active:scale-95"
+                          // min-h-11: this pill is 36px on py-2.5, and it is
+                          // the control that decides whether a line is packs or
+                          // cartons — money, chosen with a thumb.
+                          className="flex-1 min-h-11 rounded-xl ios-subhead font-semibold transition active:scale-95"
                           style={lineUom === u
                             ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
                             : { color: "var(--muted-foreground)" }}>
