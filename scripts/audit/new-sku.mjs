@@ -109,8 +109,29 @@ try {
   await page.getByPlaceholder(/e\.g\. Mamypoko Diaper Pants/i).first().fill("Dewberry");
   await page.waitForTimeout(800);
 
+  // THIS ASSERTION USED TO DEMAND THE DEFECT. It read
+  //   list.ok(/single tub/i.test(sold), "the wizard offers 'Single tub'")
+  // and passed for months, because "Single tub" was there — next to "Tub" and
+  // "Carton", three buttons for one object on a product that is 1 to a pack and
+  // 1 to a carton. Ali, 2026-09-02: *"I don't even know what sold in tub,
+  // single tub means"*, and *"Bodyshop are sold in tubs... It's never cartons."*
+  //
+  // An audit that encodes the bug is worse than no audit: it makes the bug a
+  // requirement. Now it asserts the rule — a tier is offered only when it is a
+  // different amount (0243).
   const sold = await page.locator("body").innerText();
-  list.ok(/single tub/i.test(sold), "the wizard offers 'Single tub' for this category");
+  list.ok(!/single tub/i.test(sold),
+    "the wizard never offers 'Single tub' — a tub IS the single unit");
+
+  // Read the pills themselves rather than grepping the page. "Carton" appears
+  // in "Carton Dimensions", "Packs per Carton" and "Carton price", so a text
+  // search over the body would be testing the wrong words — the kind of
+  // guessing that cost three CI rounds on the sheet audit.
+  const tiers = await page.locator("[data-sold-in] button").allInnerTexts();
+  list.is(tiers.length, 1,
+    `one way to sell a tub, not three (${tiers.join(" | ") || "none found"})`);
+  list.ok(/^tub$/i.test((tiers[0] ?? "").trim()),
+    `and it is called "Tub" (${tiers[0] ?? "none"})`);
 
   const nums = page.locator('input[type="number"]');
   await nums.nth(0).fill("1");
