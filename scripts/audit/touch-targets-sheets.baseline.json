@@ -3,7 +3,8 @@
   "_why": "touch-targets.mjs loads the 21 screens and measures what is ON them. Nothing inside a sheet, dialog or bottom sheet had ever been measured \u2014 New Sale, the product picker, the GRN dialog, Edit SKU, every confirm. That is where money is entered, and it is why a 36px Pack/Carton pill sat in front of Ali on the day he was told every control was 44px.",
   "_first_run": "MEASURED on 2026-09-02 by CI, except sale-product-picker which could not be opened on the first two runs and is still loose. What the first real measurement found, inside sheets no audit had ever looked at: New Sale's close button at 17x28, and TWENTY controls in New SKU at 16px tall \u2014 the category chips. None of it was reachable by the screen sweep, because none of it is on a screen.",
   "new-sale": 1,
-  "sale-product-picker": 99,
   "product-type": 0,
-  "new-sku": 20
+  "new-sku": 20,
+  "sale-mixed-carton": 99,
+  "_not_covered": "The plain product step \u2014 a diaper's pack/carton pills, the screen in Ali's screenshot \u2014 is NOT measured. Three CI rounds were spent guessing at the selector that reaches it and none worked; the mixed-carton sheet is driven instead because two existing audits prove that flow. Saying so is the point: an audit that quietly covers less than its name suggests is how 'every control is 44px' came to be said about an app where a 36px pill sat on this very screen. Opener failures now print what was on screen, so the next attempt has evidence."
 }

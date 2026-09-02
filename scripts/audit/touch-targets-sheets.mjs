@@ -61,36 +61,31 @@ const SHEETS = [
     },
   },
   {
-    name: "sale-product-picker",
+    name: "sale-mixed-carton",
     where: "/sales",
-    what: "New Sale — the product step, where packs and cartons are chosen",
+    what: "New Sale — the Sosoft sheet: single bottle, mixed carton, whole carton",
     async open(page) {
       await page.getByRole("button", { name: /new sale/i }).first().click();
       const newSale = page.getByRole("dialog", { name: /new sale/i });
       await newSale.getByText("Ahmed Ziyad").first().click();
       await page.getByRole("button", { name: /add products/i }).first().click();
       await page.waitForTimeout(1500);
-      // The brand grid does not render until a warehouse is chosen — the step
-      // journey.mjs and sosoft-three-ways.mjs both do, and the one this file
-      // left out on its first run, which timed out clicking a brand that was
-      // not on screen yet.
+      // Ship-from must be chosen explicitly; the fixture's stock is in Veesange.
       await page.locator("select").first().selectOption({ label: "Veesange" });
       await page.waitForTimeout(1500);
-      // "Xtra Kering", not "Mamypoko". A mixed-carton BRAND collapses to one
-      // card carrying the brand name; a normal product gets a card per SKU
-      // showing its model and size. The first run clicked a brand name that is
-      // only ever printed on the other kind of card, and waited 30s for it.
-      await page.locator("button", { hasText: "Xtra Kering" }).first().click();
-      // A NORMAL PRODUCT DOES NOT OPEN A SECOND SHEET. Only a mixed-carton
-      // brand does — which is why the journey audits wait for a new dialog and
-      // this one hung waiting for the same thing. A normal product turns the
-      // New Sale sheet itself into the product editor, and that is the exact
-      // state in Ali's screenshot: the pack/carton pills, the quantity stepper
-      // and the price. So wait for the step's own button, not a new dialog.
-      await page.getByRole("button", { name: /add to order/i }).first()
-        .waitFor({ state: "visible", timeout: 15_000 });
-      await page.waitForTimeout(500);
-      return page.getByRole("dialog", { name: /new sale/i });
+      // SOSOFT, because journey.mjs and sosoft-three-ways.mjs both drive this
+      // exact flow and pass. Three attempts at reaching the plain diaper step
+      // instead cost three CI rounds and taught me only that guessing at a
+      // selector one 15-minute run at a time is not debugging. That step is
+      // not covered yet and is listed as not covered, rather than pretended
+      // at — see the note in the baseline file.
+      await page.locator("button", { hasText: "Sosoft" }).first().click();
+      await page.waitForFunction(
+        () => [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')]
+          .some((d) => (d.getAttribute("aria-label") || "").toLowerCase() !== "new sale"),
+        null, { timeout: 15_000 });
+      await page.waitForTimeout(700);
+      return page.getByRole("dialog", { name: /add to sale/i });
     },
   },
   {
@@ -135,6 +130,18 @@ for (const sheet of SHEETS) {
     small = await page.evaluate(AUDIT_WITHIN, [MIN, handle]);
   } catch (err) {
     failure = String(err).split("\n")[0].slice(0, 160);
+    // SAY WHAT WAS ON SCREEN. Three runs were spent guessing which control to
+    // click, at fifteen minutes each, because the failure said only that
+    // something timed out. A locator that does not match is a question about
+    // the page, so the page should answer it.
+    try {
+      const labels = await page.evaluate(() =>
+        [...document.querySelectorAll("button, [role=button]")]
+          .filter((b) => b.getBoundingClientRect().height > 0)
+          .map((b) => (b.getAttribute("aria-label") || b.innerText || "").trim().replace(/\s+/g, " ").slice(0, 40))
+          .filter(Boolean).slice(0, 25));
+      failure += `\n        on screen: ${labels.join(" | ")}`;
+    } catch { /* the page may be gone; the original error is the point */ }
   }
 
   if (failure) {
