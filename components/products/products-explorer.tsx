@@ -2276,7 +2276,7 @@ function NewSkuWizard({
                               });
                             }}
                             style={{
-                              flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                              flex: 1, minHeight: 44, padding: "0 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
                               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                               border: on ? "none" : "0.5px solid var(--glass-border-lo)",
                               background: on ? "var(--foreground)" : "transparent",
@@ -2328,7 +2328,13 @@ function NewSkuWizard({
                             <button key={u} type="button"
                               onClick={() => { setFixedEntryUnit(u); setFixedPrice(""); }}
                               style={{
-                                fontSize: 10, padding: "2px 7px", cursor: "pointer", border: "none",
+                                // minHeight 44 with a 10px label: this measured
+                                // 40x33 and 48x33, and it decides whether the
+                                // price typed beside it means a pack or a
+                                // carton — the difference between MVR 290 and
+                                // MVR 790 on a Sosoft line.
+                                fontSize: 10, minHeight: 44, padding: "0 10px", cursor: "pointer", border: "none",
+                                display: "flex", alignItems: "center",
                                 background: fixedEntryUnit === u
                                   ? "var(--foreground)"
                                   : "transparent",
@@ -2458,7 +2464,7 @@ function NewSkuWizard({
             <button
               type="button"
               onClick={() => setShowOptional(!showOptional)}
-              className="flex items-center gap-1.5 ios-subhead font-medium py-1"
+              className="flex items-center gap-1.5 ios-subhead font-medium min-h-11"
               style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}
             >
               <ChevronRight
