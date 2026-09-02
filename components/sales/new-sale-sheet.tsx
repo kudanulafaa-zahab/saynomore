@@ -1067,7 +1067,7 @@ export function NewSaleSheet({
                           <button
                             key={id}
                             onClick={() => { const rc2 = customers.find((c) => c.id === id); setCustomerId(id); setOrderTier(rc2?.price_tier ?? "retail"); setChannel((rc2?.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(id); }}
-                            className="flex items-center gap-2 px-3 h-9 rounded-full ios-subhead font-semibold transition active:scale-95"
+                            className="flex items-center gap-2 px-3 min-h-11 rounded-full ios-subhead font-semibold transition active:scale-95"
                             style={{
                               background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
                               border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)",
@@ -1157,7 +1157,7 @@ export function NewSaleSheet({
                     <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
                   </div>
                   <button onClick={() => { setCustomerId(""); setCustomerSearch(""); setOrderTier("retail"); }}
-                    className="ios-subhead font-semibold px-3 h-8 rounded-lg transition active:scale-95"
+                    className="ios-subhead font-semibold px-3 min-h-11 rounded-lg transition active:scale-95"
                     style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                     Change
                   </button>
@@ -1474,7 +1474,16 @@ export function NewSaleSheet({
                             Tapping it now opens StockInSheet: quantity, the cost
                             he paid, a selling price, and the sale carries on.
                             The stock rule is untouched; only the friction moved. */}
+                        {/* AN ACCESSIBLE NAME, because this card has never had
+                            one. VoiceOver read it as its contents — a price, a
+                            provenance tag and a stock line — with the product
+                            itself buried in the middle. It also gives the touch
+                            audit a stable way to open the product step; three CI
+                            rounds were spent guessing at a selector for exactly
+                            this card, which is what left that step unmeasured
+                            while a 36px button sat on it. */}
                         <button onClick={() => outOfStock ? setStockInSku(s) : setSelectedSkuId(s.id)}
+                          aria-label={`${s.brand_name} ${s.model_name} ${s.variant_display}`}
                           className="w-full rounded-2xl p-4 text-left transition active:scale-[0.98]"
                           style={{
                             ...CARD,
@@ -1482,7 +1491,7 @@ export function NewSaleSheet({
                             cursor: "pointer",
                           }}>
                           {/* Identity — same block as every other picker in the app */}
-                          <div className="pr-9">
+                          <div className="pr-11">
                             <SkuIdentity
                               brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
                               pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
@@ -1496,7 +1505,7 @@ export function NewSaleSheet({
                               (absolutely positioned over this same bottom-right corner)
                               so the "in cart" badge wraps clear of it instead of
                               rendering underneath it. */}
-                          <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1, paddingRight: hasPrice && !outOfStock ? 44 : 0 }}>
+                          <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1, paddingRight: hasPrice && !outOfStock ? 50 : 0 }}>
                             <div className="min-w-0">
                               <div className="flex items-baseline gap-1.5 flex-wrap">
                                 <span className="font-semibold" style={{ fontSize: 22, letterSpacing: "-0.02em", color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
@@ -1525,7 +1534,7 @@ export function NewSaleSheet({
                         {hasPrice && !outOfStock && (
                           <button
                             onClick={handleQuickAdd}
-                            className="absolute bottom-4 right-4 h-9 w-9 rounded-full flex items-center justify-center transition active:scale-90"
+                            className="absolute bottom-3 right-3 h-11 w-11 rounded-full flex items-center justify-center transition active:scale-90"
                             style={{
                               background: "var(--snm-brand)",
                               color: "var(--snm-brand-on)",
@@ -1613,7 +1622,7 @@ export function NewSaleSheet({
                       />
                       <button
                         onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); setPriceManuallyEdited(false); }}
-                        className="shrink-0 ios-subhead font-semibold px-3 h-8 rounded-lg transition active:scale-95"
+                        className="shrink-0 ios-subhead font-semibold px-3 min-h-11 rounded-lg transition active:scale-95"
                         style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                         Change
                       </button>
@@ -2226,7 +2235,7 @@ export function NewSaleSheet({
                   <button
                     onClick={() => setCrossSellOff(true)}
                     aria-label="Not this time"
-                    className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center snm-pressable"
+                    className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center snm-pressable"
                     style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
                     <X className="h-4 w-4" />
                   </button>

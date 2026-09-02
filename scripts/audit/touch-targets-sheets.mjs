@@ -89,6 +89,45 @@ const SHEETS = [
     },
   },
   {
+    // THE STEP FROM THE SCREENSHOT. Ali's 2026-09-01 complaint was a 36px
+    // Pack/Carton pill on New Sale, and this audit shipped WITHOUT covering the
+    // step it sat on — three CI rounds were spent guessing at a selector and the
+    // gap was written down as "not covered" instead. It is covered now, because
+    // the product card finally has an accessible name to click.
+    name: "sale-products",
+    where: "/sales",
+    what: "New Sale — the product picker, every card and its quick-add",
+    async open(page) {
+      await page.getByRole("button", { name: /new sale/i }).first().click();
+      const newSale = page.getByRole("dialog", { name: /new sale/i });
+      await newSale.getByText("Ahmed Ziyad").first().click();
+      await page.getByRole("button", { name: /add products/i }).first().click();
+      await page.waitForTimeout(1500);
+      await page.locator("select").first().selectOption({ label: "Veesange" });
+      await page.waitForTimeout(1500);
+      return newSale;
+    },
+  },
+  {
+    name: "sale-product",
+    where: "/sales",
+    what: "New Sale — one plain product chosen: its units, its quantity, its price",
+    async open(page) {
+      await page.getByRole("button", { name: /new sale/i }).first().click();
+      const newSale = page.getByRole("dialog", { name: /new sale/i });
+      await newSale.getByText("Ahmed Ziyad").first().click();
+      await page.getByRole("button", { name: /add products/i }).first().click();
+      await page.waitForTimeout(1500);
+      await page.locator("select").first().selectOption({ label: "Veesange" });
+      await page.waitForTimeout(1500);
+      // A PLAIN product — not a mixed-carton brand, which opens its own sheet.
+      // Clicked by its accessible name, which the card now has.
+      await newSale.getByRole("button", { name: /mamypoko/i }).first().click();
+      await page.waitForTimeout(1200);
+      return newSale;
+    },
+  },
+  {
     name: "product-type",
     where: "/products?tab=categories",
     what: "Product type — how a kind of product is sold",
