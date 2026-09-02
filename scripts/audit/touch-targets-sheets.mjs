@@ -89,6 +89,51 @@ const SHEETS = [
     },
   },
   {
+    // THE STEP FROM THE SCREENSHOT. Ali's 2026-09-01 complaint was a 36px
+    // Pack/Carton pill on New Sale, and this audit shipped WITHOUT covering the
+    // step it sat on — three CI rounds were spent guessing at a selector and the
+    // gap was written down as "not covered" instead. It is covered now, because
+    // the product card finally has an accessible name to click.
+    name: "sale-products",
+    where: "/sales",
+    what: "New Sale — the product picker, every card and its quick-add",
+    async open(page) {
+      await page.getByRole("button", { name: /new sale/i }).first().click();
+      const newSale = page.getByRole("dialog", { name: /new sale/i });
+      await newSale.getByText("Ahmed Ziyad").first().click();
+      await page.getByRole("button", { name: /add products/i }).first().click();
+      await page.waitForTimeout(1500);
+      await page.locator("select").first().selectOption({ label: "Veesange" });
+      await page.waitForTimeout(1500);
+      return newSale;
+    },
+  },
+  {
+    name: "sale-product",
+    where: "/sales",
+    what: "New Sale — one plain product chosen: its units, its quantity, its price",
+    async open(page) {
+      await page.getByRole("button", { name: /new sale/i }).first().click();
+      const newSale = page.getByRole("dialog", { name: /new sale/i });
+      await newSale.getByText("Ahmed Ziyad").first().click();
+      await page.getByRole("button", { name: /add products/i }).first().click();
+      await page.waitForTimeout(1500);
+      await page.locator("select").first().selectOption({ label: "Veesange" });
+      await page.waitForTimeout(1500);
+      // TWO TAPS, because the picker lists PRODUCTS and not SKUs. The first
+      // attempt clicked /mamypoko/i and found nothing: the brand name is not on
+      // screen at this point, only "Xtra Kering  1 SKU" and its siblings. The
+      // on-failure diagnostics printed exactly that, which is what they are for
+      // — the previous three rounds of guessing had none.
+      await newSale.getByRole("button", { name: /xtra kering/i }).first().click();
+      await page.waitForTimeout(900);
+      // Then the SKU card, by the accessible name it now carries.
+      await newSale.getByRole("button", { name: /Mamypoko · Xtra Kering/i }).first().click();
+      await page.waitForTimeout(1200);
+      return newSale;
+    },
+  },
+  {
     name: "product-type",
     where: "/products?tab=categories",
     what: "Product type — how a kind of product is sold",

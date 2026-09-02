@@ -995,7 +995,7 @@ export function NewSaleSheet({
                   disabled={!done}
                   onClick={() => setStep(s)}
                   aria-label={done ? `Back to ${stepLabels[s]}` : undefined}
-                  className="flex items-center gap-2 min-w-0 disabled:cursor-default"
+                  className="flex items-center gap-2 min-w-0 min-h-11 disabled:cursor-default"
                 >
                   <span className="h-6 w-6 rounded-full flex items-center justify-center ios-subhead font-bold shrink-0 transition-all"
                     style={step === s ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
@@ -1067,7 +1067,7 @@ export function NewSaleSheet({
                           <button
                             key={id}
                             onClick={() => { const rc2 = customers.find((c) => c.id === id); setCustomerId(id); setOrderTier(rc2?.price_tier ?? "retail"); setChannel((rc2?.channel as OrderChannel) ?? "whatsapp"); touchRecentCustomer(id); }}
-                            className="flex items-center gap-2 px-3 h-9 rounded-full ios-subhead font-semibold transition active:scale-95"
+                            className="flex items-center gap-2 px-3 min-h-11 rounded-full ios-subhead font-semibold transition active:scale-95"
                             style={{
                               background: "color-mix(in srgb, var(--snm-brand) 10%, transparent)",
                               border: "1px solid color-mix(in srgb, var(--snm-brand) 25%, transparent)",
@@ -1157,7 +1157,7 @@ export function NewSaleSheet({
                     <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>{[customer.phone, customer.island, customer.channel].filter(Boolean).join(" · ")}</p>
                   </div>
                   <button onClick={() => { setCustomerId(""); setCustomerSearch(""); setOrderTier("retail"); }}
-                    className="ios-subhead font-semibold px-3 h-8 rounded-lg transition active:scale-95"
+                    className="ios-subhead font-semibold px-3 min-h-11 rounded-lg transition active:scale-95"
                     style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                     Change
                   </button>
@@ -1359,7 +1359,7 @@ export function NewSaleSheet({
                               <button
                                 onClick={() => toggleModel(modelId)}
                                 aria-expanded={expanded}
-                                className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl transition active:scale-[0.99]"
+                                className="w-full flex items-center gap-1.5 px-3 min-h-11 rounded-xl transition active:scale-[0.99]"
                                 style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
                               >
                                 <ChevronDown
@@ -1474,7 +1474,26 @@ export function NewSaleSheet({
                             Tapping it now opens StockInSheet: quantity, the cost
                             he paid, a selling price, and the sale carries on.
                             The stock rule is untouched; only the friction moved. */}
+                        {/* AN ACCESSIBLE NAME, because this card has never had
+                            one. VoiceOver read it as its contents — a price, a
+                            provenance tag and a stock line — with the product
+                            itself buried in the middle. It also gives the touch
+                            audit a stable way to open the product step; three CI
+                            rounds were spent guessing at a selector for exactly
+                            this card, which is what left that step unmeasured
+                            while a 36px button sat on it.
+
+                            THE SEPARATOR IS LOAD-BEARING. An aria-label REPLACES
+                            the visible text when anything matches this button by
+                            its accessible name, so writing the three names with
+                            plain spaces silently renamed the card — and the
+                            carton-and-packs audit, which finds this row by
+                            "Mamypoko · Xtra Kering · L", clicked nothing for
+                            thirty seconds. It mirrors what SkuIdentity renders,
+                            separator included, so the name a screen reader hears
+                            is the name the screen shows. */}
                         <button onClick={() => outOfStock ? setStockInSku(s) : setSelectedSkuId(s.id)}
+                          aria-label={`${s.brand_name} · ${s.model_name} · ${s.variant_display}`}
                           className="w-full rounded-2xl p-4 text-left transition active:scale-[0.98]"
                           style={{
                             ...CARD,
@@ -1482,7 +1501,7 @@ export function NewSaleSheet({
                             cursor: "pointer",
                           }}>
                           {/* Identity — same block as every other picker in the app */}
-                          <div className="pr-9">
+                          <div className="pr-11">
                             <SkuIdentity
                               brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
                               pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
@@ -1496,7 +1515,7 @@ export function NewSaleSheet({
                               (absolutely positioned over this same bottom-right corner)
                               so the "in cart" badge wraps clear of it instead of
                               rendering underneath it. */}
-                          <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1, paddingRight: hasPrice && !outOfStock ? 44 : 0 }}>
+                          <div className="flex items-end justify-between gap-2 mt-3" style={{ opacity: outOfStock ? 0.55 : 1, paddingRight: hasPrice && !outOfStock ? 50 : 0 }}>
                             <div className="min-w-0">
                               <div className="flex items-baseline gap-1.5 flex-wrap">
                                 <span className="font-semibold" style={{ fontSize: 22, letterSpacing: "-0.02em", color: hasPrice ? "var(--foreground)" : "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
@@ -1525,7 +1544,7 @@ export function NewSaleSheet({
                         {hasPrice && !outOfStock && (
                           <button
                             onClick={handleQuickAdd}
-                            className="absolute bottom-4 right-4 h-9 w-9 rounded-full flex items-center justify-center transition active:scale-90"
+                            className="absolute bottom-3 right-3 h-11 w-11 rounded-full flex items-center justify-center transition active:scale-90"
                             style={{
                               background: "var(--snm-brand)",
                               color: "var(--snm-brand-on)",
@@ -1613,7 +1632,7 @@ export function NewSaleSheet({
                       />
                       <button
                         onClick={() => { setSelectedSkuId(""); setLineQty(""); setLinePrice(""); setPriceManuallyEdited(false); }}
-                        className="shrink-0 ios-subhead font-semibold px-3 h-8 rounded-lg transition active:scale-95"
+                        className="shrink-0 ios-subhead font-semibold px-3 min-h-11 rounded-lg transition active:scale-95"
                         style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                         Change
                       </button>
@@ -1752,13 +1771,15 @@ export function NewSaleSheet({
                       <p className="text-[12px] uppercase tracking-widest mb-3 font-semibold" style={{ color: "var(--muted-foreground)" }}>
                         QTY · {uomLabel}S
                       </p>
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          onClick={() => { const n = Math.max(0, qtyNum - 1); setLineQty(n > 0 ? String(n) : ""); }}
-                          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
-                          style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
-                          −
-                        </button>
+                      {/* THE NUMBER ON ITS OWN ROW, − and + beneath it.
+                          One row could not hold three 44px targets inside half a
+                          phone screen: the box measured 32 wide, and giving it a
+                          44 minimum simply stole the width from the steppers,
+                          which then measured 38. Stacking removes the arithmetic
+                          — the number is full width, each stepper is half — so
+                          all three clear 44 at any screen size instead of at the
+                          one I happened to calculate for. */}
+                      <div className="flex flex-col gap-2">
                         {/* Tapping the number opens the keyboard for direct entry */}
                         <input
                           type="number" inputMode="numeric" min="1"
@@ -1766,15 +1787,26 @@ export function NewSaleSheet({
                           onChange={(e) => setLineQty((e.target as HTMLInputElement).value)}
                           onFocus={(e) => e.target.select()}
                           placeholder="0"
-                          className="flex-1 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
+                          aria-label={`Quantity in ${uomLabel.toLowerCase()}s`}
+                          className="w-full h-11 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
                           style={{ minWidth: 0 }}
                         />
-                        <button
-                          onClick={() => setLineQty(String(qtyNum + 1))}
-                          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
-                          style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
-                          +
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => { const n = Math.max(0, qtyNum - 1); setLineQty(n > 0 ? String(n) : ""); }}
+                            aria-label="One less"
+                            className="flex-1 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
+                            style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
+                            −
+                          </button>
+                          <button
+                            onClick={() => setLineQty(String(qtyNum + 1))}
+                            aria-label="One more"
+                            className="flex-1 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
+                            style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1787,7 +1819,15 @@ export function NewSaleSheet({
                             Edited
                           </span>
                         ) : editorProvenance.source ? (
-                          <PriceSourceTag provenance={editorProvenance} size="md" onClick={() => setShowPriceExplain(true)} />
+                          /* NOT TAPPABLE, deliberately. As a button this badge
+                             was a 125x22 tap target — and it is an inline label
+                             inside the "MVR / PACK" caption, so it cannot grow
+                             to 44 without wrecking that line. Its action is not
+                             lost: the underlined line directly beneath the price
+                             opens the same explainer, and when the price is below
+                             cost that line IS the warning, at full size. One
+                             affordance, big enough to hit. */
+                          <PriceSourceTag provenance={editorProvenance} size="md" />
                         ) : null}
                       </p>
                       {/* Single input — no autoFocus, displays cleanly, editable on tap */}
@@ -1798,7 +1838,7 @@ export function NewSaleSheet({
                         onFocus={(e) => e.target.select()}
                         onBlur={handlePriceBlur}
                         placeholder={hasNoPrice ? "Tap to set" : "0.00"}
-                        className="w-full text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
+                        className="w-full h-11 text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
                         style={{ minWidth: 0 }}
                       />
                       {costForUom != null && !isNaN(priceVal) && priceVal > 0 && priceVal - costForUom >= 0 && (() => {
@@ -1814,7 +1854,7 @@ export function NewSaleSheet({
                         <button
                           type="button"
                           onClick={() => setShowPriceExplain(true)}
-                          className="w-full ios-subhead text-center mt-1 leading-tight underline"
+                          className="w-full min-h-11 flex items-center justify-center ios-subhead text-center mt-1 leading-tight underline"
                           style={{ color: "var(--muted-foreground)", textUnderlineOffset: 2 }}
                         >
                           {editorProvenance.detail}
@@ -1824,7 +1864,7 @@ export function NewSaleSheet({
                         <button
                           type="button"
                           onClick={() => setShowPriceExplain(true)}
-                          className="w-full ios-subhead text-center mt-1 font-semibold leading-tight underline"
+                          className="w-full min-h-11 flex items-center justify-center ios-subhead text-center mt-1 font-semibold leading-tight underline"
                           style={{ color: priceWarning.color, textUnderlineOffset: 2 }}
                         >
                           ⚠ {priceWarning.text}
@@ -2226,7 +2266,7 @@ export function NewSaleSheet({
                   <button
                     onClick={() => setCrossSellOff(true)}
                     aria-label="Not this time"
-                    className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center snm-pressable"
+                    className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center snm-pressable"
                     style={{ background: "var(--glass-bg-1)", color: "var(--muted-foreground)" }}>
                     <X className="h-4 w-4" />
                   </button>
