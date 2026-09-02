@@ -995,7 +995,7 @@ export function NewSaleSheet({
                   disabled={!done}
                   onClick={() => setStep(s)}
                   aria-label={done ? `Back to ${stepLabels[s]}` : undefined}
-                  className="flex items-center gap-2 min-w-0 disabled:cursor-default"
+                  className="flex items-center gap-2 min-w-0 min-h-11 disabled:cursor-default"
                 >
                   <span className="h-6 w-6 rounded-full flex items-center justify-center ios-subhead font-bold shrink-0 transition-all"
                     style={step === s ? { background: "var(--glass-accent)", color: "var(--snm-brand-on)" }
@@ -1359,7 +1359,7 @@ export function NewSaleSheet({
                               <button
                                 onClick={() => toggleModel(modelId)}
                                 aria-expanded={expanded}
-                                className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl transition active:scale-[0.99]"
+                                className="w-full flex items-center gap-1.5 px-3 min-h-11 rounded-xl transition active:scale-[0.99]"
                                 style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)" }}
                               >
                                 <ChevronDown

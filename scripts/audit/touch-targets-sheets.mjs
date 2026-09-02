@@ -120,9 +120,15 @@ const SHEETS = [
       await page.waitForTimeout(1500);
       await page.locator("select").first().selectOption({ label: "Veesange" });
       await page.waitForTimeout(1500);
-      // A PLAIN product — not a mixed-carton brand, which opens its own sheet.
-      // Clicked by its accessible name, which the card now has.
-      await newSale.getByRole("button", { name: /mamypoko/i }).first().click();
+      // TWO TAPS, because the picker lists PRODUCTS and not SKUs. The first
+      // attempt clicked /mamypoko/i and found nothing: the brand name is not on
+      // screen at this point, only "Xtra Kering  1 SKU" and its siblings. The
+      // on-failure diagnostics printed exactly that, which is what they are for
+      // — the previous three rounds of guessing had none.
+      await newSale.getByRole("button", { name: /xtra kering/i }).first().click();
+      await page.waitForTimeout(900);
+      // Then the SKU card, by the accessible name it now carries.
+      await newSale.getByRole("button", { name: /Mamypoko · Xtra Kering/i }).first().click();
       await page.waitForTimeout(1200);
       return newSale;
     },
