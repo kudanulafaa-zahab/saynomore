@@ -45,17 +45,6 @@ const BASELINE = JSON.parse(
   readFileSync(new URL("./touch-targets-sheets.baseline.json", import.meta.url), "utf8")
 );
 
-/** Wait for a modal that is not the one already open — the New Sale sheet is
- *  itself a dialog, so "a dialog appeared" is not enough to know the picker
- *  did. Copied from the journey audits, which hit this first. */
-async function waitForNewDialog(page, notNamed) {
-  await page.waitForFunction(
-    (skip) => [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')]
-      .some((d) => (d.getAttribute("aria-label") || "").toLowerCase() !== skip),
-    notNamed, { timeout: 15_000 });
-  await page.waitForTimeout(700);
-}
-
 /** Every sheet worth measuring, and exactly how Ali reaches it.
  *
  *  Kept to flows the journey audits already drive, so a failure here means a
@@ -74,7 +63,7 @@ const SHEETS = [
   {
     name: "sale-product-picker",
     where: "/sales",
-    what: "New Sale — the product sheet, where packs and cartons are chosen",
+    what: "New Sale — the product step, where packs and cartons are chosen",
     async open(page) {
       await page.getByRole("button", { name: /new sale/i }).first().click();
       const newSale = page.getByRole("dialog", { name: /new sale/i });
@@ -92,8 +81,16 @@ const SHEETS = [
       // showing its model and size. The first run clicked a brand name that is
       // only ever printed on the other kind of card, and waited 30s for it.
       await page.locator("button", { hasText: "Xtra Kering" }).first().click();
-      await waitForNewDialog(page, "new sale");
-      return page.getByRole("dialog", { name: /add to sale/i });
+      // A NORMAL PRODUCT DOES NOT OPEN A SECOND SHEET. Only a mixed-carton
+      // brand does — which is why the journey audits wait for a new dialog and
+      // this one hung waiting for the same thing. A normal product turns the
+      // New Sale sheet itself into the product editor, and that is the exact
+      // state in Ali's screenshot: the pack/carton pills, the quantity stepper
+      // and the price. So wait for the step's own button, not a new dialog.
+      await page.getByRole("button", { name: /add to order/i }).first()
+        .waitFor({ state: "visible", timeout: 15_000 });
+      await page.waitForTimeout(500);
+      return page.getByRole("dialog", { name: /new sale/i });
     },
   },
   {
