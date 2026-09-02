@@ -1,10 +1,10 @@
 {
   "_": "Controls under 44x44 INSIDE each sheet, MEASURED. Same ratchet as touch-targets.baseline.json: a number may only go DOWN, and the audit fails if one climbs or if one falls without this file being tightened.",
   "_why": "touch-targets.mjs loads the 21 screens and measures what is ON them. Nothing inside a sheet, dialog or bottom sheet had ever been measured \u2014 New Sale, the product picker, the GRN dialog, Edit SKU, every confirm. That is where money is entered, and it is why a 36px Pack/Carton pill sat in front of Ali on the day he was told every control was 44px.",
-  "_first_run": "MEASURED on 2026-09-02 by CI, except sale-product-picker which could not be opened on the first two runs and is still loose. What the first real measurement found, inside sheets no audit had ever looked at: New Sale's close button at 17x28, and TWENTY controls in New SKU at 16px tall \u2014 the category chips. None of it was reachable by the screen sweep, because none of it is on a screen.",
+  "_first_run": "MEASURED by CI on 2026-09-02. All four sheets open. What the first real look inside them found, none of it reachable by the screen sweep because none of it is on a screen: New Sale's close button at 17x28; TWENTY controls at 16px tall on New SKU (the category chips); SIX on the Sosoft sheet, where a bottle, a mixed carton and a whole carton are chosen. 27 in total. The product type sheet is clean.",
   "new-sale": 1,
   "product-type": 0,
   "new-sku": 20,
-  "sale-mixed-carton": 99,
+  "sale-mixed-carton": 6,
   "_not_covered": "The plain product step \u2014 a diaper's pack/carton pills, the screen in Ali's screenshot \u2014 is NOT measured. Three CI rounds were spent guessing at the selector that reaches it and none worked; the mixed-carton sheet is driven instead because two existing audits prove that flow. Saying so is the point: an audit that quietly covers less than its name suggests is how 'every control is 44px' came to be said about an app where a 36px pill sat on this very screen. Opener failures now print what was on screen, so the next attempt has evidence."
 }
