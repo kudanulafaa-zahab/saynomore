@@ -216,8 +216,23 @@ export function EditSkuDialog({
       if (modelName.trim() && modelName.trim() !== sku.model_name) {
         await renameCataloguePart("model", sku.model_id, modelName.trim());
       }
-      if (variantName.trim() && variantName.trim() !== sku.variant_display) {
-        await renameCataloguePart("variant", sku.variant_id, variantName.trim());
+      // ONLY WHEN THE PRODUCT ACTUALLY HAS SIZES (0242). A product with no size
+      // axis is named once, on the product, and its variant follows in
+      // Postgres — so there is nothing to send here and the box is not shown.
+      //
+      // The old line was `if (variantName.trim() && …)`, which read a cleared
+      // box as "no change" and returned success. That is how "Bodymilk" sat in
+      // the size of a product renamed to Almond Milk, surviving every attempt
+      // to delete it, with no error to explain why.
+      if (hasOwnSize) {
+        if (!variantName.trim()) {
+          toast.error("A size needs a name. Type one, or leave the old one.");
+          setSaving(false);
+          return;
+        }
+        if (variantName.trim() !== sku.variant_display) {
+          await renameCataloguePart("variant", sku.variant_id, variantName.trim());
+        }
       }
 
       await updateSku(sku.id, {
@@ -260,6 +275,13 @@ export function EditSkuDialog({
   // would have been called a "Pack" here while the database called it a tub.
   const singular = containerLabel(sku?.unit_uom as UnitUom | undefined);
   const unit = attrs?.format || (singular.charAt(0).toUpperCase() + singular.slice(1));
+
+  // DOES THIS PRODUCT HAVE SIZES AT ALL? `variants.attributes` is what makes a
+  // variant a real size — the size-range builder writes {"size": "XXL"} and the
+  // uniqueness constraint reads it. Empty means there is no size axis: a Body
+  // Shop tub is one product, not one size of a product, and the name in its
+  // size box was only ever the product's name written twice.
+  const hasOwnSize = Object.keys(attrs ?? {}).length > 0;
 
   return (
     <>
@@ -312,10 +334,22 @@ export function EditSkuDialog({
                 Renames it on every size of this product.
               </p>
             </div>
-            <div className="space-y-2">
-              <Label>Size</Label>
-              <Input value={variantName} onChange={(e) => setVariantName(e.target.value)} placeholder="200ml" />
-            </div>
+            {/* THE SIZE, ONLY WHEN THERE IS ONE (0242). A product with no size
+                range — a Body Shop tub, a bottle of Mama Lime — used to be
+                asked to name a size anyway, and the app filled it with a copy
+                of the product name. Rename the product and the copy stayed
+                behind, uncorrectable. There is nothing to ask here. */}
+            {hasOwnSize ? (
+              <div className="space-y-2">
+                <Label>Size</Label>
+                <Input value={variantName} onChange={(e) => setVariantName(e.target.value)} placeholder="XXL" />
+              </div>
+            ) : (
+              <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                This product comes in one size, so it has no size of its own — it
+                is called {modelName.trim() || sku?.model_name} everywhere.
+              </p>
+            )}
             <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
               Every past order, batch and stock movement stays attached and starts
               reading the corrected name. The code below does not change — it is
