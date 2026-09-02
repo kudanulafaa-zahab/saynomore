@@ -232,7 +232,7 @@ export function MixedCartonSheet({
                 {sellsSingles ? `By the carton or one ${noun} at a time` : "Sold by the carton"} · {piecesPerCarton} {noun}s in a carton
               </p>
             </div>
-            <button onClick={onClose} className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }} aria-label="Close">
+            <button onClick={onClose} className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }} aria-label="Close">
               <X className="h-4 w-4 text-foreground" />
             </button>
           </div>
@@ -283,7 +283,7 @@ export function MixedCartonSheet({
                     onClick={() => setTargetCartons((n) => Math.max(1, n - 1))}
                     disabled={targetCartons <= 1}
                     aria-label="One carton fewer"
-                    className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                    className="w-11 h-11 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
                     −
                   </button>
@@ -292,7 +292,7 @@ export function MixedCartonSheet({
                     onClick={() => setTargetCartons((n) => Math.min(maxMixedCartons, n + 1))}
                     disabled={targetCartons >= maxMixedCartons}
                     aria-label="One carton more"
-                    className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                    className="w-11 h-11 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                     +
                   </button>
@@ -375,7 +375,7 @@ export function MixedCartonSheet({
                     onClick={() => singleMode ? setCartonCount(s, count - 1) : looseMode ? setLooseCount(s, count - 1) : setBottleCount(s, count - 1)}
                     disabled={count <= 0}
                     aria-label={`One fewer ${s.model_name}`}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                    className="w-11 h-11 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
                     −
                   </button>
@@ -384,7 +384,7 @@ export function MixedCartonSheet({
                     onClick={() => singleMode ? setCartonCount(s, count + 1) : looseMode ? setLooseCount(s, count + 1) : setBottleCount(s, count + 1)}
                     disabled={count >= cap || price == null}
                     aria-label={`One more ${s.model_name}`}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
+                    className="w-11 h-11 rounded-xl flex items-center justify-center font-semibold text-lg transition active:scale-90 disabled:opacity-30"
                     style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
                     +
                   </button>

@@ -1340,9 +1340,17 @@ function CategoryPills({
     finally { setSaving(false); }
   }
 
+  // minHeight 44 — and the PILL IS THE BUTTON now.
+  //
+  // The pill used to be a <span> with a zero-padding <button> inside it, so the
+  // thing the browser routes a tap to was the TEXT: 16px tall, twenty of them
+  // on this sheet. It measured that way the first time anything looked inside a
+  // sheet at all (touch-targets-sheets.mjs). The label keeps its 11px; only the
+  // box grows, which is the same distinction drawn everywhere else — the hit
+  // area, not the ink.
   const pill: React.CSSProperties = {
-    display: "inline-flex", alignItems: "center", gap: 4,
-    padding: "4px 8px 4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+    minHeight: 44, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600,
     border: "1px solid", cursor: "pointer", whiteSpace: "nowrap",
   };
 
@@ -1351,20 +1359,18 @@ function CategoryPills({
       {categories.map((c) => {
         const active = selectedId === c.id;
         return (
-          <span key={c.id} style={{
-            ...pill,
-            background: active ? "var(--snm-brand)" : "transparent",
-            borderColor: active ? "var(--snm-brand)" : "var(--glass-border)",
-            color: active ? "var(--snm-brand-on)" : "var(--muted-foreground)",
-          }}>
-            <button
-              type="button"
-              onClick={() => onSelect(c.id)}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0,
-                color: "inherit", fontSize: "inherit", fontWeight: "inherit" }}
-            >
-              {c.name}
-            </button>
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onSelect(c.id)}
+            style={{
+              ...pill,
+              background: active ? "var(--snm-brand)" : "transparent",
+              borderColor: active ? "var(--snm-brand)" : "var(--glass-border)",
+              color: active ? "var(--snm-brand-on)" : "var(--muted-foreground)",
+            }}
+          >
+            {c.name}
             {/* NO DELETE HERE, DELIBERATELY.
                 There used to be a "×" inside this pill: a 13px destructive
                 control sitting beside the label, in a picker, on a phone, where
@@ -1376,8 +1382,10 @@ function CategoryPills({
                 Nothing is lost by removing it. Categories are deleted on the
                 Categories tab, from a full-size button with a confirm sheet,
                 which is where managing them belongs. This form is for CHOOSING.
-                A creation screen should not be able to destroy anything. */}
-          </span>
+                A creation screen should not be able to destroy anything.
+                Removing it is also what lets the pill BE the button: with
+                nothing else inside, the wrapper span had no job left. */}
+          </button>
         );
       })}
 
@@ -2268,7 +2276,7 @@ function NewSkuWizard({
                               });
                             }}
                             style={{
-                              flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                              flex: 1, minHeight: 44, padding: "0 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
                               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                               border: on ? "none" : "0.5px solid var(--glass-border-lo)",
                               background: on ? "var(--foreground)" : "transparent",
@@ -2320,7 +2328,13 @@ function NewSkuWizard({
                             <button key={u} type="button"
                               onClick={() => { setFixedEntryUnit(u); setFixedPrice(""); }}
                               style={{
-                                fontSize: 10, padding: "2px 7px", cursor: "pointer", border: "none",
+                                // minHeight 44 with a 10px label: this measured
+                                // 40x33 and 48x33, and it decides whether the
+                                // price typed beside it means a pack or a
+                                // carton — the difference between MVR 290 and
+                                // MVR 790 on a Sosoft line.
+                                fontSize: 10, minHeight: 44, padding: "0 10px", cursor: "pointer", border: "none",
+                                display: "flex", alignItems: "center",
                                 background: fixedEntryUnit === u
                                   ? "var(--foreground)"
                                   : "transparent",
@@ -2450,7 +2464,7 @@ function NewSkuWizard({
             <button
               type="button"
               onClick={() => setShowOptional(!showOptional)}
-              className="flex items-center gap-1.5 ios-subhead font-medium py-1"
+              className="flex items-center gap-1.5 ios-subhead font-medium min-h-11"
               style={{ color: "var(--muted-foreground)", background: "none", border: "none", cursor: "pointer" }}
             >
               <ChevronRight
