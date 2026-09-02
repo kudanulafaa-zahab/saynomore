@@ -1481,9 +1481,19 @@ export function NewSaleSheet({
                             audit a stable way to open the product step; three CI
                             rounds were spent guessing at a selector for exactly
                             this card, which is what left that step unmeasured
-                            while a 36px button sat on it. */}
+                            while a 36px button sat on it.
+
+                            THE SEPARATOR IS LOAD-BEARING. An aria-label REPLACES
+                            the visible text when anything matches this button by
+                            its accessible name, so writing the three names with
+                            plain spaces silently renamed the card — and the
+                            carton-and-packs audit, which finds this row by
+                            "Mamypoko · Xtra Kering · L", clicked nothing for
+                            thirty seconds. It mirrors what SkuIdentity renders,
+                            separator included, so the name a screen reader hears
+                            is the name the screen shows. */}
                         <button onClick={() => outOfStock ? setStockInSku(s) : setSelectedSkuId(s.id)}
-                          aria-label={`${s.brand_name} ${s.model_name} ${s.variant_display}`}
+                          aria-label={`${s.brand_name} · ${s.model_name} · ${s.variant_display}`}
                           className="w-full rounded-2xl p-4 text-left transition active:scale-[0.98]"
                           style={{
                             ...CARD,
