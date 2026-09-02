@@ -1785,8 +1785,8 @@ export function NewSaleSheet({
                           onChange={(e) => setLineQty((e.target as HTMLInputElement).value)}
                           onFocus={(e) => e.target.select()}
                           placeholder="0"
-                          className="flex-1 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
-                          style={{ minWidth: 0 }}
+                          className="flex-1 h-11 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
+                          style={{ minWidth: 44 }}
                         />
                         <button
                           onClick={() => setLineQty(String(qtyNum + 1))}
@@ -1817,7 +1817,7 @@ export function NewSaleSheet({
                         onFocus={(e) => e.target.select()}
                         onBlur={handlePriceBlur}
                         placeholder={hasNoPrice ? "Tap to set" : "0.00"}
-                        className="w-full text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
+                        className="w-full h-11 text-[28px] font-bold bg-transparent text-foreground outline-none text-center"
                         style={{ minWidth: 0 }}
                       />
                       {costForUom != null && !isNaN(priceVal) && priceVal > 0 && priceVal - costForUom >= 0 && (() => {
@@ -1833,7 +1833,7 @@ export function NewSaleSheet({
                         <button
                           type="button"
                           onClick={() => setShowPriceExplain(true)}
-                          className="w-full ios-subhead text-center mt-1 leading-tight underline"
+                          className="w-full min-h-11 flex items-center justify-center ios-subhead text-center mt-1 leading-tight underline"
                           style={{ color: "var(--muted-foreground)", textUnderlineOffset: 2 }}
                         >
                           {editorProvenance.detail}
@@ -1843,7 +1843,7 @@ export function NewSaleSheet({
                         <button
                           type="button"
                           onClick={() => setShowPriceExplain(true)}
-                          className="w-full ios-subhead text-center mt-1 font-semibold leading-tight underline"
+                          className="w-full min-h-11 flex items-center justify-center ios-subhead text-center mt-1 font-semibold leading-tight underline"
                           style={{ color: priceWarning.color, textUnderlineOffset: 2 }}
                         >
                           ⚠ {priceWarning.text}
