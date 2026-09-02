@@ -81,6 +81,12 @@ const SHEETS = [
       await newSale.getByText("Ahmed Ziyad").first().click();
       await page.getByRole("button", { name: /add products/i }).first().click();
       await page.waitForTimeout(1500);
+      // The brand grid does not render until a warehouse is chosen — the step
+      // journey.mjs and sosoft-three-ways.mjs both do, and the one this file
+      // left out on its first run, which timed out clicking a brand that was
+      // not on screen yet.
+      await page.locator("select").first().selectOption({ label: "Veesange" });
+      await page.waitForTimeout(1500);
       await page.locator("button", { hasText: "Mamypoko" }).first().click();
       await waitForNewDialog(page, "new sale");
       return page.getByRole("dialog", { name: /add to sale/i });
@@ -125,7 +131,7 @@ for (const sheet of SHEETS) {
     const dialog = await sheet.open(page);
     const handle = await dialog.elementHandle({ timeout: 10_000 });
     if (!handle) throw new Error("the sheet did not open");
-    small = await page.evaluate(AUDIT_WITHIN, [handle, MIN]);
+    small = await page.evaluate(AUDIT_WITHIN, [MIN, handle]);
   } catch (err) {
     failure = String(err).split("\n")[0].slice(0, 160);
   }

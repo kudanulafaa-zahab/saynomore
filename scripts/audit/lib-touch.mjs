@@ -10,7 +10,10 @@
 // It is evaluated INSIDE the browser (page.evaluate), so it must be a plain
 // function with no imports and no closure over anything out here.
 
-const AUDIT_IMPL = (min, root) => {
+const AUDIT_IMPL = (arg) => {
+  // ONE argument, because that is all page.evaluate passes. Either a bare
+  // `min`, or `[min, rootNode]` when only part of the page is being judged.
+  const [min, root] = Array.isArray(arg) ? arg : [arg, null];
   const SEL = 'button, a[href], select, textarea, input:not([type="hidden"]), [role="button"], [role="tab"], [role="switch"], [role="option"]';
   const out = [];
   for (const el of (root ?? document).querySelectorAll(SEL)) {
@@ -81,14 +84,25 @@ const AUDIT_IMPL = (min, root) => {
   return out;
 };
 
+// BOTH NAMES ARE THE SAME FUNCTION OBJECT, deliberately.
+//
+// page.evaluate SERIALISES the function to source text and runs it inside the
+// browser, where nothing from this module exists. A wrapper like
+// `([root, min]) => AUDIT_IMPL(min, root)` therefore fails with
+// "AUDIT_IMPL is not defined" — which is exactly what CI reported on the first
+// run of the sheets audit, against the warning three lines above it in this
+// very file. A function handed to evaluate must be entirely self-contained,
+// so the only safe way to share one definition is to export the one function
+// under both names.
+//
+//   page.evaluate(AUDIT, 44)              the whole page
+//   page.evaluate(AUDIT_WITHIN, [44, el]) only inside that element
+
 /** Every control under `min` in the whole page. */
 export const AUDIT = AUDIT_IMPL;
 
-/** The same measurement, but only inside a given element — used for sheets and
- *  dialogs, where the page behind them is not what is being judged.
- *
- *  Takes ONE argument, because that is all page.evaluate passes. An
- *  ElementHandle nested in that array arrives here as a real DOM node, which
- *  is how the root gets across the boundary at all. */
-export const AUDIT_WITHIN = ([root, min]) => AUDIT_IMPL(min, root);
+/** The same measurement, scoped to one element — for sheets and dialogs, where
+ *  the page behind them has already been judged by the other audit. The
+ *  ElementHandle nested in the array arrives as a real DOM node. */
+export const AUDIT_WITHIN = AUDIT_IMPL;
 
