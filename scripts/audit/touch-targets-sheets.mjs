@@ -87,7 +87,11 @@ const SHEETS = [
       // not on screen yet.
       await page.locator("select").first().selectOption({ label: "Veesange" });
       await page.waitForTimeout(1500);
-      await page.locator("button", { hasText: "Mamypoko" }).first().click();
+      // "Xtra Kering", not "Mamypoko". A mixed-carton BRAND collapses to one
+      // card carrying the brand name; a normal product gets a card per SKU
+      // showing its model and size. The first run clicked a brand name that is
+      // only ever printed on the other kind of card, and waited 30s for it.
+      await page.locator("button", { hasText: "Xtra Kering" }).first().click();
       await waitForNewDialog(page, "new sale");
       return page.getByRole("dialog", { name: /add to sale/i });
     },
