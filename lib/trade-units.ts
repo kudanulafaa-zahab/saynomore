@@ -165,6 +165,56 @@ export function sellableTiers(units: SellUnit[] | null | undefined): SellUnit[] 
   return tiers.length ? tiers : ["carton"];
 }
 
+// ── Which tiers may be OFFERED, and what each one is called ───────────────
+//
+// Ali, 2026-09-02, with a screenshot of Edit Product on a Body Shop tub:
+//   *"what is this single tub and tub and carton in 'sold in'? ... This is not
+//    intelligent I don't even know what sold in tub, single tub means"*
+//   *"Bodyshop are sold in tubs. I can sell x number of tubs. It's never
+//    cartons."*
+//
+// He was reading three buttons that all meant the same object. That tub is 1
+// to a pack and 1 to a carton, so "Single tub", "Tub" and "Carton" are one
+// thing at one price. Both editors hardcoded those three for EVERY product
+// without ever asking whether they are different quantities — true on a 34-per-
+// pack diaper, false on a tub.
+//
+// A TIER IS ONLY A TIER IF IT IS A DIFFERENT AMOUNT. That is the whole rule,
+// and it is the packaging hierarchy every ERP models: a level exists when it
+// holds more than one of the level below it.
+//
+// "Single" is gone for a second reason. Migration 0210 ("a bottle is one tier
+// not two") already decided a single-item product has ONE tier; the button
+// outlived the decision. No SKU in the catalogue has `piece` in
+// sellable_units, and offering it would break the packs-and-cartons rule on
+// everything that isn't a single item.
+
+/** The tiers that are genuinely different quantities for a pack config —
+ *  what a screen may OFFER, as opposed to what a SKU currently says. */
+export function offerableTiers(cfg: { pcsPerPack: number; packsPerCarton: number }): SellUnit[] {
+  // The pack is the base unit he trades in and always exists: for a tub it IS
+  // the tub, for a diaper it is the pack of 34.
+  return cfg.packsPerCarton > 1 ? ["pack", "carton"] : ["pack"];
+}
+
+/** What one tier is CALLED on a form, with the quantity in it: "Pack of 34",
+ *  "Carton of 3 packs", "Tub", "Carton of 6 bottles".
+ *
+ *  The count is part of the label on purpose. "Carton" alone is what let a
+ *  carton of one pack look like a second choice. */
+export function tierLabel(
+  u: SellUnit,
+  cfg: { pcsPerPack: number; packsPerCarton: number; unitUom: UnitUom | null | undefined },
+): string {
+  const noun = containerLabel(cfg.unitUom);
+  const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
+  if (u === "carton") {
+    return `Carton of ${cfg.packsPerCarton} ${noun}${cfg.packsPerCarton === 1 ? "" : "s"}`;
+  }
+  // A pack that holds one thing is just that thing — a tub, a bottle.
+  return cfg.pcsPerPack > 1 ? `${Noun} of ${cfg.pcsPerPack}` : Noun;
+}
+
 /** The word for one unit at a given tier, lowercase ("carton", "pack",
  *  "bottle"). Never says "piece" for a product whose pack IS one unit —
  *  Sosoft's carton holds 6 packs of 1, so its loose unit is a bottle. */

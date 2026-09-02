@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { containerLabel, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, offerableTiers, tierLabel, type UnitUom } from "@/lib/trade-units";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { updateSku, renameCataloguePart, adminDeleteBrandCascade, adminDeleteModelCascade, adminDeleteVariantCascade, adminDeleteSku, getPackConfigChangeImpact, type SkuFullRow, type SellUnit, type PackConfigImpact } from "@/lib/queries/products";
 import { PackSizeCorrectionSheet } from "./pack-size-correction";
@@ -248,7 +248,13 @@ export function EditSkuDialog({
         // comes from the product type (0241), never from this form.
         unit_size: unitSize ? parseFloat(unitSize) : null,
         unit_size_uom: unitSize ? unitSizeUom : null,
-        sellable_units: sellUnits,
+        // NEVER STORE A TIER THAT IS NOT A DIFFERENT QUANTITY (0243). A row
+        // saved before this change can still carry a carton that holds one
+        // pack, or the old synthetic "piece"; saving here drops it rather than
+        // leaving a unit no screen will ever offer.
+        sellable_units: sellUnits.filter((u) => offerable.includes(u)).length
+          ? sellUnits.filter((u) => offerable.includes(u))
+          : offerable,
         target_margin_pct: marginPct ? parseFloat(marginPct) : null,
         // Entered per pack, STORED per pack (0228). The per-piece column is
         // cleared rather than written: it is derived from this number now, and
@@ -282,6 +288,15 @@ export function EditSkuDialog({
   // Shop tub is one product, not one size of a product, and the name in its
   // size box was only ever the product's name written twice.
   const hasOwnSize = Object.keys(attrs ?? {}).length > 0;
+
+  // The pack configuration as it stands ON THE FORM, so the tiers follow what
+  // he is typing rather than what was saved last time.
+  const tradeCfg = {
+    pcsPerPack: pcs > 0 ? pcs : (sku?.pcs_per_pack ?? 1),
+    packsPerCarton: packs > 0 ? packs : (sku?.packs_per_carton ?? 1),
+    unitUom: sku?.unit_uom as UnitUom | undefined,
+  };
+  const offerable = offerableTiers(tradeCfg);
 
   return (
     <>
@@ -530,50 +545,45 @@ export function EditSkuDialog({
               </p>
             </div>
 
-            {/* Sold in — which tiers this product is offered in */}
+            {/* SOLD IN — only the tiers that are DIFFERENT QUANTITIES (0243).
+                This offered three buttons for every product: Single tub, Tub,
+                Carton. On a tub that is 1 to a pack and 1 to a carton, all
+                three are the same object at the same price, which is what Ali
+                was reading when he said he did not know what they meant.
+                offerableTiers is the one place that decides; tierLabel puts the
+                real count in the word. */}
             <div className="space-y-2">
               <Label>Sold in</Label>
               <div className="flex gap-2">
-                {([
-                  // "Single" is the third door, added 2026-08-11 for products
-                  // that ARE one item — a Body Shop body butter is a tub, not a
-                  // pack of anything. sellable_units has always permitted
-                  // 'piece'; nothing ever offered it, which is why a
-                  // hand-carried tub could not be set up at all.
-                  //
-                  // This does NOT weaken the packs-and-cartons rule. That rule
-                  // exists because nobody trades diapers loose, and a diaper
-                  // SKU still never offers this — its category is measured in
-                  // pcs, so the label below reads "Pack" and choosing Single
-                  // would be visibly wrong. The rule is about diapers, not
-                  // about arithmetic.
-                  { key: "piece" as SellUnit, label: `Single ${singular}` },
-                  { key: "pack" as SellUnit, label: unit },
-                  { key: "carton" as SellUnit, label: "Carton" },
-                ]).map((opt) => {
-                  const on = sellUnits.includes(opt.key);
+                {offerable.map((key) => {
+                  const on = sellUnits.includes(key);
+                  const only = offerable.length === 1;
                   return (
-                    <button key={opt.key} type="button"
+                    <button key={key} type="button"
                       onClick={() => setSellUnits((prev) => {
-                        const has = prev.includes(opt.key);
+                        const has = prev.includes(key);
                         if (has && prev.length === 1) return prev; // never empty
-                        return has ? prev.filter((u) => u !== opt.key) : [...prev, opt.key];
+                        return has ? prev.filter((u) => u !== key) : [...prev, key];
                       })}
-                      className="flex-1 h-10 rounded-xl ios-subhead font-semibold transition active:scale-95"
-                      style={{
-                        background: on ? "var(--foreground)" : "transparent",
-                        color: on ? "var(--background)" : "var(--muted-foreground)",
-                        border: on ? "none" : "0.5px solid var(--glass-border-lo)",
-                      }}>
-                      {opt.label}
+                      aria-pressed={on}
+                      className="flex-1 min-h-11 px-3 rounded-xl ios-subhead font-semibold leading-tight text-center transition active:scale-95 flex items-center justify-center gap-1.5"
+                      style={on
+                        ? { background: "var(--foreground)", color: "var(--background)" }
+                        // An unselected pill carries a CHOICE, so it is content:
+                        // real --foreground on a filled surface, never muted on
+                        // transparent.
+                        : { background: "var(--glass-bg-1)", color: "var(--foreground)",
+                            border: "0.5px solid var(--glass-border-lo)" }}>
+                      {on && !only && <Check className="h-3.5 w-3.5 shrink-0" />}
+                      {tierLabel(key, tradeCfg)}
                     </button>
                   );
                 })}
               </div>
-              <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>
-                The units customers can buy. Carton-only products hide pack pricing.
-                Choose <strong>Single {singular}</strong> for something sold one at a
-                time — set pieces per {unit.toLowerCase()} and {unit.toLowerCase()}s per carton to 1.
+              <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+                {offerable.length === 1
+                  ? `A carton of this holds one ${singular}, so there is nothing else to sell it as. You can sell any number of ${singular}s.`
+                  : "The units customers can buy. Carton-only products hide pack pricing."}
               </p>
             </div>
 

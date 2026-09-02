@@ -23,7 +23,7 @@ import {
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
   type SkuFullRow, type AttrKey, type SellUnit,
 } from "@/lib/queries/products";
-import { containerLabel, UNIT_WORDS, costBasisFor, sellableUnitsFor, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, UNIT_WORDS, costBasisFor, sellableUnitsFor, offerableTiers, tierLabel, type UnitUom } from "@/lib/trade-units";
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
 } from "./edit-dialogs";
@@ -2223,6 +2223,16 @@ function NewSkuWizard({
               const ctnsN = parseInt(packsPerCtn, 10);
               const pcsPerCarton = pcsN > 0 && ctnsN > 0 ? pcsN * ctnsN : null;
 
+              // Which tiers are DIFFERENT QUANTITIES for what he has typed so
+              // far (0243). One definition, shared with Edit Product, so the
+              // two screens cannot offer different units for one product.
+              const newTradeCfg = {
+                pcsPerPack: pcsN > 0 ? pcsN : 1,
+                packsPerCarton: ctnsN > 0 ? ctnsN : 1,
+                unitUom: category?.unit_uom as UnitUom | undefined,
+              };
+              const offerable = offerableTiers(newTradeCfg);
+
               // Live derived prices when fixed carton price is entered
               const fixedVal = parseFloat(fixedPrice);
               const derivedBottlePrice = !isNaN(fixedVal) && fixedVal > 0 && pcsN > 0
@@ -2253,44 +2263,47 @@ function NewSkuWizard({
                       price fields appear below (carton-only hides pack pricing). */}
                   <div className="space-y-1.5" style={{ marginBottom: 12 }}>
                     <Label className="ios-subhead">Sold in</Label>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {([
-                        // "Single" for something sold one at a time — a Body
-                        // Shop body butter is a tub, not a pack of anything.
-                        // The Edit dialog gained this first; the CREATE wizard
-                        // is the screen that actually needed it.
-                        { key: "piece" as const, label: `Single ${singularWord}` },
-                        { key: "pack" as const, label: tradeUnit },
-                        { key: "carton" as const, label: "Carton" },
-                      ]).map((opt) => {
-                        const on = sellUnits.includes(opt.key);
+                    {/* data-sold-in so the audit can read the pills themselves.
+                        "Carton" also appears in "Carton Dimensions", "Packs per
+                        Carton" and "Carton price", so a text search over the
+                        page would be testing the wrong words. */}
+                    <div data-sold-in style={{ display: "flex", gap: 8 }}>
+                      {offerable.map((key) => {
+                        const on = sellUnits.includes(key);
+                        const only = offerable.length === 1;
                         return (
-                          <button key={opt.key} type="button"
+                          <button key={key} type="button"
+                            aria-pressed={on}
                             onClick={() => {
                               setSellUnitsTouched(true);
                               setSellUnits((prev) => {
-                                const has = prev.includes(opt.key);
+                                const has = prev.includes(key);
                                 // Never allow an empty selection — keep at least one tier.
                                 if (has && prev.length === 1) return prev;
-                                return has ? prev.filter((u) => u !== opt.key) : [...prev, opt.key];
+                                return has ? prev.filter((u) => u !== key) : [...prev, key];
                               });
                             }}
                             style={{
                               flex: 1, minHeight: 44, padding: "0 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
                               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                              lineHeight: 1.15, textAlign: "center",
                               border: on ? "none" : "0.5px solid var(--glass-border-lo)",
-                              background: on ? "var(--foreground)" : "transparent",
-                              color: on ? "var(--background)" : "var(--muted-foreground)",
+                              // Unselected carries a CHOICE, so it is content:
+                              // real foreground on a filled surface.
+                              background: on ? "var(--foreground)" : "var(--glass-bg-1)",
+                              color: on ? "var(--background)" : "var(--foreground)",
                               transition: "all 0.15s",
                             }}>
-                            {on && <Check className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />}
-                            {opt.label}
+                            {on && !only && <Check className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />}
+                            {tierLabel(key, newTradeCfg)}
                           </button>
                         );
                       })}
                     </div>
-                    <p style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
-                      Tap to choose the units customers can buy — selected units show a checkmark. Prices below adapt to your choice.
+                    <p style={{ fontSize: 11, color: "var(--foreground)", opacity: 0.75 }}>
+                      {offerable.length === 1
+                        ? `A carton of this would hold one ${singularWord}, so there is nothing else to sell it as. Set ${singularWord}s per carton above if it really comes in cases.`
+                        : "The units customers can buy. Prices below adapt to your choice."}
                     </p>
                   </div>
 
