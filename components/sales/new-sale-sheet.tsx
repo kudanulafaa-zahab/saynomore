@@ -1771,13 +1771,15 @@ export function NewSaleSheet({
                       <p className="text-[12px] uppercase tracking-widest mb-3 font-semibold" style={{ color: "var(--muted-foreground)" }}>
                         QTY · {uomLabel}S
                       </p>
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          onClick={() => { const n = Math.max(0, qtyNum - 1); setLineQty(n > 0 ? String(n) : ""); }}
-                          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
-                          style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
-                          −
-                        </button>
+                      {/* THE NUMBER ON ITS OWN ROW, − and + beneath it.
+                          One row could not hold three 44px targets inside half a
+                          phone screen: the box measured 32 wide, and giving it a
+                          44 minimum simply stole the width from the steppers,
+                          which then measured 38. Stacking removes the arithmetic
+                          — the number is full width, each stepper is half — so
+                          all three clear 44 at any screen size instead of at the
+                          one I happened to calculate for. */}
+                      <div className="flex flex-col gap-2">
                         {/* Tapping the number opens the keyboard for direct entry */}
                         <input
                           type="number" inputMode="numeric" min="1"
@@ -1785,15 +1787,26 @@ export function NewSaleSheet({
                           onChange={(e) => setLineQty((e.target as HTMLInputElement).value)}
                           onFocus={(e) => e.target.select()}
                           placeholder="0"
-                          className="flex-1 h-11 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
-                          style={{ minWidth: 44 }}
+                          aria-label={`Quantity in ${uomLabel.toLowerCase()}s`}
+                          className="w-full h-11 text-center text-[28px] font-bold bg-transparent text-foreground outline-none"
+                          style={{ minWidth: 0 }}
                         />
-                        <button
-                          onClick={() => setLineQty(String(qtyNum + 1))}
-                          className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
-                          style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
-                          +
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => { const n = Math.max(0, qtyNum - 1); setLineQty(n > 0 ? String(n) : ""); }}
+                            aria-label="One less"
+                            className="flex-1 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
+                            style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--foreground)" }}>
+                            −
+                          </button>
+                          <button
+                            onClick={() => setLineQty(String(qtyNum + 1))}
+                            aria-label="One more"
+                            className="flex-1 h-11 rounded-xl flex items-center justify-center text-xl font-bold transition active:scale-90"
+                            style={{ background: "var(--glass-accent)", color: "var(--snm-brand-on)" }}>
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1806,7 +1819,15 @@ export function NewSaleSheet({
                             Edited
                           </span>
                         ) : editorProvenance.source ? (
-                          <PriceSourceTag provenance={editorProvenance} size="md" onClick={() => setShowPriceExplain(true)} />
+                          /* NOT TAPPABLE, deliberately. As a button this badge
+                             was a 125x22 tap target — and it is an inline label
+                             inside the "MVR / PACK" caption, so it cannot grow
+                             to 44 without wrecking that line. Its action is not
+                             lost: the underlined line directly beneath the price
+                             opens the same explainer, and when the price is below
+                             cost that line IS the warning, at full size. One
+                             affordance, big enough to hit. */
+                          <PriceSourceTag provenance={editorProvenance} size="md" />
                         ) : null}
                       </p>
                       {/* Single input — no autoFocus, displays cleanly, editable on tap */}
