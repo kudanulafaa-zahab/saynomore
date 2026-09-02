@@ -4,7 +4,8 @@
   "_first_run": "MEASURED by CI on 2026-09-02. All four sheets open. What the first real look inside them found, none of it reachable by the screen sweep because none of it is on a screen: New Sale's close button at 17x28; TWENTY controls at 16px tall on New SKU (the category chips); SIX on the Sosoft sheet, where a bottle, a mixed carton and a whole carton are chosen. 27 in total. The product type sheet is clean.",
   "new-sale": 1,
   "product-type": 0,
-  "new-sku": 20,
+  "new-sku": 0,
   "sale-mixed-carton": 6,
-  "_not_covered": "The plain product step \u2014 a diaper's pack/carton pills, the screen in Ali's screenshot \u2014 is NOT measured. Three CI rounds were spent guessing at the selector that reaches it and none worked; the mixed-carton sheet is driven instead because two existing audits prove that flow. Saying so is the point: an audit that quietly covers less than its name suggests is how 'every control is 44px' came to be said about an app where a 36px pill sat on this very screen. Opener failures now print what was on screen, so the next attempt has evidence."
+  "_not_covered": "The plain product step \u2014 a diaper's pack/carton pills, the screen in Ali's screenshot \u2014 is NOT measured. Three CI rounds were spent guessing at the selector that reaches it and none worked; the mixed-carton sheet is driven instead because two existing audits prove that flow. Saying so is the point: an audit that quietly covers less than its name suggests is how 'every control is 44px' came to be said about an app where a 36px pill sat on this very screen. Opener failures now print what was on screen, so the next attempt has evidence.",
+  "_2026_09_02_chips": "new-sku 20 -> 0. The category chips were a styled <span> wrapping a zero-padding <button>, so the tap target was the TEXT \u2014 16px tall, twenty of them on the sheet where a product is created. The pill is the button now; the label keeps its 11px and only the box grows, the same distinction drawn everywhere else. Found by the first run of this audit, which is the first time anything had looked inside a sheet."
 }
