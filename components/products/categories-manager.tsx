@@ -21,6 +21,7 @@ import {
   createCategory,
   updateCategory,
   setCategorySellableUnits,
+  setCategoryMeasure,
   deleteCategory,
   getCurrentUserRole,
   type CategoryRow,
@@ -29,6 +30,16 @@ import {
   type CostBasis,
   type SellUnit,
 } from "@/lib/queries/products";
+
+/** The unit a net content is measured in, from the type's cost basis.
+ *
+ *  These are the same fact: per_100ml IS millilitres and per_100g IS grams.
+ *  Reading it here rather than storing it twice is the whole reason 0241 added
+ *  no column. */
+type Measure = "ml" | "g" | null;
+function measureOf(basis: CostBasis): Measure {
+  return basis === "per_100ml" ? "ml" : basis === "per_100g" ? "g" : null;
+}
 import { containerLabel, UNIT_WORDS, costBasisFor, sellableUnitsFor } from "@/lib/trade-units";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { useOnMount } from "@/lib/use-on-mount";
@@ -324,12 +335,14 @@ function EditCategoryDialog({
 }: { category: CategoryRow | null; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
   const [duty, setDuty] = useState("");
   const [units, setUnits] = useState<SellUnit[]>([]);
+  const [measure, setMeasure] = useState<Measure>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (category) {
       setDuty(category.duty_rate_pct > 0 ? String(category.duty_rate_pct) : "");
       setUnits(category.default_sellable_units ?? []);
+      setMeasure(measureOf(category.cost_basis));
     }
   }, [category]);
 
@@ -352,12 +365,21 @@ function EditCategoryDialog({
     try {
       await updateCategory(category.id, { duty_rate_pct: duty ? parseFloat(duty) : 0 });
       const changed = await setCategorySellableUnits(category.id, units);
+      // Measured SECOND and reported separately, because it can legitimately
+      // refuse: a type cannot walk away from a unit its own products are
+      // already written in. Its number is not "how many followed" but "how
+      // many still have no size" — the thing left to type.
+      const blank = measure !== measureOf(category.cost_basis)
+        ? await setCategoryMeasure(category.id, measure)
+        : 0;
       toast.success(
-        changed === 0
-          ? "Saved"
-          : changed === 1
-            ? "Saved — 1 product updated to match"
-            : `Saved — ${changed} products updated to match`,
+        blank > 0
+          ? `Saved — ${blank} ${blank === 1 ? "product still needs" : "products still need"} a size in ${measure}`
+          : changed === 0
+            ? "Saved"
+            : changed === 1
+              ? "Saved — 1 product updated to match"
+              : `Saved — ${changed} products updated to match`,
       );
       onOpenChange(false);
       onSaved();
@@ -373,7 +395,7 @@ function EditCategoryDialog({
       <DialogContent className="bg-popover border-border">
         <DialogHeader>
           <DialogTitle>{category?.name}</DialogTitle>
-          <DialogDescription>How this kind of product is sold, and its customs duty.</DialogDescription>
+          <DialogDescription>How this kind of product is sold and measured, and its customs duty.</DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
           <div className="space-y-2">
@@ -406,6 +428,47 @@ function EditCategoryDialog({
             <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.75 }}>
               Every {category?.name.toLowerCase()} product follows this — the ones you
               have now and the ones you add later. Saving brings existing products with it.
+            </p>
+          </div>
+
+          {/* MEASURED IN — the second fact about a kind of product, and the one
+              that had nowhere to live. Ali, 2026-09-02: *"Bodyshop in g"*. One
+              answer covering five tubs; before this it was an ml/g pill on each
+              product, defaulting to ml, and the type had no opinion at all.
+
+              A container noun and a net content are independent: Nivea sells a
+              200 ml bottle and a 200 g tub of nearly the same thing. Asking
+              them as one question is why a tub could never be weighed. */}
+          <div className="space-y-2">
+            <Label>Measured in</Label>
+            <div className="flex gap-2">
+              {([
+                { m: "ml" as Measure, label: "Millilitres" },
+                { m: "g" as Measure, label: "Grams" },
+                { m: null as Measure, label: "Not measured" },
+              ]).map(({ m, label }) => {
+                const on = measure === m;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setMeasure(m)}
+                    className="flex-1 min-h-11 px-2 rounded-xl ios-subhead font-semibold leading-tight text-center transition active:scale-95 flex items-center justify-center gap-1.5"
+                    style={on
+                      ? { background: "var(--foreground)", color: "var(--background)" }
+                      : { background: "var(--glass-bg-1)", color: "var(--foreground)",
+                          border: "0.5px solid var(--glass-border-lo)" }}
+                  >
+                    {on && <Check className="h-3.5 w-3.5 shrink-0" />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="ios-subhead" style={{ color: "var(--foreground)", opacity: 0.75 }}>
+              {measure
+                ? `Each ${one} carries a size in ${measure}, asked for once per product. It is what lets a rival's price per 100${measure} be compared against yours.`
+                : `No size is asked for. A rival's price per 100ml or 100g then has nothing to compare against.`}
             </p>
           </div>
 

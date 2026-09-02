@@ -533,6 +533,30 @@ export async function setCategorySellableUnits(
   return (data ?? 0) as number;
 }
 
+/** THE ONE PLACE the unit a net content is measured in is decided (0241) —
+ *  millilitres, grams, or not measured at all. Stored as the type's
+ *  `cost_basis`, which already carried exactly that fact; a second column
+ *  would have been the same thing written twice.
+ *
+ *  Returns how many active products of that type still have NO size recorded,
+ *  because that is the number worth showing him: a rival's price per 100 g
+ *  means nothing until our own tubs carry one.
+ *
+ *  Throws rather than converts when products already record a size in the old
+ *  unit. 700 ml is not 700 g — that is density, not arithmetic. */
+export async function setCategoryMeasure(
+  categoryId: string,
+  measure: "ml" | "g" | null,
+): Promise<number> {
+  const { data, error } = await supabase.rpc("set_category_measure", {
+    p_category_id: categoryId,
+    p_measure: measure,
+  });
+  if (error) throw error;
+  invalidate("skus:");
+  return (data ?? 0) as number;
+}
+
 export async function deleteCategory(id: string) {
   const { error } = await supabase.from("product_categories").delete().eq("id", id);
   if (error) throw error;

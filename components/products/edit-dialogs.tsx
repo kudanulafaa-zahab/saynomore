@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,9 +86,19 @@ export function EditSkuDialog({
   // you know how much is in it. Per 100ml is the standard shelf-comparison
   // unit for exactly that, and it stayed uncomparable until now because
   // nothing recorded our own size (0232).
+  //
+  // THE UNIT IS NOT ASKED HERE ANY MORE (0241). It used to be an ml/g pill on
+  // this form, defaulting to "ml" for everything, so grams was a choice to
+  // remember on every product — and the five Body Shop tubs, which are grams,
+  // would each have been asked separately. It is one fact about a KIND of
+  // product, it lives on the product type, and this reads it.
   const [unitSize, setUnitSize] = useState(sku?.unit_size?.toString() ?? "");
-  const [unitSizeUom, setUnitSizeUom] = useState<"ml" | "g">(
-    (sku?.unit_size_uom as "ml" | "g" | null) ?? "ml");
+  const unitSizeUom: "ml" | "g" | null =
+    sku?.cost_basis === "per_100ml" ? "ml"
+    : sku?.cost_basis === "per_100g" ? "g"
+    // A product sized before its type had an opinion keeps its own unit rather
+    // than losing the number.
+    : (sku?.unit_size_uom as "ml" | "g" | null) ?? null;
   const [marginPct, setMarginPct] = useState(sku?.target_margin_pct?.toString() ?? "");
   const [fixedPrice, setFixedPrice] = useState(initialFixedPrice);
   const [fixedCartonPrice, setFixedCartonPrice] = useState(sku?.fixed_price_per_carton_mvr?.toString() ?? "");
@@ -109,9 +120,12 @@ export function EditSkuDialog({
   const landedPerPiece = sku?.landed_per_piece_mvr ?? null;
   const pcs = parseInt(pcsPerPack, 10);
   const packs = parseInt(packsPerCarton, 10);
-  // A piece is a single container (a bottle, a tub) rather than one of many in
-  // a pack. Those are the products with a net content; a nappy has none.
-  const measured = pcs === 1 || sku?.unit_size != null;
+  // WHETHER THIS PRODUCT HAS A NET CONTENT IS ITS TYPE'S ANSWER, not a guess
+  // from the pack size. It used to be `pcs === 1`, which asked a one-to-a-pack
+  // nappy how many millilitres were in it and never asked a 12-sachet box of
+  // powder anything at all. A size already recorded still shows, so a number
+  // entered before the type had an opinion is never stranded.
+  const measured = unitSizeUom !== null;
 
   // Preview from margin formula
   const marginPreview = useMemo(() => {
@@ -215,7 +229,8 @@ export function EditSkuDialog({
         carton_width_cm: parseFloat(w),
         carton_height_cm: parseFloat(h),
         carton_weight_kg: kg ? parseFloat(kg) : null,
-        // Both or neither — the database refuses a size with no unit.
+        // Both or neither — the database refuses a size with no unit. The unit
+        // comes from the product type (0241), never from this form.
         unit_size: unitSize ? parseFloat(unitSize) : null,
         unit_size_uom: unitSize ? unitSizeUom : null,
         sellable_units: sellUnits,
@@ -409,35 +424,39 @@ export function EditSkuDialog({
               field would be noise on every diaper. */}
           {measured && (
             <div className="space-y-2">
-              <Label>How much is in one {unit.toLowerCase()}</Label>
+              <Label>How much is in one {unit.toLowerCase()} ({unitSizeUom})</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number" inputMode="decimal" step="1" min="1"
                   value={unitSize}
                   onChange={(e) => setUnitSize(e.target.value)}
-                  placeholder="e.g. 700"
+                  placeholder={unitSizeUom === "g" ? "e.g. 200" : "e.g. 700"}
                   className="max-w-[140px]"
                 />
-                <div className="flex gap-1">
-                  {(["ml", "g"] as const).map((u) => (
-                    <button
-                      key={u}
-                      type="button"
-                      onClick={() => setUnitSizeUom(u)}
-                      className="snm-pressable h-11 px-4 rounded-xl ios-subhead font-semibold"
-                      style={unitSizeUom === u
-                        ? { background: "var(--foreground)", color: "var(--background)" }
-                        : { background: "var(--glass-bg-1)", border: "0.5px solid var(--glass-border-lo)", color: "var(--foreground)" }}
-                    >
-                      {u}
-                    </button>
-                  ))}
-                </div>
+                {/* The unit is READ, not chosen — so it is a word, not a
+                    control. One tap away is the place it IS chosen, because a
+                    setting you can see and cannot reach is the thing Ali
+                    objected to on 2026-09-01. */}
+                <span className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>
+                  {unitSizeUom}
+                </span>
               </div>
               <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.75 }}>
                 {unitSize
                   ? `${unitSize} ${unitSizeUom} a ${unit.toLowerCase()}. Lets a rival's price per 100${unitSizeUom} be compared against yours.`
                   : `Only needed to compare against a rival selling a different size. Leave it blank and those prices stay uncomparable.`}
+                {sku?.category_id && (
+                  <>
+                    {" "}
+                    <Link
+                      href={`/products?tab=categories&editCategory=${sku.category_id}`}
+                      className="underline"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      Every {sku.category_name.toLowerCase()} is measured in {unitSizeUom}.
+                    </Link>
+                  </>
+                )}
               </p>
             </div>
           )}
