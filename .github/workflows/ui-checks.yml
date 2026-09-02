@@ -341,6 +341,12 @@ jobs:
       - name: Touch targets — every control is at least 44x44
         run: npm run audit:touch
 
+      # ...AND THE HALF THE LINE ABOVE CANNOT SEE. The screen sweep loads each
+      # URL and measures what is on it; nothing inside a sheet or dialog had
+      # ever been measured, which is where every price and quantity is typed.
+      - name: Touch targets inside sheets — New Sale, product picker, product type
+        run: npm run audit:touchsheets
+
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach
 

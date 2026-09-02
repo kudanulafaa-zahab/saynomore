@@ -1,0 +1,9 @@
+{
+  "_": "Controls under 44x44 INSIDE each sheet, MEASURED. Same ratchet as touch-targets.baseline.json: a number may only go DOWN, and the audit fails if one climbs or if one falls without this file being tightened.",
+  "_why": "touch-targets.mjs loads the 21 screens and measures what is ON them. Nothing inside a sheet, dialog or bottom sheet had ever been measured — New Sale, the product picker, the GRN dialog, Edit SKU, every confirm. That is where money is entered, and it is why a 36px Pack/Carton pill sat in front of Ali on the day he was told every control was 44px.",
+  "_first_run": "These numbers are NOT yet measured. This file cannot be produced locally — the audit needs the seeded fixture database, which needs Docker. So the first CI run is a MEASUREMENT, not a gate: the values below are deliberately loose so the run completes and prints the truth, and the very next commit replaces them with what CI reported. A loose baseline that is knowingly temporary is honest; a guessed one presented as measured is not.",
+  "new-sale": 99,
+  "sale-product-picker": 99,
+  "product-type": 99,
+  "new-sku": 99
+}
