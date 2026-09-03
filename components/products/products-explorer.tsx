@@ -911,6 +911,11 @@ export function ProductsExplorer() {
           <div className="flex gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
+              // An icon alone says nothing out loud. VoiceOver announced this
+              // as "button" — one of only two controls in the whole app with
+              // no accessible name when audit:names first ran.
+              aria-label={showFilters ? "Hide filters" : "Show filters"}
+              aria-expanded={showFilters}
               // h-11 w-11, and shrink-0: this measured 33x40, narrower than
               // its own w-10 because the flex row was squeezing it.
               className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center transition active:scale-90"

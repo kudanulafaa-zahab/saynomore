@@ -837,6 +837,10 @@ export function MyDeliveries() {
           </div>
           <button
             onClick={() => load(true)} disabled={refreshing}
+            // A spinning arrow is not a word. This is the driver's screen, and
+            // the driver is the person most likely to be using the phone
+            // one-handed with a carton in the other.
+            aria-label={refreshing ? "Refreshing deliveries" : "Refresh deliveries"}
             className="snm-pressable"
             style={{
               width: 44, height: 44, borderRadius: 22, border: "0.5px solid var(--glass-border-lo)",
