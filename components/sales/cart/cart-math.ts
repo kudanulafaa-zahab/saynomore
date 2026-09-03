@@ -213,7 +213,13 @@ export function groupCartLines(lines: DraftLine[]): CartGroup[] {
       g.lines.push(l);
       if (l.is_mixed_carton_fill) g.mixedPieces += l.qty_pieces;
       g.totalPieces += l.qty_pieces;
-      g.totalMvr += l.line_total_mvr;
+      // A MIXED FILL IS NOT PRICED PER BOTTLE, so its bottles are not added up
+      // per bottle. 230.00 / 6 = 38.3333, and five of those plus a double adds
+      // to 229.99 — the number that reached Ali's lock screen. The carton is
+      // what is priced; the group total is cartons x carton rate, and Postgres
+      // (0244) allocates the laari across the colours when the order is saved.
+      // This is the PREVIEW of that figure, not a second implementation of it.
+      if (!l.is_mixed_carton_fill) g.totalMvr += l.line_total_mvr;
     } else {
       out.push({
         key: l.key, brandName: null, piecesPerCarton: 0,
@@ -222,7 +228,31 @@ export function groupCartLines(lines: DraftLine[]): CartGroup[] {
       });
     }
   }
+  // The mixed half of each group, added as CARTONS. Done after the loop because
+  // it needs the group's whole bottle count, not one line's.
+  for (const g of out) {
+    if (g.piecesPerCarton > 0 && g.mixedPieces > 0) {
+      const rate = mixedCartonRate(g);
+      if (rate != null) g.totalMvr += (g.mixedPieces / g.piecesPerCarton) * rate;
+    }
+  }
   return out;
+}
+
+/** What one whole mixed carton costs, from the per-bottle figure its lines
+ *  carry. Recovered from the ORDER rather than read from the price list, so a
+ *  discount agreed on the day survives, exactly as Postgres does it (0244). */
+export function mixedCartonRate(g: CartGroup): number | null {
+  const mixed = g.lines.filter((l) => l.is_mixed_carton_fill);
+  if (mixed.length === 0 || g.piecesPerCarton <= 0) return null;
+  const first = mixed[0].unit_price_mvr;
+  // Different rates in one group is not one carton price to split — leave it
+  // to the per-line figures rather than invent a rate. Same condition the
+  // database allocation uses.
+  if (mixed.some((l) => l.unit_price_mvr !== first)) {
+    return null;
+  }
+  return Math.round(first * g.piecesPerCarton * 100) / 100;
 }
 
 /** Bottles still needed to round a brand's mixed lines up to whole cartons.

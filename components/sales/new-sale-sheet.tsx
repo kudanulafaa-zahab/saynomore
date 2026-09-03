@@ -51,7 +51,7 @@ const CHANNELS: { value: OrderChannel; label: string }[] = [
 ];
 import { getCrossSellSuggestion, type CrossSellSuggestion } from "@/lib/queries/sales";
 import { CartLines } from "./cart/cart-lines";
-import { type DraftLine, packLabel, defaultUom, tradeCfg, cartShortfalls, cartMixConflicts, nextCartLineKey } from "./cart/cart-math";
+import { type DraftLine, packLabel, defaultUom, tradeCfg, cartShortfalls, cartMixConflicts, nextCartLineKey, groupCartLines } from "./cart/cart-math";
 import { GlassSelect, WarehouseSelect } from "./warehouse-select";
 import { MixedCartonSheet } from "./mixed-carton-sheet";
 import { mvr, mvrUpTo } from "@/lib/money";
@@ -524,7 +524,13 @@ export function NewSaleSheet({
   }, [lineQty, linePrice]);
 
   const insufficient = stockHere !== null && lineQtyPieces > stockHere;
-  const grandTotal = useMemo(() => draftLines.reduce((s, l) => s + l.line_total_mvr, 0), [draftLines]);
+  // THROUGH THE GROUPS, not straight down the lines. A mixed carton is priced
+  // by the carton, so adding its bottles up one at a time is what put "MVR
+  // 229.99" on Ali's lock screen for a carton he sells at 230.00. Grouping
+  // makes the figure he approves here the figure Postgres records (0244).
+  const grandTotal = useMemo(
+    () => groupCartLines(draftLines).reduce((s, g) => s + g.totalMvr, 0),
+    [draftLines]);
 
   // Ask again whenever the basket, the customer or the warehouse changes — the
   // answer depends on all three. A walk-in has no history to reason from, so
