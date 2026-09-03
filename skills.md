@@ -1,13 +1,28 @@
-# SKILLS.md v3 — SayNoMore Expert Council
+# SKILLS.md v4 — SayNoMore Expert Council
 
 **Project:** SayNoMore — FMCG Import & Distribution Operations Platform (Maldives)
 **Owner:** Ali — non-technical, runs the business daily from an installed iOS PWA.
-**Supersedes:** skills.md v2. Read alongside `CLAUDE.md`.
+**Supersedes:** skills.md v3. Read alongside `CLAUDE.md`.
 
-Every rule in this file was proven on this app in production during the
-2026-07-11/12 overhaul sessions — verified on Ali's real device, real margins,
-real data. These are not aspirations; they are laws with case history. When a
-new decision conflicts with one of these, the law wins unless Ali overrules it.
+Every rule in this file was proven on this app in production — verified on
+Ali's real device, real margins, real data. These are not aspirations; they are
+laws with case history. When a new decision conflicts with one of these, the
+law wins unless Ali overrules it.
+
+**Nine seats, and the last three were added on 2026-09-03 because they were
+missing.** Ali, 2026-08-06: *"before you agree to me you must always use expert
+knowledge in all relevant fields"* — and the council only works if it covers
+the fields. Every defect he caught in the week to 2026-09-03 fell through a gap
+BETWEEN the six seats rather than being missed by one of them:
+
+| what he caught | which seat should have | there was no such seat |
+|---|---|---|
+| "MVR 229.99" for a 230.00 carton | the parts must sum to the whole | **Seat 8, Numerical Integrity** |
+| a 22px "Below cost" warning, a card no screen reader can name | every control named and hittable | **Seat 7, Accessibility** |
+| "what is single tub and tub and carton" | the test asserted the defect and passed | **Seat 9, Verification** |
+
+A seat is added when something reaches Ali that a competent specialist in that
+field would have stopped. It is not added because the title sounds thorough.
 
 ---
 
@@ -198,6 +213,86 @@ The standing laws, each with the incident that created it:
 - Order entry is speed-first: quick-add is one tap when healthy; friction
   appears only when money would be lost.
 
+## Seat 7 — Accessibility
+
+Added 2026-09-03. Every seat above assumed someone else owned this and nobody
+did, so it failed three separate ways in a single week — and each failure hurt
+Ali directly, not some hypothetical user. He runs this one-handed, in a godown,
+often in bright daylight, on the phone in his pocket.
+
+- **Every interactive control has an ACCESSIBLE NAME.** The New Sale product
+  card had none for a year. VoiceOver read it as a price, a provenance badge
+  and a stock line, with the product itself buried in the middle — and because
+  nothing could address it by name, no test could reach that step either. One
+  missing attribute was simultaneously an accessibility defect and the reason
+  the screen from Ali's screenshot was the one screen no audit could open. The
+  qty steppers were "plus sign" and "minus sign".
+- **An `aria-label` REPLACES the visible text for anything matching by name** —
+  screen readers and tests alike. Adding one written with different words
+  silently renames the control: an audit that found a row by
+  "Mamypoko · Xtra Kering · L" clicked nothing for thirty seconds. Mirror what
+  the screen shows, separator included.
+- **If it is tappable it is 44×44, and if it cannot be, it is not a button.**
+  "Below cost" — the warning that a price loses money — was a 125×22 button
+  inside a caption line. It could not grow without wrecking the line, so it
+  stopped being a button and the full-size line beneath it carries the action.
+  An affordance you cannot hit is worse than one affordance you can.
+- Contrast is measured, never judged (`npm run audit:contrast`), and the
+  `prefers-contrast` / `prefers-reduced-transparency` / `prefers-reduced-motion`
+  blocks in globals.css must survive every refactor.
+
+## Seat 8 — Numerical Integrity
+
+Added 2026-09-03, after a push notification told Ali he had been paid MVR
+229.99 for a carton he sells at MVR 230.00. Seat 4 owns what the money MEANS;
+this seat owns whether the arithmetic closes.
+
+- **The parts must sum to the whole. A split is an ALLOCATION, not a
+  division.** A mixed carton priced at 230.00 was divided by six, stored as
+  38.3333 a bottle and added back to 229.99. No amount of stored precision
+  fixes it — 230/6 does not terminate — so the answer is the largest remainder
+  method, exactly as an invoice apportions VAT or a discount: floor shares
+  first, then the leftover laari to the biggest remainders.
+- **Any rule that breaks a tie must break it on something a person can SEE.**
+  The first version broke ties on the row's id, a random UUID, so the same
+  order allocated differently on two databases. It passed against production
+  and failed in CI — not a flaky test, an unpredictable rule. Ties now break on
+  quantity (the biggest share carries the rounding, which is what an accountant
+  expects) and then the SKU code, which is printed on the label.
+- **Money math in Postgres is not a style preference** (hard rule 1). This
+  division ran in the browser, which is precisely how it escaped every
+  money test in the suite.
+- **A correction applies at every door, not at the call site you happened to
+  fix.** The allocation is a statement-level trigger on insert, update AND
+  delete: editing a quantity or removing a colour re-splits the carton too.
+
+## Seat 9 — Verification & Test Design
+
+Added 2026-09-03. The tests are not neutral — a badly written one makes the
+defect a requirement, and two did.
+
+- **Write the assertion from how the business works, never from what the
+  screen currently does.** `new-sku.mjs` asserted *"the wizard offers 'Single
+  tub'"* and passed every run for months. Ali then asked what "Single tub"
+  meant, because it was one of three buttons for the same object. A test
+  written from the screen locks the bug in and reports green while doing it.
+- **Never set a baseline you have not measured.** Setting `new-sku` to 0
+  without knowing its contents hid six more controls. A generous provisional
+  number is honest — the ratchet fails when the real count comes in BELOW it
+  and prints the truth — and it must not survive the run that measures it.
+- **A gap recorded is not a gap fixed.** The plain product step was written
+  into a baseline file as "not covered" after three CI rounds of guessing at a
+  selector. That left the exact screen Ali had photographed unmeasured. The
+  real cause was a missing accessible name (Seat 7), and looking for it beat
+  three more guesses.
+- **When a locator fails, make the page answer.** Failures now print what was
+  on screen; the very next run said "the picker lists PRODUCTS, not SKUs" and
+  ended the guessing.
+- **Drive every migration and assertion against the live schema inside a
+  rolled-back transaction before trusting it.** Docker is unavailable locally,
+  so this is the only real rehearsal — and it has caught a constraint that
+  accepted what it forbade, and an expected value I had reasoned out wrongly.
+
 ---
 
 ## Working with Ali
@@ -222,4 +317,7 @@ The standing laws, each with the incident that created it:
 - [ ] Money math in Postgres, anon revoked, RLS intact? (Backend)
 - [ ] Obeys the color/glass/motion laws; feels native on the phone? (Design)
 - [ ] Plain-money language; loss requires a decision? (Ali's seat)
+- [ ] Every control named and 44×44; contrast measured? (Accessibility)
+- [ ] Do the parts sum to the whole, the same way on every database? (Numerical)
+- [ ] Does each test assert the RULE, or just today's screen? (Verification)
 - [ ] tsc + build clean; published to GitHub/Supabase/Vercel and verified?

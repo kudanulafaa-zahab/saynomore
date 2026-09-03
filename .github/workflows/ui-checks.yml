@@ -347,6 +347,13 @@ jobs:
       - name: Touch targets inside sheets — New Sale, product picker, product type
         run: npm run audit:touchsheets
 
+      # A CONTROL WITH NO NAME FAILS TWICE. Someone using VoiceOver cannot tell
+      # what it does, and no test can address it either — which is exactly how
+      # the New Sale product card went a year unnamed and left the screen from
+      # Ali's screenshot the one screen no audit could open.
+      - name: Accessible names — every control says what it is
+        run: npm run audit:names
+
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach
 
