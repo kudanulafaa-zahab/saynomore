@@ -144,9 +144,15 @@ select is(
     where order_id = '00000000-0000-0000-0000-000000000a02'),
   -- 153.33, MEASURED, not calculated. I wrote 153.34 here first, reasoning
   -- that both survivors would keep the extra laari they were handed when the
-  -- group was twelve bottles. Only one of them had it. The whole point of the
-  -- allocation is that the leftover goes somewhere specific, so which line
-  -- holds it is not something to work out in your head.
+  -- group was twelve bottles. Only one of them had it.
+  --
+  -- This assertion then failed in CI while passing against production, and the
+  -- cause was worse than a wrong number: 0244 broke ties on the row's id, which
+  -- is a random UUID, so the same order allocated differently on two databases.
+  -- 0245 breaks them on the quantity and then the SKU code — the biggest share
+  -- carries the rounding, which is what an accountant expects, and the code is
+  -- printed on the label. Now this is 153.33 everywhere, for a reason anyone
+  -- reading the invoice can follow.
   153.33::numeric,
   'and they are not forced to a carton price, because four is not a carton'
 );
