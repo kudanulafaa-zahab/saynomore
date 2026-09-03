@@ -948,6 +948,30 @@ export function ShipmentDetail({ id }: { id: string }) {
                 />
             }
           </Field>
+          {/* WHEN THE ORDER WAS PLACED — the only honest source of a lead time.
+              Until 0246 nothing asked for this, so `ordered_at` was null on
+              every shipment and the reorder engine measured lead time from
+              `created_at` instead: the day the ROW was typed. SH-2026-001 was
+              typed on the day its goods landed, which taught the app that a
+              container arrives in zero days, and Merries XL — 6 days of stock —
+              was told to order on 10 September. */}
+          <Field label="ORDER PLACED">
+            {locked
+              ? <p className="ios-subhead text-foreground">{mvtPlainDay(shipment.ordered_at, { day: "numeric", month: "short", year: "numeric" }) || "—"}</p>
+              : <div className="relative">
+                  <input
+                    type="date"
+                    value={(shipment.ordered_at ?? "").slice(0, 10)}
+                    onChange={(e) => patch("ordered_at", e.target.value || null)}
+                    disabled={locked}
+                    className={`${inputCls} pr-10`}
+                    style={inputSty}
+                    aria-label="Date the order was placed with the supplier"
+                  />
+                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "var(--muted-foreground)" }} />
+                </div>
+            }
+          </Field>
           <Field label="EXPECTED ARRIVAL">
             {locked
               ? <p className="ios-subhead text-foreground">{mvtPlainDay(shipment.expected_arrival_date, { day: "numeric", month: "short", year: "numeric" }) || "—"}</p>

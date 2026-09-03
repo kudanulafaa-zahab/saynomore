@@ -319,6 +319,19 @@ export function ReorderView() {
                         {needs && sug!.order_by_date
                           ? ` · order by ${mvtPlainDay(sug!.order_by_date)}`
                           : ""}
+                        {/* WHICH SHIPPING TIME THAT DATE ALLOWS, and whether it
+                            is a fact or a guess. The order-by date is the only
+                            thing this screen ever showed, and it is computed
+                            from a lead time nothing displayed — so when the app
+                            believed a container arrived in ZERO days (0246) the
+                            date was three weeks late with nothing to give it
+                            away. A number he cannot question is a number he
+                            cannot trust. */}
+                        {needs && sug!.order_by_date
+                          ? sug!.lead_days != null
+                            ? ` (${Math.round(sug!.lead_days)} days shipping, from your last orders)`
+                            : ` (allowing 6 weeks shipping — record an order date on a shipment and this learns the real one)`
+                          : ""}
                         {needs && mv?.strong ? " · Top seller" : ""}
                         {over ? " · overstocked" : ""}
                       </p>
