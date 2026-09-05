@@ -1352,6 +1352,117 @@
   .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--ios-caption1-lh);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
   .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--ios-caption2-lh);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     HIERARCHY ROLES — pick by MEANING, not by size (2026-09-05)
+
+     Ali, 2026-09-05: *"There is no distinction in font size or weight or
+     colour for important stuff. All are the same. This is the most
+     unprofessional app ui/UX I have seen."*
+
+     He is right, and it is measurable. Of 1,144 uses of the Apple ramp above:
+
+         ios-subhead   (15px)   877     77%
+         ios-footnote  (13px)   228     20%
+         ios-headline  (17px)     5
+         ios-body      (17px)     4
+         everything from 20px to 34px   ZERO
+
+     Plus 871 more places that hardcode `text-[15px]` or `fontSize: 13` and
+     bypass the ramp entirely. So 97% of every word in this app is one of two
+     sizes, and the app has no headline tier at all. The scale was never the
+     problem — nothing reached for it, because a developer choosing between
+     eleven Apple type names has no rule telling them WHICH, and 15px always
+     looks safe.
+
+     These six roles are that rule. They are not new sizes; each maps onto the
+     ramp above. You pick the one that describes what the text IS, and the
+     hierarchy follows on its own.
+
+       snm-hero      the ONE number a screen exists to show
+       snm-primary   the thing a row or card is ABOUT
+       snm-value     a figure inside a row
+       snm-support   detail that qualifies the primary
+       snm-meta      genuinely incidental
+       snm-eyebrow   the label above a group
+
+     TWO LAWS THAT MAKE IT HOLD:
+
+     1. SIZE AND WEIGHT CARRY IMPORTANCE. COLOUR CARRIES MEANING. The accent
+        is graphite monochrome, so green/red/orange stay reserved for money and
+        urgency. Never signal "this is important" with a hue.
+
+     2. DE-EMPHASISE WITH --foreground AND OPACITY, NOT --muted-foreground.
+        CLAUDE.md: "If it has to be read, it is --foreground, optionally at
+        0.7–0.85 for hierarchy." muted-on-a-glass-sheet measured ~2.6:1.
+        Every role below carries its own colour so a caller cannot reach for
+        the muted token by habit.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /* The single figure the screen is for: a day's takings, a balance owed, a
+     landed cost. One per screen — two heroes is no hero. */
+  .snm-hero {
+    font-size: var(--ios-title1);            /* 28px */
+    line-height: var(--ios-title1-lh);
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* What this row or card IS: a product, a customer, an order number. The
+     first thing the eye should land on inside its container. */
+  .snm-primary {
+    font-size: var(--ios-headline);          /* 17px */
+    line-height: var(--ios-headline-lh);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  /* A figure inside a row — a price, a quantity, a count. Tabular so a column
+     of them lines up; semibold so it separates from the words around it. */
+  .snm-value {
+    font-size: var(--ios-subhead);           /* 15px */
+    line-height: var(--ios-subhead-lh);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Detail that qualifies the primary and still has to be READ — a pack
+     configuration, a stock line, the unit a price is in. */
+  .snm-support {
+    font-size: var(--ios-footnote);          /* 13px */
+    line-height: var(--ios-footnote-lh);
+    letter-spacing: var(--ios-footnote-ls);
+    font-weight: 400;
+    color: var(--foreground);
+    opacity: 0.72;
+  }
+
+  /* Genuinely incidental: a timestamp, a code, a row count. If losing it
+     would cost the reader nothing, it belongs here. If it would, it does not. */
+  .snm-meta {
+    font-size: var(--ios-caption1);          /* 12px */
+    line-height: var(--ios-caption1-lh);
+    font-weight: 400;
+    color: var(--foreground);
+    opacity: 0.6;
+  }
+
+  /* The label above a group. Structural, not content — it names a region so
+     the eye can skip it once learned. */
+  .snm-eyebrow {
+    font-size: var(--ios-caption2);          /* 11px */
+    line-height: var(--ios-caption2-lh);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--foreground);
+    opacity: 0.55;
+  }
+
   /* ── Canonical page title — Apple Title1, bold. One look for every screen. ──
      Every page heading uses this instead of ad-hoc text-[26/28/32px]. Gives
      the app a single, consistent large-title style matching iOS navigation.  */

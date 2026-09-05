@@ -719,19 +719,17 @@ function SkuRow({
         {/* THE NAME IS THE HEADLINE. 15px semibold at full --foreground; the
             size that follows is 13px and lighter, because it qualifies the
             name rather than competing with it. */}
-        <p className="text-[15px] font-semibold text-foreground truncate" style={{ letterSpacing: "-0.01em" }}>
+        <p className="snm-primary truncate">
           {sku.model_name}
           {variantSuffix(sku.model_name, sku.variant_display)
-            ? <span className="text-[13px] font-normal" style={{ color: "var(--foreground)", opacity: 0.6 }}>
-                {" · "}{variantSuffix(sku.model_name, sku.variant_display)}
-              </span>
+            ? <span className="snm-support">{" · "}{variantSuffix(sku.model_name, sku.variant_display)}</span>
             : null}
         </p>
         {/* ONLY WHAT IS TRUE OF THIS PRODUCT. A tub is one to a pack and one to
             a carton, so "1/pack × 1/ctn · 1/ctn" was three numbers saying
             nothing, in a unit word the product does not use. */}
         {packConfigText({ pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom as UnitUom })
-          ? <p className="ios-footnote mt-0.5 truncate snm-num" style={{ color: "var(--foreground)", opacity: 0.55 }}>
+          ? <p className="snm-support snm-num mt-0.5 truncate">
               {packConfigText({ pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom as UnitUom })}
             </p>
           : null}
@@ -756,15 +754,11 @@ function SkuRow({
       <div className="text-right shrink-0">
         {headline.value != null ? (
           <>
-            <p className="snm-num text-[15px] font-semibold text-foreground" style={{ letterSpacing: "-0.01em" }}>
-              {fmtPrice(headline.value)}
-            </p>
-            <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.55 }}>
-              MVR / {headline.unit}
-            </p>
+            <p className="snm-value">{fmtPrice(headline.value)}</p>
+            <p className="snm-support">MVR / {headline.unit}</p>
           </>
         ) : (
-          <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.55 }}>no price</p>
+          <p className="snm-support">no price</p>
         )}
       </div>
 
