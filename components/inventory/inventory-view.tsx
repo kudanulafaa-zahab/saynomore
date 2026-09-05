@@ -11,7 +11,7 @@ import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/quer
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { mvtInstant } from "@/lib/mvt-date";
-import { costPerTradeUnit, containerLabel, type UnitUom } from "@/lib/trade-units";
+import { costPerTradeUnit, containerLabel, packConfigText, type UnitUom } from "@/lib/trade-units";
 import { count, mvrShort, mvrUpTo } from "@/lib/money";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
@@ -231,10 +231,25 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
   // non-zero unit leads, so sub-carton stock reads "2 pk" instead of a
   // misleading "0 ctn". Pack config disambiguates same-size SKUs that pack
   // differently (e.g. 22/pk vs 32/pk).
-  const packDesc = `${sku.pcs_per_pack}/pk × ${sku.packs_per_carton}/ctn`;
+  // Ali's screenshot, 2026-09-05: the Products row read "1/pack × 1/ctn · 1/ctn"
+  // for a body butter tub. The same string was typed here. packConfigText
+  // returns null when there is nothing true to say, so a tub says nothing.
+  const packDesc = packConfigText({
+    pcsPerPack: sku.pcs_per_pack,
+    packsPerCarton: sku.packs_per_carton,
+    unitUom: sku.unit_uom as UnitUom,
+  });
   const pkAbbr = packAbbr(sku.unit_uom);
-  const primaryQty  = totalPieces <= 0 ? { n: 0, u: "ctn" }
-    : totalCtns  > 0 ? { n: totalCtns,  u: "ctn" }
+  // A PRODUCT WITH ONE PACK TO A CARTON HAS NO CARTON, so the biggest number
+  // on the card must not be labelled with one. pcsPerCtn collapses to
+  // pcsPerPack there, which makes totalCtns the right COUNT under the wrong
+  // WORD: 24 body butter tubs read "24 ctn", the very string Ali photographed.
+  // The arithmetic is untouched; only the noun is asked for rather than
+  // assumed.
+  const hasCartonTier = sku.packs_per_carton > 1;
+  const bigUnit = hasCartonTier ? "ctn" : pkAbbr;
+  const primaryQty  = totalPieces <= 0 ? { n: 0, u: bigUnit }
+    : totalCtns  > 0 ? { n: totalCtns,  u: bigUnit }
     : { n: totalPacks, u: pkAbbr };
   const remainderQty = (totalCtns > 0 && totalPacks > 0) ? { n: totalPacks, u: pkAbbr } : null;
 
@@ -266,7 +281,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
     : sortedGodowns.map((g) => `${g.godown.name} ${fmtQty(g.pieces, sku.pcs_per_pack, pcsPerCtn, sku.unit_uom)}`).join(" · ");
   // Pack config always visible so two same-size SKUs that pack differently are
   // never indistinguishable; godown/status follows.
-  const metaLine = `${packDesc} · ${godownLine}`;
+  const metaLine = [packDesc, godownLine].filter(Boolean).join(" · ");
 
   return (
     <div
@@ -357,7 +372,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
         >
           {/* Pack config + code — lookup detail, not needed at a glance */}
           <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-            {sku.internal_code} · {sku.pcs_per_pack}/pk × {sku.packs_per_carton}/ctn
+            {[sku.internal_code, packDesc].filter(Boolean).join(" · ")}
           </p>
 
           {/* Out of stock message */}
@@ -371,7 +386,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
                 <p className="ios-subhead font-semibold" style={{ color: "var(--snm-error)" }}>Out of stock — 0 in every godown</p>
                 <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                   {alert?.daily_avg_pieces != null && alert.daily_avg_pieces > 0
-                    ? `Still selling ~${(alert.daily_avg_pieces / Math.max(1, row.sku.pcs_per_pack)).toFixed(1)} packs/day — reorder now`
+                    ? `Still selling ~${(alert.daily_avg_pieces / Math.max(1, row.sku.pcs_per_pack)).toFixed(1)} ${containerLabel(sku.unit_uom as UnitUom)}s a day — reorder now`
                     : "Reorder to put it back on the shelf"}
                 </p>
               </div>
@@ -401,7 +416,7 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
                           pack. A part-pack is real, but it is still not sold
                           by the piece — say so in the trade unit
                           (Ali, 2026-08-06). */}
-                      {ctns === 0 && packs === 0 && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{pieces > 0 ? "< 1 pk" : "0"}</span>}
+                      {ctns === 0 && packs === 0 && <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{pieces > 0 ? `< 1 ${pkAbbr}` : "0"}</span>}
                     </p>
                   </div>
                 );
@@ -409,13 +424,22 @@ const SkuCard = memo(function SkuCard({ row, searchActive, showBrand = false, hi
             </div>
           )}
 
-          {/* Landed cost grid — only when a batch exists */}
+          {/* Landed cost grid — only when a batch exists, and only in the
+              units this product is actually sold in.
+
+              It used to print three cards unconditionally: per piece, per
+              pack, per carton. For a body butter tub all three are the SAME
+              number under three names, two of which are units it does not
+              have. And "Landed / pc" is a piece price — CLAUDE.md: money is
+              quoted in the unit sold, and a piece is the ledger's unit, not
+              his. Gone. */}
           {totalPieces > 0 && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className={`grid gap-2 ${hasCartonTier ? "grid-cols-2" : "grid-cols-1"}`}>
               {[
-                { label: "Landed / pc",  value: `MVR ${fifoLandedPerPiece.toFixed(3)}` },
-                { label: "Landed / pk",  value: `MVR ${landedPerPack.toFixed(2)}` },
-                { label: "Landed / ctn", value: `MVR ${landedPerCarton.toFixed(0)}` },
+                { label: `Landed / ${pkAbbr}`, value: `MVR ${landedPerPack.toFixed(2)}` },
+                ...(hasCartonTier
+                  ? [{ label: "Landed / ctn", value: `MVR ${landedPerCarton.toFixed(0)}` }]
+                  : []),
               ].map((c) => (
                 <div key={c.label} className="rounded-xl p-3 text-center" style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}>
                   <p className="label-caps text-[12px] mb-1" style={{ color: "var(--muted-foreground)" }}>{c.label}</p>

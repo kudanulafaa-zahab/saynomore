@@ -7,7 +7,7 @@
   "components/finance/price-lists-view.tsx": 22,
   "components/finance/price-review.tsx": 2,
   "components/inventory/godowns-view.tsx": 18,
-  "components/inventory/inventory-view.tsx": 35,
+  "components/inventory/inventory-view.tsx": 31,
   "components/inventory/stock-ops-view.tsx": 45,
   "components/masters/customer-detail.tsx": 1,
   "components/products/categories-manager.tsx": 3,
