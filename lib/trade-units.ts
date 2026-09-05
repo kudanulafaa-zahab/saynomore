@@ -215,6 +215,81 @@ export function tierLabel(
   return cfg.pcsPerPack > 1 ? `${Noun} of ${cfg.pcsPerPack}` : Noun;
 }
 
+// ── What a product's identity actually READS as ───────────────────────────
+//
+// Ali, 2026-09-05, with a screenshot of the Products list:
+//   *"Why is it still showing cartons for body butter?"*
+//
+// The row said, for one Body Shop tub:
+//
+//     Almond Milk · Almond Milk
+//     1/pack × 1/ctn · 1/ctn
+//     MVR 380  per ctn
+//
+// Three separate untruths in four lines, and every one of them was HARDCODED
+// into the row rather than read from the product:
+//
+//   1. the size printed even when the size IS the product's name (0242 made an
+//      attribute-less variant follow its product, so the two are now equal by
+//      design — the row never asked whether it had anything to add)
+//   2. a pack configuration stated for a product that has none: a tub is one
+//      to a pack and one to a carton, so "1/pack × 1/ctn" is three numbers
+//      that say nothing, in a unit word ("pack") the product does not use
+//   3. a CARTON price on a product that is not sold by the carton at all.
+//      Body Shop is `{pack}` only. The row read
+//      selling_price_per_carton_mvr regardless.
+//
+// These three functions are the fix, and they live here so that the nine
+// files that hardcode a carton label can be corrected against ONE definition
+// instead of nine.
+
+/** The size worth printing beside a product name, or null when there is
+ *  nothing to add. A product with one size takes its product's name (0242), so
+ *  printing it repeats the word the reader just read. */
+export function variantSuffix(
+  modelName: string,
+  variantDisplay: string | null | undefined,
+): string | null {
+  const v = (variantDisplay ?? "").trim();
+  if (!v) return null;
+  return v.toLowerCase() === (modelName ?? "").trim().toLowerCase() ? null : v;
+}
+
+/** The pack configuration, stated only where it is TRUE and carries
+ *  information. Compact on purpose — it sits in a chip under a name.
+ *
+ *    tub, 1 to a pack and 1 to a carton   ->  null, there is nothing to say
+ *    bottle, 1 to a pack, 6 to a carton   ->  "6 bottles/ctn"
+ *    diaper, 34 to a pack, 1 to a carton  ->  "34/pk"
+ *    diaper, 34 to a pack, 3 to a carton  ->  "34/pk × 3/ctn"          */
+export function packConfigText(cfg: {
+  pcsPerPack: number;
+  packsPerCarton: number;
+  unitUom?: UnitUom | null;
+}): string | null {
+  const pcs = cfg.pcsPerPack || 1;
+  const ppc = cfg.packsPerCarton || 1;
+  if (pcs <= 1 && ppc <= 1) return null;
+  if (pcs <= 1) {
+    const noun = containerLabel(cfg.unitUom);
+    return `${ppc} ${noun}${ppc === 1 ? "" : "s"}/ctn`;
+  }
+  return ppc > 1 ? `${pcs}/pk × ${ppc}/ctn` : `${pcs}/pk`;
+}
+
+/** The tier a product's headline price should be quoted in: the largest unit
+ *  it is ACTUALLY sold in. A carton for a diaper, a tub for a tub — never a
+ *  carton price for something that has no carton. */
+export function headlineTier(
+  sellableUnits: SellUnit[] | null | undefined,
+  cfg: { pcsPerPack: number; packsPerCarton: number },
+): SellUnit {
+  const offerable = offerableTiers(cfg);
+  const sold = (sellableUnits ?? offerable).filter((u) => offerable.includes(u));
+  if (sold.includes("carton")) return "carton";
+  return "pack";
+}
+
 /** The word for one unit at a given tier, lowercase ("carton", "pack",
  *  "bottle"). Never says "piece" for a product whose pack IS one unit —
  *  Sosoft's carton holds 6 packs of 1, so its loose unit is a bottle. */

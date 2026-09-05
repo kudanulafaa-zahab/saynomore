@@ -41,14 +41,14 @@
   --radius-2xl: calc(var(--radius) * 2);
   --radius-3xl: calc(var(--radius) * 2.5);
 
-  /* Brand accent — GRAPHITE MONOCHROME. Ali rejected systemBlue (three
-     times) and then systemIndigo (2026-07-12): the pattern is that ANY
-     hue-based accent reads as decoration to him. The accent is therefore
-     the foreground itself — black in light, white in dark — matching the
-     primary buttons he has always liked. The payoff for a money app:
-     green/red/orange are now the ONLY hues on screen, so color always
-     means money. Contrast is maximal by construction (foreground on
-     background). Defined once; adapts to both modes automatically. */
+  /* Brand accent — pre-hydration fallback only. The live value comes from the
+     palette block below ([data-palette] { --snm-brand: var(--glass-accent) }),
+     which the inline script in lib/palette.ts sets on <html> before first
+     paint, so this is what shows for one frame if that script never runs.
+
+     The old "GRAPHITE MONOCHROME — no hue anywhere" law that used to be
+     written here is gone; Ali retired it on 2026-09-05. The colour system is
+     app/design-system.css, taken from Polaris / Carbon / Material 3. */
   --snm-brand: var(--foreground);
   --snm-brand-muted: color-mix(in srgb, var(--foreground) 8%, transparent);
   --snm-brand-border: color-mix(in srgb, var(--foreground) 22%, transparent);
@@ -63,8 +63,9 @@
      dark-mode warning orange measures 1.9:1. See the dark override below. */
   --snm-on-fill: #ffffff;
 
-  /* Brand text = foreground (monochrome): links/interactive text signal
-     through weight, not hue. Contrast maximal in both modes. */
+  /* Brand text — pre-hydration fallback, as above. Deepened per palette in
+     the blocks below, because a fill colour and a text colour are two
+     different jobs and one value cannot do both. */
   --snm-brand-text: var(--foreground);
 
   /* Fonts (Apple HIG 2026). --font-sys = SF Pro system stack for ALL UI text
@@ -72,10 +73,15 @@
      --font-wordmark = Plus Jakarta, used ONLY by the "saynomore" wordmark. */
   --font-sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Inter", "Segoe UI", system-ui, Roboto, sans-serif;
 
-  /* ── Apple HIG iOS type scale (SF/Dynamic Type @ Large) ────────────────────
-     Source: Apple HIG → Typography → iOS point sizes, leading, tracking.
-     We map each style to a token so components can match the system exactly.
-     Tracking values are Apple's published tracking at the default size.        */
+  /* ── Type scale — SIZES ARE OVERRIDDEN by app/design-system.css ────────────
+     The `ios-*` NAMES are kept because ~1,100 call sites use them and renaming
+     them all would be a large diff carrying no meaning. The VALUES below are
+     dead: design-system.css redeclares every --ios-* size on the 1.2
+     major-third scale [POLARIS], fixed for text and fluid for display, and it
+     loads after this file. Change a size THERE.
+     The letter-spacing values are still live and still Apple's; nothing in the
+     sourced systems publishes optical tracking per size, so they stay until
+     something replaces them rather than being deleted for tidiness. */
   --ios-large-title: 34px;  --ios-large-title-lh: 41px;  --ios-large-title-ls: 0.374px;
   --ios-title1:      28px;  --ios-title1-lh:      34px;  --ios-title1-ls:      0.364px;
   --ios-title2:      22px;  --ios-title2-lh:      28px;  --ios-title2-ls:      0.352px;
@@ -88,22 +94,16 @@
   --ios-caption1:    12px;  --ios-caption1-lh:    16px;  --ios-caption1-ls:    0px;
   --ios-caption2:    11px;  --ios-caption2-lh:    13px;  --ios-caption2-ls:    0.066px;
 
-  /* Semantic tokens — Apple system colours (dark defaults, light in :root).
-     Red/green carry meaning only (destructive/loss · success/good money). */
-  --snm-error: #FF453A;   /* systemRed (dark) */
-  --snm-success: #30D158; /* systemGreen (dark) */
-  /* "Attention/pending" — systemOrange (Apple HIG's actual semantic warning
-     colour; every native iOS surface — Settings, Health, Wallet, low-battery —
-     uses orange/yellow for caution, never teal/cyan). A prior revision moved
-     this to systemTeal to avoid clashing with the blue-dominant palette, but
-     that was the wrong fix: cyan is a perceptually "cool/recessive" hue, so
-     even at a passing WCAG ratio it read as dim (Ali flagged real-device
-     legibility, 2026-07-11). Orange's warmth is what makes a warning color
-     work — it's SUPPOSED to visually interrupt a cool palette, not blend in.
-     Reverted to Apple's own systemOrange. */
-  --snm-warning: #FF9F0A; /* systemOrange (dark) */
-  --snm-info: #0A84FF;    /* systemBlue (dark) */
-  --snm-promo: #BF5AF2;   /* systemPurple (dark) */
+  /* Status roles. The VALUES live in app/design-system.css, taken from
+     Polaris / Carbon / Material 3 and measured against this app's lightest
+     surface; this file owns only the selectors that apply them. Apple's
+     system colours (systemRed / systemGreen / systemOrange / systemBlue /
+     systemPurple) were removed on 2026-09-05 at Ali's instruction. */
+  --snm-error:   var(--ds-error);
+  --snm-success: var(--ds-success);
+  --snm-warning: var(--ds-warning);
+  --snm-info:    var(--ds-info);
+  --snm-promo:   var(--ds-promo);
 
   /* ── Motion tokens — one spring language app-wide ─────────────────────────
      --snm-spring: overshoot spring for press/appear (tap states, sheet pops).
@@ -166,26 +166,14 @@
   --frost-fill-tab: calc(2 * (var(--glass-frost) + 0.1));
   --frost-edge-tab: calc(0.85 + 0.3 * (var(--glass-frost) + 0.1));
 
-  /* Apple system colours, LIGHT. systemRed #FF3B30 passes as text/fill. Green/
-     orange are deepened from Apple's bright systemGreen(#34C759)/systemOrange
-     (#FF9500) because those fail 4.5:1 as small text on the light background
-     (~2.9:1) in daylight — this app's real operating condition. Deepened values
-     verified >=4.5:1 vs --background and white cards; used for coloured text +
-     icons. Bright Apple hues still fine as large fills. */
-  /* Deep emerald. The prior #248A3D measured only 3.94:1 vs the light
-     background — genuinely under the 4.5:1 text minimum, which is why light
-     mode green kept reading weak/pale (Ali flagged it repeatedly). #0E6E33
-     measures 5.71:1 vs bg and 6.37:1 vs white cards, and its 10-15% tints
-     read as considered surfaces instead of washed mint. Dark mode untouched
-     (Ali approved it). */
-  --snm-success: #0E6E33;
-  --snm-error:   #FF3B30;   /* systemRed (light) */
-  /* Deepened systemOrange (5.57:1 vs background, 6.21:1 vs white cards) —
-     same deepening technique as --snm-success above. See dark-mode note for
-     why this reverted from systemTeal back to Apple's actual warning colour. */
-  --snm-warning: #9A4B00;   /* deepened systemOrange for light-mode text */
-  --snm-info:    #007AFF;   /* systemBlue (light) */
-  --snm-promo:   #8944D6;   /* deepened systemPurple */
+  /* Status roles — see app/design-system.css. --ds-* already resolves to the
+     light or dark ramp on its own, so every site in this file is the same
+     alias and there is nothing left to keep in sync by hand. */
+  --snm-success: var(--ds-success);
+  --snm-error:   var(--ds-error);
+  --snm-warning: var(--ds-warning);
+  --snm-info:    var(--ds-info);
+  --snm-promo:   var(--ds-promo);
 
   /* Categorical TAG colours, LIGHT — see dark-mode definition for the rule
      (never reuse semantic tokens for a plain category label). Deepened for
@@ -458,37 +446,38 @@
    passed and keep their exact colour. */
 [data-palette="aurora"]:not(.dark)  { --glass-accent: #0a7d72; }  /* 5.1:1 under white */
 
-/* Status colors — light values (any palette, not dark) */
-[data-palette]:not(.dark) {
-  /* Deepened 2026-08-10, measured on the rendered page. These are the
-     "deepened light-mode semantic text variants" skills.md describes; the
-     values it protected had drifted back to fill-strength and were failing as
-     TEXT on a light page:
-       success  #2b8a3e  3.9:1  -> #1b6e2e  5.6:1
-       warning  #e8590c  3.2:1  -> #a83f00  5.5:1
-     Error already passed at 4.9:1 and keeps its exact colour. Darker, never
-     brighter — the rule is about not weakening them, and this strengthens.
-     The -bg values are the same hues at 14%, moved in step so a badge's fill
-     still matches its text. */
-  --snm-success: #1b6e2e;
-  /* Error deepened 2026-08-10 from #c92a2a. It cleared 4.9:1 on the PAGE and I
-     left it there; on a nested card (a panel inside a panel, the lightest of
-     which is Ember's rgb(238,228,223)) "Priced below cost" measured 4.35:1.
-     Same lesson as --muted-foreground: tune against the lightest surface the
-     token can land on, not the first one you checked. 5.5:1 there now. */
-  --snm-error:   #b01d1d;
-  --snm-warning: #a83f00;
-  /* Info follows the TEXT variant of the accent, not the fill. It is used both
-     ways — the "Confirmed" status badge paints it as text, the driver banner as
-     a background — and the fill variant failed as text: 4.48:1 in Aurora and
-     3.96:1 in Ember on the sales list. The deepened value clears both jobs
-     (>=4.5 as text on the page, >=6:1 under white as a fill). The same mistake
-     --snm-brand-text had, in a token I missed the first time round. */
-  --snm-info:    var(--snm-brand-text);
-  --status-success: var(--snm-success); --status-success-bg: rgba(27, 110, 46, 0.14);
-  --status-warning: var(--snm-warning); --status-warning-bg: rgba(168, 63, 0, 0.14);
-  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(176, 29, 29, 0.14);
-  --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 14%, transparent);
+/* ═══ Status colours — ONE block, both themes ══════════════════════════════
+   This used to be two blocks of hand-tuned hex, one per theme, plus four more
+   copies elsewhere in this file and a Display-P3 set that quietly overrode all
+   of them on Ali's phone. Six places to keep in sync is why the light-mode
+   values had "drifted back to fill-strength" twice.
+
+   --ds-* already resolves to the right ramp for the current theme, so there is
+   nothing to fork: one block, one alias each.
+
+   The one substantive change beyond the palette itself: INFO IS NO LONGER THE
+   BRAND ACCENT. It was `var(--snm-brand-text)`, so an "info" badge came out
+   rose in Ember and teal in Aurora and nothing on screen could tell "this is
+   us" from "this is information". Polaris, Carbon and Material 3 all keep
+   those apart; info is blue now, in every palette.                          */
+[data-palette] {
+  --snm-success: var(--ds-success);
+  --snm-error:   var(--ds-error);
+  --snm-warning: var(--ds-warning);
+  --snm-info:    var(--ds-info);
+  --snm-promo:   var(--ds-promo);
+
+  /* A badge's fill is its own text colour at the theme's tint, so the two can
+     never drift apart — they did, as literal rgba() copies of hues that had
+     since moved. [M3] container / on-container. */
+  --status-success: var(--snm-success);
+  --status-warning: var(--snm-warning);
+  --status-danger:  var(--snm-error);
+  --status-info:    var(--snm-info);
+  --status-success-bg: color-mix(in srgb, var(--snm-success) var(--ds-status-tint), transparent);
+  --status-warning-bg: color-mix(in srgb, var(--snm-warning) var(--ds-status-tint), transparent);
+  --status-danger-bg:  color-mix(in srgb, var(--snm-error)   var(--ds-status-tint), transparent);
+  --status-info-bg:    color-mix(in srgb, var(--snm-info)    var(--ds-status-tint), transparent);
 }
 .dark[data-palette], .dark:not([data-palette]) {
   --tabbar-fg: #a8abb0;   /* 5.1:1 on the composited dark tab bar */
@@ -500,28 +489,15 @@
 }
 .dark[data-palette="ember"] { --tabbar-accent: #ac92fb; }  /* 4.8:1, was 4.47:1 */
 
-/* Status colors — dark values (any palette) */
-.dark[data-palette] {
-  --snm-success: #69db7c;
-  --snm-error:   #ff8787;
-  --snm-warning: #ffa94d;
-  --snm-info:    var(--glass-accent);
-  --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
-  --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
-  --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
-  --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 16%, transparent);
-}
+/* (the dark half of the status colours used to live here — the block above
+   now covers both themes, because --ds-* already knows which one it is in) */
 
 /* ── DARK MODE — Void & Vapor ───────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --snm-success: #30D158;
-    --snm-error:   #FF453A;
-    --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal, see note above */
-    --snm-info:  #0A84FF;
-    --snm-promo: #BF5AF2;
+    /* Status roles need no copy here — --ds-* has its own dark selector. */
 
     --background: #000000;
     --foreground: #e5e2e1;
@@ -656,24 +632,16 @@
   }
   :root[data-palette]:not(.light) {
     --snm-brand-on: #050308;
-    --snm-success: #69db7c; --snm-error: #ff8787; --snm-warning: #ffa94d;
-    --snm-info: var(--glass-accent);
-    --status-success: var(--snm-success); --status-success-bg: rgba(105, 219, 124, 0.16);
-    --status-warning: var(--snm-warning); --status-warning-bg: rgba(255, 169, 77, 0.16);
-    --status-danger:  var(--snm-error);   --status-danger-bg:  rgba(255, 135, 135, 0.16);
-    --status-info:    var(--snm-info);    --status-info-bg:    color-mix(in srgb, var(--glass-accent) 16%, transparent);
+    /* Status roles omitted deliberately — the single [data-palette] block
+       above already aliases them, and --ds-* is theme-aware. */
   }
 }
 
 /* ── Manual .light override ─────────────────────────────────────────────── */
 .light {
   color-scheme: light;
-  /* Kept in sync with :root's light-mode values above -- see contrast note there. */
-  --snm-success: #0E6E33;
-  --snm-error:   #FF3B30;
-  --snm-warning: #9A4B00; /* deepened systemOrange for light text — reverted from systemTeal */
-  --snm-info:    #007AFF;
-  --snm-promo:   #8944D6;
+  /* Status roles: nothing to keep in sync any more. --ds-* is light unless a
+     dark selector claims it, and .light never matches one. */
   --snm-tag-violet: #6D3FCB;
   /* Slate and sage deepened 2026-08-10. Measured on the Price Lists tier
      headers: they cleared 4.5:1 on the near-white cards of the older palettes
@@ -756,11 +724,7 @@
 /* ── Manual .dark override ──────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
-  --snm-success: #30D158;
-  --snm-error:   #FF453A;
-  --snm-warning: #FF9F0A; /* systemOrange (dark) — reverted from systemTeal */
-  --snm-info:  #0A84FF;
-  --snm-promo: #BF5AF2;
+  /* Status roles: --ds-* has its own .dark selector; nothing to copy. */
   --snm-tag-violet: #A87DE8;
   --snm-tag-slate:  #9AAABC;
   --snm-tag-sage:   #5FC17E;
@@ -1339,18 +1303,130 @@
     z-index: -1;
   }
 
-  /* ── Apple HIG type scale — apply to match the system exactly ──────────────*/
-  .ios-large-title { font-size: var(--ios-large-title); line-height: var(--ios-large-title-lh); letter-spacing: var(--ios-large-title-ls); font-weight: 700; }
-  .ios-title1      { font-size: var(--ios-title1);      line-height: var(--ios-title1-lh);      letter-spacing: var(--ios-title1-ls);      font-weight: 700; }
-  .ios-title2      { font-size: var(--ios-title2);      line-height: var(--ios-title2-lh);      letter-spacing: var(--ios-title2-ls);      font-weight: 700; }
-  .ios-title3      { font-size: var(--ios-title3);      line-height: var(--ios-title3-lh);      letter-spacing: var(--ios-title3-ls);      font-weight: 600; }
-  .ios-headline    { font-size: var(--ios-headline);    line-height: var(--ios-headline-lh);    letter-spacing: var(--ios-headline-ls);    font-weight: 600; }
-  .ios-body        { font-size: var(--ios-body);        line-height: var(--ios-body-lh);        letter-spacing: var(--ios-body-ls);        font-weight: 400; }
-  .ios-callout     { font-size: var(--ios-callout);     line-height: var(--ios-callout-lh);     letter-spacing: var(--ios-callout-ls);     font-weight: 400; }
-  .ios-subhead     { font-size: var(--ios-subhead);     line-height: var(--ios-subhead-lh);     letter-spacing: var(--ios-subhead-ls);     font-weight: 400; }
-  .ios-footnote    { font-size: var(--ios-footnote);    line-height: var(--ios-footnote-lh);    letter-spacing: var(--ios-footnote-ls);    font-weight: 400; }
-  .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--ios-caption1-lh);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
-  .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--ios-caption2-lh);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
+  /* ── Type scale — sizes come from app/design-system.css ───────────────────*/
+  .ios-large-title { font-size: var(--ios-large-title); line-height: var(--lh-tight); letter-spacing: var(--ios-large-title-ls); font-weight: 700; }
+  .ios-title1      { font-size: var(--ios-title1);      line-height: var(--lh-tight);      letter-spacing: var(--ios-title1-ls);      font-weight: 700; }
+  .ios-title2      { font-size: var(--ios-title2);      line-height: var(--lh-tight);      letter-spacing: var(--ios-title2-ls);      font-weight: 700; }
+  .ios-title3      { font-size: var(--ios-title3);      line-height: var(--lh-snug);      letter-spacing: var(--ios-title3-ls);      font-weight: 600; }
+  .ios-headline    { font-size: var(--ios-headline);    line-height: var(--lh-snug);    letter-spacing: var(--ios-headline-ls);    font-weight: 600; }
+  .ios-body        { font-size: var(--ios-body);        line-height: var(--lh-normal);        letter-spacing: var(--ios-body-ls);        font-weight: 400; }
+  .ios-callout     { font-size: var(--ios-callout);     line-height: var(--lh-normal);     letter-spacing: var(--ios-callout-ls);     font-weight: 400; }
+  .ios-subhead     { font-size: var(--ios-subhead);     line-height: var(--lh-normal);     letter-spacing: var(--ios-subhead-ls);     font-weight: 400; }
+  .ios-footnote    { font-size: var(--ios-footnote);    line-height: var(--lh-normal);    letter-spacing: var(--ios-footnote-ls);    font-weight: 400; }
+  .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--lh-normal);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
+  .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--lh-snug);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     HIERARCHY ROLES — pick by MEANING, not by size (2026-09-05)
+
+     Ali, 2026-09-05: *"There is no distinction in font size or weight or
+     colour for important stuff. All are the same. This is the most
+     unprofessional app ui/UX I have seen."*
+
+     He is right, and it is measurable. Of 1,144 uses of the Apple ramp above:
+
+         ios-subhead   (15px)   877     77%
+         ios-footnote  (13px)   228     20%
+         ios-headline  (17px)     5
+         ios-body      (17px)     4
+         everything from 20px to 34px   ZERO
+
+     Plus 871 more places that hardcode `text-[15px]` or `fontSize: 13` and
+     bypass the ramp entirely. So 97% of every word in this app is one of two
+     sizes, and the app has no headline tier at all. The scale was never the
+     problem — nothing reached for it, because a developer choosing between
+     eleven Apple type names has no rule telling them WHICH, and 15px always
+     looks safe.
+
+     These six roles are that rule. They are not new sizes; each maps onto the
+     ramp above. You pick the one that describes what the text IS, and the
+     hierarchy follows on its own.
+
+       snm-hero      the ONE number a screen exists to show
+       snm-primary   the thing a row or card is ABOUT
+       snm-value     a figure inside a row
+       snm-support   detail that qualifies the primary
+       snm-meta      genuinely incidental
+       snm-eyebrow   the label above a group
+
+     TWO LAWS THAT MAKE IT HOLD:
+
+     1. SIZE AND WEIGHT CARRY IMPORTANCE. COLOUR CARRIES MEANING. The status
+        roles (green/red/amber/blue/violet) mean money, loss, attention,
+        information and promotion — nothing else. Never signal "this is
+        important" with a hue; that is what the roles below are for.
+
+     2. DE-EMPHASISE WITH --foreground AND OPACITY, NOT --muted-foreground.
+        CLAUDE.md: "If it has to be read, it is --foreground, optionally at
+        0.7–0.85 for hierarchy." muted-on-a-glass-sheet measured ~2.6:1.
+        Every role below carries its own colour so a caller cannot reach for
+        the muted token by habit.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /* The single figure the screen is for: a day's takings, a balance owed, a
+     landed cost. One per screen — two heroes is no hero. */
+  .snm-hero {
+    font-size: var(--ios-title1);            /* 28px */
+    line-height: var(--lh-tight);
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* What this row or card IS: a product, a customer, an order number. The
+     first thing the eye should land on inside its container. */
+  .snm-primary {
+    font-size: var(--ios-headline);          /* 17px */
+    line-height: var(--lh-snug);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  /* A figure inside a row — a price, a quantity, a count. Tabular so a column
+     of them lines up; semibold so it separates from the words around it. */
+  .snm-value {
+    font-size: var(--ios-subhead);           /* 15px */
+    line-height: var(--lh-normal);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Detail that qualifies the primary and still has to be READ — a pack
+     configuration, a stock line, the unit a price is in. */
+  .snm-support {
+    font-size: var(--ios-footnote);          /* 13px */
+    line-height: var(--lh-normal);
+    letter-spacing: var(--ios-footnote-ls);
+    font-weight: 400;
+    color: var(--foreground);
+    opacity: 0.72;
+  }
+
+  /* Genuinely incidental: a timestamp, a code, a row count. If losing it
+     would cost the reader nothing, it belongs here. If it would, it does not. */
+  .snm-meta {
+    font-size: var(--ios-caption1);          /* 12px */
+    line-height: var(--lh-normal);
+    font-weight: 400;
+    color: var(--foreground);
+    opacity: 0.6;
+  }
+
+  /* The label above a group. Structural, not content — it names a region so
+     the eye can skip it once learned. */
+  .snm-eyebrow {
+    font-size: var(--ios-caption2);          /* 11px */
+    line-height: var(--lh-snug);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--foreground);
+    opacity: 0.55;
+  }
 
   /* ── Canonical page title — Apple Title1, bold. One look for every screen. ──
      Every page heading uses this instead of ad-hoc text-[26/28/32px]. Gives
@@ -1359,8 +1435,8 @@
     /* Apple Large Title — the anchor of every screen's hierarchy. Was
        Title1 (28px); true large titles are what make iOS screens read as
        "places" rather than web pages. */
-    font-size:      var(--ios-large-title);     /* 34px */
-    line-height:    var(--ios-large-title-lh);  /* 41px */
+    font-size:      var(--ios-large-title);     /* 34 -> 44px, fluid */
+    line-height:    var(--lh-tight);
     letter-spacing: var(--ios-large-title-ls);
     font-weight:    700;
     color:          var(--foreground);
@@ -1737,46 +1813,28 @@
   }
 }
 
-/* ── Display P3 wide gamut (2026 doctrine · Retina/OLED) ─────────────────────
-   Every iPhone since 7 renders Display P3 — ~25% more colour volume than
-   sRGB. Native iOS accents use it; sRGB-only web apps look subtly duller
-   than the OS around them. Re-express the ACCENT FILLS in P3 so buttons,
-   pills and active states get the true system-colour vibrancy on capable
-   screens, with the sRGB hex values above as the automatic fallback.
-   Deliberately NOT converted: the deepened *-text variants (light mode) and
-   --snm-brand-text — their WCAG ratios were verified in sRGB on device;
-   fills only carry a 3:1 large-element bar and keep white foregrounds. */
-@media (color-gamut: p3) {
-  @supports (color: color(display-p3 1 1 1)) {
-    /* Light (default + manual override) */
-    :root, .light {
-      --snm-info:  color(display-p3 0 0.478 1);
-      --snm-error: color(display-p3 1 0.231 0.188);
-    }
-    /* Dark — Apple's own dark-mode accents, P3-native */
-    .dark {
-      --snm-info:    color(display-p3 0.039 0.518 1);
-      --snm-error:   color(display-p3 1 0.271 0.227);
-      --snm-success: color(display-p3 0.188 0.82 0.345);
-      --snm-warning: color(display-p3 1 0.624 0.039);
-      --snm-promo:   color(display-p3 0.749 0.353 0.949);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --snm-info:    color(display-p3 0.039 0.518 1);
-        --snm-error:   color(display-p3 1 0.271 0.227);
-        --snm-success: color(display-p3 0.188 0.82 0.345);
-        --snm-warning: color(display-p3 1 0.624 0.039);
-        --snm-promo:   color(display-p3 0.749 0.353 0.949);
-      }
-      /* System-dark but user forced light — keep light P3 values */
-      :root.light, .light {
-        --snm-info:  color(display-p3 0 0.478 1);
-        --snm-error: color(display-p3 1 0.231 0.188);
-      }
-    }
-  }
-}
+/* ── Display P3 wide gamut — REMOVED 2026-09-05 ──────────────────────────────
+   There used to be a block here that re-expressed the status colours in
+   Display P3 as Apple's system colours (systemBlue, systemRed, systemGreen,
+   systemOrange, systemPurple), on the reasoning that an sRGB web app looks
+   duller than the OS around it.
+
+   It was the most dangerous thing in this file, and it had to go for two
+   separate reasons.
+
+   1. It was a SIXTH definition of colours defined in five other places, sitting
+      last in the cascade and scoped to `.dark` and `:root` — so on any P3
+      screen it beat every palette block above it. Ali's iPhone is a P3 screen.
+      Every deepened, contrast-measured value in this file was silently
+      overridden by Apple's bright original on the one device that matters.
+      An audit run in a desktop browser would never see it.
+   2. `npm run audit:contrast` composites sRGB. A colour it cannot see is a
+      colour it cannot measure, and this app's rule is that contrast is
+      measured, not judged.
+
+   If wide-gamut vibrancy is wanted again it belongs in design-system.css as a
+   P3 expression OF THE SAME HUE at the same measured lightness, added to both
+   ramps at once — not as a second palette hiding behind a media query.       */
 
 /* ── Reduced Transparency (Apple accessibility) ──────────────────────────────
    iOS "Reduce Transparency" swaps every glass material for a solid surface.

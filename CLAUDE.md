@@ -116,8 +116,42 @@ app computes a number in one place, asking the user for it in another is a bug.
 Next.js 16 App Router (Turbopack) · React 19 (React Compiler ON) · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres) · Vercel · Lucide icons
 
 ## Design
+
+> **THE DESIGN SYSTEM IS `app/design-system.css` (2026-09-05).** Ali ordered a
+> system taken from *published guidance by leading firms* — explicitly not
+> Apple's, not his, and not mine. Every decision in it cites its source:
+> **Shopify Polaris** (the closest analogue — a merchant admin for orders,
+> inventory and money), **IBM Carbon** (data-dense product UI), **Adobe
+> Spectrum** (platform scale and density), **Material 3** (adaptive layout),
+> and container queries at Baseline. Read that file first. Where anything
+> below or in skills.md Seat 1 conflicts with it, that file wins.
+>
+> The two rules most easily got wrong:
+> **TEXT SIZES ARE FIXED across platforms** — Polaris measured the honest
+> difference at ~1px and declined two scales; Spectrum ships mobile 25%
+> LARGER than desktop, so growing body text on a monitor is backwards. Only
+> DISPLAY sizes are fluid (`clamp`). And **density follows the INPUT device**
+> (`pointer:`), never the screen width — a tablet is still touched with
+> thumbs. Never add a viewport breakpoint where a container query
+> (`.snm-region`) is the honest answer.
+>
+> **COLOUR IS IN THAT FILE TOO, AS OF 2026-09-05.** Ali: *"Forget all my rules
+> about monochrome accents and any other rules or choices."* The graphite-
+> monochrome accent law and Apple's system colours are gone. The status roles
+> are `--ds-*` — Carbon Blue 60/40, Polaris critical and success, Carbon's
+> warning hue, M3's tertiary — each measured on a card inside a card, in both
+> palettes and both themes, before shipping. `globals.css` holds no colour of
+> its own: it owns the selectors and aliases `--snm-*` to `--ds-*`. **Add a
+> colour in one place or you will add it in six**, which is what happened
+> before: five palette blocks plus a Display-P3 override that quietly restored
+> Apple's originals on every iPhone.
+
 - Light/dark adaptive: use CSS vars (`var(--foreground)`, `var(--background)`, `var(--glass-1)`, `var(--glass-2)`, `var(--muted-foreground)`, `var(--glass-border)`) — never hardcode hex colours
-- Primary action buttons: `background: var(--foreground)` / `color: var(--background)`
+- Status colour means status: `--snm-success` money earned · `--snm-error` a
+  loss or a destructive action · `--snm-warning` needs attention ·
+  `--snm-info` information · `--snm-promo` a promotion. Importance is carried
+  by size and weight (the six `.snm-*` roles), never by a hue.
+- Primary action buttons: `background: var(--snm-brand)` / `color: var(--snm-brand-on)` — the palette accent Ali picked in Settings
 - Cards: `background: var(--glass-1)` with `backdropFilter: blur(20px)`
 - Responsive grids: Tailwind classes (`grid-cols-1 sm:grid-cols-3`) not inline `gridTemplateColumns`
 - No decorative watermark icons behind content

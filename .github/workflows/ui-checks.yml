@@ -354,6 +354,12 @@ jobs:
       - name: Accessible names — every control says what it is
         run: npm run audit:names
 
+      # A UNIT WORD IS NEVER TYPED INTO A SCREEN. Ali has been shown "1/pk ×
+      # 1/ctn" on a tub and "MVR 380 per ctn" for a product with no carton;
+      # each was fixed where he found it and survived in thirty other files.
+      - name: Unit words come from the product, never from the screen
+        run: npm run audit:units
+
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach
 

@@ -1,0 +1,381 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAYNOMORE DESIGN SYSTEM — sourced, not invented
+   Established 2026-09-05.
+
+   Ali: *"The design system must come from the leading experts of the field.
+   Not mine or Apple or yours. But from real experts using the latest design
+   trends and guidance from leading firms."*
+
+   So every decision below cites the published system it comes from, and where
+   two leading firms disagree the disagreement is written down rather than
+   resolved silently. This file supersedes the Apple-HIG derivation in
+   CLAUDE.md and skills.md Seat 1.
+
+   ── THE SOURCES ───────────────────────────────────────────────────────────
+
+   [POLARIS]  Shopify Polaris — the closest published analogue to this app: a
+              merchant admin for orders, inventory and money.
+              polaris-react.shopify.com / previous-releases/version-10-typography
+   [CARBON]   IBM Carbon — the reference for data-dense enterprise product UI.
+              carbondesignsystem.com/elements/typography/overview
+   [SPECTRUM] Adobe Spectrum — the reference for platform scale and density.
+              spectrum.adobe.com/page/platform-scale
+   [M3]       Material Design 3 — the reference for adaptive layout.
+              m3.material.io/foundations/layout/breakpoints/overview
+   [CQ]       Container queries, Baseline "widely available" since Aug 2025.
+
+   ── WHY THIS APP NEEDED IT, MEASURED ──────────────────────────────────────
+
+     clamp() in the whole stylesheet        0
+     container queries in the whole app     0
+     hardcoded viewport breakpoints       131
+     type-scale uses that are 15px or 13px  97%
+     uses of every step above 17px           0
+     hardcoded font sizes bypassing it     871
+
+   Shopify diagnosed their own admin in almost the same words before their
+   version-10 overhaul: *"only ~8% coverage of typography in custom
+   components"* and *"teams were hard coding css values for type to work
+   around the system"*, caused by *"a lack of range in font weights and
+   sizes"*. [POLARIS] That is this app exactly, and it is why Ali says every
+   screen looks the same.
+
+   ── A CORRECTION I HAD TO MAKE ────────────────────────────────────────────
+
+   The first version of this file scaled EVERY size up from phone to desktop,
+   including body text. [SPECTRUM] says the opposite and is right: Spectrum
+   ships a mobile scale and a desktop scale at a 1:1.25 ratio, with **mobile
+   25% LARGER than desktop**, because touch needs bigger targets and better
+   legibility while a cursor user sits close with a fixed head position and
+   benefits from density. [POLARIS] reached the same place from the other
+   direction: at small sizes the difference between platforms is *"often a
+   difference of 1px"*, so they judged two scales not worth the complexity —
+   but planned for *"larger sizes to respond automatically at certain
+   breakpoints"*.
+
+   Growing 15px body text to 16px on a monitor is the thing that makes an
+   admin tool feel zoomed-in. Corrected below.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── TYPE ───────────────────────────────────────────────────────────────
+     Ratio 1.2, the major third, rounded to sensible steps. [POLARIS] uses
+     exactly this — *"All font sizes have a ratio of 1.2, known as the major
+     third type scale"* — producing 12, 13, 14, 16, 20, 24, 28, 32, 40.
+
+     TEXT SIZES ARE FIXED. Body, captions and labels do not move between a
+     phone and a monitor: [POLARIS] measured the honest difference at ~1px and
+     declined it, and [CARBON]'s *productive* type set — the one for *"product
+     spaces, where users benefit from a more condensed treatment of content to
+     maintain focus on tasks"* — uses fixed headings by design. This app is a
+     productive space, not an editorial one. */
+  --ios-caption2:    11px;
+  --ios-caption1:    12px;
+  --ios-footnote:    13px;
+  --ios-subhead:     15px;
+  --ios-callout:     16px;
+  --ios-body:        17px;
+  --ios-headline:    17px;
+
+  /* DISPLAY SIZES ARE FLUID. This is the half both firms agree should move:
+     [POLARIS] planned larger sizes to respond at breakpoints, [CARBON]'s
+     expressive set is responsive by definition, and the 2026 consensus is
+     that clamp() belongs to *"headings, display text, and reusable design
+     tokens"* and is *"not a replacement for every media or container query"*.
+     Interpolated between the 390px phone and a 1280px desktop. */
+  --ios-title3:      clamp(20px, calc(20px + 2 * (100vw - 390px) / 890), 22px);
+  --ios-title2:      clamp(22px, calc(22px + 4 * (100vw - 390px) / 890), 26px);
+  --ios-title1:      clamp(28px, calc(28px + 4 * (100vw - 390px) / 890), 32px);
+  --ios-large-title: clamp(34px, calc(34px + 6 * (100vw - 390px) / 890), 40px);
+
+  /* ── LEADING ────────────────────────────────────────────────────────────
+     A ratio, never a pixel count — fixed leading under a size that moves is
+     cramped at one width and airy at another.
+
+     1.29 is [CARBON]'s productive leading, chosen for *"dense UI"*; their
+     expressive set sits at 1.40–1.50 and is explicitly for editorial work
+     that *"many users would find distracting in product"*. This app is
+     product. */
+  --lh-tight:  1.15;   /* display figures — the number IS the line */
+  --lh-snug:   1.29;   /* [CARBON] productive: names, headings, rows */
+  --lh-normal: 1.45;   /* the few places that carry real sentences */
+
+  /* ── SPACE ──────────────────────────────────────────────────────────────
+     [POLARIS]: *"Many components are sized in increments of 20px to match
+     the line height of body text, making it easy to create harmonious
+     arrangements of components and text."* A 4px base grid with the rhythm
+     tied to body leading, fixed for the same reason type is fixed. */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;   /* body line-height — the harmonic unit [POLARIS] */
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+
+  /* ── MEASURE ────────────────────────────────────────────────────────────
+     Prose stops before the return sweep loses the reader. */
+  --measure: 68ch;
+
+  /* ── DENSITY — the mobile scale is the baseline ─────────────────────────
+     [SPECTRUM] ships two scales at 1:1.25 with mobile the LARGER, *"to
+     reflect how people interact with touch screens"*. Touch is the default
+     here because Ali's primary device is a phone in a godown. */
+  --tap-min:    44px;
+  --row-pad-y:  var(--sp-4);
+  --row-pad-x:  var(--sp-4);
+  --control-h:  44px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DENSITY FOLLOWS THE INPUT DEVICE, NOT THE SCREEN WIDTH
+
+   [SPECTRUM]'s split is desktop-vs-mobile, i.e. *cursor* vs *touch* — not
+   large-vs-small. A 13" tablet held in two hands is still operated by thumbs;
+   a 13" laptop is not. Keying density off width gets both wrong, so this keys
+   off `pointer:`, which is the actual question.
+
+   The desktop scale is 1/1.25 of the mobile one, per [SPECTRUM]'s ratio.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (pointer: fine) {
+  :root {
+    --tap-min:   36px;   /* 44 / 1.25 ≈ 35 — a cursor is precise */
+    --control-h: 36px;
+    --row-pad-y: var(--sp-3);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LAYOUT — [M3] WINDOW SIZE CLASSES
+
+   *"A window size class is an opinionated breakpoint, the window size at
+   which a layout needs to change to match available space, device
+   conventions, and ergonomics."* [M3]
+
+     compact    0–599    single column, touch-first
+     medium     600–839  first adaptation; secondary content appears
+     expanded   840–1199 multi-pane
+     large     1200+     multi-pane, external displays
+
+   These govern PAGE STRUCTURE only. Components use container queries below,
+   because a component does not know which pane it was put in.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --bp-medium:   600px;
+  --bp-expanded: 840px;
+  --bp-large:   1200px;
+}
+
+/* The page frame stops content before it becomes a spreadsheet. Without it a
+   list on a 27" monitor runs the full width and the eye travels 2,000px from
+   a product name to its price. */
+.snm-frame {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: var(--sp-4);
+}
+
+.snm-prose { max-width: var(--measure); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMPONENTS SIZE FROM THEIR CONTAINER — [CQ]
+
+   Container queries reached Baseline "widely available" in August 2025 at
+   ~92.6% support, and the 2026 layering is: media queries for page structure,
+   container queries for components, clamp() for fluid type, intrinsic grid
+   for the rest.
+
+   This app had 131 viewport breakpoints and ZERO container queries, which is
+   why a card in a narrow desktop column still laid itself out as though it
+   had the whole screen. Mark a region with `.snm-region` and its children
+   respond to the space they were actually given.
+   ══════════════════════════════════════════════════════════════════════════ */
+.snm-region {
+  container-type: inline-size;
+  container-name: region;
+}
+
+@container region (min-width: 30rem) {
+  .snm-split { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-4); align-items: start; }
+}
+@container region (min-width: 46rem) {
+  .snm-cols-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+}
+@container region (min-width: 68rem) {
+  .snm-cols-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+}
+
+/* Intrinsic grid — wraps without a single breakpoint, for tile rows whose
+   count should follow the space rather than a guess about the device. */
+.snm-autogrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--sp-4);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RETINA — where "excellent on a phone" is actually decided
+
+   On a 3x display a 1px border is three device pixels and reads as a heavy
+   rule; the crispness of a good interface comes from hairlines that are ONE
+   DEVICE PIXEL. `font-optical-sizing` lets a variable font use its display
+   cut at large sizes and its text cut at small ones — the difference between
+   a headline that looks set and one that looks scaled up.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root { --hairline: 1px; }
+@media (min-resolution: 2dppx) { :root { --hairline: 0.5px; } }
+@media (min-resolution: 3dppx) { :root { --hairline: 0.33px; } }
+
+html {
+  font-optical-sizing: auto;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOTION — one duration, one curve, off when asked
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-base: 0ms; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COLOUR — sourced, then measured against this app's real surfaces
+
+   Ali, 2026-09-05: *"Forget all my rules about monochrome accents and any
+   other rules or choices. I told you to use absolute expert rules and
+   guidelines."*
+
+   Fair, and the failure was mine: the previous commit wrote that his earlier
+   laws "survive the change", which is the opposite of what he asked for. The
+   palette below replaces Apple's system colours — systemRed #FF453A,
+   systemGreen #30D158, systemOrange #FF9F0A, systemBlue, systemPurple — and
+   the monochrome-accent law that sat on top of them.
+
+   ── WHAT THE SOURCES SAY, INCLUDING WHERE THEY DISAGREE ───────────────────
+
+   They do not agree, and the disagreement is informative:
+
+     [CARBON]  interactive-01 = Blue 60 #0f62fe, support-error = Red 60,
+               support-success = Green 50, support-warning = Yellow 30. An
+               enterprise product must make the interactive thing findable in
+               a field of neutral data.
+     [M3]      Primary is a tonal accent "used for main components like
+               prominent buttons, active states"; error/warning are separate
+               roles that must not borrow it.
+     [POLARIS] the Shopify admin's primary button is #303030, a near-black,
+               because a merchant admin is already full of status colour and
+               money — a coloured primary button competes with the meaning.
+               Its text roles: critical #d72c0d, success #29845a.
+
+   Where they agree, all three: STATUS COLOUR AND BRAND COLOUR ARE DIFFERENT
+   THINGS. This app had them fused — `--snm-info` was literally an alias of
+   `--snm-brand-text`, so an "info" badge was rose in Ember and teal in
+   Aurora, and no screen could distinguish "this is us" from "this is
+   information". That is fixed below: info is blue in every palette, because
+   blue-means-information is the one convention every published system in this
+   list shares.
+
+   ── WHAT IS DELIBERATELY *NOT* CHANGED, AND WHY ───────────────────────────
+
+   The primary button keeps the palette accent rather than taking Polaris's
+   near-black. Ali chose the palette (Ember / Aurora) and switches it from
+   Settings alongside the frost dial; replacing it with a fixed near-black
+   would delete a feature he uses, which is not what "use expert guidance"
+   means. Polaris's *reason* for the near-black — that a coloured button
+   competes with status colour — is honoured the other way round: the status
+   roles below are now clearly distinct from every palette accent, which was
+   not true before.
+
+   ── AND THEN MEASURED, BECAUSE A SOURCED VALUE IS ONLY A CANDIDATE ────────
+
+   No single value cleared 4.5:1 in both themes: Polaris success reaches
+   4.47:1 on the light card and 3.87:1 on the dark one, and Carbon's warning
+   yellow is 1.63:1 on light and 10.63:1 on dark. That is exactly why every
+   mature system ships per-theme values, and why [CARBON]'s layering model
+   says interaction "gets lighter" toward black and "gets darker" toward
+   white.
+
+   So each role keeps its source's HUE and moves only lightness until it
+   clears the WCAG 2.2 floor on the LIGHTEST surface it can land on — a card
+   inside a card, not the page. `npm run audit:contrast` is the judge; the
+   values here are what it passed.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Both ramps are declared once, here, and never anywhere else. The theme
+     blocks below only choose between them, so there is exactly one place to
+     read a value from and one place to change it. globals.css owns the
+     selectors and aliases --snm-* to these; it holds no colour of its own. */
+
+  /* Every ratio below was measured in a real browser, in both palettes, with
+     the token composited through the surface stack it actually lands on: a
+     card inside a card, which is the lightest surface in light mode and the
+     lightest in dark. Each was checked three ways — as text on that card, as
+     text on its own 14/18% tint (a status badge), and as a fill carrying
+     --snm-on-fill. Sixty cases; the number shown is the worst of the three.
+
+     LIGHT — hue from the source, lightness moved only until it clears 4.5:1.
+     None of these is the source's exact value except Blue 60, because none of
+     the others cleared the floor on this app's cards. */
+  --ds-l-interactive: #0f62fe;  /* [CARBON] Blue 60, unchanged        4.92:1 */
+  --ds-l-error:       #b4230f;  /* [POLARIS] critical #d72c0d, deeper 6.49:1 */
+  --ds-l-success:     #1a6e4a;  /* [POLARIS] success  #29845a, deeper 6.13:1 */
+  --ds-l-warning:     #8d5b00;  /* [CARBON] warning hue, as text      5.70:1 */
+  --ds-l-info:        #0f62fe;  /* information is blue, in every palette     */
+  --ds-l-promo:       #6b2fc9;  /* [M3] tertiary, [CARBON] Purple     7.19:1 */
+  --ds-l-tint:        14%;
+
+  /* DARK — [CARBON]'s layering model: interaction "gets lighter" as the layer
+     goes toward black. Same hues, lifted, re-measured on the dark card. */
+  --ds-d-interactive: #78a9ff;  /* [CARBON] Blue 40                   5.94:1
+                                   Blue 50 #4589ff measured 4.38 — under. */
+  --ds-d-error:       #ff6f5e;  /*                                    5.12:1 */
+  --ds-d-success:     #45c48a;  /*                                    6.34:1 */
+  --ds-d-warning:     #f1c21b;  /* [CARBON] Yellow 30, unchanged      8.31:1 */
+  --ds-d-info:        #78a9ff;
+  --ds-d-promo:       #b58aff;  /*                                    5.36:1 */
+  --ds-d-tint:        18%;
+
+  /* Light is the default assignment. */
+  --ds-interactive: var(--ds-l-interactive);
+  --ds-error:       var(--ds-l-error);
+  --ds-success:     var(--ds-l-success);
+  --ds-warning:     var(--ds-l-warning);
+  --ds-info:        var(--ds-l-info);
+  --ds-promo:       var(--ds-l-promo);
+  /* The tint behind a status word, so a badge's fill always matches its text
+     — [M3]'s container / on-container pairing. */
+  --ds-status-tint: var(--ds-l-tint);
+}
+
+/* Two dark selectors, because the app has two ways of getting there:
+   next-themes puts .dark on <html>, and the media query covers the frame
+   before its script runs. .light must still win under a dark OS. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --ds-interactive: var(--ds-d-interactive);
+    --ds-error:       var(--ds-d-error);
+    --ds-success:     var(--ds-d-success);
+    --ds-warning:     var(--ds-d-warning);
+    --ds-info:        var(--ds-d-info);
+    --ds-promo:       var(--ds-d-promo);
+    --ds-status-tint: var(--ds-d-tint);
+  }
+}
+.dark {
+  --ds-interactive: var(--ds-d-interactive);
+  --ds-error:       var(--ds-d-error);
+  --ds-success:     var(--ds-d-success);
+  --ds-warning:     var(--ds-d-warning);
+  --ds-info:        var(--ds-d-info);
+  --ds-promo:       var(--ds-d-promo);
+  --ds-status-tint: var(--ds-d-tint);
+}

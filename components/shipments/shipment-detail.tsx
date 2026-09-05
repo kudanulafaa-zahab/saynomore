@@ -2078,7 +2078,7 @@ function LineDialog({
                       style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}>
                       <SkuIdentity
                         brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton} unitUom={s.unit_uom as UnitUom}
                         trailing={`CBM ${Number(s.cbm_per_carton).toFixed(4)}`}
                       />
                     </button>
@@ -2091,7 +2091,7 @@ function LineDialog({
               <div className="flex justify-between items-start gap-3">
                 <SkuIdentity
                   brandName={sku.brand_name} modelName={sku.model_name} variantDisplay={sku.variant_display}
-                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton}
+                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton} unitUom={sku.unit_uom as UnitUom}
                   size="card"
                   trailing={`CBM ${Number(sku.cbm_per_carton).toFixed(4)}`}
                 />
