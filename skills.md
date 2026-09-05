@@ -45,9 +45,34 @@ fresh one and execute. But it must look excellent when on Retina mobile and
 scale automatically on platform used like tablet or desktop."*
 
 **The system now lives in `app/design-system.css`. Read it before any UI work.**
-Its four principles are derived from how Ali works, not borrowed from a vendor:
-one hand in bright daylight; the NUMBER is the content; scale is continuous
-rather than stepped; density follows the INPUT device, not the screen width.
+
+Ali, 2026-09-05, rejecting a first attempt I had derived myself: *"The design
+system must come from the leading experts of the field. Not mine or Apple or
+yours. But from real experts using the latest design trends and guidance from
+leading firms."* He was right to. Every decision in that file now cites the
+published system it came from:
+
+| source | what it decides here |
+|---|---|
+| **Shopify Polaris** — the closest published analogue, a merchant admin for orders, inventory and money | the 1.2 major-third ratio; text sizes FIXED across platforms; 20px spacing tied to body leading |
+| **IBM Carbon** — the reference for data-dense enterprise product UI | the *productive* type set: 1.29 leading, condensed, fixed headings. This app is a productive space, not an editorial one |
+| **Adobe Spectrum** — the reference for platform scale | two scales at 1:1.25 with **mobile the LARGER**; density keyed to cursor-vs-touch, not to screen width |
+| **Material Design 3** | window size classes 600 / 840 / 1200 for page structure |
+| **Container queries** (Baseline, Aug 2025) | components size from their container, not the viewport |
+
+**Shopify diagnosed their own admin in nearly Ali's words** before their
+version-10 overhaul: *"only ~8% coverage of typography in custom components"*,
+*"teams were hard coding css values for type to work around the system"*,
+caused by *"a lack of range in font weights and sizes"*. This app measured 97%
+of type-scale uses at one of two sizes and 871 hardcoded sizes bypassing it.
+
+**A correction worth keeping.** My first version scaled every size up from
+phone to desktop, body text included. Spectrum says the opposite and is right:
+mobile is 25% LARGER, because touch needs legibility and a cursor user sits
+close and benefits from density. Growing 15px body text on a monitor is what
+makes an admin tool feel zoomed-in. Text sizes are now fixed; only display
+sizes are fluid, which is the half Polaris, Carbon and the 2026 consensus all
+agree should move.
 
 What it changed, and why it was needed — measured before it was written:
 `clamp()` appeared 0 times in the stylesheet, container queries 0 times, and

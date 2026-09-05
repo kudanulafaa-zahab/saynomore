@@ -118,17 +118,22 @@ Next.js 16 App Router (Turbopack) · React 19 (React Compiler ON) · TypeScript 
 ## Design
 
 > **THE DESIGN SYSTEM IS `app/design-system.css` (2026-09-05).** Ali ordered a
-> fresh system, explicitly not Apple's or anyone else's, that looks excellent
-> on a Retina phone and scales itself to tablet and desktop. Read that file
-> first; it defines the fluid type and space ramp, the container-query layout
-> primitives, density-by-input, and the Retina hairline. Where anything below
-> or in skills.md Seat 1 conflicts with it, that file wins.
+> system taken from *published guidance by leading firms* — explicitly not
+> Apple's, not his, and not mine. Every decision in it cites its source:
+> **Shopify Polaris** (the closest analogue — a merchant admin for orders,
+> inventory and money), **IBM Carbon** (data-dense product UI), **Adobe
+> Spectrum** (platform scale and density), **Material 3** (adaptive layout),
+> and container queries at Baseline. Read that file first. Where anything
+> below or in skills.md Seat 1 conflicts with it, that file wins.
 >
-> Type and space are FLUID (`clamp`), identical at 390px and growing to
-> 1280px — so the phone never moves and larger screens stop looking like a
-> stretched phone. Never reintroduce a fixed `font-size` in px, and never add
-> a viewport breakpoint where a container query (`.snm-region`) is the honest
-> answer.
+> The two rules most easily got wrong:
+> **TEXT SIZES ARE FIXED across platforms** — Polaris measured the honest
+> difference at ~1px and declined two scales; Spectrum ships mobile 25%
+> LARGER than desktop, so growing body text on a monitor is backwards. Only
+> DISPLAY sizes are fluid (`clamp`). And **density follows the INPUT device**
+> (`pointer:`), never the screen width — a tablet is still touched with
+> thumbs. Never add a viewport breakpoint where a container query
+> (`.snm-region`) is the honest answer.
 
 - Light/dark adaptive: use CSS vars (`var(--foreground)`, `var(--background)`, `var(--glass-1)`, `var(--glass-2)`, `var(--muted-foreground)`, `var(--glass-border)`) — never hardcode hex colours
 - Primary action buttons: `background: var(--foreground)` / `color: var(--background)`
