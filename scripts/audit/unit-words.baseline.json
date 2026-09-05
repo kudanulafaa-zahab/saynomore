@@ -13,7 +13,7 @@
   "components/products/categories-manager.tsx": 3,
   "components/products/edit-dialogs.tsx": 21,
   "components/products/pack-size-correction.tsx": 3,
-  "components/products/product-card-view.tsx": 12,
+  "components/products/product-card-view.tsx": 6,
   "components/products/products-explorer.tsx": 11,
   "components/products/products-list.tsx": 3,
   "components/sales/mixed-carton-sheet.tsx": 9,

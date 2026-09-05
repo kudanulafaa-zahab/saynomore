@@ -37,6 +37,11 @@ import { CARD_ROUNDED } from "@/lib/surfaces";
 import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/queries/products";
 import { listStockLevels, type StockLevel } from "@/lib/queries/inventory";
 import { getProductCard, type ProductCard } from "@/lib/queries/product-card";
+import {
+  formatQtyInTradeUnits, offerableTiers, packConfigSentence, packConfigText,
+  sellUnitLabel, shipUnitLabel, variantSuffix,
+  type SellUnit, type TradeUnitConfig,
+} from "@/lib/trade-units";
 import { useOnMount } from "@/lib/use-on-mount";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 
@@ -172,10 +177,46 @@ export function ProductCardView() {
     const r = card.rival;
     const rc = card.rival_carton;
     const inc = card.incoming;
-    const packsInStock = card.pack.pcs_per_pack > 0
-      ? card.stock.pieces / card.pack.pcs_per_pack : 0;
-    const cartonsInStock = card.pack.pcs_per_pack * card.pack.packs_per_carton > 0
-      ? card.stock.pieces / (card.pack.pcs_per_pack * card.pack.packs_per_carton) : 0;
+
+    // EVERY UNIT WORD ON THIS CARD COMES FROM HERE.
+    //
+    // Ali, 2026-09-05, with a screenshot: *"Why is it still showing cartons
+    // for body butter?"* He photographed the Products list, but the Product
+    // Card was worse, because it says more. For a tub — 1 to a pack, 1 to a
+    // carton — this screen read:
+    //
+    //     One pack holds       1 tubs
+    //     One carton holds     1 packs
+    //     Supplier price       380 / carton
+    //     Landed, per carton   MVR 412.60
+    //     Landed, per pack     MVR 412.60      (the same number, twice)
+    //     Sell one carton      MVR 380
+    //     Sold                 12 packs
+    //
+    // Seven lines about a product that is sold in tubs and has neither packs
+    // nor cartons, two of them the identical figure under different names.
+    // Nothing below decides a unit word any more; it asks lib/trade-units.ts,
+    // which reads the product's own pack configuration and sellable_units.
+    //
+    // The uom CODE comes from the SKU row, not from card.unit_noun. The card
+    // carries the noun Postgres already produced ("tub", "pouch"), and feeding
+    // a noun back into containerLabel works by luck for "tub" and fails for
+    // "pouch" — which is the noun for every gram-measured product, body butter
+    // included. Same list every other screen reads; no second source.
+    const skuRow = skus.find((s) => s.id === card.sku_id);
+    const cfg: TradeUnitConfig = {
+      pcsPerPack: card.pack.pcs_per_pack,
+      packsPerCarton: card.pack.packs_per_carton,
+      unitUom: skuRow?.unit_uom ?? null,
+      sellableUnits: skuRow?.sellable_units ?? (card.sellable_units as SellUnit[] | null) ?? null,
+    };
+    const offerable  = offerableTiers(cfg);
+    const sells      = (cfg.sellableUnits ?? offerable).filter((u) => offerable.includes(u));
+    const sellsCtn   = sells.includes("carton");
+    const sellsPack  = sells.includes("pack");
+    const packWord   = sellUnitLabel("pack", cfg);
+    const shipWord   = shipUnitLabel(cfg);
+    const packConfig = packConfigSentence(cfg);
 
     // Supplier price movement between the last arrival and the one on the water.
     // Shown because it is the number that moves the margin next, and it can
@@ -208,8 +249,9 @@ export function ProductCardView() {
         {/* ── Pack configuration. The SKU code encodes it, but nobody should
                have to decode a code. ── */}
         <Section title="Pack">
-          <Row label="One pack holds" value={`${num(card.pack.pcs_per_pack)} ${card.unit_noun === "pack" ? "pieces" : card.unit_noun + "s"}`} />
-          <Row label="One carton holds" value={`${num(card.pack.packs_per_carton)} packs`} />
+          {/* One row, and only when there is something true to say. Two rows
+              of "1 tubs" and "1 packs" said nothing and invented a carton. */}
+          {packConfig && <Row label="How it is packed" value={packConfig} />}
           {card.pack.length_cm != null && (
             <Row label="Carton size"
               value={`${num(card.pack.length_cm, 0)} × ${num(card.pack.width_cm, 0)} × ${num(card.pack.height_cm, 0)} cm`}
@@ -227,16 +269,22 @@ export function ProductCardView() {
             title="What it costs you"
             note={`From the last shipment received — ${c.shipment_ref}, ${day(c.received_at)}. The exchange rate locks when a shipment is received, so this is a fact about that arrival.`}
           >
+            {/* A shipment line counts "cartons", but for a product with one
+                pack to a carton that carton IS the item — which is how
+                "MVR 380 per ctn" came to describe a single tub. */}
             <Row label={`Supplier price (${c.fob_currency})`}
-              value={`${num(c.fob_per_carton, 0)} / carton`}
+              value={`${num(c.fob_per_carton, 0)} / ${shipWord}`}
               hint={c.fx_rate ? `at ${c.fx_rate} to MVR` : undefined} />
-            <Row label={`Supplier price, ${num(c.qty_cartons)} carton${c.qty_cartons === 1 ? "" : "s"}`} value={`MVR ${mvr(c.fob_mvr)}`} />
+            <Row label={`Supplier price, ${num(c.qty_cartons)} ${shipWord}${c.qty_cartons === 1 ? "" : "s"}`} value={`MVR ${mvr(c.fob_mvr)}`} />
             <Row label="+ Freight share" value={`MVR ${mvr(c.freight_mvr)}`} />
             <Row label="+ Local charges" value={`MVR ${mvr(c.local_mvr)}`} />
             <Row label="+ Duty" value={`MVR ${mvr(c.duty_mvr)}`} />
             <Row label="Landed, total" value={`MVR ${mvr(c.landed_total_mvr)}`} strong />
-            <Row label="Landed, per carton" value={`MVR ${mvr(c.per_carton_mvr)}`} strong />
-            <Row label="Landed, per pack" value={`MVR ${mvr(c.per_pack_mvr)}`} strong />
+            {/* Both tiers used to print unconditionally. On a tub they are the
+                SAME number under two names, and one of the names is a carton
+                the product does not have. */}
+            {sellsCtn && <Row label="Landed, per carton" value={`MVR ${mvr(c.per_carton_mvr)}`} strong />}
+            {sellsPack && <Row label={`Landed, per ${packWord}`} value={`MVR ${mvr(c.per_pack_mvr)}`} strong />}
           </Section>
         ) : (
           <Section title="What it costs you"
@@ -248,21 +296,27 @@ export function ProductCardView() {
         {/* ── PRICE AND PROFIT, in the units actually sold. Money first,
                percentage second (Seat 4). ── */}
         <Section title="What you charge, and what you keep">
-          <Row label="Sell one pack" value={`MVR ${mvr(p.per_pack_mvr)}`} />
-          <Row label="Costs you" value={`MVR ${mvr(p.pack_cost_mvr)}`} />
-          <Row label="You keep, per pack"
-            value={p.pack_profit_mvr == null ? "—" : `${p.pack_profit_mvr >= 0 ? "+" : ""}MVR ${mvr(p.pack_profit_mvr)}`}
-            strong
-            tone={p.pack_profit_mvr == null ? undefined : p.pack_profit_mvr >= 0 ? "var(--snm-success)" : "var(--snm-error)"}
-            hint={p.pack_margin_pct == null ? undefined : `${num(p.pack_margin_pct, 1)}% margin`} />
-          <Row label="Sell one carton" value={`MVR ${mvr(p.per_carton_mvr)}`} />
-          <Row label="Costs you" value={`MVR ${mvr(p.carton_cost_mvr)}`} />
-          <Row label="You keep, per carton"
-            value={p.carton_profit_mvr == null ? "—" : `${p.carton_profit_mvr >= 0 ? "+" : ""}MVR ${mvr(p.carton_profit_mvr)}`}
-            strong
-            tone={p.carton_profit_mvr == null ? undefined : p.carton_profit_mvr >= 0 ? "var(--snm-success)" : "var(--snm-error)"}
-            hint={p.carton_margin_pct == null ? undefined : `${num(p.carton_margin_pct, 1)}% margin`} />
-          {p.carton_discount_mvr != null && Number(p.carton_discount_mvr) !== 0 && (
+          {/* Only the tiers the product is actually sold in. sellable_units is
+              the only input — the same guard as every other door. */}
+          {sellsPack && <>
+            <Row label={`Sell one ${packWord}`} value={`MVR ${mvr(p.per_pack_mvr)}`} />
+            <Row label="Costs you" value={`MVR ${mvr(p.pack_cost_mvr)}`} />
+            <Row label={`You keep, per ${packWord}`}
+              value={p.pack_profit_mvr == null ? "—" : `${p.pack_profit_mvr >= 0 ? "+" : ""}MVR ${mvr(p.pack_profit_mvr)}`}
+              strong
+              tone={p.pack_profit_mvr == null ? undefined : p.pack_profit_mvr >= 0 ? "var(--snm-success)" : "var(--snm-error)"}
+              hint={p.pack_margin_pct == null ? undefined : `${num(p.pack_margin_pct, 1)}% margin`} />
+          </>}
+          {sellsCtn && <>
+            <Row label="Sell one carton" value={`MVR ${mvr(p.per_carton_mvr)}`} />
+            <Row label="Costs you" value={`MVR ${mvr(p.carton_cost_mvr)}`} />
+            <Row label="You keep, per carton"
+              value={p.carton_profit_mvr == null ? "—" : `${p.carton_profit_mvr >= 0 ? "+" : ""}MVR ${mvr(p.carton_profit_mvr)}`}
+              strong
+              tone={p.carton_profit_mvr == null ? undefined : p.carton_profit_mvr >= 0 ? "var(--snm-success)" : "var(--snm-error)"}
+              hint={p.carton_margin_pct == null ? undefined : `${num(p.carton_margin_pct, 1)}% margin`} />
+          </>}
+          {sellsCtn && sellsPack && p.carton_discount_mvr != null && Number(p.carton_discount_mvr) !== 0 && (
             <Row label="Buying a carton instead of loose packs"
               value={`saves them MVR ${mvr(Math.abs(Number(p.carton_discount_mvr)))}`}
               tone="var(--snm-warning)"
@@ -331,15 +385,16 @@ export function ProductCardView() {
 
         {/* ── STOCK, in trade units. Never a piece count. ── */}
         <Section title="Stock">
+          {/* Both of these hand-rolled their own division and their own noun —
+              "0.0 cartons (1 packs)" for a tub. formatQtyInTradeUnits already
+              answers this for every product, honouring sellable_units. */}
           <Row label="On hand"
-            value={card.stock.in_stock
-              ? `${num(cartonsInStock, 1)} cartons (${num(packsInStock, 0)} packs)`
-              : "None"}
+            value={card.stock.in_stock ? formatQtyInTradeUnits(card.stock.pieces, cfg) : "None"}
             strong
             tone={card.stock.in_stock ? undefined : "var(--snm-error)"} />
           {card.stock.by_godown.map((g) => (
             <Row key={g.godown} label={g.godown}
-              value={`${num(g.pieces / Math.max(1, card.pack.pcs_per_pack), 0)} packs`} />
+              value={formatQtyInTradeUnits(g.pieces, cfg)} />
           ))}
           {!card.stock.in_stock && (
             <div className="px-4 py-3">
@@ -357,10 +412,10 @@ export function ProductCardView() {
         {inc && (
           <Section title="On the way"
             note={`${inc.shipment_ref}${inc.expected_date ? `, expected ${day(inc.expected_date)}` : ""}.`}>
-            <Row label="Arriving" value={`${num(inc.qty_cartons)} cartons`} strong />
-            <Row label={`Supplier price (${inc.fob_currency})`} value={`${num(inc.fob_per_carton, 0)} / carton`}
+            <Row label="Arriving" value={`${num(inc.qty_cartons)} ${shipWord}s`} strong />
+            <Row label={`Supplier price (${inc.fob_currency})`} value={`${num(inc.fob_per_carton, 0)} / ${shipWord}`}
               hint={inc.fx_rate ? `at ${inc.fx_rate} to MVR` : undefined} />
-            <Row label="In rufiyaa, per carton" value={`MVR ${mvr(inc.fob_mvr_per_carton)}`} />
+            <Row label={`In rufiyaa, per ${shipWord}`} value={`MVR ${mvr(inc.fob_mvr_per_carton)}`} />
             <Row label="Last time" value={`MVR ${mvr(inc.last_fob_mvr_per_carton)}`} />
             {fobShiftPct != null && (
               <Row
@@ -376,7 +431,10 @@ export function ProductCardView() {
 
         {/* ── WHAT IT HAS EARNED. Packs, never pieces. ── */}
         <Section title="What it has earned" note="Confirmed and delivered orders only — a draft is not a sale.">
-          <Row label="Sold" value={`${num(card.sales.packs_sold, 1)} packs`} />
+          {/* packs_sold is a count of the SELLING unit, whatever that is —
+              tubs for a tub, packs for a diaper. It was labelled "packs"
+              regardless. */}
+          <Row label="Sold" value={`${num(card.sales.packs_sold, 1)} ${packWord}s`} />
           <Row label="Orders" value={num(card.sales.orders)} />
           <Row label="Customers who bought it" value={num(card.sales.customers)} />
           <Row label="Revenue" value={`MVR ${mvr(card.sales.revenue_mvr)}`} />
@@ -419,15 +477,17 @@ export function ProductCardView() {
                   className="w-full flex items-center gap-3 px-4 py-3.5 text-left snm-pressable"
                   style={{ borderTop: i > 0 ? "0.5px solid var(--glass-border-lo)" : undefined }}>
                   <div className="flex-1 min-w-0">
-                    <p className="ios-subhead font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                    <p className="snm-primary truncate">
                       {s.model_name}
-                      {s.variant_display && (
-                        <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span>
+                      {variantSuffix(s.model_name, s.variant_display) && (
+                        <span className="font-normal" style={{ opacity: 0.7 }}> · {variantSuffix(s.model_name, s.variant_display)}</span>
                       )}
                     </p>
-                    <p className="ios-footnote mt-0.5" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-                      {s.pcs_per_pack} per pack × {s.packs_per_carton} per carton
-                      {st <= 0 ? " · no stock" : ""}
+                    <p className="snm-support mt-0.5">
+                      {[
+                        packConfigText({ pcsPerPack: s.pcs_per_pack, packsPerCarton: s.packs_per_carton, unitUom: s.unit_uom }),
+                        st <= 0 ? "no stock" : null,
+                      ].filter(Boolean).join(" · ") || " "}
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />

@@ -277,6 +277,49 @@ export function packConfigText(cfg: {
   return ppc > 1 ? `${pcs}/pk × ${ppc}/ctn` : `${pcs}/pk`;
 }
 
+/** The same fact as packConfigText, written as a sentence rather than a chip.
+ *  For a fact sheet (the Product Card) where there is room to say it in full,
+ *  and where "One pack holds 1 tubs" was what the two-row version produced.
+ *
+ *    tub, 1 to a pack and 1 to a carton   ->  null, a tub is a tub
+ *    bottle, 1 to a pack, 6 to a carton   ->  "1 carton = 6 bottles"
+ *    diaper, 34 to a pack, 1 to a carton  ->  "1 pack of 34"
+ *    diaper, 34 to a pack, 3 to a carton  ->  "1 carton = 3 packs of 34"
+ *
+ *  Note what it never says: the piece TOTAL. "1 carton = 102" is a piece count
+ *  and Ali does not trade in pieces; the composition is the fact he checks a
+ *  variant by ("a 48s and a 34s are different products"). */
+export function packConfigSentence(cfg: {
+  pcsPerPack: number;
+  packsPerCarton: number;
+  unitUom?: UnitUom | null;
+}): string | null {
+  const pcs = cfg.pcsPerPack || 1;
+  const ppc = cfg.packsPerCarton || 1;
+  const noun = containerLabel(cfg.unitUom);
+  if (pcs <= 1 && ppc <= 1) return null;
+  if (pcs <= 1) return `1 carton = ${ppc} ${noun}s`;
+  if (ppc <= 1) return `1 ${noun} of ${pcs}`;
+  return `1 carton = ${ppc} ${noun}s of ${pcs}`;
+}
+
+/** The word for the unit a product ARRIVES and is INVOICED in.
+ *
+ *  Ali, 2026-09-05, of a body butter tub: *"Why is it still showing cartons
+ *  for body butter?"* A shipment line counts cartons, so every screen that
+ *  reads one printed "carton" — but a carton holding one pack of one item is
+ *  not a carton, it is the item, and quoting "MVR 380 per ctn" for a single
+ *  tub is the defect he photographed. CLAUDE.md: buy, receive and sell are one
+ *  unit system, so this is the same question as sellUnitLabel, asked of the
+ *  shipping tier. */
+export function shipUnitLabel(cfg: {
+  pcsPerPack: number;
+  packsPerCarton: number;
+  unitUom?: UnitUom | null;
+}): string {
+  return (cfg.packsPerCarton || 1) > 1 ? "carton" : containerLabel(cfg.unitUom);
+}
+
 /** The tier a product's headline price should be quoted in: the largest unit
  *  it is ACTUALLY sold in. A carton for a diaper, a tub for a tub — never a
  *  carton price for something that has no carton. */
