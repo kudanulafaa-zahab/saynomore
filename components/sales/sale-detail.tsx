@@ -48,7 +48,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
-import { formatQtyInTradeUnits, sellableTiers, sellUnitLabel, type TradeUnitConfig } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, sellableTiers, sellUnitLabel, type TradeUnitConfig, type UnitUom } from "@/lib/trade-units";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { recordCustomerReturn, type ReturnReason, type ReturnSettlement } from "@/lib/queries/inventory";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
@@ -2140,7 +2140,7 @@ function LineDialog({
                     <button key={s.id} onClick={() => { setSkuId(s.id); setUom(pickUom(s, uom)); }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "0.5px solid var(--glass-border-lo)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                       <SkuIdentity
                         brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton} unitUom={s.unit_uom as UnitUom}
                       />
                       {stock !== null && (
                         <span style={{ color: stock > 0 ? "var(--snm-success)" : "var(--snm-error)", fontSize: 13, flexShrink: 0 }}>{formatQtyInTradeUnits(stock, { pcsPerPack: s.pcs_per_pack, packsPerCarton: s.packs_per_carton, unitUom: s.unit_uom, sellableUnits: s.sellable_units })}</span>
@@ -2155,7 +2155,7 @@ function LineDialog({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <SkuIdentity
                   brandName={sku.brand_name} modelName={sku.model_name} variantDisplay={sku.variant_display}
-                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton}
+                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton} unitUom={sku.unit_uom as UnitUom}
                   size="card"
                 />
                 <button onClick={() => setSkuId("")} style={{ background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 13, cursor: "pointer", flexShrink: 0 }}>Change</button>
