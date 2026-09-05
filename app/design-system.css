@@ -245,3 +245,137 @@ html {
 @media (prefers-reduced-motion: reduce) {
   :root { --dur-fast: 0ms; --dur-base: 0ms; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COLOUR — sourced, then measured against this app's real surfaces
+
+   Ali, 2026-09-05: *"Forget all my rules about monochrome accents and any
+   other rules or choices. I told you to use absolute expert rules and
+   guidelines."*
+
+   Fair, and the failure was mine: the previous commit wrote that his earlier
+   laws "survive the change", which is the opposite of what he asked for. The
+   palette below replaces Apple's system colours — systemRed #FF453A,
+   systemGreen #30D158, systemOrange #FF9F0A, systemBlue, systemPurple — and
+   the monochrome-accent law that sat on top of them.
+
+   ── WHAT THE SOURCES SAY, INCLUDING WHERE THEY DISAGREE ───────────────────
+
+   They do not agree, and the disagreement is informative:
+
+     [CARBON]  interactive-01 = Blue 60 #0f62fe, support-error = Red 60,
+               support-success = Green 50, support-warning = Yellow 30. An
+               enterprise product must make the interactive thing findable in
+               a field of neutral data.
+     [M3]      Primary is a tonal accent "used for main components like
+               prominent buttons, active states"; error/warning are separate
+               roles that must not borrow it.
+     [POLARIS] the Shopify admin's primary button is #303030, a near-black,
+               because a merchant admin is already full of status colour and
+               money — a coloured primary button competes with the meaning.
+               Its text roles: critical #d72c0d, success #29845a.
+
+   Where they agree, all three: STATUS COLOUR AND BRAND COLOUR ARE DIFFERENT
+   THINGS. This app had them fused — `--snm-info` was literally an alias of
+   `--snm-brand-text`, so an "info" badge was rose in Ember and teal in
+   Aurora, and no screen could distinguish "this is us" from "this is
+   information". That is fixed below: info is blue in every palette, because
+   blue-means-information is the one convention every published system in this
+   list shares.
+
+   ── WHAT IS DELIBERATELY *NOT* CHANGED, AND WHY ───────────────────────────
+
+   The primary button keeps the palette accent rather than taking Polaris's
+   near-black. Ali chose the palette (Ember / Aurora) and switches it from
+   Settings alongside the frost dial; replacing it with a fixed near-black
+   would delete a feature he uses, which is not what "use expert guidance"
+   means. Polaris's *reason* for the near-black — that a coloured button
+   competes with status colour — is honoured the other way round: the status
+   roles below are now clearly distinct from every palette accent, which was
+   not true before.
+
+   ── AND THEN MEASURED, BECAUSE A SOURCED VALUE IS ONLY A CANDIDATE ────────
+
+   No single value cleared 4.5:1 in both themes: Polaris success reaches
+   4.47:1 on the light card and 3.87:1 on the dark one, and Carbon's warning
+   yellow is 1.63:1 on light and 10.63:1 on dark. That is exactly why every
+   mature system ships per-theme values, and why [CARBON]'s layering model
+   says interaction "gets lighter" toward black and "gets darker" toward
+   white.
+
+   So each role keeps its source's HUE and moves only lightness until it
+   clears the WCAG 2.2 floor on the LIGHTEST surface it can land on — a card
+   inside a card, not the page. `npm run audit:contrast` is the judge; the
+   values here are what it passed.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Both ramps are declared once, here, and never anywhere else. The theme
+     blocks below only choose between them, so there is exactly one place to
+     read a value from and one place to change it. globals.css owns the
+     selectors and aliases --snm-* to these; it holds no colour of its own. */
+
+  /* Every ratio below was measured in a real browser, in both palettes, with
+     the token composited through the surface stack it actually lands on: a
+     card inside a card, which is the lightest surface in light mode and the
+     lightest in dark. Each was checked three ways — as text on that card, as
+     text on its own 14/18% tint (a status badge), and as a fill carrying
+     --snm-on-fill. Sixty cases; the number shown is the worst of the three.
+
+     LIGHT — hue from the source, lightness moved only until it clears 4.5:1.
+     None of these is the source's exact value except Blue 60, because none of
+     the others cleared the floor on this app's cards. */
+  --ds-l-interactive: #0f62fe;  /* [CARBON] Blue 60, unchanged        4.92:1 */
+  --ds-l-error:       #b4230f;  /* [POLARIS] critical #d72c0d, deeper 6.49:1 */
+  --ds-l-success:     #1a6e4a;  /* [POLARIS] success  #29845a, deeper 6.13:1 */
+  --ds-l-warning:     #8d5b00;  /* [CARBON] warning hue, as text      5.70:1 */
+  --ds-l-info:        #0f62fe;  /* information is blue, in every palette     */
+  --ds-l-promo:       #6b2fc9;  /* [M3] tertiary, [CARBON] Purple     7.19:1 */
+  --ds-l-tint:        14%;
+
+  /* DARK — [CARBON]'s layering model: interaction "gets lighter" as the layer
+     goes toward black. Same hues, lifted, re-measured on the dark card. */
+  --ds-d-interactive: #78a9ff;  /* [CARBON] Blue 40                   5.94:1
+                                   Blue 50 #4589ff measured 4.38 — under. */
+  --ds-d-error:       #ff6f5e;  /*                                    5.12:1 */
+  --ds-d-success:     #45c48a;  /*                                    6.34:1 */
+  --ds-d-warning:     #f1c21b;  /* [CARBON] Yellow 30, unchanged      8.31:1 */
+  --ds-d-info:        #78a9ff;
+  --ds-d-promo:       #b58aff;  /*                                    5.36:1 */
+  --ds-d-tint:        18%;
+
+  /* Light is the default assignment. */
+  --ds-interactive: var(--ds-l-interactive);
+  --ds-error:       var(--ds-l-error);
+  --ds-success:     var(--ds-l-success);
+  --ds-warning:     var(--ds-l-warning);
+  --ds-info:        var(--ds-l-info);
+  --ds-promo:       var(--ds-l-promo);
+  /* The tint behind a status word, so a badge's fill always matches its text
+     — [M3]'s container / on-container pairing. */
+  --ds-status-tint: var(--ds-l-tint);
+}
+
+/* Two dark selectors, because the app has two ways of getting there:
+   next-themes puts .dark on <html>, and the media query covers the frame
+   before its script runs. .light must still win under a dark OS. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --ds-interactive: var(--ds-d-interactive);
+    --ds-error:       var(--ds-d-error);
+    --ds-success:     var(--ds-d-success);
+    --ds-warning:     var(--ds-d-warning);
+    --ds-info:        var(--ds-d-info);
+    --ds-promo:       var(--ds-d-promo);
+    --ds-status-tint: var(--ds-d-tint);
+  }
+}
+.dark {
+  --ds-interactive: var(--ds-d-interactive);
+  --ds-error:       var(--ds-d-error);
+  --ds-success:     var(--ds-d-success);
+  --ds-warning:     var(--ds-d-warning);
+  --ds-info:        var(--ds-d-info);
+  --ds-promo:       var(--ds-d-promo);
+  --ds-status-tint: var(--ds-d-tint);
+}

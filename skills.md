@@ -86,59 +86,70 @@ Line-height is a ratio, never a pixel count. Components size from their
 CONTAINER via `.snm-region`, so one component is correct on a phone, in a
 tablet split-view and in a desktop sidebar without being told which.
 
-The laws below SURVIVE the change because each was earned on this app with a
-real incident, and none of them was Apple's — they were only written in
-Apple's vocabulary:
+### The colour system, and a failure worth recording
 
-- **The accent is GRAPHITE MONOCHROME — no hue.** Ali rejected systemBlue
-  (three times) and then systemIndigo (2026-07-12): any hue-based accent
-  reads as decoration to him. `--snm-brand` = `var(--foreground)` (black in
-  light, white in dark), `--snm-brand-on` = background, tints via color-mix.
-  Interactive text signals through WEIGHT, not hue. The payoff for a money
-  app: green/red/orange are the only hues on screen — color always means
-  money. Do not propose a new accent hue; the debate is settled.
-- **Color communicates affordance.** Indigo/brand = tappable or "us". Neutral
-  gray = information (static tiles, hints, previews, metadata badges like
-  FIXED/VOL./MIXED CTN). Semantic colors mark true status only: green = good
-  money/on, red = loss/destructive, orange = attention/cash-to-collect,
-  systemBlue = pure info status (sync). A static panel painted in accent
-  color is a bug (the "Pick up from"/"Bank Transfer" incident).
-- **[OVERRULED by Ali, 2026-07-20] Backdrop-blur on content cards is now ON.**
-  The former law ("blur on floating chrome only — never on content") was based
-  on attributing the July scroll stutter to per-card blur; Ali's re-diagnosis
-  is that the stutter was the tab bar waiting on load-time paint bursts, not
-  card blur, and he explicitly asked for real per-card glassmorphism. Current
-  doctrine: in-flow cards carry light blur (14px × frost dial) while floating
-  chrome carries heavier blur (22-28px) — native iOS layering. If sustained
-  scroll jank is ever MEASURED again, bring evidence to Ali before changing
-  this back; do not silently re-impose the old law.
-- **Luminous glass on content = translucency, not blur (2026-07-13).** Ali
-  asked for glassmorphic content cards system-wide. The sanctioned recipe
-  gives that look with zero per-card blur: one fixed atmospheric page gradient
-  (`--app-bg`, painted by `body::before`) sits behind translucent surfaces so
-  depth peeks through, plus a specular top sheen (`--glass-sheen`) and the 1px
-  inner hairline (`--glass-inner`). `.snm-card`/`.glass` layer sheen over
-  `--glass-bg-1`. The gradients are NEUTRAL luminance only — no hue — so the
-  monochrome-accent law holds and green/red/orange stay the only meaning-
-  bearing colours. Do not "fix" content translucency by adding `backdrop-filter`
-  back; that reintroduces the jank the law above forbids.
-- **Rubber-band bounce stays ON.** It is the iOS signature. A commit once
-  set `overscroll-behavior: none` believing bounce was "web feel" — that is
-  backwards and it made the app feel dead. Never reintroduce it.
-- **Sheets arrive, they don't appear.** Bottom sheets use `.snm-sheet-in`
-  (spring), backdrops use `.snm-scrim-in` (fade). All motion via the tokens
-  `--snm-spring`/`--snm-ease-out` — never hardcode a bezier. Animate
-  transform/opacity only. `prefers-reduced-motion` flattens everything
-  automatically (global rule exists — don't duplicate it).
-- **Text tokens are sacred.** `--snm-brand-text` and the deepened light-mode
-  semantic text variants were contrast-verified on a real device in Maldivian
-  daylight. Never swap them for the fill variants or "brighter" values.
-- Accessibility fallbacks exist and must survive refactors:
-  `prefers-contrast: more` and `prefers-reduced-transparency: reduce` blocks
-  in globals.css.
-- Apple type scale via the `ios-*` classes; page titles use `.ios-page-title`;
-  money uses `.snm-num` (tabular). 44pt touch targets. Safe-area insets on
-  every fixed/floating element.
+Ali, 2026-09-05: *"Forget all my rules about monochrome accents and any other
+rules or choices. I told you to use absolute expert rules and guidelines. Why
+are you not listening to what I tell you?"*
+
+He was right, and the failure was specific and mine. The first version of this
+seat said *"the laws below SURVIVE the change"* and then listed his previous
+choices — the graphite-monochrome accent first among them — immediately after
+he had asked for a system taken from published guidance instead of from him,
+from Apple, or from me. Keeping his old rules under a heading that said the
+rules were replaced is worse than not replacing them, because it looks done.
+
+**Those laws are deleted, not archived.** What replaced them, sourced and then
+measured:
+
+- **Status colour and brand colour are DIFFERENT THINGS.** Polaris, Carbon and
+  Material 3 all separate them; this app had fused them — `--snm-info` was
+  literally an alias of `--snm-brand-text`, so an "information" badge came out
+  rose in Ember and teal in Aurora and nothing on screen distinguished "this
+  is us" from "this is information". Info is blue in every palette now.
+- **The status roles are `--ds-*` in `app/design-system.css`, and nowhere
+  else.** [CARBON] Blue 60/40 for interactive and info, [POLARIS] critical and
+  success, [CARBON]'s warning hue, [M3]'s tertiary for promo — each with the
+  source's hue kept and only its lightness moved until it cleared 4.5:1.
+  `globals.css` holds no colour of its own any more; it owns the selectors and
+  aliases `--snm-*` to `--ds-*`.
+- **A colour is measured on the surface it lands on, and the surface is a card
+  inside a card** — not the page. Sixty cases (5 roles × 3 uses × 2 palettes ×
+  2 themes) were measured in a browser before this shipped, and Carbon's Blue
+  50 failed at 4.38:1 and was replaced by Blue 40.
+- **Six copies is why it kept drifting.** The same five colours were declared
+  in six blocks, and the last of them was a Display-P3 override that restored
+  Apple's originals on any P3 screen — which is every iPhone Ali has ever used
+  it on. Every deepened, contrast-measured value in the file was silently
+  losing to Apple's bright original on the one device that matters, and no
+  desktop audit could see it. One block now.
+- **The palette accent stays the user's choice.** Polaris's near-black primary
+  button was considered and declined: Ali picks Ember or Aurora in Settings
+  next to the frost dial, and deleting a feature he uses is not what "use
+  expert guidance" means. Polaris's *reason* for the near-black — a coloured
+  button competes with status colour — is honoured the other way round, by
+  making the status roles clearly distinct from every palette accent.
+
+### What is still true, as engineering rather than as taste
+
+- **Material.** In-flow cards carry light blur (14px × the frost dial),
+  floating chrome heavier (22–28px), over one fixed page gradient with a
+  specular sheen and a 1px inner hairline. Never hardcode a `blur()` or a
+  `box-shadow`: use `--glass-blur-content`, `--snm-float-shadow`,
+  `--snm-thumb-shadow`, or the frost dial and
+  `prefers-reduced-transparency` cannot reach it. `npm run audit:material`
+  fails the build over exactly that.
+- **Motion.** All of it through `--snm-spring` / `--snm-ease-out`; transform
+  and opacity only; never a hardcoded bezier. `prefers-reduced-motion` is
+  handled globally — do not duplicate it. Overscroll bounce stays on; a commit
+  once set `overscroll-behavior: none` and the app felt dead.
+- **Accessibility fallbacks survive every refactor:** the `prefers-contrast`,
+  `prefers-reduced-transparency` and `prefers-reduced-motion` blocks in
+  globals.css. 44×44 targets, safe-area insets on everything fixed.
+- **Hierarchy is a role, not a size.** Six roles carry it — `.snm-hero`,
+  `.snm-primary`, `.snm-value`, `.snm-support`, `.snm-meta`, `.snm-eyebrow` —
+  because eleven undifferentiated type sizes produced two in practice. Money
+  is `.snm-num` (tabular).
 
 ## Seat 2 — Frontend Engineering (React 19 / Next 16)
 
