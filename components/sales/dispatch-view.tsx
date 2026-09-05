@@ -19,6 +19,7 @@ import {
 } from "@/lib/queries/sales";
 import { withOfflineFallback } from "@/lib/offline-write";
 import { listSkusFlat, type SkuFullRow } from "@/lib/queries/products";
+import { sellUnitLabel, variantSuffix } from "@/lib/trade-units";
 import {
   listCustomers, listGodowns, listUsers,
   type CustomerRow, type GodownRow, type UserProfileRow,
@@ -413,7 +414,11 @@ export function DispatchView() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-semibold text-foreground">
+                        {/* The customer's name was 14px and the order number
+                            beneath it was ios-subhead — 15px. The caption was
+                            literally larger than the thing it captions, which
+                            is Ali's complaint stated exactly. */}
+                        <p className="snm-primary truncate">
                           {item.customer?.name ?? "Walk-in"}
                         </p>
                         {hasIssue && (
@@ -423,7 +428,7 @@ export function DispatchView() {
                           </span>
                         )}
                       </div>
-                      <p className="ios-subhead mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+                      <p className="snm-support mt-0.5 truncate">
                         {item.order.order_number}
                         {item.godown?.name && <> · {item.godown.name}</>}
 
@@ -447,7 +452,7 @@ export function DispatchView() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="text-right">
-                        <p className="text-[14px] font-bold text-foreground snm-num">MVR {totalMvr.toFixed(0)}</p>
+                        <p className="snm-value">MVR {totalMvr.toFixed(0)}</p>
                         <p className="text-[12px] font-bold uppercase tracking-wider"
                            style={{ color: hasIssue ? "var(--snm-error)" : statusTextColor }}>{statusLabel}</p>
                       </div>
@@ -487,11 +492,28 @@ export function DispatchView() {
                               <div className="flex items-center gap-2 min-w-0">
                                 <Package className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
                                 <p className="ios-subhead text-foreground truncate">
-                                  {sku ? `${sku.brand_name} ${sku.model_name}${sku.variant_display ? ` ${sku.variant_display}` : ""}` : line.sku_id}
+                                  {sku
+                                    ? [sku.brand_name, sku.model_name, variantSuffix(sku.model_name, sku.variant_display)]
+                                        .filter(Boolean).join(" ")
+                                    : line.sku_id}
                                 </p>
                               </div>
-                              <p className="ios-subhead font-semibold text-foreground shrink-0 ml-3">
-                                {line.qty} <span className="font-normal ios-subhead" style={{ color: "var(--muted-foreground)" }}>{line.uom}</span>
+                              {/* line.uom is the LEDGER's word — "piece",
+                                  "pack", "carton". Printed raw it told a driver
+                                  to load "6 piece" of Sosoft, which is six
+                                  bottles. sellUnitLabel knows the difference. */}
+                              <p className="snm-value shrink-0 ml-3">
+                                {line.qty}{" "}
+                                <span className="font-normal" style={{ opacity: 0.7 }}>
+                                  {sku
+                                    ? sellUnitLabel(line.uom, {
+                                        pcsPerPack: sku.pcs_per_pack,
+                                        packsPerCarton: sku.packs_per_carton,
+                                        unitUom: sku.unit_uom,
+                                        sellableUnits: sku.sellable_units,
+                                      }) + (Number(line.qty) === 1 ? "" : "s")
+                                    : line.uom}
+                                </span>
                               </p>
                             </div>
                           );
