@@ -116,6 +116,20 @@ app computes a number in one place, asking the user for it in another is a bug.
 Next.js 16 App Router (Turbopack) · React 19 (React Compiler ON) · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres) · Vercel · Lucide icons
 
 ## Design
+
+> **THE DESIGN SYSTEM IS `app/design-system.css` (2026-09-05).** Ali ordered a
+> fresh system, explicitly not Apple's or anyone else's, that looks excellent
+> on a Retina phone and scales itself to tablet and desktop. Read that file
+> first; it defines the fluid type and space ramp, the container-query layout
+> primitives, density-by-input, and the Retina hairline. Where anything below
+> or in skills.md Seat 1 conflicts with it, that file wins.
+>
+> Type and space are FLUID (`clamp`), identical at 390px and growing to
+> 1280px — so the phone never moves and larger screens stop looking like a
+> stretched phone. Never reintroduce a fixed `font-size` in px, and never add
+> a viewport breakpoint where a container query (`.snm-region`) is the honest
+> answer.
+
 - Light/dark adaptive: use CSS vars (`var(--foreground)`, `var(--background)`, `var(--glass-1)`, `var(--glass-2)`, `var(--muted-foreground)`, `var(--glass-border)`) — never hardcode hex colours
 - Primary action buttons: `background: var(--foreground)` / `color: var(--background)`
 - Cards: `background: var(--glass-1)` with `backdropFilter: blur(20px)`

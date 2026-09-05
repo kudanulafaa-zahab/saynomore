@@ -1340,17 +1340,17 @@
   }
 
   /* ── Apple HIG type scale — apply to match the system exactly ──────────────*/
-  .ios-large-title { font-size: var(--ios-large-title); line-height: var(--ios-large-title-lh); letter-spacing: var(--ios-large-title-ls); font-weight: 700; }
-  .ios-title1      { font-size: var(--ios-title1);      line-height: var(--ios-title1-lh);      letter-spacing: var(--ios-title1-ls);      font-weight: 700; }
-  .ios-title2      { font-size: var(--ios-title2);      line-height: var(--ios-title2-lh);      letter-spacing: var(--ios-title2-ls);      font-weight: 700; }
-  .ios-title3      { font-size: var(--ios-title3);      line-height: var(--ios-title3-lh);      letter-spacing: var(--ios-title3-ls);      font-weight: 600; }
-  .ios-headline    { font-size: var(--ios-headline);    line-height: var(--ios-headline-lh);    letter-spacing: var(--ios-headline-ls);    font-weight: 600; }
-  .ios-body        { font-size: var(--ios-body);        line-height: var(--ios-body-lh);        letter-spacing: var(--ios-body-ls);        font-weight: 400; }
-  .ios-callout     { font-size: var(--ios-callout);     line-height: var(--ios-callout-lh);     letter-spacing: var(--ios-callout-ls);     font-weight: 400; }
-  .ios-subhead     { font-size: var(--ios-subhead);     line-height: var(--ios-subhead-lh);     letter-spacing: var(--ios-subhead-ls);     font-weight: 400; }
-  .ios-footnote    { font-size: var(--ios-footnote);    line-height: var(--ios-footnote-lh);    letter-spacing: var(--ios-footnote-ls);    font-weight: 400; }
-  .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--ios-caption1-lh);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
-  .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--ios-caption2-lh);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
+  .ios-large-title { font-size: var(--ios-large-title); line-height: var(--lh-tight); letter-spacing: var(--ios-large-title-ls); font-weight: 700; }
+  .ios-title1      { font-size: var(--ios-title1);      line-height: var(--lh-tight);      letter-spacing: var(--ios-title1-ls);      font-weight: 700; }
+  .ios-title2      { font-size: var(--ios-title2);      line-height: var(--lh-tight);      letter-spacing: var(--ios-title2-ls);      font-weight: 700; }
+  .ios-title3      { font-size: var(--ios-title3);      line-height: var(--lh-snug);      letter-spacing: var(--ios-title3-ls);      font-weight: 600; }
+  .ios-headline    { font-size: var(--ios-headline);    line-height: var(--lh-snug);    letter-spacing: var(--ios-headline-ls);    font-weight: 600; }
+  .ios-body        { font-size: var(--ios-body);        line-height: var(--lh-normal);        letter-spacing: var(--ios-body-ls);        font-weight: 400; }
+  .ios-callout     { font-size: var(--ios-callout);     line-height: var(--lh-normal);     letter-spacing: var(--ios-callout-ls);     font-weight: 400; }
+  .ios-subhead     { font-size: var(--ios-subhead);     line-height: var(--lh-normal);     letter-spacing: var(--ios-subhead-ls);     font-weight: 400; }
+  .ios-footnote    { font-size: var(--ios-footnote);    line-height: var(--lh-normal);    letter-spacing: var(--ios-footnote-ls);    font-weight: 400; }
+  .ios-caption1    { font-size: var(--ios-caption1);    line-height: var(--lh-normal);    letter-spacing: var(--ios-caption1-ls);    font-weight: 400; }
+  .ios-caption2    { font-size: var(--ios-caption2);    line-height: var(--lh-snug);    letter-spacing: var(--ios-caption2-ls);    font-weight: 500; }
 
   /* ══════════════════════════════════════════════════════════════════════
      HIERARCHY ROLES — pick by MEANING, not by size (2026-09-05)
@@ -1402,7 +1402,7 @@
      landed cost. One per screen — two heroes is no hero. */
   .snm-hero {
     font-size: var(--ios-title1);            /* 28px */
-    line-height: var(--ios-title1-lh);
+    line-height: var(--lh-tight);
     letter-spacing: -0.02em;
     font-weight: 700;
     color: var(--foreground);
@@ -1413,7 +1413,7 @@
      first thing the eye should land on inside its container. */
   .snm-primary {
     font-size: var(--ios-headline);          /* 17px */
-    line-height: var(--ios-headline-lh);
+    line-height: var(--lh-snug);
     letter-spacing: -0.01em;
     font-weight: 600;
     color: var(--foreground);
@@ -1423,7 +1423,7 @@
      of them lines up; semibold so it separates from the words around it. */
   .snm-value {
     font-size: var(--ios-subhead);           /* 15px */
-    line-height: var(--ios-subhead-lh);
+    line-height: var(--lh-normal);
     letter-spacing: -0.01em;
     font-weight: 600;
     color: var(--foreground);
@@ -1434,7 +1434,7 @@
      configuration, a stock line, the unit a price is in. */
   .snm-support {
     font-size: var(--ios-footnote);          /* 13px */
-    line-height: var(--ios-footnote-lh);
+    line-height: var(--lh-normal);
     letter-spacing: var(--ios-footnote-ls);
     font-weight: 400;
     color: var(--foreground);
@@ -1445,7 +1445,7 @@
      would cost the reader nothing, it belongs here. If it would, it does not. */
   .snm-meta {
     font-size: var(--ios-caption1);          /* 12px */
-    line-height: var(--ios-caption1-lh);
+    line-height: var(--lh-normal);
     font-weight: 400;
     color: var(--foreground);
     opacity: 0.6;
@@ -1455,7 +1455,7 @@
      the eye can skip it once learned. */
   .snm-eyebrow {
     font-size: var(--ios-caption2);          /* 11px */
-    line-height: var(--ios-caption2-lh);
+    line-height: var(--lh-snug);
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1470,8 +1470,8 @@
     /* Apple Large Title — the anchor of every screen's hierarchy. Was
        Title1 (28px); true large titles are what make iOS screens read as
        "places" rather than web pages. */
-    font-size:      var(--ios-large-title);     /* 34px */
-    line-height:    var(--ios-large-title-lh);  /* 41px */
+    font-size:      var(--ios-large-title);     /* 34 -> 44px, fluid */
+    line-height:    var(--lh-tight);
     letter-spacing: var(--ios-large-title-ls);
     font-weight:    700;
     color:          var(--foreground);

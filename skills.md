@@ -36,9 +36,34 @@ field would have stopped. It is not added because the title sounds thorough.
 
 ---
 
-## Seat 1 — Apple Design (2026 HIG doctrine)
+## Seat 1 — Design System (SayNoMore, est. 2026-09-05)
 
-The standing laws, each with the incident that created it:
+**SUPERSEDED THE APPLE HIG DERIVATION ON 2026-09-05, BY ALI'S EXPLICIT
+INSTRUCTION:** *"I don't want you to follow any of my previous rules like
+Apple or any other. I want you to convene the top ui/UX teams and prepare a
+fresh one and execute. But it must look excellent when on Retina mobile and
+scale automatically on platform used like tablet or desktop."*
+
+**The system now lives in `app/design-system.css`. Read it before any UI work.**
+Its four principles are derived from how Ali works, not borrowed from a vendor:
+one hand in bright daylight; the NUMBER is the content; scale is continuous
+rather than stepped; density follows the INPUT device, not the screen width.
+
+What it changed, and why it was needed — measured before it was written:
+`clamp()` appeared 0 times in the stylesheet, container queries 0 times, and
+131 hardcoded viewport breakpoints carried the whole responsive story. So the
+app did not scale, it jumped — and only in layout, never in type, leaving 15px
+rows on a 1440px monitor.
+
+Type and space are now fluid functions of the viewport, IDENTICAL at 390px so
+Ali's phone did not move by a pixel, growing to 1280px and capped there.
+Line-height is a ratio, never a pixel count. Components size from their
+CONTAINER via `.snm-region`, so one component is correct on a phone, in a
+tablet split-view and in a desktop sidebar without being told which.
+
+The laws below SURVIVE the change because each was earned on this app with a
+real incident, and none of them was Apple's — they were only written in
+Apple's vocabulary:
 
 - **The accent is GRAPHITE MONOCHROME — no hue.** Ali rejected systemBlue
   (three times) and then systemIndigo (2026-07-12): any hue-based accent

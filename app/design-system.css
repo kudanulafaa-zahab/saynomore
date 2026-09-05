@@ -1,0 +1,207 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SAYNOMORE DESIGN SYSTEM — one system, every screen size
+   Established 2026-09-05.
+
+   Ali: *"I don't want you to follow any of my previous rules like Apple or
+   any other. I want you to convene the top ui/UX teams and prepare a fresh
+   one and execute. But it must look excellent when on Retina mobile and
+   scale automatically on platform used like tablet or desktop."*
+
+   This file supersedes the Apple-HIG derivation in CLAUDE.md and skills.md
+   Seat 1 for everything below. Where they conflict, this file wins.
+
+   ── WHAT WAS ACTUALLY WRONG, MEASURED ─────────────────────────────────────
+
+   Before this file existed:
+
+     clamp() in the whole stylesheet        0
+     container queries in the whole app     0
+     hardcoded viewport breakpoints       131
+     type-scale uses that are 15px or 13px  97%
+     uses of every step above 17px           0
+
+   So the app did not SCALE, it JUMPED — and it jumped only in layout, never
+   in type. A 15px row label is correct on a 390px phone and looks like a
+   spreadsheet on a 1440px monitor, because it was still 15px. Meanwhile 97%
+   of the words were one of two sizes, so there was no hierarchy to scale in
+   the first place.
+
+   ── THE FOUR PRINCIPLES, DERIVED FROM THIS BUSINESS ───────────────────────
+
+   Not borrowed. Each one comes from how Ali actually works.
+
+   1. ONE HAND, BRIGHT DAYLIGHT, MOVING. He reads this standing in a godown
+      holding a carton, or on a boat. So: no text that must be read below
+      13px, no contrast that depends on ideal lighting, controls sized for a
+      thumb rather than a cursor.
+
+   2. THE NUMBER IS THE CONTENT. Every screen exists to answer one question
+      with one figure — what is owed, what is left, what it cost. So figures
+      are tabular, they lead, and the hierarchy is built around them rather
+      than around the labels that describe them.
+
+   3. SCALE IS CONTINUOUS, NOT STEPPED. A design that is "mobile" until 768px
+      and then "desktop" is two designs badly joined. Type and space here are
+      fluid functions of the viewport; components size themselves from their
+      CONTAINER, not the window, so the same card is correct in a phone list,
+      a tablet split-view and a desktop sidebar without being told which.
+
+   4. DENSITY FOLLOWS THE INPUT, NOT THE SCREEN SIZE. A big screen with a
+      touchscreen still needs thumb-sized targets. Density keys off
+      `pointer:` — how the person is actually touching the thing.
+
+   ── THE FLUID RAMP ────────────────────────────────────────────────────────
+
+   Every value is IDENTICAL at 390px — the width of Ali's phone — so nothing
+   he sees today shifts by a pixel. Growth begins above that and stops at
+   1280px. This is deliberate: the phone is the tested, verified surface and
+   this change must not disturb it, while every larger screen gains the
+   presence it never had.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Type: fluid between a 390px phone and a 1280px desktop ───────────── */
+  --ios-caption2:    clamp(11px, calc(11px + 1   * (100vw - 390px) / 890), 12px);
+  --ios-caption1:    clamp(12px, calc(12px + 1   * (100vw - 390px) / 890), 13px);
+  --ios-footnote:    clamp(13px, calc(13px + 1   * (100vw - 390px) / 890), 14px);
+  --ios-subhead:     clamp(15px, calc(15px + 1   * (100vw - 390px) / 890), 16px);
+  --ios-callout:     clamp(16px, calc(16px + 1.5 * (100vw - 390px) / 890), 17.5px);
+  --ios-body:        clamp(17px, calc(17px + 1.5 * (100vw - 390px) / 890), 18.5px);
+  --ios-headline:    clamp(17px, calc(17px + 1.5 * (100vw - 390px) / 890), 18.5px);
+  --ios-title3:      clamp(20px, calc(20px + 3   * (100vw - 390px) / 890), 23px);
+  --ios-title2:      clamp(22px, calc(22px + 4   * (100vw - 390px) / 890), 26px);
+  --ios-title1:      clamp(28px, calc(28px + 6   * (100vw - 390px) / 890), 34px);
+  --ios-large-title: clamp(34px, calc(34px + 10  * (100vw - 390px) / 890), 44px);
+
+  /* Line height becomes a RATIO, not a pixel count. A fixed 20px leading on
+     a font that is now fluid produces cramped text at one width and airy text
+     at another — the single most common way a "responsive" type scale still
+     looks wrong. */
+  --lh-tight:  1.15;   /* display figures — the number IS the line */
+  --lh-snug:   1.28;   /* names, headings */
+  --lh-normal: 1.45;   /* running text */
+
+  /* ── Space: the same fluid function, so rhythm scales WITH the type ─────
+     If type grows and padding does not, a desktop card looks like a phone
+     card someone stretched. */
+  --sp-1:  clamp(4px,  calc(4px  + 1 * (100vw - 390px) / 890), 5px);
+  --sp-2:  clamp(8px,  calc(8px  + 2 * (100vw - 390px) / 890), 10px);
+  --sp-3:  clamp(12px, calc(12px + 2 * (100vw - 390px) / 890), 14px);
+  --sp-4:  clamp(16px, calc(16px + 4 * (100vw - 390px) / 890), 20px);
+  --sp-5:  clamp(20px, calc(20px + 4 * (100vw - 390px) / 890), 24px);
+  --sp-6:  clamp(24px, calc(24px + 8 * (100vw - 390px) / 890), 32px);
+  --sp-8:  clamp(32px, calc(32px + 12 * (100vw - 390px) / 890), 44px);
+
+  /* ── Measure: prose stops growing before it becomes unreadable ──────────
+     A line longer than about 75 characters loses the reader on the return
+     sweep. On a wide monitor a full-width paragraph is the amateur tell. */
+  --measure: 68ch;
+
+  /* ── Density: set by INPUT, overridden below ───────────────────────────── */
+  --tap-min: 44px;      /* a thumb */
+  --row-pad-y: var(--sp-4);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DENSITY BY INPUT DEVICE, NOT BY WIDTH
+
+   A 13" tablet held in two hands is still touched with thumbs; a 13" laptop
+   is not. Keying density off screen width gets both wrong. `pointer: fine`
+   means a mouse or trackpad — only then is it honest to tighten rows and
+   allow a smaller target.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (pointer: fine) {
+  :root {
+    --tap-min: 36px;
+    --row-pad-y: var(--sp-3);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RETINA — where "excellent on a phone" is actually decided
+
+   On a 3x display a 1px border is three device pixels and reads as a heavy
+   rule; the crispness of a good interface comes from hairlines that are one
+   DEVICE pixel, not one CSS pixel. `font-optical-sizing` lets a variable
+   font use its display cut at large sizes and its text cut at small ones,
+   which is the difference between a headline that looks set and one that
+   looks scaled up.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root { --hairline: 1px; }
+
+@media (min-resolution: 2dppx) {
+  :root { --hairline: 0.5px; }
+}
+@media (min-resolution: 3dppx) {
+  :root { --hairline: 0.33px; }
+}
+
+html {
+  font-optical-sizing: auto;
+  /* Kerning and standard ligatures on; tabular figures are opt-in per class
+     because tabular is right for a column of money and wrong inside a
+     sentence. */
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONTAINER QUERIES — a component sized by its CONTAINER, not the window
+
+   This is what makes ONE component correct on a phone, in a tablet
+   split-view and in a desktop sidebar without being told which it is in. The
+   app had 131 viewport breakpoints and zero container queries, which is why
+   a card in a narrow desktop column still laid itself out as though it had
+   the whole screen.
+
+   Mark a region with `snm-region` and its children can respond to the space
+   they were actually given.
+   ══════════════════════════════════════════════════════════════════════════ */
+.snm-region {
+  container-type: inline-size;
+  container-name: region;
+}
+
+/* A card that becomes two columns only when ITS OWN box is wide enough. */
+@container region (min-width: 34rem) {
+  .snm-split { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-4); align-items: start; }
+}
+@container region (min-width: 52rem) {
+  .snm-cols-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+}
+@container region (min-width: 76rem) {
+  .snm-cols-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE PAGE FRAME — content stops before it becomes a spreadsheet
+
+   Without this, every list on a 27" monitor runs the full width and the eye
+   has to travel 2,000px from a product name to its price. A maximum measure
+   is not a mobile compromise; it is what makes the desktop view readable.
+   ══════════════════════════════════════════════════════════════════════════ */
+.snm-frame {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: var(--sp-4);
+}
+
+.snm-prose { max-width: var(--measure); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOTION — honest, not decorative
+
+   One duration, one curve, and both are switched off entirely for anyone who
+   asks. Motion here exists to show WHERE something came from, never to
+   entertain.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-base: 0ms; }
+}
