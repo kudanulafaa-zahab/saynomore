@@ -48,7 +48,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { HoldToConfirm } from "@/components/ui/hold-to-confirm";
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
-import { formatQtyInTradeUnits, sellableTiers, sellUnitLabel, type TradeUnitConfig, type UnitUom } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, packConfigText, sellableTiers, sellUnitLabel, variantSuffix, type TradeUnitConfig, type UnitUom } from "@/lib/trade-units";
 import { ImpactLedger, ImpactBlocked, type ImpactRow } from "@/components/ui/impact-ledger";
 import { recordCustomerReturn, type ReturnReason, type ReturnSettlement } from "@/lib/queries/inventory";
 import { listCustomers, listGodowns, type CustomerRow, type GodownRow } from "@/lib/queries/masters";
@@ -1463,6 +1463,25 @@ export function SaleDetail({ id }: { id: string }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {lines.map((l) => {
             const sku = skus.find((s) => s.id === l.sku_id);
+            // Two defects lived on this row, both of them ones Ali has already
+            // reported on other screens:
+            //   "12 piece · 48 pcs/pack"  — a piece count and a hardcoded unit
+            //                               noun, in a business that never
+            //                               trades in pieces.
+            //   "Almond Milk · Almond Milk" — a single-size product's variant
+            //                               repeating its own model name.
+            // Both answers already exist in lib/trade-units.ts. Nothing here
+            // decides a unit word any more; it asks.
+            const cfg: TradeUnitConfig = {
+              pcsPerPack: sku?.pcs_per_pack ?? 1,
+              packsPerCarton: sku?.packs_per_carton ?? 1,
+              unitUom: sku?.unit_uom,
+              sellableUnits: sku?.sellable_units,
+            };
+            const suffix  = sku ? variantSuffix(sku.model_name, sku.variant_display) : null;
+            const unit    = sellUnitLabel(l.uom, cfg);
+            const qtyText = `${l.qty} ${unit}${Number(l.qty) === 1 ? "" : "s"}`;
+            const config  = packConfigText(cfg);
             return (
               <a
                 key={l.id}
@@ -1470,11 +1489,11 @@ export function SaleDetail({ id }: { id: string }) {
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "var(--glass-bg-1)", borderRadius: 12, textDecoration: "none", border: "0.5px solid var(--glass-border-lo)" }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {sku ? `${sku.model_name} · ${sku.variant_display}` : "Product"}
+                  <p className="snm-primary" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {sku ? [sku.model_name, suffix].filter(Boolean).join(" · ") : "Product"}
                   </p>
-                  <p style={{ color: "var(--muted-foreground)", fontSize: 12, marginTop: 2 }}>
-                    {l.qty} {l.uom} · {sku?.pcs_per_pack ?? "?"} pcs/pack
+                  <p className="snm-support" style={{ marginTop: 2 }}>
+                    {[qtyText, config].filter(Boolean).join(" · ")}
                   </p>
                 </div>
                 <Printer style={{ width: 18, height: 18, color: "var(--muted-foreground)", flexShrink: 0, marginLeft: 12 }} />
@@ -1841,50 +1860,68 @@ function PaymentLedger({
                     : isPartial ? "Partly paid"
                     : "Awaiting payment";
 
+  // THE NUMBER THIS BLOCK EXISTS TO ANSWER.
+  //
+  // Ali, 2026-09-05: *"There is no distinction in font size or weight or colour
+  // for important stuff. All are the same."* This block was the proof. What a
+  // customer still owes — the reason anyone opens a sale — was rendered at
+  // 12px, the SMALLEST text on the screen, while the order total sat at 18-20px
+  // and the status label at 13px. Three numbers, no hierarchy, and the least
+  // important of them the biggest.
+  //
+  // Receivables already answers exactly this question correctly
+  // (components/financials/receivables-view.tsx: .label-caps eyebrow,
+  // .currency-display figure, supporting line). This copies that rather than
+  // inventing a second treatment for the same job.
+  const headline = isCredit
+    ? { caps: "To refund",  amount: credit }
+    : isSettled
+    ? { caps: "Returned",   amount: returned }
+    : isPaid
+    ? { caps: "Paid",       amount: paid }
+    : { caps: "Still owed", amount: bal };
+
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* Status + progress */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {/* Eyebrow names the figure; the status names the state. Two different
+          facts, so they sit on one line rather than competing for weight. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 2 }}>
+        <p className="label-caps" style={{ color: "var(--muted-foreground)" }}>{headline.caps}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           {isCredit || isSettled
-            ? <Undo2 style={{ color: accent, width: 18, height: 18 }} />
+            ? <Undo2 style={{ color: accent, width: 15, height: 15 }} />
             : isPaid
-            ? <CheckCircle2 style={{ color: accent, width: 18, height: 18 }} />
-            : <Smartphone style={{ color: accent, width: 18, height: 18 }} />}
-          <p style={{ color: accent, fontSize: 13, fontWeight: 700 }}>{statusLabel}</p>
+            ? <CheckCircle2 style={{ color: accent, width: 15, height: 15 }} />
+            : <Smartphone style={{ color: accent, width: 15, height: 15 }} />}
+          <p className="ios-footnote" style={{ color: accent, fontWeight: 600 }}>{statusLabel}</p>
         </div>
-        {credit > 0 && (
-          <p className="snm-num" style={{ color: accent, fontSize: 12, fontWeight: 700 }}>MVR {fmt(credit)} to refund</p>
-        )}
       </div>
 
+      {/* The figure. Same class Receivables uses for "Owed to you". */}
+      <p className="currency-display snm-num" style={{ color: accent, marginBottom: 10 }}>
+        MVR {fmt(headline.amount)}
+      </p>
+
       {/* Paid / outstanding bar */}
-      <div style={{ height: 8, borderRadius: 999, background: "var(--glass-bg-1)", overflow: "hidden", marginBottom: 10 }}>
+      <div style={{ height: 8, borderRadius: 999, background: "var(--glass-bg-1)", overflow: "hidden", marginBottom: 8 }}>
         {/* The bar tracks what has been SETTLED, not only what was paid. A
             fully returned order used to show an empty bar under a green tick,
             because the money never arrived and the bar only knew about money. */}
         <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, orderTotal > 0 ? ((paid + returned) / orderTotal) * 100 : (isPaid || isSettled ? 100 : 0)))}%`, background: accent, transition: "width 0.3s" }} />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-        {/* "Paid MVR 0 of MVR 207" under a headline saying the order is closed
-            is the contradiction Ali photographed. When goods are what closed
-            it, the line says so. */}
-        <span style={{ color: "var(--muted-foreground)", fontSize: 12 }}>
-          {returned > 0.005 && paid <= 0.005 ? (
-            <><strong style={{ color: "var(--foreground)" }}>MVR {fmt(returned)}</strong> returned of MVR {fmt(orderTotal)}</>
-          ) : returned > 0.005 ? (
-            <>Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong>, returned <strong style={{ color: "var(--foreground)" }}>MVR {fmt(returned)}</strong> of MVR {fmt(orderTotal)}</>
-          ) : (
-            <>Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong> of MVR {fmt(orderTotal)}</>
-          )}
-        </span>
-        {/* An overpaid order has a NEGATIVE balance — "MVR -2,800 left" is not
-            a sentence. It is stated as the refund above instead. Neither is
-            "MVR 0 left" on an order that was returned; the headline said it. */}
-        {!isPaid && !isCredit && !isSettled && (
-          <span style={{ color: accent, fontSize: 12, fontWeight: 700 }}>MVR {fmt(bal)} left</span>
+
+      {/* The support line. "Paid MVR 0 of MVR 207" under a headline saying the
+          order is closed is the contradiction Ali photographed. When goods are
+          what closed it, the line says so. */}
+      <p className="ios-footnote" style={{ color: "var(--muted-foreground)", marginBottom: 14 }}>
+        {returned > 0.005 && paid <= 0.005 ? (
+          <><strong style={{ color: "var(--foreground)" }}>MVR {fmt(returned)}</strong> returned of MVR {fmt(orderTotal)}</>
+        ) : returned > 0.005 ? (
+          <>Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong>, returned <strong style={{ color: "var(--foreground)" }}>MVR {fmt(returned)}</strong> of MVR {fmt(orderTotal)}</>
+        ) : (
+          <>Paid <strong style={{ color: "var(--foreground)" }}>MVR {fmt(paid)}</strong> of MVR {fmt(orderTotal)}</>
         )}
-      </div>
+      </p>
 
       {/* Payment rows */}
       {payments.length > 0 && (
