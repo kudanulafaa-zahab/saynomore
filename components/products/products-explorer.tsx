@@ -23,7 +23,7 @@ import {
   type CategoryRow, type BrandRow, type ModelRow, type VariantRow,
   type SkuFullRow, type AttrKey, type SellUnit,
 } from "@/lib/queries/products";
-import { containerLabel, UNIT_WORDS, costBasisFor, sellableUnitsFor, offerableTiers, tierLabel, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, UNIT_WORDS, costBasisFor, sellableUnitsFor, offerableTiers, tierLabel, variantSuffix, packConfigText, headlineTier, type UnitUom } from "@/lib/trade-units";
 import {
   EditSkuDialog, CascadeDeleteDialog, type CascadeTarget,
 } from "./edit-dialogs";
@@ -688,7 +688,15 @@ function SkuPanel({
 function SkuRow({
   sku, selected, stockPieces, onClick,
 }: { sku: SkuFullRow; selected: boolean; stockPieces: number; onClick: () => void }) {
-  const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
+  // The price this product is actually QUOTED at — the biggest unit it is sold
+  // in, with its own noun. A tub is quoted per tub; only something with a real
+  // carton is quoted per carton.
+  const tier = headlineTier(sku.sellable_units, {
+    pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton,
+  });
+  const headline = tier === "carton"
+    ? { value: sku.selling_price_per_carton_mvr, unit: "ctn" }
+    : { value: sku.selling_price_per_pack_mvr, unit: containerLabel(sku.unit_uom as UnitUom) };
   return (
     <button
       onClick={onClick}
@@ -708,15 +716,25 @@ function SkuRow({
 
       {/* Name */}
       <div className="flex-1 min-w-0">
-        <p className="ios-subhead font-semibold text-foreground truncate">
+        {/* THE NAME IS THE HEADLINE. 15px semibold at full --foreground; the
+            size that follows is 13px and lighter, because it qualifies the
+            name rather than competing with it. */}
+        <p className="text-[15px] font-semibold text-foreground truncate" style={{ letterSpacing: "-0.01em" }}>
           {sku.model_name}
-          {sku.variant_display
-            ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {sku.variant_display}</span>
+          {variantSuffix(sku.model_name, sku.variant_display)
+            ? <span className="text-[13px] font-normal" style={{ color: "var(--foreground)", opacity: 0.6 }}>
+                {" · "}{variantSuffix(sku.model_name, sku.variant_display)}
+              </span>
             : null}
         </p>
-        <p className="ios-subhead mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
-          {sku.pcs_per_pack}/pack × {sku.packs_per_carton}/ctn · {pcsPerCtn}/ctn
-        </p>
+        {/* ONLY WHAT IS TRUE OF THIS PRODUCT. A tub is one to a pack and one to
+            a carton, so "1/pack × 1/ctn · 1/ctn" was three numbers saying
+            nothing, in a unit word the product does not use. */}
+        {packConfigText({ pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom as UnitUom })
+          ? <p className="ios-footnote mt-0.5 truncate snm-num" style={{ color: "var(--foreground)", opacity: 0.55 }}>
+              {packConfigText({ pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom as UnitUom })}
+            </p>
+          : null}
         {/* The product page says a stockless product cannot be sold; the LIST
             has to say it too, or the only way to find out is to open each one.
             Real --foreground on a tint, not muted: this is the reason the
@@ -731,17 +749,22 @@ function SkuRow({
         )}
       </div>
 
-      {/* Price */}
+      {/* PRICE, IN THE UNIT THIS PRODUCT IS SOLD IN.
+          Ali, 2026-09-05: *"Why is it still showing cartons for body butter?"*
+          It read selling_price_per_carton_mvr for every product, so a tub —
+          sold only as a tub, with no carton at all — was quoted "per ctn". */}
       <div className="text-right shrink-0">
-        {sku.selling_price_per_carton_mvr != null ? (
+        {headline.value != null ? (
           <>
-            <p className="snm-num ios-subhead font-semibold text-foreground">
-              MVR {fmtPrice(sku.selling_price_per_carton_mvr)}
+            <p className="snm-num text-[15px] font-semibold text-foreground" style={{ letterSpacing: "-0.01em" }}>
+              {fmtPrice(headline.value)}
             </p>
-            <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>per ctn</p>
+            <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.55 }}>
+              MVR / {headline.unit}
+            </p>
           </>
         ) : (
-          <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>no price</p>
+          <p className="ios-footnote" style={{ color: "var(--foreground)", opacity: 0.55 }}>no price</p>
         )}
       </div>
 
