@@ -1765,14 +1765,34 @@ function LineList({
     <div style={{ display: "flex", flexDirection: "column", gap: 6, ...extraStyle }}>
       {lines.map((l) => {
         const sku = skus.find((s) => s.id === l.sku_id);
+        // What an order IS, listed. Three facts at 13px — the product at
+        // weight 500, the quantity at 400 and the line total at 600 — so the
+        // only separation between them was weight, on a translucent chip.
+        // Ali: "There is no distinction in font size or weight or colour for
+        // important stuff. All are the same."
+        //
+        // And the quantity printed l.uom, the LEDGER's word, so a Sosoft line
+        // read "6 piece" — six bottles — on the screen he checks an order by.
+        const cfg: TradeUnitConfig = {
+          pcsPerPack: sku?.pcs_per_pack ?? 1,
+          packsPerCarton: sku?.packs_per_carton ?? 1,
+          unitUom: sku?.unit_uom,
+          sellableUnits: sku?.sellable_units,
+        };
+        const unit = sku ? sellUnitLabel(l.uom, cfg) : l.uom;
+        const qtyText = `${l.qty} ${unit}${Number(l.qty) === 1 ? "" : "s"}`;
         return (
           <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--glass-bg-1)", borderRadius: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : l.sku_id}
+              <p className="snm-primary" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {sku
+                  ? [sku.brand_name, sku.model_name, variantSuffix(sku.model_name, sku.variant_display)]
+                      .filter(Boolean).join(" › ")
+                  : l.sku_id}
               </p>
-              <p className="snm-num" style={{ color: "var(--muted-foreground)", fontSize: 13 }}>
-                {l.qty} {l.uom} · MVR {mvrUpTo(Number(l.unit_price_mvr), 3)}
+              {/* "MVR 88.50" beside a quantity is a price for WHAT? Said. */}
+              <p className="snm-support snm-num">
+                {qtyText} · MVR {mvrUpTo(Number(l.unit_price_mvr), 3)} each
               </p>
               {/* Silent for an ordinary line. Shown only when this one is
                   picked somewhere else, because that is the difference between
@@ -1784,7 +1804,7 @@ function LineList({
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
-              <span className="snm-num" style={{ color: "var(--foreground)", fontSize: 13, fontWeight: 600, marginRight: 4 }}>
+              <span className="snm-value" style={{ marginRight: 4 }}>
                 MVR {mvr(Number(l.line_total_mvr))}
               </span>
               {editable && (onEdit || onDelete) && (
