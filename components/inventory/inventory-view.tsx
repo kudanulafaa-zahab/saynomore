@@ -11,7 +11,7 @@ import { listSkusFlat, compareSkusForDisplay, type SkuFullRow } from "@/lib/quer
 import { listGodowns, type GodownRow } from "@/lib/queries/masters";
 import { useRefreshHandler } from "@/lib/use-pull-to-refresh";
 import { mvtInstant } from "@/lib/mvt-date";
-import { costPerTradeUnit, containerLabel, packConfigText, type UnitUom } from "@/lib/trade-units";
+import { costPerTradeUnit, containerLabel, formatStockQty, packConfigText, unitAbbr, type UnitUom } from "@/lib/trade-units";
 import { count, mvrShort, mvrUpTo } from "@/lib/money";
 
 type SortMode = "urgency" | "out" | "overstock" | "value" | "az" | "stock";
@@ -27,40 +27,28 @@ function remPacks(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
   return pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
 }
 const fmtMvr = mvrShort;
-/** Compact chip word for one pack-level unit: a Sosoft 500ml is a bottle.
+/** The ledger's answer to "how much is there", shared with Stock Ops and
+ *  Godowns. All three carried their own copy — three of the four the design
+ *  audits named on 2026-09-05 — and they had drifted apart: this one handled
+ *  a single-unit product correctly, Stock Ops' and Godowns' did not, so the
+ *  same 24 body butter tubs read "24 tubs" here and "24 ctn" there.
  *
- *  Derives from containerLabel so there is ONE place that knows what a unit is
- *  called. This used to carry its own copy of the mapping — the third, after
- *  Postgres unit_noun and lib/trade-units — which is how a tub could be a
- *  "tub" in the database and a "pk" on the same screen. Only the squeeze into
- *  three letters lives here. */
-function packAbbr(unitUom: string | null | undefined) {
-  const w = containerLabel(unitUom as UnitUom | null | undefined);
-  return ({ bottle: "btl", pouch: "pch", pack: "pk", sachet: "sct" } as Record<string, string>)[w] ?? w;
+ *  NOT formatQtyInTradeUnits: that one is driven by sellable_units, a SELLING
+ *  rule, so Sosoft's three loose bottles come back from it as "50% ctn".
+ *  lib/trade-units.ts carries both and says which is which. */
+function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number, unitUom?: string | null) {
+  return formatStockQty(pcs, {
+    pcsPerPack,
+    packsPerCarton: pcsPerPack > 0 ? pcsPerCtn / pcsPerPack : 0,
+    unitUom: unitUom as UnitUom | null | undefined,
+  });
 }
-
-/** Is one "carton" of this product just one item? True for anything sold
- *  singly — a Body Shop tub is 1 per pack and 1 per carton, so calling 24 of
- *  them "24 ctn" is arithmetically right and completely wrong to read. */
+const packAbbr = (u: string | null | undefined) => unitAbbr(u as UnitUom | null | undefined);
+/** Is one "carton" of this product just one item? A Body Shop tub is 1 per
+ *  pack and 1 per carton, so calling 24 of them "24 ctn" is arithmetically
+ *  right and completely wrong to read. */
 function isSingleUnit(pcsPerPack: number, packsPerCarton: number) {
   return pcsPerPack === 1 && packsPerCarton === 1;
-}
-function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number, unitUom?: string | null) {
-  // Sold singly: there is no carton and no pack to speak of, just the thing
-  // itself. "24 tubs", never "24 ctn".
-  if (isSingleUnit(pcsPerPack, pcsPerCtn)) {
-    const w = containerLabel(unitUom as UnitUom | null | undefined);
-    return pcs > 0 ? `${count(pcs)} ${w}${pcs === 1 ? "" : "s"}` : "0";
-  }
-  const ctns  = toCtns(pcs, pcsPerCtn);
-  const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);
-  const pk    = packAbbr(unitUom);
-  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} ${pk}`;
-  if (ctns > 0) return `${ctns} ctn`;
-  if (packs > 0) return `${packs} ${pk}`;
-  // Never a bare piece count on screen (CLAUDE.md, Ali x3). A remainder too
-  // small to be one pack is said as a fraction of the unit he trades in.
-  return pcs > 0 ? `< 1 ${pk}` : "0";
 }
 
 /* ── Types ── */

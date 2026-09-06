@@ -58,14 +58,23 @@ export interface TradeUnitConfig {
 
 /**
  * Converts a raw piece count into a human string in the SKU's actual trade
- * unit(s) -- e.g. "6 ctn 2 pk", "12 pk", or "0". Never shows a "pack" figure
- * for a carton-only SKU (sellableUnits excludes "pack").
+ * unit(s) -- e.g. "6 ctn + 2 packs", "24 tubs", or "0". Never shows a "pack"
+ * figure for a carton-only SKU (sellableUnits excludes "pack").
+ *
+ * PLURALS, added 2026-09-06. The pack-tier noun is a real word ("tub",
+ * "bottle", "pouch", "pack") and it was printed singular at any count, so this
+ * said "24 tub" while inventory-view's private copy of the same function said
+ * "24 tubs" — and direct-receipt.mjs asserts the plural. Two screens, one
+ * quantity, two spellings, which is exactly what having four copies produces.
+ * "ctn" is left alone: it is an abbreviation, and "ctns" is not a word.
  */
 export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): string {
   const { pcsPerPack, packsPerCarton } = cfg;
   const sellsCarton = !cfg.sellableUnits || cfg.sellableUnits.includes("carton");
   const sellsPack = !cfg.sellableUnits || cfg.sellableUnits.includes("pack");
-  const label = containerLabel(cfg.unitUom);
+  const noun = containerLabel(cfg.unitUom);
+  const label = noun;
+  const many = (n: number) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
   const pcsPerCarton = pcsPerPack * packsPerCarton;
 
@@ -75,7 +84,7 @@ export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): str
     const loose = sellsPack && pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
     const parts: string[] = [];
     if (ctns > 0) parts.push(`${ctns} ctn`);
-    if (loose > 0) parts.push(`${loose} ${label}`);
+    if (loose > 0) parts.push(many(loose));
     // Carton-only SKU (no pack tier): fold any remainder pieces into a
     // fractional carton note instead of silently dropping them.
     if (!sellsPack && rem > 0) parts.push(`${Math.round((rem / pcsPerCarton) * 100)}% ctn`);
@@ -87,11 +96,74 @@ export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): str
 
   if (sellsPack && pcsPerPack > 0) {
     const pks = Math.floor(pieces / pcsPerPack);
-    return pks > 0 || pieces === 0 ? `${pks} ${label}` : `< 1 ${label}`;
+    return pks > 0 || pieces === 0 ? many(pks) : `< 1 ${label}`;
   }
 
   // Single-unit product (piece IS the trade unit) or no conversion data.
   return `${pieces.toLocaleString()} pcs`;
+}
+
+/** One pack-level unit, squeezed to a chip word: a Sosoft 500ml is a "btl".
+ *
+ *  Derived from containerLabel so there is ONE place that knows what a unit is
+ *  called; only the three-letter squeeze lives here. Inventory, Stock Ops and
+ *  Godowns each had their own copy of this, and Stock Ops' knew only ml and g
+ *  — so a tub was a "pk" there and a "tub" one screen away. */
+export function unitAbbr(uom: UnitUom | null | undefined): string {
+  const w = containerLabel(uom);
+  return ({ bottle: "btl", pouch: "pch", pack: "pk", sachet: "sct" } as Record<string, string>)[w] ?? w;
+}
+
+/**
+ * Stock on a shelf, the way the LEDGER counts it: "3 ctn + 2 pk", "24 tubs",
+ * "< 1 btl", "0".
+ *
+ * WHY THIS IS NOT formatQtyInTradeUnits, and why the difference is deliberate
+ * rather than an accident of history:
+ *
+ *   formatQtyInTradeUnits is driven by `sellable_units`, which is a SELLING
+ *   rule. Sosoft is carton-only, so three loose bottles come back from it as
+ *   "50% ctn" — arithmetically true, and not a thing anyone says while
+ *   counting a shelf. CLAUDE.md keeps a loose tier on the stock screens on
+ *   purpose: "a write-off or a count adjustment is a ledger event (a torn pack
+ *   is real) — but it is named after the product ('btl'), never blanket
+ *   'pcs'."
+ *
+ * So there are two correct answers to "how much is there", and which one you
+ * want depends on whether you are selling it or counting it. Both live here;
+ * neither is a screen's private opinion.
+ *
+ * Inventory, Stock Ops and Godowns each carried their own version of THIS one
+ * — three of the four private copies three design audits named on 2026-09-05
+ * as the root cause of Ali's repeated unit complaints. Godowns' had no
+ * single-unit case and hardcoded "pk"; Stock Ops' had no single-unit case and
+ * a noun map that knew only ml and g. Both printed "24 ctn" for 24 body butter
+ * tubs, which is the string he photographed.
+ */
+export function formatStockQty(
+  pieces: number,
+  cfg: { pcsPerPack: number; packsPerCarton: number; unitUom: UnitUom | null | undefined },
+): string {
+  const pcsPerPack = cfg.pcsPerPack;
+  const pcsPerCtn = cfg.pcsPerPack * cfg.packsPerCarton;
+  const pk = unitAbbr(cfg.unitUom);
+
+  // Sold singly: there is no carton and no pack to speak of, just the thing
+  // itself. "24 tubs", never "24 ctn".
+  if (pcsPerPack === 1 && cfg.packsPerCarton === 1) {
+    const w = containerLabel(cfg.unitUom);
+    return pieces > 0 ? `${pieces.toLocaleString()} ${w}${pieces === 1 ? "" : "s"}` : "0";
+  }
+
+  const ctns = pcsPerCtn > 0 ? Math.floor(pieces / pcsPerCtn) : 0;
+  const rem = pcsPerCtn > 0 ? pieces % pcsPerCtn : pieces;
+  const packs = pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
+  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} ${pk}`;
+  if (ctns > 0) return `${ctns} ctn`;
+  if (packs > 0) return `${packs} ${pk}`;
+  // Never a bare piece count on screen: a remainder too small to be one pack
+  // is said as a fraction of the unit he trades in.
+  return pieces > 0 ? `< 1 ${pk}` : "0";
 }
 
 /**
