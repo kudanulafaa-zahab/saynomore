@@ -18,6 +18,18 @@ export type UnitUom =
   | "tub" | "jar" | "tube" | "bar" | "sachet" | "bottle" | "unit" | "set";
 export type SellUnit = "piece" | "pack" | "carton";
 
+/** "24 tubs", "1 tub", "12 pouches".
+ *
+ *  A bare + "s" produced "pouchs", which is the noun for every gram-measured
+ *  product — body butter's own family. Found by driving every product shape in
+ *  the catalogue through these functions rather than reasoning about them;
+ *  no audit covers a pouch. */
+export function plural(n: number, noun: string): string {
+  if (n === 1) return `${n} ${noun}`;
+  const es = /(s|x|z|ch|sh)$/i.test(noun);
+  return `${n.toLocaleString()} ${noun}${es ? "es" : "s"}`;
+}
+
 /** Label for one "pack"-level unit, based on the category's unit_uom.
  *
  *  THIS IS THE TWIN OF public.unit_noun(text) IN POSTGRES AND MUST MATCH IT.
@@ -72,13 +84,17 @@ export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): str
   const { pcsPerPack, packsPerCarton } = cfg;
   const sellsCarton = !cfg.sellableUnits || cfg.sellableUnits.includes("carton");
   const sellsPack = !cfg.sellableUnits || cfg.sellableUnits.includes("pack");
-  const noun = containerLabel(cfg.unitUom);
-  const label = noun;
-  const many = (n: number) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+  const label = containerLabel(cfg.unitUom);
+  const many = (n: number) => plural(n, label);
+  // A product with ONE pack to a carton has no carton. pcsPerCarton collapses
+  // to pcsPerPack there, so the carton branch would return the right count
+  // under the word "ctn" — a diaper shipped singly, 34 to a pack, read
+  // "3 ctn" for 102. Same defect Ali photographed on the tub, one shape over.
+  const hasCartonTier = packsPerCarton > 1;
 
   const pcsPerCarton = pcsPerPack * packsPerCarton;
 
-  if (sellsCarton && pcsPerCarton > 0) {
+  if (sellsCarton && hasCartonTier && pcsPerCarton > 0) {
     const ctns = Math.floor(pieces / pcsPerCarton);
     const rem = pieces % pcsPerCarton;
     const loose = sellsPack && pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
@@ -147,16 +163,20 @@ export function formatStockQty(
   const pcsPerPack = cfg.pcsPerPack;
   const pcsPerCtn = cfg.pcsPerPack * cfg.packsPerCarton;
   const pk = unitAbbr(cfg.unitUom);
+  // A product with ONE pack to a carton has no carton, and pcsPerCarton
+  // collapses to pcsPerPack there — so without this the carton branch returns
+  // the right COUNT under the wrong WORD. That is Ali's screenshot exactly,
+  // and it was in all three private copies this replaced.
+  const hasCartonTier = cfg.packsPerCarton > 1;
 
   // Sold singly: there is no carton and no pack to speak of, just the thing
   // itself. "24 tubs", never "24 ctn".
-  if (pcsPerPack === 1 && cfg.packsPerCarton === 1) {
-    const w = containerLabel(cfg.unitUom);
-    return pieces > 0 ? `${pieces.toLocaleString()} ${w}${pieces === 1 ? "" : "s"}` : "0";
+  if (pcsPerPack === 1 && !hasCartonTier) {
+    return pieces > 0 ? plural(pieces, containerLabel(cfg.unitUom)) : "0";
   }
 
-  const ctns = pcsPerCtn > 0 ? Math.floor(pieces / pcsPerCtn) : 0;
-  const rem = pcsPerCtn > 0 ? pieces % pcsPerCtn : pieces;
+  const ctns = hasCartonTier && pcsPerCtn > 0 ? Math.floor(pieces / pcsPerCtn) : 0;
+  const rem = hasCartonTier && pcsPerCtn > 0 ? pieces % pcsPerCtn : pieces;
   const packs = pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
   if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} ${pk}`;
   if (ctns > 0) return `${ctns} ctn`;
@@ -185,12 +205,12 @@ export function formatMixedCartonQty(
   uom: UnitUom | null | undefined,
 ): string {
   const noun = containerLabel(uom);
-  if (piecesPerCarton <= 0) return `${pieces} ${noun}${pieces === 1 ? "" : "s"}`;
+  if (piecesPerCarton <= 0) return plural(pieces, noun);
   const ctns = Math.floor(pieces / piecesPerCarton);
   const rem = pieces % piecesPerCarton;
   const parts: string[] = [];
   if (ctns > 0) parts.push(`${ctns} ctn`);
-  if (rem > 0) parts.push(`${rem} ${noun}${rem === 1 ? "" : "s"}`);
+  if (rem > 0) parts.push(plural(rem, noun));
   return parts.length > 0 ? parts.join(" + ") : "0";
 }
 
@@ -344,7 +364,7 @@ export function packConfigText(cfg: {
   if (pcs <= 1 && ppc <= 1) return null;
   if (pcs <= 1) {
     const noun = containerLabel(cfg.unitUom);
-    return `${ppc} ${noun}${ppc === 1 ? "" : "s"}/ctn`;
+    return `${plural(ppc, noun)}/ctn`;
   }
   return ppc > 1 ? `${pcs}/pk × ${ppc}/ctn` : `${pcs}/pk`;
 }
@@ -370,9 +390,9 @@ export function packConfigSentence(cfg: {
   const ppc = cfg.packsPerCarton || 1;
   const noun = containerLabel(cfg.unitUom);
   if (pcs <= 1 && ppc <= 1) return null;
-  if (pcs <= 1) return `1 carton = ${ppc} ${noun}s`;
+  if (pcs <= 1) return `1 carton = ${plural(ppc, noun)}`;
   if (ppc <= 1) return `1 ${noun} of ${pcs}`;
-  return `1 carton = ${ppc} ${noun}s of ${pcs}`;
+  return `1 carton = ${plural(ppc, noun)} of ${pcs}`;
 }
 
 /** The word for the unit a product ARRIVES and is INVOICED in.
