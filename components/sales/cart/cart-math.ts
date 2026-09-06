@@ -17,7 +17,7 @@
 import type { SkuFullRow } from "@/lib/queries/products";
 import type { SaleUom } from "@/lib/queries/sales";
 import {
-  containerLabel, sellUnitLabel, formatQtyInTradeUnits,
+  containerLabel, sellUnitLabel, formatQtyInTradeUnits, pluralNoun,
   type TradeUnitConfig, type UnitUom,
 } from "@/lib/trade-units";
 import { mvr, mvrUpTo } from "@/lib/money";
@@ -107,7 +107,7 @@ export function lineQtyText(l: DraftLine): string {
   const per = l.sku.mixed_carton_pieces;
   if (per && per > 0 && l.is_mixed_carton_fill) {
     const noun = containerLabel(l.sku.unit_uom as UnitUom | null);
-    return `${l.qty_pieces} ${plural(noun, l.qty_pieces)}`;
+    return `${l.qty_pieces} ${pluralNoun(noun, l.qty_pieces)}`;
   }
   // A carton plus a few loose packs collapses to a flat pack count, because
   // that is the only shape the ledger accepts for one line. Showing "6 packs"
@@ -115,13 +115,7 @@ export function lineQtyText(l: DraftLine): string {
   // total still reads as a mistake, so a joined line is described the way the
   // rest of the app describes quantities of this product.
   if (l.merged_units) return formatQtyInTradeUnits(l.qty_pieces, tradeCfg(l.sku));
-  return `${l.qty} ${plural(sellUnitLabel(l.uom, tradeCfg(l.sku)), l.qty)}`;
-}
-
-/** "2 carton" is not a sentence. sellUnitLabel returns the singular noun, so
- *  anything that prints it beside a count has to agree with the count. */
-export function plural(word: string, n: number): string {
-  return n === 1 ? word : `${word}s`;
+  return `${l.qty} ${pluralNoun(sellUnitLabel(l.uom, tradeCfg(l.sku)), l.qty)}`;
 }
 
 /** The number the +/− buttons move, and the word for it. Every product works
@@ -130,9 +124,9 @@ export function lineStepUnit(l: DraftLine): { value: number; word: string } {
   const per = l.sku.mixed_carton_pieces;
   if (per && per > 0 && l.is_mixed_carton_fill) {
     const noun = containerLabel(l.sku.unit_uom as UnitUom | null);
-    return { value: l.qty_pieces, word: plural(noun, l.qty_pieces) };
+    return { value: l.qty_pieces, word: pluralNoun(noun, l.qty_pieces) };
   }
-  return { value: l.qty, word: plural(sellUnitLabel(l.uom, tradeCfg(l.sku)), l.qty) };
+  return { value: l.qty, word: pluralNoun(sellUnitLabel(l.uom, tradeCfg(l.sku)), l.qty) };
 }
 
 /** Unit price for a cart line, quoted in the unit the product is SOLD in.

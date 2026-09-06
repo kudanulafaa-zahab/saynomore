@@ -29,7 +29,7 @@
 
 import {
   containerLabel, formatQtyInTradeUnits, formatStockQty, packConfigSentence,
-  packConfigText, plural, shipUnitLabel, unitAbbr,
+  packConfigText, plural, pluralNoun, shipUnitLabel, unitAbbr,
 } from "../../lib/trade-units.ts";
 import { checklist, finish } from "./lib.mjs";
 
@@ -110,6 +110,9 @@ for (const s of SHAPES) {
 }
 
 // RULE 8. The plural helper itself, on the words this catalogue actually uses.
+// It is ONE helper: the cart had its own copy with the same + "s" bug, so
+// "2 pouchs" could reach an order as well as a stock screen (audit:onedef
+// caught that, not me).
 for (const [n, noun, want] of [
   [1, "tub", "1 tub"], [2, "tub", "2 tubs"],
   [1, "pouch", "1 pouch"], [12, "pouch", "12 pouches"],
@@ -117,6 +120,8 @@ for (const [n, noun, want] of [
   [2, "set", "2 sets"], [4, "box", "4 boxes"],
 ]) {
   list.is(plural(n, noun), want, `plural: ${want}`);
+  list.is(pluralNoun(noun, n), want.split(" ").slice(1).join(" "),
+    `pluralNoun: ${noun} x${n}`);
 }
 
 finish(list.report());

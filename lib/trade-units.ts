@@ -18,16 +18,25 @@ export type UnitUom =
   | "tub" | "jar" | "tube" | "bar" | "sachet" | "bottle" | "unit" | "set";
 export type SellUnit = "piece" | "pack" | "carton";
 
-/** "24 tubs", "1 tub", "12 pouches".
+/** The noun, agreeing with a count: "tub", "tubs", "pouches".
  *
- *  A bare + "s" produced "pouchs", which is the noun for every gram-measured
- *  product — body butter's own family. Found by driving every product shape in
- *  the catalogue through these functions rather than reasoning about them;
- *  no audit covers a pouch. */
+ *  A bare + "s" produced "pouchs" — the noun for every gram-measured product,
+ *  body butter's own family. It was in TWO places: here and in the cart's own
+ *  copy, which is why "2 pouchs" could reach an order as well as a stock
+ *  screen. audit:onedef caught the second one; the concept lives here now and
+ *  the cart imports it.
+ *
+ *  Deliberately not a full inflection library — this catalogue's nouns are
+ *  tub, jar, tube, bar, sachet, bottle, pouch, set, unit and pack, and the
+ *  sibilant rule covers every one of them. */
+export function pluralNoun(noun: string, n: number): string {
+  if (n === 1) return noun;
+  return /(s|x|z|ch|sh)$/i.test(noun) ? `${noun}es` : `${noun}s`;
+}
+
+/** The same, with the count in front: "24 tubs", "1 tub", "12 pouches". */
 export function plural(n: number, noun: string): string {
-  if (n === 1) return `${n} ${noun}`;
-  const es = /(s|x|z|ch|sh)$/i.test(noun);
-  return `${n.toLocaleString()} ${noun}${es ? "es" : "s"}`;
+  return `${n.toLocaleString()} ${pluralNoun(noun, n)}`;
 }
 
 /** Label for one "pack"-level unit, based on the category's unit_uom.
