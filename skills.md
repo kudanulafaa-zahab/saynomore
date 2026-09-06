@@ -164,9 +164,29 @@ measured:
 - One canonical implementation per pattern: press feedback `.snm-pressable`,
   cards `.snm-card`, confirms `ConfirmSheet`, notifications `lib/push.ts`,
   spend entry `SpendSheet` (exported once, mounted where needed).
-- Verify every change: `npx tsc --noEmit` + `npm run build` minimum; eslint
-  on touched files (pre-existing dialog form-sync warnings are known and
-  parked pending click-testing — don't blind-refactor money dialogs).
+- Verify every change: `npx tsc --noEmit` + `npm run build` + **`npm run
+  audit:fast`** minimum; eslint on touched files (pre-existing dialog form-sync
+  warnings are known and parked pending click-testing — don't blind-refactor
+  money dialogs).
+
+  **`audit:fast` is the four audits that need NO browser and NO database**, so
+  they run anywhere in about a second — including this container, where Docker
+  is unavailable and the other 40 cannot run at all:
+
+  | | catches |
+  |---|---|
+  | `audit:wa` | a guessed phone number |
+  | `audit:onedef` | one concept declared in two modules |
+  | `audit:units` | a unit noun typed into a screen |
+  | `audit:shapes` | a unit function wrong for a product shape no fixture holds |
+
+  Added 2026-09-06 because I was not running them. In the very commit that
+  consolidated four copies of one quantity formatter, I added a second copy of
+  `plural` — and `audit:onedef` said so instantly, after the push, at the cost
+  of a CI round. The cart's copy carried the same `+ "s"` bug I had just fixed,
+  so "2 pouchs" would have stayed live on the screen where orders are entered.
+  A 22-minute CI round is not the right place to learn something a second-long
+  check already knows.
 
 ## Seat 3 — Backend / Postgres (Supabase)
 

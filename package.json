@@ -51,6 +51,7 @@
     "audit:touch:report": "node scripts/audit/touch-targets.mjs --report",
     "audit:units": "node scripts/audit/unit-words.mjs",
     "audit:shapes": "node --experimental-strip-types --no-warnings scripts/audit/trade-units.mjs",
+    "audit:fast": "npm run audit:wa && npm run audit:onedef && npm run audit:units && npm run audit:shapes",
     "audit:units:report": "node scripts/audit/unit-words.mjs --report",
     "audit:names": "node scripts/audit/accessible-names.mjs",
     "audit:names:report": "node scripts/audit/accessible-names.mjs --report",
