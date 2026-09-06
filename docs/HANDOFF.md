@@ -22,7 +22,8 @@ one.** The record is:
 
 | The real record | Why it cannot be lost |
 |---|---|
-| `app/globals.css` (2,271 lines) | Every design token, with the reasoning AND the date of each decision in the comments. Four palettes — **two different materials** — the frost dial, Display P3, the whole thing. |
+| `app/design-system.css` | **The design system, est. 2026-09-05.** The type scale and the colour roles, every decision citing the published system it came from (Polaris, Carbon, Spectrum, Material 3). Loads after globals.css and wins over it. |
+| `app/globals.css` | Every other design token, with the reasoning AND the date of each decision in the comments. Two palettes, one material, the frost dial, the glass recipe. It holds no COLOUR of its own any more — it aliases `--snm-*` to `--ds-*`. |
 | `skills.md` | The design/engineering laws with the incident that created each one. Loads automatically. |
 | `supabase/migrations/*.sql` | Every money and stock rule, with a header explaining WHY. 168 files, latest `0177`. Applied live, tracked in git. |
 | `git log` | Every change, with a full commit message explaining the decision. |
@@ -180,10 +181,29 @@ is `mixed-carton-sheet.tsx`; the cart UI is `cart/cart-lines.tsx`.
 
 ---
 
-## 3. Design system — READ `app/globals.css` BEFORE TOUCHING ANY UI
+## 3. Design system — `app/design-system.css` FIRST, then `app/globals.css`
 
-**This section is a MAP, not the record.** The record is `app/globals.css`
-(1,837 lines, heavily commented with the reasoning and the date of each
+> **CHANGED 2026-09-05. Read `app/design-system.css` before anything else in
+> this section.** Ali ordered a system taken from *published guidance by
+> leading firms* — explicitly not Apple's, not his, and not mine — and that
+> file is it: Polaris, Carbon, Spectrum, Material 3, each decision citing its
+> source. It owns the **type scale** and the **colour roles** (`--ds-*`), and
+> it loads AFTER globals.css, so where the two disagree it wins.
+>
+> Two consequences for anything written below or in `skills.md` Seat 1:
+>
+> - The **graphite-monochrome accent law is gone**, along with Apple's system
+>   colours. Status colour and brand colour are separate things now; info is
+>   blue in every palette rather than an alias of the palette accent.
+> - `globals.css` **holds no colour of its own**. It owns the selectors and
+>   aliases `--snm-*` to `--ds-*`. Add a colour in one place or you will add
+>   it in six — which is exactly what had happened, the sixth being a
+>   Display-P3 block that silently restored Apple's originals on every iPhone.
+>
+> The palettes, the frost dial and the glass material below are unchanged.
+
+**This section is a MAP, not the record.** The record is `app/design-system.css`
+and `app/globals.css` (heavily commented with the reasoning and the date of each
 decision) plus `skills.md` Seat 1, which carries the design laws with the
 incident that created each one. Everything below is a pointer so a new session
 knows what exists and does not damage it by accident. **Nothing here is

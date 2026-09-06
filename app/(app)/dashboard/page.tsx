@@ -545,10 +545,10 @@ export default async function DashboardPage() {
                 <AlertOctagon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="ios-subhead font-semibold text-foreground">
+                <p className="snm-primary">
                   {outOfStockCount} SKU{outOfStockCount !== 1 ? "s" : ""} out of stock
                 </p>
-                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="snm-support mt-0.5">
                   Still selling but nothing on the shelf — reorder now
                 </p>
               </div>
@@ -565,10 +565,10 @@ export default async function DashboardPage() {
                 <Timer className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="ios-subhead font-semibold text-foreground">
+                <p className="snm-primary">
                   {overdueOrders} order{overdueOrders !== 1 ? "s" : ""} overdue
                 </p>
-                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="snm-support mt-0.5">
                   Confirmed &gt;24 h — no driver assigned yet
                 </p>
               </div>
@@ -585,10 +585,10 @@ export default async function DashboardPage() {
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="ios-subhead font-semibold text-foreground">
+                <p className="snm-primary">
                   {lowStockCount} SKU{lowStockCount !== 1 ? "s" : ""} low on stock
                 </p>
-                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="snm-support mt-0.5">
                   Less than 10 days of stock remaining
                 </p>
               </div>
@@ -605,10 +605,10 @@ export default async function DashboardPage() {
                 <Ship className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="ios-subhead font-semibold text-foreground">
+                <p className="snm-primary">
                   {arrivingSoon} shipment{arrivingSoon !== 1 ? "s" : ""} arriving within 3 days
                 </p>
-                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="snm-support mt-0.5">
                   Prepare godown space for receiving
                 </p>
               </div>
@@ -625,10 +625,10 @@ export default async function DashboardPage() {
                 <RefreshCw className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="ios-subhead font-semibold text-foreground">
+                <p className="snm-primary">
                   {reorderCount} SKU{reorderCount !== 1 ? "s" : ""} due for reorder
                 </p>
-                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="snm-support mt-0.5">
                   Based on sales velocity and lead time
                 </p>
               </div>
@@ -649,10 +649,10 @@ export default async function DashboardPage() {
                 <PackageX className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="ios-subhead font-semibold text-foreground snm-num">
+                <p className="snm-primary snm-num">
                   MVR {mvr(slowStockValue)} tied up in slow stock
                 </p>
-                <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                <p className="snm-support mt-0.5">
                   {slowStockCount} slow mover{slowStockCount !== 1 ? "s" : ""} — a promo turns it back into cash
                 </p>
               </div>

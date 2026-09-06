@@ -3,6 +3,7 @@
 import React from "react";
 import { AlertTriangle } from "lucide-react";
 import type { PriceProvenance } from "@/lib/queries/sales";
+import { packConfigText, variantSuffix, type UnitUom } from "@/lib/trade-units";
 
 /*
  * Sku identity block — the anti-wrong-pick display used in EVERY product picker
@@ -26,12 +27,21 @@ import type { PriceProvenance } from "@/lib/queries/sales";
 export function PackConfigChip({
   pcsPerPack,
   packsPerCarton,
+  unitUom,
   className,
 }: {
   pcsPerPack: number;
   packsPerCarton: number;
+  unitUom?: UnitUom | null;
   className?: string;
 }) {
+  // NOTHING, when there is nothing true to say. This chip printed
+  // "1/pk × 1/ctn" for a Body Shop tub — three numbers that say nothing, in a
+  // unit word the product does not use — on every picker in the app, because
+  // it was a template rather than a reading of the product. packConfigText
+  // returns null for a product that is one to a pack and one to a carton.
+  const text = packConfigText({ pcsPerPack, packsPerCarton, unitUom });
+  if (!text) return null;
   return (
     <span
       className={className}
@@ -51,7 +61,7 @@ export function PackConfigChip({
         fontVariantNumeric: "tabular-nums",
       }}
     >
-      {pcsPerPack}/pk × {packsPerCarton}/ctn
+      {text}
     </span>
   );
 }
@@ -72,6 +82,7 @@ export function SkuIdentity({
   variantDisplay,
   pcsPerPack,
   packsPerCarton,
+  unitUom,
   size = "row",
   separator = "›",
   trailing,
@@ -82,12 +93,18 @@ export function SkuIdentity({
   variantDisplay: string;
   pcsPerPack: number;
   packsPerCarton: number;
+  unitUom?: UnitUom | null;
   size?: "row" | "card";
   separator?: "›" | "·";
   trailing?: React.ReactNode;
   dimmed?: boolean;
 }) {
   const nameSize = size === "card" ? 17 : 16;
+  // A SIZE THAT IS THE PRODUCT'S OWN NAME IS NOT A SIZE. Since 0242 a product
+  // with no size range takes its product's name, so joining all three parts
+  // unconditionally printed "Bodyshop › Almond Milk › Almond Milk".
+  const suffix = variantSuffix(modelName, variantDisplay);
+  const chip = packConfigText({ pcsPerPack, packsPerCarton, unitUom });
   return (
     <div style={{ minWidth: 0, opacity: dimmed ? 0.45 : 1 }}>
       <p
@@ -100,16 +117,17 @@ export function SkuIdentity({
           letterSpacing: "-0.01em",
         }}
       >
-        {brandName} {separator} {modelName} {separator} {variantDisplay}
+        {[brandName, modelName, suffix].filter(Boolean).join(` ${separator} `)}
       </p>
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
-        <PackConfigChip pcsPerPack={pcsPerPack} packsPerCarton={packsPerCarton} />
-        {trailing != null && (
-          <span className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-            {trailing}
-          </span>
-        )}
-      </div>
+      {/* The row collapses entirely when there is neither a pack config worth
+          stating nor a trailing fact — an empty 6px-margin flex row under every
+          single-unit product was pure noise. */}
+      {(chip || trailing != null) && (
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+          <PackConfigChip pcsPerPack={pcsPerPack} packsPerCarton={packsPerCarton} unitUom={unitUom} />
+          {trailing != null && <span className="snm-support">{trailing}</span>}
+        </div>
+      )}
     </div>
   );
 }

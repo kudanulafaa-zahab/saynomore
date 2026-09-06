@@ -1510,7 +1510,7 @@ export function NewSaleSheet({
                           <div className="pr-11">
                             <SkuIdentity
                               brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                              pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                              pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton} unitUom={s.unit_uom as UnitUom}
                               separator="·"
                               dimmed={outOfStock}
                             />
@@ -1632,7 +1632,7 @@ export function NewSaleSheet({
                     <div className="flex items-start justify-between mb-3 gap-3">
                       <SkuIdentity
                         brandName={selectedSku.brand_name} modelName={selectedSku.model_name} variantDisplay={selectedSku.variant_display}
-                        pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton}
+                        pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton} unitUom={selectedSku.unit_uom as UnitUom}
                         separator="·"
                         size="card"
                       />

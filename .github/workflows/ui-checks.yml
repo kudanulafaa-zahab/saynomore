@@ -354,6 +354,30 @@ jobs:
       - name: Accessible names — every control says what it is
         run: npm run audit:names
 
+      # A UNIT WORD IS NEVER TYPED INTO A SCREEN. Ali has been shown "1/pk ×
+      # 1/ctn" on a tub and "MVR 380 per ctn" for a product with no carton;
+      # each was fixed where he found it and survived in thirty other files.
+      - name: Unit words come from the product, never from the screen
+        run: npm run audit:units
+
+      # AND THE OTHER HALF: audit:units checks that no screen TYPES a unit
+      # word. This checks that the functions they ask instead give the right
+      # one, for every product SHAPE the catalogue can hold — including the
+      # ones no fixture contains. Every browser audit below drives the
+      # fixture, so a shape nobody thought to seed is a shape nobody tests.
+      #
+      # It earned its place the day it was written: run by hand against the
+      # real catalogue's shapes, it found two defects that 54 green CI checks
+      # had passed over — a pack-only diaper reporting "3 ctn" for stock it
+      # holds no carton of, and every gram-measured product pluralising to
+      # "pouchs", which is body butter's own noun. Both rules were then
+      # confirmed to go RED with the bug reinstated, because a green check
+      # nobody has seen fail is not a check.
+      #
+      # No browser, no database, about a second.
+      - name: Unit vocabulary — every product shape, not just the seeded ones
+        run: npm run audit:shapes
+
       - name: Reach — the action stays touchable, the screen holds still
         run: npm run audit:reach
 

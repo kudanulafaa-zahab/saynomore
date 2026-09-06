@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { getReportsData, getContributionMargin, getAbcAnalysis, type ReportRow, type ContributionRow, type AbcRow } from "@/lib/queries/reports";
 import { listMarketingSpend, type MarketingSpendRow } from "@/lib/queries/expenses";
-import { formatQtyInTradeUnits, costPerTradeUnit, type TradeUnitConfig } from "@/lib/trade-units";
+import { formatQtyInTradeUnits, costPerTradeUnit, variantSuffix, type TradeUnitConfig } from "@/lib/trade-units";
 import { groupByBrand } from "@/lib/group-by-brand";
 import { TopBrandsChart } from "./top-brands-chart";
 import { MarginDistributionChart } from "./margin-distribution-chart";
@@ -904,8 +904,15 @@ function MarginsTable({ rows, sortKey, onSort }: {
               return (
               <tr key={r.sku_id} className="hover:bg-accent/20 transition">
                 <td className="px-3 py-3">
-                  <p className="text-foreground ios-subhead">{r.brand_name} › {r.model_name} › {r.variant_display}</p>
-                  <p className="ios-subhead text-muted-foreground">{r.internal_code}</p>
+                  {/* The product and its code were both ios-subhead — 15px,
+                      one muted — so the code competed with the name. And the
+                      variant was joined unconditionally, which since migration
+                      0242 prints a single-size product's model name twice. */}
+                  <p className="snm-primary">
+                    {[r.brand_name, r.model_name, variantSuffix(r.model_name, r.variant_display)]
+                      .filter(Boolean).join(" › ")}
+                  </p>
+                  <p className="snm-meta snm-num">{r.internal_code}</p>
                 </td>
                 <td className="px-3 py-3 text-right text-muted-foreground snm-num">
                   {r.landed_per_piece_mvr > 0 ? `${landed.value.toFixed(2)}/${landed.unitLabel}` : "—"}
@@ -917,6 +924,21 @@ function MarginsTable({ rows, sortKey, onSort }: {
                   {r.gross_margin_pct !== null ? (
                     <span className="font-semibold" style={marginColor(r.gross_margin_pct)}>
                       {r.gross_margin_pct}%
+                      {/* SEAT 4: "Loses MVR 9/pack" beats "-5.8% margin".
+                          Percentages compare across products; they are shown
+                          ALONGSIDE money, never instead of it — and this
+                          column was a bare percentage, so the table could not
+                          answer "which product actually made me money".
+
+                          Not a new calculation, and it cannot disagree with
+                          the percentage beside it: get_reports_data defines
+                          gross_margin_pct as (1 - cogs/revenue) * 100, so
+                          revenue - cogs IS that percentage's own numerator.
+                          The P&L card derives Gross Profit from the same two
+                          fields the same way. */}
+                      <span className="block font-normal" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+                        MVR {mvr(r.total_revenue_mvr - r.total_landed_cost_mvr)} kept
+                      </span>
                       {r.gross_margin_pct >= 30
                         ? <TrendingUp className="inline h-3 w-3 ml-1" />
                         : r.gross_margin_pct < 15

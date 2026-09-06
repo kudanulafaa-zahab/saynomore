@@ -18,6 +18,27 @@ export type UnitUom =
   | "tub" | "jar" | "tube" | "bar" | "sachet" | "bottle" | "unit" | "set";
 export type SellUnit = "piece" | "pack" | "carton";
 
+/** The noun, agreeing with a count: "tub", "tubs", "pouches".
+ *
+ *  A bare + "s" produced "pouchs" — the noun for every gram-measured product,
+ *  body butter's own family. It was in TWO places: here and in the cart's own
+ *  copy, which is why "2 pouchs" could reach an order as well as a stock
+ *  screen. audit:onedef caught the second one; the concept lives here now and
+ *  the cart imports it.
+ *
+ *  Deliberately not a full inflection library — this catalogue's nouns are
+ *  tub, jar, tube, bar, sachet, bottle, pouch, set, unit and pack, and the
+ *  sibilant rule covers every one of them. */
+export function pluralNoun(noun: string, n: number): string {
+  if (n === 1) return noun;
+  return /(s|x|z|ch|sh)$/i.test(noun) ? `${noun}es` : `${noun}s`;
+}
+
+/** The same, with the count in front: "24 tubs", "1 tub", "12 pouches". */
+export function plural(n: number, noun: string): string {
+  return `${n.toLocaleString()} ${pluralNoun(noun, n)}`;
+}
+
 /** Label for one "pack"-level unit, based on the category's unit_uom.
  *
  *  THIS IS THE TWIN OF public.unit_noun(text) IN POSTGRES AND MUST MATCH IT.
@@ -58,24 +79,37 @@ export interface TradeUnitConfig {
 
 /**
  * Converts a raw piece count into a human string in the SKU's actual trade
- * unit(s) -- e.g. "6 ctn 2 pk", "12 pk", or "0". Never shows a "pack" figure
- * for a carton-only SKU (sellableUnits excludes "pack").
+ * unit(s) -- e.g. "6 ctn + 2 packs", "24 tubs", or "0". Never shows a "pack"
+ * figure for a carton-only SKU (sellableUnits excludes "pack").
+ *
+ * PLURALS, added 2026-09-06. The pack-tier noun is a real word ("tub",
+ * "bottle", "pouch", "pack") and it was printed singular at any count, so this
+ * said "24 tub" while inventory-view's private copy of the same function said
+ * "24 tubs" — and direct-receipt.mjs asserts the plural. Two screens, one
+ * quantity, two spellings, which is exactly what having four copies produces.
+ * "ctn" is left alone: it is an abbreviation, and "ctns" is not a word.
  */
 export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): string {
   const { pcsPerPack, packsPerCarton } = cfg;
   const sellsCarton = !cfg.sellableUnits || cfg.sellableUnits.includes("carton");
   const sellsPack = !cfg.sellableUnits || cfg.sellableUnits.includes("pack");
   const label = containerLabel(cfg.unitUom);
+  const many = (n: number) => plural(n, label);
+  // A product with ONE pack to a carton has no carton. pcsPerCarton collapses
+  // to pcsPerPack there, so the carton branch would return the right count
+  // under the word "ctn" — a diaper shipped singly, 34 to a pack, read
+  // "3 ctn" for 102. Same defect Ali photographed on the tub, one shape over.
+  const hasCartonTier = packsPerCarton > 1;
 
   const pcsPerCarton = pcsPerPack * packsPerCarton;
 
-  if (sellsCarton && pcsPerCarton > 0) {
+  if (sellsCarton && hasCartonTier && pcsPerCarton > 0) {
     const ctns = Math.floor(pieces / pcsPerCarton);
     const rem = pieces % pcsPerCarton;
     const loose = sellsPack && pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
     const parts: string[] = [];
     if (ctns > 0) parts.push(`${ctns} ctn`);
-    if (loose > 0) parts.push(`${loose} ${label}`);
+    if (loose > 0) parts.push(many(loose));
     // Carton-only SKU (no pack tier): fold any remainder pieces into a
     // fractional carton note instead of silently dropping them.
     if (!sellsPack && rem > 0) parts.push(`${Math.round((rem / pcsPerCarton) * 100)}% ctn`);
@@ -87,11 +121,78 @@ export function formatQtyInTradeUnits(pieces: number, cfg: TradeUnitConfig): str
 
   if (sellsPack && pcsPerPack > 0) {
     const pks = Math.floor(pieces / pcsPerPack);
-    return pks > 0 || pieces === 0 ? `${pks} ${label}` : `< 1 ${label}`;
+    return pks > 0 || pieces === 0 ? many(pks) : `< 1 ${label}`;
   }
 
   // Single-unit product (piece IS the trade unit) or no conversion data.
   return `${pieces.toLocaleString()} pcs`;
+}
+
+/** One pack-level unit, squeezed to a chip word: a Sosoft 500ml is a "btl".
+ *
+ *  Derived from containerLabel so there is ONE place that knows what a unit is
+ *  called; only the three-letter squeeze lives here. Inventory, Stock Ops and
+ *  Godowns each had their own copy of this, and Stock Ops' knew only ml and g
+ *  — so a tub was a "pk" there and a "tub" one screen away. */
+export function unitAbbr(uom: UnitUom | null | undefined): string {
+  const w = containerLabel(uom);
+  return ({ bottle: "btl", pouch: "pch", pack: "pk", sachet: "sct" } as Record<string, string>)[w] ?? w;
+}
+
+/**
+ * Stock on a shelf, the way the LEDGER counts it: "3 ctn + 2 pk", "24 tubs",
+ * "< 1 btl", "0".
+ *
+ * WHY THIS IS NOT formatQtyInTradeUnits, and why the difference is deliberate
+ * rather than an accident of history:
+ *
+ *   formatQtyInTradeUnits is driven by `sellable_units`, which is a SELLING
+ *   rule. Sosoft is carton-only, so three loose bottles come back from it as
+ *   "50% ctn" — arithmetically true, and not a thing anyone says while
+ *   counting a shelf. CLAUDE.md keeps a loose tier on the stock screens on
+ *   purpose: "a write-off or a count adjustment is a ledger event (a torn pack
+ *   is real) — but it is named after the product ('btl'), never blanket
+ *   'pcs'."
+ *
+ * So there are two correct answers to "how much is there", and which one you
+ * want depends on whether you are selling it or counting it. Both live here;
+ * neither is a screen's private opinion.
+ *
+ * Inventory, Stock Ops and Godowns each carried their own version of THIS one
+ * — three of the four private copies three design audits named on 2026-09-05
+ * as the root cause of Ali's repeated unit complaints. Godowns' had no
+ * single-unit case and hardcoded "pk"; Stock Ops' had no single-unit case and
+ * a noun map that knew only ml and g. Both printed "24 ctn" for 24 body butter
+ * tubs, which is the string he photographed.
+ */
+export function formatStockQty(
+  pieces: number,
+  cfg: { pcsPerPack: number; packsPerCarton: number; unitUom: UnitUom | null | undefined },
+): string {
+  const pcsPerPack = cfg.pcsPerPack;
+  const pcsPerCtn = cfg.pcsPerPack * cfg.packsPerCarton;
+  const pk = unitAbbr(cfg.unitUom);
+  // A product with ONE pack to a carton has no carton, and pcsPerCarton
+  // collapses to pcsPerPack there — so without this the carton branch returns
+  // the right COUNT under the wrong WORD. That is Ali's screenshot exactly,
+  // and it was in all three private copies this replaced.
+  const hasCartonTier = cfg.packsPerCarton > 1;
+
+  // Sold singly: there is no carton and no pack to speak of, just the thing
+  // itself. "24 tubs", never "24 ctn".
+  if (pcsPerPack === 1 && !hasCartonTier) {
+    return pieces > 0 ? plural(pieces, containerLabel(cfg.unitUom)) : "0";
+  }
+
+  const ctns = hasCartonTier && pcsPerCtn > 0 ? Math.floor(pieces / pcsPerCtn) : 0;
+  const rem = hasCartonTier && pcsPerCtn > 0 ? pieces % pcsPerCtn : pieces;
+  const packs = pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
+  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} ${pk}`;
+  if (ctns > 0) return `${ctns} ctn`;
+  if (packs > 0) return `${packs} ${pk}`;
+  // Never a bare piece count on screen: a remainder too small to be one pack
+  // is said as a fraction of the unit he trades in.
+  return pieces > 0 ? `< 1 ${pk}` : "0";
 }
 
 /**
@@ -113,12 +214,12 @@ export function formatMixedCartonQty(
   uom: UnitUom | null | undefined,
 ): string {
   const noun = containerLabel(uom);
-  if (piecesPerCarton <= 0) return `${pieces} ${noun}${pieces === 1 ? "" : "s"}`;
+  if (piecesPerCarton <= 0) return plural(pieces, noun);
   const ctns = Math.floor(pieces / piecesPerCarton);
   const rem = pieces % piecesPerCarton;
   const parts: string[] = [];
   if (ctns > 0) parts.push(`${ctns} ctn`);
-  if (rem > 0) parts.push(`${rem} ${noun}${rem === 1 ? "" : "s"}`);
+  if (rem > 0) parts.push(plural(rem, noun));
   return parts.length > 0 ? parts.join(" + ") : "0";
 }
 
@@ -213,6 +314,124 @@ export function tierLabel(
   }
   // A pack that holds one thing is just that thing — a tub, a bottle.
   return cfg.pcsPerPack > 1 ? `${Noun} of ${cfg.pcsPerPack}` : Noun;
+}
+
+// ── What a product's identity actually READS as ───────────────────────────
+//
+// Ali, 2026-09-05, with a screenshot of the Products list:
+//   *"Why is it still showing cartons for body butter?"*
+//
+// The row said, for one Body Shop tub:
+//
+//     Almond Milk · Almond Milk
+//     1/pack × 1/ctn · 1/ctn
+//     MVR 380  per ctn
+//
+// Three separate untruths in four lines, and every one of them was HARDCODED
+// into the row rather than read from the product:
+//
+//   1. the size printed even when the size IS the product's name (0242 made an
+//      attribute-less variant follow its product, so the two are now equal by
+//      design — the row never asked whether it had anything to add)
+//   2. a pack configuration stated for a product that has none: a tub is one
+//      to a pack and one to a carton, so "1/pack × 1/ctn" is three numbers
+//      that say nothing, in a unit word ("pack") the product does not use
+//   3. a CARTON price on a product that is not sold by the carton at all.
+//      Body Shop is `{pack}` only. The row read
+//      selling_price_per_carton_mvr regardless.
+//
+// These three functions are the fix, and they live here so that the nine
+// files that hardcode a carton label can be corrected against ONE definition
+// instead of nine.
+
+/** The size worth printing beside a product name, or null when there is
+ *  nothing to add. A product with one size takes its product's name (0242), so
+ *  printing it repeats the word the reader just read. */
+export function variantSuffix(
+  modelName: string,
+  variantDisplay: string | null | undefined,
+): string | null {
+  const v = (variantDisplay ?? "").trim();
+  if (!v) return null;
+  return v.toLowerCase() === (modelName ?? "").trim().toLowerCase() ? null : v;
+}
+
+/** The pack configuration, stated only where it is TRUE and carries
+ *  information. Compact on purpose — it sits in a chip under a name.
+ *
+ *    tub, 1 to a pack and 1 to a carton   ->  null, there is nothing to say
+ *    bottle, 1 to a pack, 6 to a carton   ->  "6 bottles/ctn"
+ *    diaper, 34 to a pack, 1 to a carton  ->  "34/pk"
+ *    diaper, 34 to a pack, 3 to a carton  ->  "34/pk × 3/ctn"          */
+export function packConfigText(cfg: {
+  pcsPerPack: number;
+  packsPerCarton: number;
+  unitUom?: UnitUom | null;
+}): string | null {
+  const pcs = cfg.pcsPerPack || 1;
+  const ppc = cfg.packsPerCarton || 1;
+  if (pcs <= 1 && ppc <= 1) return null;
+  if (pcs <= 1) {
+    const noun = containerLabel(cfg.unitUom);
+    return `${plural(ppc, noun)}/ctn`;
+  }
+  return ppc > 1 ? `${pcs}/pk × ${ppc}/ctn` : `${pcs}/pk`;
+}
+
+/** The same fact as packConfigText, written as a sentence rather than a chip.
+ *  For a fact sheet (the Product Card) where there is room to say it in full,
+ *  and where "One pack holds 1 tubs" was what the two-row version produced.
+ *
+ *    tub, 1 to a pack and 1 to a carton   ->  null, a tub is a tub
+ *    bottle, 1 to a pack, 6 to a carton   ->  "1 carton = 6 bottles"
+ *    diaper, 34 to a pack, 1 to a carton  ->  "1 pack of 34"
+ *    diaper, 34 to a pack, 3 to a carton  ->  "1 carton = 3 packs of 34"
+ *
+ *  Note what it never says: the piece TOTAL. "1 carton = 102" is a piece count
+ *  and Ali does not trade in pieces; the composition is the fact he checks a
+ *  variant by ("a 48s and a 34s are different products"). */
+export function packConfigSentence(cfg: {
+  pcsPerPack: number;
+  packsPerCarton: number;
+  unitUom?: UnitUom | null;
+}): string | null {
+  const pcs = cfg.pcsPerPack || 1;
+  const ppc = cfg.packsPerCarton || 1;
+  const noun = containerLabel(cfg.unitUom);
+  if (pcs <= 1 && ppc <= 1) return null;
+  if (pcs <= 1) return `1 carton = ${plural(ppc, noun)}`;
+  if (ppc <= 1) return `1 ${noun} of ${pcs}`;
+  return `1 carton = ${plural(ppc, noun)} of ${pcs}`;
+}
+
+/** The word for the unit a product ARRIVES and is INVOICED in.
+ *
+ *  Ali, 2026-09-05, of a body butter tub: *"Why is it still showing cartons
+ *  for body butter?"* A shipment line counts cartons, so every screen that
+ *  reads one printed "carton" — but a carton holding one pack of one item is
+ *  not a carton, it is the item, and quoting "MVR 380 per ctn" for a single
+ *  tub is the defect he photographed. CLAUDE.md: buy, receive and sell are one
+ *  unit system, so this is the same question as sellUnitLabel, asked of the
+ *  shipping tier. */
+export function shipUnitLabel(cfg: {
+  pcsPerPack: number;
+  packsPerCarton: number;
+  unitUom?: UnitUom | null;
+}): string {
+  return (cfg.packsPerCarton || 1) > 1 ? "carton" : containerLabel(cfg.unitUom);
+}
+
+/** The tier a product's headline price should be quoted in: the largest unit
+ *  it is ACTUALLY sold in. A carton for a diaper, a tub for a tub — never a
+ *  carton price for something that has no carton. */
+export function headlineTier(
+  sellableUnits: SellUnit[] | null | undefined,
+  cfg: { pcsPerPack: number; packsPerCarton: number },
+): SellUnit {
+  const offerable = offerableTiers(cfg);
+  const sold = (sellableUnits ?? offerable).filter((u) => offerable.includes(u));
+  if (sold.includes("carton")) return "carton";
+  return "pack";
 }
 
 /** The word for one unit at a given tier, lowercase ("carton", "pack",

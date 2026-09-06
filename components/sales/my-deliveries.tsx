@@ -20,7 +20,7 @@ import { notifyDelivered } from "@/lib/push";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { BodyPortal } from "@/components/ui/body-portal";
 import { haptic } from "@/lib/haptics";
-import { sellUnitLabel, type SellUnit } from "@/lib/trade-units";
+import { sellUnitLabel, type SellUnit, type UnitUom } from "@/lib/trade-units";
 import { mvr, mvr2, mvrUpTo } from "@/lib/money";
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
@@ -377,7 +377,7 @@ function ItemsBlock({ lines, skus, orderGodownId, godowns }: {
               {sku ? (
                 <SkuIdentity
                   brandName={sku.brand_name} modelName={sku.model_name} variantDisplay={sku.variant_display}
-                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton}
+                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton} unitUom={sku.unit_uom as UnitUom}
                   separator="·"
                 />
               ) : (

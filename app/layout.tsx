@@ -4,6 +4,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineProvider } from "@/components/layout/offline-provider";
 import { PALETTE_INIT_SCRIPT } from "@/lib/palette";
 import "./globals.css";
+// The design system loads AFTER globals so its fluid ramp and density rules
+// win over the fixed-pixel values defined there (2026-09-05).
+import "./design-system.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 // SF Pro is the system UI font (Apple HIG 2026). On iOS/macOS the -apple-system

@@ -2234,7 +2234,7 @@ function PriceModal({
                                     ) : (
                                       <SkuIdentity
                                         brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton} unitUom={s.unit_uom as UnitUom}
                                       />
                                     )}
                                   </button>
@@ -2255,7 +2255,7 @@ function PriceModal({
               <div className="rounded-xl p-3 flex justify-between items-start gap-3" style={{ ...CARD, border: "0.5px solid var(--glass-border-lo)" }}>
                 <SkuIdentity
                   brandName={selectedSku.brand_name} modelName={selectedSku.model_name} variantDisplay={selectedSku.variant_display}
-                  pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton}
+                  pcsPerPack={selectedSku.pcs_per_pack} packsPerCarton={selectedSku.packs_per_carton} unitUom={selectedSku.unit_uom as UnitUom}
                   size="card"
                 />
                 <button onClick={() => { setVariantId(""); setSkuSearch(""); }} className="ios-subhead text-foreground opacity-60 active:opacity-100 shrink-0">Change</button>

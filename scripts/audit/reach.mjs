@@ -118,7 +118,15 @@ const SHEETS = [
     route: "/products",
     open: async (page) => {
       // Drill into a SKU row, then Edit. Brands are expanded by default.
-      await tap(page, /\d+\/pack × \d+\/ctn/);
+      //
+      // Found by the PRODUCT, not by its pack configuration. This matched
+      // `/\d+\/pack × \d+\/ctn/` — a literal read straight off the screen,
+      // which is Seat 9's exact failure. When that string moved to the app's
+      // one notation (packConfigText, "42/pk × 4/ctn") the audit went red over
+      // a CORRECTION, and it would have gone red again the moment a product
+      // with no carton was the first row. A model name cannot collide with the
+      // brand header above it, which reads "<brand> · N SKUs".
+      await tap(page, /xtra kering/i);
       await page.waitForTimeout(1500);
       await tap(page, /^Edit SKU$/i);
       await page.waitForTimeout(1500);

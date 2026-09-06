@@ -127,8 +127,21 @@ try {
   const search = page.getByPlaceholder(/search products/i);
   await search.fill("Xtra");
   await page.waitForTimeout(900);
-  const rows = page.locator("button").filter({ hasText: /per pack ×/ });
+  // Found by the PRODUCT, not by its pack configuration. This used to match
+  // `/per pack ×/`, which is Seat 9's exact failure: an assertion written from
+  // what the screen said rather than from what the rule is. When that literal
+  // moved to the app's one notation (packConfigText, "42/pk × 4/ctn"), the
+  // audit would have gone red over a correction.
+  const rows = page.locator("button").filter({ hasText: /xtra kering/i });
   list.ok(await rows.count() > 0, "search narrows the list");
+
+  // The RULE: a row states the pack configuration, and it states it in the one
+  // notation the whole app uses. A SKU with nothing to say (a tub, 1 to a pack
+  // and 1 to a carton) says nothing rather than "1/pk × 1/ctn".
+  const rowText = (await rows.first().innerText()).replace(/\s+/g, " ");
+  list.ok(/\d+\/pk( × \d+\/ctn)?/.test(rowText),
+    `the row states the pack configuration in the app's notation (row said "${rowText.slice(0, 90)}")`);
+
   await rows.first().click();
   await page.waitForTimeout(2500);
 

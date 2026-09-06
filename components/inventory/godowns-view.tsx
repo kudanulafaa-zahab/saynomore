@@ -16,28 +16,29 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { mvtInstant } from "@/lib/mvt-date";
 import { mvrShort, mvrUpTo } from "@/lib/money";
+import { formatStockQty, type UnitUom } from "@/lib/trade-units";
 
 /* ── Helpers ── */
 
 function toCtns(pcs: number, pcsPerCtn: number) {
   return pcsPerCtn > 0 ? Math.floor(pcs / pcsPerCtn) : 0;
 }
-function remPacks(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
-  const rem = pcsPerCtn > 0 ? pcs % pcsPerCtn : pcs;
-  return pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
-}
 const fmtMvr = mvrShort;
-function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
-  const ctns  = toCtns(pcs, pcsPerCtn);
-  const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);
-  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} pk`;
-  if (ctns > 0) return `${ctns} ctn`;
-  if (packs > 0) return `${packs} pk`;
-  // Was `${pcs} pcs`. A remainder smaller than one pack is real stock, but it
-  // is still not traded by the piece — matches formatQtyInTradeUnits's own
-  // "< 1 pk" wording (Ali, 2026-08-06).
-  return pcs > 0 ? "< 1 pk" : "0";
-}
+/** The ledger's answer to "how much is there", shared with Inventory and
+ *  Stock Ops. This file's own copy had no single-unit case — 24 body butter
+ *  tubs read "24 ctn", the string Ali photographed — and hardcoded "pk" for
+ *  every product, so a Sosoft bottle was a "pk" here and a "btl" one screen
+ *  away.
+ *
+ *  NOT formatQtyInTradeUnits: that one is driven by sellable_units, a SELLING
+ *  rule, so Sosoft's three loose bottles come back from it as "50% ctn".
+ *  lib/trade-units.ts carries both and says which is which. */
+const fmtQty = (pcs: number, sku: { pcs_per_pack: number; packs_per_carton: number; unit_uom: UnitUom }) =>
+  formatStockQty(pcs, {
+    pcsPerPack: sku.pcs_per_pack,
+    packsPerCarton: sku.packs_per_carton,
+    unitUom: sku.unit_uom,
+  });
 
 /* ── Types ── */
 
@@ -118,8 +119,7 @@ function GodownEditRow({
 function SkuRow({ slot }: { slot: SkuSlot }) {
   const { sku, pieces, value, batches } = slot;
   const [expanded, setExpanded] = useState(false);
-  const pcsPerCtn = sku.pcs_per_pack * sku.packs_per_carton;
-  const qty = fmtQty(pieces, sku.pcs_per_pack, pcsPerCtn);
+  const qty = fmtQty(pieces, sku);
 
   // Godowns answers "where is my stock", not "what's low". Low/critical is a
   // velocity decision that lives in Inventory + Reorder — flagging it here off
@@ -161,7 +161,7 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
           {[...batches]
             .sort((a, b) => a.received_at.localeCompare(b.received_at))
             .map((b, i) => {
-              const bQty  = fmtQty(b.qty_pieces_remaining, sku.pcs_per_pack, pcsPerCtn);
+              const bQty  = fmtQty(b.qty_pieces_remaining, sku);
               const bDate = mvtInstant(b.received_at, { day: "numeric", month: "short", year: "2-digit" });
               return (
                 <div

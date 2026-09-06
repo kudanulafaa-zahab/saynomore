@@ -39,7 +39,7 @@ import { listSuppliers, listGodowns, type SupplierRow, type GodownRow } from "@/
 import { haptic } from "@/lib/haptics";
 import { mvtInstant, mvtPlainDay } from "@/lib/mvt-date";
 import { CARD_ROUNDED as CARD } from "@/lib/surfaces";
-import { containerLabel, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, packConfigText, variantSuffix, type UnitUom } from "@/lib/trade-units";
 import { count, mvr, mvr2, mvrUpTo } from "@/lib/money";
 
 /* ── Style helpers ───────────────────────────────────────────────────────── */
@@ -1083,12 +1083,24 @@ export function ShipmentDetail({ id }: { id: string }) {
                   {/* Top: SKU name + actions */}
                   <div className="flex items-start justify-between gap-2 p-4 pb-3">
                     <div className="min-w-0 flex-1">
-                      <p className="ios-subhead font-semibold text-foreground leading-tight">
-                        {sku ? `${sku.brand_name} › ${sku.model_name} › ${sku.variant_display}` : "Unknown SKU"}
+                      {/* The product and its pack configuration were both
+                          ios-subhead, so the line he is checking a container
+                          against had no headline. And the config was typed —
+                          "1/pk × 1/ctn" for a tub, the string Ali
+                          photographed — with the variant joined
+                          unconditionally, which repeats a single-size
+                          product's own model name. */}
+                      <p className="snm-primary leading-tight">
+                        {sku
+                          ? [sku.brand_name, sku.model_name, variantSuffix(sku.model_name, sku.variant_display)]
+                              .filter(Boolean).join(" › ")
+                          : "Unknown SKU"}
                       </p>
-                      <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                        {sku ? `${sku.pcs_per_pack}/pk × ${sku.packs_per_carton}/ctn` : ""}
-                        {godown ? ` · → ${godown.name}` : ""}
+                      <p className="snm-support mt-0.5">
+                        {[
+                          sku ? packConfigText({ pcsPerPack: sku.pcs_per_pack, packsPerCarton: sku.packs_per_carton, unitUom: sku.unit_uom as UnitUom }) : null,
+                          godown ? `→ ${godown.name}` : null,
+                        ].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                     {!locked && (
@@ -1295,7 +1307,7 @@ export function ShipmentDetail({ id }: { id: string }) {
                 style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                 <Lock className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "var(--snm-success)" }} />
                 <div className="flex-1">
-                  <p className="ios-subhead font-semibold text-foreground">These costs are locked in</p>
+                  <p className="snm-primary">These costs are locked in</p>
                   <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                     This shipment is received, so its costs can&apos;t change — that keeps your profit figures honest.
                     {isAdmin ? " To fix a mistake, use “Reopen to Edit” in the ⋯ menu." : " Ask an admin to reopen it if something needs fixing."}
@@ -1315,9 +1327,9 @@ export function ShipmentDetail({ id }: { id: string }) {
             <div className={locked ? "" : "pt-1"}>
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand-text)" }}>1</span>
-                <p className="ios-subhead font-semibold text-foreground">Exchange rate</p>
+                <p className="snm-primary">Exchange rate</p>
               </div>
-              <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
+              <p className="snm-support mb-3">
                 What your bank charged to convert money. Locked once you confirm.
               </p>
               <div className="grid grid-cols-2 gap-3 mb-2">
@@ -1365,9 +1377,9 @@ export function ShipmentDetail({ id }: { id: string }) {
             <div>
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand-text)" }}>2</span>
-                <p className="ios-subhead font-semibold text-foreground">Shipping cost</p>
+                <p className="snm-primary">Shipping cost</p>
               </div>
-              <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
+              <p className="snm-support mb-3">
                 What you paid to ship your goods (in USD). Sharing a container? Use the estimator below.
               </p>
               <Field label="MY SHIPPING COST (USD)">
@@ -1391,9 +1403,9 @@ export function ShipmentDetail({ id }: { id: string }) {
             <div>
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="ios-subhead font-bold" style={{ color: "var(--snm-brand-text)" }}>3</span>
-                <p className="ios-subhead font-semibold text-foreground">Port &amp; clearing costs <span className="font-normal" style={{ color: "var(--muted-foreground)" }}>(in MVR)</span></p>
+                <p className="snm-primary">Port &amp; clearing costs <span className="font-normal" style={{ color: "var(--muted-foreground)" }}>(in MVR)</span></p>
               </div>
-              <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
+              <p className="snm-support mb-3">
                 Charges you paid here in the Maldives. Leave any at 0 if they don&apos;t apply.
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -1788,7 +1800,7 @@ export function ShipmentDetail({ id }: { id: string }) {
             Delete shipment {shipment.reference}?
           </h2>
         </div>
-        <p className="ios-subhead mb-3" style={{ color: "var(--muted-foreground)" }}>
+        <p className="snm-support mb-3">
           This erases the goods you received and every sale made from them. It cannot be undone.
         </p>
 
@@ -2078,7 +2090,7 @@ function LineDialog({
                       style={{ borderBottom: "0.5px solid var(--glass-border-lo)", background: "transparent" }}>
                       <SkuIdentity
                         brandName={s.brand_name} modelName={s.model_name} variantDisplay={s.variant_display}
-                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton}
+                        pcsPerPack={s.pcs_per_pack} packsPerCarton={s.packs_per_carton} unitUom={s.unit_uom as UnitUom}
                         trailing={`CBM ${Number(s.cbm_per_carton).toFixed(4)}`}
                       />
                     </button>
@@ -2091,7 +2103,7 @@ function LineDialog({
               <div className="flex justify-between items-start gap-3">
                 <SkuIdentity
                   brandName={sku.brand_name} modelName={sku.model_name} variantDisplay={sku.variant_display}
-                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton}
+                  pcsPerPack={sku.pcs_per_pack} packsPerCarton={sku.packs_per_carton} unitUom={sku.unit_uom as UnitUom}
                   size="card"
                   trailing={`CBM ${Number(sku.cbm_per_carton).toFixed(4)}`}
                 />

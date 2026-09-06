@@ -189,7 +189,12 @@ function CodView() {
               { label: "Pending Deposit", value: `MVR ${fmt(totalPending)}`,   color: totalPending > 0 ? "var(--snm-warning)" : "var(--snm-success)" },
             ].map((s) => (
               <div key={s.label}>
-                <p style={{ color: "var(--muted-foreground)", fontSize: 10, fontWeight: 600, letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 5 }}>{s.label}</p>
+                {/* Was 10px. Uppercase tracked text reads visually smaller
+                    than its point size, and this names a money figure — it is
+                    content, not decoration. .label-caps is the app's one caps
+                    class (12/700) and is what Receivables and the Dashboard
+                    already use for exactly this. */}
+                <p className="label-caps" style={{ color: "var(--muted-foreground)", marginBottom: 5 }}>{s.label}</p>
                 <p style={{ color: s.color, fontSize: 21, fontWeight: 700, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{s.value}</p>
               </div>
             ))}
@@ -197,7 +202,7 @@ function CodView() {
           {hasIssue && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "0.5px solid var(--glass-border-lo)" }}>
               <AlertTriangle style={{ color: "var(--snm-error)", width: 14, height: 14, flexShrink: 0 }} />
-              <p style={{ color: "var(--snm-error)", fontSize: 12 }}>One or more drivers have a cash variance — review below.</p>
+              <p className="ios-footnote" style={{ color: "var(--snm-error)" }}>One or more drivers have a cash variance — review below.</p>
             </div>
           )}
         </div>
@@ -227,13 +232,16 @@ function CodView() {
                       <Banknote style={{ width: 16, height: 16, color }} />
                     </div>
                     <div style={{ textAlign: "left", minWidth: 0 }}>
-                      <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.driver_name}</p>
-                      <p style={{ color: "var(--muted-foreground)", fontSize: 12 }}>{r.orders_count} order{r.orders_count !== 1 ? "s" : ""} · {statusLabel(r.recon_status)}</p>
+                      {/* The driver and the cash he brought back were both
+                          14px — the person and the money at one size, with
+                          the order count at 12 underneath. Roles now. */}
+                      <p className="snm-primary" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.driver_name}</p>
+                      <p className="snm-support">{r.orders_count} order{r.orders_count !== 1 ? "s" : ""} · {statusLabel(r.recon_status)}</p>
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0, display: "flex", alignItems: "center", gap: 12 }}>
                     <div>
-                      <p style={{ color: "var(--foreground)", fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>MVR {fmt(Number(r.collected_mvr))}</p>
+                      <p className="snm-value">MVR {fmt(Number(r.collected_mvr))}</p>
                       {Math.abs(Number(r.variance_mvr)) >= 0.01 && (
                         <p style={{ color, fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{Number(r.variance_mvr) >= 0 ? "+" : ""}MVR {fmt(Number(r.variance_mvr))} variance</p>
                       )}

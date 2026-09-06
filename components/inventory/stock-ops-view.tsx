@@ -20,12 +20,15 @@ import {
 import { ConfirmSheet } from "@/components/ui/confirm-sheet";
 import { haptic } from "@/lib/haptics";
 import { toPieces, type SaleUom } from "@/lib/queries/sales";
-import { sellableTiers, sellUnitLabel, type SellUnit, type UnitUom } from "@/lib/trade-units";
+import { formatStockQty, packConfigText, sellableTiers, sellUnitLabel, unitAbbr, type SellUnit, type UnitUom } from "@/lib/trade-units";
 import { mvtInstant } from "@/lib/mvt-date";
 import { useOnMount } from "@/lib/use-on-mount";
 import { mvr, mvr2, mvrUpTo } from "@/lib/money";
 
-/* ── qty helpers (pieces → carton/pack, matches inventory-view) ── */
+/* ── qty helpers ──────────────────────────────────────────────────────────
+   The cartons / whole packs / sub-pack split, as NUMBERS. The stock-count
+   sheet has a cartons field and a loose-packs field, so it needs the split
+   rather than a string — a formatted string cannot go in a number input. */
 function toCtns(pcs: number, pcsPerCtn: number) {
   return pcsPerCtn > 0 ? Math.floor(pcs / pcsPerCtn) : 0;
 }
@@ -33,20 +36,20 @@ function remPacks(pcs: number, pcsPerPack: number, pcsPerCtn: number) {
   const rem = pcsPerCtn > 0 ? pcs % pcsPerCtn : pcs;
   return pcsPerPack > 0 ? Math.floor(rem / pcsPerPack) : 0;
 }
-/** Compact chip word for one pack-level unit: a Sosoft 500ml is a bottle. */
-function packAbbr(unitUom: string | null | undefined) {
-  return unitUom === "ml" ? "btl" : unitUom === "g" ? "pch" : "pk";
+
+/** Stock Ops, Inventory and Godowns all show stock the LEDGER's way — a loose
+ *  tier is real here — and all three used to carry their own copy of this.
+ *  One implementation now, in lib/trade-units.ts, with the reason it differs
+ *  from formatQtyInTradeUnits written beside it. */
+function fmtQty(pcs: number, sku: { pcs_per_pack: number; packs_per_carton: number; unit_uom: UnitUom }) {
+  return formatStockQty(pcs, {
+    pcsPerPack: sku.pcs_per_pack,
+    packsPerCarton: sku.packs_per_carton,
+    unitUom: sku.unit_uom,
+  });
 }
-function fmtQty(pcs: number, pcsPerPack: number, pcsPerCtn: number, unitUom?: string | null) {
-  const ctns = toCtns(pcs, pcsPerCtn);
-  const packs = remPacks(pcs, pcsPerPack, pcsPerCtn);
-  const pk = packAbbr(unitUom);
-  if (ctns > 0 && packs > 0) return `${ctns} ctn + ${packs} ${pk}`;
-  if (ctns > 0) return `${ctns} ctn`;
-  if (packs > 0) return `${packs} ${pk}`;
-  // Stock is quoted in what Ali trades in, never a bare piece count.
-  return pcs > 0 ? `< 1 ${pk}` : "0";
-}
+const packAbbr = (u: string | null | undefined) => unitAbbr(u as UnitUom | null | undefined);
+
 function skuLabel(s: SkuFullRow) {
   return [s.brand_name, s.model_name, s.variant_display].filter(Boolean).join(" · ");
 }
@@ -782,7 +785,7 @@ function VerifyTab({
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-foreground leading-snug truncate">{skuLabel(r.sku)}</p>
                     <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                      {r.sku.internal_code} · {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)}</span>
+                      {r.sku.internal_code} · {packConfigText({ pcsPerPack: r.sku.pcs_per_pack, packsPerCarton: r.sku.packs_per_carton, unitUom: r.sku.unit_uom })} · <span className="snm-num" style={{ fontSize: 13, fontWeight: 600, color: "var(--foreground)" }}>system: {fmtQty(r.expected, r.sku)}</span>
                     </p>
                   </div>
                   {/* Count entry — cartons + loose packs, matching how stock
@@ -840,7 +843,7 @@ function VerifyTab({
                   <div className="flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="h-3 w-3" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }} />
                     <p className="snm-num ios-subhead font-semibold" style={{ color: delta < 0 ? "var(--snm-error)" : "var(--snm-warning)" }}>
-                      {delta < 0 ? `${fmtQty(-delta, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)} short` : `${fmtQty(delta, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)} extra`} — will adjust to {fmtQty(n, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)}
+                      {delta < 0 ? `${fmtQty(-delta, r.sku)} short` : `${fmtQty(delta, r.sku)} extra`} — will adjust to {fmtQty(n, r.sku)}
                     </p>
                   </div>
                 )}
@@ -1027,11 +1030,11 @@ function TransferTab({
             <div className="min-w-0">
               <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
               <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>
-                {selected.pcs_per_pack}/pk × {selected.packs_per_carton}/ctn
+                {packConfigText({ pcsPerPack: selected.pcs_per_pack, packsPerCarton: selected.packs_per_carton, unitUom: selected.unit_uom })}
               </p>
             </div>
             <p className="snm-num ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
-              {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} avail
+              {fmtQty(availForSelected, selected)} avail
             </p>
           </div>
           <div className="flex items-center justify-between">
@@ -1075,7 +1078,7 @@ function TransferTab({
               and diapers are never counted in pieces on screen. */}
           {overAvailable && (
             <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>
-              Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} available to move.
+              Only {fmtQty(availForSelected, selected)} available to move.
             </p>
           )}
           <button
@@ -1111,7 +1114,6 @@ function TransferTab({
       ) : (
         <div className="space-y-2">
           {available.map((r) => {
-            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
             const active = skuId === r.sku.id;
             return (
               <button
@@ -1138,7 +1140,7 @@ function TransferTab({
                         different pack configs (e.g. Xtra Kering XXXL 34/pk vs
                         44/pk) — without this they're visually identical and
                         impossible to tell apart when picking one to move. */}
-                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)} available
+                    {packConfigText({ pcsPerPack: r.sku.pcs_per_pack, packsPerCarton: r.sku.packs_per_carton, unitUom: r.sku.unit_uom })} · {fmtQty(r.avail, r.sku)} available
                   </p>
                 </div>
               </button>
@@ -1235,16 +1237,15 @@ function WriteOffTab({
       <SearchField value={q} onChange={setQ} label="Search items to write off" placeholder="Find the damaged item…" />
 
       {selected && (() => {
-        const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
         return (
           <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-1)", border: "1px solid color-mix(in srgb, var(--snm-error) 35%, transparent)" }}>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
-                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{selected.pcs_per_pack}/pk × {selected.packs_per_carton}/ctn</p>
+                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{packConfigText({ pcsPerPack: selected.pcs_per_pack, packsPerCarton: selected.packs_per_carton, unitUom: selected.unit_uom })}</p>
               </div>
               <p className="snm-num ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
-                {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} on hand
+                {fmtQty(availForSelected, selected)} on hand
               </p>
             </div>
 
@@ -1289,7 +1290,7 @@ function WriteOffTab({
             />
             {/* No piece echo — see the note in the transfer panel above. */}
             {overAvailable && (
-              <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} on hand here.</p>
+              <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>Only {fmtQty(availForSelected, selected)} on hand here.</p>
             )}
 
             <input
@@ -1366,7 +1367,6 @@ function WriteOffTab({
       ) : (
         <div className="space-y-2">
           {available.map((r) => {
-            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
             const active = skuId === r.sku.id;
             return (
               <button
@@ -1381,7 +1381,7 @@ function WriteOffTab({
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
                   <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)} on hand
+                    {packConfigText({ pcsPerPack: r.sku.pcs_per_pack, packsPerCarton: r.sku.packs_per_carton, unitUom: r.sku.unit_uom })} · {fmtQty(r.avail, r.sku)} on hand
                   </p>
                 </div>
               </button>
@@ -1764,16 +1764,15 @@ function GiveawayTab({
       <SearchField value={q} onChange={setQ} label="Search items to give away" placeholder="Find the item you gave away…" />
 
       {selected && (() => {
-        const pcsPerCtn = selected.pcs_per_pack * selected.packs_per_carton;
         return (
           <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--glass-1)", border: "1px solid var(--glass-border-lo)" }}>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="ios-subhead font-semibold text-foreground truncate">{skuLabel(selected)}</p>
-                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{selected.pcs_per_pack}/pk × {selected.packs_per_carton}/ctn</p>
+                <p className="ios-footnote" style={{ color: "var(--muted-foreground)" }}>{packConfigText({ pcsPerPack: selected.pcs_per_pack, packsPerCarton: selected.packs_per_carton, unitUom: selected.unit_uom })}</p>
               </div>
               <p className="snm-num ios-subhead shrink-0" style={{ color: "var(--muted-foreground)" }}>
-                {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} on hand
+                {fmtQty(availForSelected, selected)} on hand
               </p>
             </div>
 
@@ -1820,7 +1819,7 @@ function GiveawayTab({
               style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)", border: `1px solid ${overAvailable ? "color-mix(in srgb, var(--snm-error) 45%, transparent)" : "var(--glass-border-lo)"}` }}
             />
             {overAvailable && (
-              <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>Only {fmtQty(availForSelected, selected.pcs_per_pack, pcsPerCtn, selected.unit_uom)} on hand here.</p>
+              <p className="ios-subhead" style={{ color: "var(--snm-error)" }}>Only {fmtQty(availForSelected, selected)} on hand here.</p>
             )}
 
             <input
@@ -1865,7 +1864,6 @@ function GiveawayTab({
       ) : (
         <div className="space-y-2">
           {available.map((r) => {
-            const pcsPerCtn = r.sku.pcs_per_pack * r.sku.packs_per_carton;
             const active = skuId === r.sku.id;
             return (
               <button
@@ -1880,7 +1878,7 @@ function GiveawayTab({
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-foreground truncate">{skuLabel(r.sku)}</p>
                   <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {r.sku.pcs_per_pack}/pk × {r.sku.packs_per_carton}/ctn · {fmtQty(r.avail, r.sku.pcs_per_pack, pcsPerCtn, r.sku.unit_uom)} on hand
+                    {packConfigText({ pcsPerPack: r.sku.pcs_per_pack, packsPerCarton: r.sku.packs_per_carton, unitUom: r.sku.unit_uom })} · {fmtQty(r.avail, r.sku)} on hand
                   </p>
                 </div>
               </button>
