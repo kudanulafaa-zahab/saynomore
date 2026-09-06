@@ -31,8 +31,17 @@ field would have stopped. It is not added because the title sounds thorough.
 1. Read `package.json` for actual versions before writing against any API.
    (As of v3: Next.js 16 App Router + Turbopack + **React Compiler enabled**
    in `next.config.ts`, React 19, Tailwind v4, Supabase, TS strict.)
-2. Extend the existing token system in `app/globals.css` — never fork a second one.
-3. State findings briefly, then proceed.
+2. Extend the existing token system — never fork a second one. **It is TWO
+   files with a clean split, and reading only one of them is how the fork
+   happens:** `app/design-system.css` owns the TYPE SCALE and the COLOUR ROLES
+   (`--ds-*`) and loads last, so it wins; `app/globals.css` owns everything
+   else — the palettes, the glass material, the frost dial — and holds no
+   colour of its own, aliasing `--snm-*` to `--ds-*`. A new colour goes in
+   design-system.css or it goes in six places, which is what had happened.
+3. **Run `npm run audit:fast`** (see Seat 2). Four audits, no browser, no
+   database, about a second — they know things a 22-minute CI round would
+   otherwise have to teach you.
+4. State findings briefly, then proceed.
 
 ---
 
