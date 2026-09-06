@@ -4,7 +4,7 @@
   "_first_run": "MEASURED 2026-09-05: 273 literals across 20 files. The worst are the screens where money is entered \u2014 New Sale (54), Stock Ops (45), Inventory (35). This number goes down one file at a time; it must never go up.",
   "_exempt": "lib/trade-units.ts owns these words. components/competitors/ is exempt because rivals sell 30s, 34s and 48s so per-piece is the only comparable unit \u2014 CLAUDE.md names this as the single deliberate exception. Comments are stripped before matching, so the rules can be written in English.",
   "components/costing/costing-simulator.tsx": 8,
-  "components/finance/price-lists-view.tsx": 22,
+  "components/finance/price-lists-view.tsx": 20,
   "components/finance/price-review.tsx": 2,
   "components/inventory/godowns-view.tsx": 12,
   "components/inventory/inventory-view.tsx": 26,

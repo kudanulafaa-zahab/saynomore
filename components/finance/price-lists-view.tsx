@@ -14,7 +14,7 @@ import {
   type PriceListRow, type PriceListItemRow,
 } from "@/lib/queries/pricelists";
 import type { PriceTier } from "@/lib/queries/masters";
-import { containerLabel, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, packConfigSentence, unitAbbr, variantSuffix, type UnitUom } from "@/lib/trade-units";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
@@ -739,7 +739,7 @@ function PriceListItemsSheet({ priceList, skus, canWrite, onDone }: {
                           (Ali, 2026-08-06). */}
                       {s.landed_per_piece_mvr != null && (
                         <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
-                          Landed MVR {(Number(s.landed_per_piece_mvr) * (s.pcs_per_pack ?? 1)).toFixed(2)}/pk
+                          Landed MVR {(Number(s.landed_per_piece_mvr) * (s.pcs_per_pack ?? 1)).toFixed(2)}/{unitAbbr(s.unit_uom as UnitUom)}
                         </p>
                       )}
                     </button>
@@ -912,11 +912,21 @@ function SkuPriceEntry({ sku, creatingHeader, onBack, onSave, initialPrices, sav
     <div className="rounded-2xl p-4 space-y-4" style={{ background: "var(--glass-1)", border: "0.5px solid var(--glass-border-lo)" }}>
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="ios-subhead font-semibold" style={{ color: "var(--foreground)" }}>{sku.brand_name} › {sku.model_name}</p>
-          {sku.variant_display && <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>{sku.variant_display}</p>}
-          <p className="ios-subhead mt-1" style={{ color: "var(--muted-foreground)" }}>
-            {pcsPerPack} pcs/pack · {packsPerCarton} packs/carton · {pcsPerCarton} pcs/carton
-          </p>
+          <p className="snm-primary">{sku.brand_name} › {sku.model_name}</p>
+          {variantSuffix(sku.model_name, sku.variant_display) && (
+            <p className="snm-support">{variantSuffix(sku.model_name, sku.variant_display)}</p>
+          )}
+          {/* Was "34 pcs/pack · 3 packs/carton · 102 pcs/carton" — the pack
+              configuration stated in PIECES, on the screen where he sets
+              prices, and CLAUDE.md is explicit that a piece count never
+              reaches him. The pack SIZE is kept, because that is how a variant
+              is identified ("a 48s and a 34s are different products"); the
+              102 was a pure piece count carrying no identity at all. */}
+          {packConfigSentence({ pcsPerPack, packsPerCarton, unitUom: sku.unit_uom as UnitUom }) && (
+            <p className="snm-support mt-1">
+              {packConfigSentence({ pcsPerPack, packsPerCarton, unitUom: sku.unit_uom as UnitUom })}
+            </p>
+          )}
           {/* Quoted per pack, the unit he prices in — the per-piece figure
               underneath is the ledger's, not his (Ali, 2026-08-06). */}
           {landed != null && (
