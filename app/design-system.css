@@ -316,20 +316,38 @@ html {
      selectors and aliases --snm-* to these; it holds no colour of its own. */
 
   /* Every ratio below was measured in a real browser, in both palettes, with
-     the token composited through the surface stack it actually lands on: a
-     card inside a card, which is the lightest surface in light mode and the
-     lightest in dark. Each was checked three ways — as text on that card, as
-     text on its own 14/18% tint (a status badge), and as a fill carrying
-     --snm-on-fill. Sixty cases; the number shown is the worst of the three.
+     the token composited through the surface stack it actually lands on. Each
+     was checked three ways — as text on a card, as text on its own 14/18% tint
+     (a status badge), and as a fill carrying --snm-on-fill.
+
+     AND THEN ONE OF THEM STILL FAILED CI, WHICH IS THE POINT OF THIS NOTE.
+     I measured against "a card inside a card, the lightest surface in the
+     app", because that is what CLAUDE.md says to tune against. In Ember light
+     it is not: the PAGE is #f8ede8 and a glass card composites DARKER than it,
+     so the lightest surface a token can land on is the bare page. The
+     "Confirmed" badge on the Sales list sits there, at 10px/700 — too small
+     for the 3:1 large-text allowance — and Carbon Blue 60 came back at 4.35:1
+     in Ember and 4.47:1 in Aurora, having measured 4.92:1 on the card.
+
+     So: the audit composites what is actually behind the pixel, and a local
+     probe reasoning about which surface is lightest does not. Blue 60 is now
+     Blue 70. Never conclude a colour passes from a probe; run
+     `npm run audit:contrast`, which walks all 84 screen × palette × scheme
+     combinations and would have said this in one run.
 
      LIGHT — hue from the source, lightness moved only until it clears 4.5:1.
      None of these is the source's exact value except Blue 60, because none of
      the others cleared the floor on this app's cards. */
-  --ds-l-interactive: #0f62fe;  /* [CARBON] Blue 60, unchanged        4.92:1 */
+  --ds-l-interactive: #0043ce;  /* [CARBON] Blue 70                   6.78:1
+                                   Blue 60 #0f62fe was here and CI failed it:
+                                   4.35:1 for the 10px "Confirmed" badge on
+                                   the Ember page, 4.47:1 on Aurora. See the
+                                   note below the ramps — I had measured it on
+                                   the wrong surface. */
   --ds-l-error:       #b4230f;  /* [POLARIS] critical #d72c0d, deeper 6.49:1 */
   --ds-l-success:     #1a6e4a;  /* [POLARIS] success  #29845a, deeper 6.13:1 */
   --ds-l-warning:     #8d5b00;  /* [CARBON] warning hue, as text      5.70:1 */
-  --ds-l-info:        #0f62fe;  /* information is blue, in every palette     */
+  --ds-l-info:        #0043ce;  /* information is blue, in every palette     */
   --ds-l-promo:       #6b2fc9;  /* [M3] tertiary, [CARBON] Purple     7.19:1 */
   --ds-l-tint:        14%;
 
