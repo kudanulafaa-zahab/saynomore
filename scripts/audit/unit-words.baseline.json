@@ -21,6 +21,6 @@
   "components/sales/sale-detail.tsx": 12,
   "components/sales/stock-in-sheet.tsx": 2,
   "components/shipments/reorder-view.tsx": 4,
-  "components/shipments/shipment-detail.tsx": 5,
+  "components/shipments/shipment-detail.tsx": 4,
   "components/shipments/shipment-summary.tsx": 2
 }
