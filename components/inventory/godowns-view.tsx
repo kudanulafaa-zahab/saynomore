@@ -16,7 +16,7 @@ import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
 import { mvtInstant } from "@/lib/mvt-date";
 import { mvrShort, mvrUpTo } from "@/lib/money";
-import { formatStockQty, type UnitUom } from "@/lib/trade-units";
+import { costPerTradeUnit, formatStockQty, type UnitUom } from "@/lib/trade-units";
 
 /* ── Helpers ── */
 
@@ -184,8 +184,19 @@ function SkuRow({ slot }: { slot: SkuSlot }) {
                   </div>
                   <div className="text-right">
                     <span className="ios-subhead font-semibold text-foreground snm-num">{bQty}</span>
+                    {/* Was "MVR 10.40/pc" — the only cost on the row, in a
+                        unit nothing is traded in. Inventory's identical batch
+                        row was fixed for this; this one was missed. */}
                     <span className="ios-subhead ml-1.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
-                      MVR {b.landed_per_piece_mvr.toFixed(2)}/pc
+                      {(() => {
+                        const c = costPerTradeUnit(Number(b.landed_per_piece_mvr), {
+                          pcsPerPack: sku.pcs_per_pack,
+                          packsPerCarton: sku.packs_per_carton,
+                          unitUom: sku.unit_uom as UnitUom,
+                          sellableUnits: sku.sellable_units,
+                        });
+                        return `MVR ${c.value.toFixed(2)}/${c.unitLabel}`;
+                      })()}
                     </span>
                   </div>
                 </div>

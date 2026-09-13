@@ -14,7 +14,7 @@ import {
   type PriceListRow, type PriceListItemRow,
 } from "@/lib/queries/pricelists";
 import type { PriceTier } from "@/lib/queries/masters";
-import { containerLabel, packConfigSentence, unitAbbr, variantSuffix, type UnitUom } from "@/lib/trade-units";
+import { containerLabel, costPerTradeUnit, packConfigSentence, unitAbbr, variantSuffix, type UnitUom } from "@/lib/trade-units";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
@@ -453,13 +453,26 @@ function NewPriceListWithSkusSheet({ tier, skus, createdList, onListCreated, onC
                 >
                   <p className="ios-subhead font-medium" style={{ color: "var(--foreground)" }}>
                     {s.brand_name} › {s.model_name}
-                    {s.variant_display ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {s.variant_display}</span> : null}
+                    {variantSuffix(s.model_name, s.variant_display) ? <span className="font-normal" style={{ color: "var(--muted-foreground)" }}> · {variantSuffix(s.model_name, s.variant_display)}</span> : null}
                   </p>
-                  {s.landed_per_piece_mvr != null && (
-                    <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
-                      Landed MVR {Number(s.landed_per_piece_mvr).toFixed(3)}/pc
-                    </p>
-                  )}
+                  {/* Was "Landed MVR 4.917/pc" — a PER-PIECE price, on the
+                      screen where Ali sets what he charges. CLAUDE.md: money is
+                      quoted in the unit sold; a piece is the ledger's unit, not
+                      his. The sister row lower down had the same defect wearing
+                      "/pk" and was fixed on 2026-09-06; this one survived
+                      because audit:units matches "pcs" and "pieces" but not
+                      "/pc". That gap is closed in the same commit. */}
+                  {s.landed_per_piece_mvr != null && (() => {
+                    const c = costPerTradeUnit(Number(s.landed_per_piece_mvr), {
+                      pcsPerPack: s.pcs_per_pack, packsPerCarton: s.packs_per_carton,
+                      unitUom: s.unit_uom as UnitUom, sellableUnits: s.sellable_units,
+                    });
+                    return (
+                      <p className="ios-subhead mt-0.5 snm-num" style={{ color: "var(--muted-foreground)" }}>
+                        Landed MVR {c.value.toFixed(2)}/{c.unitLabel}
+                      </p>
+                    );
+                  })()}
                 </button>
               ))}
             </div>

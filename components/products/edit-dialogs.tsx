@@ -385,9 +385,10 @@ export function EditSkuDialog({
                 </span>
                 <span className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>per {unit.toLowerCase()}</span>
               </div>
-              <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
-                MVR {Number(sku.landed_per_piece_mvr).toFixed(4)} /pc
-              </p>
+              {/* A 4-decimal per-piece cost used to sit here, directly under
+                  the correct per-pack figure. Ali had exactly this removed
+                  from the Products screen on 2026-08-06 — he trades in packs
+                  and cartons, so it is noise — and this copy survived. */}
               {sku.selling_price_per_piece_mvr != null && (
                 <div className="pt-2 border-t" style={{ borderColor: "var(--glass-border-lo)" }}>
                   <p className="text-[12px] uppercase tracking-wider mb-1.5 font-semibold" style={{ color: "var(--muted-foreground)" }}>
@@ -404,9 +405,10 @@ export function EditSkuDialog({
                       <p className="ios-subhead" style={{ color: "var(--muted-foreground)" }}>Per {unit.toLowerCase()}</p>
                       <div className="text-right">
                         <p className="font-bold text-foreground text-[15px]">MVR {Number(sku.selling_price_per_pack_mvr).toFixed(0)}</p>
-                        <p className="ios-subhead" style={{ color: "var(--muted-foreground)", opacity: 0.7 }}>
-                          MVR {Number(sku.selling_price_per_piece_mvr).toFixed(4)} /pc
-                        </p>
+                        {/* The per-piece SELLING price was here too, the last
+                            of six copies of the same figure across the app.
+                            Same reason as the cost above: he sells packs and
+                            cartons, and per-piece belongs to Market alone. */}
                       </div>
                     </div>
                     {/* Carton price */}

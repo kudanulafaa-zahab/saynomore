@@ -1233,19 +1233,17 @@ export function ShipmentDetail({ id }: { id: string }) {
                           </div>
                         ))}
                       </div>
-                      {/* Row 2: Per pack (trade unit, primary) + /pc (secondary, for competitor comparison) */}
+                      {/* Row 2: cost per pack — the unit it was bought,
+                          received and will be sold in. The "/pc · for
+                          comparison" figure that sat beside it is gone: this
+                          is not Market, and CLAUDE.md allows a per-piece
+                          figure only there. */}
                       <div className="rounded-lg p-3 flex items-center justify-between"
                         style={{ background: "color-mix(in srgb, var(--snm-success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-success) 20%, transparent)" }}>
                         <div>
                           <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>Cost per pack</p>
                           <p className="text-[18px] font-bold snm-num" style={{ color: "var(--snm-success)" }}>
                             {l.landed_per_pack_mvr != null ? `MVR ${fmt2(Number(l.landed_per_pack_mvr))}` : "—"}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · for comparison</p>
-                          <p className="ios-subhead font-semibold text-foreground snm-num">
-                            {l.landed_per_piece_mvr != null ? `MVR ${fmt2(Number(l.landed_per_piece_mvr))}` : "—"}
                           </p>
                         </div>
                       </div>
