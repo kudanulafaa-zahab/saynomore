@@ -39,7 +39,7 @@ import { Loader2 } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { receiveDirectStock } from "@/lib/queries/inventory";
 import { updateSku, type SkuFullRow } from "@/lib/queries/products";
-import { sellUnitLabel, sellableTiers, type UnitUom, type SellUnit } from "@/lib/trade-units";
+import { sellUnitLabel, sellableTiers, variantSuffix, type UnitUom, type SellUnit } from "@/lib/trade-units";
 import { haptic } from "@/lib/haptics";
 import { mvr2 } from "@/lib/money";
 
@@ -157,7 +157,7 @@ export function StockInSheet({
   }
 
   const title = useMemo(
-    () => `${sku.model_name}${sku.variant_display ? ` · ${sku.variant_display}` : ""}`,
+    () => [sku.model_name, variantSuffix(sku.model_name, sku.variant_display)].filter(Boolean).join(" · "),
     [sku],
   );
 
