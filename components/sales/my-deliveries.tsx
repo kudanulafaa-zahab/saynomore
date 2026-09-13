@@ -398,7 +398,10 @@ function ItemsBlock({ lines, skus, orderGodownId, godowns }: {
                 <span style={{ display: "block", fontSize: 22, fontWeight: 800, lineHeight: 1, color: "var(--snm-brand-text)", fontVariantNumeric: "tabular-nums" }}>
                   {l.qty}
                 </span>
-                <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--snm-brand-text)", textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 2 }}>
+                {/* The word that tells the driver whether to load cartons or
+                    packs, under the big number. It was 11px uppercase; he is
+                    one-handed in a godown with a carton in the other arm. */}
+                <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--snm-brand-text)", textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 2 }}>
                   {uomWord(l.uom, l.qty, sku)}
                 </span>
               </div>

@@ -35,7 +35,7 @@ import { SkuIdentity } from "@/components/ui/sku-identity";
 import { supabase } from "@/lib/supabase";
 import { SkeletonRows } from "@/components/layout/page-skeleton";
 import { haptic } from "@/lib/haptics";
-import { priceForMargin, sellableTiers, containerLabel, type UnitUom } from "@/lib/trade-units";
+import { priceForMargin, sellableTiers, containerLabel, variantSuffix, type UnitUom } from "@/lib/trade-units";
 import { buysLike, perPiece, theirCartonLabel } from "@/lib/competitor-price";
 import { mvtPlainDay } from "@/lib/mvt-date";
 import { CARD } from "@/lib/surfaces";
@@ -732,10 +732,16 @@ export function CompetitorsView() {
                 style={{ background: "color-mix(in srgb, var(--snm-warning) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--snm-warning) 20%, transparent)" }}
               >
                 <div className="min-w-0">
-                  <p className="ios-subhead font-semibold text-foreground truncate">
-                    {g.brand_name} · {g.model_name}{g.variant_display ? ` · ${g.variant_display}` : ""}
+                  {/* Two defects in one row: the product and the price
+                      comparison beneath it were both ios-subhead, so the row
+                      had no headline; and the variant was joined
+                      unconditionally, which since migration 0242 repeats a
+                      single-size product's own model name. */}
+                  <p className="snm-primary truncate">
+                    {[g.brand_name, g.model_name, variantSuffix(g.model_name, g.variant_display)]
+                      .filter(Boolean).join(" · ")}
                   </p>
-                  <p className="ios-subhead mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <p className="snm-support mt-0.5">
                     Ours {fmt2(g.our_price_mvr)}/pk vs {g.cheapest_competitor_name} {fmt2(g.cheapest_competitor_mvr)}/pk
                   </p>
                 </div>

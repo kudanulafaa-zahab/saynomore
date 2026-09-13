@@ -1107,7 +1107,12 @@ function LineEditor({ row, onPatch }: { row: Row; onPatch: (id: string, p: Parti
 function MiniField({ label, value, on, step = "0.01" }: { label: string; value: string; on: (v: string) => void; step?: string }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</span>
+      {/* Was 11px --muted-foreground. This is a field NAME on the screen where
+          Ali plans what a container will cost, and CLAUDE.md is explicit: if it
+          has to be read it is --foreground, and nothing that must be read sits
+          below 13px. The costing simulator is the screen that earned that rule
+          — it shipped as one grey wash once already. */}
+      <span className="snm-support block mb-1">{label}</span>
       <input
         type="number"
         inputMode="decimal"
@@ -1308,7 +1313,9 @@ function ResultRow({ r }: { r: CostingResultRow }) {
               <span className="snm-num text-[15px] font-semibold" style={{ color: "var(--foreground)" }}>
                 USD {money(r.max_fob_per_carton_usd)}
               </span>
-              <span className="snm-num text-[11px] ml-1" style={{ color: "var(--foreground)", opacity: 0.6 }}>/carton</span>
+              {/* The UNIT of a money figure, at 11px and 60% opacity. A figure
+                  whose unit a reader could guess wrong is a defect. */}
+              <span className="snm-num ios-footnote ml-1" style={{ color: "var(--foreground)", opacity: 0.8 }}>/carton</span>
               {r.fob_headroom_pct != null && (
                 <span className="snm-num block text-[11.5px]" style={{ color: "var(--snm-success)" }}>
                   {r.fob_headroom_pct.toFixed(0)}% room on the quote
