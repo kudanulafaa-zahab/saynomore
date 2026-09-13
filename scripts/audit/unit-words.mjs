@@ -64,6 +64,12 @@ const PATTERNS = [
   /\/ctn\b/,
   /\bctn\b/,
   /\/pk\b/,
+  // "/pc" — added 2026-09-13. A per-piece LANDED COST sat on the Price Lists
+  // picker reading "Landed MVR 4.917/pc", on the screen where Ali sets what he
+  // charges, and every pattern here missed it: "pcs" and "pieces" both need a
+  // trailing s. Its sister row, three hundred lines down, had the same defect
+  // spelled "/pk" and was caught. One character of difference bought it a week.
+  /\/pc\b/,
   /\bpcs\b/,
   /\bpieces?\b/i,
   /per carton/i,

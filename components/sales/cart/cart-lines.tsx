@@ -8,7 +8,7 @@
 // through them.
 
 import { Trash2 } from "lucide-react";
-import { formatMixedCartonQty, containerLabel } from "@/lib/trade-units";
+import { formatMixedCartonQty, containerLabel, variantSuffix } from "@/lib/trade-units";
 import { CARD } from "@/lib/surfaces";
 import { type DraftLine, groupCartLines, cartonShortfall, lineQtyText, linePriceText, lineStepUnit } from "./cart-math";
 import { mvr } from "@/lib/money";
@@ -43,9 +43,15 @@ export function CartItemRow({
           <p className="ios-subhead font-semibold text-foreground truncate">
             {hideBrand ? l.sku.model_name : `${l.sku.brand_name} · ${l.sku.model_name}`}
           </p>
-          <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>
-            {l.sku.variant_display}
-          </p>
+          {/* The size, and ONLY when it is not the model's own name again.
+              A single-size product (a body butter tub) has variant_display
+              equal to its model, so this printed the name twice, one line
+              under the other, in the cart. */}
+          {variantSuffix(l.sku.model_name, l.sku.variant_display) && (
+            <p className="ios-footnote truncate" style={{ color: "var(--muted-foreground)" }}>
+              {variantSuffix(l.sku.model_name, l.sku.variant_display)}
+            </p>
+          )}
           <p className="ios-footnote snm-num mt-0.5" style={{ color: "var(--foreground)", opacity: 0.75 }}>
             {lineQtyText(l)} · {linePriceText(l)}
           </p>

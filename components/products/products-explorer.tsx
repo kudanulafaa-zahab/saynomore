@@ -360,12 +360,14 @@ function SkuPanel({
                       MVR {fmtPrice(sku.selling_price_per_pack_mvr)}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[12px] uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-foreground)" }}>/pc · comparison</p>
-                    <p className="ios-subhead font-semibold text-foreground snm-num">
-                      MVR {fmtPrice(sku.selling_price_per_piece_mvr)}
-                    </p>
-                  </div>
+                  {/* The per-piece SELLING price used to sit here, and it is
+                      gone for the same reason the per-piece COST above it went
+                      on 2026-08-06 (see the note 50 lines up): Ali trades in
+                      packs and cartons, and per-piece comparison lives in
+                      Market, where rivals' 30s/34s/48s make it the only
+                      comparable unit. The removal was done in the cost block
+                      and missed its sibling — fixed where he found it, alive
+                      everywhere else, which is this app's recurring shape. */}
                 </div>
                 {/* Secondary: per carton (bulk) */}
                 <div className="rounded-xl px-4 py-2 flex items-center justify-between"

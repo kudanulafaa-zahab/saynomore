@@ -1426,7 +1426,10 @@ export function SaleDetail({ id }: { id: string }) {
           <strong style={{ color: "var(--foreground)" }}>
             {pendingDeleteLine && (() => {
               const sku = skus.find((s) => s.id === pendingDeleteLine.sku_id);
-              return sku ? `${sku.brand_name} ${sku.model_name} ${sku.variant_display}` : "This item";
+              return sku
+                ? [sku.brand_name, sku.model_name, variantSuffix(sku.model_name, sku.variant_display)]
+                    .filter(Boolean).join(" ")
+                : "This item";
             })()}
           </strong>{" "}
           comes off {order.order_number}
@@ -1566,7 +1569,7 @@ export function SaleDetail({ id }: { id: string }) {
                   style={{ width: "100%", height: 46, borderRadius: 12, padding: "0 12px", background: "var(--glass-bg-1)", color: "var(--foreground)", border: "0.5px solid var(--glass-border-lo)", fontSize: 14 }}>
                   {lines.map((l) => {
                     const s2 = skus.find((x) => x.id === l.sku_id);
-                    return <option key={l.id} value={l.sku_id}>{s2 ? `${s2.model_name} · ${s2.variant_display}` : l.sku_id}</option>;
+                    return <option key={l.id} value={l.sku_id}>{s2 ? [s2.model_name, variantSuffix(s2.model_name, s2.variant_display)].filter(Boolean).join(" · ") : l.sku_id}</option>;
                   })}
                 </select>
               </div>

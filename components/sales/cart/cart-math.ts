@@ -17,7 +17,7 @@
 import type { SkuFullRow } from "@/lib/queries/products";
 import type { SaleUom } from "@/lib/queries/sales";
 import {
-  containerLabel, sellUnitLabel, formatQtyInTradeUnits, pluralNoun,
+  containerLabel, sellUnitLabel, formatQtyInTradeUnits, pluralNoun, variantSuffix,
   type TradeUnitConfig, type UnitUom,
 } from "@/lib/trade-units";
 import { mvr, mvrUpTo } from "@/lib/money";
@@ -275,7 +275,7 @@ export function cartonShortfall(g: CartGroup): number {
  *
  *  Caught in the CART rather than at save, so he is told while he can still
  *  fix it, in the same place the incomplete-mix warning already appears. */
-export function cartMixConflicts(lines: DraftLine[]): { label: string; noun: string }[] {
+export function cartMixConflicts(lines: DraftLine[]): { label: string; noun: string; nounPlural: string }[] {
   const bySku = new Map<string, DraftLine[]>();
   for (const l of lines) {
     const g = bySku.get(l.sku.id);
@@ -285,8 +285,14 @@ export function cartMixConflicts(lines: DraftLine[]): { label: string; noun: str
     .filter((g) => g.some((l) => l.is_mixed_carton_fill)
                 && g.some((l) => !l.is_mixed_carton_fill && l.uom === "pack"))
     .map((g) => ({
-      label: [g[0].sku.model_name, g[0].sku.variant_display].filter(Boolean).join(" · "),
+      label: [g[0].sku.model_name, variantSuffix(g[0].sku.model_name, g[0].sku.variant_display)]
+               .filter(Boolean).join(" · "),
       noun: containerLabel(g[0].sku.unit_uom as UnitUom | null),
+      // The PLURAL comes from the shared helper. The caller used to append a
+      // bare "s", which spells "pouchs" for every gram-measured product —
+      // body butter's own noun, and the same bug that was fixed inside
+      // formatQtyInTradeUnits on 2026-09-06 and left standing out here.
+      nounPlural: pluralNoun(containerLabel(g[0].sku.unit_uom as UnitUom | null), 2),
     }));
 }
 

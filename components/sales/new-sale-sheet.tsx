@@ -2463,7 +2463,7 @@ export function NewSaleSheet({
 
           {mixConflicts.length > 0 && (
             <p className="ios-footnote mb-2 text-center" style={{ color: "var(--snm-warning)" }}>
-              {mixConflicts[0].label} is in a mixed carton AND as loose {mixConflicts[0].noun}s —
+              {mixConflicts[0].label} is in a mixed carton AND as loose {mixConflicts[0].nounPlural} —
               one order can only hold it one way. Remove one of them.
             </p>
           )}
